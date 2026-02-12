@@ -1,87 +1,75 @@
 
-# Fix AI Chatbot Conversation Flow and Data Display Issues
 
-## Issues Overview
+# Update Noddi Booking Proxy to Match Real API Endpoints
 
-There are 6 distinct problems with the AI chatbot conversation flow, spanning both the edge function logic and the frontend widget.
+## Problem
 
----
+The `noddi-booking-proxy` edge function uses incorrect/outdated Noddi API endpoints. The user captured the actual endpoints from the Noddi website's booking flow, revealing significant differences in how the API works.
 
-## Issue 1: Shows options AND asks to verify simultaneously
+## Current vs Real API Mapping
 
-**Problem**: When the user says "I want to make a booking", the AI shows an ACTION_MENU with options (Bestille ny tjeneste, Se mine bestillinger, etc.) AND asks for phone verification in the same response. It should go straight to verification first.
+| Step | Current Proxy | Real Noddi API |
+|------|--------------|----------------|
+| Car lookup | `/v1/cars/data-from-license-plate-number/?country_code=X&license_plate_number=X` | `/v1/cars/from-license-plate-number/?brand_domains=noddi&country_code=NO&number=X` |
+| List services | `/v1/booking-proposals/types/` (404!) | `/v1/sales-item-booking-categories/for-new-booking/?address_id=X` (requires address_id) |
+| Available items | N/A | `/v1/sales-items/initial-available-for-booking/` (POST) |
+| Earliest date | `/v1/delivery-windows/earliest-date/` (POST) | Same (correct) |
+| Latest date | N/A | `/v1/delivery-windows/latest-date/` (GET) |
+| Delivery windows | `/v1/delivery-windows/for-new-booking/?address_id=X` | `/v1/delivery-windows/for-new-booking/?address_id=X&from_date=X&selected_sales_item_ids=X&to_date=X` |
+| Create booking | `/v1/bookings/` (POST) | `/v1/bookings/shopping-cart-for-new-booking/` (POST) |
+| Service depts | N/A | `/v1/service-departments/from-booking-params/?address_id=X&sales_items_ids=X` |
+| Proposal system | `/v1/booking-proposals/` + `/v1/booking-proposal-items/` | Not used in real flow |
 
-**Root Cause**: The pre-verification flow prompt (`buildPreVerificationFlowPrompt`) walks the tree and outputs both the action menu node AND the phone verification node before stopping. The flow config has the action menu ("Present Actions") as a parent node containing phone verification as a child. The function traverses into the action menu before reaching the phone node.
+## Key Discoveries
 
-**Fix in `widget-ai-chat/index.ts`**: Restructure the `buildPreVerificationFlowPrompt` to prioritize phone verification. When the flow has phone verification, the pre-verification prompt should instruct the AI to ask for verification FIRST, before showing any menus or options. Add explicit instruction: "Before presenting any options or menus, you MUST first verify the customer's phone number."
+1. **Services require address_id** -- you can't list services without an address first
+2. **No proposal system** -- the real flow uses a "shopping cart" model, not proposals
+3. **Car lookup URL is different** -- uses `number=` param and `brand_domains=noddi`
+4. **Delivery windows need sales_item_ids** -- must pass selected service items
+5. **New endpoints needed** -- `initial-available-for-booking`, `latest-date`, `service-departments`
 
----
+## Changes
 
-## Issue 2: After verifying, asks "what would you like to do?" again
+### 1. `supabase/functions/noddi-booking-proxy/index.ts`
 
-**Problem**: After phone verification + customer lookup, the AI presents the same menu options again instead of continuing from where the user left off (they already said they want to make a booking).
+Refactor all actions to match the real API:
 
-**Root Cause**: The `__VERIFIED__` trigger message is generic ("I have just verified my phone number. Please look up my account and continue with the next step in the flow."). It doesn't carry forward the user's original intent. The system prompt's post-verification flow just rebuilds the full remaining tree.
+- **`lookup_car`**: Update URL to `/v1/cars/from-license-plate-number/?brand_domains=noddi&country_code=X&number=X`
+- **`list_services`**: Change to call `/v1/sales-item-booking-categories/for-new-booking/?address_id=X` (now requires `address_id` param)
+- **`available_items`** (new): Add action for `POST /v1/sales-items/initial-available-for-booking/`
+- **`delivery_windows`**: Add `selected_sales_item_ids` and `to_date` query params
+- **`create_booking`**: Change endpoint to `/v1/bookings/shopping-cart-for-new-booking/`
+- **Remove**: `create_proposal`, `add_proposal_item`, `start_booking` (not part of real flow)
+- **Add**: `service_departments` action for `/v1/service-departments/from-booking-params/`
+- **Add**: `latest_date` action for `/v1/delivery-windows/latest-date/`
 
-**Fix in `widget-ai-chat/index.ts`**: When the `__VERIFIED__` message is processed, replace it with a context-aware message that references the user's earlier stated intent. Modify line 1217-1219: when replacing `__VERIFIED__`, scan the conversation history for the user's original intent and include it. For example: "I have just verified my phone number. I previously said I want to make a booking. Please look up my account and continue directly with booking a new service."
+### 2. `supabase/functions/widget-ai-chat/index.ts`
 
-**Fix in `AiChat.tsx`**: When sending the `__VERIFIED__` trigger, include the user's last non-hidden message content so the AI knows what the user originally wanted.
+Update AI tool definitions to match the new proxy actions:
 
----
+- **`list_available_services`**: Add required `address_id` parameter to the tool definition
+- **`create_booking_proposal`**: Replace with a new `create_shopping_cart` tool that calls the shopping cart endpoint
+- **`get_delivery_windows`**: Add `selected_sales_item_ids` and `to_date` params
+- **`finalize_booking`**: Update to use the shopping cart endpoint
+- **Tool execution mapping** (~line 988-999): Update the `case` statements to pass correct params to the updated proxy actions
+- **Remove** references to proposal-based flow in system prompts
 
-## Issue 3: "Bestille ny tjeneste" asks if ordered before -- should use API data
+### 3. `src/widget/components/blocks/BookingSummaryBlock.tsx`
 
-**Problem**: After verification, the AI asks "Har du bestilt fra oss tidligere?" (Have you ordered before?) -- but it already looked up the customer via the API and knows this.
+Update the confirm handler to use the new shopping cart endpoint instead of `create_booking` + `start_booking`.
 
-**Root Cause**: The flow config has a Decision node "New Decision" with `check: "customer is existing"` set to `ask_customer` mode (not `auto_evaluate`). This means the AI presents it as a YES/NO question instead of auto-evaluating from the lookup data.
+## Technical Details
 
-**Fix in `widget-ai-chat/index.ts`**: In the `buildNodePrompt` function, when processing decision nodes for post-verification flows (where customer data has been looked up), treat "customer is existing" decisions as auto-evaluate regardless of the config setting. The lookup_customer tool result already contains `found: true/false` and booking history. Add logic: if the decision check mentions "existing" or "customer" and the customer is verified, auto-evaluate based on lookup data.
+### New proxy action signatures:
 
-Alternatively (and simpler): Add a system prompt instruction in the post-verification context: "You have already looked up the customer. If you found bookings in their history, they are an existing customer -- do NOT ask them if they have ordered before. Use the data you already have."
+```text
+list_services:      { action: "list_services", address_id: number }
+available_items:    { action: "available_items", address_id: number, car_ids: number[], sales_item_category_id: number }
+delivery_windows:   { action: "delivery_windows", address_id: number, from_date: string, to_date: string, selected_sales_item_ids: number[] }
+create_booking:     { action: "create_booking", ...shopping_cart_payload }
+lookup_car:         { action: "lookup_car", country_code: string, license_plate: string }
+earliest_date:      { action: "earliest_date", address_id: number }
+latest_date:        { action: "latest_date", address_id: number }
+service_departments:{ action: "service_departments", address_id: number, sales_items_ids: number[] }
+```
 
----
-
-## Issue 4: Address payload shown as user message in chat
-
-**Problem**: When the address block returns its payload (JSON with address, delivery_area, zip_code, city), it's sent via `handleActionSelect` which calls `sendMessage(option)` -- displaying the raw JSON as a user bubble.
-
-**Root Cause**: In `AiChat.tsx` line 228-232, `handleActionSelect` calls `sendMessage(option)` with the raw JSON payload from the block. This creates a visible user message bubble with the JSON string.
-
-**Fix in `AiChat.tsx`**: In `handleActionSelect`, detect if the payload is JSON (from interactive blocks like address, license plate, etc.) and either:
-- Extract a human-readable label from the JSON to display as the user message
-- OR send the message as hidden (like `__VERIFIED__`)
-
-The approach: parse the JSON payload and extract a display label. For address: show "Holtet 45, Stabekk". For car: show "Tesla Model Y (EC94156)". Send the full JSON payload to the AI but display only the label in the chat.
-
----
-
-## Issue 5: Car payload shown as user message (same as #4)
-
-**Problem**: Same root cause as Issue 4. The license plate block returns JSON like `{"make":"Tesla","model":"Model y","license_plate":"EC94156"}` and it's displayed raw.
-
-**Fix**: Same fix as Issue 4 -- the `handleActionSelect` function will parse JSON payloads and extract display labels for all block types.
-
----
-
-## Issue 6: Fails fetching service availability (502 error)
-
-**Problem**: The `noddi-booking-proxy` returns 502 with "Failed to fetch services" because the Noddi API returns 404 for `/v1/booking-proposals/types/`.
-
-**Root Cause**: The endpoint `/v1/booking-proposals/types/` doesn't exist or has moved in the Noddi API. The logs confirm: `List services error: 404 {"type": "client_error", "errors": [{"code": "not_found", "detail": "Not found."}]}`.
-
-**Fix in `noddi-booking-proxy/index.ts`**: The endpoint needs to be updated to the correct Noddi API path. Since we don't know the exact new endpoint, we should:
-1. Try the alternative endpoint `/v1/service-categories/` or `/v1/sales-items/` 
-2. If that also fails, add a hardcoded fallback list of known Noddi services (dekkskift, bilvask, etc.) so the flow doesn't break entirely
-3. Return a more helpful error message
-
-**Note**: This may require checking with the Noddi API documentation for the correct endpoint. As an interim fix, we can have the AI use the `list_available_services` tool which calls the same proxy -- if the endpoint is wrong, we should update it or use a fallback.
-
----
-
-## Technical Summary of Changes
-
-| File | Changes |
-|------|---------|
-| `supabase/functions/widget-ai-chat/index.ts` | 1) Fix pre-verification prompt to prioritize phone verify over menus. 2) Make `__VERIFIED__` carry user's original intent. 3) Add post-verification instruction to not re-ask "existing customer?" when data is known. |
-| `src/widget/components/AiChat.tsx` | 1) Pass user's last intent with `__VERIFIED__` trigger. 2) Parse JSON payloads in `handleActionSelect` to show human-readable labels instead of raw JSON. |
-| `supabase/functions/noddi-booking-proxy/index.ts` | Update or add fallback for the `list_services` endpoint that returns 404. |
