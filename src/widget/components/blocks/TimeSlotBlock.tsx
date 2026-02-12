@@ -20,7 +20,7 @@ const TimeSlotBlock: React.FC<BlockComponentProps> = ({
   const isUsed = usedBlocks.has(blockKey);
   const submitted = isUsed ? localStorage.getItem(`noddi_action_${blockKey}`) : null;
 
-  const addressId = data.address_id;
+  const addressId = data.address_id ? Number(data.address_id) : null;
 
   const [firstDate, setFirstDate] = useState<string | null>(null);
   const [windows, setWindows] = useState<any[]>([]);

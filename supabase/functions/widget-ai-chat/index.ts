@@ -548,11 +548,11 @@ The widget handles ALL data fetching automatically (earliest date, delivery wind
 DO NOT say "please wait", "let me check", "let me fetch", or anything similar — just emit the marker RIGHT AWAY.
 
 CRITICAL RULES:
-1. address_id = the numeric "address_id" integer from the address JSON payload earlier in the conversation (e.g. {"address_id": 48291, "address": "Slemdalsvingen 65"} → use 48291).
-2. service_slug = the "type_slug" from the service selection JSON (e.g. "dekkskift").
-3. CORRECT: [TIME_SLOT]48291::dekkskift[/TIME_SLOT]
-4. WRONG: [TIME_SLOT]Slemdalsvingen 65::dekkskift[/TIME_SLOT]
-5. WRONG: saying "please wait while I fetch available times"
+1. address_id = the numeric "address_id" integer from the address JSON payload the CUSTOMER sent earlier in this conversation. Look for the user message containing {"address_id": XXXX, ...} and use THAT exact number.
+2. service_slug = the "type_slug" from the service selection JSON the customer just sent.
+3. Example: if the customer's address message contained {"address_id": 2860, ...} and they selected {"type_slug": "dekkskift"}, emit [TIME_SLOT]2860::dekkskift[/TIME_SLOT]
+4. NEVER use a made-up or example number — ALWAYS extract the real address_id from the conversation.
+5. NEVER say "please wait while I fetch available times" — just emit the marker.
 6. If no numeric address_id exists in the conversation, ask the customer to select their address first.`,
   },
   booking_summary: {
