@@ -1,37 +1,36 @@
 
 
-# Fix: Server-side inject missing booking IDs into BOOKING_SUMMARY
+# Fix: patchBookingSummary cannot find customer IDs (they're from a previous request)
 
-## Problem
-The AI model (gpt-4o-mini) consistently omits `user_id`, `user_group_id`, and sometimes `delivery_window_id` from the BOOKING_SUMMARY JSON, despite explicit prompt instructions. Prompt engineering alone is unreliable for ensuring these fields are present.
+## Root Cause
+
+The `patchBookingSummary` function searches `currentMessages` for `lookup_customer` tool results. However, the tool call happened in a **previous HTTP request cycle** (during phone verification). The frontend only sends user/assistant text messages in subsequent requests -- tool call results are never forwarded back.
+
+This means `patchBookingSummary` will **never** find the `customer.userId` and `customer.userGroupId` in the messages array.
 
 ## Solution
-Add a **post-processing step** in `widget-ai-chat/index.ts` that scans the AI's final reply for `[BOOKING_SUMMARY]...[/BOOKING_SUMMARY]` markers and injects missing IDs by extracting them from the tool call history in the conversation.
 
-The tool call results already contain:
-- `lookup_customer` result has `customer.userId` and `customer.userGroupId`
-- The selected time slot data (from user action messages) has the `delivery_window_id`
+Instead of searching message history, use the already-available `visitorPhone` to re-lookup the customer when a BOOKING_SUMMARY with missing IDs is detected. This is a lightweight call to the same Noddi API endpoint.
 
 ## Technical Details
 
 ### File: `supabase/functions/widget-ai-chat/index.ts`
 
-1. **Add a helper function** `patchBookingSummary(reply, toolMessages)`:
-   - Parse the `[BOOKING_SUMMARY]{...}[/BOOKING_SUMMARY]` JSON from the reply
-   - Scan `toolMessages` for `lookup_customer` results to extract `userId` and `userGroupId`
-   - If `user_id` or `user_group_id` are missing in the JSON, inject them
-   - Return the patched reply string
+1. **Make `patchBookingSummary` async** and accept `visitorPhone`/`visitorEmail` as parameters
+2. When `user_id` or `user_group_id` are missing, call `executeLookupCustomer(visitorPhone, visitorEmail)` to get the IDs
+3. Remove the message-scanning logic for customer IDs (it can never work)
+4. Keep the delivery_window_id extraction from user messages (this CAN work since time slot selection is in the current request's messages)
 
-2. **Call it before returning the final reply** (around line 1378):
-   - After the tool-calling loop completes and we have the final `reply` text
-   - Apply `patchBookingSummary(reply, currentMessages)` to ensure the fields are present
-   - This happens before streaming or returning the JSON response
+```text
+Before: patchBookingSummary(reply, currentMessages)  -- sync, searches messages
+After:  patchBookingSummary(reply, currentMessages, visitorPhone, visitorEmail)  -- async, re-lookups customer
+```
 
-### Why this approach?
-- The lookup_customer tool result is already in `currentMessages` as a tool response
-- This is a deterministic fix -- no reliance on the AI model remembering values
-- Zero impact on the rest of the flow; only activates when BOOKING_SUMMARY marker is detected
-- The `delivery_window_id` typically comes from the user's time slot selection action, which is harder to extract server-side, but we can at least guarantee `user_id` and `user_group_id`
+### Call site change (around line 1454):
+
+```typescript
+const reply = await patchBookingSummary(rawReply, currentMessages, visitorPhone, visitorEmail);
+```
 
 ### Deployment
 - Redeploy `widget-ai-chat`
