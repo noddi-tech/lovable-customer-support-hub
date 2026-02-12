@@ -204,17 +204,25 @@ Deno.serve(async (req) => {
 
       // ========== Create Booking ==========
       case "create_booking": {
-        const { action: _a, car_id, sales_item_ids, address_id, delivery_window_id, ...rest } = body;
+        const { action: _a, address_id, user_id, user_group_id,
+                license_plate, country_code, sales_item_ids,
+                delivery_window_id, ...rest } = body;
 
-        // Noddi API expects { address: <id>, cars: [{ id: <car_id>, sales_items: [{ id: <item_id> }] }], delivery_window: <id> }
+        // Noddi API expects: address, user, user_group, delivery_window (int),
+        // cars: [{ license_plate: {country_code, number}, selected_sales_item_ids: [int] }]
         const cartPayload: any = {
           ...rest,
           address: address_id,
+          user: user_id,
+          user_group: user_group_id,
           delivery_window: delivery_window_id,
           cars: [
             {
-              id: car_id,
-              sales_items: (sales_item_ids || []).map((id: number) => ({ id })),
+              license_plate: {
+                country_code: country_code || 'NO',
+                number: license_plate,
+              },
+              selected_sales_item_ids: sales_item_ids || [],
             },
           ],
         };
