@@ -1023,13 +1023,21 @@ NEVER list services or categories as plain text. ALWAYS use this marker. The wid
 IMPORTANT: Extract sales_item_id from the customer's service selection message ({"sales_item_id": XXXX}).
 
 12. BOOKING SUMMARY — show a booking summary card with confirm/cancel. After the customer selects a time slot, go DIRECTLY to this marker — do NOT show a separate text confirmation asking "does this look correct". The BOOKING_SUMMARY card IS the confirmation step.
-CRITICAL: You MUST replace ALL placeholder values with REAL data from the conversation.
-- user_id and user_group_id: use the ACTUAL values returned by lookup_customer, NEVER use example numbers.
-- delivery_window_id: use the ACTUAL ID from the selected time slot.
-- delivery_window_start and delivery_window_end: use the ACTUAL starts_at and ends_at ISO timestamps from the selected time slot.
-- address_id: use the ACTUAL ID from the selected address.
-Example format (replace ALL values with real data):
-[BOOKING_SUMMARY]{"address":"<real address>","address_id":<REAL_ADDRESS_ID>,"car":"<real car>","license_plate":"<real plate>","country_code":"NO","user_id":<REAL_USER_ID_FROM_LOOKUP>,"user_group_id":<REAL_GROUP_ID_FROM_LOOKUP>,"service":"<real service>","sales_item_ids":[<real_ids>],"date":"<real date>","time":"<real time>","price":"<real price>","delivery_window_id":<REAL_DELIVERY_WINDOW_ID>,"delivery_window_start":"<REAL_STARTS_AT>","delivery_window_end":"<REAL_ENDS_AT>"}[/BOOKING_SUMMARY]
+
+⚠️ CRITICAL — NEVER OMIT THESE THREE FIELDS (the booking WILL FAIL without them):
+  • "user_id": the customer's userId from the lookup_customer result (e.g. customer.userId → integer like 48372)
+  • "user_group_id": the customer's userGroupId from the lookup_customer result (e.g. customer.userGroupId → integer like 29104)
+  • "delivery_window_id": the id field from the time slot the customer selected (integer)
+If you do not have these values, call lookup_customer again or ask the customer to re-select the time slot. NEVER emit BOOKING_SUMMARY without all three.
+
+Additional required fields:
+- delivery_window_start and delivery_window_end: the starts_at and ends_at ISO timestamps from the selected time slot.
+- address_id: the ID from the selected address.
+- sales_item_ids: array of selected sales item IDs.
+- license_plate: the customer's license plate string.
+
+Example format (replace ALL values with REAL data from previous steps):
+[BOOKING_SUMMARY]{"address":"Holtet 45, 1368 Oslo","address_id":2860,"car":"Tesla Model Y","license_plate":"EC94156","country_code":"NO","user_id":48372,"user_group_id":29104,"service":"Dekkskift","sales_item_ids":[60282],"date":"16. feb 2026","time":"08:00–11:00","price":"699 kr","delivery_window_id":98765,"delivery_window_start":"2026-02-16T08:00:00Z","delivery_window_end":"2026-02-16T11:00:00Z"}[/BOOKING_SUMMARY]
 
 RULES FOR MARKERS:
 - NEVER list addresses, license plates, cars, or services as numbered text. ALWAYS use the corresponding interactive marker.
