@@ -541,14 +541,19 @@ This is self-closing — do NOT add a closing tag. The widget renders an interac
   },
   time_slot: {
     fieldTypes: ['time_slot'],
-    instruction: (ctx) => `To let the customer pick a time slot, include the marker [TIME_SLOT]<address_id_number>::<service_slug>[/TIME_SLOT].
-CRITICAL RULES for TIME_SLOT:
-1. The first value MUST be the numeric "address_id" integer from the address selection JSON payload (e.g. the "address_id" field, NOT the "address" or "full_address" string).
-2. Look for the JSON object in the conversation that contains "address_id": <number> — use THAT number.
-3. The second value after :: is the service slug (e.g. "dekkskift").
-4. CORRECT example: [TIME_SLOT]48291::dekkskift[/TIME_SLOT] where 48291 is from {"address_id":48291,"address":"Slemdalsvingen 65, Oslo",...}
-5. WRONG examples: [TIME_SLOT]Slemdalsvingen 65::dekkskift[/TIME_SLOT] or [TIME_SLOT]address_id::dekkskift[/TIME_SLOT]
-6. If you cannot find a numeric address_id in the conversation history, ask the customer to select their address first.`,
+    instruction: (ctx) => `IMMEDIATELY after the customer selects a service, you MUST include this marker in your response:
+[TIME_SLOT]<numeric_address_id>::<service_slug>[/TIME_SLOT]
+
+The widget handles ALL data fetching automatically (earliest date, delivery windows, pricing).
+DO NOT say "please wait", "let me check", "let me fetch", or anything similar — just emit the marker RIGHT AWAY.
+
+CRITICAL RULES:
+1. address_id = the numeric "address_id" integer from the address JSON payload earlier in the conversation (e.g. {"address_id": 48291, "address": "Slemdalsvingen 65"} → use 48291).
+2. service_slug = the "type_slug" from the service selection JSON (e.g. "dekkskift").
+3. CORRECT: [TIME_SLOT]48291::dekkskift[/TIME_SLOT]
+4. WRONG: [TIME_SLOT]Slemdalsvingen 65::dekkskift[/TIME_SLOT]
+5. WRONG: saying "please wait while I fetch available times"
+6. If no numeric address_id exists in the conversation, ask the customer to select their address first.`,
   },
   booking_summary: {
     fieldTypes: ['booking_summary'],
