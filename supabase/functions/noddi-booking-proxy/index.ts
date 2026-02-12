@@ -202,7 +202,7 @@ Deno.serve(async (req) => {
         return jsonResponse(data);
       }
 
-      // ========== Create Booking (Shopping Cart) ==========
+      // ========== Create Booking ==========
       case "create_booking": {
         const { action: _a, car_id, sales_item_ids, address_id, delivery_window_id, ...rest } = body;
 
@@ -221,15 +221,15 @@ Deno.serve(async (req) => {
 
         console.log("Create booking payload:", JSON.stringify(cartPayload));
 
-        const res = await fetch(`${API_BASE}/v1/bookings/shopping-cart-for-new-booking/`, {
+        const res = await fetch(`${API_BASE}/v1/bookings/`, {
           method: "POST",
           headers,
           body: JSON.stringify(cartPayload),
         });
         if (!res.ok) {
           const text = await res.text();
-          console.error("Create booking error:", res.status, text);
-          return jsonResponse({ error: "Failed to create booking" }, 502);
+          console.error("Create booking error:", res.status, text, "Payload:", JSON.stringify(cartPayload));
+          return jsonResponse({ error: "Failed to create booking", details: text }, 502);
         }
         const booking = await res.json();
         return jsonResponse({ booking });
