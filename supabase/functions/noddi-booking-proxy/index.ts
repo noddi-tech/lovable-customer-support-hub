@@ -25,7 +25,7 @@ Deno.serve(async (req) => {
         if (!license_plate) {
           return jsonResponse({ error: "license_plate required" }, 400);
         }
-        const url = `${API_BASE}/v1/cars/data-from-license-plate-number/?country_code=${encodeURIComponent(country_code)}&license_plate_number=${encodeURIComponent(license_plate)}`;
+        const url = `${API_BASE}/v1/cars/from-license-plate-number/?brand_domains=noddi&country_code=${encodeURIComponent(country_code)}&number=${encodeURIComponent(license_plate)}`;
         const res = await fetch(url, { headers });
         if (!res.ok) {
           const text = await res.text();
@@ -36,85 +36,55 @@ Deno.serve(async (req) => {
         return jsonResponse({ car });
       }
 
-      // ========== List Services ==========
+      // ========== List Service Categories ==========
       case "list_services": {
-        // Try multiple endpoints — the API may have moved
-        const endpoints = [
-          `${API_BASE}/v1/booking-proposals/types/`,
-          `${API_BASE}/v1/service-categories/`,
-          `${API_BASE}/v1/sales-items/`,
-        ];
-
-        for (const url of endpoints) {
-          try {
-            const res = await fetch(url, { headers });
-            if (res.ok) {
-              const data = await res.json();
-              const services = Array.isArray(data) ? data : data.results || [];
-              console.log(`List services succeeded with endpoint: ${url}`);
-              return jsonResponse({ services });
-            }
-            const text = await res.text();
-            console.warn(`List services attempt failed for ${url}: ${res.status} ${text}`);
-          } catch (err) {
-            console.warn(`List services fetch error for ${url}:`, err);
-          }
+        const { address_id } = body;
+        if (!address_id) {
+          return jsonResponse({ error: "address_id required" }, 400);
         }
-
-        // Fallback: return known Noddi service types so the flow doesn't break
-        console.warn("All list_services endpoints failed, using fallback services");
-        return jsonResponse({
-          services: [
-            { slug: "dekkskift", name: "Dekkskift", description: "Bytte av dekk" },
-            { slug: "bilvask", name: "Bilvask", description: "Utvendig og innvendig vask" },
-            { slug: "dekkhotell", name: "Dekkhotell", description: "Lagring av dekk" },
-          ],
-          fallback: true,
-        });
+        const url = `${API_BASE}/v1/sales-item-booking-categories/for-new-booking/?address_id=${encodeURIComponent(address_id)}`;
+        const res = await fetch(url, { headers });
+        if (!res.ok) {
+          const text = await res.text();
+          console.error("List services error:", res.status, text);
+          // Fallback to known services
+          console.warn("list_services endpoint failed, using fallback services");
+          return jsonResponse({
+            services: [
+              { slug: "dekkskift", name: "Dekkskift", description: "Bytte av dekk" },
+              { slug: "bilvask", name: "Bilvask", description: "Utvendig og innvendig vask" },
+              { slug: "dekkhotell", name: "Dekkhotell", description: "Lagring av dekk" },
+            ],
+            fallback: true,
+          });
+        }
+        const data = await res.json();
+        const services = Array.isArray(data) ? data : data.results || [];
+        return jsonResponse({ services });
       }
 
-      // ========== Create Proposal ==========
-      case "create_proposal": {
-        const { address_id, car_id, type_slug, promo_code, tyres_stored_at_noddi } = body;
-        if (!address_id || !car_id || !type_slug) {
-          return jsonResponse({ error: "address_id, car_id, and type_slug required" }, 400);
+      // ========== Available Items for Booking ==========
+      case "available_items": {
+        const { address_id: aiAddr, car_ids, sales_item_category_id } = body;
+        if (!aiAddr) {
+          return jsonResponse({ error: "address_id required" }, 400);
         }
-        const payload: any = { address_id, car_id, type_slug };
-        if (promo_code) payload.promo_code = promo_code;
-        if (tyres_stored_at_noddi !== undefined) payload.tyres_stored_at_noddi = tyres_stored_at_noddi;
+        const payload: any = { address_id: aiAddr };
+        if (car_ids) payload.car_ids = car_ids;
+        if (sales_item_category_id) payload.sales_item_category_id = sales_item_category_id;
 
-        const res = await fetch(`${API_BASE}/v1/booking-proposals/`, {
+        const res = await fetch(`${API_BASE}/v1/sales-items/initial-available-for-booking/`, {
           method: "POST",
           headers,
           body: JSON.stringify(payload),
         });
         if (!res.ok) {
           const text = await res.text();
-          console.error("Create proposal error:", res.status, text);
-          return jsonResponse({ error: "Failed to create proposal" }, 502);
+          console.error("Available items error:", res.status, text);
+          return jsonResponse({ error: "Failed to fetch available items" }, 502);
         }
-        const proposal = await res.json();
-        return jsonResponse({ proposal });
-      }
-
-      // ========== Add Proposal Item ==========
-      case "add_proposal_item": {
-        const { booking_proposal_id, sales_item_id } = body;
-        if (!booking_proposal_id || !sales_item_id) {
-          return jsonResponse({ error: "booking_proposal_id and sales_item_id required" }, 400);
-        }
-        const res = await fetch(`${API_BASE}/v1/booking-proposal-items/`, {
-          method: "POST",
-          headers,
-          body: JSON.stringify({ booking_proposal_id, sales_item_id }),
-        });
-        if (!res.ok) {
-          const text = await res.text();
-          console.error("Add proposal item error:", res.status, text);
-          return jsonResponse({ error: "Failed to add item" }, 502);
-        }
-        const item = await res.json();
-        return jsonResponse({ item });
+        const data = await res.json();
+        return jsonResponse(data);
       }
 
       // ========== Earliest Date ==========
@@ -134,14 +104,35 @@ Deno.serve(async (req) => {
         return jsonResponse(data);
       }
 
+      // ========== Latest Date ==========
+      case "latest_date": {
+        const { address_id: lAddr } = body;
+        const url = `${API_BASE}/v1/delivery-windows/latest-date/${lAddr ? `?address_id=${encodeURIComponent(lAddr)}` : ''}`;
+        const res = await fetch(url, { headers });
+        if (!res.ok) {
+          const text = await res.text();
+          console.error("Latest date error:", res.status, text);
+          return jsonResponse({ error: "Failed to get latest date" }, 502);
+        }
+        const data = await res.json();
+        return jsonResponse(data);
+      }
+
       // ========== Delivery Windows ==========
       case "delivery_windows": {
-        const { address_id: dwAddr, from_date } = body;
+        const { address_id: dwAddr, from_date, to_date, selected_sales_item_ids } = body;
         if (!dwAddr) {
           return jsonResponse({ error: "address_id required" }, 400);
         }
         let url = `${API_BASE}/v1/delivery-windows/for-new-booking/?address_id=${dwAddr}`;
         if (from_date) url += `&from_date=${encodeURIComponent(from_date)}`;
+        if (to_date) url += `&to_date=${encodeURIComponent(to_date)}`;
+        if (selected_sales_item_ids) {
+          const ids = Array.isArray(selected_sales_item_ids) ? selected_sales_item_ids : [selected_sales_item_ids];
+          for (const id of ids) {
+            url += `&selected_sales_item_ids=${encodeURIComponent(id)}`;
+          }
+        }
         const res = await fetch(url, { headers });
         if (!res.ok) {
           const text = await res.text();
@@ -152,17 +143,35 @@ Deno.serve(async (req) => {
         return jsonResponse(data);
       }
 
-      // ========== Create Booking ==========
-      case "create_booking": {
-        const { booking_proposal_slug, delivery_window_id, payment_method, coupon_code } = body;
-        if (!booking_proposal_slug || !delivery_window_id) {
-          return jsonResponse({ error: "booking_proposal_slug and delivery_window_id required" }, 400);
+      // ========== Service Departments ==========
+      case "service_departments": {
+        const { address_id: sdAddr, sales_items_ids } = body;
+        if (!sdAddr) {
+          return jsonResponse({ error: "address_id required" }, 400);
         }
-        const payload: any = { booking_proposal_slug, delivery_window_id };
-        if (payment_method) payload.payment_method = payment_method;
-        if (coupon_code) payload.coupon_code = coupon_code;
+        let url = `${API_BASE}/v1/service-departments/from-booking-params/?address_id=${encodeURIComponent(sdAddr)}`;
+        if (sales_items_ids) {
+          const ids = Array.isArray(sales_items_ids) ? sales_items_ids : [sales_items_ids];
+          for (const id of ids) {
+            url += `&sales_items_ids=${encodeURIComponent(id)}`;
+          }
+        }
+        const res = await fetch(url, { headers });
+        if (!res.ok) {
+          const text = await res.text();
+          console.error("Service departments error:", res.status, text);
+          return jsonResponse({ error: "Failed to fetch service departments" }, 502);
+        }
+        const data = await res.json();
+        return jsonResponse(data);
+      }
 
-        const res = await fetch(`${API_BASE}/v1/bookings/`, {
+      // ========== Create Booking (Shopping Cart) ==========
+      case "create_booking": {
+        const { ...payload } = body;
+        delete payload.action;
+
+        const res = await fetch(`${API_BASE}/v1/bookings/shopping-cart-for-new-booking/`, {
           method: "POST",
           headers,
           body: JSON.stringify(payload),
@@ -174,26 +183,6 @@ Deno.serve(async (req) => {
         }
         const booking = await res.json();
         return jsonResponse({ booking });
-      }
-
-      // ========== Start Booking ==========
-      case "start_booking": {
-        const { booking_id } = body;
-        if (!booking_id) {
-          return jsonResponse({ error: "booking_id required" }, 400);
-        }
-        const res = await fetch(`${API_BASE}/v1/bookings/${booking_id}/start/`, {
-          method: "POST",
-          headers,
-          body: JSON.stringify({}),
-        });
-        if (!res.ok) {
-          const text = await res.text();
-          console.error("Start booking error:", res.status, text);
-          return jsonResponse({ error: "Failed to start booking" }, 502);
-        }
-        const data = await res.json();
-        return jsonResponse(data);
       }
 
       default:
