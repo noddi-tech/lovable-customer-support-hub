@@ -23,6 +23,7 @@ const TimeSlotBlock: React.FC<BlockComponentProps> = ({
   const addressId = data.address_id ? Number(data.address_id) : null;
   const carIds: number[] = data.car_ids ? (Array.isArray(data.car_ids) ? data.car_ids.map(Number) : [Number(data.car_ids)]) : [];
   const licensePlate: string | null = data.license_plate || null;
+  const salesItemId: number | null = data.sales_item_id ? Number(data.sales_item_id) : null;
 
   const [firstDate, setFirstDate] = useState<string | null>(null);
   const [windows, setWindows] = useState<any[]>([]);
@@ -31,7 +32,6 @@ const TimeSlotBlock: React.FC<BlockComponentProps> = ({
 
   useEffect(() => {
     if (!addressId) { setError('Missing address'); setLoading(false); return; }
-    if (carIds.length === 0) { setError('Missing car information'); setLoading(false); return; }
 
     (async () => {
       try {
@@ -42,57 +42,69 @@ const TimeSlotBlock: React.FC<BlockComponentProps> = ({
           body: JSON.stringify(body),
         }).then(r => r.json());
 
-        // Step 1: Fetch available sales items for this address + car
-        const itemsPayload: any = {
-          action: 'available_items',
-          address_id: addressId,
-        };
-        // Noddi API requires license_plates, not car_ids
-        if (licensePlate) itemsPayload.license_plates = [licensePlate];
-        else if (carIds.length > 0) itemsPayload.car_ids = carIds;
-        const itemsData = await postJson(itemsPayload);
-
-        // Extract sales item IDs from the response
-        let salesItemIds: number[] = [];
-        const items = Array.isArray(itemsData) ? itemsData : itemsData.results || itemsData.sales_items || itemsData.items || [];
-        if (Array.isArray(items)) {
-          salesItemIds = items
-            .map((item: any) => item.id || item.sales_item_id)
-            .filter((id: any) => id != null)
-            .map(Number);
+        // Resolve sales item IDs: use provided sales_item_id or fetch from available_items
+        let salesItemIds: number[] = salesItemId ? [salesItemId] : [];
+        if (salesItemIds.length === 0 && licensePlate) {
+          const itemsData = await postJson({
+            action: 'available_items',
+            address_id: addressId,
+            license_plates: [licensePlate],
+          });
+          const raw = Array.isArray(itemsData) ? itemsData : itemsData.results || [];
+          for (const cat of raw) {
+            for (const item of (cat.sales_items || [])) {
+              if (item.id) salesItemIds.push(Number(item.id));
+            }
+          }
         }
 
-        // Step 2: Get earliest date (cars is required by Noddi API)
-        const edData = await postJson({
-          action: 'earliest_date',
-          address_id: addressId,
-          cars: carIds,
-        });
-        const earliest = edData.earliest_date || edData.date || new Date().toISOString().slice(0, 10);
-
-        // Step 3: Compute date range (earliest + 14 days)
-        const startD = new Date(earliest + 'T00:00:00');
-        const endD = new Date(startD);
+        // Use tomorrow as start date (earliest_date endpoint is unreliable)
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const fromDate = tomorrow.toISOString().slice(0, 10);
+        const endD = new Date(tomorrow);
         endD.setDate(endD.getDate() + 14);
         const toDate = endD.toISOString().slice(0, 10);
 
-        // Step 4: Fetch delivery windows with resolved sales item IDs
+        // Fetch delivery windows
         const payload: any = {
           action: 'delivery_windows',
           address_id: addressId,
-          from_date: earliest,
+          from_date: fromDate,
           to_date: toDate,
         };
         if (salesItemIds.length > 0) {
           payload.selected_sales_item_ids = salesItemIds;
         }
         const wData = await postJson(payload);
-        const allWindows: any[] = Array.isArray(wData) ? wData : wData.results || wData.windows || [];
 
-        // Step 5: Group by date, find first date with slots
+        // Noddi returns nested object: {date: {label: {delivery_window_id, starts_at, ends_at, ...}}}
+        // Flatten into array
+        const allWindows: any[] = [];
+        if (wData && typeof wData === 'object' && !Array.isArray(wData) && !wData.results && !wData.windows) {
+          for (const [date, slots] of Object.entries(wData)) {
+            if (date === 'error' || typeof slots !== 'object' || slots === null) continue;
+            for (const [label, w] of Object.entries(slots as Record<string, any>)) {
+              if (w && typeof w === 'object' && w.starts_at) {
+                // Filter out closed/full windows
+                if (w.is_closed || w.is_capacity_full) continue;
+                allWindows.push({ ...w, date, label });
+              }
+            }
+          }
+        } else {
+          // Fallback: try array format
+          const arr = Array.isArray(wData) ? wData : wData?.results || wData?.windows || [];
+          for (const w of arr) {
+            if (w.is_closed || w.is_capacity_full) continue;
+            allWindows.push(w);
+          }
+        }
+
+        // Group by date, find first date with slots
         const byDate: Record<string, any[]> = {};
         for (const w of allWindows) {
-          const wDate = (w.start_time || w.starts_at || '').slice(0, 10);
+          const wDate = w.date || (w.starts_at || '').slice(0, 10);
           if (!wDate) continue;
           if (!byDate[wDate]) byDate[wDate] = [];
           byDate[wDate].push(w);
@@ -211,6 +223,7 @@ registerBlock({
         address_id: parsed.address_id || '',
         car_ids: parsed.car_ids || parsed.cars || [],
         license_plate: parsed.license_plate || '',
+        sales_item_id: parsed.sales_item_id || '',
       };
     } catch {}
     // Fallback: split on ::

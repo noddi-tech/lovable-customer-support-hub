@@ -87,14 +87,20 @@ Deno.serve(async (req) => {
 
       // ========== Available Items for Booking ==========
       case "available_items": {
-        const { address_id: aiAddr, car_ids, license_plates, sales_item_category_id } = body;
+        const { address_id: aiAddr, car_ids, license_plates, sales_item_category_id, country_code: aiCountry } = body;
         if (!aiAddr) {
           return jsonResponse({ error: "address_id required" }, 400);
         }
         const payload: any = { address_id: aiAddr };
-        // Noddi API requires license_plates; fall back to car_ids for backward compat
-        if (license_plates) payload.license_plates = Array.isArray(license_plates) ? license_plates : [license_plates];
-        else if (car_ids) payload.car_ids = car_ids;
+        // Noddi API requires license_plates as objects: [{number, country_code}]
+        if (license_plates) {
+          const lpArray = Array.isArray(license_plates) ? license_plates : [license_plates];
+          payload.license_plates = lpArray.map((lp: any) =>
+            typeof lp === 'string' ? { number: lp, country_code: aiCountry || 'NO' } : lp
+          );
+        } else if (car_ids) {
+          payload.car_ids = car_ids;
+        }
         if (sales_item_category_id) payload.sales_item_category_id = sales_item_category_id;
 
         const res = await fetch(`${API_BASE}/v1/sales-items/initial-available-for-booking/`, {
