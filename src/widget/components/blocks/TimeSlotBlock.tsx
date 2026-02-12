@@ -179,6 +179,15 @@ registerBlock({
   marker: '[TIME_SLOT]',
   closingMarker: '[/TIME_SLOT]',
   parseContent: (inner) => {
+    // Try JSON first (AI sometimes emits JSON instead of :: format)
+    try {
+      const parsed = JSON.parse(inner.trim());
+      return {
+        address_id: parsed.address_id || '',
+        proposal_slug: parsed.service_slug || parsed.proposal_slug || '',
+      };
+    } catch {}
+    // Fallback: split on ::
     const parts = inner.trim().split('::');
     return {
       address_id: parts[0] || '',
