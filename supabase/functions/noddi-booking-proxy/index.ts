@@ -204,9 +204,22 @@ Deno.serve(async (req) => {
 
       // ========== Create Booking ==========
       case "create_booking": {
-        const { action: _a, address_id, user_id, user_group_id,
+        const { address_id, user_id, user_group_id,
                 license_plate, country_code, sales_item_ids,
-                delivery_window_id, delivery_window_start, delivery_window_end, ...rest } = body;
+                delivery_window_id, delivery_window_start, delivery_window_end } = body;
+
+        // Validate required fields before calling Noddi
+        if (!user_id || !user_group_id || !delivery_window_id) {
+          console.error("Missing required booking fields:", { user_id, user_group_id, delivery_window_id });
+          return jsonResponse({
+            error: "Missing required fields",
+            missing: {
+              user_id: !user_id,
+              user_group_id: !user_group_id,
+              delivery_window_id: !delivery_window_id,
+            }
+          }, 400);
+        }
 
         // Noddi API expects: address, user, user_group, delivery_window ({id: int}),
         // cars: [{ license_plate: {country_code, number}, selected_sales_item_ids: [int] }]
