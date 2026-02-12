@@ -1,6 +1,14 @@
 import { corsHeaders } from "../_shared/cors.ts";
 
 const API_BASE = (Deno.env.get("NODDI_API_BASE") || "https://api.noddi.co").replace(/\/+$/, "");
+
+const SERVICE_TYPE_LABELS: Record<string, string> = {
+  wheel_services: "Dekkskift",
+  stone_chip_repair: "Steinsprut-reparasjon",
+  car_wash: "Bilvask",
+  tyre_hotel: "Dekkhotell",
+  polering: "Polering",
+};
 const NODDI_TOKEN = Deno.env.get("NODDI_API_TOKEN") || "";
 
 const headers: HeadersInit = {
@@ -67,7 +75,13 @@ Deno.serve(async (req) => {
           });
         }
         const data = await res.json();
-        const services = Array.isArray(data) ? data : data.results || [];
+        const raw = Array.isArray(data) ? data : data.results || [];
+        const services = raw.map((s: any) => ({
+          slug: s.type || s.slug || '',
+          name: SERVICE_TYPE_LABELS[s.type] || s.name || s.type || '',
+          description: s.description || '',
+          brand_name: s.brand?.name || '',
+        }));
         return jsonResponse({ services });
       }
 
