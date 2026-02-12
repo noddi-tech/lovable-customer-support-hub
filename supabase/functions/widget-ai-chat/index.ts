@@ -541,19 +541,21 @@ This is self-closing — do NOT add a closing tag. The widget renders an interac
   },
   time_slot: {
     fieldTypes: ['time_slot'],
-    instruction: (ctx) => `IMMEDIATELY after the customer selects a service, you MUST include this marker in your response:
-[TIME_SLOT]<numeric_address_id>::<service_slug>[/TIME_SLOT]
+    instruction: (ctx) => `IMMEDIATELY after the customer selects a service, you MUST include this marker in your response using JSON format:
+[TIME_SLOT]{"address_id": <number>, "car_ids": [<number>], "selected_sales_item_ids": [<number>]}[/TIME_SLOT]
 
 The widget handles ALL data fetching automatically (earliest date, delivery windows, pricing).
 DO NOT say "please wait", "let me check", "let me fetch", or anything similar — just emit the marker RIGHT AWAY.
 
 CRITICAL RULES:
-1. address_id = the numeric "address_id" integer from the address JSON payload the CUSTOMER sent earlier in this conversation. Look for the user message containing {"address_id": XXXX, ...} and use THAT exact number.
-2. service_slug = the "type_slug" from the service selection JSON the customer just sent.
-3. Example: if the customer's address message contained {"address_id": 2860, ...} and they selected {"type_slug": "dekkskift"}, emit [TIME_SLOT]2860::dekkskift[/TIME_SLOT]
-4. NEVER use a made-up or example number — ALWAYS extract the real address_id from the conversation.
-5. NEVER say "please wait while I fetch available times" — just emit the marker.
-6. If no numeric address_id exists in the conversation, ask the customer to select their address first.`,
+1. address_id = the numeric "address_id" integer from the address JSON payload the CUSTOMER sent earlier. Look for {"address_id": XXXX, ...} in a previous user message.
+2. car_ids = array containing the numeric "id" from the car lookup JSON the customer sent (from the LICENSE_PLATE step). Look for {"id": XXXX, ...} in a previous user message.
+3. selected_sales_item_ids = array of numeric sales item IDs from the service selection JSON. Look for {"sales_items": [{"id": XXXX}]} or {"id": XXXX} in the service selection user message.
+4. Example: if address had {"address_id": 2860}, car had {"id": 555}, and service had {"id": 42}, emit:
+   [TIME_SLOT]{"address_id": 2860, "car_ids": [555], "selected_sales_item_ids": [42]}[/TIME_SLOT]
+5. NEVER use made-up numbers — ALWAYS extract real IDs from the conversation.
+6. If any required ID is missing, ask the customer to complete that step first.
+7. If you cannot find selected_sales_item_ids, you may pass an empty array [] but car_ids is REQUIRED.`,
   },
   booking_summary: {
     fieldTypes: ['booking_summary'],
@@ -950,9 +952,9 @@ Option 2
 10. SERVICE SELECT — fetch and display available services as selectable cards:
 [SERVICE_SELECT][/SERVICE_SELECT]
 
-11. TIME SLOT — show date picker and available time slots. Use the ACTUAL numeric address_id from the address selection step (it's in the JSON the customer sent after selecting an address). Example:
-[TIME_SLOT]12345::dekkskift[/TIME_SLOT]
-IMPORTANT: The first value MUST be the numeric address_id from the address payload, NOT the literal text "address_id".
+11. TIME SLOT — show available time slots. Emit JSON with address_id, car_ids, and selected_sales_item_ids from the conversation. Example:
+[TIME_SLOT]{"address_id": 2860, "car_ids": [555], "selected_sales_item_ids": [42]}[/TIME_SLOT]
+IMPORTANT: Extract ALL IDs from the actual conversation data — address_id from address step, car_ids from license plate step, selected_sales_item_ids from service selection step.
 
 12. BOOKING SUMMARY — show a booking summary card with confirm/cancel. Include all booking data as JSON:
 [BOOKING_SUMMARY]{"address":"Holtet 45","car":"Tesla Model 3","service":"Dekkskift","date":"Mon 12 Feb","time":"08:00-12:00","price":"599 kr","proposal_slug":"...","delivery_window_id":123}[/BOOKING_SUMMARY]
