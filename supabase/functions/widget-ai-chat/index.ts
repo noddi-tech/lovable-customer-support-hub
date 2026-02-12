@@ -344,12 +344,17 @@ async function executeLookupCustomer(phone?: string, email?: string): Promise<st
     const storedCars = new Map<number, any>();
     for (const b of bookings) {
       if (b.address?.id) {
+        const streetNum = b.address.street_number || '';
+        const streetName = b.address.street_name || '';
+        const zip = b.address.zip_code || '';
+        const city = b.address.city || '';
+        const label = `${streetName} ${streetNum}, ${zip} ${city}`.replace(/\s+/g, ' ').trim().replace(/^,|,$/g, '').trim();
         storedAddresses.set(b.address.id, {
           id: b.address.id,
-          full_address: b.address.full_address || b.address.street_name || '',
-          street: b.address.street_name || '',
-          city: b.address.city || '',
-          zip: b.address.zip_code || '',
+          full_address: label,
+          street: streetName,
+          city,
+          zip,
         });
       }
       if (b.car?.id) {
@@ -564,7 +569,7 @@ The widget will render an interactive address search with delivery area validati
     instruction: () => `To collect the customer's license plate, include the marker [LICENSE_PLATE]...[/LICENSE_PLATE] in your response.
 If the customer has stored_cars from lookup_customer, pass them as JSON so the widget shows quick-select buttons:
 [LICENSE_PLATE]{"stored": [{"id": 13888, "make": "Tesla", "model": "Model Y", "plate": "EC94156"}]}[/LICENSE_PLATE]
-If no stored cars, use the self-closing marker: [LICENSE_PLATE]
+If no stored cars, use: [LICENSE_PLATE][/LICENSE_PLATE]
 The widget renders an interactive license plate input with country selector and car lookup. NEVER ask for the plate number as plain text — ALWAYS use the [LICENSE_PLATE] marker.`,
   },
   service_select: {
