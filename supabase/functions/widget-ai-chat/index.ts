@@ -613,7 +613,7 @@ CRITICAL RULES:
   },
   booking_summary: {
     fieldTypes: ['booking_summary'],
-    instruction: () => `To show the booking summary and let the customer confirm, include the marker [BOOKING_SUMMARY]{"address":"...","car":"...","service":"...","date":"...","time":"...","price":"...","address_id":...,"car_id":...,"sales_item_ids":[...],"delivery_window_id":...}[/BOOKING_SUMMARY] in your response. Fill in all fields from the data collected in previous steps. The widget will show a summary card with Confirm/Cancel buttons.`,
+    instruction: () => `To show the booking summary and let the customer confirm, include the marker [BOOKING_SUMMARY]{"address":"...","car":"...","service":"...","date":"...","time":"...","price":"...","address_id":...,"car_id":...,"sales_item_ids":[...],"delivery_window_id":...,"delivery_window_start":"...","delivery_window_end":"..."}[/BOOKING_SUMMARY] in your response. Fill in all fields from the data collected in previous steps. delivery_window_start and delivery_window_end must be the ISO timestamps from the selected time slot. The widget will show a summary card with Confirm/Cancel buttons.`,
   },
 };
 
@@ -1026,9 +1026,10 @@ IMPORTANT: Extract sales_item_id from the customer's service selection message (
 CRITICAL: You MUST replace ALL placeholder values with REAL data from the conversation.
 - user_id and user_group_id: use the ACTUAL values returned by lookup_customer, NEVER use example numbers.
 - delivery_window_id: use the ACTUAL ID from the selected time slot.
+- delivery_window_start and delivery_window_end: use the ACTUAL starts_at and ends_at ISO timestamps from the selected time slot.
 - address_id: use the ACTUAL ID from the selected address.
 Example format (replace ALL values with real data):
-[BOOKING_SUMMARY]{"address":"<real address>","address_id":<REAL_ADDRESS_ID>,"car":"<real car>","license_plate":"<real plate>","country_code":"NO","user_id":<REAL_USER_ID_FROM_LOOKUP>,"user_group_id":<REAL_GROUP_ID_FROM_LOOKUP>,"service":"<real service>","sales_item_ids":[<real_ids>],"date":"<real date>","time":"<real time>","price":"<real price>","delivery_window_id":<REAL_DELIVERY_WINDOW_ID>}[/BOOKING_SUMMARY]
+[BOOKING_SUMMARY]{"address":"<real address>","address_id":<REAL_ADDRESS_ID>,"car":"<real car>","license_plate":"<real plate>","country_code":"NO","user_id":<REAL_USER_ID_FROM_LOOKUP>,"user_group_id":<REAL_GROUP_ID_FROM_LOOKUP>,"service":"<real service>","sales_item_ids":[<real_ids>],"date":"<real date>","time":"<real time>","price":"<real price>","delivery_window_id":<REAL_DELIVERY_WINDOW_ID>,"delivery_window_start":"<REAL_STARTS_AT>","delivery_window_end":"<REAL_ENDS_AT>"}[/BOOKING_SUMMARY]
 
 RULES FOR MARKERS:
 - NEVER list addresses, license plates, cars, or services as numbered text. ALWAYS use the corresponding interactive marker.
