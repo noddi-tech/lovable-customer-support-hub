@@ -211,7 +211,6 @@ Deno.serve(async (req) => {
         // Noddi API expects: address, user, user_group, delivery_window ({id: int}),
         // cars: [{ license_plate: {country_code, number}, selected_sales_item_ids: [int] }]
         const cartPayload: any = {
-          ...rest,
           address_id,
           user: user_id,
           user_group: user_group_id,
