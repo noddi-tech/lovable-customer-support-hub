@@ -1,42 +1,56 @@
 
 
-# Fix: AI Must Emit `[TIME_SLOT]` Immediately After Service Selection
+# Fix: Time Slot API Errors and Duplicate Customer Messages
 
-## Problem
-After the customer selects an address, enters their car registration, and picks a service, the AI says "please wait" instead of emitting the `[TIME_SLOT]` marker. The AI doesn't realize the widget component handles all the data fetching -- it just needs to output the marker with the correct address_id and service slug.
+## Issue 1: Time Slot 502 Errors (Root Cause)
 
-## Changes
+The Noddi API returns `Address with pk=48291 not found` because:
 
-### 1. Update `time_slot` instruction in `supabase/functions/widget-ai-chat/index.ts` (~line 542-551)
+1. The AI sometimes emits JSON inside the marker (`[TIME_SLOT]{"address_id":12345,...}[/TIME_SLOT]`) instead of the expected `2860::dekkskift` format
+2. The `parseContent` function only splits on `::`, so JSON content breaks parsing completely
+3. Even with the prompt fix, the AI occasionally ignores the format instruction
 
-Replace the current `time_slot` block prompt with a stronger instruction that:
-- Commands the AI to emit the marker **immediately** after service selection -- no "please wait" or "let me check"
-- Reminds the AI that the widget fetches data automatically
-- Tells it to extract the numeric `address_id` from the address JSON payload earlier in the conversation
-- Uses the service slug from the service selection payload (e.g., `dekkskift`)
+**Fix:** Make `parseContent` in `TimeSlotBlock.tsx` handle both formats -- try JSON parsing first as fallback, then fall back to `::` splitting. This makes the component resilient regardless of what format the AI uses.
 
-New instruction (roughly):
 ```
-IMMEDIATELY after the customer selects a service, you MUST include:
-[TIME_SLOT]<numeric_address_id>::<service_slug>[/TIME_SLOT]
-
-The widget handles ALL data fetching automatically.
-DO NOT say "please wait", "let me check", or similar -- just emit the marker.
-
-Rules:
-- address_id = the numeric "address_id" from the address JSON in the conversation
-- service_slug = the "type_slug" from the service selection JSON
-- CORRECT: [TIME_SLOT]2860::dekkskift[/TIME_SLOT]
-- WRONG: [TIME_SLOT]Slemdalsvingen 65::dekkskift[/TIME_SLOT]
-- If no numeric address_id exists, ask the customer to select their address first.
+parseContent: (inner) => {
+  // Try JSON first (AI sometimes emits JSON)
+  try {
+    const parsed = JSON.parse(inner.trim());
+    return {
+      address_id: parsed.address_id || '',
+      proposal_slug: parsed.service_slug || parsed.proposal_slug || '',
+    };
+  } catch {}
+  // Fallback: split on ::
+  const parts = inner.trim().split('::');
+  return {
+    address_id: parts[0] || '',
+    proposal_slug: parts[1] || '',
+  };
+}
 ```
 
-### 2. Redeploy `widget-ai-chat`
+## Issue 2: Block Selections Showing as Customer Messages
 
-Deploy the updated edge function so the new prompt takes effect.
+In `AiChat.tsx` `handleActionSelect` (line 228-274), every block action creates a visible customer message bubble with the display label. The address shows as "Slemdalsvingen 65, Oslo", the reg number as "ec94156", and the service as "Dekkskift" -- all as purple customer bubbles.
 
-## Technical Notes
+This is redundant because each interactive component already displays a green checkmark badge inline showing what was selected.
 
-- The `TimeSlotBlock` component already handles everything: it calls `earliest_date`, then `delivery_windows` with a 14-day range, groups by date, and shows only the first available date's slots
-- The `parseContent` function extracts `address_id` (first part) and `proposal_slug` (second part after `::`) from the marker content
-- The component also checks `data.selected_sales_item_ids` but this is optional -- the basic flow works with just address_id
+**Fix:** Change `handleActionSelect` to always send the payload as a hidden message, never creating a visible customer bubble. The inline confirmation badges in each block component are sufficient visual feedback.
+
+```
+// In handleActionSelect, always send hidden:
+sendMessage(option, undefined, { hidden: true });
+```
+
+No visible user message is created -- the block's own badge (green checkmark with selection text) provides the feedback.
+
+## Files to Change
+
+1. **`src/widget/components/blocks/TimeSlotBlock.tsx`** -- Update `parseContent` to handle both JSON and `::` formats
+2. **`src/widget/components/AiChat.tsx`** -- Update `handleActionSelect` to send all block actions as hidden messages (no visible customer bubble)
+
+## Deployment
+
+No edge function changes needed -- both fixes are frontend-only.
