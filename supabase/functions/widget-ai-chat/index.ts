@@ -135,23 +135,29 @@ const tools = [
     type: 'function' as const,
     function: {
       name: 'list_available_services',
-      description: 'List available service types for booking (e.g., tire change, car wash). Returns service slugs and names.',
-      parameters: { type: 'object', properties: {} },
+      description: 'List available service categories for booking at a specific address. Requires address_id. Returns category names and IDs.',
+      parameters: {
+        type: 'object',
+        properties: {
+          address_id: { type: 'number', description: 'The address ID from address lookup' },
+        },
+        required: ['address_id'],
+      },
     },
   },
   {
     type: 'function' as const,
     function: {
-      name: 'create_booking_proposal',
-      description: 'Create a booking proposal with an address, car, and service type. Returns a proposal slug used for time slot selection.',
+      name: 'get_available_items',
+      description: 'Get available sales items for a service category. Returns specific bookable items with prices.',
       parameters: {
         type: 'object',
         properties: {
-          address_id: { type: 'number', description: 'The address ID from address lookup' },
-          car_id: { type: 'number', description: 'The car ID from license plate lookup' },
-          type_slug: { type: 'string', description: 'Service type slug (e.g., dekkskift)' },
+          address_id: { type: 'number', description: 'The address ID' },
+          car_ids: { type: 'array', items: { type: 'number' }, description: 'Array of car IDs' },
+          sales_item_category_id: { type: 'number', description: 'The service category ID from list_available_services' },
         },
-        required: ['address_id', 'car_id', 'type_slug'],
+        required: ['address_id'],
       },
     },
   },
@@ -165,6 +171,8 @@ const tools = [
         properties: {
           address_id: { type: 'number', description: 'The address ID' },
           from_date: { type: 'string', description: 'Start date in YYYY-MM-DD format' },
+          to_date: { type: 'string', description: 'End date in YYYY-MM-DD format' },
+          selected_sales_item_ids: { type: 'array', items: { type: 'number' }, description: 'Array of selected sales item IDs' },
         },
         required: ['address_id'],
       },
@@ -173,15 +181,17 @@ const tools = [
   {
     type: 'function' as const,
     function: {
-      name: 'finalize_booking',
-      description: 'Create and start a booking. Requires the proposal slug and chosen delivery window ID.',
+      name: 'create_shopping_cart',
+      description: 'Create a booking via the shopping cart. Pass the full booking payload including address, car, items, and delivery window.',
       parameters: {
         type: 'object',
         properties: {
-          booking_proposal_slug: { type: 'string', description: 'The booking proposal slug' },
+          address_id: { type: 'number', description: 'The address ID' },
+          car_id: { type: 'number', description: 'The car ID' },
+          sales_item_ids: { type: 'array', items: { type: 'number' }, description: 'Array of sales item IDs to book' },
           delivery_window_id: { type: 'number', description: 'The chosen delivery window ID' },
         },
-        required: ['booking_proposal_slug', 'delivery_window_id'],
+        required: ['address_id', 'delivery_window_id', 'sales_item_ids'],
       },
     },
   },
@@ -534,7 +544,7 @@ const BLOCK_PROMPTS: Record<string, {
   },
   booking_summary: {
     fieldTypes: ['booking_summary'],
-    instruction: () => `To show the booking summary and let the customer confirm, include the marker [BOOKING_SUMMARY]{"address":"...","car":"...","service":"...","date":"...","time":"...","price":"...","proposal_slug":"...","delivery_window_id":...}[/BOOKING_SUMMARY] in your response. Fill in all fields from the data collected in previous steps. The widget will show a summary card with Confirm/Cancel buttons.`,
+    instruction: () => `To show the booking summary and let the customer confirm, include the marker [BOOKING_SUMMARY]{"address":"...","car":"...","service":"...","date":"...","time":"...","price":"...","address_id":...,"car_id":...,"sales_item_ids":[...],"delivery_window_id":...}[/BOOKING_SUMMARY] in your response. Fill in all fields from the data collected in previous steps. The widget will show a summary card with Confirm/Cancel buttons.`,
   },
 };
 
@@ -990,13 +1000,13 @@ async function executeTool(
     case 'lookup_car_by_plate':
       return executeBookingProxy({ action: 'lookup_car', country_code: args.country_code || 'NO', license_plate: args.license_plate });
     case 'list_available_services':
-      return executeBookingProxy({ action: 'list_services' });
-    case 'create_booking_proposal':
-      return executeBookingProxy({ action: 'create_proposal', address_id: args.address_id, car_id: args.car_id, type_slug: args.type_slug });
+      return executeBookingProxy({ action: 'list_services', address_id: args.address_id });
+    case 'get_available_items':
+      return executeBookingProxy({ action: 'available_items', address_id: args.address_id, car_ids: args.car_ids, sales_item_category_id: args.sales_item_category_id });
     case 'get_delivery_windows':
-      return executeBookingProxy({ action: 'delivery_windows', address_id: args.address_id, from_date: args.from_date });
-    case 'finalize_booking':
-      return executeBookingProxy({ action: 'create_booking', booking_proposal_slug: args.booking_proposal_slug, delivery_window_id: args.delivery_window_id });
+      return executeBookingProxy({ action: 'delivery_windows', address_id: args.address_id, from_date: args.from_date, to_date: args.to_date, selected_sales_item_ids: args.selected_sales_item_ids });
+    case 'create_shopping_cart':
+      return executeBookingProxy({ action: 'create_booking', address_id: args.address_id, car_id: args.car_id, sales_item_ids: args.sales_item_ids, delivery_window_id: args.delivery_window_id });
     default:
       return JSON.stringify({ error: `Unknown tool: ${toolName}` });
   }

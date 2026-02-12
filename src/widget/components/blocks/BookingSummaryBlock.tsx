@@ -19,15 +19,17 @@ const BookingSummaryBlock: React.FC<BlockComponentProps> = ({
     onLogEvent?.('booking_confirm_started', '', 'info');
 
     try {
-      // Create booking
+      // Create booking via shopping cart
+      const bookingPayload: any = { action: 'create_booking' };
+      if (data.address_id) bookingPayload.address_id = data.address_id;
+      if (data.car_id) bookingPayload.car_id = data.car_id;
+      if (data.sales_item_ids) bookingPayload.sales_item_ids = data.sales_item_ids;
+      if (data.delivery_window_id) bookingPayload.delivery_window_id = data.delivery_window_id;
+
       const resp = await fetch(`${getApiUrl()}/noddi-booking-proxy`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'create_booking',
-          booking_proposal_slug: data.proposal_slug,
-          delivery_window_id: data.delivery_window_id,
-        }),
+        body: JSON.stringify(bookingPayload),
       });
       const bookingData = await resp.json();
       if (!resp.ok || !bookingData.booking) {
@@ -37,15 +39,6 @@ const BookingSummaryBlock: React.FC<BlockComponentProps> = ({
       }
 
       const booking = bookingData.booking;
-
-      // Start booking
-      if (booking.id) {
-        await fetch(`${getApiUrl()}/noddi-booking-proxy`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'start_booking', booking_id: booking.id }),
-        });
-      }
 
       setResult(booking);
       const payload = JSON.stringify({
@@ -206,22 +199,13 @@ registerBlock({
   apiConfig: {
     endpoints: [
       {
-        name: 'Create Booking',
+        name: 'Create Booking (Shopping Cart)',
         edgeFunction: 'noddi-booking-proxy',
-        externalApi: 'POST /v1/bookings/',
+        externalApi: 'POST /v1/bookings/shopping-cart-for-new-booking/',
         method: 'POST',
-        requestBody: { action: 'create_booking', booking_proposal_slug: 'string', delivery_window_id: 'number' },
+        requestBody: { action: 'create_booking', address_id: 'number', car_id: 'number', sales_item_ids: 'number[]', delivery_window_id: 'number' },
         responseShape: { booking: '{ id, booking_number }' },
-        description: 'Create and finalize the booking',
-      },
-      {
-        name: 'Start Booking',
-        edgeFunction: 'noddi-booking-proxy',
-        externalApi: 'POST /v1/bookings/:id/start/',
-        method: 'POST',
-        requestBody: { action: 'start_booking', booking_id: 'number' },
-        responseShape: { status: 'string' },
-        description: 'Activate the booking after creation',
+        description: 'Create and finalize the booking via shopping cart',
       },
     ],
   },
