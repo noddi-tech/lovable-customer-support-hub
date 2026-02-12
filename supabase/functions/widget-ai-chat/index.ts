@@ -259,6 +259,81 @@ async function executeSearchKnowledge(
   }
 }
 
+/**
+ * Post-process AI reply: inject missing user_id, user_group_id, delivery_window_id
+ * into BOOKING_SUMMARY JSON from tool call history. This is a deterministic fix
+ * because the AI model unreliably includes these fields.
+ */
+function patchBookingSummary(reply: string, messages: any[]): string {
+  const marker = '[BOOKING_SUMMARY]';
+  const closingMarker = '[/BOOKING_SUMMARY]';
+  const startIdx = reply.indexOf(marker);
+  const endIdx = reply.indexOf(closingMarker);
+  if (startIdx === -1 || endIdx === -1 || endIdx <= startIdx) return reply;
+
+  const jsonStr = reply.slice(startIdx + marker.length, endIdx);
+  let summaryData: any;
+  try {
+    summaryData = JSON.parse(jsonStr);
+  } catch {
+    console.error('[patchBookingSummary] Failed to parse BOOKING_SUMMARY JSON');
+    return reply;
+  }
+
+  let patched = false;
+
+  // Extract user_id and user_group_id from lookup_customer tool results
+  if (!summaryData.user_id || !summaryData.user_group_id) {
+    for (const msg of messages) {
+      if (msg.role === 'tool' && typeof msg.content === 'string') {
+        try {
+          const toolData = JSON.parse(msg.content);
+          if (toolData.customer?.userId && toolData.customer?.userGroupId) {
+            if (!summaryData.user_id) {
+              summaryData.user_id = toolData.customer.userId;
+              patched = true;
+            }
+            if (!summaryData.user_group_id) {
+              summaryData.user_group_id = toolData.customer.userGroupId;
+              patched = true;
+            }
+            break;
+          }
+        } catch { /* not JSON or no customer data */ }
+      }
+    }
+  }
+
+  // Extract delivery_window_id from user action messages (time slot selection)
+  if (!summaryData.delivery_window_id) {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const msg = messages[i];
+      if (msg.role === 'user' && typeof msg.content === 'string') {
+        try {
+          const actionData = JSON.parse(msg.content);
+          if (actionData.delivery_window_id) {
+            summaryData.delivery_window_id = actionData.delivery_window_id;
+            patched = true;
+            break;
+          }
+        } catch { /* not JSON */ }
+      }
+    }
+  }
+
+  if (patched) {
+    console.log('[patchBookingSummary] Injected missing fields:', {
+      user_id: summaryData.user_id,
+      user_group_id: summaryData.user_group_id,
+      delivery_window_id: summaryData.delivery_window_id,
+    });
+    const patchedJson = JSON.stringify(summaryData);
+    return reply.slice(0, startIdx) + marker + patchedJson + closingMarker + reply.slice(endIdx + closingMarker.length);
+  }
+
+  return reply;
+}
+
 async function executeLookupCustomer(phone?: string, email?: string): Promise<string> {
   const noddiToken = Deno.env.get('NODDI_API_TOKEN');
   if (!noddiToken) return JSON.stringify({ error: 'Customer lookup not configured' });
@@ -1375,7 +1450,8 @@ Deno.serve(async (req) => {
 
       // If no tool calls, we have the final answer
       if (!assistantMessage.tool_calls || assistantMessage.tool_calls.length === 0) {
-        const reply = assistantMessage.content || 'I apologize, I was unable to generate a response.';
+        const rawReply = assistantMessage.content || 'I apologize, I was unable to generate a response.';
+        const reply = patchBookingSummary(rawReply, currentMessages);
 
         // Save assistant reply & update conversation meta
         const savedMessageId = await saveMessage(supabase, dbConversationId, 'assistant', reply, allToolsUsed);
