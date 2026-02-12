@@ -1,75 +1,54 @@
 
 
-# Update Noddi Booking Proxy to Match Real API Endpoints
+# Fix Remaining AI Chatbot Issues
 
-## Problem
+Three issues persist after previous fixes. Here's the root cause analysis and fix for each.
 
-The `noddi-booking-proxy` edge function uses incorrect/outdated Noddi API endpoints. The user captured the actual endpoints from the Noddi website's booking flow, revealing significant differences in how the API works.
+---
 
-## Current vs Real API Mapping
+## Issue 1: Still asks "Har du bestilt gjennom Noddi for?" after verification
 
-| Step | Current Proxy | Real Noddi API |
-|------|--------------|----------------|
-| Car lookup | `/v1/cars/data-from-license-plate-number/?country_code=X&license_plate_number=X` | `/v1/cars/from-license-plate-number/?brand_domains=noddi&country_code=NO&number=X` |
-| List services | `/v1/booking-proposals/types/` (404!) | `/v1/sales-item-booking-categories/for-new-booking/?address_id=X` (requires address_id) |
-| Available items | N/A | `/v1/sales-items/initial-available-for-booking/` (POST) |
-| Earliest date | `/v1/delivery-windows/earliest-date/` (POST) | Same (correct) |
-| Latest date | N/A | `/v1/delivery-windows/latest-date/` (GET) |
-| Delivery windows | `/v1/delivery-windows/for-new-booking/?address_id=X` | `/v1/delivery-windows/for-new-booking/?address_id=X&from_date=X&selected_sales_item_ids=X&to_date=X` |
-| Create booking | `/v1/bookings/` (POST) | `/v1/bookings/shopping-cart-for-new-booking/` (POST) |
-| Service depts | N/A | `/v1/service-departments/from-booking-params/?address_id=X&sales_items_ids=X` |
-| Proposal system | `/v1/booking-proposals/` + `/v1/booking-proposal-items/` | Not used in real flow |
+**Root Cause**: The `buildFlowPrompt` post-verification instructions on line 772-773 tell the AI to auto-evaluate "existing customer" decisions, but this is just a text instruction the AI can ignore. The actual flow tree still contains the decision node, and the AI follows it literally.
 
-## Key Discoveries
+**Fix** (`supabase/functions/widget-ai-chat/index.ts`):
+- In the `__VERIFIED__` replacement (line 1209-1212), add a stronger instruction: explicitly state that the customer lookup result determines "existing customer" status and the AI must NEVER ask this question.
+- In `buildPostVerificationNodes`, detect decision nodes that check "existing"/"customer" and auto-resolve them in the prompt text instead of presenting as YES/NO.
+- Make the post-verification system prompt more forceful: "You ALREADY KNOW if the customer is existing from the lookup_customer result. If the result contains bookings, they are existing. NEVER ask the customer if they have ordered before."
 
-1. **Services require address_id** -- you can't list services without an address first
-2. **No proposal system** -- the real flow uses a "shopping cart" model, not proposals
-3. **Car lookup URL is different** -- uses `number=` param and `brand_domains=noddi`
-4. **Delivery windows need sales_item_ids** -- must pass selected service items
-5. **New endpoints needed** -- `initial-available-for-booking`, `latest-date`, `service-departments`
+---
 
-## Changes
+## Issue 2: Address payload displayed as user message with duplicate city
 
-### 1. `supabase/functions/noddi-booking-proxy/index.ts`
+**Root Cause**: The `handleActionSelect` label extraction (lines 238-241) creates `displayLabel = "addr, city"`. But if `parsed.address` already contains the city (e.g., "Slemdalsvingen 65, Oslo"), the result becomes "Slemdalsvingen 65, Oslo, Oslo".
 
-Refactor all actions to match the real API:
+Additionally, `sendMessage` on line 273 sends the full JSON as a hidden message, which correctly goes to the AI -- but looking at the screenshot, the address bubble says "Slemdalsvingen 65, Oslo, Oslo" (with duplicate city), meaning the label extraction is running but producing a bad label.
 
-- **`lookup_car`**: Update URL to `/v1/cars/from-license-plate-number/?brand_domains=noddi&country_code=X&number=X`
-- **`list_services`**: Change to call `/v1/sales-item-booking-categories/for-new-booking/?address_id=X` (now requires `address_id` param)
-- **`available_items`** (new): Add action for `POST /v1/sales-items/initial-available-for-booking/`
-- **`delivery_windows`**: Add `selected_sales_item_ids` and `to_date` query params
-- **`create_booking`**: Change endpoint to `/v1/bookings/shopping-cart-for-new-booking/`
-- **Remove**: `create_proposal`, `add_proposal_item`, `start_booking` (not part of real flow)
-- **Add**: `service_departments` action for `/v1/service-departments/from-booking-params/`
-- **Add**: `latest_date` action for `/v1/delivery-windows/latest-date/`
+**Fix** (`src/widget/components/AiChat.tsx`):
+- Fix the address label extraction to avoid city duplication: if `parsed.address` already contains the city name, don't append it again.
+- Simplify: just use `parsed.full_address || parsed.address` as the display label without appending city.
 
-### 2. `supabase/functions/widget-ai-chat/index.ts`
+---
 
-Update AI tool definitions to match the new proxy actions:
+## Issue 3: `[LICENSE_PLATE]` shown as raw text instead of rendering the component
 
-- **`list_available_services`**: Add required `address_id` parameter to the tool definition
-- **`create_booking_proposal`**: Replace with a new `create_shopping_cart` tool that calls the shopping cart endpoint
-- **`get_delivery_windows`**: Add `selected_sales_item_ids` and `to_date` params
-- **`finalize_booking`**: Update to use the shopping cart endpoint
-- **Tool execution mapping** (~line 988-999): Update the `case` statements to pass correct params to the updated proxy actions
-- **Remove** references to proposal-based flow in system prompts
+**Root Cause**: The AI is emitting `[LICENSE_PLATE]` without the closing `[/LICENSE_PLATE]` tag. Looking at the screenshot, the text shows literally `[LICENSE_PLATE]` with no closing tag. The parser in `parseMessageBlocks.ts` (lines 60-65) checks for the closing tag -- if `closeIdx === -1` (closing tag not found), it treats the remaining text as plain text, so the marker is displayed literally.
 
-### 3. `src/widget/components/blocks/BookingSummaryBlock.tsx`
+The system prompt (line 922) shows `[LICENSE_PLATE][/LICENSE_PLATE]` -- the tags are back-to-back with no content. The AI may be omitting the closing tag because it thinks it's self-closing or because it only remembers the opening tag.
 
-Update the confirm handler to use the new shopping cart endpoint instead of `create_booking` + `start_booking`.
+**Fix** (`supabase/functions/widget-ai-chat/index.ts`):
+- Change the LicensePlateBlock registration to be self-closing (no closing marker needed), OR
+- Strengthen the system prompt instruction to emphasize the closing tag is REQUIRED.
+- Safest approach: make the parser handle `[LICENSE_PLATE]` as self-closing when no closing tag is found, similar to `[PHONE_VERIFY]` and `[EMAIL_INPUT]` which don't require closing tags.
 
-## Technical Details
+The cleanest fix is to change LicensePlateBlock's registration to not require a closing marker since it doesn't use inner content anyway.
 
-### New proxy action signatures:
+---
 
-```text
-list_services:      { action: "list_services", address_id: number }
-available_items:    { action: "available_items", address_id: number, car_ids: number[], sales_item_category_id: number }
-delivery_windows:   { action: "delivery_windows", address_id: number, from_date: string, to_date: string, selected_sales_item_ids: number[] }
-create_booking:     { action: "create_booking", ...shopping_cart_payload }
-lookup_car:         { action: "lookup_car", country_code: string, license_plate: string }
-earliest_date:      { action: "earliest_date", address_id: number }
-latest_date:        { action: "latest_date", address_id: number }
-service_departments:{ action: "service_departments", address_id: number, sales_items_ids: number[] }
-```
+## Technical Summary
+
+| File | Change |
+|------|--------|
+| `supabase/functions/widget-ai-chat/index.ts` | Strengthen post-verification prompt to never ask "ordered before?". Update `[LICENSE_PLATE]` instruction to use self-closing format. |
+| `src/widget/components/AiChat.tsx` | Fix address label to avoid duplicate city (use `full_address` or `address` directly without appending city). |
+| `src/widget/components/blocks/LicensePlateBlock.tsx` | Remove `closingMarker` from registration so it works as self-closing like `[PHONE_VERIFY]`. Update `parseContent` accordingly. |
 
