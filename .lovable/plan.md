@@ -1,25 +1,33 @@
 
 
-# Fix: Revert `address` back to `address_id`
+# Fix: Remove `...rest` spread that leaks display fields into API payload
 
-The Noddi API error is clear: `'address' is an invalid field. Did you mean 'address_id'?`
+## Problem
 
-The previous fix over-corrected by renaming `address_id` to `address`. It needs to stay as `address_id`.
+The `create_booking` case destructures known fields from the request body, then spreads `...rest` into the API payload. The AI's booking summary JSON includes display fields like `address`, `car`, `service`, `date`, `time`, `price` (used for the summary card UI). These leak into the Noddi API payload via `...rest`, and `address` specifically triggers the validation error.
 
 ## Change
 
-**File**: `supabase/functions/noddi-booking-proxy/index.ts` (line 215)
+**File**: `supabase/functions/noddi-booking-proxy/index.ts` (lines 213-214)
 
-Change:
+Remove `...rest` from the `cartPayload` construction:
+
 ```typescript
-address: address_id,
-```
-Back to:
-```typescript
-address_id,
+// Before
+const cartPayload: any = {
+  ...rest,
+  address_id,
+  ...
+};
+
+// After
+const cartPayload: any = {
+  address_id,
+  ...
+};
 ```
 
-The other renames (`user`, `user_group`, `delivery_window.delivery_window`) were correct and stay as-is.
+This ensures only the explicitly mapped fields are sent to the Noddi API.
 
 ## Deployment
 - Redeploy `noddi-booking-proxy`
