@@ -532,7 +532,8 @@ const BLOCK_PROMPTS: Record<string, {
   },
   license_plate: {
     fieldTypes: ['license_plate'],
-    instruction: () => `To collect the customer's license plate, include the marker [LICENSE_PLATE][/LICENSE_PLATE] in your response. The widget will render a license plate input that looks up the car automatically. Do NOT ask for the plate number in text.`,
+    instruction: () => `To collect the customer's license plate, include EXACTLY this marker in your response: [LICENSE_PLATE]
+This is self-closing — do NOT add a closing tag. The widget renders an interactive license plate input with country selector and car lookup. NEVER ask for the plate number as plain text — ALWAYS use the [LICENSE_PLATE] marker.`,
   },
   service_select: {
     fieldTypes: ['service'],
