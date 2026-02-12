@@ -261,10 +261,10 @@ async function executeSearchKnowledge(
 
 /**
  * Post-process AI reply: inject missing user_id, user_group_id, delivery_window_id
- * into BOOKING_SUMMARY JSON from tool call history. This is a deterministic fix
- * because the AI model unreliably includes these fields.
+ * into BOOKING_SUMMARY JSON. Uses a fresh customer re-lookup when IDs are missing
+ * (tool results from earlier requests are not in currentMessages).
  */
-function patchBookingSummary(reply: string, messages: any[]): string {
+async function patchBookingSummary(reply: string, messages: any[], visitorPhone?: string, visitorEmail?: string): Promise<string> {
   const marker = '[BOOKING_SUMMARY]';
   const closingMarker = '[/BOOKING_SUMMARY]';
   const startIdx = reply.indexOf(marker);
@@ -282,25 +282,25 @@ function patchBookingSummary(reply: string, messages: any[]): string {
 
   let patched = false;
 
-  // Extract user_id and user_group_id from lookup_customer tool results
+  // Re-lookup customer if user_id or user_group_id are missing
   if (!summaryData.user_id || !summaryData.user_group_id) {
-    for (const msg of messages) {
-      if (msg.role === 'tool' && typeof msg.content === 'string') {
-        try {
-          const toolData = JSON.parse(msg.content);
-          if (toolData.customer?.userId && toolData.customer?.userGroupId) {
-            if (!summaryData.user_id) {
-              summaryData.user_id = toolData.customer.userId;
-              patched = true;
-            }
-            if (!summaryData.user_group_id) {
-              summaryData.user_group_id = toolData.customer.userGroupId;
-              patched = true;
-            }
-            break;
-          }
-        } catch { /* not JSON or no customer data */ }
+    if (visitorPhone || visitorEmail) {
+      console.log('[patchBookingSummary] Missing customer IDs, re-looking up customer via API...');
+      try {
+        const lookupResult = JSON.parse(await executeLookupCustomer(visitorPhone, visitorEmail));
+        if (lookupResult.customer?.userId && !summaryData.user_id) {
+          summaryData.user_id = lookupResult.customer.userId;
+          patched = true;
+        }
+        if (lookupResult.customer?.userGroupId && !summaryData.user_group_id) {
+          summaryData.user_group_id = lookupResult.customer.userGroupId;
+          patched = true;
+        }
+      } catch (e) {
+        console.error('[patchBookingSummary] Customer re-lookup failed:', e);
       }
+    } else {
+      console.warn('[patchBookingSummary] Missing customer IDs but no visitorPhone/visitorEmail available');
     }
   }
 
@@ -1451,7 +1451,7 @@ Deno.serve(async (req) => {
       // If no tool calls, we have the final answer
       if (!assistantMessage.tool_calls || assistantMessage.tool_calls.length === 0) {
         const rawReply = assistantMessage.content || 'I apologize, I was unable to generate a response.';
-        const reply = patchBookingSummary(rawReply, currentMessages);
+        const reply = await patchBookingSummary(rawReply, currentMessages, visitorPhone, visitorEmail);
 
         // Save assistant reply & update conversation meta
         const savedMessageId = await saveMessage(supabase, dbConversationId, 'assistant', reply, allToolsUsed);
