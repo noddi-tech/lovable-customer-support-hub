@@ -152,8 +152,7 @@ const LicensePlatePreview: React.FC<FlowPreviewProps> = () => (
 registerBlock({
   type: 'license_plate',
   marker: '[LICENSE_PLATE]',
-  closingMarker: '[/LICENSE_PLATE]',
-  parseContent: (inner) => ({ placeholder: inner.trim() || 'AB 12345' }),
+  parseContent: () => ({ placeholder: 'AB 12345' }),
   component: LicensePlateBlock,
   requiresApi: true,
   apiConfig: {

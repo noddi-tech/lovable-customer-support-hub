@@ -742,6 +742,19 @@ function buildPostVerificationNodes(nodes: FlowNode[], allNodes: FlowNode[], anc
       continue;
     }
 
+    // Auto-resolve "existing customer" decision nodes — we already know from lookup
+    if (node.type === 'decision' && node.label && /existing|bestilt|ordered|kunde|customer/i.test(node.label)) {
+      lines.push(`[AUTO-RESOLVED: "${node.label}" — determined from customer lookup. Do NOT ask this question.]`);
+      // Take YES branch (assume existing since we verified them)
+      if (node.yes_children && node.yes_children.length > 0) {
+        lines.push(buildPostVerificationNodes(node.yes_children, allNodes, ancestorIds));
+      }
+      if (node.children && node.children.length > 0) {
+        lines.push(buildPostVerificationNodes(node.children, allNodes, ancestorIds));
+      }
+      continue;
+    }
+
     // If this node is an ancestor of the phone node (on the path), auto-resolve as TRUE
     if (ancestorIds.has(node.id) && node.type === 'decision') {
       // Take the YES branch automatically since verification succeeded
@@ -769,8 +782,8 @@ function buildFlowPrompt(flowConfig: FlowConfig, isVerified = false): string {
     const phonePath = findPathToPhoneNode(flowConfig.nodes);
     const ancestorIds = new Set(phonePath || []);
     
-    lines.push('ALREADY COMPLETED: Customer phone has been verified successfully via SMS OTP. The customer is an existing customer (verified). Skip all verification and identity steps.\n');
-    lines.push('IMPORTANT: You have already looked up the customer. If you found bookings in their history, they are an existing customer — do NOT ask them if they have ordered before. Use the data you already have to auto-evaluate any "customer is existing" decisions. If the customer already stated what they want to do, skip the action menu and proceed directly.\n');
+    lines.push('ALREADY COMPLETED: Customer phone has been verified successfully via SMS OTP. Skip all verification and identity steps.\n');
+    lines.push('CRITICAL — EXISTING CUSTOMER RULE: You ALREADY KNOW whether this customer is existing from the lookup_customer tool result. If they have ANY bookings or history, they ARE existing. If not, they are new. NEVER ask the customer "Har du bestilt gjennom Noddi før?" or any variation of "have you ordered before?". This is auto-resolved. If the customer already stated what they want to do, skip the action menu and proceed directly.\n');
     lines.push(buildPostVerificationNodes(flowConfig.nodes, flowConfig.nodes, ancestorIds));
   } else {
     for (const node of flowConfig.nodes) {
@@ -918,8 +931,8 @@ Option 2
 8. ADDRESS SEARCH — render an interactive address search with delivery area check:
 [ADDRESS_SEARCH]Search address...[/ADDRESS_SEARCH]
 
-9. LICENSE PLATE — render a license plate input that looks up the car:
-[LICENSE_PLATE][/LICENSE_PLATE]
+9. LICENSE PLATE — render a license plate input that looks up the car (self-closing, NO closing tag needed):
+[LICENSE_PLATE]
 
 10. SERVICE SELECT — fetch and display available services as selectable cards:
 [SERVICE_SELECT][/SERVICE_SELECT]
@@ -1209,7 +1222,7 @@ Deno.serve(async (req) => {
         const intentContext = userIntent
           ? ` The customer previously said: "${userIntent}". Continue directly with that intent — do NOT re-ask what they want to do.`
           : '';
-        return { role: 'user', content: `I have just verified my phone number. Please look up my account and continue with the next step in the flow.${intentContext}` };
+        return { role: 'user', content: `I have just verified my phone number. Please look up my account and continue with the next step in the flow. REMEMBER: After lookup, you ALREADY KNOW if I am an existing customer — do NOT ask me.${intentContext}` };
       }
       return { role: m.role, content: m.content };
     }));
