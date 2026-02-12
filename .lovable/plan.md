@@ -1,74 +1,79 @@
 
 
-# Root Cause: `delivery_window_id` is Never Captured
+# Document All Noddi API Endpoints for the Booking Flow
 
-## The Real Problem
+Create a comprehensive reference document (`docs/NODDI_API_ENDPOINTS.md`) that maps out every Noddi API endpoint used across the entire chatbot booking flow, including which edge function calls it, what it expects, and what it returns.
 
-All previous fixes (localStorage recovery, server-side patching, truthiness checks) were treating symptoms. The actual bug is much simpler:
+## What the document will cover
 
-The Noddi API's `/v1/delivery-windows/for-new-booking/` response returns window objects that **do not have a field called `id`**. The field is likely called `pk`, `delivery_window_id`, or something else. 
+### 1. Booking Flow Overview
+A step-by-step summary of the complete booking journey:
+Phone verification -> Customer lookup -> Address selection -> License plate/car lookup -> Service selection -> Time slot selection -> Booking confirmation
 
-In `TimeSlotBlock.tsx` line 120, the code does:
-```
-delivery_window_id: window.id,   // <-- window.id is undefined!
-```
+### 2. Every Noddi API Endpoint, organized by flow step
 
-Since `undefined` values are silently dropped by `JSON.stringify`, the user message sent to the AI contains only `{ date, start_time, end_time }` with no delivery window ID at all. This is exactly what your log screenshot shows.
+**Phone Verification (2 endpoints)**
+- `GET /v1/users/send-phone-number-verification/` -- sends SMS code
+- `POST /v1/users/verify-phone-number/` -- verifies PIN code
 
-Every downstream recovery mechanism fails because the ID was never captured in the first place -- there's nothing to recover.
+**Customer Lookup (2 endpoints)**
+- `GET /v1/users/customer-lookup-support/` -- finds user by phone/email, returns user + user_groups
+- `GET /v1/user-groups/{id}/bookings-for-customer/` -- fetches bookings for a user group
 
-## Evidence
+**Address (2 endpoints)**
+- `GET /v1/addresses/suggestions/` -- autocomplete address search
+- `POST /v1/addresses/create-from-google-place-id/` -- resolves a Google Place ID to a Noddi address with `address_id`
 
-Your second screenshot shows the user message payload:
-```
-{"date":"2026-02-16","start_time":"2026-02-16T08:00:00Z","end_time":"2026-02-16T11:00:00Z"}
-```
-No `delivery_window_id` field at all -- confirming it was `undefined` at capture time.
+**Car Lookup (1 endpoint)**
+- `GET /v1/cars/from-license-plate-number/` -- returns car details including car `id`
 
-## Fix
+**Services (2 endpoints)**
+- `GET /v1/sales-item-booking-categories/for-new-booking/` -- lists service categories for an address
+- `POST /v1/sales-items/initial-available-for-booking/` -- returns specific bookable items with prices
 
-### Change 1: Fix ID extraction in TimeSlotBlock (the actual fix)
+**Time Slots (3 endpoints)**
+- `POST /v1/delivery-windows/earliest-date/` -- earliest available date
+- `GET /v1/delivery-windows/latest-date/` -- latest available date
+- `GET /v1/delivery-windows/for-new-booking/` -- available delivery windows (the one with the `pk` field fix)
 
-**File: `src/widget/components/blocks/TimeSlotBlock.tsx`**
+**Supporting (1 endpoint)**
+- `GET /v1/service-departments/from-booking-params/` -- service department info
 
-Update `handleSlotSelect` to try multiple possible field names from the Noddi API response:
+**Booking Management (3 endpoints)**
+- `POST /v1/bookings/` -- create a new booking
+- `GET /v1/bookings/{id}/` -- get booking details
+- `POST /v1/bookings/{id}/reschedule/` -- reschedule a booking
+- `POST /v1/bookings/{id}/cancel/` -- cancel a booking
 
-```typescript
-const handleSlotSelect = (window: any) => {
-    const currentDate = sortedDates[selectedIdx];
-    const windowId = window.id || window.pk || window.delivery_window_id 
-                     || window.delivery_window?.id;
-    const payload = JSON.stringify({
-      delivery_window_id: windowId,
-      date: currentDate,
-      start_time: window.start_time || window.starts_at,
-      end_time: window.end_time || window.ends_at,
-      price: window.price || window.total_price,
-    });
-    // ...
-};
-```
+### 3. For each endpoint, document:
+- Noddi API URL and HTTP method
+- Which edge function calls it
+- Required parameters and their types
+- Known field name quirks (e.g., `pk` vs `id` on delivery windows)
+- Fallback behavior if the endpoint fails
+- Example request/response shapes
 
-Also update the button `key` prop on line 199 from `w.id || i` to `w.id || w.pk || w.delivery_window_id || i`.
+### 4. Edge Function to Endpoint Mapping
+A quick-reference table showing which edge function calls which Noddi endpoints:
 
-### Change 2: Add diagnostic logging (temporary)
+| Edge Function | Noddi Endpoints Called |
+|---|---|
+| `widget-send-verification` | send-phone-number-verification |
+| `widget-verify-phone` | verify-phone-number |
+| `widget-ai-chat` | customer-lookup-support, user-groups/{id}/bookings-for-customer, bookings/{id}, bookings/{id}/reschedule, bookings/{id}/cancel |
+| `noddi-address-lookup` | addresses/suggestions, addresses/create-from-google-place-id |
+| `noddi-booking-proxy` | cars/from-license-plate-number, sales-item-booking-categories, sales-items/initial-available-for-booking, delivery-windows/earliest-date, delivery-windows/latest-date, delivery-windows/for-new-booking, service-departments/from-booking-params, bookings/ |
+| `noddi-customer-lookup` | customer-lookup-support, user-groups/{id}/bookings-for-customer |
 
-Add a `console.log` of the first window object received from the API so we can confirm the exact field name Noddi uses. This will appear in the browser console and help verify the fix:
+### 5. Known Gotchas Section
+- Delivery window objects use `pk` not `id`
+- Cars must be passed as `[{id: N}]` not `[N]`
+- License plates must be objects `{number, country_code}` not strings
+- `0` is never a valid ID for any field
+- `JSON.stringify` silently drops `undefined` values
 
-```typescript
-if (flatWindows.length > 0) {
-  console.log('[TimeSlotBlock] Sample window object keys:', Object.keys(flatWindows[0]), flatWindows[0]);
-}
-```
-
-### Change 3: Keep existing safety nets
-
-The existing recovery mechanisms in `BookingSummaryBlock.tsx` and `widget-ai-chat/index.ts` remain as safety nets, but once this fix is in place, they should rarely be needed since the ID will be properly captured at the source.
-
-## Summary
-
-- The core bug is a field name mismatch: `window.id` vs whatever Noddi actually calls it (`pk`, `delivery_window_id`, etc.)
-- Fix the extraction to try multiple field names
-- Add temporary logging to confirm the exact field name
-- All existing recovery code stays as fallback protection
+## Technical details
+- Single new file: `docs/NODDI_API_ENDPOINTS.md`
+- No code changes required
+- References existing fix documentation in `docs/NODDI_TIMESLOT_FIX.md`
 
