@@ -553,12 +553,19 @@ const BLOCK_PROMPTS: Record<string, {
   },
   address_search: {
     fieldTypes: ['address'],
-    instruction: () => `To collect the customer's address, include the marker [ADDRESS_SEARCH]Search address...[/ADDRESS_SEARCH] in your response. The widget will render an interactive address search with delivery area validation. Do NOT ask for the address in text.`,
+    instruction: () => `To collect the customer's address, include the marker [ADDRESS_SEARCH]...[/ADDRESS_SEARCH] in your response.
+If the customer has stored_addresses from lookup_customer, pass them as JSON so the widget shows quick-select buttons:
+[ADDRESS_SEARCH]{"stored": [{"id": 2860, "label": "Holtet 45, Oslo", "zip_code": "1169", "city": "Oslo"}]}[/ADDRESS_SEARCH]
+If no stored addresses, use: [ADDRESS_SEARCH]Search address...[/ADDRESS_SEARCH]
+The widget will render an interactive address search with delivery area validation. Do NOT ask for the address in text.`,
   },
   license_plate: {
     fieldTypes: ['license_plate'],
-    instruction: () => `To collect the customer's license plate, include EXACTLY this marker in your response: [LICENSE_PLATE]
-This is self-closing — do NOT add a closing tag. The widget renders an interactive license plate input with country selector and car lookup. NEVER ask for the plate number as plain text — ALWAYS use the [LICENSE_PLATE] marker.`,
+    instruction: () => `To collect the customer's license plate, include the marker [LICENSE_PLATE]...[/LICENSE_PLATE] in your response.
+If the customer has stored_cars from lookup_customer, pass them as JSON so the widget shows quick-select buttons:
+[LICENSE_PLATE]{"stored": [{"id": 13888, "make": "Tesla", "model": "Model Y", "plate": "EC94156"}]}[/LICENSE_PLATE]
+If no stored cars, use the self-closing marker: [LICENSE_PLATE]
+The widget renders an interactive license plate input with country selector and car lookup. NEVER ask for the plate number as plain text — ALWAYS use the [LICENSE_PLATE] marker.`,
   },
   service_select: {
     fieldTypes: ['service'],
@@ -926,7 +933,8 @@ AFTER LOOKING UP THE CUSTOMER, follow this guided flow:
 5. If the customer wants to book a new service: reference their most recent completed order and ask "Vil du ha noe lignende?" before proceeding.
 6. Do NOT list all previous bookings unless the customer specifically asks for their full booking history.
 7. Keep the initial response short and action-oriented — max 3-4 lines before presenting choices.
-8. NEVER dump a long list of all past orders unprompted. Summarise briefly and let the customer choose what to explore.`;
+8. NEVER dump a long list of all past orders unprompted. Summarise briefly and let the customer choose what to explore.
+9. IMPORTANT: If the customer has stored_addresses or stored_cars from the lookup, you MUST pass them inside the ADDRESS_SEARCH / LICENSE_PLATE markers as JSON so the widget shows quick-select pill buttons. See the marker instructions for the exact format.`;
     }
   } else {
     // Try to use flow config for pre-verification phase

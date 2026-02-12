@@ -4,6 +4,13 @@ import { getApiUrl } from '../../api';
 
 const COUNTRY_FLAGS: Record<string, string> = { NO: '🇳🇴', SE: '🇸🇪', DK: '🇩🇰', FI: '🇫🇮' };
 
+interface StoredCar {
+  id: number;
+  make: string;
+  model: string;
+  plate: string;
+}
+
 const LicensePlateBlock: React.FC<BlockComponentProps> = ({
   primaryColor, messageId, blockIndex, usedBlocks, onAction, onLogEvent, data,
 }) => {
@@ -16,6 +23,8 @@ const LicensePlateBlock: React.FC<BlockComponentProps> = ({
   const [loading, setLoading] = useState(false);
   const [carInfo, setCarInfo] = useState<any>(null);
   const [error, setError] = useState('');
+
+  const storedCars: StoredCar[] = data.stored || [];
 
   const handleSubmit = async () => {
     const cleaned = plate.trim().toUpperCase().replace(/\s+/g, '');
@@ -54,6 +63,20 @@ const LicensePlateBlock: React.FC<BlockComponentProps> = ({
     setLoading(false);
   };
 
+  const handleStoredCarSelect = (car: StoredCar) => {
+    setCarInfo({ id: car.id, make: car.make, model: car.model });
+    setPlate(car.plate);
+    const payload = JSON.stringify({
+      car_id: car.id,
+      make: car.make,
+      model: car.model,
+      license_plate: car.plate,
+    });
+    localStorage.setItem(`noddi_action_${blockKey}`, payload);
+    onAction(payload, blockKey);
+    onLogEvent?.('stored_car_selected', `${car.make} ${car.model}`, 'success');
+  };
+
   // Submitted state
   if (submitted) {
     let parsed: any;
@@ -85,6 +108,35 @@ const LicensePlateBlock: React.FC<BlockComponentProps> = ({
 
   return (
     <div style={{ margin: '8px 0' }}>
+      {/* Stored car quick-select pills */}
+      {storedCars.length > 0 && (
+        <div style={{ marginBottom: '6px' }}>
+          <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>
+            Dine lagrede biler:
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+            {storedCars.map((car) => (
+              <button
+                key={car.id}
+                onClick={() => handleStoredCarSelect(car)}
+                disabled={isUsed || loading}
+                style={{
+                  padding: '5px 10px', borderRadius: '16px',
+                  border: '1.5px solid #e5e7eb', background: '#f9fafb',
+                  fontSize: '12px', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', gap: '4px',
+                  transition: 'border-color 0.15s',
+                }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = primaryColor; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = '#e5e7eb'; }}
+              >
+                <span>🚗</span> {car.make} {car.model} ({car.plate})
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div style={{ display: 'flex', gap: '6px', alignItems: 'stretch' }}>
         {/* Country selector */}
         <button
@@ -152,7 +204,17 @@ const LicensePlatePreview: React.FC<FlowPreviewProps> = () => (
 registerBlock({
   type: 'license_plate',
   marker: '[LICENSE_PLATE]',
-  parseContent: () => ({ placeholder: 'AB 12345' }),
+  closingMarker: '[/LICENSE_PLATE]',
+  parseContent: (inner) => {
+    const trimmed = inner.trim();
+    if (!trimmed) return { placeholder: 'AB 12345', stored: [] };
+    try {
+      const parsed = JSON.parse(trimmed);
+      return { placeholder: 'AB 12345', stored: parsed.stored || [] };
+    } catch {
+      return { placeholder: 'AB 12345', stored: [] };
+    }
+  },
   component: LicensePlateBlock,
   requiresApi: true,
   apiConfig: {
