@@ -1,69 +1,61 @@
 
 
-# Fix: Booking Proxy Payload Mismatches and Verification Error Handling
+# Fix: BookingSummaryBlock customer ID re-lookup
 
-## Summary of Issues Found
+## Problem
 
-After reviewing the Noddi API schema (207k lines), I found **three critical issues** causing the booking flow to fail:
+Issue #1 (verification 400 pass-through) is already fixed in the last deployment. The `400` from Noddi is a genuine validation error for that phone number -- our edge function now correctly passes it through instead of wrapping it as `502`.
 
-### Issue 1: Booking creation payload field names are wrong (noddi-booking-proxy)
+Issue #2 remains: When the AI emits `[BOOKING_SUMMARY]{...}[/BOOKING_SUMMARY]`, the JSON often lacks `user_id` and `user_group_id` because the server-side `patchBookingSummary` may fail to inject them (timing, missing phone data, etc.). The `BookingSummaryBlock` frontend component then sends a `create_booking` request without these fields, triggering the proxy's `400: Missing required fields` error.
 
-The `create_booking` action in `noddi-booking-proxy/index.ts` sends incorrect field names to `POST /v1/bookings/`.
+## Solution
 
-| What we send | What API expects | 
-|---|---|
-| `user: user_id` | `user_id: user_id` |
-| `user_group: user_group_id` | `user_group_id: user_group_id` |
-| `delivery_window: { delivery_window: id, ... }` | `delivery_window: { id: id, ... }` |
+Add a fallback customer lookup directly in the `BookingSummaryBlock` so it can resolve the missing IDs at confirm-time.
 
-The API schema (`BookingRecordCreate`) requires:
-- `user_id` (not `user`)
-- `user_group_id` (not `user_group`)
-- `delivery_window.id` (not `delivery_window.delivery_window`)
+### Step 1: Add `lookup_customer` action to `noddi-booking-proxy`
 
-This means even when `patchBookingSummary` successfully injects the IDs, the proxy mangles the field names before sending to Noddi.
+Add a new case in the proxy's switch statement that calls `GET /v1/users/customer-lookup-support/?phone=...` and returns `{ userId, userGroupId }`. This reuses the same endpoint that `widget-ai-chat` uses internally.
 
-### Issue 2: Shopping cart endpoint is deprecated
+```
+File: supabase/functions/noddi-booking-proxy/index.ts
 
-The `BookingSummaryBlock` component references `shopping-cart-for-new-booking` in its API config metadata. The schema marks this endpoint as **deprecated**: "Use the discounts_for_shopping_cart_api endpoint instead." Our proxy already uses `POST /v1/bookings/` directly, so this is just a metadata/documentation issue -- no runtime impact.
-
-### Issue 3: Verification error wrapping (widget-send-verification)
-
-The function returns `502` for all upstream failures, including `400` validation errors from Noddi. The `400` should be passed through to give users a clear error message instead of "Internal server error."
-
-## Changes
-
-### File 1: `supabase/functions/noddi-booking-proxy/index.ts`
-
-Fix the `create_booking` payload to match the API schema:
-
-```typescript
-// Before (WRONG):
-const cartPayload = {
-  address_id,
-  user: user_id,
-  user_group: user_group_id,
-  delivery_window: { delivery_window: delivery_window_id, starts_at: ..., ends_at: ... },
-  cars: [...]
-};
-
-// After (CORRECT):
-const cartPayload = {
-  address_id,
-  user_id: user_id,
-  user_group_id: user_group_id,
-  delivery_window: { id: delivery_window_id, starts_at: ..., ends_at: ... },
-  cars: [...]
-};
+New case "lookup_customer":
+  - Accept `phone` and/or `email` from the request body
+  - Call Noddi's customer-lookup-support endpoint
+  - Return { customer: { userId, userGroupId } }
 ```
 
-### File 2: `supabase/functions/widget-send-verification/index.ts`
+### Step 2: Update BookingSummaryBlock to re-lookup if IDs missing
 
-- Pass through `400` status from Noddi instead of wrapping as `502`
-- Provide a user-friendly error message for phone validation failures
-- Only use `502` for actual upstream server errors (5xx)
+In `handleConfirm()`, before sending `create_booking`:
+1. Check if `user_id` or `user_group_id` is missing from `data`
+2. If missing, read the verified phone from `localStorage` (key: `noddi_ai_verified_phone`)
+3. Call `noddi-booking-proxy` with `action: 'lookup_customer'` and the phone
+4. Inject the returned `userId` and `userGroupId` into the booking payload
+5. Proceed with `create_booking` as normal
+
+```
+File: src/widget/components/blocks/BookingSummaryBlock.tsx
+
+In handleConfirm():
+  if (!data.user_id || !data.user_group_id) {
+    const phone = localStorage.getItem('noddi_ai_verified_phone');
+    if (phone) {
+      const lookupResp = await fetch(`${getApiUrl()}/noddi-booking-proxy`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'lookup_customer', phone }),
+      });
+      const lookupData = await lookupResp.json();
+      if (lookupData.customer) {
+        bookingPayload.user_id = lookupData.customer.userId;
+        bookingPayload.user_group_id = lookupData.customer.userGroupId;
+      }
+    }
+  }
+```
 
 ### Deployments
 
-- Redeploy `noddi-booking-proxy`
-- Redeploy `widget-send-verification`
+- Redeploy `noddi-booking-proxy` (new `lookup_customer` action)
+- No edge function redeployment needed for `BookingSummaryBlock` (frontend code, auto-builds)
