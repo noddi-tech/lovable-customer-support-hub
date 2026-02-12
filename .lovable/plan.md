@@ -1,56 +1,66 @@
 
+# Fix: Booking Flow — Missing Required API Fields
 
-# Fix: Time Slot API Errors and Duplicate Customer Messages
+## Root Cause (from actual Noddi API error logs)
 
-## Issue 1: Time Slot 502 Errors (Root Cause)
+Two **validation errors** from the Noddi API:
 
-The Noddi API returns `Address with pk=48291 not found` because:
+1. **`earliest_date`**: `"cars: This field is required"` — the `cars` array is mandatory, the proxy currently treats it as optional
+2. **`delivery_windows`**: `"This list may not be empty." attr: "selected_sales_item_ids"` — requires a non-empty list of sales item IDs
 
-1. The AI sometimes emits JSON inside the marker (`[TIME_SLOT]{"address_id":12345,...}[/TIME_SLOT]`) instead of the expected `2860::dekkskift` format
-2. The `parseContent` function only splits on `::`, so JSON content breaks parsing completely
-3. Even with the prompt fix, the AI occasionally ignores the format instruction
+The fundamental issue: **ServiceSelectBlock** returns `{type_slug: "dekkskift", service_name: "Dekkskift"}` — it has NO numeric sales item IDs. The AI prompt tells the LLM to extract `selected_sales_item_ids` from the service payload, but that data doesn't exist. So the AI either omits it or makes up a number.
 
-**Fix:** Make `parseContent` in `TimeSlotBlock.tsx` handle both formats -- try JSON parsing first as fallback, then fall back to `::` splitting. This makes the component resilient regardless of what format the AI uses.
+## Solution
 
-```
-parseContent: (inner) => {
-  // Try JSON first (AI sometimes emits JSON)
-  try {
-    const parsed = JSON.parse(inner.trim());
-    return {
-      address_id: parsed.address_id || '',
-      proposal_slug: parsed.service_slug || parsed.proposal_slug || '',
-    };
-  } catch {}
-  // Fallback: split on ::
-  const parts = inner.trim().split('::');
-  return {
-    address_id: parts[0] || '',
-    proposal_slug: parts[1] || '',
-  };
-}
+### 1. TimeSlotBlock: Auto-fetch `available_items` before querying windows
+
+Since the service selection only provides a slug (not sales item IDs), the TimeSlotBlock must resolve them by calling the existing `available_items` proxy action first.
+
+**Flow inside TimeSlotBlock:**
+```text
+Step 1: Call available_items(address_id, car_ids) --> get sales item IDs
+Step 2: Call earliest_date(address_id, cars) --> get first date  
+Step 3: Call delivery_windows(address_id, from_date, to_date, selected_sales_item_ids) --> get slots
 ```
 
-## Issue 2: Block Selections Showing as Customer Messages
+Changes to `src/widget/components/blocks/TimeSlotBlock.tsx`:
+- After mount, call `available_items` with `address_id` and `car_ids` to get the list of available sales items
+- Use the returned item IDs as `selected_sales_item_ids` for the delivery windows call
+- Always send `cars` (required) in the `earliest_date` call — if empty, show an error instead of making a failing request
 
-In `AiChat.tsx` `handleActionSelect` (line 228-274), every block action creates a visible customer message bubble with the display label. The address shows as "Slemdalsvingen 65, Oslo", the reg number as "ec94156", and the service as "Dekkskift" -- all as purple customer bubbles.
+### 2. Simplify the TIME_SLOT marker (no more `selected_sales_item_ids`)
 
-This is redundant because each interactive component already displays a green checkmark badge inline showing what was selected.
+Since the component now auto-fetches sales items, the AI only needs to provide `address_id` and `car_ids` in the marker. Remove `selected_sales_item_ids` from the prompt instruction to stop the AI from hallucinating IDs.
 
-**Fix:** Change `handleActionSelect` to always send the payload as a hidden message, never creating a visible customer bubble. The inline confirmation badges in each block component are sufficient visual feedback.
+Changes to `supabase/functions/widget-ai-chat/index.ts`:
+- Update the `time_slot` block prompt to only require `address_id` and `car_ids`
+- New format: `[TIME_SLOT]{"address_id": 2860, "car_ids": [555]}[/TIME_SLOT]`
 
-```
-// In handleActionSelect, always send hidden:
-sendMessage(option, undefined, { hidden: true });
-```
+### 3. ServiceSelectBlock: Pass `address_id` for real services
 
-No visible user message is created -- the block's own badge (green checkmark with selection text) provides the feedback.
+Currently calls `list_services` without `address_id`, always getting fallback data.
+
+Changes to `src/widget/components/blocks/ServiceSelectBlock.tsx`:
+- Update `parseContent` to extract `address_id` from the marker content (support both JSON and plain number)
+- Accept `address_id` from `data` prop and include it in the `list_services` API call
+- Update the `service_select` prompt instruction to include address_id: `[SERVICE_SELECT]{"address_id": 2860}[/SERVICE_SELECT]`
+
+Changes to `supabase/functions/widget-ai-chat/index.ts`:
+- Update the `service_select` block prompt to instruct the AI to include address_id
+
+### 4. Proxy: Make `cars` required in earliest_date
+
+Changes to `supabase/functions/noddi-booking-proxy/index.ts`:
+- In the `earliest_date` case, always include `cars` in the payload (even if empty array) since the API requires it
+- Return a clear error if `cars` is missing
 
 ## Files to Change
 
-1. **`src/widget/components/blocks/TimeSlotBlock.tsx`** -- Update `parseContent` to handle both JSON and `::` formats
-2. **`src/widget/components/AiChat.tsx`** -- Update `handleActionSelect` to send all block actions as hidden messages (no visible customer bubble)
+1. `src/widget/components/blocks/TimeSlotBlock.tsx` — Add `available_items` fetch step; remove dependency on `selected_sales_item_ids` from marker; require `car_ids`
+2. `src/widget/components/blocks/ServiceSelectBlock.tsx` — Accept `address_id` from parsed data; pass to API call
+3. `supabase/functions/widget-ai-chat/index.ts` — Simplify `time_slot` prompt (remove `selected_sales_item_ids`); update `service_select` prompt (add `address_id`)
+4. `supabase/functions/noddi-booking-proxy/index.ts` — Make `cars` always included in `earliest_date` payload
 
 ## Deployment
 
-No edge function changes needed -- both fixes are frontend-only.
+Edge functions `widget-ai-chat` and `noddi-booking-proxy` will need redeployment.
