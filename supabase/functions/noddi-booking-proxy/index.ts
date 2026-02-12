@@ -212,7 +212,7 @@ Deno.serve(async (req) => {
         // cars: [{ license_plate: {country_code, number}, selected_sales_item_ids: [int] }]
         const cartPayload: any = {
           ...rest,
-          address: address_id,
+          address_id,
           user: user_id,
           user_group: user_group_id,
           delivery_window: { delivery_window: delivery_window_id, starts_at: delivery_window_start, ends_at: delivery_window_end },
