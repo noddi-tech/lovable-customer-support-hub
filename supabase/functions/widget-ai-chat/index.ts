@@ -937,8 +937,9 @@ Option 2
 10. SERVICE SELECT — fetch and display available services as selectable cards:
 [SERVICE_SELECT][/SERVICE_SELECT]
 
-11. TIME SLOT — show date picker and available time slots. Replace address_id and proposal_slug with actual values:
-[TIME_SLOT]123::my-proposal-slug[/TIME_SLOT]
+11. TIME SLOT — show date picker and available time slots. Use the ACTUAL numeric address_id from the address selection step (it's in the JSON the customer sent after selecting an address). Example:
+[TIME_SLOT]12345::dekkskift[/TIME_SLOT]
+IMPORTANT: The first value MUST be the numeric address_id from the address payload, NOT the literal text "address_id".
 
 12. BOOKING SUMMARY — show a booking summary card with confirm/cancel. Include all booking data as JSON:
 [BOOKING_SUMMARY]{"address":"Holtet 45","car":"Tesla Model 3","service":"Dekkskift","date":"Mon 12 Feb","time":"08:00-12:00","price":"599 kr","proposal_slug":"...","delivery_window_id":123}[/BOOKING_SUMMARY]
