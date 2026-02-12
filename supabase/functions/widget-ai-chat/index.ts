@@ -537,28 +537,29 @@ This is self-closing — do NOT add a closing tag. The widget renders an interac
   },
   service_select: {
     fieldTypes: ['service'],
-    instruction: () => `To let the customer choose a service, include the marker with the address_id from the address step:
-[SERVICE_SELECT]{"address_id": <number>}[/SERVICE_SELECT]
+    instruction: () => `To let the customer choose a service, include the marker with address_id AND license_plate:
+[SERVICE_SELECT]{"address_id": <number>, "license_plate": "<string>"}[/SERVICE_SELECT]
 Extract the numeric address_id from the address JSON the customer sent earlier (look for {"address_id": XXXX} in a previous user message).
-The widget will fetch and display available services for that location as clickable cards. Do NOT list services in text.`,
+Extract the license_plate string from the LICENSE_PLATE step (look for the plate number in a previous user message, e.g., "EC94156").
+The widget will fetch and display available sales items with prices for that location. Do NOT list services in text.`,
   },
   time_slot: {
     fieldTypes: ['time_slot'],
     instruction: () => `IMMEDIATELY after the customer selects a service, you MUST include this marker in your response using JSON format:
-[TIME_SLOT]{"address_id": <number>, "car_ids": [<number>], "license_plate": "<string>"}[/TIME_SLOT]
+[TIME_SLOT]{"address_id": <number>, "car_ids": [<number>], "license_plate": "<string>", "sales_item_id": <number>}[/TIME_SLOT]
 
-The widget handles ALL data fetching automatically — it will resolve available sales items, earliest date, and delivery windows.
+The widget handles delivery window fetching automatically.
 DO NOT say "please wait", "let me check", "let me fetch", or anything similar — just emit the marker RIGHT AWAY.
 
 CRITICAL RULES:
-1. address_id = the numeric "address_id" integer from the address JSON payload the CUSTOMER sent earlier. Look for {"address_id": XXXX, ...} in a previous user message.
-2. car_ids = array containing the numeric "id" from the car lookup JSON the customer sent (from the LICENSE_PLATE step). Look for {"id": XXXX, ...} in a previous user message.
-3. license_plate = the license plate string from the LICENSE_PLATE step. Look for the plate number in a previous user message (e.g., "EC94156").
-4. Example: if address had {"address_id": 2860}, car had {"id": 555}, and plate was "EC94156", emit:
-   [TIME_SLOT]{"address_id": 2860, "car_ids": [555], "license_plate": "EC94156"}[/TIME_SLOT]
-5. NEVER use made-up numbers — ALWAYS extract real IDs from the conversation.
-6. If any required ID is missing, ask the customer to complete that step first.
-7. You do NOT need selected_sales_item_ids — the widget fetches them automatically.`,
+1. address_id = the numeric "address_id" from the address JSON the CUSTOMER sent earlier.
+2. car_ids = array containing the numeric "id" from the car lookup JSON (from LICENSE_PLATE step).
+3. license_plate = the license plate string from the LICENSE_PLATE step.
+4. sales_item_id = the numeric "sales_item_id" from the service selection step. The customer's service selection message contains {"sales_item_id": XXXX, "service_name": "...", "price": ...}. Extract the sales_item_id from there.
+5. Example: if address had {"address_id": 2860}, car had {"id": 555}, plate was "EC94156", and service had {"sales_item_id": 60282}:
+   [TIME_SLOT]{"address_id": 2860, "car_ids": [555], "license_plate": "EC94156", "sales_item_id": 60282}[/TIME_SLOT]
+6. NEVER use made-up numbers — ALWAYS extract real IDs from the conversation.
+7. If any required ID is missing, ask the customer to complete that step first.`,
   },
   booking_summary: {
     fieldTypes: ['booking_summary'],
@@ -952,12 +953,12 @@ Option 2
 9. LICENSE PLATE — render a license plate input that looks up the car (self-closing, NO closing tag needed):
 [LICENSE_PLATE]
 
-10. SERVICE SELECT — fetch and display available services as selectable cards. Include address_id so the widget fetches location-specific services:
-[SERVICE_SELECT]{"address_id": 2860}[/SERVICE_SELECT]
+10. SERVICE SELECT — fetch and display available sales items with prices. Include address_id AND license_plate:
+[SERVICE_SELECT]{"address_id": 2860, "license_plate": "EC94156"}[/SERVICE_SELECT]
 
-11. TIME SLOT — show available time slots. The widget auto-fetches available items, so you only need address_id and car_ids:
-[TIME_SLOT]{"address_id": 2860, "car_ids": [555]}[/TIME_SLOT]
-IMPORTANT: Extract address_id from address step and car_ids from license plate step. You do NOT need selected_sales_item_ids — the widget resolves them automatically.
+11. TIME SLOT — show available time slots. Include address_id, car_ids, license_plate, AND sales_item_id from the service selection:
+[TIME_SLOT]{"address_id": 2860, "car_ids": [555], "license_plate": "EC94156", "sales_item_id": 60282}[/TIME_SLOT]
+IMPORTANT: Extract sales_item_id from the customer's service selection message ({"sales_item_id": XXXX}).
 
 12. BOOKING SUMMARY — show a booking summary card with confirm/cancel. Include all booking data as JSON:
 [BOOKING_SUMMARY]{"address":"Holtet 45","car":"Tesla Model 3","service":"Dekkskift","date":"Mon 12 Feb","time":"08:00-12:00","price":"599 kr","proposal_slug":"...","delivery_window_id":123}[/BOOKING_SUMMARY]
