@@ -1022,8 +1022,13 @@ NEVER list services or categories as plain text. ALWAYS use this marker. The wid
 [TIME_SLOT]{"address_id": 2860, "car_ids": [555], "license_plate": "EC94156", "sales_item_id": 60282}[/TIME_SLOT]
 IMPORTANT: Extract sales_item_id from the customer's service selection message ({"sales_item_id": XXXX}).
 
-12. BOOKING SUMMARY — show a booking summary card with confirm/cancel. You MUST include user_id, user_group_id, license_plate, country_code from the customer lookup. After the customer selects a time slot, go DIRECTLY to this marker — do NOT show a separate text confirmation asking "does this look correct". The BOOKING_SUMMARY card IS the confirmation step.
-[BOOKING_SUMMARY]{"address":"Holtet 45","address_id":2860,"car":"Tesla Model 3","license_plate":"EC94156","country_code":"NO","user_id":12345,"user_group_id":6789,"service":"Dekkskift","sales_item_ids":[60282],"date":"Mon 12 Feb","time":"08:00-12:00","price":"599 kr","delivery_window_id":123}[/BOOKING_SUMMARY]
+12. BOOKING SUMMARY — show a booking summary card with confirm/cancel. After the customer selects a time slot, go DIRECTLY to this marker — do NOT show a separate text confirmation asking "does this look correct". The BOOKING_SUMMARY card IS the confirmation step.
+CRITICAL: You MUST replace ALL placeholder values with REAL data from the conversation.
+- user_id and user_group_id: use the ACTUAL values returned by lookup_customer, NEVER use example numbers.
+- delivery_window_id: use the ACTUAL ID from the selected time slot.
+- address_id: use the ACTUAL ID from the selected address.
+Example format (replace ALL values with real data):
+[BOOKING_SUMMARY]{"address":"<real address>","address_id":<REAL_ADDRESS_ID>,"car":"<real car>","license_plate":"<real plate>","country_code":"NO","user_id":<REAL_USER_ID_FROM_LOOKUP>,"user_group_id":<REAL_GROUP_ID_FROM_LOOKUP>,"service":"<real service>","sales_item_ids":[<real_ids>],"date":"<real date>","time":"<real time>","price":"<real price>","delivery_window_id":<REAL_DELIVERY_WINDOW_ID>}[/BOOKING_SUMMARY]
 
 RULES FOR MARKERS:
 - NEVER list addresses, license plates, cars, or services as numbered text. ALWAYS use the corresponding interactive marker.
