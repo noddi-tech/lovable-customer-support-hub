@@ -2,6 +2,13 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { registerBlock, BlockComponentProps, FlowPreviewProps } from './registry';
 import { searchAddressSuggestions, resolveAddress, type AddressSuggestion, type ResolvedAddress } from '../../api';
 
+interface StoredAddress {
+  id: number;
+  label: string;
+  zip_code?: string;
+  city?: string;
+}
+
 // ========== Component ==========
 
 const AddressSearchBlock: React.FC<BlockComponentProps> = ({
@@ -20,6 +27,8 @@ const AddressSearchBlock: React.FC<BlockComponentProps> = ({
   const [result, setResult] = useState<ResolvedAddress | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
   const containerRef = useRef<HTMLDivElement>(null);
+
+  const storedAddresses: StoredAddress[] = data.stored || [];
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -85,6 +94,31 @@ const AddressSearchBlock: React.FC<BlockComponentProps> = ({
     }
   }, [widgetKey, blockKey, onAction, onLogEvent, query]);
 
+  const handleStoredAddressSelect = useCallback((addr: StoredAddress) => {
+    const label = addr.label;
+    setSelected(label);
+    setResult({
+      id: addr.id,
+      street_name: label,
+      street_number: '',
+      city: addr.city || '',
+      zip_code: addr.zip_code || '',
+      is_in_delivery_area: true, // Previously booked here
+    } as ResolvedAddress);
+
+    const payload = JSON.stringify({
+      address_id: addr.id,
+      address: label,
+      full_address: label,
+      is_in_delivery_area: true,
+      zip_code: addr.zip_code || '',
+      city: addr.city || '',
+    });
+    localStorage.setItem(`noddi_action_${blockKey}`, payload);
+    onAction(payload, blockKey);
+    onLogEvent?.('stored_address_selected', label, 'success');
+  }, [blockKey, onAction, onLogEvent]);
+
   const handleClear = () => {
     setSelected(null);
     setResult(null);
@@ -108,7 +142,7 @@ const AddressSearchBlock: React.FC<BlockComponentProps> = ({
 
   // ---- Result state ----
   if (result) {
-    const label = `${result.street_name} ${result.street_number || ''}, ${result.city}`.trim();
+    const label = selected || `${result.street_name} ${result.street_number || ''}, ${result.city}`.trim();
     return (
       <div style={{ margin: '8px 0', padding: '10px 12px', borderRadius: '10px', fontSize: '13px',
         backgroundColor: result.is_in_delivery_area ? '#f0fdf4' : '#fffbeb',
@@ -143,6 +177,34 @@ const AddressSearchBlock: React.FC<BlockComponentProps> = ({
   // ---- Search state ----
   return (
     <div ref={containerRef} style={{ margin: '8px 0', position: 'relative' }}>
+      {/* Stored address quick-select pills */}
+      {storedAddresses.length > 0 && !selected && (
+        <div style={{ marginBottom: '6px' }}>
+          <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>
+            Dine lagrede adresser:
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+            {storedAddresses.map((addr) => (
+              <button
+                key={addr.id}
+                onClick={() => handleStoredAddressSelect(addr)}
+                style={{
+                  padding: '5px 10px', borderRadius: '16px',
+                  border: '1.5px solid #e5e7eb', background: '#f9fafb',
+                  fontSize: '12px', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', gap: '4px',
+                  transition: 'border-color 0.15s',
+                }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = primaryColor; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = '#e5e7eb'; }}
+              >
+                <span>📍</span> {addr.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div style={{
         display: 'flex', alignItems: 'center', border: '1.5px solid #d1d5db', borderRadius: '8px',
         padding: '0 10px', height: '36px', backgroundColor: '#fff', gap: '6px',
@@ -221,7 +283,16 @@ registerBlock({
   type: 'address_search',
   marker: '[ADDRESS_SEARCH]',
   closingMarker: '[/ADDRESS_SEARCH]',
-  parseContent: (inner) => ({ placeholder: inner.trim() || 'Search address...' }),
+  parseContent: (inner) => {
+    const trimmed = inner.trim();
+    if (!trimmed) return { placeholder: 'Search address...', stored: [] };
+    try {
+      const parsed = JSON.parse(trimmed);
+      return { placeholder: 'Search address...', stored: parsed.stored || [] };
+    } catch {
+      return { placeholder: trimmed || 'Search address...', stored: [] };
+    }
+  },
   component: AddressSearchBlock,
   requiresApi: true,
   apiConfig: {
