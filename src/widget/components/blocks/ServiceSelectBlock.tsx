@@ -18,7 +18,7 @@ function getIcon(slug: string): string {
 }
 
 const ServiceSelectBlock: React.FC<BlockComponentProps> = ({
-  primaryColor, messageId, blockIndex, usedBlocks, onAction, onLogEvent,
+  primaryColor, messageId, blockIndex, usedBlocks, onAction, onLogEvent, data,
 }) => {
   const blockKey = `${messageId}:${blockIndex}`;
   const isUsed = usedBlocks.has(blockKey);
@@ -28,13 +28,17 @@ const ServiceSelectBlock: React.FC<BlockComponentProps> = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  const addressId = data?.address_id ? Number(data.address_id) : null;
+
   useEffect(() => {
     (async () => {
       try {
+        const body: any = { action: 'list_services' };
+        if (addressId) body.address_id = addressId;
         const resp = await fetch(`${getApiUrl()}/noddi-booking-proxy`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'list_services' }),
+          body: JSON.stringify(body),
         });
         const data = await resp.json();
         if (data.services) setServices(data.services);
@@ -123,7 +127,16 @@ registerBlock({
   type: 'service_select',
   marker: '[SERVICE_SELECT]',
   closingMarker: '[/SERVICE_SELECT]',
-  parseContent: () => ({}),
+  parseContent: (inner) => {
+    // Try JSON first
+    try {
+      const parsed = JSON.parse(inner.trim());
+      return { address_id: parsed.address_id || '' };
+    } catch {}
+    // Fallback: plain number
+    const num = parseInt(inner.trim(), 10);
+    return { address_id: isNaN(num) ? '' : num };
+  },
   component: ServiceSelectBlock,
   requiresApi: true,
   apiConfig: {

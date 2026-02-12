@@ -22,7 +22,6 @@ const TimeSlotBlock: React.FC<BlockComponentProps> = ({
 
   const addressId = data.address_id ? Number(data.address_id) : null;
   const carIds: number[] = data.car_ids ? (Array.isArray(data.car_ids) ? data.car_ids.map(Number) : [Number(data.car_ids)]) : [];
-  const salesItemIds: number[] = data.selected_sales_item_ids ? (Array.isArray(data.selected_sales_item_ids) ? data.selected_sales_item_ids.map(Number) : [Number(data.selected_sales_item_ids)]) : [];
 
   const [firstDate, setFirstDate] = useState<string | null>(null);
   const [windows, setWindows] = useState<any[]>([]);
@@ -31,26 +30,49 @@ const TimeSlotBlock: React.FC<BlockComponentProps> = ({
 
   useEffect(() => {
     if (!addressId) { setError('Missing address'); setLoading(false); return; }
+    if (carIds.length === 0) { setError('Missing car information'); setLoading(false); return; }
+
     (async () => {
       try {
-        // 1. Get earliest date
-        const earliestPayload: any = { action: 'earliest_date', address_id: addressId };
-        if (carIds.length > 0) earliestPayload.cars = carIds;
-        const edResp = await fetch(`${getApiUrl()}/noddi-booking-proxy`, {
+        const apiUrl = getApiUrl();
+        const postJson = (body: any) => fetch(`${apiUrl}/noddi-booking-proxy`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(earliestPayload),
+          body: JSON.stringify(body),
+        }).then(r => r.json());
+
+        // Step 1: Fetch available sales items for this address + car
+        const itemsData = await postJson({
+          action: 'available_items',
+          address_id: addressId,
+          car_ids: carIds,
         });
-        const edData = await edResp.json();
+
+        // Extract sales item IDs from the response
+        let salesItemIds: number[] = [];
+        const items = Array.isArray(itemsData) ? itemsData : itemsData.results || itemsData.sales_items || itemsData.items || [];
+        if (Array.isArray(items)) {
+          salesItemIds = items
+            .map((item: any) => item.id || item.sales_item_id)
+            .filter((id: any) => id != null)
+            .map(Number);
+        }
+
+        // Step 2: Get earliest date (cars is required by Noddi API)
+        const edData = await postJson({
+          action: 'earliest_date',
+          address_id: addressId,
+          cars: carIds,
+        });
         const earliest = edData.earliest_date || edData.date || new Date().toISOString().slice(0, 10);
 
-        // 2. Compute to_date (earliest + 14 days)
+        // Step 3: Compute date range (earliest + 14 days)
         const startD = new Date(earliest + 'T00:00:00');
         const endD = new Date(startD);
         endD.setDate(endD.getDate() + 14);
         const toDate = endD.toISOString().slice(0, 10);
 
-        // 3. Fetch all delivery windows in range
+        // Step 4: Fetch delivery windows with resolved sales item IDs
         const payload: any = {
           action: 'delivery_windows',
           address_id: addressId,
@@ -60,15 +82,10 @@ const TimeSlotBlock: React.FC<BlockComponentProps> = ({
         if (salesItemIds.length > 0) {
           payload.selected_sales_item_ids = salesItemIds;
         }
-        const resp = await fetch(`${getApiUrl()}/noddi-booking-proxy`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
-        const wData = await resp.json();
+        const wData = await postJson(payload);
         const allWindows: any[] = Array.isArray(wData) ? wData : wData.results || wData.windows || [];
 
-        // 4. Group by date, find first date with slots
+        // Step 5: Group by date, find first date with slots
         const byDate: Record<string, any[]> = {};
         for (const w of allWindows) {
           const wDate = (w.start_time || w.starts_at || '').slice(0, 10);
@@ -188,18 +205,14 @@ registerBlock({
       const parsed = JSON.parse(inner.trim());
       return {
         address_id: parsed.address_id || '',
-        proposal_slug: parsed.service_slug || parsed.proposal_slug || '',
         car_ids: parsed.car_ids || parsed.cars || [],
-        selected_sales_item_ids: parsed.selected_sales_item_ids || [],
       };
     } catch {}
     // Fallback: split on ::
     const parts = inner.trim().split('::');
     return {
       address_id: parts[0] || '',
-      proposal_slug: parts[1] || '',
       car_ids: [],
-      selected_sales_item_ids: [],
     };
   },
   component: TimeSlotBlock,
@@ -207,11 +220,20 @@ registerBlock({
   apiConfig: {
     endpoints: [
       {
+        name: 'Available Items',
+        edgeFunction: 'noddi-booking-proxy',
+        externalApi: 'POST /v1/sales-items/initial-available-for-booking/',
+        method: 'POST',
+        requestBody: { action: 'available_items', address_id: 'number', car_ids: 'number[]' },
+        responseShape: { items: '{ id, name, price }[]' },
+        description: 'Fetch available sales items for address and car',
+      },
+      {
         name: 'Earliest Date',
         edgeFunction: 'noddi-booking-proxy',
         externalApi: 'POST /v1/delivery-windows/earliest-date/',
         method: 'POST',
-        requestBody: { action: 'earliest_date', address_id: 'number' },
+        requestBody: { action: 'earliest_date', address_id: 'number', cars: 'number[]' },
         responseShape: { earliest_date: 'string (YYYY-MM-DD)' },
         description: 'Get earliest available booking date for an address',
       },
@@ -220,7 +242,7 @@ registerBlock({
         edgeFunction: 'noddi-booking-proxy',
         externalApi: 'GET /v1/delivery-windows/for-new-booking/',
         method: 'POST',
-        requestBody: { action: 'delivery_windows', address_id: 'number', from_date: 'string', to_date: 'string' },
+        requestBody: { action: 'delivery_windows', address_id: 'number', from_date: 'string', to_date: 'string', selected_sales_item_ids: 'number[]' },
         responseShape: { windows: '{ id, start_time, end_time, price }[]' },
         description: 'Get available time slots for a date range and address',
       },

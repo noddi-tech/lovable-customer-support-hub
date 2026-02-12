@@ -98,11 +98,10 @@ Deno.serve(async (req) => {
       // ========== Earliest Date ==========
       case "earliest_date": {
         const { address_id: eAddr, cars } = body;
-        const edPayload: any = { address_id: eAddr };
-        // The Noddi API requires a "cars" array (car IDs from license plate lookup)
-        if (cars && Array.isArray(cars) && cars.length > 0) {
-          edPayload.cars = cars;
+        if (!cars || !Array.isArray(cars) || cars.length === 0) {
+          return jsonResponse({ error: "cars array is required and must not be empty" }, 400);
         }
+        const edPayload: any = { address_id: eAddr, cars };
         const res = await fetch(`${API_BASE}/v1/delivery-windows/earliest-date/`, {
           method: "POST",
           headers,
