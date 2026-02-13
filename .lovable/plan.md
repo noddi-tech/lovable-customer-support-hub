@@ -1,71 +1,96 @@
 
-
-# Fix: "Change Booking Time" Flow Showing Text Instead of Interactive Component
-
-## Problem
-
-The screenshot shows the AI listing delivery windows as plain text bullets ("06:00 - 11:00", "08:00 - 11:00", etc.) instead of rendering the interactive `[TIME_SLOT]` date/time picker component. The AI is calling the `get_delivery_windows` tool server-side and then dumping the results as text, when it should simply emit the `[TIME_SLOT]` marker and let the client-side component fetch and display the windows itself.
+# Fix: "Change Booking Time" Flow -- Missing IDs Prevent TIME_SLOT Marker
 
 ## Root Cause
 
-Two issues work together:
+The "change_time" flow requires the AI to emit a `[TIME_SLOT]` marker with `address_id`, `car_ids`, `license_plate`, and `sales_item_id`. However, **neither tool returns these IDs**:
 
-1. **The `change_time` flow step instruction** says "Show available delivery windows and let customer pick a new time" -- the AI interprets "show available delivery windows" literally by calling the `get_delivery_windows` tool and presenting results as text.
+1. **`lookup_customer`** returns bookings with only display strings:
+   - `address: "Holtet 45, 1368 Oslo"` (no `address_id`)
+   - `vehicle: "Tesla Model Y (EC94156)"` (no `car_id`)
+   - `services: ["Dekkskift"]` (no `sales_item_ids`)
 
-2. **The TIME_SLOT block prompt** lacks the strict "ONLY output the marker, no text" rule that ADDRESS_SEARCH and LICENSE_PLATE already have. It also doesn't explicitly tell the AI to NOT call `get_delivery_windows` itself.
+2. **`get_booking_details`** has the same problem:
+   - `address: booking.address?.full_address` (no `address_id`)
+   - `vehicle: { make, model, licensePlate }` (no `car_id`)
+   - `services: [{ name, price }]` (no `sales_item_ids`)
 
-## Changes
+Without these numeric IDs, the AI literally **cannot** construct the TIME_SLOT marker payload. It hits maxIterations trying tool calls that never give it the data it needs, then falls back to the Norwegian "please rephrase" message.
 
-### File 1: `supabase/functions/widget-ai-chat/index.ts`
+## Fix
 
-**Change A -- Update the TIME_SLOT block prompt** (around line 689-691):
+### 1. `supabase/functions/widget-ai-chat/index.ts` -- `lookup_customer` bookings mapping (lines 526-533)
 
-Add the same strict "entire response must be ONLY the marker" rule and explicitly forbid calling `get_delivery_windows`:
+Add `address_id`, `car_id`, `car_ids`, and `sales_item_ids` to each booking object:
 
+```typescript
+bookings: bookings.slice(0, 10).map((b: any) => ({
+  id: b.id,
+  status: b.status,
+  scheduledAt: b.start_time || b.scheduled_at || b.delivery_window_starts_at,
+  services: b.order_lines?.map((ol: any) => ol.service_name || ol.name).filter(Boolean) || [],
+  sales_item_ids: b.order_lines?.map((ol: any) => ol.sales_item_id || ol.id).filter(Boolean) || [],
+  address: b.address?.full_address || b.address || null,
+  address_id: b.address?.id || null,
+  vehicle: b.car ? `${b.car.make || ''} ${b.car.model || ''} (${b.car.license_plate || ''})`.trim() : null,
+  car_id: b.car?.id || null,
+  car_ids: Array.isArray(b.cars) ? b.cars.map((c: any) => c.id).filter(Boolean) : (b.car?.id ? [b.car.id] : []),
+  license_plate: b.car?.license_plate_number || b.car?.license_plate || (Array.isArray(b.cars) && b.cars[0] ? (b.cars[0].license_plate_number || b.cars[0].license_plate || '') : ''),
+})),
 ```
-TIME_SLOT: `Your ENTIRE response must be ONLY the [TIME_SLOT] marker. No text before or after.
-[TIME_SLOT]{"address_id": <number>, "car_ids": [<number>], "license_plate": "<string>", "sales_item_id": <number>}[/TIME_SLOT]
-Extract all IDs from previous steps (booking details, service selection, etc.).
-DO NOT call get_delivery_windows — the widget component fetches and displays time slots automatically.
-NEVER list delivery windows as text. The interactive component handles everything.`
+
+### 2. `supabase/functions/widget-ai-chat/index.ts` -- `executeGetBookingDetails` (lines 554-565)
+
+Add the same IDs to the booking details response:
+
+```typescript
+return JSON.stringify({
+  id: booking.id,
+  status: booking.status,
+  scheduledAt: booking.start_time || booking.scheduled_at,
+  endTime: booking.end_time,
+  services: booking.order_lines?.map((ol: any) => ({ name: ol.service_name || ol.name, price: ol.price })) || [],
+  sales_item_ids: booking.order_lines?.map((ol: any) => ol.sales_item_id || ol.id).filter(Boolean) || [],
+  address: booking.address?.full_address || booking.address || null,
+  address_id: booking.address?.id || null,
+  vehicle: booking.car ? { make: booking.car.make, model: booking.car.model, licensePlate: booking.car.license_plate, year: booking.car.year } : null,
+  car_id: booking.car?.id || null,
+  car_ids: Array.isArray(booking.cars) ? booking.cars.map((c: any) => c.id).filter(Boolean) : (booking.car?.id ? [booking.car.id] : []),
+  license_plate: booking.car?.license_plate_number || booking.car?.license_plate || '',
+  totalPrice: booking.total_price,
+  notes: booking.customer_notes || null,
+});
 ```
 
-**Change B -- Update the TIME_SLOT section in the main system prompt** (around line 846-848):
+### 3. Update `change_time` flow step instruction in database
 
-Add explicit instruction:
-
-```
-11. TIME SLOT -- show available time slots:
-Output ONLY this marker and NOTHING else in the message. The component fetches delivery windows automatically.
-[TIME_SLOT]{"address_id": 2860, "car_ids": [555], "license_plate": "EC94156", "sales_item_id": 60282}[/TIME_SLOT]
-Extract sales_item_id from the customer's service selection message.
-DO NOT call get_delivery_windows yourself. NEVER list time slots as plain text.
-```
-
-**Change C -- Update the `change_time` action flow step instruction in the database** by running a SQL update:
-
-Update step 2's instruction from "Show available delivery windows and let customer pick a new time" to something that clearly directs the AI to emit the marker:
+The step 1 instruction should tell the AI to use `lookup_customer` (which returns bookings with IDs) rather than separately calling `get_booking_details`. If there's only one future booking, proceed directly; if multiple, ask the customer which one.
 
 ```sql
 UPDATE ai_action_flows
 SET flow_steps = '[
-  {"id":"step_1","type":"lookup","field":"booking","instruction":"Identify which booking the customer wants to change. Use their verified phone to look up pending bookings."},
-  {"id":"step_2","type":"collect","field":"time_slot","marker":"TIME_SLOT","instruction":"Emit the [TIME_SLOT] marker with the booking address_id and sales_item_ids from the booking details. The component will display available times automatically. Do NOT call get_delivery_windows."},
-  {"id":"step_3","type":"confirm","field":"edit","marker":"BOOKING_EDIT","instruction":"Confirm the time change with the customer"}
+  {"id":"step_1","type":"lookup","field":"booking","instruction":"Use lookup_customer with the verified phone. The response includes future bookings with address_id, car_ids, sales_item_ids, and license_plate. If only one upcoming booking exists, confirm it is the one they want to change. If multiple, ask which one. Extract the address_id, car_ids, sales_item_ids, and license_plate from the chosen booking for the next step."},
+  {"id":"step_2","type":"collect","field":"time_slot","marker":"TIME_SLOT","instruction":"Emit the [TIME_SLOT] marker using the address_id, car_ids, license_plate, and first sales_item_id from the booking identified in step 1. Do NOT call get_delivery_windows. The component fetches and displays available times automatically."},
+  {"id":"step_3","type":"confirm","field":"edit","marker":"BOOKING_EDIT","instruction":"Show the [BOOKING_EDIT] marker with the booking_id, the old time from the booking details, and the new time selected by the customer."}
 ]'::jsonb
 WHERE intent_key = 'change_time';
 ```
 
-### File 2: No frontend changes needed
-
-The `TimeSlotBlock.tsx` already handles fetching and displaying delivery windows correctly (and with the Oslo timezone fix from the previous change).
-
 ## Summary
 
-| What | Where | Change |
-|------|-------|--------|
-| TIME_SLOT block prompt | Edge function, line ~689 | Add "ONLY marker, no text" and "do NOT call get_delivery_windows" |
-| TIME_SLOT system prompt section | Edge function, line ~846 | Add same strict rules as ADDRESS_SEARCH |
-| change_time flow step instruction | Database (ai_action_flows) | Clarify that step 2 should emit marker, not call tool |
+| File / Target | Change |
+|---|---|
+| Edge function -- `lookup_customer` | Add `address_id`, `car_id`, `car_ids`, `sales_item_ids`, `license_plate` to each booking |
+| Edge function -- `executeGetBookingDetails` | Add same IDs to response |
+| Database -- `ai_action_flows` (change_time) | Update step instructions to reference available IDs and guide the AI through the flow |
 
-This ensures the AI emits the interactive time slot picker instead of listing windows as text, matching the behavior of other markers like ADDRESS_SEARCH and LICENSE_PLATE.
+## Why This Fixes It
+
+The AI currently loops calling tools trying to find the IDs it needs, exhausts 8 iterations, and falls back. With IDs included in the tool responses, the flow becomes:
+
+1. `lookup_customer` returns bookings **with IDs** (1 iteration)
+2. AI asks "is this the booking you want to change?" (0 iterations, text response)
+3. Customer confirms, AI emits `[TIME_SLOT]{"address_id": 2860, "car_ids": [555], "license_plate": "EC94156", "sales_item_id": 60282}` (0 iterations, text response)
+4. Customer picks a time, AI emits `[BOOKING_EDIT]` (0 iterations)
+
+Total: 1-2 tool iterations instead of 8+.
