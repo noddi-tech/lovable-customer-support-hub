@@ -301,9 +301,9 @@ const AdminSidebar = () => {
 
 const LayoutContent: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const location = useLocation();
-  const isFullWidth = location.pathname === '/admin/ai-chatbot';
+  const isFullHeight = location.pathname === '/admin/ai-chatbot';
   return (
-    <div className={cn("py-6", isFullWidth ? "px-4" : "px-8 max-w-7xl mx-auto")}>
+    <div className={cn("py-6", isFullHeight ? "px-4 h-full flex flex-col" : "px-8 max-w-7xl mx-auto")}>
       {children}
     </div>
   );
@@ -311,6 +311,7 @@ const LayoutContent: React.FC<{ children: React.ReactNode }> = ({ children }) =>
 
 export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({ children }) => {
   const navigate = useNavigate();
+  const location = useLocation();
 
   return (
     <SidebarProvider defaultOpen>
@@ -344,9 +345,15 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({ children }
 
           {/* Content area with proper pane scrolling */}
           <PaneColumn className="flex-1 min-h-0">
-            <PaneScroll className="h-full">
-              <LayoutContent>{children}</LayoutContent>
-            </PaneScroll>
+            {location.pathname === '/admin/ai-chatbot' ? (
+              <div className="h-full overflow-hidden">
+                <LayoutContent>{children}</LayoutContent>
+              </div>
+            ) : (
+              <PaneScroll className="h-full">
+                <LayoutContent>{children}</LayoutContent>
+              </PaneScroll>
+            )}
           </PaneColumn>
         </main>
       </div>
