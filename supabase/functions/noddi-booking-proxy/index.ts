@@ -288,6 +288,42 @@ Deno.serve(async (req) => {
         });
       }
 
+      // ========== Update Booking (PATCH) ==========
+      case "update_booking": {
+        const { booking_id, address_id: ubAddr, delivery_window_id: ubDwId,
+                delivery_window_start: ubDwStart, delivery_window_end: ubDwEnd,
+                cars: ubCars } = body;
+        if (!booking_id) {
+          return jsonResponse({ error: "booking_id required" }, 400);
+        }
+
+        const patchPayload: any = {};
+        if (ubAddr) patchPayload.address_id = ubAddr;
+        if (ubDwId) {
+          patchPayload.delivery_window = {
+            id: ubDwId,
+            starts_at: ubDwStart,
+            ends_at: ubDwEnd,
+          };
+        }
+        if (ubCars) patchPayload.cars = ubCars;
+
+        console.log("Update booking payload:", JSON.stringify(patchPayload));
+
+        const res = await fetch(`${API_BASE}/v1/bookings/${booking_id}/`, {
+          method: "PATCH",
+          headers,
+          body: JSON.stringify(patchPayload),
+        });
+        if (!res.ok) {
+          const text = await res.text();
+          console.error("Update booking error:", res.status, text);
+          return jsonResponse({ error: "Failed to update booking", details: text }, 502);
+        }
+        const booking = await res.json();
+        return jsonResponse({ booking });
+      }
+
       default:
         return jsonResponse({ error: `Unknown action: ${action}` }, 400);
     }
