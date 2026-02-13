@@ -41,7 +41,11 @@ const BookingEditConfirmBlock: React.FC<BlockComponentProps> = ({
       const respData = await resp.json();
 
       if (!resp.ok || respData.error) {
-        setError(respData.error || 'Failed to update booking');
+        if (resp.status >= 500) {
+          setError('Booking update is temporarily unavailable, please try again later');
+        } else {
+          setError(respData.error || 'Failed to update booking');
+        }
         setConfirming(false);
         return;
       }
@@ -56,7 +60,7 @@ const BookingEditConfirmBlock: React.FC<BlockComponentProps> = ({
       onAction(actionPayload, blockKey);
       onLogEvent?.('booking_edit_confirmed', `#${data.booking_id}`, 'success');
     } catch {
-      setError('Network error');
+      setError('Something went wrong, please try again later');
     }
     setConfirming(false);
   };

@@ -41,7 +41,11 @@ const LicensePlateBlock: React.FC<BlockComponentProps> = ({
       });
       const result = await resp.json();
       if (!resp.ok || !result.car) {
-        setError(result.error || 'Car not found');
+        if (resp.status >= 500) {
+          setError('Vehicle lookup is temporarily unavailable, please try again later');
+        } else {
+          setError(result.error || 'Car not found');
+        }
         setLoading(false);
         return;
       }
