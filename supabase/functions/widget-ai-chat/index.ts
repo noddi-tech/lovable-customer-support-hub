@@ -582,7 +582,12 @@ async function executeLookupCustomer(phone?: string, email?: string): Promise<st
       stored_cars: Array.from(storedCars.values()),
       bookings: bookings
         .filter((b: any) => {
-          const status = (b.status || '').toLowerCase();
+          const rawStatus = b.status;
+          const status = (
+            typeof rawStatus === 'string' ? rawStatus
+            : typeof rawStatus === 'object' && rawStatus !== null ? (rawStatus.name || rawStatus.slug || String(rawStatus.id || ''))
+            : ''
+          ).toLowerCase();
           return !['completed', 'cancelled', 'canceled', 'no_show', 'expired'].includes(status);
         })
         .slice(0, 10).map((b: any) => ({
