@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { registerBlock, BlockComponentProps, FlowPreviewProps } from './registry';
 import { sendPhoneVerification, verifyPhonePin } from '../../api';
 import { getWidgetTranslations } from '../../translations';
+import { getPhoneCountryInfo } from '../../utils/phoneCountryCodes';
 
 const VERIFIED_PHONE_KEY = 'noddi_ai_verified_phone';
 
@@ -11,7 +12,7 @@ const PhoneVerifyBlock: React.FC<BlockComponentProps> = ({
   const blockKey = `${messageId}:${blockIndex}`;
   const isUsed = usedBlocks.has(blockKey);
   const t = getWidgetTranslations(language || 'no');
-
+  const countryInfo = getPhoneCountryInfo(language);
   const [step, setStep] = useState<'phone' | 'pin' | 'verified'>('phone');
   const [phoneInput, setPhoneInput] = useState('');
   const [pinInput, setPinInput] = useState('');
@@ -72,7 +73,7 @@ const PhoneVerifyBlock: React.FC<BlockComponentProps> = ({
     if (result.verified) {
       let phone = phoneInput.trim();
       if (!phone.startsWith('+')) {
-        phone = '+47' + phone;
+        phone = countryInfo.prefix + phone;
       }
       setStep('verified');
       localStorage.setItem(VERIFIED_PHONE_KEY, phone);
@@ -112,8 +113,8 @@ const PhoneVerifyBlock: React.FC<BlockComponentProps> = ({
         <p className="noddi-ai-phone-label">{t.verifyPhone}</p>
         <div className="noddi-ai-phone-input-row">
           <div className="noddi-phone-input-wrapper">
-            <span className="noddi-phone-prefix">+47</span>
-            <input type="tel" className="noddi-phone-input" placeholder="XXX XX XXX" value={phoneInput} onChange={(e) => setPhoneInput(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') handleSendCode(); }} />
+            <span className="noddi-phone-prefix">{countryInfo.prefix}</span>
+            <input type="tel" className="noddi-phone-input" placeholder={countryInfo.placeholder} value={phoneInput} onChange={(e) => setPhoneInput(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') handleSendCode(); }} />
           </div>
           <button className="noddi-ai-phone-submit" onClick={handleSendCode} style={{ backgroundColor: primaryColor }} disabled={!phoneInput.trim() || isSendingCode}>
             {isSendingCode ? (
