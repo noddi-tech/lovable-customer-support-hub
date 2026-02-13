@@ -1,79 +1,207 @@
 
 
-# Document All Noddi API Endpoints for the Booking Flow
+# PATCH Bookings + Auto-Sync Noddi API Schema
 
-Create a comprehensive reference document (`docs/NODDI_API_ENDPOINTS.md`) that maps out every Noddi API endpoint used across the entire chatbot booking flow, including which edge function calls it, what it expects, and what it returns.
+Two goals: (1) download and maintain a local copy of the Noddi OpenAPI schema so we always have accurate endpoint documentation, and (2) implement the `PATCH /v1/bookings/{booking_id}/` endpoint to support editing and cancelling bookings through the chatbot.
 
-## What the document will cover
+---
 
-### 1. Booking Flow Overview
-A step-by-step summary of the complete booking journey:
-Phone verification -> Customer lookup -> Address selection -> License plate/car lookup -> Service selection -> Time slot selection -> Booking confirmation
+## Part 1: Noddi API Schema Auto-Sync
 
-### 2. Every Noddi API Endpoint, organized by flow step
+### What we build
 
-**Phone Verification (2 endpoints)**
-- `GET /v1/users/send-phone-number-verification/` -- sends SMS code
-- `POST /v1/users/verify-phone-number/` -- verifies PIN code
+A script that downloads the Noddi OpenAPI schema from `https://api.noddi.co/docs/schema/` and saves it locally as a JSON file for reference.
 
-**Customer Lookup (2 endpoints)**
-- `GET /v1/users/customer-lookup-support/` -- finds user by phone/email, returns user + user_groups
-- `GET /v1/user-groups/{id}/bookings-for-customer/` -- fetches bookings for a user group
+### Files
 
-**Address (2 endpoints)**
-- `GET /v1/addresses/suggestions/` -- autocomplete address search
-- `POST /v1/addresses/create-from-google-place-id/` -- resolves a Google Place ID to a Noddi address with `address_id`
+- **`scripts/sync-noddi-schema.ts`** -- A small TypeScript script (run with `tsx`) that fetches the schema and writes it to `docs/noddi-api-schema.json`. Can be run manually or scheduled.
+- **`docs/noddi-api-schema.json`** -- The downloaded schema file (gitignored initially, or committed for team access).
+- **`package.json`** -- Add a script: `"sync-noddi-schema": "tsx scripts/sync-noddi-schema.ts"`
 
-**Car Lookup (1 endpoint)**
-- `GET /v1/cars/from-license-plate-number/` -- returns car details including car `id`
+The script will:
+1. Fetch `https://api.noddi.co/docs/schema/?format=json`
+2. Write to `docs/noddi-api-schema.json` with a timestamp comment
+3. Log success/failure
 
-**Services (2 endpoints)**
-- `GET /v1/sales-item-booking-categories/for-new-booking/` -- lists service categories for an address
-- `POST /v1/sales-items/initial-available-for-booking/` -- returns specific bookable items with prices
+> Note: Automated daily scheduling (e.g., GitHub Actions cron) can be added later. For now, running `npm run sync-noddi-schema` before making API changes ensures you have the latest docs.
 
-**Time Slots (3 endpoints)**
-- `POST /v1/delivery-windows/earliest-date/` -- earliest available date
-- `GET /v1/delivery-windows/latest-date/` -- latest available date
-- `GET /v1/delivery-windows/for-new-booking/` -- available delivery windows (the one with the `pk` field fix)
+---
 
-**Supporting (1 endpoint)**
-- `GET /v1/service-departments/from-booking-params/` -- service department info
+## Part 2: PATCH Booking Endpoint Integration
 
-**Booking Management (3 endpoints)**
-- `POST /v1/bookings/` -- create a new booking
-- `GET /v1/bookings/{id}/` -- get booking details
-- `POST /v1/bookings/{id}/reschedule/` -- reschedule a booking
-- `POST /v1/bookings/{id}/cancel/` -- cancel a booking
+### Current state
 
-### 3. For each endpoint, document:
-- Noddi API URL and HTTP method
-- Which edge function calls it
-- Required parameters and their types
-- Known field name quirks (e.g., `pk` vs `id` on delivery windows)
-- Fallback behavior if the endpoint fails
-- Example request/response shapes
+We already have these booking management tools in `widget-ai-chat`:
+- `get_booking_details` -- GET `/v1/bookings/{id}/`
+- `reschedule_booking` -- POST `/v1/bookings/{id}/reschedule/` (only sends `new_start_time`)
+- `cancel_booking` -- POST `/v1/bookings/{id}/cancel/`
 
-### 4. Edge Function to Endpoint Mapping
-A quick-reference table showing which edge function calls which Noddi endpoints:
+What's missing: a general `PATCH /v1/bookings/{id}/` call that can update address, cars, sales items, and delivery window on an existing booking.
 
-| Edge Function | Noddi Endpoints Called |
+### New tool: `update_booking`
+
+**File: `supabase/functions/widget-ai-chat/index.ts`**
+
+Add a new OpenAI tool definition:
+
+```typescript
+{
+  type: 'function',
+  function: {
+    name: 'update_booking',
+    description: 'Update an existing booking. Can change address, cars, sales items, or delivery window. Always confirm changes with the customer first.',
+    parameters: {
+      type: 'object',
+      properties: {
+        booking_id: { type: 'number', description: 'The Noddi booking ID to update' },
+        address_id: { type: 'number', description: 'New address ID (from address lookup)' },
+        delivery_window_id: { type: 'number', description: 'New delivery window ID' },
+        delivery_window_start: { type: 'string', description: 'New delivery window start (ISO 8601)' },
+        delivery_window_end: { type: 'string', description: 'New delivery window end (ISO 8601)' },
+        cars: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              license_plate: { type: 'object', properties: { number: { type: 'string' }, country_code: { type: 'string' } } },
+              selected_sales_item_ids: { type: 'array', items: { type: 'number' } },
+            },
+          },
+          description: 'Updated cars array with license plates and selected sales items',
+        },
+      },
+      required: ['booking_id'],
+    },
+  },
+}
+```
+
+Add the execution function:
+
+```typescript
+async function executeUpdateBooking(
+  bookingId: number,
+  updates: { address_id?: number; delivery_window_id?: number;
+             delivery_window_start?: string; delivery_window_end?: string;
+             cars?: any[] }
+): Promise<string> {
+  // Build PATCH payload with only provided fields
+  // Call PATCH /v1/bookings/{bookingId}/
+  // Return success/failure with updated booking details
+}
+```
+
+Add the tool dispatch case in the main handler (alongside existing `reschedule_booking`, `cancel_booking`, etc.).
+
+### New proxy action: `update_booking`
+
+**File: `supabase/functions/noddi-booking-proxy/index.ts`**
+
+Add a new case to the switch:
+
+```typescript
+case "update_booking": {
+  const { booking_id, ...updateFields } = body;
+  if (!booking_id) return jsonResponse({ error: "booking_id required" }, 400);
+
+  const patchPayload: any = {};
+  if (updateFields.address_id) patchPayload.address_id = updateFields.address_id;
+  if (updateFields.delivery_window_id) {
+    patchPayload.delivery_window = {
+      id: updateFields.delivery_window_id,
+      starts_at: updateFields.delivery_window_start,
+      ends_at: updateFields.delivery_window_end,
+    };
+  }
+  if (updateFields.cars) patchPayload.cars = updateFields.cars;
+
+  const res = await fetch(`${API_BASE}/v1/bookings/${booking_id}/`, {
+    method: "PATCH",
+    headers,
+    body: JSON.stringify(patchPayload),
+  });
+  // Handle response...
+}
+```
+
+### System prompt updates
+
+**File: `supabase/functions/widget-ai-chat/index.ts`** (system prompt section around line 1020)
+
+Update the hardcoded flow and marker instructions to guide the AI through edit flows:
+
+```
+When a customer wants to modify a booking:
+1. Use get_booking_details to fetch the current booking
+2. Ask what they want to change:
+   - "Endre tidspunkt" (change time) -> show TIME_SLOT picker, then update_booking
+   - "Endre adresse" (change address) -> show ADDRESS_SEARCH, then update_booking
+   - "Endre bil" (change car) -> show LICENSE_PLATE, then update_booking
+   - "Legge til tjenester" (add services) -> show SERVICE_SELECT, then update_booking
+   - "Avbestille" (cancel) -> use cancel_booking (existing)
+3. After collecting the new value, show a CONFIRM block summarizing the change
+4. On confirmation, call update_booking with only the changed fields
+```
+
+### New UI block: `BookingEditConfirmBlock`
+
+**File: `src/widget/components/blocks/BookingEditConfirmBlock.tsx`**
+
+A new interactive block (similar to `BookingSummaryBlock`) that:
+- Shows what's being changed (old value -> new value)
+- Has Confirm/Cancel buttons
+- Calls `update_booking` via the proxy on confirm
+- Marker: `[BOOKING_EDIT]{"booking_id": 123, "changes": {...}}[/BOOKING_EDIT]`
+
+Register it in `src/widget/components/blocks/registry.ts`.
+
+---
+
+## Part 3: Documentation Updates
+
+**File: `docs/NODDI_API_ENDPOINTS.md`**
+
+Add the new PATCH endpoint to Section 7 (Booking Management):
+
+```
+### Update Booking (PATCH)
+
+| | |
 |---|---|
-| `widget-send-verification` | send-phone-number-verification |
-| `widget-verify-phone` | verify-phone-number |
-| `widget-ai-chat` | customer-lookup-support, user-groups/{id}/bookings-for-customer, bookings/{id}, bookings/{id}/reschedule, bookings/{id}/cancel |
-| `noddi-address-lookup` | addresses/suggestions, addresses/create-from-google-place-id |
-| `noddi-booking-proxy` | cars/from-license-plate-number, sales-item-booking-categories, sales-items/initial-available-for-booking, delivery-windows/earliest-date, delivery-windows/latest-date, delivery-windows/for-new-booking, service-departments/from-booking-params, bookings/ |
-| `noddi-customer-lookup` | customer-lookup-support, user-groups/{id}/bookings-for-customer |
+| **Method** | `PATCH` |
+| **URL** | `/v1/bookings/{booking_id}/` |
+| **Edge Functions** | `widget-ai-chat`, `noddi-booking-proxy` |
+| **Body** | Only include fields being changed |
 
-### 5. Known Gotchas Section
-- Delivery window objects use `pk` not `id`
-- Cars must be passed as `[{id: N}]` not `[N]`
-- License plates must be objects `{number, country_code}` not strings
-- `0` is never a valid ID for any field
-- `JSON.stringify` silently drops `undefined` values
+Supported fields:
+- `address_id` (int) -- new address
+- `delivery_window` ({id, starts_at, ends_at}) -- new time slot
+- `cars` ([{license_plate: {number, country_code}, selected_sales_item_ids: [int]}])
 
-## Technical details
-- Single new file: `docs/NODDI_API_ENDPOINTS.md`
-- No code changes required
-- References existing fix documentation in `docs/NODDI_TIMESLOT_FIX.md`
+Gotchas:
+- This is PATCH (partial update), not PUT -- only send changed fields
+- delivery_window is an object, not a flat ID
+- Cars array replaces the entire cars list (not a merge)
+```
+
+Update the Edge Function mapping table to include `update_booking`.
+
+---
+
+## Summary of all file changes
+
+| File | Action |
+|---|---|
+| `scripts/sync-noddi-schema.ts` | Create -- schema download script |
+| `docs/noddi-api-schema.json` | Created by script -- local schema cache |
+| `package.json` | Add `sync-noddi-schema` script |
+| `supabase/functions/noddi-booking-proxy/index.ts` | Add `update_booking` case |
+| `supabase/functions/widget-ai-chat/index.ts` | Add `update_booking` tool + executor + system prompt updates |
+| `src/widget/components/blocks/BookingEditConfirmBlock.tsx` | Create -- edit confirmation UI |
+| `src/widget/components/blocks/registry.ts` | Register new block |
+| `docs/NODDI_API_ENDPOINTS.md` | Add PATCH endpoint docs |
+
+### Deployment
+
+- Redeploy `noddi-booking-proxy` and `widget-ai-chat` edge functions after changes
 
