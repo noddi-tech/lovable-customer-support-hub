@@ -62,6 +62,8 @@ export const ActionFlowsManager: React.FC<ActionFlowsManagerProps> = ({ widgetId
 
   const { data: flows = [], isLoading } = useQuery({
     queryKey: ['action-flows', widgetId],
+    staleTime: 0,
+    refetchOnMount: 'always',
     queryFn: async () => {
       const { data, error } = await supabase
         .from('ai_action_flows')
