@@ -134,6 +134,7 @@ export const WidgetTestMode: React.FC<WidgetTestModeProps> = ({ config }) => {
                   maxHeight: '100%',
                   borderRadius: '16px',
                   overflow: 'hidden',
+                  minHeight: 0,
                   boxShadow: `0 25px 60px -15px ${config.primary_color}50`,
                 }}
               >
@@ -151,7 +152,7 @@ export const WidgetTestMode: React.FC<WidgetTestModeProps> = ({ config }) => {
                 </div>
 
                 {/* Real AiChat component */}
-                <div className="noddi-widget-content" style={{ padding: 0 }}>
+                <div className="noddi-widget-content" style={{ padding: 0, minHeight: 0, overflow: 'hidden' }}>
                   <AiChat
                     widgetKey={config.widget_key}
                     primaryColor={config.primary_color}
