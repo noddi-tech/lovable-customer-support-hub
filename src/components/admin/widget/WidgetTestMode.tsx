@@ -151,18 +151,20 @@ export const WidgetTestMode: React.FC<WidgetTestModeProps> = ({ config }) => {
                 </div>
 
                 {/* Real AiChat component */}
-                <AiChat
-                  widgetKey={config.widget_key}
-                  primaryColor={config.primary_color}
-                  language={config.language || 'no'}
-                  agentsOnline={false}
-                  enableChat={false}
-                  enableContactForm={false}
-                  onTalkToHuman={() => addLogEntry('Escalation: Talk to human', undefined, 'tool')}
-                  onEmailConversation={(transcript) => addLogEntry('Escalation: Email conversation', `${transcript.length} chars`, 'tool')}
-                  onBack={() => addLogEntry('Back button clicked', undefined, 'info')}
-                  onLogEvent={(event, details, type) => addLogEntry(event, details, type)}
-                />
+                <div className="noddi-widget-content" style={{ padding: 0 }}>
+                  <AiChat
+                    widgetKey={config.widget_key}
+                    primaryColor={config.primary_color}
+                    language={config.language || 'no'}
+                    agentsOnline={false}
+                    enableChat={false}
+                    enableContactForm={false}
+                    onTalkToHuman={() => addLogEntry('Escalation: Talk to human', undefined, 'tool')}
+                    onEmailConversation={(transcript) => addLogEntry('Escalation: Email conversation', `${transcript.length} chars`, 'tool')}
+                    onBack={() => addLogEntry('Back button clicked', undefined, 'info')}
+                    onLogEvent={(event, details, type) => addLogEntry(event, details, type)}
+                  />
+                </div>
               </div>
             </div>
           ) : (
