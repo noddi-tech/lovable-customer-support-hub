@@ -401,6 +401,39 @@ async function patchBookingSummary(reply: string, messages: any[], visitorPhone?
   return reply;
 }
 
+function patchBookingEdit(reply: string, messages: any[]): string {
+  const marker = '[BOOKING_EDIT]';
+  const closingMarker = '[/BOOKING_EDIT]';
+  const startIdx = reply.indexOf(marker);
+  const endIdx = reply.indexOf(closingMarker);
+  if (startIdx === -1 || endIdx === -1) return reply;
+
+  const jsonStr = reply.slice(startIdx + marker.length, endIdx);
+  let editData: any;
+  try { editData = JSON.parse(jsonStr); } catch { return reply; }
+
+  const changes = editData.changes || {};
+  if (!changes.delivery_window_id) return reply;
+  if (changes.delivery_window_start && changes.delivery_window_end) return reply;
+
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const msg = messages[i];
+    if (msg.role !== 'user' || typeof msg.content !== 'string') continue;
+    try {
+      const sel = JSON.parse(msg.content);
+      if (sel.delivery_window_id == changes.delivery_window_id && sel.start_time && sel.end_time) {
+        changes.delivery_window_start = sel.start_time;
+        changes.delivery_window_end = sel.end_time;
+        editData.changes = changes;
+        const patched = reply.slice(0, startIdx) + marker + JSON.stringify(editData) + closingMarker + reply.slice(endIdx + closingMarker.length);
+        console.log('[patchBookingEdit] Injected start/end from conversation:', sel.start_time, sel.end_time);
+        return patched;
+      }
+    } catch { /* not JSON */ }
+  }
+  return reply;
+}
+
 async function executeLookupCustomer(phone?: string, email?: string): Promise<string> {
   const noddiToken = Deno.env.get('NODDI_API_TOKEN');
   if (!noddiToken) return JSON.stringify({ error: 'Customer lookup not configured' });
@@ -1261,7 +1294,8 @@ Deno.serve(async (req) => {
       // If no tool calls, we have the final answer
       if (!assistantMessage.tool_calls || assistantMessage.tool_calls.length === 0) {
         const rawReply = assistantMessage.content || 'I apologize, I was unable to generate a response.';
-        const reply = await patchBookingSummary(rawReply, currentMessages, visitorPhone, visitorEmail);
+        let reply = await patchBookingSummary(rawReply, currentMessages, visitorPhone, visitorEmail);
+        reply = patchBookingEdit(reply, currentMessages);
 
         // Save assistant reply & update conversation meta
         const savedMessageId = await saveMessage(supabase, dbConversationId, 'assistant', reply, allToolsUsed);
