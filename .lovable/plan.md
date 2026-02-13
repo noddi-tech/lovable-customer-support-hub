@@ -1,64 +1,43 @@
 
-# Fix: AI Exhausts Iterations After Phone Verification in "Change Time" Flow
+
+# Fix: Delivery Windows 502 — Missing `selected_sales_item_ids`
 
 ## Root Cause
 
-After phone verification, the AI receives the translated `__VERIFIED__` message with the user's intent ("Kan jeg endre tidspunkt"). It correctly calls `lookup_customer` (1 iteration), but then **wastes remaining iterations** calling `get_booking_details` or `get_delivery_windows` instead of going straight to the `[TIME_SLOT]` marker.
+The AI emits the `[TIME_SLOT]` marker with empty `car_ids: []`, `license_plate: ""`, and `sales_item_id: 0`. The `TimeSlotBlock` component only attempts to resolve sales item IDs when car info is present (line 59), so it skips the resolution entirely. The Noddi API then rejects the `delivery_windows` request with a 400 error because `selected_sales_item_ids` is required and must not be empty.
 
-The problem is twofold:
+## Fix (1 file)
 
-1. **The `__VERIFIED__` replacement message** (line 1176) says "continue with the next step in the flow" but doesn't explicitly name which flow or what the next step is. The AI has to re-interpret the intent from scratch.
+**File: `src/widget/components/blocks/TimeSlotBlock.tsx`** (lines 58-76)
 
-2. **The `change_time` flow step 1** says "Use lookup_customer" but after getting the result, the AI likely calls `get_booking_details` anyway (because the system prompt's "Booking Edit Flow" section at line 876 says "Use get_booking_details to fetch the current booking"). This wastes 2+ more iterations per booking, pushing past the limit.
-
-## Fix (2 changes, same file)
-
-### 1. Make `__VERIFIED__` replacement explicitly reference the matched flow
-
-**File: `supabase/functions/widget-ai-chat/index.ts`** (lines 1162-1179)
-
-When replacing `__VERIFIED__`, scan the action flows' trigger phrases to identify the matching flow and inject its name and first step directly into the replacement message:
+Remove the guard that requires car info before calling `available_items`. The component should **always** attempt to resolve sales item IDs when none are provided, even if it only has an `address_id`. The `available_items` endpoint accepts `address_id` alone.
 
 ```typescript
-// After finding userIntent, also detect which flow matches
-let matchedFlowHint = '';
-if (userIntent) {
-  const intentLower = userIntent.toLowerCase();
-  for (const flow of actionFlows) {
-    if (!flow.is_active) continue;
-    const matches = flow.trigger_phrases.some(
-      p => intentLower.includes(p.toLowerCase())
-    );
-    if (matches && flow.flow_steps.length > 0) {
-      matchedFlowHint = ` This matches the "${flow.intent_key}" flow. After lookup, proceed DIRECTLY to step 1: ${flow.flow_steps[0].instruction}`;
-      break;
-    }
-  }
+// Current (line 59):
+if (salesItemIds.length === 0 && (licensePlate || carIds.length > 0)) {
+
+// Updated:
+if (salesItemIds.length === 0) {
+```
+
+The rest of the `available_items` payload construction (lines 60-68) already handles missing car info gracefully — it only adds `license_plates` or `car_ids` if present.
+
+Additionally, add a final guard: if `salesItemIds` is still empty after the resolution attempt, show a user-friendly error instead of making a doomed API call:
+
+```typescript
+// After the available_items call (after line 76):
+if (salesItemIds.length === 0) {
+  setError('Kunne ikke finne tjenester for denne adressen. Prøv igjen.');
+  setLoading(false);
+  return;
 }
 ```
 
-Then append `matchedFlowHint` to the replacement message. This tells the AI exactly which flow to follow and what the first step is, eliminating guesswork.
+## Scope
 
-### 2. Add an explicit instruction to NOT call `get_booking_details` when `lookup_customer` already provides all needed IDs
+| File | Change |
+|------|--------|
+| `src/widget/components/blocks/TimeSlotBlock.tsx` | Remove car-info guard on `available_items` call; add fallback error if no items resolved |
 
-**File: `supabase/functions/widget-ai-chat/index.ts`** -- `change_time` flow step 1 instruction is already correct (it says to use `lookup_customer`), but the system prompt's "Booking Edit Flow" section (line 876-880) tells the AI to always call `get_booking_details`. Add a clarification to the `change_time` step 1:
+No edge function changes needed — the proxy already handles empty `selected_sales_item_ids` correctly by omitting it from the request.
 
-Update the `__VERIFIED__` replacement to include: "Do NOT call get_booking_details if lookup_customer already returned the booking with address_id, car_ids, sales_item_ids, and license_plate."
-
-## Technical Details
-
-| File | Lines | Change |
-|---|---|---|
-| `supabase/functions/widget-ai-chat/index.ts` | 1162-1179 | Detect matched flow from intent + trigger phrases; inject flow name and step 1 instruction into the `__VERIFIED__` replacement message |
-
-Redeploy `widget-ai-chat` after the change.
-
-## Why This Fixes It
-
-Currently the AI uses ~4-6 iterations on unnecessary tool calls after verification. With the explicit flow hint:
-
-1. `lookup_customer` -- 1 iteration (tool call)
-2. AI sees "This matches change_time, proceed to step 1" and the step says to extract IDs and confirm the booking -- 0 iterations (text reply)
-3. Customer confirms, AI sees step 2 says emit `[TIME_SLOT]` -- 0 iterations (text reply with marker)
-
-Total: 1-2 tool iterations instead of 8+.
