@@ -56,12 +56,17 @@ const TimeSlotBlock: React.FC<BlockComponentProps> = ({
 
         // Resolve sales item IDs
         let salesItemIds: number[] = salesItemId ? [salesItemId] : [];
-        if (salesItemIds.length === 0 && licensePlate) {
-          const itemsData = await postJson({
+        if (salesItemIds.length === 0 && (licensePlate || carIds.length > 0)) {
+          const itemsPayload: any = {
             action: 'available_items',
             address_id: addressId,
-            license_plates: [licensePlate],
-          });
+          };
+          if (licensePlate) {
+            itemsPayload.license_plates = [licensePlate];
+          } else if (carIds.length > 0) {
+            itemsPayload.car_ids = carIds;
+          }
+          const itemsData = await postJson(itemsPayload);
           const cars = itemsData.cars || [];
           for (const car of cars) {
             for (const item of (car.sales_items || [])) {

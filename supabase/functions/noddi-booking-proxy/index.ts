@@ -163,7 +163,7 @@ Deno.serve(async (req) => {
         let url = `${API_BASE}/v1/delivery-windows/for-new-booking/?address_id=${dwAddr}`;
         if (from_date) url += `&from_date=${encodeURIComponent(from_date)}`;
         if (to_date) url += `&to_date=${encodeURIComponent(to_date)}`;
-        if (selected_sales_item_ids) {
+        if (selected_sales_item_ids && (Array.isArray(selected_sales_item_ids) ? selected_sales_item_ids.length > 0 : true)) {
           const ids = Array.isArray(selected_sales_item_ids) ? selected_sales_item_ids : [selected_sales_item_ids];
           for (const id of ids) {
             url += `&selected_sales_item_ids=${encodeURIComponent(id)}`;
