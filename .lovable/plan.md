@@ -1,37 +1,48 @@
 
-
-# Fix: Wrap AiChat in `.noddi-widget-content` Container
+# Fix: Booking Confirmation Fails Due to Placeholder User IDs
 
 ## Problem
 
-The AiChat component in the test mode is rendered directly inside the panel without the `.noddi-widget-content` wrapper div. In the production widget (WidgetPanel.tsx), AiChat sits inside a `<div className="noddi-widget-content">` which has `flex: 1; overflow-y: auto` -- this constrains the chat to fill available space and scroll internally. Without this wrapper, the chat area just keeps growing with each message.
+The AI model emits placeholder values like `user_id: 12345` and `user_group_id: 67890` in the `[BOOKING_SUMMARY]` JSON. These look like valid numbers, so the `patchBookingSummary` function's check (`!summaryData.user_id`) passes — it thinks the IDs are real and skips the customer re-lookup. The Noddi API then rejects them with "CustomUser with pk=12345 not found."
+
+## Root Cause
+
+Two issues working together:
+1. The system prompt example includes realistic-looking fake IDs (`user_id: 48372`) which the AI copies
+2. `patchBookingSummary` only re-looks up the customer when `user_id` is falsy (0, null, undefined) — it trusts any truthy number
 
 ## Solution
 
-Wrap the `<AiChat>` component in a `<div className="noddi-widget-content">` element, matching the production widget structure. This single change gives the chat the same scroll-constrained behavior as the contact form and other views.
+### Change 1: Always re-lookup customer IDs (server-side guarantee)
 
-## Changes
+**File: `supabase/functions/widget-ai-chat/index.ts`** (lines ~339-361)
 
-**File: `src/components/admin/widget/WidgetTestMode.tsx`** (line ~153-165)
+Modify `patchBookingSummary` to **always** perform a fresh customer lookup when `visitorPhone` or `visitorEmail` is available, regardless of what the AI emitted. The real IDs from the API always take priority over whatever the LLM hallucinated.
 
-Wrap the `<AiChat ... />` component in a content div:
-
-```tsx
-{/* Before */}
-<AiChat
-  widgetKey={config.widget_key}
-  ...
-/>
-
-{/* After */}
-<div className="noddi-widget-content" style={{ padding: 0 }}>
-  <AiChat
-    widgetKey={config.widget_key}
-    ...
-  />
-</div>
+```text
+Before: if (!summaryData.user_id || !summaryData.user_group_id) { re-lookup }
+After:  if (visitorPhone || visitorEmail) { ALWAYS re-lookup and overwrite }
 ```
 
-The `padding: 0` override is needed because `.noddi-widget-content` has `padding: 16px` by default, but AiChat handles its own internal padding. This matches how the production WidgetPanel renders it.
+### Change 2: Remove fake IDs from system prompt example
 
-This is the same pattern the production widget uses and will give the test mode identical scroll behavior.
+**File: `supabase/functions/widget-ai-chat/index.ts`** (line ~852)
+
+Change the example to use placeholder text that the AI won't copy as real numbers:
+
+```text
+Before: "user_id":48372,"user_group_id":29104
+After:  "user_id":"<FROM_LOOKUP>","user_group_id":"<FROM_LOOKUP>"
+```
+
+Also update the BOOKING_SUMMARY instruction (line ~694) similarly.
+
+### Change 3: Tell AI not to guess IDs
+
+Add explicit instruction: "For user_id and user_group_id, use the EXACT values from the customer lookup tool result. NEVER invent or guess these values."
+
+## Why This Works
+
+- Even if the AI still emits fake IDs, the server always overwrites them with real ones from the API
+- The prompt change reduces the likelihood of fake IDs being emitted in the first place
+- The documentation (NODDI_API_ENDPOINTS.md) already specifies the correct payload format -- this fix ensures the code follows it
