@@ -266,6 +266,9 @@ export async function sendPhoneVerification(widgetKey: string, phoneNumber: stri
     });
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
+      if (response.status >= 500 || errorData.debug_status >= 500) {
+        return { success: false, error: 'Verification is temporarily unavailable, please try again later' };
+      }
       return { success: false, error: errorData.error || 'Failed to send code' };
     }
     return { success: true };
