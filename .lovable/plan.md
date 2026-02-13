@@ -1,69 +1,63 @@
 
 
-# Bulletproof Fix: Widget Test Mode Height
+# Fix: AI Chatbot Page Fills Available Space (No Scroll Past Header)
 
-## Root Cause (found this time for real)
+## Root Cause
 
-`WidgetTestMode` is rendered inside a deeply nested layout:
+The page content (title + card header/tabs + alert + buttons + 600px preview) totals ~920px+, but the available space inside PaneScroll is only ~900px. This causes the ScrollArea to scroll, pushing the card header and tabs out of view. Previous fixes only addressed the widget preview height but never tackled the real issue: the entire page needs to fit within the available viewport space using flex layout, not overflow and scroll.
 
-```text
-Viewport (100vh)
-  Page header/nav         ~64px
-  AdminPortal content     ~padding
-  Card                    ~border/padding
-    CardHeader            ~120px (title + description + 6 tabs)
-    CardContent           ~24px padding
-      WidgetTestMode
-        Alert             ~70px
-        Button bar        ~40px
-        Grid (preview + log)
-```
+## Solution
 
-The current `h-[calc(100vh-180px)]` only subtracts 180px, but the actual offset from the top of the viewport to the grid is roughly 350-400px. This means the component overshoots by ~200px, pushing the page header off-screen.
+Make every container in the chain from `LayoutContent` down to the preview use flex layout to fill available space. No fixed pixel heights, no viewport calculations. The preview simply takes whatever space remains after the fixed-height elements (title, tabs, alert, buttons).
 
-## Solution: Stop guessing viewport offsets
+### Change 1 -- LayoutContent (AdminPortalLayout.tsx, line 302)
 
-Instead of trying to calculate the exact pixel offset (which breaks whenever the layout changes), use a fixed max-height on the preview container and let the page scroll naturally.
+For the ai-chatbot route, make the content wrapper fill available height:
 
-### File: `src/components/admin/widget/WidgetTestMode.tsx`
-
-**Change 1 -- Remove viewport-based height from outer wrapper (line 78):**
 ```tsx
-// Before
-<div className="flex flex-col gap-4 h-[calc(100vh-180px)] overflow-hidden">
-
-// After
-<div className="flex flex-col gap-4">
+const LayoutContent: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const location = useLocation();
+  const isFullWidth = location.pathname === '/admin/ai-chatbot';
+  return (
+    <div className={cn(
+      "py-6",
+      isFullWidth ? "px-4 h-full flex flex-col" : "px-8 max-w-7xl mx-auto"
+    )}>
+      {children}
+    </div>
+  );
+};
 ```
-No more guessing. Let it flow naturally.
 
-**Change 2 -- Give the preview container a fixed max-height (line 120):**
-```tsx
-// Before
-<div className="widget-test-preview ... h-full overflow-hidden ...">
+### Change 2 -- AiChatbotSettings.tsx
 
-// After
-<div className="widget-test-preview ... h-[600px] max-h-[60vh] overflow-hidden ...">
-```
-This gives a sensible fixed height (600px) capped at 60% of the viewport. It will never push the page header off-screen regardless of the nesting depth.
+Make the component fill its parent instead of using `space-y-6`:
 
-**Change 3 -- Remove `flex-1 min-h-0` from grid (line 118):**
-```tsx
-// Before
-<div className="grid grid-cols-1 lg:grid-cols-2 gap-6 flex-1 min-h-0">
+- Outer div: `h-full flex flex-col gap-4` (instead of `space-y-6`)
+- Title block: add `shrink-0`
+- Flex row (sidebar + card): add `flex-1 min-h-0`
+- Main Card: add `flex-1 min-h-0 flex flex-col`
+- Tabs wrapper: add `flex-1 min-h-0 flex flex-col` and `className="w-full flex-1 flex flex-col min-h-0"`
+- CardHeader: add `shrink-0`
+- CardContent: add `flex-1 min-h-0 overflow-hidden p-4` (reduced padding)
 
-// After
-<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-```
-No longer needed since the outer wrapper isn't constraining height.
+### Change 3 -- WidgetTestMode.tsx
 
-**Change 4 -- Remove `flex-shrink-0` from Alert and button bar (lines 79, 88):**
-Not needed since the parent no longer has a fixed height. Can be kept harmlessly, but cleaning up for clarity.
+Make the component fill available space:
 
-## Why this is truly bulletproof
+- Outer div: `flex flex-col gap-4 h-full min-h-0` (add h-full min-h-0)
+- Alert and button bar: add `shrink-0`
+- Grid: `flex-1 min-h-0` to fill remaining space
+- Preview: change `h-[600px] max-h-[60vh]` to just `h-full` -- it now takes whatever the grid cell gives it
 
-- No viewport calculations that depend on knowing the exact nesting depth
-- The preview has its own self-contained height (600px / 60vh, whichever is smaller)
-- The page scrolls naturally if the content is too tall for the screen
-- Works regardless of what wraps this component (Card, Tabs, different page layouts)
+## Result
+
+The entire page becomes a flex chain from PaneScroll all the way down to the preview. Each level fills exactly the available space. The title, tabs, alert, and buttons stay visible because they are `shrink-0`. The preview takes all remaining space. No scrolling needed, no pixel guessing.
+
+## Technical Details
+
+Files modified:
+- `src/components/admin/AdminPortalLayout.tsx` (LayoutContent)
+- `src/components/admin/AiChatbotSettings.tsx` (flex layout chain)
+- `src/components/admin/widget/WidgetTestMode.tsx` (fill available space)
 
