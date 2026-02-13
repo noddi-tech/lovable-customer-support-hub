@@ -3,14 +3,25 @@ import { registerBlock, BlockComponentProps, FlowPreviewProps } from './registry
 import { getApiUrl } from '../../api';
 
 function formatDate(dateStr: string): string {
-  const d = new Date(dateStr + 'T00:00:00');
+  const d = new Date(dateStr + 'T12:00:00Z'); // noon UTC avoids date shifts near midnight
   const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  return `${days[d.getDay()]} ${d.getDate()} ${months[d.getMonth()]}`;
+  return `${days[d.getUTCDay()]} ${d.getUTCDate()} ${months[d.getUTCMonth()]}`;
 }
 
 function formatTime(iso: string): string {
-  return iso.slice(11, 16);
+  try {
+    const date = new Date(iso);
+    if (isNaN(date.getTime())) return iso.slice(11, 16);
+    return date.toLocaleTimeString('nb-NO', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+      timeZone: 'Europe/Oslo',
+    });
+  } catch {
+    return iso.slice(11, 16);
+  }
 }
 
 const TimeSlotBlock: React.FC<BlockComponentProps> = ({

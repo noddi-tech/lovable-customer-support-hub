@@ -689,7 +689,8 @@ Extract the numeric address_id and license_plate from previous conversation step
   TIME_SLOT: `IMMEDIATELY include the marker:
 [TIME_SLOT]{"address_id": <number>, "car_ids": [<number>], "license_plate": "<string>", "sales_item_id": <number>}[/TIME_SLOT]
 Extract all IDs from previous steps. DO NOT say "please wait" — just emit the marker.`,
-  BOOKING_SUMMARY: `Include the marker with ALL booking data as valid JSON (NEVER human-readable text):
+  BOOKING_SUMMARY: `Your ENTIRE response must be ONLY the [BOOKING_SUMMARY] marker. No text before or after. The component displays all details visually.
+Include ALL booking data as valid JSON (NEVER human-readable text):
 [BOOKING_SUMMARY]{"address":"...","address_id":...,"car":"...","license_plate":"...","country_code":"NO","user_id":"<FROM_LOOKUP>","user_group_id":"<FROM_LOOKUP>","service":"...","sales_item_ids":[...],"date":"...","time":"...","price":"...","delivery_window_id":...,"delivery_window_start":"...","delivery_window_end":"..."}[/BOOKING_SUMMARY]
 ⚠️ For user_id and user_group_id, use the EXACT values from the customer lookup tool result. NEVER invent or guess these values.
 ⚠️ NEVER omit user_id, user_group_id, or delivery_window_id — the booking WILL FAIL without them.
@@ -847,6 +848,7 @@ NEVER list services as plain text. ALWAYS use this marker.
 Extract sales_item_id from the customer's service selection message.
 
 12. BOOKING SUMMARY — show a booking summary card with confirm/cancel. After time slot selection, go DIRECTLY to this marker.
+CRITICAL: Your ENTIRE response must be ONLY the [BOOKING_SUMMARY] marker with valid JSON. Do NOT write any introductory text, recap, or description before or after the marker. The component itself displays all the booking details visually.
 ⚠️ CRITICAL — The content between [BOOKING_SUMMARY] and [/BOOKING_SUMMARY] MUST be valid JSON. NEVER output human-readable text, bullet points, or prose inside these tags.
 ⚠️ CRITICAL — NEVER OMIT user_id, user_group_id, delivery_window_id (booking WILL FAIL without them).
 ⚠️ CRITICAL — For user_id and user_group_id, use the EXACT values returned by the customer lookup tool. NEVER invent or guess these values.
@@ -1163,7 +1165,7 @@ Deno.serve(async (req) => {
 
     // Tool-calling loop (non-streaming phase — resolve all tool calls first)
     let currentMessages = [...conversationMessages];
-    let maxIterations = 5;
+    let maxIterations = 8;
     const allToolsUsed: string[] = [];
 
     while (maxIterations > 0) {
@@ -1251,7 +1253,9 @@ Deno.serve(async (req) => {
     }
 
     // Exhausted iterations
-    const fallback = 'I apologize, but I need a moment. Could you please try rephrasing your question?';
+    const fallback = language === 'no'
+      ? 'Beklager, men jeg trenger et øyeblikk. Kan du prøve å omformulere spørsmålet ditt?'
+      : 'I apologize, but I need a moment. Could you please try rephrasing your question?';
     await saveMessage(supabase, dbConversationId, 'assistant', fallback);
 
     return new Response(
