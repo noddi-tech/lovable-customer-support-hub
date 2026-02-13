@@ -1,33 +1,38 @@
 
-# Fix: Constrain Widget Height in Test Mode
+
+# Fix: Widget Chat Height Expanding Beyond Container
 
 ## Problem
 
-The widget panel in test mode still expands beyond its container because of conflicting CSS. The `.noddi-widget-panel` class sets `position: fixed` and `max-height: calc(100vh - 120px)`, and the `.noddi-widget-content` class sets `min-height: 200px`. The inline styles try to override these but CSS specificity issues cause the content to keep growing.
+The previous fixes only addressed `min-height` on the `.noddi-widget-content` wrapper, but two inner elements still have `min-height` values that force the widget to expand:
+
+- `.noddi-widget-chat` has `min-height: 350px`
+- `.noddi-chat-messages` has `min-height: 200px`
+
+These prevent the flex layout from constraining the chat, causing it to push past the container and hide the page header.
 
 ## Solution
 
-Add `min-height: 0` to the `.noddi-widget-content` wrapper's inline styles (to allow flex shrinking) and ensure the panel's `overflow: hidden` is properly enforced. Also add `overflow: hidden` to the outer container div to prevent any overflow.
+Add a scoped CSS override inside the test mode container that zeroes out these min-heights. This is cleaner than inline styles (which can't target nested children) and won't affect the production widget.
 
 ## Changes
 
 **File: `src/components/admin/widget/WidgetTestMode.tsx`**
 
-1. On the `.noddi-widget-content` wrapper (line 154), add `minHeight: 0, overflow: 'hidden'` to the inline style so it can shrink within the flex container instead of being forced to at least 200px:
+Add a `<style>` tag inside the test mode container that scopes overrides to the test preview only. Target the dashed border container and override the problematic min-heights:
 
 ```tsx
-{/* Before */}
-<div className="noddi-widget-content" style={{ padding: 0 }}>
-
-{/* After */}
-<div className="noddi-widget-content" style={{ padding: 0, minHeight: 0, overflow: 'hidden' }}>
+{/* Inside the border-2 border-dashed container, before the widget markup */}
+<style>{`
+  .widget-test-preview .noddi-widget-chat { min-height: 0; }
+  .widget-test-preview .noddi-chat-messages { min-height: 0; }
+  .widget-test-preview .noddi-widget-content { min-height: 0; }
+`}</style>
 ```
 
-2. On the `.noddi-widget-panel` div (lines 127-138), add `!important`-equivalent overrides by adding `minHeight: 0` to prevent the CSS class defaults from interfering:
+Then add `widget-test-preview` class to the dashed border container div (line 120).
 
-```tsx
-{/* Add to existing inline styles */}
-minHeight: 0,
-```
-
-This ensures the flex layout properly constrains the content area, making messages scroll internally rather than expanding the widget.
+This scoped approach ensures:
+- All nested min-height values are zeroed, allowing proper flex shrinking
+- The production widget CSS is unaffected
+- No need for complex inline style chains on deeply nested elements
