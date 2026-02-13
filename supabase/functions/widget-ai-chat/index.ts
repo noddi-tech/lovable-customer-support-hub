@@ -305,8 +305,35 @@ async function patchBookingSummary(reply: string, messages: any[], visitorPhone?
   try {
     summaryData = JSON.parse(jsonStr);
   } catch {
-    console.error('[patchBookingSummary] Failed to parse BOOKING_SUMMARY JSON');
-    return reply;
+    console.warn('[patchBookingSummary] Failed to parse BOOKING_SUMMARY JSON, attempting reconstruction from context');
+    // Reconstruct from conversation context when AI emits non-JSON
+    summaryData = {};
+    // Extract IDs from previous user messages (tool results, action selections)
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const msg = messages[i];
+      if (msg.role === 'user' && typeof msg.content === 'string') {
+        try {
+          const actionData = JSON.parse(msg.content);
+          if (actionData.delivery_window_id && !summaryData.delivery_window_id) {
+            summaryData.delivery_window_id = actionData.delivery_window_id;
+            if (actionData.start_time) summaryData.delivery_window_start = actionData.start_time;
+            if (actionData.end_time) summaryData.delivery_window_end = actionData.end_time;
+          }
+          if (actionData.address_id && !summaryData.address_id) summaryData.address_id = actionData.address_id;
+          if (actionData.license_plate && !summaryData.license_plate) summaryData.license_plate = actionData.license_plate;
+          if (actionData.sales_item_ids && !summaryData.sales_item_ids) summaryData.sales_item_ids = actionData.sales_item_ids;
+          if (actionData.sales_item_id && !summaryData.sales_item_ids) summaryData.sales_item_ids = [actionData.sales_item_id];
+        } catch { /* not JSON */ }
+      }
+    }
+    // Try to extract display text from the non-JSON content
+    const dateMatch = jsonStr.match(/(\d{1,2}\.\s*\w+\s*\d{4})/);
+    if (dateMatch) summaryData.date = dateMatch[1];
+    const priceMatch = jsonStr.match(/(\d+)\s*kr/i);
+    if (priceMatch) summaryData.price = priceMatch[0];
+    const timeMatch = jsonStr.match(/(\d{2}:\d{2})\s*[-–]\s*(\d{2}:\d{2})/);
+    if (timeMatch) summaryData.time = timeMatch[0];
+    console.log('[patchBookingSummary] Reconstructed data:', JSON.stringify(summaryData));
   }
 
   let patched = false;
@@ -661,9 +688,10 @@ Extract the numeric address_id and license_plate from previous conversation step
   TIME_SLOT: `IMMEDIATELY include the marker:
 [TIME_SLOT]{"address_id": <number>, "car_ids": [<number>], "license_plate": "<string>", "sales_item_id": <number>}[/TIME_SLOT]
 Extract all IDs from previous steps. DO NOT say "please wait" — just emit the marker.`,
-  BOOKING_SUMMARY: `Include the marker with ALL booking data:
+  BOOKING_SUMMARY: `Include the marker with ALL booking data as valid JSON (NEVER human-readable text):
 [BOOKING_SUMMARY]{"address":"...","address_id":...,"car":"...","license_plate":"...","country_code":"NO","user_id":...,"user_group_id":...,"service":"...","sales_item_ids":[...],"date":"...","time":"...","price":"...","delivery_window_id":...,"delivery_window_start":"...","delivery_window_end":"..."}[/BOOKING_SUMMARY]
-⚠️ NEVER omit user_id, user_group_id, or delivery_window_id — the booking WILL FAIL without them.`,
+⚠️ NEVER omit user_id, user_group_id, or delivery_window_id — the booking WILL FAIL without them.
+⚠️ Content between tags MUST be valid JSON. Never use bullet points or prose.`,
   BOOKING_EDIT: `Include the marker for editing existing bookings:
 [BOOKING_EDIT]{"booking_id": 12345, "changes": {"time": "14:00–17:00", "old_time": "08:00–11:00", "delivery_window_id": 99999}}[/BOOKING_EDIT]
 Include only the fields being changed with old and new values.`,
@@ -815,8 +843,10 @@ NEVER list services as plain text. ALWAYS use this marker.
 Extract sales_item_id from the customer's service selection message.
 
 12. BOOKING SUMMARY — show a booking summary card with confirm/cancel. After time slot selection, go DIRECTLY to this marker.
+⚠️ CRITICAL — The content between [BOOKING_SUMMARY] and [/BOOKING_SUMMARY] MUST be valid JSON. NEVER output human-readable text, bullet points, or prose inside these tags.
 ⚠️ CRITICAL — NEVER OMIT user_id, user_group_id, delivery_window_id (booking WILL FAIL without them).
-Example: [BOOKING_SUMMARY]{"address":"Holtet 45","address_id":2860,"car":"Tesla Model Y","license_plate":"EC94156","country_code":"NO","user_id":48372,"user_group_id":29104,"service":"Dekkskift","sales_item_ids":[60282],"date":"16. feb 2026","time":"08:00–11:00","price":"699 kr","delivery_window_id":98765,"delivery_window_start":"2026-02-16T08:00:00Z","delivery_window_end":"2026-02-16T11:00:00Z"}[/BOOKING_SUMMARY]
+✅ CORRECT: [BOOKING_SUMMARY]{"address":"Holtet 45","address_id":2860,"car":"Tesla Model Y","license_plate":"EC94156","country_code":"NO","user_id":48372,"user_group_id":29104,"service":"Dekkskift","sales_item_ids":[60282],"date":"16. feb 2026","time":"08:00–11:00","price":"699 kr","delivery_window_id":98765,"delivery_window_start":"2026-02-16T08:00:00Z","delivery_window_end":"2026-02-16T11:00:00Z"}[/BOOKING_SUMMARY]
+❌ WRONG: [BOOKING_SUMMARY]Adresse: Holtet 45\nDato: 16. feb 2026\nPris: 699 kr[/BOOKING_SUMMARY]
 
 13. BOOKING EDIT — show a confirmation card for EDITING an existing booking:
 [BOOKING_EDIT]{"booking_id": 12345, "changes": {"time": "14:00–17:00", "old_time": "08:00–11:00", "delivery_window_id": 99999}}[/BOOKING_EDIT]
