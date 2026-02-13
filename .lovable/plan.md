@@ -1,38 +1,31 @@
 
-
-# Fix: Delivery Windows 400 Error — Empty `selected_sales_item_ids`
+# Fix: Show Time Slot Range Instead of Single Start Time
 
 ## Problem
 
-The Noddi API returns a **400 validation error**: `"This list may not be empty."` for `selected_sales_item_ids`. The `noddi-booking-proxy` edge function passes through an empty array `[]` because `if (selected_sales_item_ids)` evaluates to `true` for empty arrays in JavaScript.
-
-## Root Cause
-
-In `supabase/functions/noddi-booking-proxy/index.ts` line 166:
-
-```typescript
-if (selected_sales_item_ids) {  // [] is truthy!
-```
-
-An empty array `[]` passes this check, causing the proxy to append `selected_sales_item_ids=` query params with no valid values to the Noddi API URL.
+The AI tells the customer their booking is at "kl. 06:00" instead of "06:00-11:00" because the `lookup_customer` tool only returns `scheduledAt` (start time) and omits the end time. The booking is a time **window** (e.g., 06:00-11:00), not a single appointment time.
 
 ## Fix
 
-**File: `supabase/functions/noddi-booking-proxy/index.ts`** (line 166)
+**File: `supabase/functions/widget-ai-chat/index.ts`** -- `lookup_customer` bookings mapping (line 529)
 
-Change the guard to also check array length:
+Add the `endTime` field (which already exists in the `executeGetBookingDetails` response but is missing here):
 
 ```typescript
-if (selected_sales_item_ids && Array.isArray(selected_sales_item_ids) 
-    ? selected_sales_item_ids.length > 0 
-    : selected_sales_item_ids) {
+// Current (line 529):
+scheduledAt: b.start_time || b.scheduled_at || b.delivery_window_starts_at,
+
+// Updated -- add endTime on the next line:
+scheduledAt: b.start_time || b.scheduled_at || b.delivery_window_starts_at,
+endTime: b.end_time || b.delivery_window_ends_at || null,
 ```
 
-This ensures empty arrays are treated the same as `undefined`/`null`, and the Noddi API is called without the parameter (which is valid and returns all available windows).
+This gives the AI both start and end times so it can present the booking as "06:00-11:00" instead of just "06:00".
 
-## Single Change
+## Scope
 
-| File | Line | Change |
-|------|------|--------|
-| `supabase/functions/noddi-booking-proxy/index.ts` | 166 | Guard against empty `selected_sales_item_ids` arrays |
+| File | Change |
+|------|--------|
+| `supabase/functions/widget-ai-chat/index.ts` | Add `endTime` field to booking objects in `lookup_customer` (1 line) |
 
+Redeploy `widget-ai-chat` edge function after the change.
