@@ -56,15 +56,39 @@ const TimeSlotBlock: React.FC<BlockComponentProps> = ({
 
         // Resolve sales item IDs
         let salesItemIds: number[] = salesItemId ? [salesItemId] : [];
-        if (salesItemIds.length === 0) {
+        let resolvedPlate = licensePlate;
+        let resolvedCarIds = [...carIds];
+
+        // Recovery: scan localStorage for license plate from earlier steps
+        if (salesItemIds.length === 0 && !resolvedPlate && resolvedCarIds.length === 0) {
+          for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (!key?.startsWith('noddi_action_')) continue;
+            try {
+              const stored = JSON.parse(localStorage.getItem(key) || '');
+              if (stored.license_plate) {
+                resolvedPlate = stored.license_plate;
+                console.log('[TimeSlotBlock] Recovered license plate from localStorage:', resolvedPlate);
+                break;
+              }
+              if (stored.car_ids?.length) {
+                resolvedCarIds = stored.car_ids.map(Number);
+                console.log('[TimeSlotBlock] Recovered car_ids from localStorage:', resolvedCarIds);
+                break;
+              }
+            } catch { /* skip */ }
+          }
+        }
+
+        if (salesItemIds.length === 0 && (resolvedPlate || resolvedCarIds.length > 0)) {
           const itemsPayload: any = {
             action: 'available_items',
             address_id: addressId,
           };
-          if (licensePlate) {
-            itemsPayload.license_plates = [licensePlate];
-          } else if (carIds.length > 0) {
-            itemsPayload.car_ids = carIds;
+          if (resolvedPlate) {
+            itemsPayload.license_plates = [resolvedPlate];
+          } else if (resolvedCarIds.length > 0) {
+            itemsPayload.car_ids = resolvedCarIds;
           }
           const itemsData = await postJson(itemsPayload);
           const cars = itemsData.cars || [];
@@ -76,7 +100,7 @@ const TimeSlotBlock: React.FC<BlockComponentProps> = ({
         }
 
         if (salesItemIds.length === 0) {
-          setError('Kunne ikke finne tjenester for denne adressen. Prøv igjen.');
+          setError('Mangler kjøretøyinformasjon for å finne ledige tider. Prøv igjen.');
           setLoading(false);
           return;
         }
