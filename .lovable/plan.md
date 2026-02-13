@@ -1,48 +1,33 @@
 
-# Fix: Booking Confirmation Fails Due to Placeholder User IDs
+# Fix: Constrain Widget Height in Test Mode
 
 ## Problem
 
-The AI model emits placeholder values like `user_id: 12345` and `user_group_id: 67890` in the `[BOOKING_SUMMARY]` JSON. These look like valid numbers, so the `patchBookingSummary` function's check (`!summaryData.user_id`) passes — it thinks the IDs are real and skips the customer re-lookup. The Noddi API then rejects them with "CustomUser with pk=12345 not found."
-
-## Root Cause
-
-Two issues working together:
-1. The system prompt example includes realistic-looking fake IDs (`user_id: 48372`) which the AI copies
-2. `patchBookingSummary` only re-looks up the customer when `user_id` is falsy (0, null, undefined) — it trusts any truthy number
+The widget panel in test mode still expands beyond its container because of conflicting CSS. The `.noddi-widget-panel` class sets `position: fixed` and `max-height: calc(100vh - 120px)`, and the `.noddi-widget-content` class sets `min-height: 200px`. The inline styles try to override these but CSS specificity issues cause the content to keep growing.
 
 ## Solution
 
-### Change 1: Always re-lookup customer IDs (server-side guarantee)
+Add `min-height: 0` to the `.noddi-widget-content` wrapper's inline styles (to allow flex shrinking) and ensure the panel's `overflow: hidden` is properly enforced. Also add `overflow: hidden` to the outer container div to prevent any overflow.
 
-**File: `supabase/functions/widget-ai-chat/index.ts`** (lines ~339-361)
+## Changes
 
-Modify `patchBookingSummary` to **always** perform a fresh customer lookup when `visitorPhone` or `visitorEmail` is available, regardless of what the AI emitted. The real IDs from the API always take priority over whatever the LLM hallucinated.
+**File: `src/components/admin/widget/WidgetTestMode.tsx`**
 
-```text
-Before: if (!summaryData.user_id || !summaryData.user_group_id) { re-lookup }
-After:  if (visitorPhone || visitorEmail) { ALWAYS re-lookup and overwrite }
+1. On the `.noddi-widget-content` wrapper (line 154), add `minHeight: 0, overflow: 'hidden'` to the inline style so it can shrink within the flex container instead of being forced to at least 200px:
+
+```tsx
+{/* Before */}
+<div className="noddi-widget-content" style={{ padding: 0 }}>
+
+{/* After */}
+<div className="noddi-widget-content" style={{ padding: 0, minHeight: 0, overflow: 'hidden' }}>
 ```
 
-### Change 2: Remove fake IDs from system prompt example
+2. On the `.noddi-widget-panel` div (lines 127-138), add `!important`-equivalent overrides by adding `minHeight: 0` to prevent the CSS class defaults from interfering:
 
-**File: `supabase/functions/widget-ai-chat/index.ts`** (line ~852)
-
-Change the example to use placeholder text that the AI won't copy as real numbers:
-
-```text
-Before: "user_id":48372,"user_group_id":29104
-After:  "user_id":"<FROM_LOOKUP>","user_group_id":"<FROM_LOOKUP>"
+```tsx
+{/* Add to existing inline styles */}
+minHeight: 0,
 ```
 
-Also update the BOOKING_SUMMARY instruction (line ~694) similarly.
-
-### Change 3: Tell AI not to guess IDs
-
-Add explicit instruction: "For user_id and user_group_id, use the EXACT values from the customer lookup tool result. NEVER invent or guess these values."
-
-## Why This Works
-
-- Even if the AI still emits fake IDs, the server always overwrites them with real ones from the API
-- The prompt change reduces the likelihood of fake IDs being emitted in the first place
-- The documentation (NODDI_API_ENDPOINTS.md) already specifies the correct payload format -- this fix ensures the code follows it
+This ensures the flex layout properly constrains the content area, making messages scroll internally rather than expanding the widget.
