@@ -1,59 +1,55 @@
 
 
-# Fix: Booking Update Missing `delivery_window.starts_at` and `ends_at`
+# Fix: Recover delivery_window_start/end in BookingEditConfirmBlock
 
 ## Problem
 
-When updating a booking's time slot, the Noddi API requires `delivery_window` to include `id`, `starts_at`, AND `ends_at`. Currently:
+The AI emits `[BOOKING_EDIT]` with `delivery_window_id` but omits `delivery_window_start` and `delivery_window_end`. The proxy now correctly rejects this with a 400 error. We need a client-side fallback to recover these values.
 
-1. The system prompt example for `[BOOKING_EDIT]` only includes `delivery_window_id` -- no start/end times
-2. The AI generates `[BOOKING_EDIT]` JSON without `delivery_window_start`/`delivery_window_end`
-3. The proxy builds `{ id: X, starts_at: undefined, ends_at: undefined }` -- `JSON.stringify` drops undefined values
-4. Noddi gets `{ id: X }` and returns a 400 validation error
+## Root Cause
 
-## Fix (2 files)
+The `BookingEditConfirmBlock` (line 29-33) passes `data.changes.delivery_window_start` and `data.changes.delivery_window_end` directly -- but the AI doesn't include them. Unlike `BookingSummaryBlock`, there is no localStorage recovery for the time slot selection.
 
-### File 1: `supabase/functions/widget-ai-chat/index.ts`
+## Fix (1 file)
 
-Update the `[BOOKING_EDIT]` marker examples and instructions to always include `delivery_window_start` and `delivery_window_end` alongside `delivery_window_id`:
+**File: `src/widget/components/blocks/BookingEditConfirmBlock.tsx`**
 
-- Line ~724 (BOOKING_EDIT instruction): Change example from:
-  ```
-  {"booking_id": 12345, "changes": {"time": "14:00-17:00", "old_time": "08:00-11:00", "delivery_window_id": 99999}}
-  ```
-  to:
-  ```
-  {"booking_id": 12345, "changes": {"time": "14:00-17:00", "old_time": "08:00-11:00", "delivery_window_id": 99999, "delivery_window_start": "2026-02-16T13:00:00Z", "delivery_window_end": "2026-02-16T16:00:00Z"}}
-  ```
-
-- Line ~886 (system prompt example): Same update.
-
-- Line ~894 (after TIME_SLOT instruction): Add explicit note:
-  ```
-  IMPORTANT: When showing [BOOKING_EDIT] for time changes, you MUST include delivery_window_id, delivery_window_start (ISO), and delivery_window_end (ISO) from the customer's [TIME_SLOT] selection.
-  ```
-
-### File 2: `supabase/functions/noddi-booking-proxy/index.ts`
-
-Add a server-side guard (lines 318-324) so that if `delivery_window_id` is provided but `starts_at` or `ends_at` is missing, the proxy returns a clear 400 error instead of forwarding an invalid payload:
+In `handleConfirm`, after setting `delivery_window_id` from `data.changes`, add a localStorage scan to recover the start/end times if they're missing:
 
 ```typescript
-if (ubDwId) {
-  if (!ubDwStart || !ubDwEnd) {
-    return jsonResponse({ error: "delivery_window_start and delivery_window_end are required when changing time" }, 400);
+if (data.changes?.delivery_window_id) {
+  payload.delivery_window_id = data.changes.delivery_window_id;
+  payload.delivery_window_start = data.changes.delivery_window_start;
+  payload.delivery_window_end = data.changes.delivery_window_end;
+
+  // Recovery: if start/end missing, scan localStorage for TimeSlotBlock selection
+  if (!payload.delivery_window_start || !payload.delivery_window_end) {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (!key?.startsWith('noddi_action_')) continue;
+      try {
+        const val = JSON.parse(localStorage.getItem(key) || '');
+        if (val.delivery_window_id === data.changes.delivery_window_id ||
+            val.delivery_window_id === Number(data.changes.delivery_window_id)) {
+          if (!payload.delivery_window_start && val.start_time) {
+            payload.delivery_window_start = val.start_time;
+          }
+          if (!payload.delivery_window_end && val.end_time) {
+            payload.delivery_window_end = val.end_time;
+          }
+          break;
+        }
+      } catch {}
+    }
   }
-  patchPayload.delivery_window = {
-    id: ubDwId,
-    starts_at: ubDwStart,
-    ends_at: ubDwEnd,
-  };
 }
 ```
+
+This mirrors the existing recovery pattern in `BookingSummaryBlock` (lines 71-79) and ensures the start/end times are always present when updating a booking's time slot.
 
 ## Scope
 
 | File | Change |
 |------|--------|
-| `supabase/functions/widget-ai-chat/index.ts` | Update BOOKING_EDIT examples to include `delivery_window_start`/`end`; add explicit instruction |
-| `supabase/functions/noddi-booking-proxy/index.ts` | Add validation guard for missing start/end times |
+| `src/widget/components/blocks/BookingEditConfirmBlock.tsx` | Add localStorage recovery for `delivery_window_start` and `delivery_window_end` when missing from AI output |
 
