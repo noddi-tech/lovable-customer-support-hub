@@ -406,10 +406,10 @@ async function executeLookupCustomer(phone?: string, email?: string): Promise<st
 
     if (phone) {
       let cleanPhone = phone.replace(/\s+/g, '').replace(/[^\d+]/g, '');
+      // Normalize common Norwegian formats but also accept any international prefix
       if (cleanPhone.startsWith('0047')) cleanPhone = '+47' + cleanPhone.slice(4);
-      else if (cleanPhone.startsWith('+47')) { /* already correct */ }
-      else if (cleanPhone.startsWith('47') && cleanPhone.length === 10) cleanPhone = '+' + cleanPhone;
-      else if (/^\d{8}$/.test(cleanPhone)) cleanPhone = '+47' + cleanPhone;
+      else if (cleanPhone.startsWith('+')) { /* already has international prefix */ }
+      else if (/^\d{8}$/.test(cleanPhone)) cleanPhone = '+47' + cleanPhone; // bare 8-digit Norwegian
       lookupUrl.searchParams.set('phone', cleanPhone);
       console.log(`[lookup] Looking up phone via customer-lookup-support: ${cleanPhone}`);
     }
