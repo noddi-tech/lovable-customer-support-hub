@@ -205,7 +205,7 @@ const TimeSlotBlock: React.FC<BlockComponentProps> = ({
 
   const handleSlotSelect = (window: any) => {
     const currentDate = sortedDates[selectedIdx];
-    const windowId = window.id || window.pk || window.delivery_window_id || window.delivery_window?.id;
+    const windowId = window.pk || window.delivery_window_id || window.id || window.delivery_window?.id;
     const payload = JSON.stringify({
       delivery_window_id: windowId,
       date: currentDate,
