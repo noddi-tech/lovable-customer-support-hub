@@ -92,9 +92,48 @@ const TimeSlotBlock: React.FC<BlockComponentProps> = ({
           }
           const itemsData = await postJson(itemsPayload);
           const cars = itemsData.cars || [];
+
+          // Collect all available sales item IDs
+          const allAvailableIds = new Set<number>();
           for (const car of cars) {
             for (const item of (car.sales_items || [])) {
-              if (item.sales_item_id) salesItemIds.push(Number(item.sales_item_id));
+              if (item.sales_item_id) allAvailableIds.add(Number(item.sales_item_id));
+            }
+          }
+
+          // 1. Try to recover the user's selected service from localStorage
+          let selectedItemId: number | null = null;
+          for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (!key?.startsWith('noddi_action_')) continue;
+            try {
+              const stored = JSON.parse(localStorage.getItem(key) || '');
+              if (stored.sales_item_id && allAvailableIds.has(Number(stored.sales_item_id))) {
+                selectedItemId = Number(stored.sales_item_id);
+                console.log('[TimeSlotBlock] Recovered selected service from localStorage:', selectedItemId);
+                break;
+              }
+            } catch { /* skip */ }
+          }
+
+          // 2. Use selected item, or fall back to first category only
+          if (selectedItemId) {
+            salesItemIds = [selectedItemId];
+          } else {
+            // Group by category, pick first category only to avoid cross-category 404
+            const firstCategory = cars[0]?.sales_items?.[0]?.booking_category_type;
+            if (firstCategory) {
+              for (const car of cars) {
+                for (const item of (car.sales_items || [])) {
+                  if (item.sales_item_id && item.booking_category_type === firstCategory) {
+                    salesItemIds.push(Number(item.sales_item_id));
+                  }
+                }
+              }
+              console.log('[TimeSlotBlock] Filtered to category:', firstCategory, 'ids:', salesItemIds);
+            } else {
+              // Fallback: just use all
+              salesItemIds = Array.from(allAvailableIds);
             }
           }
         }
