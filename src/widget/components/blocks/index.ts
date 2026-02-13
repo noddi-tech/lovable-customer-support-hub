@@ -11,6 +11,7 @@ import './LicensePlateBlock';
 import './ServiceSelectBlock';
 import './TimeSlotBlock';
 import './BookingSummaryBlock';
+import './BookingEditConfirmBlock';
 
 // Re-export registry for convenience
 export { getBlock, getAllBlocks, getBlockForFieldType, getBlockForNodeType, registerBlock } from './registry';

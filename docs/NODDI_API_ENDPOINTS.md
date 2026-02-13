@@ -243,6 +243,25 @@ Complete reference for every Noddi API endpoint used in the chatbot booking flow
 | **Edge Function** | `widget-ai-chat` |
 | **Body** | `{ "cancellation_reason": "..." }` (optional) |
 
+### Update Booking (PATCH)
+
+| | |
+|---|---|
+| **Method** | `PATCH` |
+| **URL** | `/v1/bookings/{booking_id}/` |
+| **Edge Functions** | `widget-ai-chat` (tool: `update_booking`), `noddi-booking-proxy` (action: `"update_booking"`) |
+| **Body** | Only include fields being changed |
+
+**Supported fields:**
+- `address_id` (int) — new address
+- `delivery_window` (`{id, starts_at, ends_at}`) — new time slot
+- `cars` (`[{license_plate: {number, country_code}, selected_sales_item_ids: [int]}]`)
+
+> ⚠️ **Gotchas:**
+> - This is PATCH (partial update), not PUT — only send changed fields
+> - `delivery_window` is an object with `id`, `starts_at`, `ends_at` — not a flat ID
+> - The `cars` array **replaces** the entire cars list (not a merge)
+
 ---
 
 ## 8. Supporting Endpoints
@@ -264,9 +283,9 @@ Complete reference for every Noddi API endpoint used in the chatbot booking flow
 |---|---|
 | `widget-send-verification` | `GET /v1/users/send-phone-number-verification/` |
 | `widget-verify-phone` | `POST /v1/users/verify-phone-number/` |
-| `widget-ai-chat` | `GET /v1/users/customer-lookup-support/`, `GET /v1/user-groups/{id}/bookings-for-customer/`, `GET /v1/bookings/{id}/`, `POST /v1/bookings/{id}/reschedule/`, `POST /v1/bookings/{id}/cancel/` |
+| `widget-ai-chat` | `GET /v1/users/customer-lookup-support/`, `GET /v1/user-groups/{id}/bookings-for-customer/`, `GET /v1/bookings/{id}/`, `POST /v1/bookings/{id}/reschedule/`, `POST /v1/bookings/{id}/cancel/`, `PATCH /v1/bookings/{id}/` |
 | `noddi-address-lookup` | `GET /v1/addresses/suggestions/`, `POST /v1/addresses/create-from-google-place-id/` |
-| `noddi-booking-proxy` | `GET /v1/cars/from-license-plate-number/`, `GET /v1/sales-item-booking-categories/for-new-booking/`, `POST /v1/sales-items/initial-available-for-booking/`, `POST /v1/delivery-windows/earliest-date/`, `GET /v1/delivery-windows/latest-date/`, `GET /v1/delivery-windows/for-new-booking/`, `GET /v1/service-departments/from-booking-params/`, `POST /v1/bookings/`, `GET /v1/users/customer-lookup-support/` |
+| `noddi-booking-proxy` | `GET /v1/cars/from-license-plate-number/`, `GET /v1/sales-item-booking-categories/for-new-booking/`, `POST /v1/sales-items/initial-available-for-booking/`, `POST /v1/delivery-windows/earliest-date/`, `GET /v1/delivery-windows/latest-date/`, `GET /v1/delivery-windows/for-new-booking/`, `GET /v1/service-departments/from-booking-params/`, `POST /v1/bookings/`, `PATCH /v1/bookings/{id}/`, `GET /v1/users/customer-lookup-support/` |
 | `noddi-customer-lookup` | `GET /v1/users/customer-lookup-support/`, `GET /v1/user-groups/{id}/bookings-for-customer/` |
 
 ---

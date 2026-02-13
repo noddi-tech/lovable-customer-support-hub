@@ -119,6 +119,35 @@ const tools = [
   {
     type: 'function' as const,
     function: {
+      name: 'update_booking',
+      description: 'Update an existing booking. Can change address, cars, sales items, or delivery window. Always confirm changes with the customer first using the [BOOKING_EDIT] marker.',
+      parameters: {
+        type: 'object',
+        properties: {
+          booking_id: { type: 'number', description: 'The Noddi booking ID to update' },
+          address_id: { type: 'number', description: 'New address ID (from address lookup)' },
+          delivery_window_id: { type: 'number', description: 'New delivery window ID' },
+          delivery_window_start: { type: 'string', description: 'New delivery window start (ISO 8601)' },
+          delivery_window_end: { type: 'string', description: 'New delivery window end (ISO 8601)' },
+          cars: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                license_plate: { type: 'object', properties: { number: { type: 'string' }, country_code: { type: 'string' } } },
+                selected_sales_item_ids: { type: 'array', items: { type: 'number' } },
+              },
+            },
+            description: 'Updated cars array with license plates and selected sales items',
+          },
+        },
+        required: ['booking_id'],
+      },
+    },
+  },
+  {
+    type: 'function' as const,
+    function: {
       name: 'lookup_car_by_plate',
       description: 'Look up car details from a license plate number. Returns car ID, make, model, and year.',
       parameters: {
@@ -690,6 +719,10 @@ CRITICAL RULES:
     fieldTypes: ['booking_summary'],
     instruction: () => `To show the booking summary and let the customer confirm, include the marker [BOOKING_SUMMARY]{"address":"...","car":"...","service":"...","date":"...","time":"...","price":"...","address_id":...,"car_id":...,"sales_item_ids":[...],"delivery_window_id":...,"delivery_window_start":"...","delivery_window_end":"..."}[/BOOKING_SUMMARY] in your response. Fill in all fields from the data collected in previous steps. delivery_window_start and delivery_window_end must be the ISO timestamps from the selected time slot. The widget will show a summary card with Confirm/Cancel buttons.`,
   },
+  booking_edit: {
+    fieldTypes: ['booking_edit'],
+    instruction: () => `To let the customer confirm changes to an existing booking, include the marker [BOOKING_EDIT]{"booking_id": 12345, "changes": {"time": "14:00–17:00", "old_time": "08:00–11:00", "delivery_window_id": 99999}}[/BOOKING_EDIT]. Include the booking_id and only the fields being changed with their old and new values. The widget will show a diff card with Confirm/Cancel buttons.`,
+  },
 };
 
 function getBlockPromptForFieldType(fieldType: string): typeof BLOCK_PROMPTS[string] | undefined {
@@ -1114,6 +1147,23 @@ Additional required fields:
 Example format (replace ALL values with REAL data from previous steps):
 [BOOKING_SUMMARY]{"address":"Holtet 45, 1368 Oslo","address_id":2860,"car":"Tesla Model Y","license_plate":"EC94156","country_code":"NO","user_id":48372,"user_group_id":29104,"service":"Dekkskift","sales_item_ids":[60282],"date":"16. feb 2026","time":"08:00–11:00","price":"699 kr","delivery_window_id":98765,"delivery_window_start":"2026-02-16T08:00:00Z","delivery_window_end":"2026-02-16T11:00:00Z"}[/BOOKING_SUMMARY]
 
+13. BOOKING EDIT — show a confirmation card for EDITING an existing booking. Shows old value → new value with confirm/cancel buttons.
+Use this when a customer wants to change their booking's time, address, car, or services.
+[BOOKING_EDIT]{"booking_id": 12345, "changes": {"time": "14:00–17:00", "old_time": "08:00–11:00", "delivery_window_id": 99999, "delivery_window_start": "2026-02-20T14:00:00Z", "delivery_window_end": "2026-02-20T17:00:00Z"}}[/BOOKING_EDIT]
+Include only the fields being changed. Supported change fields: address/old_address/address_id, time/old_time/date/old_date, car/old_car, service/old_service, delivery_window_id/delivery_window_start/delivery_window_end, cars (array).
+
+BOOKING EDIT FLOW:
+When a customer wants to modify an existing booking:
+1. Use get_booking_details to fetch the current booking
+2. Ask what they want to change (or detect from their message):
+   - "Endre tidspunkt" (change time) → show [TIME_SLOT] picker, then [BOOKING_EDIT] with the new time
+   - "Endre adresse" (change address) → show [ADDRESS_SEARCH], then [BOOKING_EDIT] with the new address
+   - "Endre bil" (change car) → show [LICENSE_PLATE], then [BOOKING_EDIT] with the new car
+   - "Legge til tjenester" (add services) → show [SERVICE_SELECT], then [BOOKING_EDIT] with updated items
+   - "Avbestille" (cancel) → use cancel_booking (existing tool)
+3. After collecting the new value, show [BOOKING_EDIT] with old and new values for confirmation
+4. The widget will call update_booking on confirm
+
 RULES FOR MARKERS:
 - NEVER list addresses, license plates, cars, or services as numbered text. ALWAYS use the corresponding interactive marker.
 - When outputting ADDRESS_SEARCH, LICENSE_PLATE, or SERVICE_SELECT markers: output the marker DIRECTLY with no preceding description of addresses, cars, or services. Do NOT say "Here are your addresses" or "Enter your license plate" before the marker.
@@ -1199,6 +1249,16 @@ async function executeTool(
       return executeBookingProxy({ action: 'delivery_windows', address_id: args.address_id, from_date: args.from_date, to_date: args.to_date, selected_sales_item_ids: args.selected_sales_item_ids });
     case 'create_shopping_cart':
       return executeBookingProxy({ action: 'create_booking', address_id: args.address_id, car_id: args.car_id, sales_item_ids: args.sales_item_ids, delivery_window_id: args.delivery_window_id });
+    case 'update_booking':
+      return executeBookingProxy({
+        action: 'update_booking',
+        booking_id: args.booking_id,
+        address_id: args.address_id,
+        delivery_window_id: args.delivery_window_id,
+        delivery_window_start: args.delivery_window_start,
+        delivery_window_end: args.delivery_window_end,
+        cars: args.cars,
+      });
     default:
       return JSON.stringify({ error: `Unknown tool: ${toolName}` });
   }
