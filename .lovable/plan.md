@@ -1,57 +1,62 @@
 
 
-# Dynamic Phone Country Code from Widget Configuration
+# Fix: Show All Customer Cars, Not Just Cars From Bookings
 
-## Overview
+## Problem
 
-Replace the hardcoded `+47` (Norway) phone prefix with a dynamic one derived from the widget's `language` setting, which is already available as a prop in `PhoneVerifyBlock`.
+The `[LICENSE_PLATE]` quick-select pills only show 1 car (EC94156) even though the customer has 6 cars on their Noddi account. This is because cars are currently extracted only from booking history -- any car that hasn't been used in a recent booking won't appear.
 
-## Approach
+## Root Cause
 
-Create a simple language-to-phone-prefix mapping and use it throughout the phone verification block.
+In `supabase/functions/widget-ai-chat/index.ts`, the `executeLookupCustomer` function (lines 473-512) iterates over `bookings` and extracts `b.car` and `b.cars` from each booking. Cars not associated with any booking are missed entirely.
 
-## Changes
+## Solution
 
-### 1. Add country code mapping utility
+Add a dedicated API call to fetch all cars registered under the user group via the Noddi API endpoint `/v1/user-groups/{id}/cars/`. This returns all cars on the account regardless of booking history.
 
-**New file: `src/widget/utils/phoneCountryCodes.ts`**
+### Changes
 
-A small lookup mapping language codes (already configured per widget) to phone country info:
+**File: `supabase/functions/widget-ai-chat/index.ts`** (inside `executeLookupCustomer`, after fetching bookings ~line 468)
 
+1. Add a new fetch call to `/v1/user-groups/{userGroupId}/cars/` to get all registered cars
+2. Populate `storedCars` from this dedicated cars endpoint first (primary source)
+3. Keep the existing booking-based car extraction as a fallback (in case the cars endpoint doesn't return license plate info or is unavailable)
+
+```text
+Pseudocode:
+
+// After fetching bookings, fetch all cars for the user group
+if (userGroupId) {
+  const carsResp = await fetch(`${API_BASE}/v1/user-groups/${userGroupId}/cars/`, { headers });
+  if (carsResp.ok) {
+    const carsData = await carsResp.json();
+    const allCars = Array.isArray(carsData) ? carsData : (carsData.results || []);
+    for (const car of allCars) {
+      if (car?.id) {
+        storedCars.set(car.id, {
+          id: car.id,
+          make: car.make || car.brand || '',
+          model: car.model || '',
+          license_plate: car.license_plate_number || car.license_plate || '',
+        });
+      }
+    }
+  }
+}
+
+// Then still run existing booking-based extraction as fallback
 ```
-no -> { prefix: '+47', placeholder: 'XXX XX XXX', flag: '🇳🇴' }
-en -> { prefix: '+44', placeholder: 'XXXX XXXXXX', flag: '🇬🇧' }
-sv -> { prefix: '+46', placeholder: 'XX XXX XX XX', flag: '🇸🇪' }
-da -> { prefix: '+45', placeholder: 'XX XX XX XX', flag: '🇩🇰' }
-de -> { prefix: '+49', placeholder: 'XXX XXXXXXX', flag: '🇩🇪' }
-fr -> { prefix: '+33', placeholder: 'X XX XX XX XX', flag: '🇫🇷' }
-es -> { prefix: '+34', placeholder: 'XXX XXX XXX', flag: '🇪🇸' }
-it -> { prefix: '+39', placeholder: 'XXX XXX XXXX', flag: '🇮🇹' }
-pt -> { prefix: '+351', placeholder: 'XXX XXX XXX', flag: '🇵🇹' }
-nl -> { prefix: '+31', placeholder: 'X XXXXXXXX', flag: '🇳🇱' }
-```
 
-Default fallback: `+47` (Norway) for unknown languages.
+4. The `license_plate` field in the stored cars output also needs to handle the nested `license_plate: { number, country_code }` format that Noddi sometimes uses.
 
-### 2. Update `PhoneVerifyBlock.tsx`
+### Why This Approach
 
-- Import the mapping utility
-- Use `language` prop (already available) to resolve the prefix
-- Replace all three hardcoded `+47` references:
-  - **Line 75**: `phone = prefix + phone` (when storing to localStorage)
-  - **Line 115**: `<span className="noddi-phone-prefix">{prefix}</span>` (UI label)
-  - **Line 116**: Dynamic placeholder based on language
+- The `/v1/user-groups/{id}/cars/` endpoint is the canonical source for all cars on an account
+- It runs in parallel with or after the bookings fetch, adding minimal latency
+- The existing booking-based extraction remains as fallback for edge cases
+- No changes needed to the widget-side `LicensePlateBlock` -- it already handles arrays of stored cars
 
-### 3. Update `PhoneVerifyPreview` (same file)
+### Files Changed
 
-- Replace the static `+47` in the admin preview (line 220) with a generic display or keep as-is since it's just a preview thumbnail.
-
-### 4. Update edge function phone normalization
-
-**File: `supabase/functions/widget-ai-chat/index.ts`**
-
-The `patchBookingSummary` function also has `+47` hardcoded when normalizing the visitor phone. Update it to detect the country code from the phone number format rather than assuming Norwegian.
-
-## No database changes required
-
-The `language` field already exists on `widget_configs` and is already returned by the `widget-config` edge function and passed through to block components.
+- `supabase/functions/widget-ai-chat/index.ts` -- add cars API call in `executeLookupCustomer`
+- Redeploy `widget-ai-chat` edge function
