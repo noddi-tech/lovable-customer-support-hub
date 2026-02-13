@@ -1,61 +1,45 @@
 
-# Fix: Widget Header Being Clipped in AI Chatbot Test Mode
+# Complete Overhaul: AI Chatbot Test Widget Rendering
 
 ## Problem
 
-In the AI Chatbot page (Admin > AI & Intelligence > AI Chatbot > Test tab), the widget's purple header bar ("AI Assistant" + TEST badge) is being clipped/cut off at the top of the preview container. Only the chat messages and input are visible.
+The purple widget header keeps getting clipped because the test preview reuses production CSS classes (`.noddi-widget-panel`, `.noddi-widget-content`, `.noddi-widget-chat`) that have conflicting styles like `position: fixed`, `max-height: calc(100vh - 120px)`, `min-height: 200px`, and `flex: 1`. CSS specificity battles between inline styles, scoped overrides, and `widget.css` make this fragile and unpredictable.
 
-## Root Cause
+## Solution: Isolate the test preview from production widget CSS
 
-The widget panel uses `overflow: hidden` on the outer panel div. Inside, the `.noddi-widget-content` has `flex: 1` from the base CSS (`widget.css` line 129), which makes it try to take all available space. Combined with `.noddi-widget-chat` (`min-height: 350px`) and `.noddi-chat-messages` (`min-height: 200px`), the content area grows larger than the container. Since `overflow: hidden` clips at the panel level, the **header at the top gets pushed out of view** while the content area fills the visible space.
-
-The existing CSS overrides in the `<style>` tag set `min-height: 0 !important` on several child elements, but they miss a critical override: forcing `.noddi-widget-content` to also have `overflow: hidden` so that content clips **within the content area** rather than at the panel level.
-
-## Solution
+Stop using production CSS classes on the wrapper/panel/content divs entirely. Instead, use plain inline styles and custom class names that don't conflict with `widget.css`. Only the internal AiChat component (which needs `.noddi-widget-chat`, `.noddi-chat-messages`, etc.) keeps the widget CSS classes.
 
 ### File: `src/components/admin/widget/WidgetTestMode.tsx`
 
-**Change 1 -- Add overflow override to scoped CSS (line 124):**
+Replace the entire widget preview section with a clean, self-contained layout:
 
-Add `overflow: hidden !important` to the `.noddi-widget-content` override so it clips its own children instead of letting them push the header out:
+1. **Remove the `<style>` override block entirely** -- no more fighting CSS specificity
+2. **Replace `.noddi-widget-panel` with a plain div** using only inline styles:
+   - `display: flex`, `flexDirection: column`, `height: 100%`, `overflow: hidden`
+3. **Replace `.noddi-widget-content` with a plain div** using only inline styles:
+   - `flex: 1`, `minHeight: 0`, `overflow: hidden`, `padding: 0`
+4. **Keep the header div** with inline styles only (no `.noddi-widget-header` class):
+   - Explicit `padding`, `color`, `display: flex`, `flexShrink: 0`
+5. **Add a single scoped CSS override** for the AiChat internals only:
+   - `.widget-test-preview .noddi-widget-chat { min-height: 0; height: 100%; display: flex; flex-direction: column; }`
+   - `.widget-test-preview .noddi-chat-messages { min-height: 0; flex: 1; overflow-y: auto; }`
 
-```css
-.widget-test-preview .noddi-widget-content { 
-  min-height: 0 !important; 
-  overflow: hidden !important; 
-}
+This way the outer shell (panel, header, content wrapper) is 100% inline-styled with no CSS class conflicts, and only the inner AiChat component keeps its needed class names with minimal overrides.
+
+### Structure
+
+```text
+Preview container (border-dashed, h-full, overflow-hidden)
+  Widget shell (inline: flex col, h-100%, overflow-hidden, border-radius, shadow)
+    Header (inline: bg-color, padding, flex-shrink-0, color white)
+      Title + TEST badge
+    Content area (inline: flex-1, min-h-0, overflow-hidden)
+      <AiChat /> (uses .noddi-widget-chat internally -- overridden via scoped CSS)
 ```
 
-**Change 2 -- Add `.noddi-widget-chat` min-height override (existing line 122):**
+### Key Differences from Previous Attempts
 
-The base CSS has `.noddi-widget-chat { min-height: 350px; }`. The current override sets `height: 100%` but should also be explicitly constrained:
+- Previous: Used `.noddi-widget-panel`, `.noddi-widget-header`, `.noddi-widget-content` classes, then tried to override their CSS with `!important` rules
+- New: Drops those classes on the outer shell entirely, uses only inline styles -- zero CSS conflicts possible
 
-```css
-.widget-test-preview .noddi-widget-chat { 
-  min-height: 0 !important; 
-  height: 100% !important; 
-  overflow: hidden !important; 
-}
-```
-
-**Change 3 -- Ensure the header has `flex-shrink: 0` explicitly in inline style (line 148):**
-
-Add `flexShrink: 0` to the widget header's inline style to guarantee it never gets compressed by the flex layout:
-
-```tsx
-<div
-  className="noddi-widget-header"
-  style={{ backgroundColor: config.primary_color, flexShrink: 0 }}
->
-```
-
-The CSS already has `flex-shrink: 0` on `.noddi-widget-header`, but adding it as inline style ensures it has the highest specificity and cannot be overridden.
-
-## Summary
-
-Three small additions in `WidgetTestMode.tsx`:
-1. Add `overflow: hidden !important` to `.noddi-widget-content` CSS override
-2. Add `overflow: hidden !important` to `.noddi-widget-chat` CSS override
-3. Add `flexShrink: 0` inline style to the widget header div
-
-This ensures the content area clips its own children internally, preventing them from pushing the header out of view.
+No changes to any other files. The AiChat component itself is untouched.
