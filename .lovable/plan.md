@@ -1,35 +1,57 @@
 
 
-# Fix: Delivery Windows 502 — Missing `selected_sales_item_ids`
+# Fix: `available_items` 502 — Noddi API requires `license_plates`
 
 ## Root Cause
 
-The AI emits the `[TIME_SLOT]` marker with empty `car_ids: []`, `license_plate: ""`, and `sales_item_id: 0`. The `TimeSlotBlock` component only attempts to resolve sales item IDs when car info is present (line 59), so it skips the resolution entirely. The Noddi API then rejects the `delivery_windows` request with a 400 error because `selected_sales_item_ids` is required and must not be empty.
+The previous fix removed the car-info guard on the `available_items` call, allowing it to fire with only `address_id`. However, the Noddi API **requires** the `license_plates` field — it returns a 400 validation error without it.
+
+The real problem is upstream: the AI emits the `[TIME_SLOT]` marker without `license_plate` or `car_ids`. The component needs both `address_id` AND at least one vehicle identifier to resolve sales items.
 
 ## Fix (1 file)
 
-**File: `src/widget/components/blocks/TimeSlotBlock.tsx`** (lines 58-76)
+**File: `src/widget/components/blocks/TimeSlotBlock.tsx`**
 
-Remove the guard that requires car info before calling `available_items`. The component should **always** attempt to resolve sales item IDs when none are provided, even if it only has an `address_id`. The `available_items` endpoint accepts `address_id` alone.
+1. **Restore the car-info guard** on the `available_items` call (revert line 59 to require `licensePlate` or `carIds`):
 
 ```typescript
-// Current (line 59):
 if (salesItemIds.length === 0 && (licensePlate || carIds.length > 0)) {
-
-// Updated:
-if (salesItemIds.length === 0) {
 ```
 
-The rest of the `available_items` payload construction (lines 60-68) already handles missing car info gracefully — it only adds `license_plates` or `car_ids` if present.
-
-Additionally, add a final guard: if `salesItemIds` is still empty after the resolution attempt, show a user-friendly error instead of making a doomed API call:
+2. **Improve the error message** when no sales items can be resolved (the guard after the call on line 78) to be more specific about what's missing:
 
 ```typescript
-// After the available_items call (after line 76):
 if (salesItemIds.length === 0) {
-  setError('Kunne ikke finne tjenester for denne adressen. Prøv igjen.');
+  setError('Mangler kjøretøyinformasjon for å finne ledige tider. Prøv igjen.');
   setLoading(false);
   return;
+}
+```
+
+3. **Add a localStorage fallback**: Before giving up, scan `localStorage` for previously stored `license_plate` or `car_ids` from earlier steps in the same conversation (e.g., from `noddi_action_*` keys), similar to how `BookingSummaryBlock` recovers `delivery_window_id`:
+
+```typescript
+// After the guard check, before giving up:
+if (salesItemIds.length === 0 && !licensePlate && carIds.length === 0) {
+  // Scan localStorage for license plate from earlier conversation steps
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (!key?.startsWith('noddi_action_')) continue;
+    try {
+      const stored = JSON.parse(localStorage.getItem(key) || '');
+      if (stored.license_plate) {
+        // Use recovered license plate for available_items
+        const recoveryPayload = {
+          action: 'available_items',
+          address_id: addressId,
+          license_plates: [stored.license_plate],
+        };
+        const recoveryData = await postJson(recoveryPayload);
+        // ... extract salesItemIds from response
+        break;
+      }
+    } catch { /* skip */ }
+  }
 }
 ```
 
@@ -37,7 +59,7 @@ if (salesItemIds.length === 0) {
 
 | File | Change |
 |------|--------|
-| `src/widget/components/blocks/TimeSlotBlock.tsx` | Remove car-info guard on `available_items` call; add fallback error if no items resolved |
+| `src/widget/components/blocks/TimeSlotBlock.tsx` | Restore car-info guard, add localStorage recovery for missing license plate, improve error message |
 
-No edge function changes needed — the proxy already handles empty `selected_sales_item_ids` correctly by omitting it from the request.
+No edge function changes needed.
 
