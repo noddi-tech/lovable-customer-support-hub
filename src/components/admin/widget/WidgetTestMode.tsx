@@ -75,8 +75,8 @@ export const WidgetTestMode: React.FC<WidgetTestModeProps> = ({ config }) => {
   };
 
   return (
-    <div className="flex flex-col gap-4">
-      <Alert>
+    <div className="flex flex-col gap-4 h-full min-h-0">
+      <Alert className="shrink-0">
         <Sparkles className="h-4 w-4" />
         <AlertTitle>AI Bot Test Mode</AlertTitle>
         <AlertDescription>
@@ -85,7 +85,7 @@ export const WidgetTestMode: React.FC<WidgetTestModeProps> = ({ config }) => {
         </AlertDescription>
       </Alert>
 
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-4 shrink-0">
         {!isTestActive ? (
           <Button onClick={startTestSession}>
             <PlayCircle className="h-4 w-4 mr-2" />
@@ -115,9 +115,9 @@ export const WidgetTestMode: React.FC<WidgetTestModeProps> = ({ config }) => {
         )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 flex-1 min-h-0">
         {/* Production Widget Preview */}
-        <div className="widget-test-preview border-2 border-dashed rounded-xl p-2 bg-muted/30 flex items-stretch justify-center h-[600px] max-h-[60vh] overflow-hidden relative z-0">
+        <div className="widget-test-preview border-2 border-dashed rounded-xl p-2 bg-muted/30 flex items-stretch justify-center h-full overflow-hidden relative z-0">
           <style>{`
             .widget-test-preview .noddi-widget-chat { min-height: 0 !important; height: 100%; }
             .widget-test-preview .noddi-chat-messages { min-height: 0 !important; }

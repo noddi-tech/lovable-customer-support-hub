@@ -60,7 +60,6 @@ export const AiChatbotSettings: React.FC = () => {
     enabled: !!organizationId,
   });
 
-  // Auto-select first widget
   useEffect(() => {
     if (!selectedWidgetId && widgetConfigs.length > 0) {
       setSelectedWidgetId(widgetConfigs[0].id);
@@ -78,8 +77,8 @@ export const AiChatbotSettings: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div>
+    <div className="h-full flex flex-col gap-4">
+      <div className="shrink-0">
         <h2 className="text-2xl font-semibold flex items-center gap-2">
           <Bot className="h-6 w-6" />
           AI Chatbot
@@ -89,7 +88,7 @@ export const AiChatbotSettings: React.FC = () => {
         </p>
       </div>
 
-      <div className="flex gap-4">
+      <div className="flex gap-4 flex-1 min-h-0">
         {/* Widget Selector Sidebar */}
         <Card className="w-[220px] shrink-0">
           <CardHeader className="pb-3">
@@ -136,9 +135,9 @@ export const AiChatbotSettings: React.FC = () => {
 
         {/* Main Content */}
         {selectedWidget ? (
-          <Card className="flex-1">
-            <Tabs defaultValue="flow" className="w-full">
-              <CardHeader className="pb-0">
+          <Card className="flex-1 min-h-0 flex flex-col">
+            <Tabs defaultValue="flow" className="w-full flex-1 flex flex-col min-h-0">
+              <CardHeader className="pb-0 shrink-0">
                 <div className="flex items-center justify-between mb-4">
                   <div>
                     <CardTitle className="text-lg">
@@ -177,28 +176,28 @@ export const AiChatbotSettings: React.FC = () => {
                 </TabsList>
               </CardHeader>
 
-              <CardContent className="pt-6">
-                <TabsContent value="components" className="mt-0">
+              <CardContent className="flex-1 min-h-0 overflow-hidden p-4">
+                <TabsContent value="components" className="mt-0 h-full">
                   <ComponentLibrary />
                 </TabsContent>
 
-                <TabsContent value="flow" className="mt-0">
+                <TabsContent value="flow" className="mt-0 h-full">
                   <ActionFlowsManager widgetId={selectedWidget.id} organizationId={selectedWidget.organization_id} />
                 </TabsContent>
 
-                <TabsContent value="test" className="mt-0">
+                <TabsContent value="test" className="mt-0 h-full">
                   <WidgetTestMode config={selectedWidget} />
                 </TabsContent>
 
-                <TabsContent value="conversations" className="mt-0">
+                <TabsContent value="conversations" className="mt-0 h-full">
                   <AiConversationHistory organizationId={selectedWidget.organization_id} />
                 </TabsContent>
 
-                <TabsContent value="analytics" className="mt-0">
+                <TabsContent value="analytics" className="mt-0 h-full">
                   <AiAnalyticsDashboard organizationId={selectedWidget.organization_id} />
                 </TabsContent>
 
-                <TabsContent value="gaps" className="mt-0">
+                <TabsContent value="gaps" className="mt-0 h-full">
                   <KnowledgeGapDetection organizationId={selectedWidget.organization_id} />
                 </TabsContent>
               </CardContent>
