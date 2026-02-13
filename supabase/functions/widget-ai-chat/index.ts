@@ -24,6 +24,18 @@ function isRateLimited(widgetKey: string): boolean {
 
 const API_BASE = (Deno.env.get("NODDI_API_BASE") || "https://api.noddi.co").replace(/\/+$/, "");
 
+function toOsloTime(utcIso: string): string {
+  try {
+    const d = new Date(utcIso);
+    if (isNaN(d.getTime())) return utcIso;
+    return d.toLocaleString('nb-NO', {
+      timeZone: 'Europe/Oslo',
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', hour12: false,
+    });
+  } catch { return utcIso; }
+}
+
 interface AiMessage {
   role: 'user' | 'assistant' | 'system';
   content: string;
@@ -526,8 +538,8 @@ async function executeLookupCustomer(phone?: string, email?: string): Promise<st
       bookings: bookings.slice(0, 10).map((b: any) => ({
         id: b.id,
         status: b.status,
-        scheduledAt: b.start_time || b.scheduled_at || b.delivery_window_starts_at,
-        endTime: b.end_time || b.delivery_window_ends_at || null,
+        scheduledAt: toOsloTime(b.start_time || b.scheduled_at || b.delivery_window_starts_at || ''),
+        endTime: toOsloTime(b.end_time || b.delivery_window_ends_at || ''),
         services: b.order_lines?.map((ol: any) => ol.service_name || ol.name).filter(Boolean) || [],
         sales_item_ids: b.order_lines?.map((ol: any) => ol.sales_item_id || ol.id).filter(Boolean) || [],
         address: b.address?.full_address || b.address || null,
@@ -561,8 +573,8 @@ async function executeGetBookingDetails(bookingId: number): Promise<string> {
     return JSON.stringify({
       id: booking.id,
       status: booking.status,
-      scheduledAt: booking.start_time || booking.scheduled_at,
-      endTime: booking.end_time,
+      scheduledAt: toOsloTime(booking.start_time || booking.scheduled_at || ''),
+      endTime: toOsloTime(booking.end_time || ''),
       services: booking.order_lines?.map((ol: any) => ({ name: ol.service_name || ol.name, price: ol.price })) || [],
       sales_item_ids: booking.order_lines?.map((ol: any) => ol.sales_item_id || ol.id).filter(Boolean) || [],
       address: booking.address?.full_address || booking.address || null,
@@ -876,8 +888,13 @@ CRITICAL: Your ENTIRE response must be ONLY the [BOOKING_SUMMARY] marker with va
 BOOKING EDIT FLOW:
 When a customer wants to modify an existing booking:
 1. Use get_booking_details to fetch the current booking
-2. Detect what they want to change and show the appropriate marker
-3. After collecting the new value, show [BOOKING_EDIT] with old and new values
+2. Confirm with the customer which booking they want to change
+3. For TIME changes: you MUST emit the [TIME_SLOT] marker with the booking's address_id, car_ids, license_plate, and first sales_item_id:
+   [TIME_SLOT]{"address_id": <booking_address_id>, "car_ids": [<booking_car_ids>], "license_plate": "<booking_license_plate>", "sales_item_id": <first_sales_item_id>}[/TIME_SLOT]
+   Output ONLY the marker, nothing else. After the customer selects a new time, show [BOOKING_EDIT] with old and new values.
+4. For ADDRESS changes: emit [ADDRESS_SEARCH]
+5. For SERVICE changes: emit [SERVICE_SELECT]
+6. After collecting the new value, show [BOOKING_EDIT] with old and new values
 
 RULES FOR MARKERS:
 - NEVER wrap markers in markdown code blocks.
