@@ -1,41 +1,49 @@
 
+# Add Friendly Error Messages for All 500 Errors Across the Widget
 
-# Add User-Friendly Fallback for Noddi SMS API 500 Errors
+## Overview
 
-## Problem
+Apply the same user-friendly "temporarily unavailable" pattern used in phone verification to every API call in the widget that can encounter a server error (500+).
 
-When the Noddi SMS API returns a 500 error, the widget shows a raw technical error message like "Failed to send verification code" with debug details. This is confusing for end users.
+## Changes
 
-## Solution
+### 1. `src/widget/api.ts` -- 4 functions updated
 
-Two small changes to catch server errors and display a friendly message:
+**`submitContactForm`** (line 45-47): Add 500 check before the generic error return.
 
-### File 1: `src/widget/api.ts` (line ~263-271)
+**`sendAiMessage`** (line 174-176): Instead of throwing a raw error on 500, throw a friendly message.
 
-In the `sendPhoneVerification` function, detect when the error response contains a 500-level status or "server_error" in the body, and return a user-friendly message instead of the raw error:
+**`verifyPhonePin`** (line 288-294): Add 500 check -- return `{ verified: false, error: 'Verification is temporarily unavailable, please try again later' }`.
+
+**`resolveAddress`** (line 346): Instead of `throw new Error('Failed to resolve address')`, check status and throw a friendly message for 500s.
+
+### 2. `src/widget/components/blocks/BookingSummaryBlock.tsx` (lines 97-121)
+
+- Line 103-104: Check `resp.status >= 500` before using `bookingData.error`. Show: **"Booking is temporarily unavailable, please try again later"**
+- Line 120-121: Change the catch `'Network error'` to **"Something went wrong, please try again later"**
+
+### 3. `src/widget/components/blocks/LicensePlateBlock.tsx` (lines 36-46)
+
+- Line 43-44: Check `resp.status >= 500` before using `result.error`. Show: **"Vehicle lookup is temporarily unavailable, please try again later"**
+
+### 4. `src/widget/components/blocks/BookingEditConfirmBlock.tsx` (lines 36-59)
+
+- Line 43-44: Check `resp.status >= 500` before using `respData.error`. Show: **"Booking update is temporarily unavailable, please try again later"**
+- Line 58-59: Change `'Network error'` to **"Something went wrong, please try again later"**
+
+### 5. `src/widget/components/AiChat.tsx` (line 209)
+
+- Change the catch-all error message `t.aiError` to also cover 500s gracefully (already uses a translation key -- just confirming it stays friendly).
+
+## Pattern
+
+Every API error handler gets this check inserted before the generic fallback:
 
 ```typescript
-export async function sendPhoneVerification(...) {
-  try {
-    const response = await fetch(...);
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      // If the upstream API returned a server error, show a friendly message
-      if (response.status >= 500 || errorData.debug_status >= 500) {
-        return { success: false, error: 'Verification is temporarily unavailable, please try again later' };
-      }
-      return { success: false, error: errorData.error || 'Failed to send code' };
-    }
-    return { success: true };
-  } catch ...
+if (resp.status >= 500) {
+  setError('Service is temporarily unavailable, please try again later');
+  return;
 }
 ```
 
-### File 2: `src/widget/components/blocks/PhoneVerifyBlock.tsx` (line 60)
-
-No changes needed -- it already displays `result.error` to the user, so the friendly message from the API layer will flow through automatically.
-
-## Summary
-
-One change in `src/widget/api.ts`: add a check for 500-level responses and return a human-readable error string. The widget UI already displays this string, so no UI changes are required.
-
+This ensures users never see raw technical errors like "Failed to create booking" or "502" when the Noddi API is having issues.
