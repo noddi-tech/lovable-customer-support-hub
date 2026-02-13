@@ -119,46 +119,40 @@ export const WidgetTestMode: React.FC<WidgetTestModeProps> = ({ config }) => {
         {/* Production Widget Preview */}
         <div className="widget-test-preview border-2 border-dashed rounded-xl p-2 bg-muted/30 flex items-stretch justify-center h-full overflow-hidden relative z-0">
           <style>{`
-            .widget-test-preview .noddi-widget-chat { min-height: 0 !important; height: 100% !important; overflow: hidden !important; }
-            .widget-test-preview .noddi-chat-messages { min-height: 0 !important; }
-            .widget-test-preview .noddi-widget-content { min-height: 0 !important; overflow: hidden !important; }
-            .widget-test-preview .noddi-widget-panel { position: relative !important; max-height: 100% !important; }
+            .widget-test-preview .noddi-widget-chat { min-height: 0 !important; height: 100% !important; display: flex !important; flex-direction: column !important; }
+            .widget-test-preview .noddi-chat-messages { min-height: 0 !important; flex: 1 !important; overflow-y: auto !important; }
           `}</style>
           {isTestActive ? (
-            <div
-              className="noddi-widget-container"
-              style={{ position: 'relative', width: '380px', height: '100%', maxHeight: '100%' }}
-            >
+            <div style={{ position: 'relative', width: '380px', height: '100%', maxHeight: '100%' }}>
               <div
-                className="noddi-widget-panel"
                 style={{
-                  position: 'relative',
                   display: 'flex',
                   flexDirection: 'column',
                   width: '100%',
                   height: '100%',
-                  maxHeight: '100%',
                   borderRadius: '16px',
                   overflow: 'hidden',
-                  minHeight: 0,
                   boxShadow: `0 25px 60px -15px ${config.primary_color}50`,
                 }}
               >
                 {/* Widget header */}
                 <div
-                  className="noddi-widget-header"
-                  style={{ backgroundColor: config.primary_color, flexShrink: 0 }}
+                  style={{
+                    backgroundColor: config.primary_color,
+                    flexShrink: 0,
+                    padding: '16px 20px',
+                    color: 'white',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                  }}
                 >
-                  <div className="noddi-widget-header-content">
-                    <div className="noddi-widget-header-text">
-                      <h3 className="noddi-widget-title">{config.company_name || 'AI Assistant'}</h3>
-                    </div>
-                  </div>
+                  <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 600 }}>{config.company_name || 'AI Assistant'}</h3>
                   <Badge variant="outline" className="bg-white/20 border-white/30 text-white text-xs">TEST</Badge>
                 </div>
 
                 {/* Real AiChat component */}
-                <div className="noddi-widget-content" style={{ padding: 0, minHeight: 0, overflow: 'hidden' }}>
+                <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', padding: 0 }}>
                   <AiChat
                     widgetKey={config.widget_key}
                     primaryColor={config.primary_color}
