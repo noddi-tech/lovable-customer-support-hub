@@ -590,20 +590,30 @@ async function executeLookupCustomer(phone?: string, email?: string): Promise<st
           ).toLowerCase();
           return !['completed', 'cancelled', 'canceled', 'no_show', 'expired'].includes(status);
         })
-        .slice(0, 10).map((b: any) => ({
-        id: b.id,
-        status: b.status,
-        scheduledAt: toOsloTime(b.start_time || b.scheduled_at || b.delivery_window_starts_at || ''),
-        endTime: toOsloTime(b.end_time || b.delivery_window_ends_at || ''),
-        services: b.order_lines?.map((ol: any) => ol.service_name || ol.name).filter(Boolean) || [],
-        sales_item_ids: b.order_lines?.map((ol: any) => ol.sales_item_id || ol.id).filter(Boolean) || [],
-        address: b.address?.full_address || b.address || null,
-        address_id: b.address?.id || null,
-        vehicle: b.car ? `${b.car.make || ''} ${b.car.model || ''} (${b.car.license_plate || ''})`.trim() : null,
-        car_id: b.car?.id || null,
-        car_ids: Array.isArray(b.cars) ? b.cars.map((c: any) => c.id).filter(Boolean) : (b.car?.id ? [b.car.id] : []),
-        license_plate: b.car?.license_plate_number || b.car?.license_plate || (Array.isArray(b.cars) && b.cars[0] ? (b.cars[0].license_plate_number || b.cars[0].license_plate || '') : ''),
-      })),
+        .slice(0, 10).map((b: any) => {
+        const rawSt = b.status;
+        const statusStr = typeof rawSt === 'string' ? rawSt
+          : typeof rawSt === 'object' && rawSt !== null ? (rawSt.name || rawSt.slug || '') : '';
+        const startFull = toOsloTime(b.start_time || b.scheduled_at || b.delivery_window_starts_at || '');
+        const endFull = toOsloTime(b.end_time || b.delivery_window_ends_at || '');
+        const startHM = startFull.split(', ')[1] || startFull;
+        const endHM = endFull.split(', ')[1] || endFull;
+        return {
+          id: b.id,
+          status: statusStr,
+          scheduledAt: startFull,
+          endTime: endFull,
+          timeSlot: `${startHM}\u2013${endHM}`,
+          services: b.order_lines?.map((ol: any) => ol.service_name || ol.name).filter(Boolean) || [],
+          sales_item_ids: b.order_lines?.map((ol: any) => ol.sales_item_id || ol.id).filter(Boolean) || [],
+          address: b.address?.full_address || b.address || null,
+          address_id: b.address?.id || null,
+          vehicle: b.car ? `${b.car.make || ''} ${b.car.model || ''} (${b.car.license_plate || ''})`.trim() : null,
+          car_id: b.car?.id || null,
+          car_ids: Array.isArray(b.cars) ? b.cars.map((c: any) => c.id).filter(Boolean) : (b.car?.id ? [b.car.id] : []),
+          license_plate: b.car?.license_plate_number || b.car?.license_plate || (Array.isArray(b.cars) && b.cars[0] ? (b.cars[0].license_plate_number || b.cars[0].license_plate || '') : ''),
+        };
+      }),
     });
   } catch (err) {
     console.error('[widget-ai-chat] Customer lookup error:', err);
@@ -625,11 +635,19 @@ async function executeGetBookingDetails(bookingId: number): Promise<string> {
     }
 
     const booking = await resp.json();
+    const rawSt2 = booking.status;
+    const statusStr2 = typeof rawSt2 === 'string' ? rawSt2
+      : typeof rawSt2 === 'object' && rawSt2 !== null ? (rawSt2.name || rawSt2.slug || '') : '';
+    const startFull2 = toOsloTime(booking.start_time || booking.scheduled_at || '');
+    const endFull2 = toOsloTime(booking.end_time || '');
+    const startHM2 = startFull2.split(', ')[1] || startFull2;
+    const endHM2 = endFull2.split(', ')[1] || endFull2;
     return JSON.stringify({
       id: booking.id,
-      status: booking.status,
-      scheduledAt: toOsloTime(booking.start_time || booking.scheduled_at || ''),
-      endTime: toOsloTime(booking.end_time || ''),
+      status: statusStr2,
+      scheduledAt: startFull2,
+      endTime: endFull2,
+      timeSlot: `${startHM2}\u2013${endHM2}`,
       services: booking.order_lines?.map((ol: any) => ({ name: ol.service_name || ol.name, price: ol.price })) || [],
       sales_item_ids: booking.order_lines?.map((ol: any) => ol.sales_item_id || ol.id).filter(Boolean) || [],
       address: booking.address?.full_address || booking.address || null,
@@ -944,9 +962,11 @@ IMPORTANT: When showing [BOOKING_EDIT] for time changes, you MUST include delive
 
 BOOKING EDIT FLOW:
 When a customer wants to modify an existing booking:
-1. Use get_booking_details to fetch the current booking
-2. Confirm with the customer which booking they want to change
-3. For TIME changes: you MUST emit the [TIME_SLOT] marker with the booking's address_id, car_ids, license_plate, and first sales_item_id:
+1. Use get_booking_details to fetch the current booking.
+2. If the customer has only ONE active booking, skip confirmation and ask what they want to change using [ACTION_MENU].
+3. If multiple bookings, ask which one using [ACTION_MENU] with booking options.
+4. NEVER ask plain text yes/no questions. ALWAYS use [YES_NO] or [ACTION_MENU] markers for any confirmation or choice.
+5. For TIME changes: you MUST emit the [TIME_SLOT] marker with the booking's address_id, car_ids, license_plate, and first sales_item_id:
    [TIME_SLOT]{"address_id": <booking_address_id>, "car_ids": [<booking_car_ids>], "license_plate": "<booking_license_plate>", "sales_item_id": <first_sales_item_id>}[/TIME_SLOT]
    Output ONLY the marker, nothing else. After the customer selects a new time from [TIME_SLOT], your ENTIRE next response must be ONLY the [BOOKING_EDIT] marker with the old and new values as JSON. Do NOT write any introductory text, recap, or ask for text confirmation. Go directly to [BOOKING_EDIT].
 4. For ADDRESS changes: emit [ADDRESS_SEARCH]
@@ -964,6 +984,11 @@ KNOWLEDGE BASE:
 - Use search_knowledge_base to answer general questions about services, pricing, policies, etc.
 - This is your PRIMARY source for answering questions. Always search before saying "I don't know."
 - If no results found, be honest: "I don't have specific information about that."
+
+BOOKING TIME DISPLAY:
+- ALWAYS present booking times as a full time range (e.g., "07:00–12:00"), NEVER as a single time (e.g., "07:00").
+- Use the 'timeSlot' field from booking data which contains the pre-formatted range.
+- When mentioning a booking, say "planlagt den 16. februar 2026 kl. 07:00–12:00" NOT "kl. 07:00".
 
 MULTI-TURN CONTEXT:
 - Remember all data shared in the conversation (phone, addresses, cars, bookings).
