@@ -470,9 +470,40 @@ async function executeLookupCustomer(phone?: string, email?: string): Promise<st
     const name = `${noddihUser.first_name || ''} ${noddihUser.last_name || ''}`.trim()
       || noddihUser.name || '';
 
-    // Extract unique stored addresses and cars from bookings
+    // Extract unique stored addresses and cars
     const storedAddresses = new Map<number, any>();
     const storedCars = new Map<number, any>();
+
+    // Fetch ALL cars registered under the user group (primary source)
+    if (userGroupId) {
+      try {
+        const carsResp = await fetch(`${API_BASE}/v1/user-groups/${userGroupId}/cars/`, { headers });
+        if (carsResp.ok) {
+          const carsData = await carsResp.json();
+          const allCars = Array.isArray(carsData) ? carsData : (carsData.results || []);
+          for (const car of allCars) {
+            if (car?.id) {
+              const lp = car.license_plate_number
+                || (typeof car.license_plate === 'string' ? car.license_plate : car.license_plate?.number)
+                || '';
+              storedCars.set(car.id, {
+                id: car.id,
+                make: car.make || car.brand || '',
+                model: car.model || '',
+                license_plate: lp,
+              });
+            }
+          }
+          console.log(`[lookup] Fetched ${allCars.length} cars from user-group endpoint`);
+        } else {
+          console.warn(`[lookup] Cars endpoint returned ${carsResp.status}, falling back to booking extraction`);
+        }
+      } catch (e) {
+        console.warn(`[lookup] Cars endpoint failed, falling back to booking extraction:`, e);
+      }
+    }
+
+    // Fallback: also extract cars from bookings (catches any not in the cars endpoint)
     for (const b of bookings) {
       if (b.address?.id) {
         const streetNum = b.address.street_number || '';
