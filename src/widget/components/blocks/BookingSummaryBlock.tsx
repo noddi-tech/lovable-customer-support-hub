@@ -101,7 +101,11 @@ const BookingSummaryBlock: React.FC<BlockComponentProps> = ({
       });
       const bookingData = await resp.json();
       if (!resp.ok || !bookingData.booking) {
-        setError(bookingData.error || 'Failed to create booking');
+        if (resp.status >= 500) {
+          setError('Booking is temporarily unavailable, please try again later');
+        } else {
+          setError(bookingData.error || 'Failed to create booking');
+        }
         setConfirming(false);
         return;
       }
@@ -118,7 +122,7 @@ const BookingSummaryBlock: React.FC<BlockComponentProps> = ({
       onAction(payload, blockKey);
       onLogEvent?.('booking_confirmed', `#${booking.booking_number || booking.id}`, 'success');
     } catch {
-      setError('Network error');
+      setError('Something went wrong, please try again later');
     }
     setConfirming(false);
   };

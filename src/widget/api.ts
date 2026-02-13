@@ -44,12 +44,15 @@ export async function submitContactForm(data: SubmitContactData): Promise<{ succ
     });
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
+      if (response.status >= 500 || errorData.debug_status >= 500) {
+        return { success: false, error: 'Service is temporarily unavailable, please try again later' };
+      }
       return { success: false, error: errorData.error || 'Failed to submit' };
     }
     return { success: true };
   } catch (error) {
     console.error('[Noddi Widget] Error submitting form:', error);
-    return { success: false, error: 'Network error' };
+    return { success: false, error: 'Something went wrong, please try again later' };
   }
 }
 
@@ -173,6 +176,9 @@ export async function sendAiMessage(
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
+      if (response.status >= 500 || errorData.debug_status >= 500) {
+        throw new Error('Service is temporarily unavailable, please try again later');
+      }
       throw new Error(errorData.error || 'AI chat failed');
     }
 
@@ -210,6 +216,9 @@ export async function streamAiMessage(
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
+    if (response.status >= 500 || errorData.debug_status >= 500) {
+      throw new Error('Service is temporarily unavailable, please try again later');
+    }
     throw new Error(errorData.error || 'AI chat streaming failed');
   }
 
@@ -290,11 +299,14 @@ export async function verifyPhonePin(
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ widgetKey, phoneNumber, pin, conversationId }),
     });
+    if (response.status >= 500) {
+      return { verified: false, error: 'Verification is temporarily unavailable, please try again later' };
+    }
     const data = await response.json();
     return data;
   } catch (error) {
     console.error('[Noddi Widget] Error verifying phone:', error);
-    return { verified: false, error: 'Network error' };
+    return { verified: false, error: 'Something went wrong, please try again later' };
   }
 }
 
@@ -343,7 +355,12 @@ export async function resolveAddress(widgetKey: string, placeId: string): Promis
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ action: 'resolve', place_id: placeId }),
   });
-  if (!response.ok) throw new Error('Failed to resolve address');
+  if (!response.ok) {
+    if (response.status >= 500) {
+      throw new Error('Address lookup is temporarily unavailable, please try again later');
+    }
+    throw new Error('Failed to resolve address');
+  }
   const data = await response.json();
   return data.address;
 }
