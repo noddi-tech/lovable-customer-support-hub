@@ -117,11 +117,11 @@ export const WidgetTestMode: React.FC<WidgetTestModeProps> = ({ config }) => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Production Widget Preview */}
-        <div className="border-2 border-dashed rounded-xl p-4 bg-muted/30 flex items-end justify-center min-h-[750px] overflow-hidden relative z-0">
+        <div className="border-2 border-dashed rounded-xl p-4 bg-muted/30 flex items-end justify-center h-[calc(100vh-200px)] overflow-hidden relative z-0">
           {isTestActive ? (
             <div
               className="noddi-widget-container"
-              style={{ position: 'relative', width: '380px', maxHeight: '700px' }}
+              style={{ position: 'relative', width: '380px', maxHeight: '100%' }}
             >
               <div
                 className="noddi-widget-panel"
@@ -130,7 +130,7 @@ export const WidgetTestMode: React.FC<WidgetTestModeProps> = ({ config }) => {
                   display: 'flex',
                   flexDirection: 'column',
                   width: '100%',
-                  maxHeight: '700px',
+                  maxHeight: '100%',
                   borderRadius: '16px',
                   overflow: 'hidden',
                   boxShadow: `0 25px 60px -15px ${config.primary_color}50`,
