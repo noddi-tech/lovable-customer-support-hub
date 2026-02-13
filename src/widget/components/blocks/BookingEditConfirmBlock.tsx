@@ -30,6 +30,27 @@ const BookingEditConfirmBlock: React.FC<BlockComponentProps> = ({
         payload.delivery_window_id = data.changes.delivery_window_id;
         payload.delivery_window_start = data.changes.delivery_window_start;
         payload.delivery_window_end = data.changes.delivery_window_end;
+
+        // Recovery: if start/end missing, scan localStorage for TimeSlotBlock selection
+        if (!payload.delivery_window_start || !payload.delivery_window_end) {
+          for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (!key?.startsWith('noddi_action_')) continue;
+            try {
+              const val = JSON.parse(localStorage.getItem(key) || '');
+              if (val.delivery_window_id === data.changes.delivery_window_id ||
+                  val.delivery_window_id === Number(data.changes.delivery_window_id)) {
+                if (!payload.delivery_window_start && val.start_time) {
+                  payload.delivery_window_start = val.start_time;
+                }
+                if (!payload.delivery_window_end && val.end_time) {
+                  payload.delivery_window_end = val.end_time;
+                }
+                break;
+              }
+            } catch { /* not relevant JSON */ }
+          }
+        }
       }
       if (data.changes?.cars) payload.cars = data.changes.cars;
 
