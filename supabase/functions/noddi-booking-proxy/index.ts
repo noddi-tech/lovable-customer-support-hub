@@ -316,6 +316,9 @@ Deno.serve(async (req) => {
         const patchPayload: any = {};
         if (ubAddr) patchPayload.address_id = ubAddr;
         if (ubDwId) {
+          if (!ubDwStart || !ubDwEnd) {
+            return jsonResponse({ error: "delivery_window_start and delivery_window_end are required when changing time" }, 400);
+          }
           patchPayload.delivery_window = {
             id: ubDwId,
             starts_at: ubDwStart,

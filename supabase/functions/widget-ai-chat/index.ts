@@ -721,8 +721,9 @@ Include ALL booking data as valid JSON (NEVER human-readable text):
 ⚠️ NEVER omit user_id, user_group_id, or delivery_window_id — the booking WILL FAIL without them.
 ⚠️ Content between tags MUST be valid JSON. Never use bullet points or prose.`,
   BOOKING_EDIT: `Include the marker for editing existing bookings:
-[BOOKING_EDIT]{"booking_id": 12345, "changes": {"time": "14:00–17:00", "old_time": "08:00–11:00", "delivery_window_id": 99999}}[/BOOKING_EDIT]
-Include only the fields being changed with old and new values.`,
+[BOOKING_EDIT]{"booking_id": 12345, "changes": {"time": "14:00–17:00", "old_time": "08:00–11:00", "delivery_window_id": 99999, "delivery_window_start": "2026-02-16T13:00:00Z", "delivery_window_end": "2026-02-16T16:00:00Z"}}[/BOOKING_EDIT]
+Include only the fields being changed with old and new values.
+IMPORTANT: When showing [BOOKING_EDIT] for time changes, you MUST include delivery_window_id, delivery_window_start (ISO), and delivery_window_end (ISO) from the customer's [TIME_SLOT] selection.`,
   ACTION_MENU: `Present choices as clickable buttons using:
 [ACTION_MENU]
 Option 1
@@ -883,7 +884,8 @@ CRITICAL: Your ENTIRE response must be ONLY the [BOOKING_SUMMARY] marker with va
 ❌ WRONG: [BOOKING_SUMMARY]Adresse: Holtet 45\nDato: 16. feb 2026\nPris: 699 kr[/BOOKING_SUMMARY]
 
 13. BOOKING EDIT — show a confirmation card for EDITING an existing booking:
-[BOOKING_EDIT]{"booking_id": 12345, "changes": {"time": "14:00–17:00", "old_time": "08:00–11:00", "delivery_window_id": 99999}}[/BOOKING_EDIT]
+[BOOKING_EDIT]{"booking_id": 12345, "changes": {"time": "14:00–17:00", "old_time": "08:00–11:00", "delivery_window_id": 99999, "delivery_window_start": "2026-02-16T13:00:00Z", "delivery_window_end": "2026-02-16T16:00:00Z"}}[/BOOKING_EDIT]
+IMPORTANT: When showing [BOOKING_EDIT] for time changes, you MUST include delivery_window_id, delivery_window_start (ISO), and delivery_window_end (ISO) from the customer's [TIME_SLOT] selection.
 
 BOOKING EDIT FLOW:
 When a customer wants to modify an existing booking:
