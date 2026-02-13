@@ -1,27 +1,48 @@
 
 
-# Fix: Constrain Widget Height So Chat Scrolls Instead of Expanding
+# Fix: Filter Stored Cars to Only Show the Verified User's Own Vehicles
 
 ## Problem
 
-The chat messages area keeps growing taller with each message instead of scrolling within a fixed container. This happens because the parent containers only set `maxHeight: 100%` without setting an explicit `height`, so the CSS `flex: 1` on `.noddi-chat-messages` has no bounded parent to flex within.
+The `executeLookupCustomer` function in `widget-ai-chat` fetches cars from `/v1/user-groups/{userGroupId}/cars/`, which returns **all cars in the user group** -- including vehicles belonging to other members of a shared or company group. This means the AI chatbot shows cars that don't belong to the logged-in customer.
 
 ## Solution
 
-Set explicit `height` values on both the widget container and panel so the flex layout properly constrains the chat area and enables scrolling.
+Instead of fetching all cars from the user-group endpoint, extract cars **only from the customer's own bookings**. The bookings are already fetched and filtered by the user group, and each booking contains the car(s) used. This is a more reliable source of "my cars" since these are vehicles the customer has actually used.
 
 ## Changes
 
-**File: `src/components/admin/widget/WidgetTestMode.tsx`**
+**File: `supabase/functions/widget-ai-chat/index.ts`** (lines ~477-504)
 
-### Line 120 -- Outer dashed container
-- Change `items-end` to `items-stretch` so the widget fills the container vertically instead of floating at the bottom
+1. **Remove the `/v1/user-groups/{id}/cars/` fetch entirely** -- this is the source of the wrong cars
+2. **Keep only the booking-based car extraction** (lines 507-542) which already iterates bookings and extracts `b.car` and `b.cars` entries
+3. The booking extraction already deduplicates using a `Map` keyed by `car.id`
 
-### Line 124 -- Widget container div
-- Add `height: '100%'` alongside `maxHeight: '100%'`
+This means stored cars will only include vehicles the customer has previously booked with, which is the correct behavior for "Dine lagrede biler" (Your saved cars).
 
-### Line 128-137 -- Widget panel div
-- Add `height: '100%'` alongside `maxHeight: '100%'`
+### Before
+```text
+1. Fetch ALL cars from /v1/user-groups/{id}/cars/  <-- includes other people's cars
+2. Also extract cars from bookings (fallback)
+```
 
-These three changes give the chat a bounded height context, so `.noddi-chat-messages` (which has `flex: 1; overflow-y: auto`) will scroll instead of growing.
+### After
+```text
+1. Extract cars from the customer's own bookings only
+```
+
+## Technical Detail
+
+The removed block is lines 477-504 in `widget-ai-chat/index.ts`:
+```typescript
+// DELETE THIS BLOCK:
+if (userGroupId) {
+  try {
+    const carsResp = await fetch(`${API_BASE}/v1/user-groups/${userGroupId}/cars/`, { headers });
+    // ... processes all cars in the group
+  } catch { ... }
+}
+```
+
+The existing fallback code (lines 506-542) already handles car extraction from bookings correctly and will become the sole source.
 
