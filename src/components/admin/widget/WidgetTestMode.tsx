@@ -117,7 +117,13 @@ export const WidgetTestMode: React.FC<WidgetTestModeProps> = ({ config }) => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Production Widget Preview */}
-        <div className="border-2 border-dashed rounded-xl p-2 bg-muted/30 flex items-stretch justify-center h-[calc(100vh-200px)] overflow-hidden relative z-0">
+        <div className="widget-test-preview border-2 border-dashed rounded-xl p-2 bg-muted/30 flex items-stretch justify-center h-[calc(100vh-200px)] overflow-hidden relative z-0">
+          <style>{`
+            .widget-test-preview .noddi-widget-chat { min-height: 0 !important; height: 100%; }
+            .widget-test-preview .noddi-chat-messages { min-height: 0 !important; }
+            .widget-test-preview .noddi-widget-content { min-height: 0 !important; }
+            .widget-test-preview .noddi-widget-panel { position: relative !important; max-height: 100% !important; }
+          `}</style>
           {isTestActive ? (
             <div
               className="noddi-widget-container"
