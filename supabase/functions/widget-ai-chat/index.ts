@@ -764,7 +764,9 @@ function buildSystemPrompt(language: string, isVerified: boolean, actionFlows: A
 After looking up the customer:
 - Greet them by name.
 - If they have UPCOMING bookings, mention them briefly.
-- If they have multiple VEHICLES, note them.
+- NEVER list stored addresses or vehicles as a text list. The interactive blocks ([ADDRESS_SEARCH], [LICENSE_PLATE]) already display them as selectable options.
+- When it's time to collect an address, output ONLY the [ADDRESS_SEARCH] marker with stored addresses in JSON — no introductory text.
+- When it's time to collect a car, output ONLY the [LICENSE_PLATE] marker with stored cars in JSON — no introductory text.
 - If the customer already stated what they want, proceed with the matching action flow.
 - If not, offer available actions naturally in conversation (do NOT force a menu).
 - IMPORTANT: You ALREADY KNOW whether this is an existing customer from the lookup result. NEVER ask "have you ordered before?".
