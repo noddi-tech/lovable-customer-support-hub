@@ -259,7 +259,22 @@ registerBlock({
     try {
       return JSON.parse(inner.trim());
     } catch {
-      return { summary: inner.trim() };
+      // AI emitted human-readable text instead of JSON — extract what we can
+      const data: any = { summary: inner.trim() };
+      const dateMatch = inner.match(/(\d{1,2}\.\s*\w+\s*\d{4})/);
+      if (dateMatch) data.date = dateMatch[1];
+      const priceMatch = inner.match(/(\d+)\s*kr/i);
+      if (priceMatch) data.price = priceMatch[0];
+      const timeMatch = inner.match(/(\d{2}:\d{2})\s*[-–]\s*(\d{2}:\d{2})/);
+      if (timeMatch) data.time = timeMatch[0];
+      // Try to extract address-like lines
+      const addressMatch = inner.match(/(?:Adresse|Address)[:\s]+(.+)/i);
+      if (addressMatch) data.address = addressMatch[1].trim();
+      const serviceMatch = inner.match(/(?:Tjeneste|Service)[:\s]+(.+)/i);
+      if (serviceMatch) data.service = serviceMatch[1].trim();
+      const carMatch = inner.match(/(?:Bil|Car|Kjøretøy)[:\s]+(.+)/i);
+      if (carMatch) data.car = carMatch[1].trim();
+      return data;
     }
   },
   component: BookingSummaryBlock,

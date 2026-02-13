@@ -269,6 +269,22 @@ Deno.serve(async (req) => {
         if (!res.ok) {
           const text = await res.text();
           console.error("Customer lookup error:", res.status, text);
+          // Check for user_does_not_exist 400 → treat as 404
+          let isNotFound = res.status === 404;
+          if (res.status === 400) {
+            try {
+              const errorData = JSON.parse(text);
+              isNotFound = (errorData?.errors || []).some((err: any) =>
+                err?.code === 'user_does_not_exist' || err?.detail?.includes('does not exist')
+              );
+              if (!isNotFound && (errorData?.error_code === 'user_does_not_exist' || errorData?.code === 'user_does_not_exist')) {
+                isNotFound = true;
+              }
+            } catch { /* ignore parse error */ }
+          }
+          if (isNotFound) {
+            return jsonResponse({ error: "Customer not found", not_found: true }, 404);
+          }
           return jsonResponse({ error: "Customer not found" }, res.status >= 400 && res.status < 500 ? res.status : 502);
         }
         const data = await res.json();
