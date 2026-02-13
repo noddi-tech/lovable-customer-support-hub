@@ -1,27 +1,27 @@
 
 
-# Fix: Make Widget Test Preview Fill Available Screen Space
+# Fix: Constrain Widget Height So Chat Scrolls Instead of Expanding
 
 ## Problem
 
-The widget test container uses fixed `min-h-[750px]` and `maxHeight: 700px` values, which still crop the top of the chat. The header ("Tilbake", "Start ny samtale") is cut off.
+The chat messages area keeps growing taller with each message instead of scrolling within a fixed container. This happens because the parent containers only set `maxHeight: 100%` without setting an explicit `height`, so the CSS `flex: 1` on `.noddi-chat-messages` has no bounded parent to flex within.
 
 ## Solution
 
-Remove fixed height constraints and make the preview container fill the available viewport height using `h-[calc(100vh-200px)]` instead of a fixed `min-h`. The inner widget container and panel should also stretch to fill their parent rather than being capped at a fixed pixel height.
+Set explicit `height` values on both the widget container and panel so the flex layout properly constrains the chat area and enables scrolling.
 
 ## Changes
 
 **File: `src/components/admin/widget/WidgetTestMode.tsx`**
 
-### Line 120 - Outer container
-- Replace `min-h-[750px]` with `h-[calc(100vh-200px)]` so it fills the screen minus header/controls space
+### Line 120 -- Outer dashed container
+- Change `items-end` to `items-stretch` so the widget fills the container vertically instead of floating at the bottom
 
-### Line 124 - Widget container div
-- Change `maxHeight: '700px'` to `maxHeight: '100%'` so it fills the outer container
+### Line 124 -- Widget container div
+- Add `height: '100%'` alongside `maxHeight: '100%'`
 
-### Line 133 - Widget panel div
-- Change `maxHeight: '700px'` to `maxHeight: '100%'` so the panel stretches to fill
+### Line 128-137 -- Widget panel div
+- Add `height: '100%'` alongside `maxHeight: '100%'`
 
-This ensures the widget preview always fills the available screen space regardless of viewport size, and the internal chat scrolls naturally within it.
+These three changes give the chat a bounded height context, so `.noddi-chat-messages` (which has `flex: 1; overflow-y: auto`) will scroll instead of growing.
 
