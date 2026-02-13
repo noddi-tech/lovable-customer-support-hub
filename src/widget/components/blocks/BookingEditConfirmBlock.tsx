@@ -127,11 +127,28 @@ const BookingEditConfirmBlock: React.FC<BlockComponentProps> = ({
     );
   }
 
+  // Helper: convert UTC ISO to Oslo HH:MM
+  const formatOsloTime = (iso: string): string => {
+    try {
+      const d = new Date(iso);
+      if (isNaN(d.getTime())) return iso;
+      return d.toLocaleTimeString('nb-NO', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Europe/Oslo' });
+    } catch { return iso; }
+  };
+
   // Show changes summary
   const changes = data.changes || {};
   const rows: Array<{ label: string; old: string; new_val: string }> = [];
   if (changes.address) rows.push({ label: '📍 Address', old: changes.old_address || '—', new_val: changes.address });
-  if (changes.time) rows.push({ label: '🕐 Time', old: changes.old_time || '—', new_val: changes.time });
+
+  // For time: prefer Oslo-converted delivery_window timestamps over raw 'time' field
+  if (changes.time || changes.delivery_window_start) {
+    let displayTime = changes.time || '';
+    if (changes.delivery_window_start && changes.delivery_window_end) {
+      displayTime = `${formatOsloTime(changes.delivery_window_start)}\u2013${formatOsloTime(changes.delivery_window_end)}`;
+    }
+    rows.push({ label: '🕐 Time', old: changes.old_time || '—', new_val: displayTime });
+  }
   if (changes.date) rows.push({ label: '📅 Date', old: changes.old_date || '—', new_val: changes.date });
   if (changes.car) rows.push({ label: '🚗 Car', old: changes.old_car || '—', new_val: changes.car });
   if (changes.service) rows.push({ label: '🛠️ Service', old: changes.old_service || '—', new_val: changes.service });

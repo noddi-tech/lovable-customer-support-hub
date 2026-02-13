@@ -414,24 +414,36 @@ function patchBookingEdit(reply: string, messages: any[]): string {
 
   const changes = editData.changes || {};
   if (!changes.delivery_window_id) return reply;
-  if (changes.delivery_window_start && changes.delivery_window_end) return reply;
 
-  for (let i = messages.length - 1; i >= 0; i--) {
-    const msg = messages[i];
-    if (msg.role !== 'user' || typeof msg.content !== 'string') continue;
-    try {
-      const sel = JSON.parse(msg.content);
-      if (sel.delivery_window_id == changes.delivery_window_id && sel.start_time && sel.end_time) {
-        changes.delivery_window_start = sel.start_time;
-        changes.delivery_window_end = sel.end_time;
-        editData.changes = changes;
-        const patched = reply.slice(0, startIdx) + marker + JSON.stringify(editData) + closingMarker + reply.slice(endIdx + closingMarker.length);
-        console.log('[patchBookingEdit] Injected start/end from conversation:', sel.start_time, sel.end_time);
-        return patched;
-      }
-    } catch { /* not JSON */ }
+  // Inject start/end from conversation if missing
+  if (!changes.delivery_window_start || !changes.delivery_window_end) {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const msg = messages[i];
+      if (msg.role !== 'user' || typeof msg.content !== 'string') continue;
+      try {
+        const sel = JSON.parse(msg.content);
+        if (sel.delivery_window_id == changes.delivery_window_id && sel.start_time && sel.end_time) {
+          changes.delivery_window_start = sel.start_time;
+          changes.delivery_window_end = sel.end_time;
+          console.log('[patchBookingEdit] Injected start/end from conversation:', sel.start_time, sel.end_time);
+          break;
+        }
+      } catch { /* not JSON */ }
+    }
   }
-  return reply;
+
+  // Always fix the display 'time' field to use Oslo timezone
+  if (changes.delivery_window_start && changes.delivery_window_end) {
+    const fmt = (iso: string) => {
+      const d = new Date(iso);
+      return d.toLocaleTimeString('nb-NO', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Europe/Oslo' });
+    };
+    changes.time = `${fmt(changes.delivery_window_start)}\u2013${fmt(changes.delivery_window_end)}`;
+  }
+
+  editData.changes = changes;
+  const patched = reply.slice(0, startIdx) + marker + JSON.stringify(editData) + closingMarker + reply.slice(endIdx + closingMarker.length);
+  return patched;
 }
 
 async function executeLookupCustomer(phone?: string, email?: string): Promise<string> {
@@ -568,7 +580,12 @@ async function executeLookupCustomer(phone?: string, email?: string): Promise<st
       },
       stored_addresses: Array.from(storedAddresses.values()),
       stored_cars: Array.from(storedCars.values()),
-      bookings: bookings.slice(0, 10).map((b: any) => ({
+      bookings: bookings
+        .filter((b: any) => {
+          const status = (b.status || '').toLowerCase();
+          return !['completed', 'cancelled', 'canceled', 'no_show', 'expired'].includes(status);
+        })
+        .slice(0, 10).map((b: any) => ({
         id: b.id,
         status: b.status,
         scheduledAt: toOsloTime(b.start_time || b.scheduled_at || b.delivery_window_starts_at || ''),
@@ -926,10 +943,10 @@ When a customer wants to modify an existing booking:
 2. Confirm with the customer which booking they want to change
 3. For TIME changes: you MUST emit the [TIME_SLOT] marker with the booking's address_id, car_ids, license_plate, and first sales_item_id:
    [TIME_SLOT]{"address_id": <booking_address_id>, "car_ids": [<booking_car_ids>], "license_plate": "<booking_license_plate>", "sales_item_id": <first_sales_item_id>}[/TIME_SLOT]
-   Output ONLY the marker, nothing else. After the customer selects a new time, show [BOOKING_EDIT] with old and new values.
+   Output ONLY the marker, nothing else. After the customer selects a new time from [TIME_SLOT], your ENTIRE next response must be ONLY the [BOOKING_EDIT] marker with the old and new values as JSON. Do NOT write any introductory text, recap, or ask for text confirmation. Go directly to [BOOKING_EDIT].
 4. For ADDRESS changes: emit [ADDRESS_SEARCH]
 5. For SERVICE changes: emit [SERVICE_SELECT]
-6. After collecting the new value, show [BOOKING_EDIT] with old and new values
+6. After collecting the new value, your ENTIRE next response must be ONLY the [BOOKING_EDIT] marker with old and new values as JSON. No text before or after.
 
 RULES FOR MARKERS:
 - NEVER wrap markers in markdown code blocks.
