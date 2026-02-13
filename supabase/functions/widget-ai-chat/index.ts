@@ -1170,10 +1170,29 @@ Deno.serve(async (req) => {
             break;
           }
         }
+
+        // Detect which action flow matches the user's intent
+        let matchedFlowHint = '';
+        if (userIntent) {
+          const intentLower = userIntent.toLowerCase();
+          for (const flow of actionFlows) {
+            if (!flow.is_active) continue;
+            const triggers = (flow.trigger_phrases || []) as string[];
+            const matches = triggers.some(
+              (p: string) => intentLower.includes(p.toLowerCase())
+            );
+            if (matches && Array.isArray(flow.flow_steps) && (flow.flow_steps as any[]).length > 0) {
+              const firstStep = (flow.flow_steps as any[])[0];
+              matchedFlowHint = ` This matches the "${flow.intent_key}" flow. After lookup, proceed DIRECTLY to step 1: ${firstStep.instruction || firstStep.description || 'follow the flow'}. Do NOT call get_booking_details if lookup_customer already returned the booking with address_id, car_ids, sales_item_ids, and license_plate.`;
+              break;
+            }
+          }
+        }
+
         const intentContext = userIntent
           ? ` The customer previously said: "${userIntent}". Continue directly with that intent — do NOT re-ask what they want to do.`
           : '';
-        return { role: 'user', content: `I have just verified my phone number. Please look up my account and continue with the next step in the flow. REMEMBER: After lookup, you ALREADY KNOW if I am an existing customer — do NOT ask me.${intentContext}` };
+        return { role: 'user', content: `I have just verified my phone number. Please look up my account and continue with the next step in the flow. REMEMBER: After lookup, you ALREADY KNOW if I am an existing customer — do NOT ask me.${intentContext}${matchedFlowHint}` };
       }
       return { role: m.role, content: m.content };
     }));
