@@ -70,7 +70,10 @@ const PhoneVerifyBlock: React.FC<BlockComponentProps> = ({
 
     const result = await verifyPhonePin(widgetKey, phoneInput.trim(), pin, conversationId || undefined);
     if (result.verified) {
-      const phone = phoneInput.trim();
+      let phone = phoneInput.trim();
+      if (!phone.startsWith('+')) {
+        phone = '+47' + phone;
+      }
       setStep('verified');
       localStorage.setItem(VERIFIED_PHONE_KEY, phone);
       localStorage.setItem('noddi_ai_phone', phone);
