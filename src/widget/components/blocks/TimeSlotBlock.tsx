@@ -56,7 +56,7 @@ const TimeSlotBlock: React.FC<BlockComponentProps> = ({
 
         // Resolve sales item IDs
         let salesItemIds: number[] = salesItemId ? [salesItemId] : [];
-        if (salesItemIds.length === 0 && (licensePlate || carIds.length > 0)) {
+        if (salesItemIds.length === 0) {
           const itemsPayload: any = {
             action: 'available_items',
             address_id: addressId,
@@ -73,6 +73,12 @@ const TimeSlotBlock: React.FC<BlockComponentProps> = ({
               if (item.sales_item_id) salesItemIds.push(Number(item.sales_item_id));
             }
           }
+        }
+
+        if (salesItemIds.length === 0) {
+          setError('Kunne ikke finne tjenester for denne adressen. Prøv igjen.');
+          setLoading(false);
+          return;
         }
 
         const tomorrow = new Date();
