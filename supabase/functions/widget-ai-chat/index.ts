@@ -528,8 +528,13 @@ async function executeLookupCustomer(phone?: string, email?: string): Promise<st
         status: b.status,
         scheduledAt: b.start_time || b.scheduled_at || b.delivery_window_starts_at,
         services: b.order_lines?.map((ol: any) => ol.service_name || ol.name).filter(Boolean) || [],
+        sales_item_ids: b.order_lines?.map((ol: any) => ol.sales_item_id || ol.id).filter(Boolean) || [],
         address: b.address?.full_address || b.address || null,
+        address_id: b.address?.id || null,
         vehicle: b.car ? `${b.car.make || ''} ${b.car.model || ''} (${b.car.license_plate || ''})`.trim() : null,
+        car_id: b.car?.id || null,
+        car_ids: Array.isArray(b.cars) ? b.cars.map((c: any) => c.id).filter(Boolean) : (b.car?.id ? [b.car.id] : []),
+        license_plate: b.car?.license_plate_number || b.car?.license_plate || (Array.isArray(b.cars) && b.cars[0] ? (b.cars[0].license_plate_number || b.cars[0].license_plate || '') : ''),
       })),
     });
   } catch (err) {
@@ -558,8 +563,13 @@ async function executeGetBookingDetails(bookingId: number): Promise<string> {
       scheduledAt: booking.start_time || booking.scheduled_at,
       endTime: booking.end_time,
       services: booking.order_lines?.map((ol: any) => ({ name: ol.service_name || ol.name, price: ol.price })) || [],
+      sales_item_ids: booking.order_lines?.map((ol: any) => ol.sales_item_id || ol.id).filter(Boolean) || [],
       address: booking.address?.full_address || booking.address || null,
+      address_id: booking.address?.id || null,
       vehicle: booking.car ? { make: booking.car.make, model: booking.car.model, licensePlate: booking.car.license_plate, year: booking.car.year } : null,
+      car_id: booking.car?.id || null,
+      car_ids: Array.isArray(booking.cars) ? booking.cars.map((c: any) => c.id).filter(Boolean) : (booking.car?.id ? [booking.car.id] : []),
+      license_plate: booking.car?.license_plate_number || booking.car?.license_plate || '',
       totalPrice: booking.total_price,
       notes: booking.customer_notes || null,
     });
