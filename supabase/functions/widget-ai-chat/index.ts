@@ -620,465 +620,153 @@ async function executeBookingProxy(payload: Record<string, any>): Promise<string
   }
 }
 
-// ========== System prompt ==========
+// ========== Action Flow Prompt Builder ==========
 
-interface FlowCondition { check: string; if_true?: string; if_false?: string; }
-interface FlowAction { label: string; enabled: boolean; children?: FlowNode[]; }
-interface DataField { label: string; field_type: string; required: boolean; validation_hint?: string; }
-interface FlowNode { id: string; type?: string; label: string; instruction: string; conditions?: FlowCondition[]; actions?: FlowAction[]; data_fields?: DataField[]; children?: FlowNode[]; yes_children?: FlowNode[]; no_children?: FlowNode[]; goto_target?: string; decision_mode?: 'ask_customer' | 'auto_evaluate'; auto_evaluate_source?: string; }
-interface FlowConfig { nodes: FlowNode[]; general_rules: { max_initial_lines: number; never_dump_history: boolean; tone: string; language_behavior?: string; escalation_threshold?: number; }; }
-
-function findNodeByIdInTree(nodes: FlowNode[], nodeId: string): FlowNode | null {
-  for (const node of nodes) {
-    if (node.id === nodeId) return node;
-    for (const branch of ['children', 'yes_children', 'no_children'] as const) {
-      const found = findNodeByIdInTree((node as any)[branch] || [], nodeId);
-      if (found) return found;
-    }
-    if (node.actions) {
-      for (const a of node.actions) {
-        if (a.children) {
-          const found = findNodeByIdInTree(a.children, nodeId);
-          if (found) return found;
-        }
-      }
-    }
-  }
-  return null;
+interface ActionFlow {
+  intent_key: string;
+  label: string;
+  description: string | null;
+  trigger_phrases: string[];
+  requires_verification: boolean;
+  flow_steps: any[];
+  is_active: boolean;
 }
 
-// ========== Block Prompts Map (registry-like for edge function) ==========
+interface GeneralConfig {
+  tone?: string;
+  max_initial_lines?: number;
+  never_dump_history?: boolean;
+  language_behavior?: string;
+  escalation_threshold?: number;
+}
 
-const BLOCK_PROMPTS: Record<string, {
-  fieldTypes?: string[];
-  nodeTypes?: string[];
-  instruction: (ctx: { fieldLabel?: string; conditionCheck?: string; validationHint?: string }) => string;
-}> = {
-  phone_verify: {
-    fieldTypes: ['phone', 'tel'],
-    instruction: () => `To collect and verify the customer's phone number, include the marker [PHONE_VERIFY] in your response. The widget will render an interactive phone verification form. Do NOT ask for the phone number in text — the form handles it.`,
-  },
-  email_input: {
-    fieldTypes: ['email'],
-    instruction: () => `To collect the customer's email, include the marker [EMAIL_INPUT] in your response. The widget will render an email input field with validation. Do NOT ask for the email in text — the form handles it.`,
-  },
-  text_input: {
-    fieldTypes: ['text'],
-    instruction: (ctx) => {
-      const placeholder = ctx.validationHint || ctx.fieldLabel || 'Enter text';
-      return `To collect "${ctx.fieldLabel || 'text'}", include the marker [TEXT_INPUT]${placeholder}[/TEXT_INPUT] in your response. The widget will render a text input field.`;
-    },
-  },
-  yes_no: {
-    nodeTypes: ['decision'],
-    instruction: (ctx) => `Present this as a YES/NO choice to the customer using the marker: [YES_NO]${ctx.conditionCheck || ''}[/YES_NO]`,
-  },
-  address_search: {
-    fieldTypes: ['address'],
-    instruction: () => `Your ENTIRE response must be ONLY the [ADDRESS_SEARCH] marker. No greeting, no description, no list of addresses before or after it.
+// Block prompt instructions keyed by marker type
+const BLOCK_PROMPTS: Record<string, string> = {
+  PHONE_VERIFY: `Include the marker [PHONE_VERIFY] in your response. The widget will render a phone verification form. Do NOT ask for the phone number in text.`,
+  EMAIL_INPUT: `Include the marker [EMAIL_INPUT] in your response. The widget will render an email input field.`,
+  TEXT_INPUT: `Include the marker [TEXT_INPUT]placeholder text[/TEXT_INPUT] in your response.`,
+  YES_NO: `Include the marker [YES_NO]Question?[/YES_NO] in your response.`,
+  ADDRESS_SEARCH: `Your ENTIRE response must be ONLY the [ADDRESS_SEARCH] marker. No text before or after.
 If the customer has stored_addresses from lookup_customer, pass them as JSON:
 [ADDRESS_SEARCH]{"stored": [{"id": 2860, "label": "Holtet 45, Oslo", "zip_code": "1169", "city": "Oslo"}]}[/ADDRESS_SEARCH]
-If no stored addresses, use: [ADDRESS_SEARCH][/ADDRESS_SEARCH]
-The widget handles everything — showing stored addresses as clickable pills AND a search field. Do NOT add any text.`,
-  },
-  license_plate: {
-    fieldTypes: ['license_plate'],
-    instruction: () => `Your ENTIRE response must be ONLY the [LICENSE_PLATE] marker. No description, no explanation before or after it.
+If no stored addresses: [ADDRESS_SEARCH][/ADDRESS_SEARCH]`,
+  LICENSE_PLATE: `Your ENTIRE response must be ONLY the [LICENSE_PLATE] marker. No text before or after.
 If the customer has stored_cars from lookup_customer, pass them as JSON:
 [LICENSE_PLATE]{"stored": [{"id": 13888, "make": "Tesla", "model": "Model Y", "plate": "EC94156"}]}[/LICENSE_PLATE]
-If no stored cars, use: [LICENSE_PLATE][/LICENSE_PLATE]
-The closing tag MUST be [/LICENSE_PLATE] (with forward slash). NEVER use [LICENSE_PLATE] as closing tag.`,
-  },
-  service_select: {
-    fieldTypes: ['service'],
-    instruction: () => `To let the customer choose a service, include the marker with address_id AND license_plate:
+If no stored cars: [LICENSE_PLATE][/LICENSE_PLATE]
+The closing tag MUST be [/LICENSE_PLATE] (with forward slash).`,
+  SERVICE_SELECT: `Include the marker with address_id AND license_plate:
 [SERVICE_SELECT]{"address_id": <number>, "license_plate": "<string>"}[/SERVICE_SELECT]
-Extract the numeric address_id from the address JSON the customer sent earlier (look for {"address_id": XXXX} in a previous user message).
-Extract the license_plate string from the LICENSE_PLATE step (look for the plate number in a previous user message, e.g., "EC94156").
-The widget will fetch and display available sales items with prices for that location. Do NOT list services in text.`,
-  },
-  time_slot: {
-    fieldTypes: ['time_slot'],
-    instruction: () => `IMMEDIATELY after the customer selects a service, you MUST include this marker in your response using JSON format:
+Extract the numeric address_id and license_plate from previous conversation steps. The widget fetches and displays available services automatically.`,
+  TIME_SLOT: `IMMEDIATELY include the marker:
 [TIME_SLOT]{"address_id": <number>, "car_ids": [<number>], "license_plate": "<string>", "sales_item_id": <number>}[/TIME_SLOT]
-
-The widget handles delivery window fetching automatically.
-DO NOT say "please wait", "let me check", "let me fetch", or anything similar — just emit the marker RIGHT AWAY.
-
-CRITICAL RULES:
-1. address_id = the numeric "address_id" from the address JSON the CUSTOMER sent earlier.
-2. car_ids = array containing the numeric "id" from the car lookup JSON (from LICENSE_PLATE step).
-3. license_plate = the license plate string from the LICENSE_PLATE step.
-4. sales_item_id = the numeric "sales_item_id" from the service selection step. The customer's service selection message contains {"sales_item_id": XXXX, "service_name": "...", "price": ...}. Extract the sales_item_id from there.
-5. Example: if address had {"address_id": 2860}, car had {"id": 555}, plate was "EC94156", and service had {"sales_item_id": 60282}:
-   [TIME_SLOT]{"address_id": 2860, "car_ids": [555], "license_plate": "EC94156", "sales_item_id": 60282}[/TIME_SLOT]
-6. NEVER use made-up numbers — ALWAYS extract real IDs from the conversation.
-7. If any required ID is missing, ask the customer to complete that step first.`,
-  },
-  booking_summary: {
-    fieldTypes: ['booking_summary'],
-    instruction: () => `To show the booking summary and let the customer confirm, include the marker [BOOKING_SUMMARY]{"address":"...","car":"...","service":"...","date":"...","time":"...","price":"...","address_id":...,"car_id":...,"sales_item_ids":[...],"delivery_window_id":...,"delivery_window_start":"...","delivery_window_end":"..."}[/BOOKING_SUMMARY] in your response. Fill in all fields from the data collected in previous steps. delivery_window_start and delivery_window_end must be the ISO timestamps from the selected time slot. The widget will show a summary card with Confirm/Cancel buttons.`,
-  },
-  booking_edit: {
-    fieldTypes: ['booking_edit'],
-    instruction: () => `To let the customer confirm changes to an existing booking, include the marker [BOOKING_EDIT]{"booking_id": 12345, "changes": {"time": "14:00–17:00", "old_time": "08:00–11:00", "delivery_window_id": 99999}}[/BOOKING_EDIT]. Include the booking_id and only the fields being changed with their old and new values. The widget will show a diff card with Confirm/Cancel buttons.`,
-  },
+Extract all IDs from previous steps. DO NOT say "please wait" — just emit the marker.`,
+  BOOKING_SUMMARY: `Include the marker with ALL booking data:
+[BOOKING_SUMMARY]{"address":"...","address_id":...,"car":"...","license_plate":"...","country_code":"NO","user_id":...,"user_group_id":...,"service":"...","sales_item_ids":[...],"date":"...","time":"...","price":"...","delivery_window_id":...,"delivery_window_start":"...","delivery_window_end":"..."}[/BOOKING_SUMMARY]
+⚠️ NEVER omit user_id, user_group_id, or delivery_window_id — the booking WILL FAIL without them.`,
+  BOOKING_EDIT: `Include the marker for editing existing bookings:
+[BOOKING_EDIT]{"booking_id": 12345, "changes": {"time": "14:00–17:00", "old_time": "08:00–11:00", "delivery_window_id": 99999}}[/BOOKING_EDIT]
+Include only the fields being changed with old and new values.`,
+  ACTION_MENU: `Present choices as clickable buttons using:
+[ACTION_MENU]
+Option 1
+Option 2
+[/ACTION_MENU]`,
+  RATING: `Include the marker [RATING] to show a 5-star rating selector.`,
+  CONFIRM: `Include the marker [CONFIRM]Summary text[/CONFIRM] for a confirmation card.`,
 };
 
-function getBlockPromptForFieldType(fieldType: string): typeof BLOCK_PROMPTS[string] | undefined {
-  for (const def of Object.values(BLOCK_PROMPTS)) {
-    if (def.fieldTypes?.includes(fieldType)) return def;
-  }
-  return undefined;
-}
+function buildActionFlowsPrompt(flows: ActionFlow[], isVerified: boolean): string {
+  const activeFlows = flows.filter(f => f.is_active);
+  if (activeFlows.length === 0) return '';
 
-function buildNodePrompt(node: FlowNode, depth: number, allNodes: FlowNode[]): string {
-  const indent = '  '.repeat(depth);
   const lines: string[] = [];
-  const nodeType = node.type || 'message';
+  lines.push('AVAILABLE ACTION FLOWS:');
+  lines.push('When the customer expresses intent matching one of these actions, follow the corresponding step-by-step flow.\n');
 
-  // Goto node
-  if (nodeType === 'goto') {
-    const targetNode = node.goto_target ? findNodeByIdInTree(allNodes, node.goto_target) : null;
-    lines.push(`${indent}→ Return to the "${targetNode?.label || 'unknown'}" step.`);
-    return lines.join('\n');
-  }
-
-  lines.push(`${indent}### ${node.label}`);
-  if (node.instruction) {
-    lines.push(`${indent}${node.instruction}`);
-  }
-
-  // Data collection fields — use BLOCK_PROMPTS map
-  if (nodeType === 'data_collection' && node.data_fields && node.data_fields.length > 0) {
-    lines.push(`${indent}Required data to collect:`);
-    for (const field of node.data_fields) {
-      const reqText = field.required ? 'required' : 'optional';
-      const hint = field.validation_hint ? `, ${field.validation_hint}` : '';
-      lines.push(`${indent}  - ${field.label} (${field.field_type} format, ${reqText}${hint})`);
-
-      const blockPrompt = getBlockPromptForFieldType(field.field_type);
-      if (blockPrompt) {
-        lines.push(`${indent}${blockPrompt.instruction({ fieldLabel: field.label, validationHint: field.validation_hint })}`);
-      }
+  for (const flow of activeFlows) {
+    lines.push(`--- ${flow.label} (intent: "${flow.intent_key}") ---`);
+    if (flow.description) lines.push(`When: ${flow.description}`);
+    if (flow.trigger_phrases.length > 0) {
+      lines.push(`Example triggers: ${flow.trigger_phrases.map(p => `"${p}"`).join(', ')}`);
     }
-  }
-
-  // Decision conditions with recursive branches
-  if (nodeType === 'decision' && node.conditions && node.conditions.length > 0) {
-    const isAutoEvaluate = node.decision_mode === 'auto_evaluate';
-    for (const cond of node.conditions) {
-      if (isAutoEvaluate) {
-        lines.push(`${indent}- Evaluate: ${cond.check}`);
-        if (node.auto_evaluate_source && node.auto_evaluate_source !== 'general_context') {
-          // Parse source reference: "nodeId::fieldType::fieldLabel"
-          const sourceParts = node.auto_evaluate_source.split('::');
-          const sourceLabel = sourceParts[2] || sourceParts[1] || node.auto_evaluate_source;
-          lines.push(`${indent}  Check the result/outcome of the "${sourceLabel}" step.`);
-          lines.push(`${indent}  If that step was successful/verified/positive → follow the TRUE branch.`);
-          lines.push(`${indent}  If that step failed/was not verified/negative → follow the FALSE branch.`);
-        } else {
-          lines.push(`${indent}  Based on the information you already have from previous steps, determine if this is true or false.`);
-        }
-        lines.push(`${indent}  Do NOT ask the customer. Do NOT show YES/NO buttons. Decide automatically and silently continue down the appropriate branch.`);
-      } else {
-        lines.push(`${indent}- IF ${cond.check}:`);
-        lines.push(`${indent}  Present this as a YES/NO choice to the customer using the marker: [YES_NO]${cond.check}[/YES_NO]`);
-      }
-
-      if (node.yes_children && node.yes_children.length > 0) {
-        lines.push(`${indent}  → ${isAutoEvaluate ? 'If TRUE' : 'YES'}:`);
-        for (const child of node.yes_children) {
-          lines.push(buildNodePrompt(child, depth + 2, allNodes));
-        }
-      } else if (cond.if_true) {
-        lines.push(`${indent}  → ${isAutoEvaluate ? 'If TRUE' : 'YES'}: ${cond.if_true}`);
-      }
-
-      if (node.no_children && node.no_children.length > 0) {
-        lines.push(`${indent}  → ${isAutoEvaluate ? 'If FALSE' : 'NO'}:`);
-        for (const child of node.no_children) {
-          lines.push(buildNodePrompt(child, depth + 2, allNodes));
-        }
-      } else if (cond.if_false) {
-        lines.push(`${indent}  → ${isAutoEvaluate ? 'If FALSE' : 'NO'}: ${cond.if_false}`);
-      }
+    if (flow.requires_verification && !isVerified) {
+      lines.push(`⚠️ Requires phone verification first. Prompt [PHONE_VERIFY] before starting this flow.`);
     }
-  }
 
-  // Action menu with branch support
-  if (nodeType === 'action_menu' && node.actions && node.actions.length > 0) {
-    const enabled = node.actions.filter(a => a.enabled);
-    if (enabled.length > 0) {
-      lines.push(`${indent}Present these options using the [ACTION_MENU] marker so they render as clickable buttons:`);
-      lines.push(`${indent}[ACTION_MENU]`);
-      for (const action of enabled) {
-        lines.push(`${indent}${action.label}`);
-      }
-      lines.push(`${indent}[/ACTION_MENU]`);
-      // Add branch instructions after the menu
-      for (const action of enabled) {
-        if (action.children && action.children.length > 0) {
-          lines.push(`${indent}If customer chooses "${action.label}", then:`);
-          for (const child of action.children) {
-            lines.push(buildNodePrompt(child, depth + 1, allNodes));
-          }
+    if (flow.flow_steps.length > 0) {
+      lines.push('Steps:');
+      for (let i = 0; i < flow.flow_steps.length; i++) {
+        const step = flow.flow_steps[i];
+        const num = i + 1;
+        lines.push(`  ${num}. ${step.instruction || step.field || step.type}`);
+        if (step.marker && BLOCK_PROMPTS[step.marker]) {
+          lines.push(`     → ${BLOCK_PROMPTS[step.marker]}`);
         }
       }
     }
-  }
-
-  // Escalation
-  if (nodeType === 'escalation') {
-    lines.push(`${indent}ACTION: Escalate to a human agent at this point.`);
-  }
-
-  // Sequential children (continuation after this node)
-  if (node.children && node.children.length > 0) {
-    for (const child of node.children) {
-      lines.push(buildNodePrompt(child, depth, allNodes));
-    }
+    lines.push('');
   }
 
   return lines.join('\n');
 }
 
-function isPhoneRelatedNode(node: FlowNode): boolean {
-  if (node.type === 'data_collection' && node.data_fields) {
-    return node.data_fields.some(f =>
-      f.field_type === 'phone' || f.field_type === 'tel' ||
-      f.label.toLowerCase().includes('phone') || f.label.toLowerCase().includes('telefon')
-    );
-  }
-  return false;
-}
-
-function isPhoneLinkedDecision(node: FlowNode): boolean {
-  if (node.type !== 'decision' || node.decision_mode !== 'auto_evaluate') return false;
-  if (!node.auto_evaluate_source) return false;
-  const src = node.auto_evaluate_source.toLowerCase();
-  return src.includes('phone') || src.includes('tel') || src.includes('verify') || src.includes('verifiser');
-}
-
-/**
- * Find the path of node IDs from root to a phone-related node.
- * Returns the set of node IDs that are ancestors of the phone verification step.
- */
-function findPathToPhoneNode(nodes: FlowNode[], path: string[] = []): string[] | null {
-  for (const node of nodes) {
-    const currentPath = [...path, node.id];
-
-    // Found it!
-    if (isPhoneRelatedNode(node)) return currentPath;
-
-    // Check children/branches recursively
-    for (const branch of ['children', 'yes_children', 'no_children'] as const) {
-      const branchNodes = (node as any)[branch] as FlowNode[] | undefined;
-      if (branchNodes && branchNodes.length > 0) {
-        const found = findPathToPhoneNode(branchNodes, currentPath);
-        if (found) return found;
-      }
-    }
-
-    // Check action menu children
-    if (node.actions) {
-      for (const a of node.actions) {
-        if (a.children) {
-          const found = findPathToPhoneNode(a.children, currentPath);
-          if (found) return found;
-        }
-      }
-    }
-  }
-  return null;
-}
-
-/**
- * Build prompt for post-verification flow, skipping all nodes on the path
- * to the phone verification node and auto-resolving their decisions as TRUE.
- */
-function buildPostVerificationNodes(nodes: FlowNode[], allNodes: FlowNode[], ancestorIds: Set<string>): string {
-  const lines: string[] = [];
-  for (const node of nodes) {
-    // Skip phone collection nodes entirely, but continue with their children
-    if (isPhoneRelatedNode(node)) {
-      if (node.children && node.children.length > 0) {
-        lines.push(buildPostVerificationNodes(node.children, allNodes, ancestorIds));
-      }
-      continue;
-    }
-
-    // Skip phone-linked auto-evaluate decisions — auto-resolve as TRUE
-    if (isPhoneLinkedDecision(node)) {
-      if (node.yes_children && node.yes_children.length > 0) {
-        lines.push(buildPostVerificationNodes(node.yes_children, allNodes, ancestorIds));
-      }
-      if (node.children && node.children.length > 0) {
-        lines.push(buildPostVerificationNodes(node.children, allNodes, ancestorIds));
-      }
-      continue;
-    }
-
-    // Auto-resolve "existing customer" decision nodes — we already know from lookup
-    if (node.type === 'decision' && node.label && /existing|bestilt|ordered|kunde|customer/i.test(node.label)) {
-      lines.push(`[AUTO-RESOLVED: "${node.label}" — determined from customer lookup. Do NOT ask this question.]`);
-      // Take YES branch (assume existing since we verified them)
-      if (node.yes_children && node.yes_children.length > 0) {
-        lines.push(buildPostVerificationNodes(node.yes_children, allNodes, ancestorIds));
-      }
-      if (node.children && node.children.length > 0) {
-        lines.push(buildPostVerificationNodes(node.children, allNodes, ancestorIds));
-      }
-      continue;
-    }
-
-    // If this node is an ancestor of the phone node (on the path), auto-resolve as TRUE
-    if (ancestorIds.has(node.id) && node.type === 'decision') {
-      // Take the YES branch automatically since verification succeeded
-      if (node.yes_children && node.yes_children.length > 0) {
-        lines.push(buildPostVerificationNodes(node.yes_children, allNodes, ancestorIds));
-      }
-      // Also process sequential children after the decision
-      if (node.children && node.children.length > 0) {
-        lines.push(buildPostVerificationNodes(node.children, allNodes, ancestorIds));
-      }
-      continue;
-    }
-
-    // Normal node — output as usual
-    lines.push(buildNodePrompt(node, 0, allNodes));
-  }
-  return lines.filter(l => l.trim()).join('\n');
-}
-
-function buildFlowPrompt(flowConfig: FlowConfig, isVerified = false): string {
-  const lines: string[] = [];
-
-  if (isVerified) {
-    // Find the path to the phone verification node and build ancestor set
-    const phonePath = findPathToPhoneNode(flowConfig.nodes);
-    const ancestorIds = new Set(phonePath || []);
-    
-    lines.push('ALREADY COMPLETED: Customer phone has been verified successfully via SMS OTP. Skip all verification and identity steps.\n');
-    lines.push('CRITICAL — EXISTING CUSTOMER RULE: You ALREADY KNOW whether this customer is existing from the lookup_customer tool result. If they have ANY bookings or history, they ARE existing. If not, they are new. NEVER ask the customer "Har du bestilt gjennom Noddi før?" or any variation of "have you ordered before?". This is auto-resolved. If the customer already stated what they want to do, skip the action menu and proceed directly.\n');
-    lines.push(buildPostVerificationNodes(flowConfig.nodes, flowConfig.nodes, ancestorIds));
-  } else {
-    for (const node of flowConfig.nodes) {
-      lines.push(buildNodePrompt(node, 0, flowConfig.nodes));
-    }
-  }
-
-  const rules = flowConfig.general_rules;
-  lines.push(`\nGENERAL RULES:`);
-  lines.push(`- Tone: ${rules.tone}`);
-  lines.push(`- Keep the initial response to max ${rules.max_initial_lines} lines before presenting choices.`);
-  if (rules.never_dump_history) {
-    lines.push(`- NEVER dump full booking/order history unprompted. Summarize briefly and let the customer choose.`);
-  }
-  if (rules.language_behavior) {
-    lines.push(`- Language: ${rules.language_behavior}`);
-  }
-  if (rules.escalation_threshold) {
-    lines.push(`- If the customer seems stuck or frustrated after ${rules.escalation_threshold} unanswered turns, offer to connect them with a human agent.`);
-  }
-
+function buildGeneralRulesPrompt(config: GeneralConfig): string {
+  const lines: string[] = ['GENERAL RULES:'];
+  if (config.tone) lines.push(`- Tone: ${config.tone}`);
+  if (config.max_initial_lines) lines.push(`- Keep the initial response to max ${config.max_initial_lines} lines before presenting choices.`);
+  if (config.never_dump_history) lines.push(`- NEVER dump full booking/order history unprompted. Summarize briefly and let the customer choose.`);
+  if (config.language_behavior) lines.push(`- Language: ${config.language_behavior}`);
+  if (config.escalation_threshold) lines.push(`- If the customer seems stuck after ${config.escalation_threshold} unanswered turns, offer to connect them with a human agent.`);
   return lines.join('\n');
 }
 
-function buildPreVerificationFlowPrompt(flowConfig: FlowConfig): string | null {
-  // Check if there's a phone verification node anywhere in the tree
-  const phonePath = findPathToPhoneNode(flowConfig.nodes);
-  if (!phonePath) return null;
-
-  // Collect only intro/greeting messages that appear BEFORE the phone node path
-  const introLines: string[] = [];
-  function collectIntros(nodes: FlowNode[]): void {
-    for (const node of nodes) {
-      const nodeType = node.type || 'message';
-      // Stop if we hit the phone node
-      if (isPhoneRelatedNode(node)) return;
-      if (nodeType === 'message' && node.instruction) {
-        introLines.push(`- ${node.label}: "${node.instruction}"`);
-      }
-      // Only recurse into children that are on the path to phone
-      if (node.children && node.children.length > 0) {
-        collectIntros(node.children);
-      }
-    }
-  }
-  collectIntros(flowConfig.nodes);
-
-  const lines: string[] = [];
-  if (introLines.length > 0) {
-    lines.push(...introLines);
-  }
-  lines.push(`- To verify the customer's identity, include [PHONE_VERIFY] in your response. The widget will show a phone number input and SMS OTP form.`);
-
-  return `VERIFICATION STATUS: The customer has NOT verified their phone.
-
-IMPORTANT: Before presenting ANY options, menus, or action choices, you MUST first verify the customer's phone number.
-If the customer states what they want to do (e.g., "I want to book a service"), acknowledge their intent briefly and then immediately ask them to verify their phone number.
-Do NOT show [ACTION_MENU] before verification is complete.
-
-Follow this conversation flow:
-${lines.join('\n')}
-
-Additional rules:
-- You can answer general questions using search_knowledge_base while waiting for verification.
-- Do NOT look up customer data or share account details without verification.
-- Do NOT ask for the phone number in text — the [PHONE_VERIFY] form handles it.`;
-}
-
-function buildSystemPrompt(language: string, isVerified: boolean, flowConfig?: FlowConfig | null): string {
+function buildSystemPrompt(language: string, isVerified: boolean, actionFlows: ActionFlow[], generalConfig: GeneralConfig): string {
   const langInstruction = language === 'no' || language === 'nb' || language === 'nn'
     ? 'Respond in Norwegian (bokmål). Match the customer\'s language.'
     : `Respond in the same language as the customer. The widget is set to language code: ${language}.`;
 
+  // Determine if any flow requires verification
+  const hasVerificationFlows = actionFlows.some(f => f.requires_verification && f.is_active);
+
   let verificationContext: string;
-
   if (isVerified) {
-    if (flowConfig && flowConfig.nodes && flowConfig.nodes.length > 0) {
-      // Dynamic flow from config
-      verificationContext = `VERIFICATION STATUS: The customer's phone number has been verified via SMS OTP. You can freely access their account data using lookup_customer.
+    verificationContext = `VERIFICATION STATUS: The customer's phone number has been verified via SMS OTP. You can freely access their account data using lookup_customer.
 
-AFTER LOOKING UP THE CUSTOMER, follow this guided flow:
-${buildFlowPrompt(flowConfig, true)}`;
-    } else {
-      // Hardcoded fallback
-      verificationContext = `VERIFICATION STATUS: The customer's phone number has been verified via SMS OTP. You can freely access their account data using lookup_customer.
+After looking up the customer:
+- Greet them by name.
+- If they have UPCOMING bookings, mention them briefly.
+- If they have multiple VEHICLES, note them.
+- If the customer already stated what they want, proceed with the matching action flow.
+- If not, offer available actions naturally in conversation (do NOT force a menu).
+- IMPORTANT: You ALREADY KNOW whether this is an existing customer from the lookup result. NEVER ask "have you ordered before?".
+- If the customer has stored_addresses or stored_cars, you MUST pass them inside the ADDRESS_SEARCH / LICENSE_PLATE markers as JSON.`;
+  } else if (hasVerificationFlows) {
+    verificationContext = `VERIFICATION STATUS: The customer has NOT verified their phone via SMS.
 
-AFTER LOOKING UP THE CUSTOMER, follow this guided flow:
-1. Greet them by name.
-2. If they have UPCOMING bookings, mention them briefly (date + service type) and ask if they need help with any of them.
-3. If they have multiple VEHICLES in their history, ask which car they want help with before doing anything else.
-4. Offer clear action choices (as a short list):
-   - "Bestille ny service" (book a new service)
-   - "Se mine bestillinger" (view my bookings)
-   - "Endre/avbestille en bestilling" (modify or cancel a booking)
-   - "Dekkhotell" (wheel storage)
-5. If the customer wants to book a new service: reference their most recent completed order and ask "Vil du ha noe lignende?" before proceeding.
-6. Do NOT list all previous bookings unless the customer specifically asks for their full booking history.
-7. Keep the initial response short and action-oriented — max 3-4 lines before presenting choices.
-8. NEVER dump a long list of all past orders unprompted. Summarise briefly and let the customer choose what to explore.
-9. IMPORTANT: If the customer has stored_addresses or stored_cars from the lookup, you MUST pass them inside the ADDRESS_SEARCH / LICENSE_PLATE markers as JSON so the widget shows quick-select pill buttons. See the marker instructions for the exact format.
-10. When it's time to collect an address, your ENTIRE message must be ONLY the [ADDRESS_SEARCH] marker. Do not greet, do not describe, do not list addresses. Just the marker.
-11. When it's time to collect a license plate, your ENTIRE message must be ONLY the [LICENSE_PLATE] marker. Do not describe, do not explain. Just the marker.`;
-    }
+MODE 1 — GENERAL CONVERSATION (default, no verification needed):
+- Answer questions about services, pricing, hours, etc. using search_knowledge_base.
+- Be helpful and conversational. No phone verification is needed for general questions.
+
+MODE 2 — ACTION FLOWS (require verification):
+- If the customer wants to perform an action (book, change, cancel, view bookings), they must verify their phone first.
+- Acknowledge their intent briefly, then prompt [PHONE_VERIFY].
+- Do NOT ask for the phone number in text — the form handles it.
+- Do NOT look up customer data or share account details without verification.`;
   } else {
-    // Try to use flow config for pre-verification phase
-    const flowPreVerification = flowConfig ? buildPreVerificationFlowPrompt(flowConfig) : null;
-    if (flowPreVerification) {
-      verificationContext = flowPreVerification;
-    } else {
-      verificationContext = `VERIFICATION STATUS: The customer has NOT verified their phone via SMS. You can answer general questions about Noddi services using the knowledge base. However, if they ask about their specific bookings, account, or want to make changes, politely tell them they need to verify their phone number first using the phone verification form that will appear. The form will ask for their phone number and send an SMS code. Do NOT try to collect the phone number in the chat — the dedicated form handles this. Do NOT look up customer data without verification.`;
-    }
+    verificationContext = `VERIFICATION STATUS: The customer has NOT verified their phone. You can answer general questions using search_knowledge_base. For account-specific actions, ask them to verify first using [PHONE_VERIFY].`;
   }
 
-  return `You are Noddi's AI customer assistant. You help customers with questions about Noddi's services (mobile car wash, tire change, tire storage, etc.) and help them look up and manage their bookings.
+  const actionFlowsPrompt = buildActionFlowsPrompt(actionFlows, isVerified);
+  const generalRules = buildGeneralRulesPrompt(generalConfig);
+
+  return `You are an AI customer assistant. You help customers with questions about services and help them manage their bookings.
 
 ${langInstruction}
 
 ${verificationContext}
+
+${actionFlowsPrompt}
 
 INTERACTIVE COMPONENTS:
 You can use special markers in your responses that the widget will render as interactive UI elements.
@@ -1109,112 +797,67 @@ Option 2
 [CONFIRM]Summary of what will happen[/CONFIRM]
 
 8. ADDRESS SEARCH — render an interactive address picker:
-Output ONLY this marker and NOTHING else in the message. No text before it, no text after it, no list of addresses, no "Here are your addresses", no describing what will happen.
-WRONG: "Her er adressene dine:\n- Holtet 45\n- Majorstuen 12\n\n[ADDRESS_SEARCH]..."
-CORRECT (entire message is just the marker): [ADDRESS_SEARCH]{"stored": [{"id": 2860, "label": "Holtet 45, 1368 Oslo", "zip_code": "1368", "city": "Oslo"}]}[/ADDRESS_SEARCH]
+Output ONLY this marker and NOTHING else in the message.
+CORRECT: [ADDRESS_SEARCH]{"stored": [{"id": 2860, "label": "Holtet 45, 1368 Oslo", "zip_code": "1368", "city": "Oslo"}]}[/ADDRESS_SEARCH]
 Without stored addresses: [ADDRESS_SEARCH][/ADDRESS_SEARCH]
-The component handles everything — showing stored addresses as clickable pills AND a search field for new addresses. Your response must contain ONLY the marker.
 
 9. LICENSE PLATE — render a license plate input with car lookup:
-Output ONLY the marker. The closing tag MUST be [/LICENSE_PLATE] (with a forward slash /).
+Output ONLY the marker. The closing tag MUST be [/LICENSE_PLATE] (with forward slash /).
 CORRECT: [LICENSE_PLATE]{"stored": [{"id": 13888, "make": "Tesla", "model": "Model Y", "plate": "EC94156"}]}[/LICENSE_PLATE]
-WRONG: [LICENSE_PLATE]{"stored":[...]}[LICENSE_PLATE]  ← WRONG! Missing the / in closing tag!
 Without stored cars: [LICENSE_PLATE][/LICENSE_PLATE]
-Your ENTIRE message must be ONLY the marker. No description, no explanation before or after it.
 
-10. SERVICE SELECT — fetch and display available sales items with prices. Include address_id AND license_plate:
+10. SERVICE SELECT — fetch and display available sales items with prices:
 [SERVICE_SELECT]{"address_id": 2860, "license_plate": "EC94156"}[/SERVICE_SELECT]
-NEVER list services or categories as plain text. ALWAYS use this marker. The widget fetches and displays them automatically.
+NEVER list services as plain text. ALWAYS use this marker.
 
-11. TIME SLOT — show available time slots. Include address_id, car_ids, license_plate, AND sales_item_id from the service selection:
+11. TIME SLOT — show available time slots:
 [TIME_SLOT]{"address_id": 2860, "car_ids": [555], "license_plate": "EC94156", "sales_item_id": 60282}[/TIME_SLOT]
-IMPORTANT: Extract sales_item_id from the customer's service selection message ({"sales_item_id": XXXX}).
+Extract sales_item_id from the customer's service selection message.
 
-12. BOOKING SUMMARY — show a booking summary card with confirm/cancel. After the customer selects a time slot, go DIRECTLY to this marker — do NOT show a separate text confirmation asking "does this look correct". The BOOKING_SUMMARY card IS the confirmation step.
+12. BOOKING SUMMARY — show a booking summary card with confirm/cancel. After time slot selection, go DIRECTLY to this marker.
+⚠️ CRITICAL — NEVER OMIT user_id, user_group_id, delivery_window_id (booking WILL FAIL without them).
+Example: [BOOKING_SUMMARY]{"address":"Holtet 45","address_id":2860,"car":"Tesla Model Y","license_plate":"EC94156","country_code":"NO","user_id":48372,"user_group_id":29104,"service":"Dekkskift","sales_item_ids":[60282],"date":"16. feb 2026","time":"08:00–11:00","price":"699 kr","delivery_window_id":98765,"delivery_window_start":"2026-02-16T08:00:00Z","delivery_window_end":"2026-02-16T11:00:00Z"}[/BOOKING_SUMMARY]
 
-⚠️ CRITICAL — NEVER OMIT THESE THREE FIELDS (the booking WILL FAIL without them):
-  • "user_id": the customer's userId from the lookup_customer result (e.g. customer.userId → integer like 48372)
-  • "user_group_id": the customer's userGroupId from the lookup_customer result (e.g. customer.userGroupId → integer like 29104)
-  • "delivery_window_id": the id field from the time slot the customer selected (integer)
-If you do not have these values, call lookup_customer again or ask the customer to re-select the time slot. NEVER emit BOOKING_SUMMARY without all three.
-
-Additional required fields:
-- delivery_window_start and delivery_window_end: the starts_at and ends_at ISO timestamps from the selected time slot.
-- address_id: the ID from the selected address.
-- sales_item_ids: array of selected sales item IDs.
-- license_plate: the customer's license plate string.
-
-Example format (replace ALL values with REAL data from previous steps):
-[BOOKING_SUMMARY]{"address":"Holtet 45, 1368 Oslo","address_id":2860,"car":"Tesla Model Y","license_plate":"EC94156","country_code":"NO","user_id":48372,"user_group_id":29104,"service":"Dekkskift","sales_item_ids":[60282],"date":"16. feb 2026","time":"08:00–11:00","price":"699 kr","delivery_window_id":98765,"delivery_window_start":"2026-02-16T08:00:00Z","delivery_window_end":"2026-02-16T11:00:00Z"}[/BOOKING_SUMMARY]
-
-13. BOOKING EDIT — show a confirmation card for EDITING an existing booking. Shows old value → new value with confirm/cancel buttons.
-Use this when a customer wants to change their booking's time, address, car, or services.
-[BOOKING_EDIT]{"booking_id": 12345, "changes": {"time": "14:00–17:00", "old_time": "08:00–11:00", "delivery_window_id": 99999, "delivery_window_start": "2026-02-20T14:00:00Z", "delivery_window_end": "2026-02-20T17:00:00Z"}}[/BOOKING_EDIT]
-Include only the fields being changed. Supported change fields: address/old_address/address_id, time/old_time/date/old_date, car/old_car, service/old_service, delivery_window_id/delivery_window_start/delivery_window_end, cars (array).
+13. BOOKING EDIT — show a confirmation card for EDITING an existing booking:
+[BOOKING_EDIT]{"booking_id": 12345, "changes": {"time": "14:00–17:00", "old_time": "08:00–11:00", "delivery_window_id": 99999}}[/BOOKING_EDIT]
 
 BOOKING EDIT FLOW:
 When a customer wants to modify an existing booking:
 1. Use get_booking_details to fetch the current booking
-2. Ask what they want to change (or detect from their message):
-   - "Endre tidspunkt" (change time) → show [TIME_SLOT] picker, then [BOOKING_EDIT] with the new time
-   - "Endre adresse" (change address) → show [ADDRESS_SEARCH], then [BOOKING_EDIT] with the new address
-   - "Endre bil" (change car) → show [LICENSE_PLATE], then [BOOKING_EDIT] with the new car
-   - "Legge til tjenester" (add services) → show [SERVICE_SELECT], then [BOOKING_EDIT] with updated items
-   - "Avbestille" (cancel) → use cancel_booking (existing tool)
-3. After collecting the new value, show [BOOKING_EDIT] with old and new values for confirmation
-4. The widget will call update_booking on confirm
+2. Detect what they want to change and show the appropriate marker
+3. After collecting the new value, show [BOOKING_EDIT] with old and new values
 
 RULES FOR MARKERS:
-- NEVER list addresses, license plates, cars, or services as numbered text. ALWAYS use the corresponding interactive marker.
-- When outputting ADDRESS_SEARCH, LICENSE_PLATE, or SERVICE_SELECT markers: output the marker DIRECTLY with no preceding description of addresses, cars, or services. Do NOT say "Here are your addresses" or "Enter your license plate" before the marker.
-- Each marker must be on a single continuous line with NO line breaks between the opening tag, content, and closing tag.
-- Example of WRONG format (line breaks inside marker):
-  [LICENSE_PLATE]{"stored":[]}
-  [/LICENSE_PLATE]
-- Example of CORRECT format (single line):
-  [LICENSE_PLATE]{"stored":[]}[/LICENSE_PLATE]
-- Do NOT describe these as text — just include the markers and the widget handles the rest.
-- Do NOT wrap markers in code blocks, quotes, or backticks. They must appear as plain text.
-- Only use one marker type per response when possible for clarity.
-- For booking flow: use the data returned from each step to fill in the next marker. The AI tools (lookup_car_by_plate, create_booking_proposal, etc.) can help orchestrate data between steps.
+- NEVER wrap markers in markdown code blocks.
+- Markers must be on a single continuous line (no line breaks inside).
+- For ADDRESS_SEARCH and LICENSE_PLATE, your ENTIRE message must be ONLY the marker.
+- For SERVICE_SELECT, extract real IDs from the conversation — never use made-up numbers.
+- The customer is interacting via a widget, not a terminal. Use markers for interactive elements.
 
-CORE RULES:
-1. Be friendly, helpful, and concise. Use a warm, professional tone.
-2. NEVER invent or fabricate booking data, prices, or service details. Only share information returned by the tools.
-3. When a customer asks about their bookings and their phone is verified, use lookup_customer immediately with their verified phone.
-4. Use the search_knowledge_base tool to answer general questions about services, pricing, processes, etc.
-5. Use the lookup_customer tool when the customer's phone is verified to find their bookings.
-6. Use get_booking_details for detailed information about a specific booking.
-7. For rescheduling: ALWAYS confirm the new date/time with the customer before calling reschedule_booking. Show them what will change.
-8. For cancellations: ALWAYS ask the customer to explicitly confirm they want to cancel. Warn that cancellations may not be reversible.
-9. If you cannot answer a question, suggest the customer talk to a human agent or send a message.
-10. Format booking information clearly with dates, services, and status.
-11. Never ask for sensitive information like passwords or payment details.
-12. Keep responses focused and not too long. Use bullet points for lists.
-13. You can use emojis sparingly to be friendly.
+KNOWLEDGE BASE:
+- Use search_knowledge_base to answer general questions about services, pricing, policies, etc.
+- This is your PRIMARY source for answering questions. Always search before saying "I don't know."
+- If no results found, be honest: "I don't have specific information about that."
 
 MULTI-TURN CONTEXT:
-- Remember what the customer has already told you in this conversation (name, phone, booking details).
-- Don't re-ask for information they've already provided.
-- Reference earlier parts of the conversation when relevant ("As we discussed earlier...").
-- Track the customer's emotional state — if they repeat themselves or seem frustrated, acknowledge it and offer escalation.
+- Remember all data shared in the conversation (phone, addresses, cars, bookings).
+- Do NOT re-ask for information already provided.
+- Track the customer's emotional state — if they repeat themselves or seem frustrated, offer escalation.
 
 PROACTIVE SUGGESTIONS:
-- After answering a question, offer a relevant follow-up. Examples:
-  - After showing bookings: "Would you like details on any of these bookings?"
-  - After explaining a service: "Would you like me to look up your account to check availability?"
-  - After a cancellation: "Is there anything else I can help with, or would you like to rebook?"
-- If the customer has upcoming bookings, proactively mention them.
-- If the knowledge base search returns no results, acknowledge the gap honestly: "I don't have specific information about that in my knowledge base."
+- After answering a question, offer a relevant follow-up.
+- If the knowledge base search returns no results, acknowledge honestly.
 
 SMART ESCALATION:
-- Escalate proactively (suggest human agent) when:
+- Escalate proactively when:
   - The customer asks the same question 3+ times
-  - The customer expresses frustration, anger, or dissatisfaction
-  - The issue involves billing disputes, refunds, or complaints
-  - You've searched the knowledge base and found nothing relevant twice
+  - The customer expresses frustration or anger
+  - The issue involves billing disputes or complaints
+  - You've searched and found nothing relevant twice
   - The customer explicitly asks for a human
-- When escalating, summarize the conversation context for the human agent.`;
+- When escalating, summarize the conversation context.
+
+${generalRules}`;
 }
 
 // ========== Tool executor ==========
@@ -1405,7 +1048,7 @@ Deno.serve(async (req) => {
     // Validate widget key and get organization
     const { data: widgetConfig, error: configError } = await supabase
       .from('widget_configs')
-      .select('id, organization_id, is_active, ai_flow_config')
+      .select('id, organization_id, is_active, ai_general_config')
       .eq('widget_key', widgetKey)
       .eq('is_active', true)
       .single();
@@ -1418,6 +1061,23 @@ Deno.serve(async (req) => {
     }
 
     const organizationId = widgetConfig.organization_id;
+
+    // Fetch action flows for this widget
+    const { data: actionFlowsData } = await supabase
+      .from('ai_action_flows')
+      .select('intent_key, label, description, trigger_phrases, requires_verification, flow_steps, is_active')
+      .eq('widget_config_id', widgetConfig.id)
+      .eq('is_active', true)
+      .order('sort_order', { ascending: true });
+
+    const actionFlows: ActionFlow[] = actionFlowsData || [];
+    const generalConfig: GeneralConfig = (widgetConfig.ai_general_config as GeneralConfig) || {
+      tone: 'friendly, concise, helpful',
+      max_initial_lines: 4,
+      never_dump_history: true,
+      language_behavior: 'Match the customer\'s language. Default to Norwegian (bokmål).',
+      escalation_threshold: 3,
+    };
 
     // Create/get conversation for persistence
     const dbConversationId = await getOrCreateConversation(
@@ -1432,7 +1092,7 @@ Deno.serve(async (req) => {
     }
 
     // Build conversation with system prompt
-    const systemPrompt = buildSystemPrompt(language, isVerified, widgetConfig.ai_flow_config as FlowConfig | null);
+    const systemPrompt = buildSystemPrompt(language, isVerified, actionFlows, generalConfig);
     const conversationMessages: any[] = [
       { role: 'system', content: systemPrompt },
     ];

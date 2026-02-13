@@ -62,6 +62,69 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_action_flows: {
+        Row: {
+          created_at: string
+          description: string | null
+          flow_steps: Json
+          id: string
+          intent_key: string
+          is_active: boolean
+          label: string
+          organization_id: string
+          requires_verification: boolean
+          sort_order: number
+          trigger_phrases: string[] | null
+          updated_at: string
+          widget_config_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          flow_steps?: Json
+          id?: string
+          intent_key: string
+          is_active?: boolean
+          label: string
+          organization_id: string
+          requires_verification?: boolean
+          sort_order?: number
+          trigger_phrases?: string[] | null
+          updated_at?: string
+          widget_config_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          flow_steps?: Json
+          id?: string
+          intent_key?: string
+          is_active?: boolean
+          label?: string
+          organization_id?: string
+          requires_verification?: boolean
+          sort_order?: number
+          trigger_phrases?: string[] | null
+          updated_at?: string
+          widget_config_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_action_flows_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_action_flows_widget_config_id_fkey"
+            columns: ["widget_config_id"]
+            isOneToOne: false
+            referencedRelation: "widget_configs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       call_events: {
         Row: {
           call_id: string
@@ -3464,6 +3527,7 @@ export type Database = {
       widget_configs: {
         Row: {
           ai_flow_config: Json | null
+          ai_general_config: Json | null
           auto_send_transcript: boolean | null
           company_name: string | null
           created_at: string | null
@@ -3489,6 +3553,7 @@ export type Database = {
         }
         Insert: {
           ai_flow_config?: Json | null
+          ai_general_config?: Json | null
           auto_send_transcript?: boolean | null
           company_name?: string | null
           created_at?: string | null
@@ -3514,6 +3579,7 @@ export type Database = {
         }
         Update: {
           ai_flow_config?: Json | null
+          ai_general_config?: Json | null
           auto_send_transcript?: boolean | null
           company_name?: string | null
           created_at?: string | null

@@ -4,8 +4,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { RefreshCw, GitBranch, TestTube2, History, BarChart3, AlertTriangle, Bot, MessageCircle, Puzzle } from 'lucide-react';
-import { AiFlowBuilder } from '@/components/admin/widget/AiFlowBuilder';
+import { RefreshCw, GitBranch, TestTube2, History, BarChart3, AlertTriangle, Bot, MessageCircle, Puzzle, Zap } from 'lucide-react';
+import { ActionFlowsManager } from '@/components/admin/widget/ActionFlowsManager';
 import { WidgetTestMode } from '@/components/admin/widget/WidgetTestMode';
 import { AiConversationHistory } from '@/components/admin/widget/AiConversationHistory';
 import { AiAnalyticsDashboard } from '@/components/admin/widget/AiAnalyticsDashboard';
@@ -155,8 +155,8 @@ export const AiChatbotSettings: React.FC = () => {
                     <span className="hidden lg:inline">Components</span>
                   </TabsTrigger>
                   <TabsTrigger value="flow" className="gap-1.5">
-                    <GitBranch className="h-4 w-4" />
-                    <span className="hidden lg:inline">Flow</span>
+                    <Zap className="h-4 w-4" />
+                    <span className="hidden lg:inline">Action Flows</span>
                   </TabsTrigger>
                   <TabsTrigger value="test" className="gap-1.5">
                     <TestTube2 className="h-4 w-4" />
@@ -183,7 +183,7 @@ export const AiChatbotSettings: React.FC = () => {
                 </TabsContent>
 
                 <TabsContent value="flow" className="mt-0">
-                  <AiFlowBuilder widgetId={selectedWidget.id} />
+                  <ActionFlowsManager widgetId={selectedWidget.id} organizationId={selectedWidget.organization_id} />
                 </TabsContent>
 
                 <TabsContent value="test" className="mt-0">
