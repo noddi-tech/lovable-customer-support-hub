@@ -1,29 +1,18 @@
 
 
-# Seed Default Action Flows
+# Fix: Action Flows Not Displaying
 
-The `ai_action_flows` table was created but no default flows were inserted. We need to add a migration that seeds the 7 default action flows for the existing widget config.
+## Root Cause
 
-## What will be created
+The 7 action flows were successfully seeded into the database (confirmed via direct query), but the UI is showing "No action flows yet." This is a stale cache / query timing issue -- the data was inserted via migration after the page was already loaded, and React Query is serving cached (empty) results.
 
-A new SQL migration that inserts these action flows for widget `2f1fab67-4177-4a69-870f-e556ca5219bd` (org `b9b4df82-2b89-4a64-b2a3-5e19c0e8d43b`):
+## Fix
 
-| Intent | Label | Steps |
-|--------|-------|-------|
-| new_booking | Book New Service | Address -> Car -> Service -> Time Slot -> Summary |
-| change_time | Change Booking Time | Lookup booking -> Time Slot -> Confirm edit |
-| change_address | Change Booking Address | Lookup booking -> Address Search -> Confirm edit |
-| change_car | Change Booking Car | Lookup booking -> License Plate -> Confirm edit |
-| add_services | Add Services to Booking | Lookup booking -> Service Select -> Confirm edit |
-| cancel_booking | Cancel Booking | Lookup booking -> Confirm cancellation |
-| view_bookings | View My Bookings | Lookup customer -> Display bookings |
+Update the `useQuery` in `ActionFlowsManager.tsx` to ensure it always fetches fresh data on mount:
 
-All flows requiring customer data will have `requires_verification = true`.
+**File: `src/components/admin/widget/ActionFlowsManager.tsx`**
+- Add `staleTime: 0` and `refetchOnMount: 'always'` to the query options
+- This ensures the query always hits the database when the tab is opened, rather than serving stale cached results
 
-## Technical details
-
-- **File**: New SQL migration
-- **Action**: INSERT 7 rows into `ai_action_flows` with the correct `organization_id`, `widget_config_id`, `flow_steps` JSONB, and `trigger_phrases` arrays
-- Each flow's `flow_steps` will use the established step format: `{id, type, field, marker, instruction}`
-- All flows will be `is_active = true` by default
+This is a one-line change that will make the flows appear immediately when you navigate to the Action Flows tab.
 
