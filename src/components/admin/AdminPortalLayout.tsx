@@ -303,7 +303,7 @@ const LayoutContent: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   const location = useLocation();
   const isFullHeight = location.pathname === '/admin/ai-chatbot';
   return (
-    <div className={cn("py-6", isFullHeight ? "px-4 h-full flex flex-col" : "px-8 max-w-7xl mx-auto")}>
+    <div className={cn(isFullHeight ? "px-4 py-2 h-full flex flex-col" : "py-6 px-8 max-w-7xl mx-auto")}>
       {children}
     </div>
   );
@@ -320,7 +320,7 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({ children }
         
         <main className="flex-1 flex flex-col min-w-0">
           {/* Header with mobile trigger and back button */}
-          <header className="flex items-center gap-4 p-4 border-b border-border bg-primary/5 backdrop-blur-sm">
+          <header className="flex items-center gap-4 p-4 border-b border-border bg-primary/5 backdrop-blur-sm lg:hidden">
             <SidebarTrigger className="lg:hidden" />
             
             {/* Back to App button - visible on mobile/tablet */}
