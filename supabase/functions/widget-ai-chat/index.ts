@@ -338,26 +338,25 @@ async function patchBookingSummary(reply: string, messages: any[], visitorPhone?
 
   let patched = false;
 
-  // Re-lookup customer if user_id or user_group_id are missing
-  if (!summaryData.user_id || !summaryData.user_group_id) {
-    if (visitorPhone || visitorEmail) {
-      console.log('[patchBookingSummary] Missing customer IDs, re-looking up customer via API...');
-      try {
-        const lookupResult = JSON.parse(await executeLookupCustomer(visitorPhone, visitorEmail));
-        if (lookupResult.customer?.userId && !summaryData.user_id) {
-          summaryData.user_id = lookupResult.customer.userId;
-          patched = true;
-        }
-        if (lookupResult.customer?.userGroupId && !summaryData.user_group_id) {
-          summaryData.user_group_id = lookupResult.customer.userGroupId;
-          patched = true;
-        }
-      } catch (e) {
-        console.error('[patchBookingSummary] Customer re-lookup failed:', e);
+  // ALWAYS re-lookup customer IDs from the API when we have contact info.
+  // The AI may emit hallucinated/placeholder IDs — the API lookup is the source of truth.
+  if (visitorPhone || visitorEmail) {
+    console.log('[patchBookingSummary] Performing fresh customer lookup (always overwrites AI-emitted IDs)...');
+    try {
+      const lookupResult = JSON.parse(await executeLookupCustomer(visitorPhone, visitorEmail));
+      if (lookupResult.customer?.userId) {
+        summaryData.user_id = lookupResult.customer.userId;
+        patched = true;
       }
-    } else {
-      console.warn('[patchBookingSummary] Missing customer IDs but no visitorPhone/visitorEmail available');
+      if (lookupResult.customer?.userGroupId) {
+        summaryData.user_group_id = lookupResult.customer.userGroupId;
+        patched = true;
+      }
+    } catch (e) {
+      console.error('[patchBookingSummary] Customer re-lookup failed:', e);
     }
+  } else if (!summaryData.user_id || !summaryData.user_group_id) {
+    console.warn('[patchBookingSummary] Missing customer IDs but no visitorPhone/visitorEmail available');
   }
 
   // Extract delivery_window_id from user action messages (time slot selection)
@@ -691,7 +690,8 @@ Extract the numeric address_id and license_plate from previous conversation step
 [TIME_SLOT]{"address_id": <number>, "car_ids": [<number>], "license_plate": "<string>", "sales_item_id": <number>}[/TIME_SLOT]
 Extract all IDs from previous steps. DO NOT say "please wait" — just emit the marker.`,
   BOOKING_SUMMARY: `Include the marker with ALL booking data as valid JSON (NEVER human-readable text):
-[BOOKING_SUMMARY]{"address":"...","address_id":...,"car":"...","license_plate":"...","country_code":"NO","user_id":...,"user_group_id":...,"service":"...","sales_item_ids":[...],"date":"...","time":"...","price":"...","delivery_window_id":...,"delivery_window_start":"...","delivery_window_end":"..."}[/BOOKING_SUMMARY]
+[BOOKING_SUMMARY]{"address":"...","address_id":...,"car":"...","license_plate":"...","country_code":"NO","user_id":"<FROM_LOOKUP>","user_group_id":"<FROM_LOOKUP>","service":"...","sales_item_ids":[...],"date":"...","time":"...","price":"...","delivery_window_id":...,"delivery_window_start":"...","delivery_window_end":"..."}[/BOOKING_SUMMARY]
+⚠️ For user_id and user_group_id, use the EXACT values from the customer lookup tool result. NEVER invent or guess these values.
 ⚠️ NEVER omit user_id, user_group_id, or delivery_window_id — the booking WILL FAIL without them.
 ⚠️ Content between tags MUST be valid JSON. Never use bullet points or prose.`,
   BOOKING_EDIT: `Include the marker for editing existing bookings:
@@ -849,7 +849,8 @@ Extract sales_item_id from the customer's service selection message.
 12. BOOKING SUMMARY — show a booking summary card with confirm/cancel. After time slot selection, go DIRECTLY to this marker.
 ⚠️ CRITICAL — The content between [BOOKING_SUMMARY] and [/BOOKING_SUMMARY] MUST be valid JSON. NEVER output human-readable text, bullet points, or prose inside these tags.
 ⚠️ CRITICAL — NEVER OMIT user_id, user_group_id, delivery_window_id (booking WILL FAIL without them).
-✅ CORRECT: [BOOKING_SUMMARY]{"address":"Holtet 45","address_id":2860,"car":"Tesla Model Y","license_plate":"EC94156","country_code":"NO","user_id":48372,"user_group_id":29104,"service":"Dekkskift","sales_item_ids":[60282],"date":"16. feb 2026","time":"08:00–11:00","price":"699 kr","delivery_window_id":98765,"delivery_window_start":"2026-02-16T08:00:00Z","delivery_window_end":"2026-02-16T11:00:00Z"}[/BOOKING_SUMMARY]
+⚠️ CRITICAL — For user_id and user_group_id, use the EXACT values returned by the customer lookup tool. NEVER invent or guess these values.
+✅ CORRECT: [BOOKING_SUMMARY]{"address":"Holtet 45","address_id":2860,"car":"Tesla Model Y","license_plate":"EC94156","country_code":"NO","user_id":"<FROM_LOOKUP>","user_group_id":"<FROM_LOOKUP>","service":"Dekkskift","sales_item_ids":[60282],"date":"16. feb 2026","time":"08:00–11:00","price":"699 kr","delivery_window_id":98765,"delivery_window_start":"2026-02-16T08:00:00Z","delivery_window_end":"2026-02-16T11:00:00Z"}[/BOOKING_SUMMARY]
 ❌ WRONG: [BOOKING_SUMMARY]Adresse: Holtet 45\nDato: 16. feb 2026\nPris: 699 kr[/BOOKING_SUMMARY]
 
 13. BOOKING EDIT — show a confirmation card for EDITING an existing booking:
