@@ -527,6 +527,7 @@ async function executeLookupCustomer(phone?: string, email?: string): Promise<st
         id: b.id,
         status: b.status,
         scheduledAt: b.start_time || b.scheduled_at || b.delivery_window_starts_at,
+        endTime: b.end_time || b.delivery_window_ends_at || null,
         services: b.order_lines?.map((ol: any) => ol.service_name || ol.name).filter(Boolean) || [],
         sales_item_ids: b.order_lines?.map((ol: any) => ol.sales_item_id || ol.id).filter(Boolean) || [],
         address: b.address?.full_address || b.address || null,
