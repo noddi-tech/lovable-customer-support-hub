@@ -1,65 +1,81 @@
 
 
-# Fix: `available_items` 502 — Noddi API requires `license_plates`
+# Fix: Delivery Windows 404 — Sending Too Many Sales Item Categories
+
+## Problem
+
+The `TimeSlotBlock` fetches ALL available sales items for a car/address and sends every single `sales_item_id` to the `delivery_windows` endpoint. The Noddi API returns a 404 because no single service department covers all categories (e.g., "Wheel change" + "Wheel storage" + "Windscreen repair") for the given address.
+
+The error from Noddi:
+```
+Service department not found for address ... and service categories: Windscreen repair, Wheel change, Wheel storage
+```
 
 ## Root Cause
 
-The previous fix removed the car-info guard on the `available_items` call, allowing it to fire with only `address_id`. However, the Noddi API **requires** the `license_plates` field — it returns a 400 validation error without it.
+Lines 95-99 of `TimeSlotBlock.tsx` collect every item from every category:
+```typescript
+for (const car of cars) {
+  for (const item of (car.sales_items || [])) {
+    if (item.sales_item_id) salesItemIds.push(Number(item.sales_item_id));
+  }
+}
+```
 
-The real problem is upstream: the AI emits the `[TIME_SLOT]` marker without `license_plate` or `car_ids`. The component needs both `address_id` AND at least one vehicle identifier to resolve sales items.
+This sends mutually exclusive items (e.g., "Dekkskift" and "Dekkhotell") AND cross-category items (wheel services + stone chip repair) all at once.
 
 ## Fix (1 file)
 
 **File: `src/widget/components/blocks/TimeSlotBlock.tsx`**
 
-1. **Restore the car-info guard** on the `available_items` call (revert line 59 to require `licensePlate` or `carIds`):
+1. **Recover the selected service from localStorage**: The `ServiceSelectBlock` stores `{ sales_item_id, service_name, price }` in `noddi_action_` keys. Scan for this to find which specific item the user chose.
+
+2. **If a specific item is found, use only that one**: Instead of sending all items, send just the user's selection.
+
+3. **If no specific selection found, filter to one category**: Group items by `booking_category_type` and pick only the first category (typically wheel_services), avoiding cross-category conflicts.
 
 ```typescript
-if (salesItemIds.length === 0 && (licensePlate || carIds.length > 0)) {
-```
+// After fetching available items (line 93-99), replace the collect-all loop:
 
-2. **Improve the error message** when no sales items can be resolved (the guard after the call on line 78) to be more specific about what's missing:
-
-```typescript
-if (salesItemIds.length === 0) {
-  setError('Mangler kjøretøyinformasjon for å finne ledige tider. Prøv igjen.');
-  setLoading(false);
-  return;
+// 1. Try to recover selected service from localStorage
+let selectedItemId: number | null = null;
+for (let i = 0; i < localStorage.length; i++) {
+  const key = localStorage.key(i);
+  if (!key?.startsWith('noddi_action_')) continue;
+  try {
+    const stored = JSON.parse(localStorage.getItem(key) || '');
+    if (stored.sales_item_id && allAvailableIds.has(Number(stored.sales_item_id))) {
+      selectedItemId = Number(stored.sales_item_id);
+      break;
+    }
+  } catch {}
 }
-```
 
-3. **Add a localStorage fallback**: Before giving up, scan `localStorage` for previously stored `license_plate` or `car_ids` from earlier steps in the same conversation (e.g., from `noddi_action_*` keys), similar to how `BookingSummaryBlock` recovers `delivery_window_id`:
-
-```typescript
-// After the guard check, before giving up:
-if (salesItemIds.length === 0 && !licensePlate && carIds.length === 0) {
-  // Scan localStorage for license plate from earlier conversation steps
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
-    if (!key?.startsWith('noddi_action_')) continue;
-    try {
-      const stored = JSON.parse(localStorage.getItem(key) || '');
-      if (stored.license_plate) {
-        // Use recovered license plate for available_items
-        const recoveryPayload = {
-          action: 'available_items',
-          address_id: addressId,
-          license_plates: [stored.license_plate],
-        };
-        const recoveryData = await postJson(recoveryPayload);
-        // ... extract salesItemIds from response
-        break;
+// 2. Use selected item, or fall back to first category only
+if (selectedItemId) {
+  salesItemIds = [selectedItemId];
+} else {
+  // Group by category, pick first category only
+  const firstCategory = cars[0]?.sales_items?.[0]?.booking_category_type;
+  for (const car of cars) {
+    for (const item of (car.sales_items || [])) {
+      if (item.sales_item_id && item.booking_category_type === firstCategory) {
+        salesItemIds.push(Number(item.sales_item_id));
       }
-    } catch { /* skip */ }
+    }
   }
 }
 ```
+
+## Why This Fixes It
+
+- Currently: sends `[60978, 60282, 60442, 61187]` (3 wheel services + 1 stone chip repair) -- Noddi can't find a dept covering all
+- After fix: sends `[60282]` (just the user's selected service) or at most items from one category -- Noddi finds the matching dept
 
 ## Scope
 
 | File | Change |
 |------|--------|
-| `src/widget/components/blocks/TimeSlotBlock.tsx` | Restore car-info guard, add localStorage recovery for missing license plate, improve error message |
+| `src/widget/components/blocks/TimeSlotBlock.tsx` | Recover selected service from localStorage; filter items to one category if no selection found |
 
 No edge function changes needed.
-
