@@ -686,9 +686,11 @@ The closing tag MUST be [/LICENSE_PLATE] (with forward slash).`,
   SERVICE_SELECT: `Include the marker with address_id AND license_plate:
 [SERVICE_SELECT]{"address_id": <number>, "license_plate": "<string>"}[/SERVICE_SELECT]
 Extract the numeric address_id and license_plate from previous conversation steps. The widget fetches and displays available services automatically.`,
-  TIME_SLOT: `IMMEDIATELY include the marker:
+  TIME_SLOT: `Your ENTIRE response must be ONLY the [TIME_SLOT] marker. No text before or after.
 [TIME_SLOT]{"address_id": <number>, "car_ids": [<number>], "license_plate": "<string>", "sales_item_id": <number>}[/TIME_SLOT]
-Extract all IDs from previous steps. DO NOT say "please wait" — just emit the marker.`,
+Extract all IDs from previous steps (booking details, service selection, etc.).
+DO NOT call get_delivery_windows — the widget component fetches and displays time slots automatically.
+NEVER list delivery windows as text. The interactive component handles everything.`,
   BOOKING_SUMMARY: `Your ENTIRE response must be ONLY the [BOOKING_SUMMARY] marker. No text before or after. The component displays all details visually.
 Include ALL booking data as valid JSON (NEVER human-readable text):
 [BOOKING_SUMMARY]{"address":"...","address_id":...,"car":"...","license_plate":"...","country_code":"NO","user_id":"<FROM_LOOKUP>","user_group_id":"<FROM_LOOKUP>","service":"...","sales_item_ids":[...],"date":"...","time":"...","price":"...","delivery_window_id":...,"delivery_window_start":"...","delivery_window_end":"..."}[/BOOKING_SUMMARY]
@@ -844,8 +846,10 @@ Without stored cars: [LICENSE_PLATE][/LICENSE_PLATE]
 NEVER list services as plain text. ALWAYS use this marker.
 
 11. TIME SLOT — show available time slots:
+Output ONLY this marker and NOTHING else in the message. The component fetches delivery windows automatically.
 [TIME_SLOT]{"address_id": 2860, "car_ids": [555], "license_plate": "EC94156", "sales_item_id": 60282}[/TIME_SLOT]
 Extract sales_item_id from the customer's service selection message.
+DO NOT call get_delivery_windows yourself. NEVER list time slots as plain text.
 
 12. BOOKING SUMMARY — show a booking summary card with confirm/cancel. After time slot selection, go DIRECTLY to this marker.
 CRITICAL: Your ENTIRE response must be ONLY the [BOOKING_SUMMARY] marker with valid JSON. Do NOT write any introductory text, recap, or description before or after the marker. The component itself displays all the booking details visually.
