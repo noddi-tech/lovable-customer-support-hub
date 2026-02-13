@@ -1,96 +1,71 @@
 
 
-# Fix Three AI Chatbot Issues: Change Time Flow, Duplicate Summary, and Timezone
+# Fix: "Change Booking Time" Flow Showing Text Instead of Interactive Component
 
-## Issue 1: "Change Booking Time" Flow Fails and Language Switches
+## Problem
 
-**Root Cause:** The `widget-ai-chat` edge function has a `maxIterations = 5` loop for tool calls. The "change_time" flow requires multiple tool calls (lookup_customer, get_booking_details, then potentially get_delivery_windows), which can exhaust iterations before the AI emits the [TIME_SLOT] marker. When iterations are exhausted, the fallback message is hardcoded in English: `"I apologize, but I need a moment. Could you please try rephrasing your question?"` -- this causes the language switch.
+The screenshot shows the AI listing delivery windows as plain text bullets ("06:00 - 11:00", "08:00 - 11:00", etc.) instead of rendering the interactive `[TIME_SLOT]` date/time picker component. The AI is calling the `get_delivery_windows` tool server-side and then dumping the results as text, when it should simply emit the `[TIME_SLOT]` marker and let the client-side component fetch and display the windows itself.
 
-**Fix (2 changes in `supabase/functions/widget-ai-chat/index.ts`):**
+## Root Cause
 
-1. **Increase `maxIterations` from 5 to 8** (line 1166) to give multi-step flows enough room.
-2. **Make the fallback message language-aware** (line 1254). Use the `language` variable from the request body to return Norwegian or English appropriately:
-   - Norwegian: `"Beklager, men jeg trenger et øyeblikk. Kan du prøve å omformulere spørsmålet ditt?"`
-   - English: current message
+Two issues work together:
 
----
+1. **The `change_time` flow step instruction** says "Show available delivery windows and let customer pick a new time" -- the AI interprets "show available delivery windows" literally by calling the `get_delivery_windows` tool and presenting results as text.
 
-## Issue 2: AI Emits Both Text Summary AND [BOOKING_SUMMARY] Component
+2. **The TIME_SLOT block prompt** lacks the strict "ONLY output the marker, no text" rule that ADDRESS_SEARCH and LICENSE_PLATE already have. It also doesn't explicitly tell the AI to NOT call `get_delivery_windows` itself.
 
-**Root Cause:** The system prompt's instructions for BOOKING_SUMMARY (lines 849-854) don't explicitly tell the AI to ONLY output the marker and nothing else. The AI adds a long text recap before the JSON component (as seen in the screenshot showing "Fantastisk! Den tilgjengelige leveringstiden..." followed by the card).
+## Changes
 
-**Fix (1 change in `supabase/functions/widget-ai-chat/index.ts`):**
+### File 1: `supabase/functions/widget-ai-chat/index.ts`
 
-Update the BOOKING_SUMMARY section in `buildSystemPrompt` (around lines 849-854) to add a strict "no text" rule, similar to what ADDRESS_SEARCH and LICENSE_PLATE already have:
+**Change A -- Update the TIME_SLOT block prompt** (around line 689-691):
 
-Add this instruction:
+Add the same strict "entire response must be ONLY the marker" rule and explicitly forbid calling `get_delivery_windows`:
+
 ```
-CRITICAL: After the customer selects a time slot, your ENTIRE response must be ONLY the [BOOKING_SUMMARY] marker with valid JSON. Do NOT write any introductory text, recap, or description before or after the marker. The component itself displays all the booking details visually.
-```
-
-Also update the `BLOCK_PROMPTS` for BOOKING_SUMMARY (line 692) to include:
-```
-Your ENTIRE response must be ONLY the [BOOKING_SUMMARY] marker. No text before or after. The component displays all details.
+TIME_SLOT: `Your ENTIRE response must be ONLY the [TIME_SLOT] marker. No text before or after.
+[TIME_SLOT]{"address_id": <number>, "car_ids": [<number>], "license_plate": "<string>", "sales_item_id": <number>}[/TIME_SLOT]
+Extract all IDs from previous steps (booking details, service selection, etc.).
+DO NOT call get_delivery_windows — the widget component fetches and displays time slots automatically.
+NEVER list delivery windows as text. The interactive component handles everything.`
 ```
 
----
+**Change B -- Update the TIME_SLOT section in the main system prompt** (around line 846-848):
 
-## Issue 3: Delivery Window Times Shown in UTC Instead of Local (Oslo) Time
+Add explicit instruction:
 
-**Root Cause:** The `TimeSlotBlock.tsx` `formatTime` function (line 12-14) simply slices the ISO string at position 11-16 to extract the time, which shows UTC times. The Noddi API returns delivery windows in UTC, but the actual times are for Oslo (Europe/Oslo, UTC+1/+2). For example, `06:00-11:00` UTC is actually `07:00-12:00` in Oslo.
-
-This also affects:
-- The submitted badge showing the selected time
-- The BookingSummaryBlock displaying the time
-- The BookingEditConfirmBlock displaying old/new times
-
-**Fix (changes in `src/widget/components/blocks/TimeSlotBlock.tsx`):**
-
-1. **Replace the `formatTime` helper** with a timezone-aware version that converts UTC ISO strings to `Europe/Oslo` local time:
-
-```typescript
-function formatTime(iso: string): string {
-  try {
-    const date = new Date(iso);
-    if (isNaN(date.getTime())) return iso.slice(11, 16);
-    return date.toLocaleTimeString('nb-NO', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false,
-      timeZone: 'Europe/Oslo',
-    });
-  } catch {
-    return iso.slice(11, 16);
-  }
-}
+```
+11. TIME SLOT -- show available time slots:
+Output ONLY this marker and NOTHING else in the message. The component fetches delivery windows automatically.
+[TIME_SLOT]{"address_id": 2860, "car_ids": [555], "license_plate": "EC94156", "sales_item_id": 60282}[/TIME_SLOT]
+Extract sales_item_id from the customer's service selection message.
+DO NOT call get_delivery_windows yourself. NEVER list time slots as plain text.
 ```
 
-2. **Also update `formatDate`** to use timezone-aware parsing so dates near midnight boundaries display correctly:
+**Change C -- Update the `change_time` action flow step instruction in the database** by running a SQL update:
 
-```typescript
-function formatDate(dateStr: string): string {
-  const d = new Date(dateStr + 'T12:00:00Z'); // noon UTC avoids date shifts
-  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', ...];
-  return `${days[d.getUTCDay()]} ${d.getUTCDate()} ${months[d.getUTCMonth()]}`;
-}
+Update step 2's instruction from "Show available delivery windows and let customer pick a new time" to something that clearly directs the AI to emit the marker:
+
+```sql
+UPDATE ai_action_flows
+SET flow_steps = '[
+  {"id":"step_1","type":"lookup","field":"booking","instruction":"Identify which booking the customer wants to change. Use their verified phone to look up pending bookings."},
+  {"id":"step_2","type":"collect","field":"time_slot","marker":"TIME_SLOT","instruction":"Emit the [TIME_SLOT] marker with the booking address_id and sales_item_ids from the booking details. The component will display available times automatically. Do NOT call get_delivery_windows."},
+  {"id":"step_3","type":"confirm","field":"edit","marker":"BOOKING_EDIT","instruction":"Confirm the time change with the customer"}
+]'::jsonb
+WHERE intent_key = 'change_time';
 ```
 
-3. **Update the `handleSlotSelect` callback** to store the Oslo-local formatted times in the payload (so the submitted badge and downstream BookingSummaryBlock show correct times).
+### File 2: No frontend changes needed
 
----
+The `TimeSlotBlock.tsx` already handles fetching and displaying delivery windows correctly (and with the Oslo timezone fix from the previous change).
 
-## Summary of Files Changed
+## Summary
 
-| File | Changes |
-|------|---------|
-| `supabase/functions/widget-ai-chat/index.ts` | Increase maxIterations to 8; language-aware fallback message; stronger BOOKING_SUMMARY prompt rules |
-| `src/widget/components/blocks/TimeSlotBlock.tsx` | Timezone-aware `formatTime` and `formatDate` using `Europe/Oslo` |
+| What | Where | Change |
+|------|-------|--------|
+| TIME_SLOT block prompt | Edge function, line ~689 | Add "ONLY marker, no text" and "do NOT call get_delivery_windows" |
+| TIME_SLOT system prompt section | Edge function, line ~846 | Add same strict rules as ADDRESS_SEARCH |
+| change_time flow step instruction | Database (ai_action_flows) | Clarify that step 2 should emit marker, not call tool |
 
-## Technical Details
-
-- The `Europe/Oslo` timezone is hardcoded because Noddi operates exclusively in Norway. All delivery windows from the API are UTC but represent Oslo-local service times.
-- The `toLocaleTimeString` with `timeZone` option is supported in all modern browsers and Deno.
-- The fallback in `formatTime` (plain slice) ensures graceful degradation if the ISO string is malformed.
-- Increasing `maxIterations` from 5 to 8 gives the change_time flow room for: lookup_customer (1) + get_booking_details (1) + get_delivery_windows (1) + potential retries = comfortably under 8.
-
+This ensures the AI emits the interactive time slot picker instead of listing windows as text, matching the behavior of other markers like ADDRESS_SEARCH and LICENSE_PLATE.
