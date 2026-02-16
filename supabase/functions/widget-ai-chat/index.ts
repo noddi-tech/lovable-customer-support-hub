@@ -513,6 +513,11 @@ function patchBookingInfo(reply: string, messages: any[]): string {
   
   if (!bookingData) return reply;
   console.log('[patchBookingInfo] CONTEXT-BASED trigger: found booking data in tool results, injecting [BOOKING_INFO]');
+  console.log('[patchBookingInfo] bookingData keys:', Object.keys(bookingData), 
+    'has car:', !!bookingData.car, 'has cars:', !!bookingData.cars,
+    'has vehicle:', !!bookingData.vehicle, 'has services:', !!bookingData.services,
+    'has order_lines:', !!bookingData.order_lines, 'has items:', !!bookingData.items,
+    'has sales_items:', !!bookingData.sales_items);
   
   // bookingData already extracted above
   
@@ -544,11 +549,11 @@ function patchBookingInfo(reply: string, messages: any[]): string {
       info.time = `${s.getHours().toString().padStart(2,'0')}:${s.getMinutes().toString().padStart(2,'0')}–${e.getHours().toString().padStart(2,'0')}:${e.getMinutes().toString().padStart(2,'0')}`;
     } catch { /* ignore */ }
   }
-  // Services: lookup_customer returns services[] as strings, get_booking_details returns sales_items
-  if (bookingData.services?.[0]) {
-    info.service = typeof bookingData.services[0] === 'string' ? bookingData.services[0] : bookingData.services[0].name;
-  } else if (bookingData.sales_items?.[0]?.name) {
-    info.service = bookingData.sales_items[0].name;
+   // Services: lookup_customer returns services[] as strings, get_booking_details returns sales_items/order_lines/items
+  const svcSource = bookingData.services || bookingData.order_lines || bookingData.items || bookingData.sales_items || [];
+  if (Array.isArray(svcSource) && svcSource.length > 0) {
+    const svcName = typeof svcSource[0] === 'string' ? svcSource[0] : (svcSource[0].service_name || svcSource[0].name || '');
+    if (svcName) info.service = svcName;
   }
   // Vehicle: lookup_customer returns vehicle as string, get_booking_details returns cars[], Noddi raw returns car object
   if (bookingData.vehicle) {
@@ -559,7 +564,8 @@ function patchBookingInfo(reply: string, messages: any[]): string {
     info.car = `${c.make || ''} ${c.model || ''} ${plate ? `(${plate})` : ''}`.trim();
   } else if (bookingData.cars?.[0]) {
     const car = bookingData.cars[0];
-    info.car = `${car.make || ''} ${car.model || ''} (${car.license_plate || ''})`.trim();
+    const plate = car.license_plate_number || car.license_plate || '';
+    info.car = `${car.make || ''} ${car.model || ''} ${plate ? `(${plate})` : ''}`.trim();
   }
   
   const infoMarker = `[BOOKING_INFO]${JSON.stringify(info)}[/BOOKING_INFO]`;
@@ -599,7 +605,8 @@ function patchBookingInfo(reply: string, messages: any[]): string {
 function patchActionMenu(reply: string, messages: any[]): string {
   // Only inject if BOOKING_INFO is present (meaning we're in booking context)
   // and there's no ACTION_MENU already
-  if (!reply.includes('[BOOKING_INFO]') || reply.includes('[ACTION_MENU]')) return reply;
+  const hasCompleteActionMenu = reply.includes('[ACTION_MENU]') && reply.includes('[/ACTION_MENU]');
+  if (!reply.includes('[BOOKING_INFO]') || hasCompleteActionMenu) return reply;
   
   // Check that we have booking data in tool results (confirms booking edit context)
   let hasBooking = false;
@@ -615,9 +622,11 @@ function patchActionMenu(reply: string, messages: any[]): string {
   }
   if (!hasBooking) return reply;
   
-  // Strip any YES_NO block and plain-text questions about changes
+  // Strip any YES_NO block, bare [ACTION_MENU] markers, and plain-text questions about changes
   let cleaned = reply;
   cleaned = cleaned.replace(/\[YES_NO\].*?\[\/YES_NO\]/gs, '');
+  // Remove bare/malformed [ACTION_MENU] without proper closing tag
+  cleaned = cleaned.replace(/\[ACTION_MENU\](?![\s\S]*?\[\/ACTION_MENU\])/g, '');
   cleaned = cleaned.replace(/^.*(?:Vil du endre|Hva ønsker du|What would you like|What do you want to change|Vil du gjøre endringer|Hva vil du).*$/gim, '');
   cleaned = cleaned.replace(/\n{3,}/g, '\n\n').trim();
   
@@ -988,20 +997,27 @@ async function executeLookupCustomer(phone?: string, email?: string): Promise<st
           scheduledAt: startFull,
           endTime: endFull,
           timeSlot: `${startHM}\u2013${endHM}`,
-          services: b.order_lines?.map((ol: any) => ol.service_name || ol.name).filter(Boolean) || [],
-          sales_item_ids: b.order_lines?.map((ol: any) => ol.sales_item_id || ol.id).filter(Boolean) || [],
-          address: (() => {
-            if (!b.address) return null;
-            if (typeof b.address === 'string') return b.address;
-            const sn = b.address.street_name || '';
-            const num = b.address.street_number || '';
-            const zip = b.address.zip_code || '';
-            const city = b.address.city || '';
-            return `${sn} ${num}, ${zip} ${city}`.replace(/\s+/g, ' ').trim().replace(/^,|,$/g, '').trim() || null;
+          services: (() => {
+            const lines = b.order_lines || b.items || b.sales_items || b.services || [];
+            if (Array.isArray(lines)) {
+              return lines.map((ol: any) => typeof ol === 'string' ? ol : (ol.service_name || ol.name || '')).filter(Boolean);
+            }
+            return [];
           })(),
-          address_id: b.address?.id || null,
-          vehicle: b.car ? `${b.car.make || ''} ${b.car.model || ''} (${b.car.license_plate_number || b.car.license_plate || ''})`.trim() : null,
-          car_id: b.car?.id || null,
+          sales_item_ids: (() => {
+            const lines = b.order_lines || b.items || b.sales_items || [];
+            if (Array.isArray(lines)) {
+              return lines.map((ol: any) => ol.sales_item_id || ol.id).filter(Boolean);
+            }
+            return [];
+          })(),
+          vehicle: (() => {
+            const c = b.car || (Array.isArray(b.cars) && b.cars[0]) || null;
+            if (!c) return null;
+            const plate = c.license_plate_number || c.license_plate || '';
+            return `${c.make || ''} ${c.model || ''} ${plate ? `(${plate})` : ''}`.trim() || null;
+          })(),
+          car_id: b.car?.id || (Array.isArray(b.cars) && b.cars[0]?.id) || null,
           car_ids: Array.isArray(b.cars) ? b.cars.map((c: any) => c.id).filter(Boolean) : (b.car?.id ? [b.car.id] : []),
           license_plate: b.car?.license_plate_number || b.car?.license_plate || (Array.isArray(b.cars) && b.cars[0] ? (b.cars[0].license_plate_number || b.cars[0].license_plate || '') : ''),
         };
