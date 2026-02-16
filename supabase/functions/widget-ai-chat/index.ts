@@ -409,6 +409,9 @@ function patchYesNo(reply: string): string {
   const otherMarkers = ['[ACTION_MENU]', '[TIME_SLOT]', '[BOOKING_EDIT]', '[BOOKING_SUMMARY]', '[SERVICE_SELECT]', '[PHONE_VERIFY]', '[ADDRESS_SEARCH]', '[LICENSE_PLATE]'];
   if (otherMarkers.some(m => reply.includes(m))) return reply;
 
+  // NEW: Skip if the question mentions multiple booking edit options — these are multi-choice, not binary
+  if (/(?:tidspunkt|adresse|bil).*(?:tidspunkt|adresse|bil)/is.test(reply)) return reply;
+
   // Common Norwegian/English confirmation patterns
   const patterns = [
     /Er dette bestillingen du ønsker å endre\??/i,
@@ -483,19 +486,8 @@ function patchBookingInfo(reply: string, messages: any[]): string {
   // If already contains BOOKING_INFO marker, skip
   if (reply.includes('[BOOKING_INFO]')) return reply;
   
-  // BROAD TRIGGER: If reply has [ACTION_MENU] and conversation has booking data,
-  // always inject [BOOKING_INFO] — the AI should never show booking context as plain text
-  const hasActionMenu = reply.includes('[ACTION_MENU]');
-  
-  // Detect plain-text booking details (label-based AND natural language)
-  const hasPlainTextDetails = /Adresse\s*:|Dato\s*:|Tid\s*:|bestilling\s+den|planlagt\s+bestilling|har\s+en\s+bestilling|din\s+bestilling/i.test(reply);
-  // Detect "couldn't access details" failure messages
-  const hasFailureMsg = /ikke fikk tilgang|couldn't access|ikke finne detalj|kunne ikke hente/i.test(reply);
-  
-  // Trigger if: has ACTION_MENU (booking edit flow), OR plain text details, OR failure message
-  if (!hasActionMenu && !hasPlainTextDetails && !hasFailureMsg) return reply;
-  
-  // Try to extract booking info from tool results (both lookup_customer and get_booking_details shapes)
+  // CONTEXT-BASED: Check if ANY tool result has booking data
+  // This fires regardless of what the AI wrote in its reply — no more regex whack-a-mole
   let bookingData: any = null;
   for (let i = messages.length - 1; i >= 0; i--) {
     const msg = messages[i];
@@ -504,11 +496,16 @@ function patchBookingInfo(reply: string, messages: any[]): string {
         const toolResult = JSON.parse(msg.content);
         if (toolResult.booking) { bookingData = toolResult.booking; break; }
         if (toolResult.bookings?.[0]) { bookingData = toolResult.bookings[0]; break; }
+        // Direct get_booking_details shape (has .id and .scheduledAt at top level)
+        if (toolResult.id && toolResult.scheduledAt) { bookingData = toolResult; break; }
       } catch { /* not JSON */ }
     }
   }
   
   if (!bookingData) return reply;
+  console.log('[patchBookingInfo] CONTEXT-BASED trigger: found booking data in tool results, injecting [BOOKING_INFO]');
+  
+  // bookingData already extracted above
   
   // Build BOOKING_INFO marker from actual data (handle both lookup_customer and get_booking_details field shapes)
   const info: any = {};
@@ -582,6 +579,40 @@ function patchBookingInfo(reply: string, messages: any[]): string {
   }
   
   console.log('[patchBookingInfo] Auto-wrapped booking details into [BOOKING_INFO]');
+  return cleaned;
+}
+
+// ========== Post-processor: auto-inject [ACTION_MENU] when booking context is present ==========
+function patchActionMenu(reply: string, messages: any[]): string {
+  // Only inject if BOOKING_INFO is present (meaning we're in booking context)
+  // and there's no ACTION_MENU already
+  if (!reply.includes('[BOOKING_INFO]') || reply.includes('[ACTION_MENU]')) return reply;
+  
+  // Check that we have booking data in tool results (confirms booking edit context)
+  let hasBooking = false;
+  for (let i = messages.length - 1; i >= 0; i--) {
+    if (messages[i].role === 'tool') {
+      try {
+        const r = JSON.parse(messages[i].content);
+        if (r.bookings?.[0] || r.booking || (r.id && r.scheduledAt)) {
+          hasBooking = true; break;
+        }
+      } catch {}
+    }
+  }
+  if (!hasBooking) return reply;
+  
+  // Strip any YES_NO block and plain-text questions about changes
+  let cleaned = reply;
+  cleaned = cleaned.replace(/\[YES_NO\].*?\[\/YES_NO\]/gs, '');
+  cleaned = cleaned.replace(/^.*(?:Vil du endre|Hva ønsker du|What would you like|What do you want to change|Vil du gjøre endringer|Hva vil du).*$/gim, '');
+  cleaned = cleaned.replace(/\n{3,}/g, '\n\n').trim();
+  
+  // Append ACTION_MENU with standard booking edit options
+  const menu = `\n\n[ACTION_MENU]\nEndre tidspunkt\nEndre adresse\nEndre bil\nLegg til tjenester\nAvbestille bestilling\n[/ACTION_MENU]`;
+  cleaned += menu;
+  
+  console.log('[patchActionMenu] Injected [ACTION_MENU] after [BOOKING_INFO]');
   return cleaned;
 }
 
@@ -1712,9 +1743,10 @@ Deno.serve(async (req) => {
         const rawReply = assistantMessage.content || 'I apologize, I was unable to generate a response.';
         let reply = await patchBookingSummary(rawReply, currentMessages, visitorPhone, visitorEmail);
         reply = await patchBookingEdit(reply, currentMessages, visitorPhone, visitorEmail);
-        reply = patchYesNo(reply);
         reply = patchBookingConfirmed(reply, currentMessages);
         reply = patchBookingInfo(reply, currentMessages);
+        reply = patchActionMenu(reply, currentMessages);
+        reply = patchYesNo(reply);
 
         // Save assistant reply & update conversation meta
         const savedMessageId = await saveMessage(supabase, dbConversationId, 'assistant', reply, allToolsUsed);
@@ -1820,9 +1852,10 @@ Deno.serve(async (req) => {
           console.log('[widget-ai-chat] Final forced-text response obtained, length:', finalContent.length);
           let reply = await patchBookingSummary(finalContent, currentMessages, visitorPhone, visitorEmail);
           reply = await patchBookingEdit(reply, currentMessages, visitorPhone, visitorEmail);
-          reply = patchYesNo(reply);
           reply = patchBookingConfirmed(reply, currentMessages);
           reply = patchBookingInfo(reply, currentMessages);
+          reply = patchActionMenu(reply, currentMessages);
+          reply = patchYesNo(reply);
 
           const savedMessageId = await saveMessage(supabase, dbConversationId, 'assistant', reply, allToolsUsed);
           await updateConversationMeta(supabase, dbConversationId, allToolsUsed);
