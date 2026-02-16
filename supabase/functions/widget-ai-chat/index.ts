@@ -482,17 +482,21 @@ async function saveErrorDetails(supabase: any, conversationId: string | null, er
 function patchBookingInfo(reply: string, messages: any[]): string {
   // If already contains BOOKING_INFO marker, skip
   if (reply.includes('[BOOKING_INFO]')) return reply;
-  // If doesn't contain ACTION_MENU, skip (this is specific to the edit flow)
-  if (!reply.includes('[ACTION_MENU]')) return reply;
   
   // Detect plain-text booking details patterns
   const hasAddress = /(?:📍\s*)?Adresse\s*:/i.test(reply);
   const hasDate = /(?:📅\s*)?Dato\s*:/i.test(reply);
   const hasTime = /(?:🕐\s*)?Tid\s*:/i.test(reply);
+  // Detect "couldn't access details" failure messages
+  const hasFailureMsg = /ikke fikk tilgang|couldn't access|ikke finne detalj|kunne ikke hente/i.test(reply);
   
-  if (!hasAddress && !hasDate && !hasTime) return reply;
+  const hasPlainTextDetails = hasAddress || hasDate || hasTime;
   
-  // Try to extract booking info from tool results
+  // Trigger if: plain text details with ACTION_MENU, OR failure message detected
+  if (!hasPlainTextDetails && !hasFailureMsg) return reply;
+  if (hasPlainTextDetails && !reply.includes('[ACTION_MENU]')) return reply;
+  
+  // Try to extract booking info from tool results (both lookup_customer and get_booking_details shapes)
   let bookingData: any = null;
   for (let i = messages.length - 1; i >= 0; i--) {
     const msg = messages[i];
@@ -507,34 +511,51 @@ function patchBookingInfo(reply: string, messages: any[]): string {
   
   if (!bookingData) return reply;
   
-  // Build BOOKING_INFO marker from actual data
+  // Build BOOKING_INFO marker from actual data (handle both lookup_customer and get_booking_details field shapes)
   const info: any = {};
   if (bookingData.id) info.booking_id = bookingData.id;
-  if (bookingData.address?.address || bookingData.address) {
-    info.address = typeof bookingData.address === 'string' ? bookingData.address : bookingData.address.address || '';
+  // Address: lookup_customer returns string, get_booking_details may return object
+  if (bookingData.address) {
+    info.address = typeof bookingData.address === 'string' ? bookingData.address : (bookingData.address.address || bookingData.address.full_address || '');
   }
-  if (bookingData.start_time) {
+  // Date: lookup_customer returns scheduledAt (formatted), get_booking_details returns start_time
+  if (bookingData.scheduledAt) {
+    // Already formatted by toOsloTime, extract just the date part
+    const datePart = bookingData.scheduledAt.split(',')[0] || bookingData.scheduledAt;
+    info.date = datePart.trim();
+  } else if (bookingData.start_time) {
     try {
       const d = new Date(bookingData.start_time);
       info.date = d.toLocaleDateString('nb-NO', { day: 'numeric', month: 'short', year: 'numeric' });
     } catch { /* ignore */ }
   }
-  if (bookingData.start_time && bookingData.end_time) {
+  // Time: lookup_customer returns timeSlot (pre-formatted range), get_booking_details returns start_time/end_time
+  if (bookingData.timeSlot) {
+    info.time = bookingData.timeSlot;
+  } else if (bookingData.start_time && bookingData.end_time) {
     try {
       const s = new Date(bookingData.start_time);
       const e = new Date(bookingData.end_time);
       info.time = `${s.getHours().toString().padStart(2,'0')}:${s.getMinutes().toString().padStart(2,'0')}–${e.getHours().toString().padStart(2,'0')}:${e.getMinutes().toString().padStart(2,'0')}`;
     } catch { /* ignore */ }
   }
-  if (bookingData.sales_items?.[0]?.name) info.service = bookingData.sales_items[0].name;
-  if (bookingData.cars?.[0]) {
+  // Services: lookup_customer returns services[] as strings, get_booking_details returns sales_items
+  if (bookingData.services?.[0]) {
+    info.service = typeof bookingData.services[0] === 'string' ? bookingData.services[0] : bookingData.services[0].name;
+  } else if (bookingData.sales_items?.[0]?.name) {
+    info.service = bookingData.sales_items[0].name;
+  }
+  // Vehicle: lookup_customer returns vehicle as string, get_booking_details returns cars[]
+  if (bookingData.vehicle) {
+    info.car = typeof bookingData.vehicle === 'string' ? bookingData.vehicle : `${bookingData.vehicle.make || ''} ${bookingData.vehicle.model || ''} (${bookingData.vehicle.licensePlate || ''})`.trim();
+  } else if (bookingData.cars?.[0]) {
     const car = bookingData.cars[0];
     info.car = `${car.make || ''} ${car.model || ''} (${car.license_plate || ''})`.trim();
   }
   
   const infoMarker = `[BOOKING_INFO]${JSON.stringify(info)}[/BOOKING_INFO]`;
   
-  // Remove the plain-text lines and inject the marker before [ACTION_MENU]
+  // Remove the plain-text lines and inject the marker
   let cleaned = reply;
   // Remove lines that look like bullet-point booking details
   cleaned = cleaned.replace(/^[\s-]*(?:📍\s*)?Adresse\s*:.*$/gim, '');
@@ -543,18 +564,23 @@ function patchBookingInfo(reply: string, messages: any[]): string {
   cleaned = cleaned.replace(/^[\s-]*(?:🛠️?\s*)?Tjeneste\s*:.*$/gim, '');
   cleaned = cleaned.replace(/^[\s-]*(?:🚗\s*)?Bil\s*:.*$/gim, '');
   cleaned = cleaned.replace(/^[\s-]*(?:💰\s*)?Pris\s*:.*$/gim, '');
+  // Remove "couldn't access" failure messages
+  cleaned = cleaned.replace(/^.*(?:ikke fikk tilgang|couldn't access|ikke finne detalj|kunne ikke hente).*$/gim, '');
   // Remove "Her er din bestilling:" type intro lines
   cleaned = cleaned.replace(/^.*(?:Her er|bestilling|detaljer).*:?\s*$/gim, '');
   // Clean up excessive whitespace
   cleaned = cleaned.replace(/\n{3,}/g, '\n\n').trim();
   
-  // Insert BOOKING_INFO before ACTION_MENU
+  // Insert BOOKING_INFO before ACTION_MENU if present, otherwise prepend
   const actionIdx = cleaned.indexOf('[ACTION_MENU]');
   if (actionIdx > -1) {
     cleaned = cleaned.slice(0, actionIdx) + infoMarker + '\n\n' + cleaned.slice(actionIdx);
+  } else {
+    // No ACTION_MENU — prepend the booking info and add a helpful prompt
+    cleaned = infoMarker + '\n\n' + (cleaned || 'Hva ønsker du å gjøre med denne bestillingen?');
   }
   
-  console.log('[patchBookingInfo] Auto-wrapped plain-text booking details into [BOOKING_INFO]');
+  console.log('[patchBookingInfo] Auto-wrapped booking details into [BOOKING_INFO]');
   return cleaned;
 }
 
@@ -868,6 +894,7 @@ async function executeGetBookingDetails(bookingId: number): Promise<string> {
     });
 
     if (!resp.ok) {
+      console.error(`[executeGetBookingDetails] Failed for booking_id=${bookingId}: status=${resp.status}`);
       return JSON.stringify({ error: resp.status === 404 ? 'Booking not found' : `Booking lookup failed (${resp.status})` });
     }
 
@@ -1204,7 +1231,7 @@ CRITICAL: Your ENTIRE response must be ONLY the [BOOKING_SUMMARY] marker with va
 13. BOOKING EDIT — show a confirmation card for EDITING an existing booking:
 Your ENTIRE response must be ONLY the [BOOKING_EDIT] marker. No text before or after.
 [BOOKING_EDIT]{"booking_id": <REAL_BOOKING_ID>, "changes": {"time": "14:00–17:00", "old_time": "08:00–11:00", "date": "17. feb 2026", "old_date": "16. feb 2026", "delivery_window_id": 99999, "delivery_window_start": "2026-02-16T13:00:00Z", "delivery_window_end": "2026-02-16T16:00:00Z"}}[/BOOKING_EDIT]
-⚠️ CRITICAL: Use the EXACT booking_id returned by get_booking_details. NEVER use placeholder values like 12345.
+⚠️ CRITICAL: Use the EXACT booking_id from the lookup_customer result. NEVER use placeholder values like 12345 or 56789.
 ⚠️ ALWAYS include date/old_date when changing time slots.
 IMPORTANT: When showing [BOOKING_EDIT] for time changes, you MUST include delivery_window_id, delivery_window_start (ISO), and delivery_window_end (ISO) from the customer's [TIME_SLOT] selection.
 
@@ -1214,12 +1241,12 @@ After a booking is successfully created (via [BOOKING_SUMMARY] confirm), output 
 
 15. BOOKING INFO — show a read-only info card for current booking details:
 When presenting the customer's current booking details before asking what they want to change, use this marker instead of bullet points or plain text lists.
-[BOOKING_INFO]{"booking_id": 56789, "address": "Slemdalsvingen 65, 0374 Oslo", "date": "17. feb 2026", "time": "07:00–12:00", "service": "Dekkskift", "car": "Tesla Model Y (EC94156)"}[/BOOKING_INFO]
+[BOOKING_INFO]{"booking_id": <REAL_ID>, "address": "<address>", "date": "<date>", "time": "<timeSlot>", "service": "<service>", "car": "<car>"}[/BOOKING_INFO]
 ⚠️ NEVER list booking details as plain text bullet points. ALWAYS use [BOOKING_INFO] when showing a customer their current booking.
 
 BOOKING EDIT FLOW:
 When a customer wants to modify an existing booking:
-1. Use get_booking_details to fetch the current booking. Remember the REAL booking_id from the result.
+1. The booking details are ALREADY available from the lookup_customer result in this conversation. Do NOT call get_booking_details — the data (id, address, date, timeSlot, services, vehicle) is already present. Use it directly.
 2. If the customer has only ONE active booking, present its details using [BOOKING_INFO]{"booking_id": <id>, "address": "<addr>", "date": "<date>", "time": "<time>", "service": "<service>", "car": "<car>"}[/BOOKING_INFO] then ask what they want to change using [ACTION_MENU].
    ⚠️ ABSOLUTE RULE: Your response MUST contain the [BOOKING_INFO] marker. NEVER list address/date/time as plain text bullet points (Adresse:, Dato:, Tid:, Tjeneste:, Bil:). The [BOOKING_INFO] component renders a styled card.
 3. If multiple bookings, ask which one using [ACTION_MENU] with booking options.
