@@ -30,11 +30,15 @@ export function EmailForwardingSetupStep({
   
   const { 
     getConfiguredDomain, 
+    getDomainByName,
     generateForwardingAddress, 
+    extractDomainFromEmail,
     isLoading: domainsLoading 
   } = useDomainConfiguration();
 
-  const configuredDomain = getConfiguredDomain();
+  const emailDomain = extractDomainFromEmail(publicEmail);
+  const matchingDomain = emailDomain ? getDomainByName(emailDomain) : null;
+  const configuredDomain = matchingDomain || getConfiguredDomain();
 
   // Generate forwarding address when email changes
   useEffect(() => {
