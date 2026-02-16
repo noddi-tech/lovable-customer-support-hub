@@ -1048,6 +1048,16 @@ When a customer wants to modify an existing booking:
 2. If the customer has only ONE active booking, skip confirmation and ask what they want to change using [ACTION_MENU].
 3. If multiple bookings, ask which one using [ACTION_MENU] with booking options.
 4. ⚠️ ABSOLUTE RULE: NEVER ask plain text yes/no questions. When asking "Do you want to change X?", "Ønsker du å endre X?", or ANY binary question, you MUST use [YES_NO] marker. NEVER write these as plain text.
+
+⚠️ CRITICAL — ACTION MENU SELECTIONS:
+When the customer selects an option from [ACTION_MENU] (e.g., "Endre tid", "Endre adresse"), you ALREADY have the booking details from the earlier lookup_customer or get_booking_details call in this conversation. Do NOT call get_booking_details again. Use the data already in the conversation context.
+
+For "Endre tid" / time change selection:
+- Extract address_id, car_ids, license_plate, and sales_item_id from the booking data ALREADY in the conversation.
+- Emit the [TIME_SLOT] marker immediately. Do NOT call get_delivery_windows.
+- If you truly cannot find the required IDs in the conversation, call get_booking_details ONCE, then emit [TIME_SLOT].
+- NEVER call get_booking_details more than once per conversation.
+
 5. For TIME changes: you MUST emit the [TIME_SLOT] marker with the booking's address_id, car_ids, license_plate, and first sales_item_id:
    [TIME_SLOT]{"address_id": <booking_address_id>, "car_ids": [<booking_car_ids>], "license_plate": "<booking_license_plate>", "sales_item_id": <first_sales_item_id>}[/TIME_SLOT]
    Output ONLY the marker, nothing else. After the customer selects a new time from [TIME_SLOT], your ENTIRE next response must be ONLY the [BOOKING_EDIT] marker with the old and new values as JSON. Do NOT write any introductory text, recap, or ask for text confirmation. Go directly to [BOOKING_EDIT].
@@ -1383,6 +1393,7 @@ Deno.serve(async (req) => {
     let currentMessages = [...conversationMessages];
     let maxIterations = 8;
     const allToolsUsed: string[] = [];
+    const toolCallCounts: Record<string, number> = {};
 
     while (maxIterations > 0) {
       maxIterations--;
@@ -1452,12 +1463,25 @@ Deno.serve(async (req) => {
       // Execute tool calls
       currentMessages.push(assistantMessage);
 
+      // Track tool call counts to prevent infinite loops
+      let loopBroken = false;
       for (const toolCall of assistantMessage.tool_calls) {
+        const toolName = toolCall.function.name;
+        toolCallCounts[toolName] = (toolCallCounts[toolName] || 0) + 1;
+
+        console.log(`[widget-ai-chat] Tool iteration ${8 - maxIterations}, calling: ${toolName}(${toolCall.function.arguments})`);
+
+        if (toolCallCounts[toolName] >= 3) {
+          console.warn(`[widget-ai-chat] Tool ${toolName} called ${toolCallCounts[toolName]} times, breaking loop to prevent infinite cycling`);
+          loopBroken = true;
+          break;
+        }
+
         const args = JSON.parse(toolCall.function.arguments);
-        allToolsUsed.push(toolCall.function.name);
+        allToolsUsed.push(toolName);
 
         const result = await executeTool(
-          toolCall.function.name, args, organizationId, supabase, OPENAI_API_KEY,
+          toolName, args, organizationId, supabase, OPENAI_API_KEY,
           visitorPhone, visitorEmail,
         );
 
@@ -1467,6 +1491,7 @@ Deno.serve(async (req) => {
           tool_call_id: toolCall.id,
         });
       }
+      if (loopBroken) break;
     }
 
     // Exhausted iterations
