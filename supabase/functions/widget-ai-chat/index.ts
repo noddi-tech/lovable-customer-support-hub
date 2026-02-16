@@ -466,7 +466,7 @@ function patchBookingEdit(reply: string, messages: any[]): string {
   let editData: any;
   try { editData = JSON.parse(jsonStr); } catch { return reply; }
 
-  // ALWAYS try to extract the real booking ID from lookup_customer results
+  // ALWAYS try to extract the real booking ID from lookup_customer / get_booking_details results
   // The AI frequently confuses car_ids and delivery_window_ids with booking_ids
   let realBookingId: number | null = null;
   for (let i = messages.length - 1; i >= 0; i--) {
@@ -484,9 +484,40 @@ function patchBookingEdit(reply: string, messages: any[]): string {
           realBookingId = toolResult.bookings[0].id;
           break;
         }
+        // Direct id field (some tool responses)
+        if (toolResult.id && typeof toolResult.id === 'number' && toolResult.id > 100) {
+          realBookingId = toolResult.id;
+          break;
+        }
       } catch { /* not JSON */ }
     }
   }
+
+  // Fallback: if we still have no real ID and the AI-provided one looks wrong, do fresh lookup
+  if (!realBookingId && (!editData.booking_id || editData.booking_id <= 0)) {
+    console.log('[patchBookingEdit] No booking_id found in history, attempting fresh customer lookup');
+    // Extract visitor phone/email from system messages in conversation
+    let fallbackPhone = '';
+    let fallbackEmail = '';
+    for (const msg of messages) {
+      if (msg.role === 'system' && typeof msg.content === 'string') {
+        const phoneMatch = msg.content.match(/phone:\s*(\+?\d[\d\s-]+)/);
+        const emailMatch = msg.content.match(/email:\s*(\S+@\S+)/);
+        if (phoneMatch) fallbackPhone = phoneMatch[1].trim();
+        if (emailMatch) fallbackEmail = emailMatch[1].trim();
+      }
+    }
+    if (fallbackPhone || fallbackEmail) {
+      try {
+        const lookupResult = JSON.parse(await executeLookupCustomer(fallbackPhone, fallbackEmail));
+        if (lookupResult.bookings?.length > 0) {
+          realBookingId = lookupResult.bookings[0].id;
+          console.log('[patchBookingEdit] Fresh lookup found booking_id:', realBookingId);
+        }
+      } catch (e) { console.error('[patchBookingEdit] Fresh lookup failed:', e); }
+    }
+  }
+
   if (realBookingId && realBookingId !== editData.booking_id) {
     console.log('[patchBookingEdit] Overriding AI booking_id', editData.booking_id, 'with real:', realBookingId);
     editData.booking_id = realBookingId;
@@ -1093,10 +1124,15 @@ IMPORTANT: When showing [BOOKING_EDIT] for time changes, you MUST include delive
 After a booking is successfully created (via [BOOKING_SUMMARY] confirm), output ONLY this marker with the booking details. Do NOT list details as a bullet list.
 [BOOKING_CONFIRMED]{"booking_id": 12345, "booking_number": "B-12345", "service": "Dekkskift", "address": "Holtet 45, Oslo", "car": "Tesla Model Y (EC94156)", "date": "16. feb 2026", "time": "08:00–11:00", "price": "699 kr"}[/BOOKING_CONFIRMED]
 
+15. BOOKING INFO — show a read-only info card for current booking details:
+When presenting the customer's current booking details before asking what they want to change, use this marker instead of bullet points or plain text lists.
+[BOOKING_INFO]{"booking_id": 56789, "address": "Slemdalsvingen 65, 0374 Oslo", "date": "17. feb 2026", "time": "07:00–12:00", "service": "Dekkskift", "car": "Tesla Model Y (EC94156)"}[/BOOKING_INFO]
+⚠️ NEVER list booking details as plain text bullet points. ALWAYS use [BOOKING_INFO] when showing a customer their current booking.
+
 BOOKING EDIT FLOW:
 When a customer wants to modify an existing booking:
 1. Use get_booking_details to fetch the current booking. Remember the REAL booking_id from the result.
-2. If the customer has only ONE active booking, skip confirmation and ask what they want to change using [ACTION_MENU].
+2. If the customer has only ONE active booking, show their booking using [BOOKING_INFO] and ask what they want to change using [ACTION_MENU].
 3. If multiple bookings, ask which one using [ACTION_MENU] with booking options.
     4. ⚠️ ABSOLUTE RULE: NEVER ask plain text yes/no questions. When asking "Do you want to change X?", "Ønsker du å endre X?", "Er dette bestillingen du ønsker å endre?", or ANY binary question, you MUST use [YES_NO] marker. NEVER write these as plain text.
     Example — WRONG: "Er dette bestillingen du ønsker å endre?"
@@ -1114,7 +1150,8 @@ For "Endre tid" / time change selection:
 
 5. For TIME changes: you MUST emit the [TIME_SLOT] marker with the booking's address_id, car_ids, license_plate, and first sales_item_id:
    [TIME_SLOT]{"address_id": <booking_address_id>, "car_ids": [<booking_car_ids>], "license_plate": "<booking_license_plate>", "sales_item_id": <first_sales_item_id>}[/TIME_SLOT]
-   Output ONLY the marker, nothing else. After the customer selects a new time from [TIME_SLOT], your ENTIRE next response must be ONLY the [BOOKING_EDIT] marker with the old and new values as JSON. Do NOT write any introductory text, recap, or ask for text confirmation. Go directly to [BOOKING_EDIT].
+   Output ONLY the marker, nothing else.
+   ⚠️ ABSOLUTE RULE: After the customer selects a new time from [TIME_SLOT], your ENTIRE next response must be ONLY the [BOOKING_EDIT] marker. NEVER ask "Er dette tidspunktet du ønsker?" or any YES_NO confirmation. Go DIRECTLY to [BOOKING_EDIT] with the old and new values. The [BOOKING_EDIT] component itself has Confirm/Cancel buttons.
 6. For ADDRESS changes: emit [ADDRESS_SEARCH]
 7. For SERVICE changes: emit [SERVICE_SELECT]
 8. After collecting the new value, your ENTIRE next response must be ONLY the [BOOKING_EDIT] marker with old and new values as JSON. No text before or after.

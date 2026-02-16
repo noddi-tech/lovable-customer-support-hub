@@ -13,6 +13,7 @@ import './TimeSlotBlock';
 import './BookingSummaryBlock';
 import './BookingEditConfirmBlock';
 import './BookingConfirmedBlock';
+import './BookingInfoBlock';
 
 // Re-export registry for convenience
 export { getBlock, getAllBlocks, getBlockForFieldType, getBlockForNodeType, registerBlock } from './registry';
