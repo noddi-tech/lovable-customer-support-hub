@@ -1,71 +1,73 @@
 
 
-# Fix: Support Multiple Domains (noddi.no + dekkfix.no)
+# Auto-configure SendGrid domain in the Add Email wizard
 
-## Current Situation
+## Problem
 
-The code changes from the last fix are correct -- the wizard now tries to match the domain from the email input. However, `dekkfix.no` doesn't exist in the `email_domains` database table. Only `noddi.no` is configured. So `getDomainByName('dekkfix.no')` returns nothing, and it falls back to `noddi.no`.
+When a user enters an email like `hei@dekkfix.no` in the "Add Email" wizard, the system only creates an `inbound_routes` record. It does NOT call the `sendgrid-setup` edge function to actually configure the domain in SendGrid (parse route, sender authentication, DNS records). This means emails sent to `hei@inbound.dekkfix.no` won't actually be received.
 
-The alert misleadingly says "Domain **noddi.no** is configured and ready!" even though the user typed `hei@dekkfix.no`.
+Currently, users must separately go to the "Email Domain Setup (SendGrid)" section and manually enter the domain there first. This is confusing and not intuitive.
 
-## Plan
+## Solution
 
-### 1. Add `dekkfix.no` domain to the database
+When the wizard detects that the email's domain is not yet configured (no matching `email_domains` record, or status is `pending` without DNS verified), it should automatically call `sendgrid-setup` to configure it before creating the inbound route. It should also show the user any DNS records they need to add.
 
-Insert a new `email_domains` record for `dekkfix.no` with the same organization, using `inbound` as the parse subdomain (same pattern as noddi.no):
+## Technical Changes
 
-```sql
-INSERT INTO email_domains (domain, parse_subdomain, organization_id, provider, status)
-VALUES ('dekkfix.no', 'inbound', 'b9b4df82-2b89-4a64-b2a3-5e19c0e8d43b', 'sendgrid', 'pending');
-```
+### File 1: `src/components/admin/wizard/GoogleGroupSetupStep.tsx`
 
-**Note:** After adding this, you'll also need to configure the DNS records for `dekkfix.no` (MX record for `inbound.dekkfix.no` pointing to `mx.sendgrid.net`) in your DNS provider and in SendGrid. Without this, emails forwarded to `hei@inbound.dekkfix.no` won't actually be received.
+In the `createInboundRoute` function (around line 75), before creating the route:
 
-### 2. Fix the domain status alert to avoid confusion
-
-Update `GoogleGroupSetupStep.tsx` and `EmailForwardingSetupStep.tsx` so the alert message distinguishes between:
-- **Matching domain found**: "Domain **dekkfix.no** is configured and ready!" (correct domain)
-- **Falling back to different domain**: "Domain **dekkfix.no** is not yet configured. Using **noddi.no** as fallback." (warns the user)
-- **No domain at all**: "Domain configuration required. Contact support."
-
-This way, when no matching domain exists, the user sees the fallback warning instead of a false success message.
-
-## Technical Details
-
-### File 1: `src/components/admin/wizard/GoogleGroupSetupStep.tsx` (lines 167-183)
-
-Update the domain status alert to check whether the displayed domain matches the email's domain:
+1. Check if `matchingDomain` exists and has status `active`
+2. If not, call the `sendgrid-setup` edge function with the email's domain and `inbound` as parse subdomain
+3. Show the DNS records returned (MX + sender auth CNAMEs) in a new section below the route creation
+4. Still create the inbound route so the system is ready once DNS propagates
 
 ```typescript
-{publicEmail && emailDomain && !domainsLoading && (
-  <Alert className={matchingDomain ? "border-success/50 bg-success/5" : configuredDomain ? "border-warning/50 bg-warning/5" : "border-destructive/50 bg-destructive/5"}>
-    {matchingDomain ? (
-      <CheckCircle2 className="h-4 w-4 text-success" />
-    ) : (
-      <AlertCircle className="h-4 w-4 text-warning" />
-    )}
-    <AlertDescription>
-      {matchingDomain ? (
-        <span>Domain <strong>{matchingDomain.domain}</strong> is configured and ready!</span>
-      ) : configuredDomain ? (
-        <span>Domain <strong>{emailDomain}</strong> is not configured yet. Falling back to <strong>{configuredDomain.domain}</strong>.</span>
-      ) : (
-        <span>Domain <strong>{emailDomain}</strong> is not configured. Contact support to set it up.</span>
-      )}
-    </AlertDescription>
-  </Alert>
-)}
+// Before creating the route, ensure domain is configured in SendGrid
+if (!matchingDomain || matchingDomain.status !== 'active') {
+  const { data: setupResult, error: setupError } = await supabase.functions.invoke('sendgrid-setup', {
+    body: { domain: emailDomain, parse_subdomain: 'inbound' },
+  });
+  if (setupError) {
+    toast.error('Failed to configure domain in SendGrid: ' + setupError.message);
+    return;
+  }
+  // Store DNS records to display to user
+  setDnsRecords(setupResult?.dns_records || null);
+  setSendgridSetupResult(setupResult);
+}
 ```
+
+Add new state variables:
+```typescript
+const [dnsRecords, setDnsRecords] = useState<any>(null);
+const [sendgridSetupResult, setSendgridSetupResult] = useState<any>(null);
+```
+
+Add a new UI section after route creation showing DNS records the user needs to add (MX record + any CNAME records for sender authentication), similar to what `SendgridSetupWizard.tsx` shows.
 
 ### File 2: `src/components/admin/wizard/EmailForwardingSetupStep.tsx`
 
-Same alert logic update as above.
+Same changes as above -- call `sendgrid-setup` when the domain isn't configured, and display DNS records.
+
+### No edge function changes needed
+
+The `sendgrid-setup` edge function already handles everything: creating sender auth, creating parse routes, upserting `email_domains` records. We just need to call it from the wizard.
+
+## What the user will see
+
+1. Enter `hei@dekkfix.no` in the wizard
+2. Click "Set Up Forwarding Route"
+3. The wizard automatically calls SendGrid to configure `dekkfix.no`
+4. A section appears showing DNS records to add (MX record for `inbound.dekkfix.no` and any sender auth CNAMEs)
+5. The forwarding route is created
+6. User adds DNS records and email starts flowing
 
 ## Summary
 
-| # | Change | Details |
-|---|--------|---------|
-| 1 | Add dekkfix.no domain | SQL insert into `email_domains` table (+ DNS setup needed) |
-| 2 | Fix alert in GoogleGroupSetupStep | Show fallback warning when using a different domain |
-| 3 | Fix alert in EmailForwardingSetupStep | Same fallback warning |
+| File | Change |
+|------|--------|
+| `GoogleGroupSetupStep.tsx` | Auto-call `sendgrid-setup` for unconfigured domains, show DNS records |
+| `EmailForwardingSetupStep.tsx` | Same auto-setup and DNS display |
 
