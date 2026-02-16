@@ -495,6 +495,9 @@ function patchBookingInfo(reply: string, messages: any[]): string {
   // If already contains BOOKING_INFO marker, skip
   if (reply.includes('[BOOKING_INFO]')) return reply;
   if (reply.includes('[BOOKING_CONFIRMED]')) return reply;
+  // Skip during active edit sub-flows to prevent cluttered UI
+  const activeFlowMarkers = ['[TIME_SLOT]', '[BOOKING_EDIT]', '[ADDRESS_SEARCH]', '[LICENSE_PLATE]', '[SERVICE_SELECT]', '[BOOKING_SUMMARY]'];
+  if (activeFlowMarkers.some(m => reply.includes(m))) return reply;
   
   // CONTEXT-BASED: Check if ANY tool result has booking data
   // This fires regardless of what the AI wrote in its reply — no more regex whack-a-mole
@@ -575,11 +578,11 @@ function patchBookingInfo(reply: string, messages: any[]): string {
     info.car = typeof bookingData.vehicle === 'string' ? bookingData.vehicle : `${bookingData.vehicle.make || ''} ${bookingData.vehicle.model || ''} (${bookingData.vehicle.licensePlate || ''})`.trim();
   } else if (bookingData.car && typeof bookingData.car === 'object') {
     const c = bookingData.car;
-    const plate = c.license_plate_number || c.license_plate || '';
+    const plate = extractPlateString(c.license_plate_number || c.license_plate || c.registration);
     info.car = `${c.make || ''} ${c.model || ''} ${plate ? `(${plate})` : ''}`.trim();
   } else if (bookingData.cars?.[0]) {
     const car = bookingData.cars[0];
-    const plate = car.license_plate_number || car.license_plate || '';
+    const plate = extractPlateString(car.license_plate_number || car.license_plate || car.registration);
     info.car = `${car.make || ''} ${car.model || ''} ${plate ? `(${plate})` : ''}`.trim();
   }
   // Fallback: show license plate if no car name available
@@ -589,7 +592,7 @@ function patchBookingInfo(reply: string, messages: any[]): string {
   // Handle booking_items_car (raw Noddi shape from update_booking/get_booking_details)
   if (!info.car && Array.isArray(bookingData.booking_items_car) && bookingData.booking_items_car[0]?.car) {
     const bic = bookingData.booking_items_car[0].car;
-    const plate = bic.license_plate_number || bic.license_plate || bic.registration || '';
+    const plate = extractPlateString(bic.license_plate_number || bic.license_plate || bic.registration);
     info.car = `${bic.make || ''} ${bic.model || ''} ${plate ? `(${plate})` : ''}`.trim();
   }
   // Handle delivery_window_starts_at/ends_at (raw Noddi shape)
@@ -661,6 +664,9 @@ function patchActionMenu(reply: string, messages: any[]): string {
   const hasCompleteActionMenu = reply.includes('[ACTION_MENU]') && reply.includes('[/ACTION_MENU]');
   if (!reply.includes('[BOOKING_INFO]') || hasCompleteActionMenu) return reply;
   if (reply.includes('[BOOKING_CONFIRMED]')) return reply;
+  // Skip during active edit sub-flows
+  const activeFlowMarkers = ['[TIME_SLOT]', '[BOOKING_EDIT]', '[ADDRESS_SEARCH]', '[LICENSE_PLATE]', '[SERVICE_SELECT]', '[BOOKING_SUMMARY]'];
+  if (activeFlowMarkers.some(m => reply.includes(m))) return reply;
   
   // Check that we have booking data in tool results (confirms booking edit context)
   let hasBooking = false;
@@ -727,12 +733,12 @@ function patchBookingConfirmed(reply: string, messages: any[]): string {
               }
             }
             if (!data.car && b.car && typeof b.car === 'object') {
-              const plate = b.car.license_plate_number || b.car.license_plate || '';
+              const plate = extractPlateString(b.car.license_plate_number || b.car.license_plate || b.car.registration);
               data.car = `${b.car.make || ''} ${b.car.model || ''} ${plate ? `(${plate})` : ''}`.trim();
             }
             if (!data.car && b.cars?.[0]) {
               const c = b.cars[0];
-              const plate = c.license_plate_number || c.license_plate || '';
+              const plate = extractPlateString(c.license_plate_number || c.license_plate || c.registration);
               data.car = `${c.make || ''} ${c.model || ''} ${plate ? `(${plate})` : ''}`.trim();
             }
           }
@@ -793,18 +799,18 @@ function patchBookingConfirmed(reply: string, messages: any[]): string {
           }
         }
         if (!data.car && b.car && typeof b.car === 'object') {
-          const plate = b.car.license_plate_number || b.car.license_plate || '';
+          const plate = extractPlateString(b.car.license_plate_number || b.car.license_plate || b.car.registration);
           data.car = `${b.car.make || ''} ${b.car.model || ''} ${plate ? `(${plate})` : ''}`.trim();
         }
         if (!data.car && b.cars?.[0]) {
           const c = b.cars[0];
-          const plate = c.license_plate_number || c.license_plate || '';
+          const plate = extractPlateString(c.license_plate_number || c.license_plate || c.registration);
           data.car = `${c.make || ''} ${c.model || ''} ${plate ? `(${plate})` : ''}`.trim();
         }
         // Handle booking_items_car (raw Noddi shape)
         if (!data.car && Array.isArray(b.booking_items_car) && b.booking_items_car[0]?.car) {
           const bic = b.booking_items_car[0].car;
-          const plate = bic.license_plate_number || bic.license_plate || bic.registration || '';
+          const plate = extractPlateString(bic.license_plate_number || bic.license_plate || bic.registration);
           data.car = `${bic.make || ''} ${bic.model || ''} ${plate ? `(${plate})` : ''}`.trim();
         }
         if (!data.service && Array.isArray(b.service_categories) && b.service_categories[0]?.name) {
@@ -857,6 +863,14 @@ function patchBookingConfirmed(reply: string, messages: any[]): string {
   }
   
   return reply;
+}
+
+// ========== Helper: safely extract license plate string from string, object, or null ==========
+function extractPlateString(p: any): string {
+  if (!p) return '';
+  if (typeof p === 'string') return p;
+  if (typeof p === 'object') return p.number || p.license_plate_number || '';
+  return '';
 }
 
 // ========== Post-processor: auto-inject [BOOKING_EDIT] after time slot selection ==========
@@ -1151,7 +1165,7 @@ async function executeLookupCustomer(phone?: string, email?: string): Promise<st
           id: b.car.id,
           make: b.car.make || '',
           model: b.car.model || '',
-          license_plate: b.car.license_plate_number || b.car.license_plate || '',
+          license_plate: extractPlateString(b.car.license_plate_number || b.car.license_plate || b.car.registration),
         });
       }
       // Handle cars array (some Noddi bookings use plural)
@@ -1162,7 +1176,7 @@ async function executeLookupCustomer(phone?: string, email?: string): Promise<st
               id: car.id,
               make: car.make || '',
               model: car.model || '',
-              license_plate: car.license_plate_number || car.license_plate || '',
+              license_plate: extractPlateString(car.license_plate_number || car.license_plate || car.registration),
             });
           }
         }
@@ -1176,7 +1190,7 @@ async function executeLookupCustomer(phone?: string, email?: string): Promise<st
               id: car.id,
               make: car.make || '',
               model: car.model || '',
-              license_plate: car.license_plate_number || car.license_plate || car.registration || '',
+              license_plate: extractPlateString(car.license_plate_number || car.license_plate || car.registration),
             });
           }
         }
@@ -1279,13 +1293,13 @@ async function executeLookupCustomer(phone?: string, email?: string): Promise<st
           vehicle: (() => {
             const c = b.car || (Array.isArray(b.cars) && b.cars[0]) || null;
             if (c) {
-              const plate = c.license_plate_number || c.license_plate || c.registration || '';
+              const plate = extractPlateString(c.license_plate_number || c.license_plate || c.registration);
               return `${c.make || ''} ${c.model || ''} ${plate ? `(${plate})` : ''}`.trim() || null;
             }
             // Check booking_items_car (Noddi's actual structure from priority_booking)
             if (Array.isArray(b.booking_items_car) && b.booking_items_car[0]?.car) {
               const bic = b.booking_items_car[0].car;
-              const plate = bic.license_plate_number || bic.license_plate || bic.registration || '';
+              const plate = extractPlateString(bic.license_plate_number || bic.license_plate || bic.registration);
               return `${bic.make || ''} ${bic.model || ''} ${plate ? `(${plate})` : ''}`.trim() || null;
             }
             // Fallback: look up from storedCars using car_id
@@ -1303,7 +1317,7 @@ async function executeLookupCustomer(phone?: string, email?: string): Promise<st
           })(),
           car_id: b.car?.id || (Array.isArray(b.cars) && b.cars[0]?.id) || null,
           car_ids: Array.isArray(b.cars) ? b.cars.map((c: any) => c.id).filter(Boolean) : (b.car?.id ? [b.car.id] : []),
-          license_plate: b.car?.license_plate_number || b.car?.license_plate || (Array.isArray(b.cars) && b.cars[0] ? (b.cars[0].license_plate_number || b.cars[0].license_plate || '') : ''),
+          license_plate: extractPlateString(b.car?.license_plate_number || b.car?.license_plate || b.car?.registration) || (Array.isArray(b.cars) && b.cars[0] ? extractPlateString(b.cars[0].license_plate_number || b.cars[0].license_plate || b.cars[0].registration) : ''),
         };
       }),
     });
