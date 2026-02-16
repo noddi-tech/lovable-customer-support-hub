@@ -1,82 +1,71 @@
 
-# Fix: Wrong Domain in Email Wizard + Gmail Status Badge
 
-## Problem 1: Wrong domain used for new integrations
-When adding an email integration for `dekkfix.no`, the wizard uses `noddi.no` because `getConfiguredDomain()` returns the first/active domain globally. The forwarding address is generated as `hei@inbound.noddi.no` instead of `hei@inbound.dekkfix.no`.
+# Fix: Support Multiple Domains (noddi.no + dekkfix.no)
 
-## Problem 2: Gmail Direct Sync shows "Not Configured"
-The status badge checks only for `provider === 'gmail'` accounts. The existing `hei@noddi.no` account has `provider === 'google-group'`, so it's not counted. The badge should reflect all email accounts in that section, not just OAuth ones.
+## Current Situation
 
----
+The code changes from the last fix are correct -- the wizard now tries to match the domain from the email input. However, `dekkfix.no` doesn't exist in the `email_domains` database table. Only `noddi.no` is configured. So `getDomainByName('dekkfix.no')` returns nothing, and it falls back to `noddi.no`.
 
-## Technical Changes
+The alert misleadingly says "Domain **noddi.no** is configured and ready!" even though the user typed `hei@dekkfix.no`.
 
-### File 1: `src/components/admin/wizard/GoogleGroupSetupStep.tsx`
+## Plan
 
-**A) Use email-matching domain instead of global default** (lines 44-54)
+### 1. Add `dekkfix.no` domain to the database
 
-Add `getDomainByName` to the destructured hook. Replace `configuredDomain` logic:
+Insert a new `email_domains` record for `dekkfix.no` with the same organization, using `inbound` as the parse subdomain (same pattern as noddi.no):
 
-```typescript
-const { 
-  getConfiguredDomain, 
-  getDomainByName,
-  generateForwardingAddress, 
-  extractDomainFromEmail,
-  isDomainConfigured,
-  isLoading: domainsLoading 
-} = useDomainConfiguration();
-
-const emailDomain = extractDomainFromEmail(publicEmail);
-const matchingDomain = emailDomain ? getDomainByName(emailDomain) : null;
-const configuredDomain = matchingDomain || getConfiguredDomain();
+```sql
+INSERT INTO email_domains (domain, parse_subdomain, organization_id, provider, status)
+VALUES ('dekkfix.no', 'inbound', 'b9b4df82-2b89-4a64-b2a3-5e19c0e8d43b', 'sendgrid', 'pending');
 ```
 
-Remove the duplicate `emailDomain` declaration on line 53.
+**Note:** After adding this, you'll also need to configure the DNS records for `dekkfix.no` (MX record for `inbound.dekkfix.no` pointing to `mx.sendgrid.net`) in your DNS provider and in SendGrid. Without this, emails forwarded to `hei@inbound.dekkfix.no` won't actually be received.
 
-**B) Update forwarding address generation** (line 59)
+### 2. Fix the domain status alert to avoid confusion
 
-Already uses `configuredDomain`, so this will automatically use the correct domain after the variable change.
+Update `GoogleGroupSetupStep.tsx` and `EmailForwardingSetupStep.tsx` so the alert message distinguishes between:
+- **Matching domain found**: "Domain **dekkfix.no** is configured and ready!" (correct domain)
+- **Falling back to different domain**: "Domain **dekkfix.no** is not yet configured. Using **noddi.no** as fallback." (warns the user)
+- **No domain at all**: "Domain configuration required. Contact support."
 
-**C) Update `createInboundRoute`** (line 90)
+This way, when no matching domain exists, the user sees the fallback warning instead of a false success message.
 
-Already uses `configuredDomain` variable -- no change needed.
+## Technical Details
+
+### File 1: `src/components/admin/wizard/GoogleGroupSetupStep.tsx` (lines 167-183)
+
+Update the domain status alert to check whether the displayed domain matches the email's domain:
+
+```typescript
+{publicEmail && emailDomain && !domainsLoading && (
+  <Alert className={matchingDomain ? "border-success/50 bg-success/5" : configuredDomain ? "border-warning/50 bg-warning/5" : "border-destructive/50 bg-destructive/5"}>
+    {matchingDomain ? (
+      <CheckCircle2 className="h-4 w-4 text-success" />
+    ) : (
+      <AlertCircle className="h-4 w-4 text-warning" />
+    )}
+    <AlertDescription>
+      {matchingDomain ? (
+        <span>Domain <strong>{matchingDomain.domain}</strong> is configured and ready!</span>
+      ) : configuredDomain ? (
+        <span>Domain <strong>{emailDomain}</strong> is not configured yet. Falling back to <strong>{configuredDomain.domain}</strong>.</span>
+      ) : (
+        <span>Domain <strong>{emailDomain}</strong> is not configured. Contact support to set it up.</span>
+      )}
+    </AlertDescription>
+  </Alert>
+)}
+```
 
 ### File 2: `src/components/admin/wizard/EmailForwardingSetupStep.tsx`
 
-**Same domain-matching fix** (lines 31-37)
-
-Add `getDomainByName` and `extractDomainFromEmail` to destructured hook. Replace:
-```typescript
-const emailDomain = extractDomainFromEmail(publicEmail);
-const matchingDomain = emailDomain ? getDomainByName(emailDomain) : null;
-const configuredDomain = matchingDomain || getConfiguredDomain();
-```
-
-### File 3: `src/components/admin/IntegrationSettings.tsx`
-
-**Fix Gmail status badge** (lines 52-62)
-
-Change `getGmailStatus` to consider ALL email accounts, not just `provider === 'gmail'`:
-
-```typescript
-const activeAccountCount = emailAccounts.filter(acc => acc.is_active).length;
-
-const getGmailStatus = (): 'active' | 'inactive' | 'not-configured' => {
-  if (activeAccountCount > 0) return 'active';
-  if (emailAccounts.length > 0) return 'inactive';
-  return 'not-configured';
-};
-```
-
-This ensures that google-group accounts (like hei@noddi.no) are reflected in the status badge.
-
----
+Same alert logic update as above.
 
 ## Summary
 
-| # | Issue | File | Fix |
-|---|-------|------|-----|
-| 1 | Wrong domain for new integrations | `GoogleGroupSetupStep.tsx` | Match domain from email input |
-| 2 | Wrong domain for new integrations | `EmailForwardingSetupStep.tsx` | Match domain from email input |
-| 3 | "Not Configured" badge incorrect | `IntegrationSettings.tsx` | Count all email accounts, not just gmail |
+| # | Change | Details |
+|---|--------|---------|
+| 1 | Add dekkfix.no domain | SQL insert into `email_domains` table (+ DNS setup needed) |
+| 2 | Fix alert in GoogleGroupSetupStep | Show fallback warning when using a different domain |
+| 3 | Fix alert in EmailForwardingSetupStep | Same fallback warning |
+
