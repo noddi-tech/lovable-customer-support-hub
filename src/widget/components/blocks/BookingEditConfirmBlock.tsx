@@ -136,6 +136,19 @@ const BookingEditConfirmBlock: React.FC<BlockComponentProps> = ({
     } catch { return iso; }
   };
 
+  // Helper: convert UTC ISO to Oslo date string
+  const formatOsloDate = (iso: string): string => {
+    try {
+      const d = new Date(iso);
+      if (isNaN(d.getTime())) return iso;
+      return d.toLocaleDateString('nb-NO', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Europe/Oslo' });
+    } catch { return iso; }
+  };
+
+  // Validate booking_id is not a placeholder
+  const PLACEHOLDER_IDS = [12345, 99999, 11111, 123, 0];
+  const isPlaceholderId = PLACEHOLDER_IDS.includes(Number(data.booking_id));
+
   // Show changes summary
   const changes = data.changes || {};
   const rows: Array<{ label: string; old: string; new_val: string }> = [];
@@ -149,7 +162,12 @@ const BookingEditConfirmBlock: React.FC<BlockComponentProps> = ({
     }
     rows.push({ label: '🕐 Time', old: changes.old_time || '—', new_val: displayTime });
   }
-  if (changes.date) rows.push({ label: '📅 Date', old: changes.old_date || '—', new_val: changes.date });
+
+  // Auto-derive date from delivery_window_start if not explicitly provided
+  const derivedDate = changes.date || (changes.delivery_window_start ? formatOsloDate(changes.delivery_window_start) : '');
+  if (derivedDate) {
+    rows.push({ label: '📅 Date', old: changes.old_date || '—', new_val: derivedDate });
+  }
   if (changes.car) rows.push({ label: '🚗 Car', old: changes.old_car || '—', new_val: changes.car });
   if (changes.service) rows.push({ label: '🛠️ Service', old: changes.old_service || '—', new_val: changes.service });
 
@@ -158,6 +176,11 @@ const BookingEditConfirmBlock: React.FC<BlockComponentProps> = ({
       <div style={{ padding: '10px 12px', background: '#f8f9fa', borderBottom: '1px solid #e5e7eb', fontWeight: 700, fontSize: '13px' }}>
         ✏️ Confirm changes to booking #{data.booking_id}
       </div>
+      {isPlaceholderId && (
+        <div style={{ padding: '6px 12px', background: '#fef3c7', fontSize: '11px', color: '#92400e', borderBottom: '1px solid #e5e7eb' }}>
+          ⚠️ Could not determine real booking ID. Please verify before confirming.
+        </div>
+      )}
       <div style={{ padding: '12px' }}>
         {rows.length > 0 ? rows.map((r, i) => (
           <div key={i} style={{

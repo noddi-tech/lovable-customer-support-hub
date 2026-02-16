@@ -412,11 +412,39 @@ function patchBookingEdit(reply: string, messages: any[]): string {
   let editData: any;
   try { editData = JSON.parse(jsonStr); } catch { return reply; }
 
+  // Extract real booking_id from conversation context if AI used a placeholder
+  const PLACEHOLDER_IDS = [12345, 99999, 11111, 123, 0];
+  if (!editData.booking_id || PLACEHOLDER_IDS.includes(Number(editData.booking_id))) {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const msg = messages[i];
+      if (msg.role === 'tool' && typeof msg.content === 'string') {
+        try {
+          const toolResult = JSON.parse(msg.content);
+          // From get_booking_details or lookup_customer tool results
+          const bookingId = toolResult.booking?.id || toolResult.id || toolResult.booking_id;
+          if (bookingId && !PLACEHOLDER_IDS.includes(Number(bookingId))) {
+            console.log('[patchBookingEdit] Replaced placeholder booking_id with real:', bookingId);
+            editData.booking_id = bookingId;
+            break;
+          }
+          // From lookup_customer bookings array
+          if (toolResult.bookings?.length > 0) {
+            const realId = toolResult.bookings[0].id || toolResult.bookings[0].booking_id;
+            if (realId && !PLACEHOLDER_IDS.includes(Number(realId))) {
+              console.log('[patchBookingEdit] Replaced placeholder booking_id from bookings array:', realId);
+              editData.booking_id = realId;
+              break;
+            }
+          }
+        } catch { /* not JSON */ }
+      }
+    }
+  }
+
   const changes = editData.changes || {};
-  if (!changes.delivery_window_id) return reply;
 
   // Inject start/end from conversation if missing
-  if (!changes.delivery_window_start || !changes.delivery_window_end) {
+  if (changes.delivery_window_id && (!changes.delivery_window_start || !changes.delivery_window_end)) {
     for (let i = messages.length - 1; i >= 0; i--) {
       const msg = messages[i];
       if (msg.role !== 'user' || typeof msg.content !== 'string') continue;
@@ -433,12 +461,40 @@ function patchBookingEdit(reply: string, messages: any[]): string {
   }
 
   // Always fix the display 'time' field to use Oslo timezone
+  const fmtOslo = (iso: string) => {
+    const d = new Date(iso);
+    return d.toLocaleTimeString('nb-NO', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Europe/Oslo' });
+  };
+  const fmtDateOslo = (iso: string) => {
+    const d = new Date(iso);
+    return d.toLocaleDateString('nb-NO', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Europe/Oslo' });
+  };
+
   if (changes.delivery_window_start && changes.delivery_window_end) {
-    const fmt = (iso: string) => {
-      const d = new Date(iso);
-      return d.toLocaleTimeString('nb-NO', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Europe/Oslo' });
-    };
-    changes.time = `${fmt(changes.delivery_window_start)}\u2013${fmt(changes.delivery_window_end)}`;
+    changes.time = `${fmtOslo(changes.delivery_window_start)}\u2013${fmtOslo(changes.delivery_window_end)}`;
+    // Auto-populate date if missing
+    if (!changes.date) {
+      changes.date = fmtDateOslo(changes.delivery_window_start);
+    }
+  }
+
+  // Auto-populate old_date from old delivery window if available in conversation
+  if (changes.date && !changes.old_date) {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const msg = messages[i];
+      if (msg.role === 'tool' && typeof msg.content === 'string') {
+        try {
+          const toolResult = JSON.parse(msg.content);
+          const booking = toolResult.booking || toolResult;
+          const oldStart = booking.delivery_window_starts_at || booking.start_time || booking.delivery_window?.starts_at;
+          if (oldStart) {
+            changes.old_date = fmtDateOslo(oldStart);
+            console.log('[patchBookingEdit] Injected old_date:', changes.old_date);
+            break;
+          }
+        } catch { /* not JSON */ }
+      }
+    }
   }
 
   editData.changes = changes;
@@ -804,10 +860,15 @@ Include ALL booking data as valid JSON (NEVER human-readable text):
 ⚠️ For user_id and user_group_id, use the EXACT values from the customer lookup tool result. NEVER invent or guess these values.
 ⚠️ NEVER omit user_id, user_group_id, or delivery_window_id — the booking WILL FAIL without them.
 ⚠️ Content between tags MUST be valid JSON. Never use bullet points or prose.`,
-  BOOKING_EDIT: `Include the marker for editing existing bookings:
-[BOOKING_EDIT]{"booking_id": 12345, "changes": {"time": "14:00–17:00", "old_time": "08:00–11:00", "delivery_window_id": 99999, "delivery_window_start": "2026-02-16T13:00:00Z", "delivery_window_end": "2026-02-16T16:00:00Z"}}[/BOOKING_EDIT]
+  BOOKING_EDIT: `Your ENTIRE response must be ONLY the [BOOKING_EDIT] marker. No text before or after.
+[BOOKING_EDIT]{"booking_id": <REAL_ID_FROM_get_booking_details>, "changes": {"time": "14:00–17:00", "old_time": "08:00–11:00", "date": "17. feb 2026", "old_date": "16. feb 2026", "delivery_window_id": 99999, "delivery_window_start": "2026-02-16T13:00:00Z", "delivery_window_end": "2026-02-16T16:00:00Z"}}[/BOOKING_EDIT]
+⚠️ CRITICAL: Use the EXACT booking_id from get_booking_details tool results. NEVER use example values like 12345 or 99999.
+⚠️ ALWAYS include date and old_date fields when changing time slots.
 Include only the fields being changed with old and new values.
 IMPORTANT: When showing [BOOKING_EDIT] for time changes, you MUST include delivery_window_id, delivery_window_start (ISO), and delivery_window_end (ISO) from the customer's [TIME_SLOT] selection.`,
+  BOOKING_CONFIRMED: `Your ENTIRE response must be ONLY the [BOOKING_CONFIRMED] marker. No text before or after. Do NOT list booking details as text.
+[BOOKING_CONFIRMED]{"booking_id": 12345, "booking_number": "B-12345", "service": "Dekkskift", "address": "Holtet 45, Oslo", "car": "Tesla Model Y (EC94156)", "date": "16. feb 2026", "time": "08:00–11:00", "price": "699 kr"}[/BOOKING_CONFIRMED]
+Use this marker AFTER a booking has been successfully created/confirmed. The component displays a read-only success card.`,
   ACTION_MENU: `Present choices as clickable buttons using:
 [ACTION_MENU]
 Option 1
@@ -961,28 +1022,39 @@ DO NOT call get_delivery_windows yourself. NEVER list time slots as plain text.
 
 12. BOOKING SUMMARY — show a booking summary card with confirm/cancel. After time slot selection, go DIRECTLY to this marker.
 CRITICAL: Your ENTIRE response must be ONLY the [BOOKING_SUMMARY] marker with valid JSON. Do NOT write any introductory text, recap, or description before or after the marker. The component itself displays all the booking details visually.
+⚠️ ABSOLUTE RULE — NEVER write text before or after the [BOOKING_SUMMARY] marker. No recap, no bullet list, no "Her er en oppsummering:", no "Her er detaljene:". The component renders everything.
 ⚠️ CRITICAL — The content between [BOOKING_SUMMARY] and [/BOOKING_SUMMARY] MUST be valid JSON. NEVER output human-readable text, bullet points, or prose inside these tags.
 ⚠️ CRITICAL — NEVER OMIT user_id, user_group_id, delivery_window_id (booking WILL FAIL without them).
 ⚠️ CRITICAL — For user_id and user_group_id, use the EXACT values returned by the customer lookup tool. NEVER invent or guess these values.
+❌ WRONG: "Her er oppsummeringen:\n- Tjeneste: Dekkskift\n- Adresse: Holtet 45\n[BOOKING_SUMMARY]..."
+❌ WRONG: Any text before [BOOKING_SUMMARY] or after [/BOOKING_SUMMARY]
 ✅ CORRECT: [BOOKING_SUMMARY]{"address":"Holtet 45","address_id":2860,"car":"Tesla Model Y","license_plate":"EC94156","country_code":"NO","user_id":"<FROM_LOOKUP>","user_group_id":"<FROM_LOOKUP>","service":"Dekkskift","sales_item_ids":[60282],"date":"16. feb 2026","time":"08:00–11:00","price":"699 kr","delivery_window_id":98765,"delivery_window_start":"2026-02-16T08:00:00Z","delivery_window_end":"2026-02-16T11:00:00Z"}[/BOOKING_SUMMARY]
 ❌ WRONG: [BOOKING_SUMMARY]Adresse: Holtet 45\nDato: 16. feb 2026\nPris: 699 kr[/BOOKING_SUMMARY]
 
 13. BOOKING EDIT — show a confirmation card for EDITING an existing booking:
-[BOOKING_EDIT]{"booking_id": 12345, "changes": {"time": "14:00–17:00", "old_time": "08:00–11:00", "delivery_window_id": 99999, "delivery_window_start": "2026-02-16T13:00:00Z", "delivery_window_end": "2026-02-16T16:00:00Z"}}[/BOOKING_EDIT]
+Your ENTIRE response must be ONLY the [BOOKING_EDIT] marker. No text before or after.
+[BOOKING_EDIT]{"booking_id": <REAL_BOOKING_ID>, "changes": {"time": "14:00–17:00", "old_time": "08:00–11:00", "date": "17. feb 2026", "old_date": "16. feb 2026", "delivery_window_id": 99999, "delivery_window_start": "2026-02-16T13:00:00Z", "delivery_window_end": "2026-02-16T16:00:00Z"}}[/BOOKING_EDIT]
+⚠️ CRITICAL: Use the EXACT booking_id returned by get_booking_details. NEVER use placeholder values like 12345.
+⚠️ ALWAYS include date/old_date when changing time slots.
 IMPORTANT: When showing [BOOKING_EDIT] for time changes, you MUST include delivery_window_id, delivery_window_start (ISO), and delivery_window_end (ISO) from the customer's [TIME_SLOT] selection.
+
+14. BOOKING CONFIRMED — show a read-only success card after a booking is confirmed:
+After a booking is successfully created (via [BOOKING_SUMMARY] confirm), output ONLY this marker with the booking details. Do NOT list details as a bullet list.
+[BOOKING_CONFIRMED]{"booking_id": 12345, "booking_number": "B-12345", "service": "Dekkskift", "address": "Holtet 45, Oslo", "car": "Tesla Model Y (EC94156)", "date": "16. feb 2026", "time": "08:00–11:00", "price": "699 kr"}[/BOOKING_CONFIRMED]
 
 BOOKING EDIT FLOW:
 When a customer wants to modify an existing booking:
-1. Use get_booking_details to fetch the current booking.
+1. Use get_booking_details to fetch the current booking. Remember the REAL booking_id from the result.
 2. If the customer has only ONE active booking, skip confirmation and ask what they want to change using [ACTION_MENU].
 3. If multiple bookings, ask which one using [ACTION_MENU] with booking options.
-4. NEVER ask plain text yes/no questions. ALWAYS use [YES_NO] or [ACTION_MENU] markers for any confirmation or choice.
+4. ⚠️ ABSOLUTE RULE: NEVER ask plain text yes/no questions. When asking "Do you want to change X?", "Ønsker du å endre X?", or ANY binary question, you MUST use [YES_NO] marker. NEVER write these as plain text.
 5. For TIME changes: you MUST emit the [TIME_SLOT] marker with the booking's address_id, car_ids, license_plate, and first sales_item_id:
    [TIME_SLOT]{"address_id": <booking_address_id>, "car_ids": [<booking_car_ids>], "license_plate": "<booking_license_plate>", "sales_item_id": <first_sales_item_id>}[/TIME_SLOT]
    Output ONLY the marker, nothing else. After the customer selects a new time from [TIME_SLOT], your ENTIRE next response must be ONLY the [BOOKING_EDIT] marker with the old and new values as JSON. Do NOT write any introductory text, recap, or ask for text confirmation. Go directly to [BOOKING_EDIT].
-4. For ADDRESS changes: emit [ADDRESS_SEARCH]
-5. For SERVICE changes: emit [SERVICE_SELECT]
-6. After collecting the new value, your ENTIRE next response must be ONLY the [BOOKING_EDIT] marker with old and new values as JSON. No text before or after.
+6. For ADDRESS changes: emit [ADDRESS_SEARCH]
+7. For SERVICE changes: emit [SERVICE_SELECT]
+8. After collecting the new value, your ENTIRE next response must be ONLY the [BOOKING_EDIT] marker with old and new values as JSON. No text before or after.
+9. In the [BOOKING_EDIT] JSON, use the REAL booking_id from step 1. NEVER use example values.
 
 RULES FOR MARKERS:
 - NEVER wrap markers in markdown code blocks.
