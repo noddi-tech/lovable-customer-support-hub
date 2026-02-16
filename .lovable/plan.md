@@ -1,116 +1,59 @@
 
 
-# Fix: Cancel Booking Endpoint and YES_NO Display
+# Fix: Always Enforce Group Selection for Multi-Group Users
 
-## Root Causes
-
-### Issue 1: Cancellation fails with "booking_id is required"
-The edge function logs show:
-```
-Cancel failed: 400 {"type": "validation_error", "errors": [{"code": "required", "detail": "This field is required.", "attr": "booking_id"}]}
-```
-
-The `executeCancelBooking` function sends a PATCH request to `/v1/bookings/{id}/cancel/` with `booking_id` as a query parameter, but the Noddi API expects `booking_id` in the **request body**. The PATCH request currently sends no body at all.
-
-Current code (line 1583-1588):
-```typescript
-const url = new URL(`${API_BASE}/v1/bookings/${bookingId}/cancel/`);
-url.searchParams.set('booking_id', String(bookingId));
-const resp = await fetch(url.toString(), {
-  method: 'PATCH',
-  headers: { ... },
-  // NO BODY!
-});
-```
-
-### Issue 2: Raw `[YES_NO]` markers visible as text
-The AI outputs something like:
-```
-Du har valgt a kansellere begge bestillingene. Vennligst bekreft...
-
-Du onsker a kansellere begge bestillingene. [YES_NO]Er du sikker?[/YES_NO]
-```
-
-The parser correctly splits this into a text block + a YES_NO component block, but the user sees BOTH: the introductory text AND the YES_NO component below it. The user wants only the YES_NO component with the full question inside it, no surrounding prose. The `patchYesNo` post-processor skips because `[YES_NO]` already exists in the reply (the AI put it there). The result is redundant text above the component.
-
----
+## Problem
+When a multi-group user verifies their phone, the AI tool-calling loop runs `lookup_customer`, gets back `needs_group_selection: true`, but then immediately calls `lookup_customer` again with a guessed/default `user_group_id` -- all within the same loop. The `patchGroupSelect` post-processor never fires because by the time the loop ends, the latest tool result has actual bookings (not `needs_group_selection`).
 
 ## Changes
 
-### 1. Fix `executeCancelBooking` -- send `booking_id` in request body
+### 1. Break the tool loop when `needs_group_selection` is detected
 
-**File**: `supabase/functions/widget-ai-chat/index.ts`, lines 1582-1589
+**File**: `supabase/functions/widget-ai-chat/index.ts` (lines 2362-2376)
 
-Send `booking_id` and `notify_customer` in the JSON body instead of (or in addition to) query params:
-
-```typescript
-async function executeCancelBooking(bookingId: number, reason?: string): Promise<string> {
-  const noddiToken = Deno.env.get('NODDI_API_TOKEN');
-  if (!noddiToken) return JSON.stringify({ error: 'Booking modification not configured' });
-
-  try {
-    const resp = await fetch(`${API_BASE}/v1/bookings/${bookingId}/cancel/`, {
-      method: 'PATCH',
-      headers: {
-        'Authorization': `Token ${noddiToken}`,
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        booking_id: bookingId,
-        notify_customer: true,
-      }),
-    });
-
-    if (!resp.ok) {
-      const errorBody = await resp.text();
-      console.error('[widget-ai-chat] Cancel failed:', resp.status, errorBody);
-      if (resp.status === 404) return JSON.stringify({ success: false, error: 'Booking not found' });
-      if (resp.status === 400) return JSON.stringify({ success: false, error: 'This booking cannot be cancelled. It may already be completed or cancelled.' });
-      return JSON.stringify({ success: false, error: 'Cancellation failed. Please contact support.' });
-    }
-
-    return JSON.stringify({ success: true, message: 'Booking cancelled successfully' });
-  } catch (err) {
-    console.error('[widget-ai-chat] Cancel error:', err);
-    return JSON.stringify({ success: false, error: 'Cancellation failed' });
-  }
-}
-```
-
-### 2. Clean up redundant text when `[YES_NO]` is already present
-
-**File**: `supabase/functions/widget-ai-chat/index.ts`, in `patchYesNo` function (line 406-468)
-
-Instead of immediately returning when `[YES_NO]` is already present, strip out the surrounding prose so only the `[YES_NO]...[/YES_NO]` block remains (keeping a short lead-in if needed):
+After each tool result is pushed to `currentMessages`, check if it contains `needs_group_selection`. If so, set `loopBroken = true` and break immediately -- preventing the AI from auto-selecting a group.
 
 ```typescript
-function patchYesNo(reply: string, messages?: any[]): string {
-  // If AI already included [YES_NO], clean up: keep ONLY the [YES_NO] block
-  if (reply.includes('[YES_NO]') && reply.includes('[/YES_NO]')) {
-    const match = reply.match(/\[YES_NO\]([\s\S]*?)\[\/YES_NO\]/);
-    if (match) {
-      // Return ONLY the YES_NO block -- strip all surrounding text
-      return `[YES_NO]${match[1]}[/YES_NO]`;
-    }
-    return reply;
-  }
+currentMessages.push({
+  role: 'tool',
+  content: result,
+  tool_call_id: toolCall.id,
+});
 
-  // ... rest of existing patchYesNo logic unchanged ...
-}
+// Force-break if group selection is needed
+try {
+  const parsed = JSON.parse(result);
+  if (parsed.needs_group_selection && parsed.user_groups) {
+    console.log('[widget-ai-chat] Group selection required, breaking tool loop');
+    loopBroken = true;
+    break;
+  }
+} catch {}
 ```
 
-This ensures that when the AI outputs `"Du onsker a kansellere... [YES_NO]Er du sikker?[/YES_NO]"`, the post-processor strips the surrounding text and returns only `[YES_NO]Er du sikker?[/YES_NO]`.
+The existing `loopBroken` padding logic (lines 2377-2394) will handle padding any unanswered tool calls, and the final `tool_choice: "none"` call will produce a text reply that `patchGroupSelect` can then replace with the dropdown.
 
----
+### 2. Add group selection awareness to the verification prompt
 
-## File Changes Summary
+**File**: `supabase/functions/widget-ai-chat/index.ts` (line 2245)
+
+Update the `__VERIFIED__` replacement message to include:
+
+```
+If I belong to multiple user groups, STOP and wait for me to select one -- do NOT auto-select a group.
+```
+
+This provides a soft instruction alongside the hard loop break.
+
+## Technical Details
 
 | File | Change |
 |------|--------|
-| `supabase/functions/widget-ai-chat/index.ts` | 1) Fix `executeCancelBooking` to send `booking_id` in the request body 2) Update `patchYesNo` to strip surrounding text when `[YES_NO]` markers already exist |
+| `supabase/functions/widget-ai-chat/index.ts` | 1) Add `needs_group_selection` check after tool result push to force-break the loop 2) Update `__VERIFIED__` prompt text to mention group selection |
 
 ## Expected Results
-1. Cancel requests succeed -- `booking_id` is sent in the PATCH body as the API expects
-2. YES_NO confirmation shows ONLY the interactive component with the question inside, no redundant text above it
+- Single group users: auto-selected as before, no change in behavior
+- Multi-group users: tool loop breaks immediately, `patchGroupSelect` fires, user sees "Hei, [Name]! Vi ser at du har flere brukergrupper..." with dropdown
+- After selecting a group, `lookup_customer` is called with the specific `user_group_id` and bookings are shown
+- Applies to ALL action flows (cancel, change time, new booking, etc.)
 
