@@ -63,9 +63,19 @@ const BookingEditConfirmBlock: React.FC<BlockComponentProps> = ({
 
       if (!resp.ok || respData.error) {
         if (resp.status >= 500) {
-          setError('Booking update is temporarily unavailable, please try again later');
+          const details = typeof respData.details === 'string' ? respData.details : '';
+          if (details.includes('service_department_area_not_found')) {
+            setError('Dette tidspunktet er dessverre ikke tilgjengelig for din adresse. Vennligst velg et annet tidspunkt.');
+          } else {
+            setError('Tjenesten er midlertidig utilgjengelig. Vennligst prøv igjen senere.');
+          }
         } else {
-          setError(respData.error || 'Failed to update booking');
+          const details = typeof respData.details === 'string' ? respData.details : '';
+          if (details.includes('service_department_area_not_found')) {
+            setError('Dette tidspunktet er dessverre ikke tilgjengelig for din adresse. Vennligst velg et annet tidspunkt.');
+          } else {
+            setError(respData.error || 'Kunne ikke oppdatere bestillingen.');
+          }
         }
         setConfirming(false);
         return;
