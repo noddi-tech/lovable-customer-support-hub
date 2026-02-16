@@ -506,6 +506,11 @@ function patchBookingInfo(reply: string, messages: any[]): string {
             bookingData = candidate;
             break; // Found the richest result
           }
+          // Also accept address + license_plate as rich enough
+          if (candidate.address && (candidate.vehicle || candidate.license_plate)) {
+            bookingData = candidate;
+            break;
+          }
         }
       } catch { /* not JSON */ }
     }
@@ -566,6 +571,10 @@ function patchBookingInfo(reply: string, messages: any[]): string {
     const car = bookingData.cars[0];
     const plate = car.license_plate_number || car.license_plate || '';
     info.car = `${car.make || ''} ${car.model || ''} ${plate ? `(${plate})` : ''}`.trim();
+  }
+  // Fallback: show license plate if no car name available
+  if (!info.car && bookingData.license_plate) {
+    info.car = bookingData.license_plate;
   }
   
   const infoMarker = `[BOOKING_INFO]${JSON.stringify(info)}[/BOOKING_INFO]`;
@@ -644,74 +653,139 @@ function patchBookingConfirmed(reply: string, messages: any[]): string {
   const closingMarker = '[/BOOKING_CONFIRMED]';
   const startIdx = reply.indexOf(marker);
   const endIdx = reply.indexOf(closingMarker);
-  if (startIdx === -1 || endIdx === -1) return reply;
+  
+  // === FIX 3a: If marker exists, patch its data with real values ===
+  if (startIdx !== -1 && endIdx !== -1) {
+    const jsonStr = reply.slice(startIdx + marker.length, endIdx);
+    let data: any;
+    try { data = JSON.parse(jsonStr); } catch { return reply; }
 
-  const jsonStr = reply.slice(startIdx + marker.length, endIdx);
-  let data: any;
-  try { data = JSON.parse(jsonStr); } catch { return reply; }
+    // Extract real booking data from ALL tool results, merging from multiple sources
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const msg = messages[i];
+      if (msg.role === 'tool' && typeof msg.content === 'string') {
+        try {
+          const toolResult = JSON.parse(msg.content);
+          
+          if (toolResult.booking) {
+            const b = toolResult.booking;
+            if (!data.booking_id && b.id) data.booking_id = b.id;
+            if (!data.booking_number && b.reference) data.booking_number = b.reference;
+            if (!data.address && b.address) {
+              if (typeof b.address === 'string') data.address = b.address;
+              else if (b.address && typeof b.address === 'object') {
+                const sn = b.address.street_name || '';
+                const num = b.address.street_number || '';
+                const zip = b.address.zip_code || '';
+                const city = b.address.city || '';
+                data.address = `${sn} ${num}, ${zip} ${city}`.replace(/\s+/g, ' ').trim().replace(/^,|,$/g, '').trim() || null;
+              }
+            }
+            if (!data.car && b.car && typeof b.car === 'object') {
+              const plate = b.car.license_plate_number || b.car.license_plate || '';
+              data.car = `${b.car.make || ''} ${b.car.model || ''} ${plate ? `(${plate})` : ''}`.trim();
+            }
+            if (!data.car && b.cars?.[0]) {
+              const c = b.cars[0];
+              const plate = c.license_plate_number || c.license_plate || '';
+              data.car = `${c.make || ''} ${c.model || ''} ${plate ? `(${plate})` : ''}`.trim();
+            }
+          }
+          
+          const booking = toolResult.bookings?.[0];
+          if (booking) {
+            if (!data.booking_id && booking.id) data.booking_id = booking.id;
+            if (!data.booking_number && booking.reference) data.booking_number = booking.reference;
+            if (!data.address && booking.address) {
+              data.address = typeof booking.address === 'string' ? booking.address
+                : (booking.address.full_address || booking.address.address || null);
+            }
+            if (!data.car && booking.vehicle) data.car = booking.vehicle;
+            if (!data.date && booking.scheduledAt) data.date = (booking.scheduledAt.split(',')[0] || booking.scheduledAt).trim();
+            if (!data.time && booking.timeSlot) data.time = booking.timeSlot;
+            if (!data.service && booking.services?.[0]) {
+              data.service = typeof booking.services[0] === 'string' ? booking.services[0] : (booking.services[0].name || null);
+            }
+          }
+          
+          if (!data.booking_id && (toolResult.booking_id || (toolResult.id && !toolResult.scheduledAt))) {
+            data.booking_id = toolResult.booking_id || toolResult.id;
+            if (!data.booking_number && (toolResult.booking_number || toolResult.reference)) {
+              data.booking_number = toolResult.booking_number || toolResult.reference;
+            }
+          }
+        } catch { /* not JSON */ }
+      }
+    }
 
-  // Extract real booking data from ALL tool results, merging from multiple sources
+    const patched = reply.slice(0, startIdx) + marker + JSON.stringify(data) + reply.slice(endIdx);
+    console.log('[patchBookingConfirmed] Overrode booking confirmed data with real values');
+    return patched;
+  }
+  
+  // === FIX 3b: Context-based injection — if update_booking was called but AI didn't output the marker ===
+  let hasUpdateResult = false;
+  const data: any = {};
   for (let i = messages.length - 1; i >= 0; i--) {
     const msg = messages[i];
-    if (msg.role === 'tool' && typeof msg.content === 'string') {
-      try {
-        const toolResult = JSON.parse(msg.content);
-        
-        // From create_booking / update_booking result (raw Noddi shape)
-        if (toolResult.booking) {
-          const b = toolResult.booking;
-          if (!data.booking_id && b.id) data.booking_id = b.id;
-          if (!data.booking_number && b.reference) data.booking_number = b.reference;
-          // Noddi raw shape: address as object
-          if (!data.address && b.address) {
-            data.address = typeof b.address === 'string' ? b.address
-              : (b.address.full_address || b.address.address || null);
-          }
-          // Noddi raw shape: car (not vehicle)
-          if (!data.car && b.car && typeof b.car === 'object') {
-            const plate = b.car.license_plate_number || b.car.license_plate || '';
-            data.car = `${b.car.make || ''} ${b.car.model || ''} ${plate ? `(${plate})` : ''}`.trim();
-          }
-          // Noddi raw shape: cars array
-          if (!data.car && b.cars?.[0]) {
-            const c = b.cars[0];
-            const plate = c.license_plate_number || c.license_plate || '';
-            data.car = `${c.make || ''} ${c.model || ''} ${plate ? `(${plate})` : ''}`.trim();
+    if (msg.role !== 'tool') continue;
+    try {
+      const r = JSON.parse(msg.content);
+      // Check for update_booking result shape
+      if (r.booking && (r.booking.id || r.booking.reference)) {
+        hasUpdateResult = true;
+        const b = r.booking;
+        if (!data.booking_id && b.id) data.booking_id = b.id;
+        if (!data.booking_number && b.reference) data.booking_number = b.reference;
+        if (!data.address && b.address) {
+          if (typeof b.address === 'string') data.address = b.address;
+          else if (b.address && typeof b.address === 'object') {
+            const sn = b.address.street_name || '';
+            const num = b.address.street_number || '';
+            const zip = b.address.zip_code || '';
+            const city = b.address.city || '';
+            data.address = `${sn} ${num}, ${zip} ${city}`.replace(/\s+/g, ' ').trim().replace(/^,|,$/g, '').trim() || null;
           }
         }
-        
-        // From lookup_customer result (pre-formatted strings)
-        const booking = toolResult.bookings?.[0];
-        if (booking) {
-          if (!data.booking_id && booking.id) data.booking_id = booking.id;
-          if (!data.booking_number && booking.reference) data.booking_number = booking.reference;
-          if (!data.address && booking.address) {
-            data.address = typeof booking.address === 'string' ? booking.address
-              : (booking.address.full_address || booking.address.address || null);
-          }
-          if (!data.car && booking.vehicle) data.car = booking.vehicle;
-          if (!data.date && booking.scheduledAt) data.date = (booking.scheduledAt.split(',')[0] || booking.scheduledAt).trim();
-          if (!data.time && booking.timeSlot) data.time = booking.timeSlot;
-          if (!data.service && booking.services?.[0]) {
-            data.service = typeof booking.services[0] === 'string' ? booking.services[0] : (booking.services[0].name || null);
-          }
+        if (!data.car && b.car && typeof b.car === 'object') {
+          const plate = b.car.license_plate_number || b.car.license_plate || '';
+          data.car = `${b.car.make || ''} ${b.car.model || ''} ${plate ? `(${plate})` : ''}`.trim();
         }
-        
-        // From direct booking_id/id shape
-        if (!data.booking_id && (toolResult.booking_id || (toolResult.id && !toolResult.scheduledAt))) {
-          data.booking_id = toolResult.booking_id || toolResult.id;
-          if (!data.booking_number && (toolResult.booking_number || toolResult.reference)) {
-            data.booking_number = toolResult.booking_number || toolResult.reference;
-          }
+        if (!data.car && b.cars?.[0]) {
+          const c = b.cars[0];
+          const plate = c.license_plate_number || c.license_plate || '';
+          data.car = `${c.make || ''} ${c.model || ''} ${plate ? `(${plate})` : ''}`.trim();
         }
-      } catch { /* not JSON */ }
-    }
-    // DON'T break -- keep scanning to merge from multiple sources
+      }
+      // Merge rich data from lookup_customer results
+      const booking = r.bookings?.[0];
+      if (booking) {
+        if (!data.booking_id && booking.id) data.booking_id = booking.id;
+        if (!data.address && booking.address) {
+          data.address = typeof booking.address === 'string' ? booking.address : null;
+        }
+        if (!data.car && booking.vehicle) data.car = booking.vehicle;
+        if (!data.date && booking.scheduledAt) data.date = (booking.scheduledAt.split(',')[0] || booking.scheduledAt).trim();
+        if (!data.time && booking.timeSlot) data.time = booking.timeSlot;
+        if (!data.service && booking.services?.[0]) {
+          data.service = typeof booking.services[0] === 'string' ? booking.services[0] : (booking.services[0].name || null);
+        }
+      }
+    } catch {}
   }
-
-  const patched = reply.slice(0, startIdx) + marker + JSON.stringify(data) + reply.slice(endIdx);
-  console.log('[patchBookingConfirmed] Overrode booking confirmed data with real values');
-  return patched;
+  
+  if (hasUpdateResult && Object.keys(data).length > 0) {
+    console.log('[patchBookingConfirmed] CONTEXT-BASED: update_booking detected, injecting [BOOKING_CONFIRMED]');
+    // Strip the AI's plain text summary about the update
+    let cleaned = reply;
+    cleaned = cleaned.replace(/^.*(?:oppdatert|updated|endret|changed|bekreftet|confirmed).*$/gim, '');
+    cleaned = cleaned.replace(/^.*(?:Bestilling|Booking)\s*(?:ID|nummer|#).*$/gim, '');
+    cleaned = cleaned.replace(/^.*(?:nye? tid|new time|ny dato|new date).*$/gim, '');
+    cleaned = cleaned.replace(/\n{3,}/g, '\n\n').trim();
+    return `${marker}${JSON.stringify(data)}${closingMarker}\n\n${cleaned || ''}`.trim();
+  }
+  
+  return reply;
 }
 
 
@@ -997,6 +1071,17 @@ async function executeLookupCustomer(phone?: string, email?: string): Promise<st
           scheduledAt: startFull,
           endTime: endFull,
           timeSlot: `${startHM}\u2013${endHM}`,
+          // === FIX 1: Add address field ===
+          address: (() => {
+            if (!b.address) return null;
+            if (typeof b.address === 'string') return b.address;
+            const sn = b.address.street_name || '';
+            const num = b.address.street_number || '';
+            const zip = b.address.zip_code || '';
+            const city = b.address.city || '';
+            return `${sn} ${num}, ${zip} ${city}`.replace(/\s+/g, ' ').trim().replace(/^,|,$/g, '').trim() || null;
+          })(),
+          address_id: b.address?.id || null,
           services: (() => {
             const lines = b.order_lines || b.items || b.sales_items || b.services || [];
             if (Array.isArray(lines)) {
@@ -1011,11 +1096,25 @@ async function executeLookupCustomer(phone?: string, email?: string): Promise<st
             }
             return [];
           })(),
+          // === FIX 2: Vehicle with storedCars fallback ===
           vehicle: (() => {
             const c = b.car || (Array.isArray(b.cars) && b.cars[0]) || null;
-            if (!c) return null;
-            const plate = c.license_plate_number || c.license_plate || '';
-            return `${c.make || ''} ${c.model || ''} ${plate ? `(${plate})` : ''}`.trim() || null;
+            if (c) {
+              const plate = c.license_plate_number || c.license_plate || '';
+              return `${c.make || ''} ${c.model || ''} ${plate ? `(${plate})` : ''}`.trim() || null;
+            }
+            // Fallback: look up from storedCars using car_id
+            const carId = b.car?.id || (Array.isArray(b.cars) && b.cars[0]?.id) || null;
+            if (carId && storedCars.has(carId)) {
+              const sc = storedCars.get(carId);
+              return `${sc.make} ${sc.model} ${sc.license_plate ? `(${sc.license_plate})` : ''}`.trim() || null;
+            }
+            // Last resort: if there's only one car in storedCars, use it
+            if (storedCars.size === 1) {
+              const sc = Array.from(storedCars.values())[0];
+              return `${sc.make} ${sc.model} ${sc.license_plate ? `(${sc.license_plate})` : ''}`.trim() || null;
+            }
+            return null;
           })(),
           car_id: b.car?.id || (Array.isArray(b.cars) && b.cars[0]?.id) || null,
           car_ids: Array.isArray(b.cars) ? b.cars.map((c: any) => c.id).filter(Boolean) : (b.car?.id ? [b.car.id] : []),
@@ -1809,6 +1908,11 @@ Deno.serve(async (req) => {
         const rawReply = assistantMessage.content || 'I apologize, I was unable to generate a response.';
         let reply = await patchBookingSummary(rawReply, currentMessages, visitorPhone, visitorEmail);
         reply = await patchBookingEdit(reply, currentMessages, visitorPhone, visitorEmail);
+        // === FIX 4: Strip redundant text before BOOKING_EDIT ===
+        if (reply.includes('[BOOKING_EDIT]')) {
+          reply = reply.replace(/^.*(?:Gammel tid|Ny tid|gamle og nye|for bekreftelse|Bekrefter du|Her er endringene|gammel|ny).*$/gim, '');
+          reply = reply.replace(/\n{3,}/g, '\n\n').trim();
+        }
         reply = patchBookingConfirmed(reply, currentMessages);
         reply = patchBookingInfo(reply, currentMessages);
         reply = patchActionMenu(reply, currentMessages);
@@ -1927,6 +2031,10 @@ Deno.serve(async (req) => {
           console.log('[widget-ai-chat] Final forced-text response obtained, length:', finalContent.length);
           let reply = await patchBookingSummary(finalContent, currentMessages, visitorPhone, visitorEmail);
           reply = await patchBookingEdit(reply, currentMessages, visitorPhone, visitorEmail);
+          if (reply.includes('[BOOKING_EDIT]')) {
+            reply = reply.replace(/^.*(?:Gammel tid|Ny tid|gamle og nye|for bekreftelse|Bekrefter du|Her er endringene|gammel|ny).*$/gim, '');
+            reply = reply.replace(/\n{3,}/g, '\n\n').trim();
+          }
           reply = patchBookingConfirmed(reply, currentMessages);
           reply = patchBookingInfo(reply, currentMessages);
           reply = patchActionMenu(reply, currentMessages);
