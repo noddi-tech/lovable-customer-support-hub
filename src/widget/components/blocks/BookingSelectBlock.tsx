@@ -36,10 +36,11 @@ const BookingSelectBlock: React.FC<BlockComponentProps> = ({ primaryColor, data,
     <div style={{ margin: '8px 0' }}>
       <div style={{
         display: 'flex',
+        flexDirection: bookings.length <= 2 ? 'column' : 'row',
         gap: '10px',
         overflowX: bookings.length > 2 ? 'auto' : 'visible',
         paddingBottom: '8px',
-        scrollSnapType: 'x mandatory',
+        scrollSnapType: bookings.length > 2 ? 'x mandatory' : undefined,
       }}>
         {bookings.map((b) => {
           const isSelected = selected.has(b.id);
@@ -54,9 +55,9 @@ const BookingSelectBlock: React.FC<BlockComponentProps> = ({ primaryColor, data,
               key={b.id}
               onClick={() => toggle(b.id)}
               style={{
-                minWidth: bookings.length === 1 ? '100%' : '220px',
-                maxWidth: bookings.length === 1 ? '100%' : '260px',
-                flex: bookings.length <= 2 ? '1 1 0' : '0 0 auto',
+                minWidth: bookings.length <= 2 ? '100%' : '220px',
+                maxWidth: bookings.length <= 2 ? '100%' : '260px',
+                flex: bookings.length <= 2 ? 'none' : '0 0 auto',
                 border: isSelected ? `2.5px solid ${primaryColor}` : '1.5px solid #93c5fd',
                 borderRadius: '12px',
                 overflow: 'hidden',
