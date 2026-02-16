@@ -321,8 +321,8 @@ Deno.serve(async (req) => {
           }
           patchPayload.delivery_window = {
             id: ubDwId,
-            starts_at: ubDwStart,
-            ends_at: ubDwEnd,
+            starts_at: ubDwStart && !ubDwStart.endsWith('Z') && !ubDwStart.includes('+') ? ubDwStart + 'Z' : ubDwStart,
+            ends_at: ubDwEnd && !ubDwEnd.endsWith('Z') && !ubDwEnd.includes('+') ? ubDwEnd + 'Z' : ubDwEnd,
           };
         }
         if (ubCars) patchPayload.cars = ubCars;
