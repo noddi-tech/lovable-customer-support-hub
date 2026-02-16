@@ -14,6 +14,7 @@ import './BookingSummaryBlock';
 import './BookingEditConfirmBlock';
 import './BookingConfirmedBlock';
 import './BookingInfoBlock';
+import './BookingSelectBlock';
 
 // Re-export registry for convenience
 export { getBlock, getAllBlocks, getBlockForFieldType, getBlockForNodeType, registerBlock } from './registry';
