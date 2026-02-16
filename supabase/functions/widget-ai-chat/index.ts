@@ -990,9 +990,17 @@ async function executeLookupCustomer(phone?: string, email?: string): Promise<st
           timeSlot: `${startHM}\u2013${endHM}`,
           services: b.order_lines?.map((ol: any) => ol.service_name || ol.name).filter(Boolean) || [],
           sales_item_ids: b.order_lines?.map((ol: any) => ol.sales_item_id || ol.id).filter(Boolean) || [],
-          address: b.address?.full_address || b.address || null,
+          address: (() => {
+            if (!b.address) return null;
+            if (typeof b.address === 'string') return b.address;
+            const sn = b.address.street_name || '';
+            const num = b.address.street_number || '';
+            const zip = b.address.zip_code || '';
+            const city = b.address.city || '';
+            return `${sn} ${num}, ${zip} ${city}`.replace(/\s+/g, ' ').trim().replace(/^,|,$/g, '').trim() || null;
+          })(),
           address_id: b.address?.id || null,
-          vehicle: b.car ? `${b.car.make || ''} ${b.car.model || ''} (${b.car.license_plate || ''})`.trim() : null,
+          vehicle: b.car ? `${b.car.make || ''} ${b.car.model || ''} (${b.car.license_plate_number || b.car.license_plate || ''})`.trim() : null,
           car_id: b.car?.id || null,
           car_ids: Array.isArray(b.cars) ? b.cars.map((c: any) => c.id).filter(Boolean) : (b.car?.id ? [b.car.id] : []),
           license_plate: b.car?.license_plate_number || b.car?.license_plate || (Array.isArray(b.cars) && b.cars[0] ? (b.cars[0].license_plate_number || b.cars[0].license_plate || '') : ''),
@@ -1838,6 +1846,15 @@ Deno.serve(async (req) => {
           toolName, args, organizationId, supabase, OPENAI_API_KEY,
           visitorPhone, visitorEmail,
         );
+
+        // Log tool errors to error_details for the Error Traces dashboard
+        try {
+          const parsed = JSON.parse(result);
+          if (parsed.error) {
+            await saveErrorDetails(supabase, dbConversationId, 'tool_error',
+              `${toolName}: ${parsed.error}`);
+          }
+        } catch {}
 
         currentMessages.push({
           role: 'tool',
