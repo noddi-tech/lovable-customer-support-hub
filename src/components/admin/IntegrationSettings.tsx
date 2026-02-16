@@ -49,15 +49,14 @@ export const IntegrationSettings = () => {
   const { integrations: voiceIntegrations } = useVoiceIntegrations();
 
   // Calculate counts
-  const gmailAccounts = emailAccounts.filter(acc => acc.provider === 'gmail');
-  const activeGmailCount = gmailAccounts.filter(acc => acc.is_active).length;
+  const activeAccountCount = emailAccounts.filter(acc => acc.is_active).length;
   const activeRoutesCount = inboundRoutes.filter(r => r.is_active).length;
   const hasActiveVoice = voiceIntegrations?.some(i => i.is_active);
 
   // Determine statuses
   const getGmailStatus = (): 'active' | 'inactive' | 'not-configured' => {
-    if (activeGmailCount > 0) return 'active';
-    if (gmailAccounts.length > 0) return 'inactive';
+    if (activeAccountCount > 0) return 'active';
+    if (emailAccounts.length > 0) return 'inactive';
     return 'not-configured';
   };
 

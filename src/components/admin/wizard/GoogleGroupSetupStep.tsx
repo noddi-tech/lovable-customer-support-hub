@@ -43,14 +43,16 @@ export function GoogleGroupSetupStep({
   
   const { 
     getConfiguredDomain, 
+    getDomainByName,
     generateForwardingAddress, 
     extractDomainFromEmail,
     isDomainConfigured,
     isLoading: domainsLoading 
   } = useDomainConfiguration();
 
-  const configuredDomain = getConfiguredDomain();
   const emailDomain = extractDomainFromEmail(publicEmail);
+  const matchingDomain = emailDomain ? getDomainByName(emailDomain) : null;
+  const configuredDomain = matchingDomain || getConfiguredDomain();
   const domainConfigured = emailDomain ? isDomainConfigured(emailDomain) : false;
 
   // Generate forwarding address when email changes
