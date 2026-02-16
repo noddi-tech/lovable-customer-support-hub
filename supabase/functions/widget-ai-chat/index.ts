@@ -1120,8 +1120,17 @@ async function executeTool(
       return executeSearchKnowledge(args.query, organizationId, supabase, openaiApiKey);
     case 'lookup_customer':
       return executeLookupCustomer(args.phone || visitorPhone, args.email || visitorEmail);
-    case 'get_booking_details':
-      return executeGetBookingDetails(args.booking_id);
+    case 'get_booking_details': {
+      // Intercept placeholder IDs (1, 2, etc.) — AI uses these when it doesn't know the real ID
+      const bid = args.booking_id;
+      if (!bid || (typeof bid === 'number' && bid <= 10) || bid === '1') {
+        console.warn(`[widget-ai-chat] get_booking_details called with placeholder ID ${bid}, redirecting`);
+        return JSON.stringify({
+          error: 'The booking details are already available in the conversation history above. Do NOT call this tool with a placeholder ID. Use the booking data (address_id, car info, sales items, delivery window) already provided in the conversation to continue the flow.'
+        });
+      }
+      return executeGetBookingDetails(bid);
+    }
     case 'reschedule_booking':
       return executeRescheduleBooking(args.booking_id, args.new_date);
     case 'cancel_booking':
@@ -1503,7 +1512,48 @@ Deno.serve(async (req) => {
       if (loopBroken) break;
     }
 
-    // Exhausted iterations
+    // Loop exhausted or broken — give AI one final chance with tool_choice: "none"
+    console.log('[widget-ai-chat] Loop exhausted/broken, making final forced-text call with tool_choice: "none"');
+    try {
+      const finalResp = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: currentMessages,
+          tool_choice: 'none',
+          temperature: 0.7,
+          max_tokens: 1024,
+          stream: false,
+        }),
+      });
+
+      if (finalResp.ok) {
+        const finalData = await finalResp.json();
+        const finalContent = finalData.choices?.[0]?.message?.content;
+        if (finalContent && finalContent.trim().length > 0) {
+          console.log('[widget-ai-chat] Final forced-text response obtained, length:', finalContent.length);
+          let reply = await patchBookingSummary(finalContent, currentMessages, visitorPhone, visitorEmail);
+          reply = patchBookingEdit(reply, currentMessages);
+
+          const savedMessageId = await saveMessage(supabase, dbConversationId, 'assistant', reply, allToolsUsed);
+          await updateConversationMeta(supabase, dbConversationId, allToolsUsed);
+
+          if (stream) {
+            return streamTextResponse(reply, dbConversationId, savedMessageId);
+          }
+
+          return new Response(
+            JSON.stringify({ reply, conversationId: dbConversationId, messageId: savedMessageId }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+          );
+        }
+      }
+    } catch (finalErr) {
+      console.error('[widget-ai-chat] Final forced-text call failed:', finalErr);
+    }
+
+    // True fallback — final call also failed
     const fallback = language === 'no'
       ? 'Beklager, men jeg trenger et øyeblikk. Kan du prøve å omformulere spørsmålet ditt?'
       : 'I apologize, but I need a moment. Could you please try rephrasing your question?';
