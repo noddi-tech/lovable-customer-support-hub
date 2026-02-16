@@ -61,7 +61,7 @@ const GroupSelectBlock: React.FC<BlockComponentProps> = ({
     const group = groups.find(g => String(g.id) === selected);
     if (!group) return;
     setConfirmed(true);
-    const payload = JSON.stringify({ user_group_id: group.id, name: group.name });
+    const payload = JSON.stringify({ user_group_id: group.id, name: group.name, action: 'group_selected' });
     onAction(payload, blockKey);
   };
 
