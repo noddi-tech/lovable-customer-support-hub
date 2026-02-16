@@ -18,6 +18,7 @@ interface ErrorConversation {
   primary_intent: string | null;
   summary: string | null;
   status: string;
+  error_details: string | null;
   last_message?: string;
   messages?: Array<{ role: string; content: string; created_at: string }>;
 }
@@ -63,7 +64,7 @@ export const AiErrorTraces: React.FC<AiErrorTracesProps> = ({ organizationId }) 
       // Get conversations that likely had errors
       const { data: conversations, error } = await supabase
         .from('widget_ai_conversations')
-        .select('id, visitor_phone, visitor_email, tools_used, created_at, primary_intent, summary, status')
+        .select('id, visitor_phone, visitor_email, tools_used, created_at, primary_intent, summary, status, error_details')
         .eq('organization_id', organizationId)
         .order('created_at', { ascending: false })
         .limit(200);
@@ -95,6 +96,9 @@ export const AiErrorTraces: React.FC<AiErrorTracesProps> = ({ organizationId }) 
 
       return conversations
         .filter(conv => {
+          // Match if error_details exists
+          if (conv.error_details) return true;
+          // Or if fallback phrases found in messages
           const msgs = msgMap.get(conv.id);
           if (!msgs?.length) return false;
           const lastMsg = msgs[0].content;
@@ -223,6 +227,22 @@ export const AiErrorTraces: React.FC<AiErrorTracesProps> = ({ organizationId }) 
                       {expandedId === conv.id && (
                         <TableRow>
                           <TableCell colSpan={6} className="bg-muted/30 p-4">
+                            {conv.error_details && (() => {
+                              let errors: any[] = [];
+                              try { errors = JSON.parse(conv.error_details!); } catch { /* ignore */ }
+                              return errors.length > 0 ? (
+                                <div className="mb-3 space-y-1.5">
+                                  <p className="text-xs font-semibold text-destructive">Error Details:</p>
+                                  {errors.map((e: any, i: number) => (
+                                    <div key={i} className="text-xs rounded bg-destructive/10 border border-destructive/20 p-2">
+                                      <Badge variant="destructive" className="text-[10px] mr-2">{e.type}</Badge>
+                                      <span className="text-muted-foreground">{e.ts ? format(new Date(e.ts), 'HH:mm:ss') : ''}</span>
+                                      <p className="mt-1 whitespace-pre-wrap break-words">{e.detail}</p>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : null;
+                            })()}
                             <div className="space-y-2 max-h-[300px] overflow-y-auto">
                               {expandedMessages.map((msg, i) => (
                                 <div

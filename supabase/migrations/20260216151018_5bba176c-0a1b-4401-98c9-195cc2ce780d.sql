@@ -1,0 +1,1 @@
+ALTER TABLE widget_ai_conversations ADD COLUMN IF NOT EXISTS error_details text;

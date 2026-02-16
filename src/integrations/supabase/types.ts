@@ -3216,6 +3216,7 @@ export type Database = {
         Row: {
           created_at: string
           ended_at: string | null
+          error_details: string | null
           escalated_at: string | null
           id: string
           message_count: number
@@ -3236,6 +3237,7 @@ export type Database = {
         Insert: {
           created_at?: string
           ended_at?: string | null
+          error_details?: string | null
           escalated_at?: string | null
           id?: string
           message_count?: number
@@ -3256,6 +3258,7 @@ export type Database = {
         Update: {
           created_at?: string
           ended_at?: string | null
+          error_details?: string | null
           escalated_at?: string | null
           id?: string
           message_count?: number
