@@ -7,6 +7,7 @@ import { Copy, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
 import { useDomainConfiguration } from "@/hooks/useDomainConfiguration";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { DnsRecordsDisplay } from "./DnsRecordsDisplay";
 
 interface EmailForwardingSetupStepProps {
   publicEmail: string;
@@ -27,6 +28,8 @@ export function EmailForwardingSetupStep({
 }: EmailForwardingSetupStepProps) {
   const [isCreatingRoute, setIsCreatingRoute] = useState(false);
   const [routeCreated, setRouteCreated] = useState(false);
+  const [dnsRecords, setDnsRecords] = useState<any>(null);
+  const [sendgridSetupResult, setSendgridSetupResult] = useState<any>(null);
   
   const { 
     getConfiguredDomain, 
@@ -73,7 +76,40 @@ export function EmailForwardingSetupStep({
       
       if (!profile) throw new Error('Profile not found');
 
-      const domain = configuredDomain;
+      // Auto-configure SendGrid domain if not yet active
+      if (!matchingDomain || matchingDomain.status !== 'active') {
+        toast.info("Configuring domain in SendGrid...");
+        const { data: setupResult, error: setupError } = await supabase.functions.invoke('sendgrid-setup', {
+          body: { domain: emailDomain, parse_subdomain: 'inbound' },
+        });
+        if (setupError) {
+          toast.error('Failed to configure domain in SendGrid: ' + setupError.message);
+          setIsCreatingRoute(false);
+          return;
+        }
+        setDnsRecords(setupResult?.dns_records || null);
+        setSendgridSetupResult(setupResult);
+        
+        if (setupResult?.ok === false) {
+          toast.warning("Domain needs DNS configuration before emails will work. See DNS records below.");
+        } else {
+          toast.success("Domain configured in SendGrid!");
+        }
+      }
+
+      // Re-fetch domain after possible sendgrid-setup upsert
+      let domain = configuredDomain;
+      if (!domain || (emailDomain && !matchingDomain)) {
+        const { data: freshDomain } = await supabase
+          .from('email_domains')
+          .select('*')
+          .eq('organization_id', profile.organization_id)
+          .eq('domain', emailDomain)
+          .maybeSingle();
+        if (freshDomain) {
+          domain = freshDomain as any;
+        }
+      }
       if (!domain) throw new Error('No configured domain found');
 
       const localPart = publicEmail.split('@')[0];
@@ -157,9 +193,9 @@ export function EmailForwardingSetupStep({
             {matchingDomain ? (
               <span>Domain <strong>{matchingDomain.domain}</strong> is configured and ready!</span>
             ) : configuredDomain ? (
-              <span>Domain <strong>{emailDomain}</strong> is not configured yet. Falling back to <strong>{configuredDomain.domain}</strong>.</span>
+              <span>Domain <strong>{emailDomain}</strong> is not configured yet. It will be automatically set up in SendGrid when you create the route.</span>
             ) : (
-              <span>Domain <strong>{emailDomain}</strong> is not configured. Contact support to set it up.</span>
+              <span>Domain <strong>{emailDomain}</strong> will be automatically configured in SendGrid when you create the route.</span>
             )}
           </AlertDescription>
         </Alert>
@@ -196,7 +232,7 @@ export function EmailForwardingSetupStep({
           {isCreatingRoute ? (
             <>
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Setting up...
+              Setting up domain & route...
             </>
           ) : (
             "Set Up Forwarding Route"
@@ -213,6 +249,9 @@ export function EmailForwardingSetupStep({
               Forwarding route created! Now set up forwarding in your email provider.
             </AlertDescription>
           </Alert>
+
+          {/* DNS Records (shown after SendGrid setup) */}
+          {dnsRecords && <DnsRecordsDisplay dnsRecords={dnsRecords} sendgridResult={sendgridSetupResult} />}
 
           <div className="border rounded-lg p-4 space-y-3 bg-muted/30">
             <p className="text-sm font-medium">📋 Configure your email provider:</p>
