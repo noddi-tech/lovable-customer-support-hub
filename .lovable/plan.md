@@ -1,131 +1,79 @@
 
 
-# Comprehensive Fix: Booking Flow End-to-End
+# Fix: License Plate `[object Object]` + Redundant BOOKING_INFO/ACTION_MENU During Edits
 
-## Root Cause Analysis
+## Issues Found
 
-After deep investigation, the fundamental problem is an **architectural mismatch** in how `executeLookupCustomer` fetches booking data:
+### 1. Car shows "Tesla Model y ([object Object])"
+The Noddi API returns `license_plate` as an **object** `{number: "EC94156", country_code: "NO"}`, not a string. Every place in the code that does `c.license_plate_number || c.license_plate` falls through to the object, which renders as `[object Object]`.
 
-1. It calls `/v1/users/customer-lookup-support/` -- this returns rich data including `user_groups[].bookings_summary.priority_booking` with car, service, address info
-2. But then it IGNORES the bookings from that response and makes a SECOND call to `/v1/user-groups/{id}/bookings-for-customer/` -- a different endpoint that returns a sparse booking shape where `car`, `cars`, and `order_lines` are all **null**
-3. All subsequent fixes have been trying to extract data from these empty fields
+This affects **12+ locations** across `executeLookupCustomer`, `patchBookingInfo`, `patchBookingConfirmed`, and `storedCars` extraction.
 
-The inbox's `noddi-customer-lookup` function already handles this correctly -- it extracts `priority_booking` from `customer-lookup-support` and gets vehicle/service data from it. The widget should do the same.
+### 2. BOOKING_INFO card not shown after initial customer lookup (Screenshot 1)
+The logs confirm BOOKING_INFO IS being injected into the response. The most likely cause is that the AI outputs a greeting + ACTION_MENU, and `patchBookingInfo` injects BOOKING_INFO before it. But the widget may have a scrolling or rendering issue, or the card is above the viewport. However, there may also be a guard issue where `patchBookingInfo` doesn't fire if the first response doesn't have the tool result in the expected position.
 
-## The Fix Strategy
-
-Instead of making the second API call to `bookings-for-customer`, extract booking data from the `customer-lookup-support` response itself (specifically `user_groups[].bookings_summary`) and supplement with `unpaid_bookings`. This is the same data the inbox uses.
+### 3. BOOKING_INFO + ACTION_MENU shown again during active edit flow (Screenshot 3)
+After user clicks "Endre tidspunkt", the AI outputs `[TIME_SLOT]`. Then `patchBookingInfo` finds booking data in tool results and injects `[BOOKING_INFO]`. Then `patchActionMenu` sees `[BOOKING_INFO]` and injects `[ACTION_MENU]`. This creates a cluttered UI with irrelevant components during an active edit flow.
 
 ---
 
-## All Issues and Their Fixes
+## Fixes
 
-### Issue 1: BOOKING_INFO missing car, service, address
-**Current**: `executeLookupCustomer` calls `bookings-for-customer` which returns null for `car`/`cars`/`order_lines`
-**Fix**: Use `bookings_summary.priority_booking` from `customer-lookup-support` response. Extract vehicle via same pattern as `extractVehicleLabel`, service via `extractServiceTitle`
+### Fix A: Add `extractPlateString` helper for license plate objects
+A single helper function that safely extracts a plate string regardless of whether the value is a string, object `{number, country_code}`, or null:
 
-### Issue 2: YES/NO buttons instead of BOOKING_EDIT after time selection
-**Current**: After user selects a time slot, AI outputs a confirmation question instead of `[BOOKING_EDIT]`. `patchYesNo` catches it
-**Fix**: Add `patchTimeSlotConfirmToEdit` post-processor that detects time slot selection + confirmation question and auto-injects `[BOOKING_EDIT]`. Also skip `patchYesNo` when last user message is a time slot selection
+```typescript
+function extractPlateString(p: any): string {
+  if (!p) return '';
+  if (typeof p === 'string') return p;
+  if (typeof p === 'object') return p.number || p.license_plate_number || '';
+  return '';
+}
+```
 
-### Issue 3: BOOKING_CONFIRMED renders as plain text after update
-**Current**: AI outputs text instead of marker. Context-based injection in `patchBookingConfirmed` can't find rich data because `update_booking` returns raw Noddi fields
-**Fix**: Update `patchBookingConfirmed` to handle raw Noddi fields (`booking_items_car`, `service_categories`, `delivery_window_starts_at`)
+Replace all `c.license_plate_number || c.license_plate || ...` patterns with this helper. Also add `c.registration` as a fallback (used by the inbox's `extractVehicleLabel`).
 
-### Issue 4: Redundant ACTION_MENU after BOOKING_CONFIRMED
-**Current**: Post-processor pipeline runs `patchBookingConfirmed` -> `patchBookingInfo` -> `patchActionMenu`. After confirmation, all three fire
-**Fix**: Skip `patchBookingInfo` and `patchActionMenu` if `[BOOKING_CONFIRMED]` is present
+Affected locations:
+- `executeLookupCustomer` vehicle IIFE (lines 1282, 1288)
+- `storedCars` extraction (lines 1154, 1165, 1179)
+- `license_plate` field on booking output (line 1306)
+- `patchBookingInfo` car extraction (lines 578, 582, 592)
+- `patchBookingConfirmed` car extraction (lines 730, 735, 796, 801)
 
-### Issue 5: Redundant text above BOOKING_EDIT
-**Current**: AI outputs explanatory text before the component
-**Fix**: Already partially fixed. Strengthen the regex patterns
+### Fix B: Skip `patchBookingInfo` and `patchActionMenu` during active edit flows
+Add guards at the top of both functions to skip when interactive edit markers are present:
 
-### Issue 6: Timestamp normalization in update_booking
-**Current**: Missing `Z` suffix causes 400 errors on first attempt
-**Fix**: Normalize timestamps in `noddi-booking-proxy` before sending PATCH
+```typescript
+// In patchBookingInfo (after existing guards)
+const activeFlowMarkers = ['[TIME_SLOT]', '[BOOKING_EDIT]', '[ADDRESS_SEARCH]', '[LICENSE_PLATE]', '[SERVICE_SELECT]', '[BOOKING_SUMMARY]'];
+if (activeFlowMarkers.some(m => reply.includes(m))) return reply;
+
+// Same guard in patchActionMenu
+```
+
+This prevents redundant booking cards and action menus from appearing when the user is already in an active edit sub-flow.
+
+### Fix C: Ensure BOOKING_INFO appears after initial lookup
+Add a debug log to capture when patchBookingInfo skips and why, and ensure the pipeline order correctly places BOOKING_INFO before any greeting text. The current logic at lines 644-650 already handles inserting before ACTION_MENU, so this should work. If the card is being lost, add a fallback that ensures BOOKING_INFO is always at the start of the message when booking data is present.
 
 ---
 
 ## Technical Details
 
-### File 1: `supabase/functions/widget-ai-chat/index.ts`
+### File: `supabase/functions/widget-ai-chat/index.ts`
 
-**Change A -- Rewrite `executeLookupCustomer` booking extraction (lines 969-1124)**
+**All changes in one file:**
 
-Replace the `bookings-for-customer` API call with extraction from the `customer-lookup-support` response:
+1. **New helper** `extractPlateString(p)` -- add near other helpers (around line 860)
+2. **12 locations** -- replace `c.license_plate_number || c.license_plate || ...` with `extractPlateString(c.license_plate_number || c.license_plate || c.registration)`
+3. **Line 496** -- add active flow marker guard in `patchBookingInfo`
+4. **Line 662** -- add active flow marker guard in `patchActionMenu`
 
-```text
-// Instead of:
-const bResp = await fetch(`${API_BASE}/v1/user-groups/${userGroupId}/bookings-for-customer/`, ...);
+### Deploy
+Re-deploy `widget-ai-chat` edge function.
 
-// Do:
-// 1. Extract priority_booking from user_groups[].bookings_summary
-// 2. Use lookupData.unpaid_bookings for additional bookings
-// 3. Combine into a unified booking list
-```
-
-For each booking, extract:
-- `address`: from `b.address` object (construct string from parts)
-- `vehicle`: from `b.car` object (make + model + license_plate), or from `booking_items_car[0].car`
-- `services`: from `b.order?.lines`, `b.service_categories`, or `booking_items_car[].sales_items`
-- `storedCars`: from `b.car` and `booking_items_car[].car`
-- `storedAddresses`: from `b.address`
-
-The key difference is that `priority_booking` from `bookings_summary` has fields like:
-- `car.make`, `car.model`, `car.registration` (or `license_plate`)
-- `service.name` or `order.lines[].name`
-- `address.street_name`, `address.street_number`, etc.
-
-**Change B -- Fix `patchBookingInfo` to handle raw Noddi fields (lines 530-578)**
-
-Add handling for:
-- `booking_items_car[0].car` for vehicle
-- `service_categories[0].name` for service
-- `delivery_window_starts_at`/`ends_at` for time
-- `address` as raw object (construct string)
-- Skip entirely if `[BOOKING_CONFIRMED]` is present
-
-**Change C -- Fix `patchActionMenu` to skip when BOOKING_CONFIRMED present (line 618)**
-
-Add: `if (reply.includes('[BOOKING_CONFIRMED]')) return reply;`
-
-**Change D -- Add `patchTimeSlotConfirmToEdit` post-processor (new function)**
-
-Detects when:
-1. User's last message is a time slot selection (JSON with `delivery_window_id`)
-2. AI outputs a confirmation question instead of `[BOOKING_EDIT]`
-
-Auto-injects `[BOOKING_EDIT]` with booking context from tool results.
-
-**Change E -- Update `patchYesNo` to skip after time slot selection (line 405)**
-
-Add check: if last user message is JSON with `delivery_window_id`, skip `patchYesNo`.
-
-**Change F -- Update `patchBookingConfirmed` for raw Noddi fields (lines 726-787)**
-
-Add fallbacks for `booking_items_car`, `service_categories`, `delivery_window_starts_at/ends_at` in both marker-based and context-based injection paths.
-
-**Change G -- Update post-processor pipeline order (lines 1909-1919)**
-
-Add `patchTimeSlotConfirmToEdit` before `patchBookingEdit` in the pipeline.
-
-### File 2: `supabase/functions/noddi-booking-proxy/index.ts`
-
-**Change H -- Normalize ISO timestamps in update_booking**
-
-Before sending PATCH, ensure `starts_at` and `ends_at` have `Z` suffix.
-
----
-
-## Expected End-to-End Flow After Fix
-
-1. Customer verifies phone -> AI calls `lookup_customer`
-2. `lookup_customer` uses data from `customer-lookup-support` directly (no second API call)
-3. `[BOOKING_INFO]` shows all fields: address, date, time, car, service
-4. `[ACTION_MENU]` shows options as clickable pills
-5. Customer selects "Endre tid" -> `[TIME_SLOT]` component
-6. Customer selects time -> `[BOOKING_EDIT]` component (not YES/NO) with diff view
-7. Customer confirms -> `update_booking` succeeds (normalized timestamps)
-8. `[BOOKING_CONFIRMED]` card shown (not plain text)
-9. No redundant `[BOOKING_INFO]` or `[ACTION_MENU]` after confirmation
+## Expected Results
+1. Car shows "Tesla Model y (EC94156)" instead of "Tesla Model y ([object Object])"
+2. When user is in TIME_SLOT selection, no redundant BOOKING_INFO or ACTION_MENU appears
+3. BOOKING_INFO card reliably shows after initial customer lookup with all 5 fields populated
 
