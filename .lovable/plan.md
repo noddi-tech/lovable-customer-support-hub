@@ -1,68 +1,50 @@
 
-# Add User Group Select Block with Dropdown Component
 
-## Problem
-When a customer belongs to multiple user groups, the AI currently outputs plain text asking them to choose. There is no interactive UI component for this -- the user wants a proper Select dropdown (like the Radix Select component) rendered inline in the chat.
+# Fix: Group Select Flow, AI Text Replacement, and Re-lookup Logic
 
-## Solution
-Create a new `[GROUP_SELECT]` block that renders a styled Select dropdown inside the chat bubble. When the user picks a group, it fires the `lookup_customer` tool again with the selected `user_group_id`.
+## Root Causes
+
+### Problem 1: AI says "no active bookings" above the group selector
+The `patchGroupSelect` post-processor **appends** the `[GROUP_SELECT]` marker below whatever the AI wrote. Since the `needs_group_selection` response contains no bookings, the AI writes "Du har ingen aktive bestillinger" -- then the dropdown appears underneath that misleading text.
+
+**Fix**: `patchGroupSelect` must **replace** the entire AI reply with a proper prompt text + the `[GROUP_SELECT]` marker, not append.
+
+### Problem 2: After selecting a group, it shows "no bookings" again + another dropdown
+Two sub-problems:
+- The hidden message sent after group selection (`{"user_group_id":123,"name":"..."}`) doesn't instruct the AI to re-call `lookup_customer` with that group ID. The AI doesn't know what to do.
+- The `patchGroupSelect` scans **all** tool results in conversation history. The old `needs_group_selection: true` result from a previous turn is still there, so the post-processor injects another `[GROUP_SELECT]` on every subsequent reply.
+
+**Fix**:
+1. Update the system prompt to include explicit instructions about handling `needs_group_selection` results and re-calling `lookup_customer` with the selected `user_group_id`.
+2. Make `patchGroupSelect` only look at tool results from the **current** turn (not all history). If the most recent assistant reply already follows a group selection action, skip injection.
+3. In `handleActionSelect` in AiChat.tsx (or in the hidden message text), include a clear instruction prefix so the AI knows the user picked a group and should re-call `lookup_customer`.
 
 ## Changes
 
-### 1. New file: `src/widget/components/blocks/GroupSelectBlock.tsx`
+### 1. Fix `patchGroupSelect` to replace AI text (not append)
 
-Create a new block component that:
-- Parses a JSON payload containing group options: `[GROUP_SELECT]{"groups":[{"id":123,"name":"Joachim Rathke"},{"id":456,"name":"Lomundal Oslo AS"}]}[/GROUP_SELECT]`
-- Renders a native `<select>` dropdown (not Radix Select, since the widget uses inline styles for isolation and doesn't have access to Tailwind/Radix in the shadow DOM context)
-- Styled with inline styles matching the widget design (border, rounded corners, primary color accent)
-- Shows a placeholder like "Velg gruppe..." / "Select group..."
-- On selection, calls `onAction(JSON.stringify({ user_group_id: selectedId, name: selectedName }), blockKey)` which sends the selection as a hidden message to trigger the AI to re-call `lookup_customer` with the chosen group ID
-- Once used, shows a confirmation badge (like the phone verify block) showing the selected group name
-
-Register the block:
-```typescript
-registerBlock({
-  type: 'group_select',
-  marker: '[GROUP_SELECT]',
-  closingMarker: '[/GROUP_SELECT]',
-  parseContent: (inner) => {
-    try { return JSON.parse(inner.trim()); } 
-    catch { return { groups: [] }; }
-  },
-  component: GroupSelectBlock,
-  flowMeta: {
-    label: 'Group Select',
-    icon: '👥',
-    description: 'Dropdown to choose which user group to manage.',
-  },
-});
-```
-
-### 2. Update `src/widget/components/blocks/index.ts`
-
-Add the import:
-```typescript
-import './GroupSelectBlock';
-```
-
-### 3. Update `supabase/functions/widget-ai-chat/index.ts` -- Post-processor
-
-Add a new post-processor `patchGroupSelect` that detects when `needs_group_selection` is present in the most recent `lookup_customer` tool result and auto-injects the `[GROUP_SELECT]` marker with the group options JSON. This ensures the dropdown always appears regardless of what the AI writes.
+**File**: `supabase/functions/widget-ai-chat/index.ts`
 
 ```typescript
 function patchGroupSelect(reply: string, messages: any[]): string {
   if (reply.includes('[GROUP_SELECT]')) return reply;
   
-  // Find most recent lookup_customer tool result with needs_group_selection
+  // Only check the LAST tool result (not all history) to avoid re-triggering on old results
   for (let i = messages.length - 1; i >= 0; i--) {
     const msg = messages[i];
+    // Stop searching if we hit an assistant message (we've gone past current turn's tool results)
+    if (msg.role === 'assistant') break;
     if (msg.role === 'tool') {
       try {
-        const parsed = JSON.parse(msg.content);
+        const parsed = typeof msg.content === 'string' ? JSON.parse(msg.content) : msg.content;
         if (parsed.needs_group_selection && parsed.user_groups) {
+          const customerName = parsed.customer?.name || '';
           const payload = JSON.stringify({ groups: parsed.user_groups });
-          // Replace the AI's plain text with the marker
-          return `${reply}\n[GROUP_SELECT]${payload}[/GROUP_SELECT]`;
+          // REPLACE the entire reply with a proper prompt + the group select block
+          const greeting = customerName 
+            ? `Hei, ${customerName}! Vi ser at du har flere brukergrupper tilknyttet din konto. Hvem vil du representere?`
+            : `Vi ser at du har flere brukergrupper tilknyttet din konto. Hvem vil du representere?`;
+          return `${greeting}\n[GROUP_SELECT]${payload}[/GROUP_SELECT]`;
         }
       } catch {}
     }
@@ -71,52 +53,61 @@ function patchGroupSelect(reply: string, messages: any[]): string {
 }
 ```
 
-Add this to the post-processor pipeline (before `patchActionMenu`).
+Key changes:
+- **Replace** the AI text entirely instead of appending
+- **Stop at the previous assistant message** so old `needs_group_selection` results from earlier turns don't trigger another dropdown
+- Include a friendly Norwegian greeting with the customer's name
 
-### 4. Update AI system prompt
+### 2. Improve the hidden message sent after group selection
 
-Add instruction that when `needs_group_selection` is returned, the AI should greet the customer by name and explain they need to select which group they want help with. The post-processor will handle injecting the actual `[GROUP_SELECT]` component.
+**File**: `src/widget/components/blocks/GroupSelectBlock.tsx`
 
-## Select Component Design (inline styles)
+Update `handleConfirm` to send a clearer action payload that the AI can understand:
 
-Since the widget runs in isolation and cannot use Radix/Tailwind, the select will be a styled native `<select>` element:
-
-```tsx
-<select
-  value={selected}
-  onChange={(e) => handleSelect(e.target.value)}
-  disabled={isUsed}
-  style={{
-    width: '100%',
-    padding: '10px 12px',
-    borderRadius: '8px',
-    border: `1.5px solid ${primaryColor}`,
-    fontSize: '14px',
-    background: '#fff',
-    color: '#1a1a1a',
-    cursor: isUsed ? 'default' : 'pointer',
-    appearance: 'none',
-    backgroundImage: 'url("data:image/svg+xml,...")', // chevron icon
-    backgroundRepeat: 'no-repeat',
-    backgroundPosition: 'right 10px center',
-  }}
->
-  <option value="" disabled>Velg gruppe...</option>
-  {groups.map(g => (
-    <option key={g.id} value={g.id}>{g.name}</option>
-  ))}
-</select>
+```typescript
+const handleConfirm = () => {
+  if (!selected) return;
+  const group = groups.find(g => String(g.id) === selected);
+  if (!group) return;
+  setConfirmed(true);
+  // Include a clear instruction for the AI
+  const payload = JSON.stringify({ 
+    user_group_id: group.id, 
+    name: group.name,
+    action: 'group_selected'
+  });
+  onAction(payload, blockKey);
+};
 ```
 
-After selection, a confirm button appears (styled like the phone verify submit button) to confirm the choice.
+### 3. Add system prompt instructions for group selection handling
+
+**File**: `supabase/functions/widget-ai-chat/index.ts` (system prompt section)
+
+Add to the system prompt instructions that explain the group selection flow:
+
+```
+## User Group Selection Flow
+When lookup_customer returns needs_group_selection: true, a [GROUP_SELECT] dropdown is automatically shown to the user.
+When the user selects a group, you will receive a message containing "user_group_id" and "group_selected".
+You MUST then call lookup_customer again with the user_group_id parameter to fetch that group's bookings.
+Do NOT say "no bookings" before the user has selected a group.
+```
+
+### 4. Handle group selection action in the edge function tool dispatch
+
+**File**: `supabase/functions/widget-ai-chat/index.ts`
+
+In the message processing logic, detect when the user's hidden message contains `group_selected` and ensure the AI understands it should re-run `lookup_customer`. This may require updating the tool-calling logic or adding a pre-processor that parses the group selection payload and injects it as context.
 
 ## File Changes Summary
 
 | File | Change |
 |------|--------|
-| `src/widget/components/blocks/GroupSelectBlock.tsx` | New file: Select dropdown block for user group selection |
-| `src/widget/components/blocks/index.ts` | Add import for GroupSelectBlock |
-| `supabase/functions/widget-ai-chat/index.ts` | Add `patchGroupSelect` post-processor to auto-inject the block when `needs_group_selection` is detected |
+| `supabase/functions/widget-ai-chat/index.ts` | 1) `patchGroupSelect`: replace AI text instead of appending; scope to current turn only 2) Add system prompt instructions for group selection flow 3) Ensure tool dispatch handles `user_group_id` parameter correctly |
+| `src/widget/components/blocks/GroupSelectBlock.tsx` | Add `action: 'group_selected'` to payload for clearer AI instruction |
 
-## Expected Result
-When a customer with multiple user groups verifies their phone, they see a styled dropdown listing their groups. After selecting one, the AI re-runs `lookup_customer` with the chosen `user_group_id` and proceeds with bookings from that group only.
+## Expected Results
+1. When phone is verified and multiple groups exist: "Hei, Joachim! Vi ser at du har flere brukergrupper tilknyttet din konto. Hvem vil du representere?" + dropdown
+2. After selecting "Joachim Rathke (Personlig)": AI calls `lookup_customer` with `user_group_id` and shows the bookings for that group
+3. No repeated dropdown on subsequent messages
