@@ -4,13 +4,14 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { RefreshCw, GitBranch, TestTube2, History, BarChart3, AlertTriangle, Bot, MessageCircle, Puzzle, Zap } from 'lucide-react';
+import { RefreshCw, GitBranch, TestTube2, History, BarChart3, AlertTriangle, Bot, MessageCircle, Puzzle, Zap, Bug } from 'lucide-react';
 import { ActionFlowsManager } from '@/components/admin/widget/ActionFlowsManager';
 import { WidgetTestMode } from '@/components/admin/widget/WidgetTestMode';
 import { AiConversationHistory } from '@/components/admin/widget/AiConversationHistory';
 import { AiAnalyticsDashboard } from '@/components/admin/widget/AiAnalyticsDashboard';
 import { KnowledgeGapDetection } from '@/components/admin/widget/KnowledgeGapDetection';
 import { ComponentLibrary } from '@/components/admin/widget/ComponentLibrary';
+import { AiErrorTraces } from '@/components/admin/widget/AiErrorTraces';
 
 interface WidgetConfig {
   id: string;
@@ -148,7 +149,7 @@ export const AiChatbotSettings: React.FC = () => {
                     </CardDescription>
                   </div>
                 </div>
-                <TabsList className="grid w-full grid-cols-6">
+                <TabsList className="grid w-full grid-cols-7">
                   <TabsTrigger value="components" className="gap-1.5">
                     <Puzzle className="h-4 w-4" />
                     <span className="hidden lg:inline">Components</span>
@@ -172,6 +173,10 @@ export const AiChatbotSettings: React.FC = () => {
                   <TabsTrigger value="gaps" className="gap-1.5">
                     <AlertTriangle className="h-4 w-4" />
                     <span className="hidden lg:inline">Gaps</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="errors" className="gap-1.5">
+                    <Bug className="h-4 w-4" />
+                    <span className="hidden lg:inline">Error Traces</span>
                   </TabsTrigger>
                 </TabsList>
               </CardHeader>
@@ -199,6 +204,10 @@ export const AiChatbotSettings: React.FC = () => {
 
                 <TabsContent value="gaps" className="mt-0 h-full">
                   <KnowledgeGapDetection organizationId={selectedWidget.organization_id} />
+                </TabsContent>
+
+                <TabsContent value="errors" className="mt-0 h-full">
+                  <AiErrorTraces organizationId={selectedWidget.organization_id} />
                 </TabsContent>
               </CardContent>
             </Tabs>

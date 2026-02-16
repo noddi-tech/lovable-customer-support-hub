@@ -418,7 +418,24 @@ function patchYesNo(reply: string): string {
     /Is this correct\??/i,
     /Would you like to (confirm|change|cancel|proceed)\b.*\??/i,
     /Skal vi gå videre\b.*\??/i,
+    /(?:Kan|Kunne) du bekrefte\b.*\?/i,
+    /(?:Stemmer|Passer) (?:det|dette)\b.*\?/i,
+    /Er du sikker\b.*\?/i,
+    /Er dette korrekt\??/i,
+    /Vil du at vi\b.*\??/i,
   ];
+
+  // Generic fallback: short sentence with confirmation keywords ending with ?
+  if (!patterns.some(p => p.test(reply))) {
+    const confirmKeywords = /\b(riktig|korrekt|bekrefte|endre|correct|confirm|want to|ønsker|stemmer|passer|sikker)\b/i;
+    const shortQuestion = reply.match(/([^\n.]{10,120}\?)\s*$/);
+    if (shortQuestion && confirmKeywords.test(shortQuestion[1]) && !/\[/.test(reply)) {
+      const question = shortQuestion[1];
+      const before = reply.substring(0, shortQuestion.index!).trimEnd();
+      const parts = [before, `[YES_NO]${question}[/YES_NO]`].filter(s => s.length > 0);
+      return parts.join('\n');
+    }
+  }
 
   for (const pattern of patterns) {
     const match = reply.match(pattern);
@@ -435,7 +452,8 @@ function patchYesNo(reply: string): string {
 }
 
 
-  function patchBookingEdit(reply: string, messages: any[]): string {
+function patchBookingEdit(reply: string, messages: any[]): string {
+  const marker = '[BOOKING_EDIT]';
   const closingMarker = '[/BOOKING_EDIT]';
   const startIdx = reply.indexOf(marker);
   const endIdx = reply.indexOf(closingMarker);

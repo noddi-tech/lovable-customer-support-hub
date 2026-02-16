@@ -4,3 +4,4 @@ export { WidgetEmbedCode } from './WidgetEmbedCode';
 export { WidgetAnalytics } from './WidgetAnalytics';
 export { WidgetTestMode } from './WidgetTestMode';
 export { ComponentLibrary } from './ComponentLibrary';
+export { AiErrorTraces } from './AiErrorTraces';
