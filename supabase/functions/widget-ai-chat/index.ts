@@ -404,8 +404,14 @@ async function patchBookingSummary(reply: string, messages: any[], visitorPhone?
 
 /** Post-processor: wrap plain-text yes/no confirmation questions in [YES_NO] markers */
 function patchYesNo(reply: string, messages?: any[]): string {
-  // Skip if already contains [YES_NO]
-  if (reply.includes('[YES_NO]')) return reply;
+  // If AI already included [YES_NO], clean up: keep ONLY the [YES_NO] block (strip surrounding prose)
+  if (reply.includes('[YES_NO]') && reply.includes('[/YES_NO]')) {
+    const yesNoMatch = reply.match(/\[YES_NO\]([\s\S]*?)\[\/YES_NO\]/);
+    if (yesNoMatch) {
+      return `[YES_NO]${yesNoMatch[1]}[/YES_NO]`;
+    }
+    return reply;
+  }
   // Skip if reply already has other interactive markers — YES_NO should only appear alone
   const otherMarkers = ['[ACTION_MENU]', '[TIME_SLOT]', '[BOOKING_EDIT]', '[BOOKING_SUMMARY]', '[SERVICE_SELECT]', '[PHONE_VERIFY]', '[ADDRESS_SEARCH]', '[LICENSE_PLATE]', '[BOOKING_CONFIRMED]'];
   if (otherMarkers.some(m => reply.includes(m))) return reply;
@@ -1580,12 +1586,17 @@ async function executeCancelBooking(bookingId: number, reason?: string): Promise
   if (!noddiToken) return JSON.stringify({ error: 'Booking modification not configured' });
 
   try {
-    const url = new URL(`${API_BASE}/v1/bookings/${bookingId}/cancel/`);
-    url.searchParams.set('booking_id', String(bookingId));
-
-    const resp = await fetch(url.toString(), {
+    const resp = await fetch(`${API_BASE}/v1/bookings/${bookingId}/cancel/`, {
       method: 'PATCH',
-      headers: { 'Authorization': `Token ${noddiToken}`, 'Accept': 'application/json', 'Content-Type': 'application/json' },
+      headers: {
+        'Authorization': `Token ${noddiToken}`,
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        booking_id: bookingId,
+        notify_customer: true,
+      }),
     });
 
     if (!resp.ok) {
