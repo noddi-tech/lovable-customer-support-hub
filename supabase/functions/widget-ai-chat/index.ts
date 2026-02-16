@@ -542,11 +542,12 @@ function patchBookingInfo(reply: string, messages: any[]): string {
         if (toolResult.bookings && toolResult.bookings.length > 1) {
           const bookingsPayload = toolResult.bookings.map((b: any) => ({
             id: b.id,
-            service: b.services?.[0] || b.service || 'Bestilling',
+            service: Array.isArray(b.services) ? b.services.join(', ') : (b.service || 'Bestilling'),
             date: b.scheduledAt?.split(',')[0] || b.timeSlot || '',
             time: b.timeSlot || '',
             address: b.address || '',
             vehicle: b.vehicle || '',
+            license_plate: b.license_plate || '',
           }));
           const marker = `Du har ${toolResult.bookings.length} aktive bestillinger. Velg hvilke(n) det gjelder:\n\n[BOOKING_SELECT]${JSON.stringify(bookingsPayload)}[/BOOKING_SELECT]`;
           console.log('[patchBookingInfo] Multiple bookings detected, showing BOOKING_SELECT carousel');
@@ -1176,18 +1177,15 @@ async function executeLookupCustomer(phone?: string, email?: string): Promise<st
     let bookings: any[] = [];
     const seenBookingIds = new Set<number>();
 
-    // 1. Collect priority_booking from each user group's bookings_summary
-    for (const group of userGroups) {
-      const pb = group.bookings_summary?.priority_booking;
+    // 1. Only collect bookings from the SELECTED user group (not all groups)
+    const selectedGroup = userGroups.find((g: any) => g.id === userGroupId);
+    if (selectedGroup) {
+      const pb = selectedGroup.bookings_summary?.priority_booking;
       if (pb?.id && !seenBookingIds.has(pb.id)) {
         bookings.push(pb);
         seenBookingIds.add(pb.id);
       }
-    }
-
-    // 1b. Collect upcoming_bookings from bookings_summary
-    for (const group of userGroups) {
-      const upcoming = group.bookings_summary?.upcoming_bookings;
+      const upcoming = selectedGroup.bookings_summary?.upcoming_bookings;
       if (Array.isArray(upcoming)) {
         for (const ub of upcoming) {
           if (ub?.id && !seenBookingIds.has(ub.id)) {
@@ -1198,9 +1196,9 @@ async function executeLookupCustomer(phone?: string, email?: string): Promise<st
       }
     }
 
-    // 2. Supplement with unpaid_bookings
+    // 2. Supplement with unpaid_bookings filtered to selected group only
     for (const ub of (lookupData.unpaid_bookings || [])) {
-      if (ub?.id && !seenBookingIds.has(ub.id)) {
+      if (ub?.id && !seenBookingIds.has(ub.id) && (!ub.user_group_id || ub.user_group_id === userGroupId)) {
         bookings.push(ub);
         seenBookingIds.add(ub.id);
       }
@@ -1317,6 +1315,8 @@ async function executeLookupCustomer(phone?: string, email?: string): Promise<st
         phone: noddihUser.phone,
         userId: noddihUser.id,
         userGroupId,
+        userGroupName: selectedGroup?.name || '',
+        allUserGroups: userGroups.map((g: any) => ({ id: g.id, name: g.name, is_personal: g.is_personal })),
       },
       stored_addresses: Array.from(storedAddresses.values()),
       stored_cars: Array.from(storedCars.values()),

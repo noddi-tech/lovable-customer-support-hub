@@ -1,5 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { registerBlock, BlockComponentProps, FlowPreviewProps } from './registry';
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  type CarouselApi,
+} from '@/components/ui/carousel';
 
 interface BookingOption {
   id: number | string;
@@ -8,13 +14,117 @@ interface BookingOption {
   time: string;
   address: string;
   vehicle: string;
+  license_plate: string;
 }
+
+const BookingCard: React.FC<{
+  b: BookingOption;
+  isSelected: boolean;
+  isUsed: boolean;
+  primaryColor: string;
+  onToggle: (id: string | number) => void;
+  fullWidth?: boolean;
+}> = ({ b, isSelected, isUsed, primaryColor, onToggle, fullWidth }) => {
+  const rows: Array<{ label: string; value: string }> = [];
+  if (b.address) rows.push({ label: '📍 Adresse', value: b.address });
+  if (b.date) rows.push({ label: '📅 Dato', value: b.date });
+  if (b.time) rows.push({ label: '🕐 Tid', value: b.time });
+  if (b.vehicle) rows.push({ label: '🚗 Bil', value: b.vehicle });
+  else if (b.license_plate) rows.push({ label: '🚗 Bil', value: b.license_plate });
+
+  return (
+    <div
+      onClick={() => onToggle(b.id)}
+      style={{
+        width: fullWidth ? '100%' : undefined,
+        border: isSelected ? `2.5px solid ${primaryColor}` : '1.5px solid #93c5fd',
+        borderRadius: '12px',
+        overflow: 'hidden',
+        background: isSelected ? '#eff6ff' : '#f8fafc',
+        cursor: isUsed ? 'default' : 'pointer',
+        transition: 'border-color 0.15s, background 0.15s',
+        opacity: isUsed && !isSelected ? 0.5 : 1,
+      }}
+    >
+      {/* Header */}
+      <div style={{
+        padding: '10px 12px',
+        background: isSelected ? '#dbeafe' : '#e8eef4',
+        borderBottom: `1px solid ${isSelected ? '#93c5fd' : '#cbd5e1'}`,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: '6px',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={isSelected ? '#3b82f6' : '#64748b'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+            <line x1="16" y1="2" x2="16" y2="6" />
+            <line x1="8" y1="2" x2="8" y2="6" />
+            <line x1="3" y1="10" x2="21" y2="10" />
+          </svg>
+          <span style={{ fontWeight: 700, fontSize: '13px', color: isSelected ? '#1d4ed8' : '#334155' }}>
+            {b.service || 'Bestilling'}{b.id ? ` #${b.id}` : ''}
+          </span>
+        </div>
+        {/* Checkbox */}
+        <div style={{
+          width: '20px',
+          height: '20px',
+          borderRadius: '4px',
+          border: isSelected ? `2px solid ${primaryColor}` : '2px solid #94a3b8',
+          background: isSelected ? primaryColor : 'white',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0,
+          transition: 'all 0.15s',
+        }}>
+          {isSelected && (
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+          )}
+        </div>
+      </div>
+      {/* Body */}
+      <div style={{ padding: '10px 12px' }}>
+        {rows.map((r, i) => (
+          <div key={i} style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            padding: '3px 0',
+            fontSize: '12px',
+            borderBottom: i < rows.length - 1 ? '1px solid #e2e8f0' : 'none',
+          }}>
+            <span style={{ color: '#6b7280' }}>{r.label}</span>
+            <span style={{ fontWeight: 600, textAlign: 'right', maxWidth: '60%', fontSize: '11px' }}>{r.value}</span>
+          </div>
+        ))}
+        {rows.length === 0 && (
+          <div style={{ fontSize: '12px', color: '#6b7280' }}>Ingen detaljer tilgjengelig.</div>
+        )}
+      </div>
+    </div>
+  );
+};
 
 const BookingSelectBlock: React.FC<BlockComponentProps> = ({ primaryColor, data, usedBlocks, onAction }) => {
   const bookings: BookingOption[] = data.bookings || [];
   const [selected, setSelected] = useState<Set<string | number>>(new Set());
+  const [api, setApi] = useState<CarouselApi>();
+  const [currentSlide, setCurrentSlide] = useState(0);
   const blockKey = `booking_select_${bookings.map(b => b.id).join('_')}`;
   const isUsed = usedBlocks.has(blockKey);
+  const useCarousel = bookings.length > 2;
+
+  useEffect(() => {
+    if (!api) return;
+    const onSelect = () => setCurrentSlide(api.selectedScrollSnap());
+    api.on('select', onSelect);
+    onSelect();
+    return () => { api.off('select', onSelect); };
+  }, [api]);
 
   const toggle = (id: string | number) => {
     if (isUsed) return;
@@ -32,105 +142,62 @@ const BookingSelectBlock: React.FC<BlockComponentProps> = ({ primaryColor, data,
     onAction(JSON.stringify({ selected_ids: ids }), blockKey);
   };
 
+  const renderCards = () => {
+    if (useCarousel) {
+      return (
+        <>
+          <Carousel opts={{ align: 'start' }} setApi={setApi}>
+            <CarouselContent className="-ml-2">
+              {bookings.map((b) => (
+                <CarouselItem key={b.id} className="pl-2 basis-[85%]">
+                  <BookingCard
+                    b={b}
+                    isSelected={selected.has(b.id)}
+                    isUsed={isUsed}
+                    primaryColor={primaryColor}
+                    onToggle={toggle}
+                  />
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+          </Carousel>
+          {/* Dot indicators */}
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '6px', marginTop: '8px' }}>
+            {bookings.map((_, i) => (
+              <div key={i} style={{
+                width: '8px',
+                height: '8px',
+                borderRadius: '50%',
+                background: i === currentSlide ? primaryColor : '#cbd5e1',
+                transition: 'background 0.2s',
+              }} />
+            ))}
+          </div>
+        </>
+      );
+    }
+
+    // 1-2 bookings: vertical stack
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        {bookings.map((b) => (
+          <BookingCard
+            key={b.id}
+            b={b}
+            isSelected={selected.has(b.id)}
+            isUsed={isUsed}
+            primaryColor={primaryColor}
+            onToggle={toggle}
+            fullWidth
+          />
+        ))}
+      </div>
+    );
+  };
+
   return (
     <div style={{ margin: '8px 0' }}>
-      <div style={{
-        display: 'flex',
-        flexDirection: bookings.length <= 2 ? 'column' : 'row',
-        gap: '10px',
-        overflowX: bookings.length > 2 ? 'auto' : 'visible',
-        paddingBottom: '8px',
-        scrollSnapType: bookings.length > 2 ? 'x mandatory' : undefined,
-      }}>
-        {bookings.map((b) => {
-          const isSelected = selected.has(b.id);
-          const rows: Array<{ label: string; value: string }> = [];
-          if (b.address) rows.push({ label: '📍 Adresse', value: b.address });
-          if (b.date) rows.push({ label: '📅 Dato', value: b.date });
-          if (b.time) rows.push({ label: '🕐 Tid', value: b.time });
-          if (b.vehicle) rows.push({ label: '🚗 Bil', value: b.vehicle });
-
-          return (
-            <div
-              key={b.id}
-              onClick={() => toggle(b.id)}
-              style={{
-                minWidth: bookings.length <= 2 ? '100%' : '220px',
-                maxWidth: bookings.length <= 2 ? '100%' : '260px',
-                flex: bookings.length <= 2 ? 'none' : '0 0 auto',
-                border: isSelected ? `2.5px solid ${primaryColor}` : '1.5px solid #93c5fd',
-                borderRadius: '12px',
-                overflow: 'hidden',
-                background: isSelected ? '#eff6ff' : '#f8fafc',
-                cursor: isUsed ? 'default' : 'pointer',
-                scrollSnapAlign: 'start',
-                transition: 'border-color 0.15s, background 0.15s',
-                opacity: isUsed && !isSelected ? 0.5 : 1,
-              }}
-            >
-              {/* Header */}
-              <div style={{
-                padding: '10px 12px',
-                background: isSelected ? '#dbeafe' : '#e8eef4',
-                borderBottom: `1px solid ${isSelected ? '#93c5fd' : '#cbd5e1'}`,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: '6px',
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={isSelected ? '#3b82f6' : '#64748b'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-                    <line x1="16" y1="2" x2="16" y2="6" />
-                    <line x1="8" y1="2" x2="8" y2="6" />
-                    <line x1="3" y1="10" x2="21" y2="10" />
-                  </svg>
-                  <span style={{ fontWeight: 700, fontSize: '13px', color: isSelected ? '#1d4ed8' : '#334155' }}>
-                    {b.service || 'Bestilling'}{b.id ? ` #${b.id}` : ''}
-                  </span>
-                </div>
-                {/* Checkbox */}
-                <div style={{
-                  width: '20px',
-                  height: '20px',
-                  borderRadius: '4px',
-                  border: isSelected ? `2px solid ${primaryColor}` : '2px solid #94a3b8',
-                  background: isSelected ? primaryColor : 'white',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                  transition: 'all 0.15s',
-                }}>
-                  {isSelected && (
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="20 6 9 17 4 12" />
-                    </svg>
-                  )}
-                </div>
-              </div>
-              {/* Body */}
-              <div style={{ padding: '10px 12px' }}>
-                {rows.map((r, i) => (
-                  <div key={i} style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    padding: '3px 0',
-                    fontSize: '12px',
-                    borderBottom: i < rows.length - 1 ? '1px solid #e2e8f0' : 'none',
-                  }}>
-                    <span style={{ color: '#6b7280' }}>{r.label}</span>
-                    <span style={{ fontWeight: 600, textAlign: 'right', maxWidth: '60%', fontSize: '11px' }}>{r.value}</span>
-                  </div>
-                ))}
-                {rows.length === 0 && (
-                  <div style={{ fontSize: '12px', color: '#6b7280' }}>Ingen detaljer tilgjengelig.</div>
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
+      {renderCards()}
       {/* Continue button */}
       {!isUsed && (
         <button
@@ -138,7 +205,7 @@ const BookingSelectBlock: React.FC<BlockComponentProps> = ({ primaryColor, data,
           disabled={selected.size === 0}
           style={{
             width: '100%',
-            marginTop: '4px',
+            marginTop: '8px',
             padding: '10px 16px',
             borderRadius: '8px',
             border: 'none',
