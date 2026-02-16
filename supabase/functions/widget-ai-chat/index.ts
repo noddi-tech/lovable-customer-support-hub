@@ -1185,6 +1185,19 @@ async function executeLookupCustomer(phone?: string, email?: string): Promise<st
       }
     }
 
+    // 1b. Collect upcoming_bookings from bookings_summary
+    for (const group of userGroups) {
+      const upcoming = group.bookings_summary?.upcoming_bookings;
+      if (Array.isArray(upcoming)) {
+        for (const ub of upcoming) {
+          if (ub?.id && !seenBookingIds.has(ub.id)) {
+            bookings.push(ub);
+            seenBookingIds.add(ub.id);
+          }
+        }
+      }
+    }
+
     // 2. Supplement with unpaid_bookings
     for (const ub of (lookupData.unpaid_bookings || [])) {
       if (ub?.id && !seenBookingIds.has(ub.id)) {
@@ -1193,7 +1206,30 @@ async function executeLookupCustomer(phone?: string, email?: string): Promise<st
       }
     }
 
-    console.log(`[lookup] Extracted ${bookings.length} bookings from customer-lookup-support response (no second API call)`);
+    console.log(`[lookup] Extracted ${bookings.length} bookings from customer-lookup-support response`);
+
+    // 3. If bookings have incomplete data, fetch from bookings-for-customer as fallback
+    if (userGroupId && bookings.some((b: any) => !b.start_time && !b.delivery_window_starts_at && !b.delivery_window?.starts_at && !b.deliveryWindowStartsAt)) {
+      try {
+        const bfcResp = await fetch(`${API_BASE}/v1/user-groups/${userGroupId}/bookings-for-customer/?page_size=20`, {
+          headers: { 'Authorization': `Token ${noddiToken}`, 'Accept': 'application/json' },
+        });
+        if (bfcResp.ok) {
+          const bfcData = await bfcResp.json();
+          const results = Array.isArray(bfcData) ? bfcData : (bfcData.results || []);
+          for (const fb of results) {
+            if (fb?.id && seenBookingIds.has(fb.id)) {
+              const idx = bookings.findIndex((b: any) => b.id === fb.id);
+              if (idx >= 0) bookings[idx] = fb;
+            } else if (fb?.id && !seenBookingIds.has(fb.id)) {
+              bookings.push(fb);
+              seenBookingIds.add(fb.id);
+            }
+          }
+          console.log(`[lookup] Enriched bookings from bookings-for-customer: ${results.length} results`);
+        }
+      } catch (e) { console.error('[lookup] bookings-for-customer fallback failed:', e); }
+    }
 
     const name = `${noddihUser.first_name || ''} ${noddihUser.last_name || ''}`.trim()
       || noddihUser.name || '';
@@ -1297,7 +1333,7 @@ async function executeLookupCustomer(phone?: string, email?: string): Promise<st
           if (['completed', 'cancelled', 'canceled', 'no_show', 'expired', 'draft'].includes(status)) {
             return false;
           }
-          const endTime = b.end_time || b.delivery_window_ends_at;
+          const endTime = b.end_time || b.delivery_window_ends_at || b.delivery_window?.ends_at || b.deliveryWindowEndsAt;
           if (endTime && new Date(endTime) < new Date()) {
             return false;
           }
@@ -1309,8 +1345,8 @@ async function executeLookupCustomer(phone?: string, email?: string): Promise<st
         const statusStr = typeof rawSt === 'number' ? (STATUS_MAP[rawSt] || String(rawSt))
           : typeof rawSt === 'string' ? rawSt
           : typeof rawSt === 'object' && rawSt !== null ? (rawSt.name || rawSt.slug || '') : '';
-        const startFull = toOsloTime(b.start_time || b.scheduled_at || b.delivery_window_starts_at || '');
-        const endFull = toOsloTime(b.end_time || b.delivery_window_ends_at || '');
+        const startFull = toOsloTime(b.start_time || b.scheduled_at || b.delivery_window_starts_at || b.delivery_window?.starts_at || b.deliveryWindowStartsAt || '');
+        const endFull = toOsloTime(b.end_time || b.delivery_window_ends_at || b.delivery_window?.ends_at || b.deliveryWindowEndsAt || '');
         const startHM = startFull.split(', ')[1] || startFull;
         const endHM = endFull.split(', ')[1] || endFull;
         return {
@@ -1321,12 +1357,13 @@ async function executeLookupCustomer(phone?: string, email?: string): Promise<st
           timeSlot: `${startHM}\u2013${endHM}`,
           // === FIX 1: Add address field ===
           address: (() => {
-            if (!b.address) return null;
-            if (typeof b.address === 'string') return b.address;
-            const sn = b.address.street_name || '';
-            const num = b.address.street_number || '';
-            const zip = b.address.zip_code || '';
-            const city = b.address.city || '';
+            const addrObj = b.address || b.delivery_address || b.order?.delivery_address;
+            if (!addrObj) return null;
+            if (typeof addrObj === 'string') return addrObj;
+            const sn = addrObj.street_name || '';
+            const num = addrObj.street_number || '';
+            const zip = addrObj.zip_code || '';
+            const city = addrObj.city || '';
             return `${sn} ${num}, ${zip} ${city}`.replace(/\s+/g, ' ').trim().replace(/^,|,$/g, '').trim() || null;
           })(),
           address_id: b.address?.id || null,
@@ -1484,13 +1521,12 @@ async function executeCancelBooking(bookingId: number, reason?: string): Promise
   if (!noddiToken) return JSON.stringify({ error: 'Booking modification not configured' });
 
   try {
-    const body: any = {};
-    if (reason) body.cancellation_reason = reason;
+    const url = new URL(`${API_BASE}/v1/bookings/${bookingId}/cancel/`);
+    url.searchParams.set('booking_id', String(bookingId));
 
-    const resp = await fetch(`${API_BASE}/v1/bookings/${bookingId}/cancel/`, {
-      method: 'POST',
+    const resp = await fetch(url.toString(), {
+      method: 'PATCH',
       headers: { 'Authorization': `Token ${noddiToken}`, 'Accept': 'application/json', 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
     });
 
     if (!resp.ok) {
