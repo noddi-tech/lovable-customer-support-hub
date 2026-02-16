@@ -2242,7 +2242,7 @@ Deno.serve(async (req) => {
         const intentContext = userIntent
           ? ` The customer previously said: "${userIntent}". Continue directly with that intent — do NOT re-ask what they want to do.`
           : '';
-        return { role: 'user', content: `I have just verified my phone number. Please look up my account and continue with the next step in the flow. REMEMBER: After lookup, you ALREADY KNOW if I am an existing customer — do NOT ask me.${intentContext}${matchedFlowHint}` };
+        return { role: 'user', content: `I have just verified my phone number. Please look up my account and continue with the next step in the flow. REMEMBER: After lookup, you ALREADY KNOW if I am an existing customer — do NOT ask me. If I belong to multiple user groups, STOP and wait for me to select one — do NOT auto-select a group.${intentContext}${matchedFlowHint}` };
       }
       return { role: m.role, content: m.content };
     }));
@@ -2373,6 +2373,16 @@ Deno.serve(async (req) => {
           content: result,
           tool_call_id: toolCall.id,
         });
+
+        // Force-break if group selection is needed — do NOT let AI auto-resolve
+        try {
+          const parsedResult = JSON.parse(result);
+          if (parsedResult.needs_group_selection && parsedResult.user_groups) {
+            console.log('[widget-ai-chat] Group selection required, breaking tool loop');
+            loopBroken = true;
+            break;
+          }
+        } catch {}
       }
       if (loopBroken) {
         // Pad missing tool responses so OpenAI doesn't reject the message history
