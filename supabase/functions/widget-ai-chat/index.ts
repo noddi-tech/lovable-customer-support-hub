@@ -583,16 +583,27 @@ async function executeLookupCustomer(phone?: string, email?: string): Promise<st
       bookings: bookings
         .filter((b: any) => {
           const rawStatus = b.status;
+          const STATUS_MAP: Record<number, string> = { 0: 'draft', 1: 'confirmed', 2: 'assigned', 3: 'cancelled', 4: 'completed' };
           const status = (
-            typeof rawStatus === 'string' ? rawStatus
+            typeof rawStatus === 'number' ? (STATUS_MAP[rawStatus] || '')
+            : typeof rawStatus === 'string' ? rawStatus
             : typeof rawStatus === 'object' && rawStatus !== null ? (rawStatus.name || rawStatus.slug || String(rawStatus.id || ''))
             : ''
           ).toLowerCase();
-          return !['completed', 'cancelled', 'canceled', 'no_show', 'expired'].includes(status);
+          if (['completed', 'cancelled', 'canceled', 'no_show', 'expired', 'draft'].includes(status)) {
+            return false;
+          }
+          const endTime = b.end_time || b.delivery_window_ends_at;
+          if (endTime && new Date(endTime) < new Date()) {
+            return false;
+          }
+          return true;
         })
         .slice(0, 10).map((b: any) => {
         const rawSt = b.status;
-        const statusStr = typeof rawSt === 'string' ? rawSt
+        const STATUS_MAP: Record<number, string> = { 0: 'draft', 1: 'confirmed', 2: 'assigned', 3: 'cancelled', 4: 'completed' };
+        const statusStr = typeof rawSt === 'number' ? (STATUS_MAP[rawSt] || String(rawSt))
+          : typeof rawSt === 'string' ? rawSt
           : typeof rawSt === 'object' && rawSt !== null ? (rawSt.name || rawSt.slug || '') : '';
         const startFull = toOsloTime(b.start_time || b.scheduled_at || b.delivery_window_starts_at || '');
         const endFull = toOsloTime(b.end_time || b.delivery_window_ends_at || '');
