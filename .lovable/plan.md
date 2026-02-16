@@ -1,57 +1,33 @@
 
-# Fix: AI Not Displaying Booking Details
+# Fix: AI Still Not Using BOOKING_INFO + Hallucinating Example Data
 
-## The Problem
+## Problems
 
-The AI says "Det ser ut til at jeg ikke fikk tilgang til detaljene" (couldn't access booking details) even though the data IS available. Looking at the logs:
+### Problem 1: patchBookingInfo regex is too narrow
+The post-processor only detects patterns like "Adresse:", "Dato:", "Tid:" but the AI writes natural language like "Du har en planlagt bestilling den 17. februar 2026 kl. 07:00-12:00". None of the regexes match, so the post-processor silently exits and the plain text passes through.
 
-1. AI calls `get_booking_details(56789)` -- this is a hallucinated ID copied from the example in the system prompt. It gets a 404 error.
-2. AI then calls `lookup_customer` which successfully returns booking #27502 with all details (address, date, time, services, car).
-3. But the AI already "decided" it couldn't get details and shows plain text instead of the `[BOOKING_INFO]` card.
+### Problem 2: BOOKING_CONFIRMED example still has literal `12345`
+Line 1067 still contains `"booking_id": 12345, "booking_number": "B-12345"` as a literal example. The AI copies these values verbatim. The same pattern was fixed for BOOKING_EDIT and BOOKING_INFO but missed for BOOKING_CONFIRMED.
 
-Two root causes:
-- The system prompt step 1 says "Use `get_booking_details` first" -- but `lookup_customer` already returns everything needed. The AI shouldn't need a second call.
-- The example booking ID `56789` in the prompt is being hallucinated by the AI as a real ID.
+### Problem 3: AI fabricating booking data from examples
+The second screenshot shows completely wrong address ("Ostmarkveien 5C"), wrong car ("Bmw Ix xdrive40"), wrong date ("2026-02-24") — none of which belong to the user. The AI is inventing data, possibly from the example in the prompt or from unrelated context.
 
-## The Fix
+## Fixes
 
-### 1. Change System Prompt (BOOKING EDIT FLOW section)
+### Fix 1: Broaden patchBookingInfo detection
+Add detection for natural language booking mentions (not just "Dato:" labels):
+- "bestilling den" (Norwegian: "booking on")
+- "planlagt bestilling" (Norwegian: "planned booking")
+- Date patterns like "17. februar" embedded in prose
+- Any message containing `[ACTION_MENU]` where tool results have booking data but no `[BOOKING_INFO]` is present
 
-Remove step 1 that says "Use `get_booking_details`" and replace with: "The booking data is ALREADY available from the `lookup_customer` result. Use it directly."
+The key insight: if the reply has `[ACTION_MENU]` AND the conversation has booking data from tool results, the booking info card should ALWAYS be injected regardless of what text the AI wrote.
 
-Change the example IDs in the prompt from `56789` to `<REAL_ID>` placeholders to prevent hallucination.
+### Fix 2: Replace BOOKING_CONFIRMED example IDs
+Change line 1067 and 1240 from literal `12345` / `B-12345` to `<REAL_ID>` / `<REAL_REF>` placeholders, matching what was already done for BOOKING_INFO and BOOKING_EDIT.
 
-Updated flow:
-```
-BOOKING EDIT FLOW:
-When a customer wants to modify an existing booking:
-1. The booking details are ALREADY available from the lookup_customer result 
-   in this conversation. Do NOT call get_booking_details. 
-   Use the booking data (id, address, date, timeSlot, services, vehicle) 
-   from lookup_customer directly.
-2. If the customer has only ONE active booking, present its details using 
-   [BOOKING_INFO] then ask what they want to change using [ACTION_MENU].
-3. If multiple bookings, ask which one using [ACTION_MENU].
-```
-
-### 2. Fix Example IDs in Prompt
-
-Change marker example from:
-```
-[BOOKING_INFO]{"booking_id": 56789, "address": "Slemdalsvingen 65, ...
-```
-to:
-```
-[BOOKING_INFO]{"booking_id": <REAL_ID>, "address": "<address>", ...
-```
-
-### 3. Auto-Generate [BOOKING_INFO] Post-Processor
-
-Strengthen the existing `patchBookingInfo` function to also detect when the AI says it "couldn't get details" but the conversation history has booking data from `lookup_customer`. In that case, auto-generate the `[BOOKING_INFO]` block from the tool result.
-
-### 4. Remove Placeholder ID Guard for 56789-Range
-
-The current guard only blocks IDs <= 10. But the AI is using 56789 (from the example). Instead of expanding the blocklist, removing the instruction to call `get_booking_details` in step 1 solves this at the source.
+### Fix 3: Add patchBookingConfirmed post-processor
+Similar to patchBookingEdit, scan tool results for the actual booking ID/reference and override whatever the AI emitted. This prevents hallucinated IDs from reaching the user.
 
 ---
 
@@ -59,24 +35,49 @@ The current guard only blocks IDs <= 10. But the AI is using 56789 (from the exa
 
 ### File: `supabase/functions/widget-ai-chat/index.ts`
 
-**Change A** -- Update BOOKING EDIT FLOW prompt (around line 1220-1238):
-- Step 1: Remove "Use get_booking_details" instruction. Replace with "Use booking data from lookup_customer already in conversation."
-- Remove example ID 56789 from BOOKING_INFO marker docs (line 1217). Use `<REAL_ID>` placeholder.
+**Change A** -- Broaden `patchBookingInfo` trigger logic (lines 482-497):
 
-**Change B** -- Enhance `patchBookingInfo` post-processor:
-- After AI response is generated, scan conversation history for `lookup_customer` tool results
-- If the AI response does NOT contain `[BOOKING_INFO]` but DOES mention booking-related text (date, address, time) OR says "ikke fikk tilgang" / "couldn't access", extract booking data from the last `lookup_customer` result and inject a `[BOOKING_INFO]` block
-- Build the JSON payload from: `booking.id`, `booking.address`, `booking.scheduledAt` (formatted as date), `booking.timeSlot`, `booking.services[0]`, `booking.vehicle`
+Replace the narrow regex detection with a broader rule:
+```typescript
+function patchBookingInfo(reply: string, messages: any[]): string {
+  if (reply.includes('[BOOKING_INFO]')) return reply;
+  
+  // BROAD TRIGGER: If reply has [ACTION_MENU] and conversation has booking data,
+  // always inject [BOOKING_INFO] — the AI should never show booking context as plain text
+  const hasActionMenu = reply.includes('[ACTION_MENU]');
+  
+  // Also detect plain-text booking details (narrow patterns kept as additional triggers)
+  const hasPlainTextDetails = /Adresse\s*:|Dato\s*:|Tid\s*:|bestilling\s+den|planlagt\s+bestilling/i.test(reply);
+  const hasFailureMsg = /ikke fikk tilgang|couldn't access|ikke finne detalj|kunne ikke hente/i.test(reply);
+  
+  // Trigger if: has ACTION_MENU (booking edit flow), OR plain text details, OR failure message
+  if (!hasActionMenu && !hasPlainTextDetails && !hasFailureMsg) return reply;
+  
+  // ... rest of extraction logic unchanged ...
+}
+```
 
-**Change C** -- Add logging for `get_booking_details` failures:
-- When `executeGetBookingDetails` returns an error, log the booking ID and error to help debug future issues
+**Change B** -- Fix BOOKING_CONFIRMED example IDs (lines 1066-1068 and 1238-1240):
+
+```
+// Line 1067: Change from literal to placeholder
+[BOOKING_CONFIRMED]{"booking_id": <REAL_ID>, "booking_number": "<REAL_REF>", 
+  "service": "...", "address": "...", ...}[/BOOKING_CONFIRMED]
+
+// Line 1240: Same change
+```
+
+**Change C** -- Add `patchBookingConfirmed` post-processor:
+
+New function that scans for `[BOOKING_CONFIRMED]` markers, extracts the JSON, and overrides `booking_id` / `booking_number` with real values from tool results (similar to how `patchBookingEdit` works). Also validates that address/car/date match actual booking data from tool results to prevent fabricated details.
+
+**Change D** -- Also clean up the plain-text lines in `patchBookingInfo` removal regex (lines 559-571):
+
+Add regex to remove natural language booking sentences:
+```typescript
+// Remove natural language booking descriptions
+cleaned = cleaned.replace(/^.*(?:planlagt bestilling|har en bestilling|din bestilling).*$/gim, '');
+```
 
 ### Deploy
-
-Re-deploy `widget-ai-chat` edge function.
-
-## Expected Result
-
-- The AI uses booking data from `lookup_customer` directly (no extra API call needed)
-- Booking details always appear in a styled `[BOOKING_INFO]` card showing date, time, service, and car
-- No more "couldn't access details" messages when the data is already available
+Re-deploy `widget-ai-chat` edge function after changes.
