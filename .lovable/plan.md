@@ -1,163 +1,110 @@
 
+# Fix: Missing Booking Details + Failed Tool + Empty Error Traces
 
-# Fix: Wrong Address in Confirmation + Missing Car/Address in Booking Info Card
+## Problem 1: BOOKING_INFO card only shows date and time (no address, car, service)
 
-## Problems Identified
+**Root cause**: In `executeLookupCustomer` (line 993), the booking mapping does:
+```
+address: b.address?.full_address || b.address || null
+```
+The Noddi API address object has `street_name`, `street_number`, `zip_code`, `city` -- but NOT `full_address`. So `b.address?.full_address` is undefined, and it falls back to `b.address` (the raw object). Then `patchBookingInfo` tries to read `bookingData.address.address` and `bookingData.address.full_address` -- both undefined -- resulting in an empty string.
 
-### Problem 1: BOOKING_INFO card only shows date and time
-The `patchBookingInfo` function correctly extracts booking data from the `lookup_customer` tool result. The `lookup_customer` response includes `address` (string) and `vehicle` (string like "Tesla Model Y (EC94156)") at lines 951-953. These fields ARE present in the data. The issue is that `patchBookingInfo` finds the booking data but the code at lines 514-546 correctly handles these. Need to verify whether the tool result scanning is picking up the right result -- it might be finding a different tool result (like `update_booking`) that lacks these fields.
+The same code at line 913-920 (stored addresses) CORRECTLY constructs the address string from parts. The booking mapping just forgot to do the same.
 
-### Problem 2: BOOKING_CONFIRMED shows "Holtet 45" instead of "Slemdalsvingen 65"
-After a booking update, `patchBookingConfirmed` scans tool results backwards (most recent first). It finds the `update_booking` response (`{ booking: {...} }`) BEFORE the original `lookup_customer` result. The Noddi PATCH response returns raw booking data where:
-- `address` is likely an object (not formatted string), or may be missing entirely
-- `car` exists but `vehicle` does not (the Noddi API uses `car`, not `vehicle`)
-- So the override at line 650-651 either fails or gets the wrong value, leaving the AI's hallucinated "Holtet 45" in place.
+Similarly, line 995 uses `b.car.license_plate` but the Noddi field is `license_plate_number`.
 
-### Problem 3: Car shows "Tesla Model Y" without registration number
-Same root cause -- the `patchBookingConfirmed` checks `booking.vehicle` (line 651) but the Noddi API response uses `booking.car`, so the override never fires and the AI's incomplete "Tesla Model Y" stays.
+**Fix**: In `executeLookupCustomer`, construct address and vehicle strings properly in the booking mapping (lines 985-999):
 
-## Fixes
+```typescript
+// Line 993 - construct address from parts (same as storedAddresses logic)
+address: (() => {
+  if (!b.address) return null;
+  if (typeof b.address === 'string') return b.address;
+  const sn = b.address.street_name || '';
+  const num = b.address.street_number || '';
+  const zip = b.address.zip_code || '';
+  const city = b.address.city || '';
+  return `${sn} ${num}, ${zip} ${city}`.replace(/\s+/g, ' ').trim().replace(/^,|,$/g, '').trim() || null;
+})(),
 
-### Fix 1: `patchBookingConfirmed` -- also handle Noddi raw response shapes
+// Line 995 - use license_plate_number
+vehicle: b.car 
+  ? `${b.car.make || ''} ${b.car.model || ''} (${b.car.license_plate_number || b.car.license_plate || ''})`.trim() 
+  : null,
+```
 
-The function needs to handle both `lookup_customer` shapes AND raw Noddi API response shapes. Specifically:
-- Check `booking.car` (Noddi shape) in addition to `booking.vehicle` (lookup_customer shape)
-- Handle `booking.address` as object with `.full_address` or `.address` sub-field
-- Continue scanning PAST the `update_booking` result to find `lookup_customer` if the update result lacks address/vehicle data
-- Also add `booking.license_plate` or `booking.car.license_plate` to the car display
+## Problem 2: `get_booking_details` fails with HTTP 405
 
-### Fix 2: `patchBookingConfirmed` -- do a fresh lookup if data is incomplete
+The `GET /v1/bookings/27502/` endpoint returns 405 Method Not Allowed. This causes the AI to error and retry, wasting tool iterations.
 
-After extracting from tool results, if `address` or `car` is still the AI-hallucinated value, do a fresh `lookup_customer` call (like `patchBookingSummary` already does) to get the real current data.
+**Fix**: Since `lookup_customer` already returns full booking data, log a `saveErrorDetails` when this tool fails AND instruct the AI in the error response to use data from `lookup_customer` instead. Also save tool-level errors to the error traces.
 
-### Fix 3: `patchBookingInfo` -- ensure address, vehicle, and service are always included
+## Problem 3: Error traces dashboard shows rows but no error_details
 
-Add fallback: if the first matching tool result lacks address/vehicle, continue scanning older tool results. The `lookup_customer` result always has these fields.
+`saveErrorDetails` is only called for loop breaks, exhaustion, and OpenAI API errors. Individual tool failures (like the 405) are silently returned as tool messages. They never get logged to `error_details`.
+
+**Fix**: After each tool execution, check if the result contains an error and call `saveErrorDetails`.
 
 ---
 
-## Technical Details
+## Technical Changes
 
 ### File: `supabase/functions/widget-ai-chat/index.ts`
 
-**Change A** -- Fix `patchBookingConfirmed` (lines 620-664):
+**Change A** -- Fix address construction in `executeLookupCustomer` booking mapping (line 993):
 
-Rewrite the tool result scanning to:
-1. Scan ALL tool results (don't `break` on first match)
-2. Merge data from multiple results -- `update_booking` for ID/reference, `lookup_customer` for address/vehicle/service
-3. Handle Noddi raw `car` field: `booking.car.make + booking.car.model + (booking.car.license_plate)`
-4. Handle Noddi raw `address` object: `booking.address?.full_address || booking.address?.address`
-5. If address/car still missing after scanning, do a fresh `executeLookupCustomer` call
-
-```typescript
-function patchBookingConfirmed(reply, messages) {
-  // ... parse marker as before ...
-  
-  // Scan ALL tool results, merging data (don't break on first match)
-  for (let i = messages.length - 1; i >= 0; i--) {
-    const msg = messages[i];
-    if (msg.role !== 'tool') continue;
-    try {
-      const toolResult = JSON.parse(msg.content);
-      
-      // From create_booking / update_booking result
-      if (toolResult.booking) {
-        const b = toolResult.booking;
-        if (!data.booking_id && b.id) data.booking_id = b.id;
-        if (!data.booking_number && b.reference) data.booking_number = b.reference;
-        // Noddi raw shape: address as object
-        if (!data.address && b.address) {
-          data.address = typeof b.address === 'string' ? b.address 
-            : (b.address.full_address || b.address.address || null);
-        }
-        // Noddi raw shape: car (not vehicle)
-        if (!data.car && b.car) {
-          const plate = b.car.license_plate_number || b.car.license_plate || '';
-          data.car = `${b.car.make || ''} ${b.car.model || ''} ${plate ? `(${plate})` : ''}`.trim();
-        }
-      }
-      
-      // From lookup_customer result
-      const booking = toolResult.bookings?.[0];
-      if (booking) {
-        if (!data.booking_id && booking.id) data.booking_id = booking.id;
-        if (!data.booking_number && booking.reference) data.booking_number = booking.reference;
-        if (!data.address && booking.address) {
-          data.address = typeof booking.address === 'string' ? booking.address 
-            : (booking.address.full_address || '');
-        }
-        if (!data.car && booking.vehicle) data.car = booking.vehicle;
-        if (!data.date && booking.scheduledAt) data.date = (booking.scheduledAt.split(',')[0] || '').trim();
-        if (!data.time && booking.timeSlot) data.time = booking.timeSlot;
-        if (!data.service && booking.services?.[0]) {
-          data.service = typeof booking.services[0] === 'string' ? booking.services[0] : booking.services[0].name;
-        }
-      }
-    } catch {}
-    // DON'T break -- keep scanning to merge from multiple sources
-  }
-}
+Replace:
+```
+address: b.address?.full_address || b.address || null,
+```
+With address construction from parts (reusing the same logic already at lines 909-913):
+```
+address: (() => {
+  if (!b.address) return null;
+  if (typeof b.address === 'string') return b.address;
+  const sn = b.address.street_name || '';
+  const num = b.address.street_number || '';
+  const zip = b.address.zip_code || '';
+  const city = b.address.city || '';
+  return `${sn} ${num}, ${zip} ${city}`.replace(/\s+/g,' ').trim().replace(/^,|,$/g,'').trim() || null;
+})(),
 ```
 
-**Change B** -- Fix `patchBookingInfo` to scan past incomplete results (lines 491-503):
+**Change B** -- Fix vehicle license plate in booking mapping (line 995):
 
-Instead of breaking on the first tool result with booking data, check if the result has address/vehicle. If not, keep scanning for a richer result (the `lookup_customer` one).
-
-```typescript
-let bookingData: any = null;
-for (let i = messages.length - 1; i >= 0; i--) {
-  const msg = messages[i];
-  if (msg.role === 'tool' && typeof msg.content === 'string') {
-    try {
-      const toolResult = JSON.parse(msg.content);
-      let candidate = null;
-      if (toolResult.booking) candidate = toolResult.booking;
-      else if (toolResult.bookings?.[0]) candidate = toolResult.bookings[0];
-      else if (toolResult.id && toolResult.scheduledAt) candidate = toolResult;
-      
-      if (candidate) {
-        // Prefer results that have address + vehicle (lookup_customer shape)
-        // over results that only have id (update_booking shape)
-        if (!bookingData) bookingData = candidate;
-        // If this candidate has more fields, use it instead
-        if (candidate.address && candidate.vehicle) {
-          bookingData = candidate;
-          break; // Found the richest result
-        }
-      }
-    } catch {}
-  }
-}
+Replace:
+```
+vehicle: b.car ? `${b.car.make || ''} ${b.car.model || ''} (${b.car.license_plate || ''})`.trim() : null,
+```
+With:
+```
+vehicle: b.car ? `${b.car.make || ''} ${b.car.model || ''} (${b.car.license_plate_number || b.car.license_plate || ''})`.trim() : null,
 ```
 
-Also add handling for Noddi raw `car` object in the vehicle section (around line 545-550):
-```typescript
-if (bookingData.vehicle) {
-  info.car = typeof bookingData.vehicle === 'string' ? bookingData.vehicle : ...;
-} else if (bookingData.car) {
-  // Noddi raw shape
-  const c = typeof bookingData.car === 'object' ? bookingData.car : null;
-  if (c) {
-    const plate = c.license_plate_number || c.license_plate || '';
-    info.car = `${c.make || ''} ${c.model || ''} ${plate ? `(${plate})` : ''}`.trim();
-  }
-} else if (bookingData.cars?.[0]) { ... }
-```
+**Change C** -- Log tool-level errors to error_details (around lines 1837-1846):
 
-And add handling for Noddi raw address object:
+After each tool execution, check if the result contains an error and log it:
 ```typescript
-if (bookingData.address) {
-  info.address = typeof bookingData.address === 'string' ? bookingData.address 
-    : (bookingData.address.full_address || bookingData.address.address || '');
-}
+const result = await executeTool(...);
+
+// Log tool errors to error_details for the Error Traces dashboard
+try {
+  const parsed = JSON.parse(result);
+  if (parsed.error) {
+    await saveErrorDetails(supabase, dbConversationId, 'tool_error', 
+      `${toolName}: ${parsed.error}`);
+  }
+} catch {}
+
+currentMessages.push({ role: 'tool', content: result, tool_call_id: toolCall.id });
 ```
 
 ### Deploy
 
 Re-deploy `widget-ai-chat` edge function.
 
-## Expected Result
+## Expected Results
 
-1. **BOOKING_INFO card** (after verification): Shows all fields -- date, time, address ("Slemdalsvingen 65, 0374 Oslo"), car ("Tesla Model Y (EC94156)"), and service ("Dekkskift")
-2. **BOOKING_CONFIRMED card** (after edit): Shows correct address ("Slemdalsvingen 65") and car with registration number ("Tesla Model Y (EC94156)")
-3. Both post-processors merge data from multiple tool results, using the richest source available
+1. BOOKING_INFO card will show all fields: address ("Slemdalsvingen 65, 0374 Oslo"), car ("Tesla Model Y (EC94156)"), service, date, and time
+2. Tool failures like `get_booking_details` 405 will be logged to error_details and visible in the Error Traces dashboard
+3. The Error Traces dashboard will show detailed error information when rows are expanded
