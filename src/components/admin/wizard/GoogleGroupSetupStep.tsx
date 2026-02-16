@@ -16,6 +16,7 @@ import { useDomainConfiguration } from "@/hooks/useDomainConfiguration";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { DnsRecordsDisplay } from "./DnsRecordsDisplay";
 
 interface GoogleGroupSetupStepProps {
   publicEmail: string;
@@ -40,6 +41,8 @@ export function GoogleGroupSetupStep({
   const [step2Done, setStep2Done] = useState(false);
   const [step3Done, setStep3Done] = useState(false);
   const [showInstructions, setShowInstructions] = useState(false);
+  const [dnsRecords, setDnsRecords] = useState<any>(null);
+  const [sendgridSetupResult, setSendgridSetupResult] = useState<any>(null);
   
   const { 
     getConfiguredDomain, 
@@ -88,8 +91,41 @@ export function GoogleGroupSetupStep({
       
       if (!profile) throw new Error('Profile not found');
 
-      // Get or use the configured domain
-      const domain = configuredDomain;
+      // Auto-configure SendGrid domain if not yet active
+      if (!matchingDomain || matchingDomain.status !== 'active') {
+        toast.info("Configuring domain in SendGrid...");
+        const { data: setupResult, error: setupError } = await supabase.functions.invoke('sendgrid-setup', {
+          body: { domain: emailDomain, parse_subdomain: 'inbound' },
+        });
+        if (setupError) {
+          toast.error('Failed to configure domain in SendGrid: ' + setupError.message);
+          setIsCreatingRoute(false);
+          return;
+        }
+        setDnsRecords(setupResult?.dns_records || null);
+        setSendgridSetupResult(setupResult);
+        
+        if (setupResult?.ok === false) {
+          toast.warning("Domain needs DNS configuration before emails will work. See DNS records below.");
+        } else {
+          toast.success("Domain configured in SendGrid!");
+        }
+      }
+
+      // Get or use the configured domain — re-fetch after possible sendgrid-setup upsert
+      let domain = configuredDomain;
+      if (!domain || (emailDomain && !matchingDomain)) {
+        // Refresh domain from DB after sendgrid-setup may have created it
+        const { data: freshDomain } = await supabase
+          .from('email_domains')
+          .select('*')
+          .eq('organization_id', profile.organization_id)
+          .eq('domain', emailDomain)
+          .maybeSingle();
+        if (freshDomain) {
+          domain = freshDomain as any;
+        }
+      }
       if (!domain) throw new Error('No configured domain found');
 
       const localPart = publicEmail.split('@')[0];
@@ -105,6 +141,7 @@ export function GoogleGroupSetupStep({
       if (existingRoute) {
         onInboundRouteCreated(existingRoute.id);
         setRouteCreated(true);
+        setShowInstructions(true);
         toast.success("Route already exists!");
         return;
       }
@@ -176,9 +213,9 @@ export function GoogleGroupSetupStep({
             {matchingDomain ? (
               <span>Domain <strong>{matchingDomain.domain}</strong> is configured and ready!</span>
             ) : configuredDomain ? (
-              <span>Domain <strong>{emailDomain}</strong> is not configured yet. Falling back to <strong>{configuredDomain.domain}</strong>.</span>
+              <span>Domain <strong>{emailDomain}</strong> is not configured yet. It will be automatically set up in SendGrid when you create the route.</span>
             ) : (
-              <span>Domain <strong>{emailDomain}</strong> is not configured. Contact support to set it up.</span>
+              <span>Domain <strong>{emailDomain}</strong> will be automatically configured in SendGrid when you create the route.</span>
             )}
           </AlertDescription>
         </Alert>
@@ -218,7 +255,7 @@ export function GoogleGroupSetupStep({
           {isCreatingRoute ? (
             <>
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Setting up...
+              Setting up domain & route...
             </>
           ) : (
             "Set Up Forwarding Route"
@@ -235,6 +272,9 @@ export function GoogleGroupSetupStep({
           </AlertDescription>
         </Alert>
       )}
+
+      {/* DNS Records (shown after SendGrid setup) */}
+      {dnsRecords && <DnsRecordsDisplay dnsRecords={dnsRecords} sendgridResult={sendgridSetupResult} />}
 
       {/* Google Admin Instructions */}
       {routeCreated && (
