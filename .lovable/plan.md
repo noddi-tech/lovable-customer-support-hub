@@ -1,180 +1,122 @@
 
+# Add User Group Select Block with Dropdown Component
 
-# Fix: Service Display, Missing Bookings, and User Group Selection
+## Problem
+When a customer belongs to multiple user groups, the AI currently outputs plain text asking them to choose. There is no interactive UI component for this -- the user wants a proper Select dropdown (like the Radix Select component) rendered inline in the chat.
 
-## Root Cause Analysis
-
-### Issue 1: "Tjeneste: Delivery" instead of all services
-**Location**: `patchBookingInfo` in `supabase/functions/widget-ai-chat/index.ts`, line 620-621
-
-The code only extracts the **first** service name from the `services` array:
-```typescript
-const svcName = typeof svcSource[0] === 'string' ? svcSource[0] : (svcSource[0].service_name || svcSource[0].name || '');
-if (svcName) info.service = svcName;
-```
-
-If the Noddi API returns `["Delivery", "Dekkskift"]`, only "Delivery" is shown. The fix is to join **all** service names.
-
-### Issue 2: Only 1 booking found (should show carousel of all confirmed bookings)
-**Location**: `executeLookupCustomer`, lines 1180-1230
-
-The `customer-lookup-support` endpoint only exposes `priority_booking` (1 booking per group) and sometimes `upcoming_bookings` in the `bookings_summary`. For this user, only 1 booking came through (`priority_booking`). 
-
-The `bookings-for-customer` fallback at line 1210 is guarded by an "incomplete data" condition:
-```typescript
-if (bookings.some(b => !b.start_time && !b.delivery_window_starts_at ...))
-```
-
-Since the single priority booking has complete data, this condition is **false**, and the fallback **never fires**. The other confirmed bookings are never fetched.
-
-**Fix**: Always call `bookings-for-customer` to get the complete list of bookings, not just as a fallback for missing data.
-
-### Issue 3: No user group selection prompt
-**Location**: `executeLookupCustomer`, lines 1171-1173
-
-When a user belongs to multiple user groups (e.g., "Joachim Rathke" personal + "Lomundal Oslo AS"), the code silently auto-selects the default/personal group:
-```typescript
-const userGroupId = userGroups.find(g => g.is_default_user_group)?.id
-  || userGroups.find(g => g.is_personal)?.id
-  || userGroups[0]?.id;
-```
-
-No prompt is shown to the user. **Fix**: When multiple user groups exist, return the list of groups to the AI so it can present a selection (using ACTION_MENU or similar), and only proceed with bookings after the user picks a group.
-
----
+## Solution
+Create a new `[GROUP_SELECT]` block that renders a styled Select dropdown inside the chat bubble. When the user picks a group, it fires the `lookup_customer` tool again with the selected `user_group_id`.
 
 ## Changes
 
-### 1. Fix service display to show ALL services (not just first)
+### 1. New file: `src/widget/components/blocks/GroupSelectBlock.tsx`
 
-**File**: `supabase/functions/widget-ai-chat/index.ts`, lines 618-622
+Create a new block component that:
+- Parses a JSON payload containing group options: `[GROUP_SELECT]{"groups":[{"id":123,"name":"Joachim Rathke"},{"id":456,"name":"Lomundal Oslo AS"}]}[/GROUP_SELECT]`
+- Renders a native `<select>` dropdown (not Radix Select, since the widget uses inline styles for isolation and doesn't have access to Tailwind/Radix in the shadow DOM context)
+- Styled with inline styles matching the widget design (border, rounded corners, primary color accent)
+- Shows a placeholder like "Velg gruppe..." / "Select group..."
+- On selection, calls `onAction(JSON.stringify({ user_group_id: selectedId, name: selectedName }), blockKey)` which sends the selection as a hidden message to trigger the AI to re-call `lookup_customer` with the chosen group ID
+- Once used, shows a confirmation badge (like the phone verify block) showing the selected group name
 
-Replace:
+Register the block:
 ```typescript
-const svcSource = bookingData.services || bookingData.order_lines || bookingData.items || bookingData.sales_items || [];
-if (Array.isArray(svcSource) && svcSource.length > 0) {
-  const svcName = typeof svcSource[0] === 'string' ? svcSource[0] : (svcSource[0].service_name || svcSource[0].name || '');
-  if (svcName) info.service = svcName;
-}
+registerBlock({
+  type: 'group_select',
+  marker: '[GROUP_SELECT]',
+  closingMarker: '[/GROUP_SELECT]',
+  parseContent: (inner) => {
+    try { return JSON.parse(inner.trim()); } 
+    catch { return { groups: [] }; }
+  },
+  component: GroupSelectBlock,
+  flowMeta: {
+    label: 'Group Select',
+    icon: '👥',
+    description: 'Dropdown to choose which user group to manage.',
+  },
+});
 ```
 
-With:
+### 2. Update `src/widget/components/blocks/index.ts`
+
+Add the import:
 ```typescript
-const svcSource = bookingData.services || bookingData.order_lines || bookingData.items || bookingData.sales_items || [];
-if (Array.isArray(svcSource) && svcSource.length > 0) {
-  const allNames = svcSource
-    .map((s: any) => typeof s === 'string' ? s : (s.service_name || s.name || ''))
-    .filter(Boolean);
-  if (allNames.length > 0) info.service = allNames.join(', ');
-}
+import './GroupSelectBlock';
 ```
 
-This ensures "Delivery, Dekkskift" is shown instead of just "Delivery".
+### 3. Update `supabase/functions/widget-ai-chat/index.ts` -- Post-processor
 
-### 2. Always fetch bookings-for-customer (not just as incomplete-data fallback)
-
-**File**: `supabase/functions/widget-ai-chat/index.ts`, lines 1209-1230
-
-Remove the "incomplete data" guard condition. Always call `bookings-for-customer` when `userGroupId` is available to get the full list of bookings:
+Add a new post-processor `patchGroupSelect` that detects when `needs_group_selection` is present in the most recent `lookup_customer` tool result and auto-injects the `[GROUP_SELECT]` marker with the group options JSON. This ensures the dropdown always appears regardless of what the AI writes.
 
 ```typescript
-// 3. ALWAYS fetch full booking list from bookings-for-customer
-// (customer-lookup-support only returns priority_booking, not all bookings)
-if (userGroupId) {
-  try {
-    const bfcResp = await fetch(
-      `${API_BASE}/v1/user-groups/${userGroupId}/bookings-for-customer/?page_size=20`,
-      { headers: { 'Authorization': `Token ${noddiToken}`, 'Accept': 'application/json' } }
-    );
-    if (bfcResp.ok) {
-      const bfcData = await bfcResp.json();
-      const results = Array.isArray(bfcData) ? bfcData : (bfcData.results || []);
-      for (const fb of results) {
-        if (fb?.id && seenBookingIds.has(fb.id)) {
-          // Replace with richer data from this endpoint
-          const idx = bookings.findIndex((b: any) => b.id === fb.id);
-          if (idx >= 0) bookings[idx] = fb;
-        } else if (fb?.id && !seenBookingIds.has(fb.id)) {
-          bookings.push(fb);
-          seenBookingIds.add(fb.id);
+function patchGroupSelect(reply: string, messages: any[]): string {
+  if (reply.includes('[GROUP_SELECT]')) return reply;
+  
+  // Find most recent lookup_customer tool result with needs_group_selection
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const msg = messages[i];
+    if (msg.role === 'tool') {
+      try {
+        const parsed = JSON.parse(msg.content);
+        if (parsed.needs_group_selection && parsed.user_groups) {
+          const payload = JSON.stringify({ groups: parsed.user_groups });
+          // Replace the AI's plain text with the marker
+          return `${reply}\n[GROUP_SELECT]${payload}[/GROUP_SELECT]`;
         }
-      }
-      console.log(`[lookup] Full bookings from bookings-for-customer: ${results.length} results`);
+      } catch {}
     }
-  } catch (e) {
-    console.error('[lookup] bookings-for-customer failed:', e);
   }
+  return reply;
 }
 ```
 
-This ensures ALL confirmed bookings appear in the carousel, not just the single priority booking.
+Add this to the post-processor pipeline (before `patchActionMenu`).
 
-### 3. Return user group choices when multiple groups exist
+### 4. Update AI system prompt
 
-**File**: `supabase/functions/widget-ai-chat/index.ts`, lines 1170-1173
+Add instruction that when `needs_group_selection` is returned, the AI should greet the customer by name and explain they need to select which group they want help with. The post-processor will handle injecting the actual `[GROUP_SELECT]` component.
 
-When there are 2+ user groups, return a response that tells the AI to ask the user which group they want, instead of auto-selecting:
+## Select Component Design (inline styles)
 
-```typescript
-// If multiple user groups, ask the user to choose
-if (userGroups.length > 1) {
-  const groupOptions = userGroups.map((g: any) => ({
-    id: g.id,
-    name: g.name || `Gruppe ${g.id}`,
-    is_personal: g.is_personal || false,
-    is_default: g.is_default_user_group || false,
-    total_bookings: g.bookings_summary?.total_bookings || 0,
-  }));
-  
-  return JSON.stringify({
-    found: true,
-    needs_group_selection: true,
-    customer: {
-      name: `${noddihUser.first_name || ''} ${noddihUser.last_name || ''}`.trim() || noddihUser.name || '',
-      email: noddihUser.email,
-      phone: noddihUser.phone,
-      userId: noddihUser.id,
-    },
-    user_groups: groupOptions,
-    message: `Kunden er medlem av ${groupOptions.length} grupper. Be kunden velge hvilken gruppe det gjelder.`,
-  });
-}
+Since the widget runs in isolation and cannot use Radix/Tailwind, the select will be a styled native `<select>` element:
 
-// Single group - continue as normal
-const userGroupId = userGroups[0]?.id;
+```tsx
+<select
+  value={selected}
+  onChange={(e) => handleSelect(e.target.value)}
+  disabled={isUsed}
+  style={{
+    width: '100%',
+    padding: '10px 12px',
+    borderRadius: '8px',
+    border: `1.5px solid ${primaryColor}`,
+    fontSize: '14px',
+    background: '#fff',
+    color: '#1a1a1a',
+    cursor: isUsed ? 'default' : 'pointer',
+    appearance: 'none',
+    backgroundImage: 'url("data:image/svg+xml,...")', // chevron icon
+    backgroundRepeat: 'no-repeat',
+    backgroundPosition: 'right 10px center',
+  }}
+>
+  <option value="" disabled>Velg gruppe...</option>
+  {groups.map(g => (
+    <option key={g.id} value={g.id}>{g.name}</option>
+  ))}
+</select>
 ```
 
-Then update the AI system prompt (or post-processor) to detect `needs_group_selection` and render an `[ACTION_MENU]` with the group names as options. When the user selects a group, the AI should call `lookup_customer` again with an additional `user_group_id` parameter.
+After selection, a confirm button appears (styled like the phone verify submit button) to confirm the choice.
 
-**Also update `executeLookupCustomer` signature** to accept an optional `userGroupId` parameter. When provided, skip the selection logic and use the specified group directly:
-
-```typescript
-async function executeLookupCustomer(phone?: string, email?: string, userGroupId?: number): Promise<string> {
-  // ... existing lookup code ...
-  
-  // If userGroupId specified (from group selection), use it directly
-  const selectedGroupId = userGroupId 
-    || (userGroups.length === 1 ? userGroups[0]?.id : null);
-    
-  if (!selectedGroupId && userGroups.length > 1) {
-    // Return group selection prompt (code from above)
-  }
-  
-  // Continue with selectedGroupId...
-}
-```
-
-**Update the tool definition** for `lookup_customer` to include an optional `user_group_id` parameter so the AI can pass it after the user selects a group.
-
----
-
-## Summary of File Changes
+## File Changes Summary
 
 | File | Change |
 |------|--------|
-| `supabase/functions/widget-ai-chat/index.ts` | 1) Join all service names in `patchBookingInfo` instead of taking only the first 2) Always call `bookings-for-customer` endpoint (remove incomplete-data guard) 3) Add user group selection flow when multiple groups exist 4) Add `user_group_id` parameter to `lookup_customer` tool definition |
+| `src/widget/components/blocks/GroupSelectBlock.tsx` | New file: Select dropdown block for user group selection |
+| `src/widget/components/blocks/index.ts` | Add import for GroupSelectBlock |
+| `supabase/functions/widget-ai-chat/index.ts` | Add `patchGroupSelect` post-processor to auto-inject the block when `needs_group_selection` is detected |
 
-## Expected Results
-1. Service field shows "Delivery, Dekkskift" (all services joined)
-2. Carousel shows ALL confirmed future bookings from the user group
-3. User is prompted to choose their user group before bookings are displayed
+## Expected Result
+When a customer with multiple user groups verifies their phone, they see a styled dropdown listing their groups. After selecting one, the AI re-runs `lookup_customer` with the chosen `user_group_id` and proceeds with bookings from that group only.
