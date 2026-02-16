@@ -766,16 +766,23 @@ function patchActionMenu(reply: string, messages: any[]): string {
 function patchGroupSelect(reply: string, messages: any[]): string {
   if (reply.includes('[GROUP_SELECT]')) return reply;
   
-  // Find most recent lookup_customer tool result with needs_group_selection
+  // Only check tool results from the CURRENT turn (stop at previous assistant message)
   for (let i = messages.length - 1; i >= 0; i--) {
     const msg = messages[i];
+    // Stop searching when we hit an assistant message — we've gone past current turn
+    if (msg.role === 'assistant') break;
     if (msg.role === 'tool') {
       try {
         const parsed = typeof msg.content === 'string' ? JSON.parse(msg.content) : msg.content;
         if (parsed.needs_group_selection && parsed.user_groups) {
+          const customerName = parsed.customer?.name || '';
           const payload = JSON.stringify({ groups: parsed.user_groups });
-          console.log('[patchGroupSelect] Injecting [GROUP_SELECT] with', parsed.user_groups.length, 'groups');
-          return `${reply}\n[GROUP_SELECT]${payload}[/GROUP_SELECT]`;
+          // REPLACE the entire AI reply with a proper Norwegian prompt + the group select block
+          const greeting = customerName 
+            ? `Hei, ${customerName}! Vi ser at du har flere brukergrupper tilknyttet din konto. Hvem vil du representere?`
+            : `Vi ser at du har flere brukergrupper tilknyttet din konto. Hvem vil du representere?`;
+          console.log('[patchGroupSelect] Replacing reply with group select prompt for', parsed.user_groups.length, 'groups');
+          return `${greeting}\n[GROUP_SELECT]${payload}[/GROUP_SELECT]`;
         }
       } catch { /* ignore */ }
     }
@@ -1898,6 +1905,13 @@ BOOKING TIME DISPLAY:
 - ALWAYS present booking times as a full time range (e.g., "07:00–12:00"), NEVER as a single time (e.g., "07:00").
 - Use the 'timeSlot' field from booking data which contains the pre-formatted range.
 - When mentioning a booking, say "planlagt den 16. februar 2026 kl. 07:00–12:00" NOT "kl. 07:00".
+
+USER GROUP SELECTION FLOW:
+When lookup_customer returns needs_group_selection: true, a [GROUP_SELECT] dropdown is automatically shown to the user.
+When the user selects a group, you will receive a hidden message containing JSON with "user_group_id", "name", and "action": "group_selected".
+You MUST then call lookup_customer again with the user_group_id parameter to fetch that group's bookings.
+Do NOT say "no bookings" or "ingen bestillinger" before the user has selected a group.
+Do NOT output any booking-related information until a group has been selected and re-lookup completed.
 
 MULTI-TURN CONTEXT:
 - Remember all data shared in the conversation (phone, addresses, cars, bookings).
