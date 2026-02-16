@@ -494,10 +494,19 @@ function patchBookingInfo(reply: string, messages: any[]): string {
     if (msg.role === 'tool' && typeof msg.content === 'string') {
       try {
         const toolResult = JSON.parse(msg.content);
-        if (toolResult.booking) { bookingData = toolResult.booking; break; }
-        if (toolResult.bookings?.[0]) { bookingData = toolResult.bookings[0]; break; }
-        // Direct get_booking_details shape (has .id and .scheduledAt at top level)
-        if (toolResult.id && toolResult.scheduledAt) { bookingData = toolResult; break; }
+        let candidate: any = null;
+        if (toolResult.booking) candidate = toolResult.booking;
+        else if (toolResult.bookings?.[0]) candidate = toolResult.bookings[0];
+        else if (toolResult.id && toolResult.scheduledAt) candidate = toolResult;
+        
+        if (candidate) {
+          if (!bookingData) bookingData = candidate;
+          // Prefer results that have address + vehicle (lookup_customer shape)
+          if (candidate.address && candidate.vehicle) {
+            bookingData = candidate;
+            break; // Found the richest result
+          }
+        }
       } catch { /* not JSON */ }
     }
   }
@@ -541,9 +550,13 @@ function patchBookingInfo(reply: string, messages: any[]): string {
   } else if (bookingData.sales_items?.[0]?.name) {
     info.service = bookingData.sales_items[0].name;
   }
-  // Vehicle: lookup_customer returns vehicle as string, get_booking_details returns cars[]
+  // Vehicle: lookup_customer returns vehicle as string, get_booking_details returns cars[], Noddi raw returns car object
   if (bookingData.vehicle) {
     info.car = typeof bookingData.vehicle === 'string' ? bookingData.vehicle : `${bookingData.vehicle.make || ''} ${bookingData.vehicle.model || ''} (${bookingData.vehicle.licensePlate || ''})`.trim();
+  } else if (bookingData.car && typeof bookingData.car === 'object') {
+    const c = bookingData.car;
+    const plate = c.license_plate_number || c.license_plate || '';
+    info.car = `${c.make || ''} ${c.model || ''} ${plate ? `(${plate})` : ''}`.trim();
   } else if (bookingData.cars?.[0]) {
     const car = bookingData.cars[0];
     info.car = `${car.make || ''} ${car.model || ''} (${car.license_plate || ''})`.trim();
@@ -628,34 +641,63 @@ function patchBookingConfirmed(reply: string, messages: any[]): string {
   let data: any;
   try { data = JSON.parse(jsonStr); } catch { return reply; }
 
-  // Extract real booking data from tool results
+  // Extract real booking data from ALL tool results, merging from multiple sources
   for (let i = messages.length - 1; i >= 0; i--) {
     const msg = messages[i];
     if (msg.role === 'tool' && typeof msg.content === 'string') {
       try {
         const toolResult = JSON.parse(msg.content);
-        // From create_booking result
-        if (toolResult.booking_id || toolResult.id) {
+        
+        // From create_booking / update_booking result (raw Noddi shape)
+        if (toolResult.booking) {
+          const b = toolResult.booking;
+          if (!data.booking_id && b.id) data.booking_id = b.id;
+          if (!data.booking_number && b.reference) data.booking_number = b.reference;
+          // Noddi raw shape: address as object
+          if (!data.address && b.address) {
+            data.address = typeof b.address === 'string' ? b.address
+              : (b.address.full_address || b.address.address || null);
+          }
+          // Noddi raw shape: car (not vehicle)
+          if (!data.car && b.car && typeof b.car === 'object') {
+            const plate = b.car.license_plate_number || b.car.license_plate || '';
+            data.car = `${b.car.make || ''} ${b.car.model || ''} ${plate ? `(${plate})` : ''}`.trim();
+          }
+          // Noddi raw shape: cars array
+          if (!data.car && b.cars?.[0]) {
+            const c = b.cars[0];
+            const plate = c.license_plate_number || c.license_plate || '';
+            data.car = `${c.make || ''} ${c.model || ''} ${plate ? `(${plate})` : ''}`.trim();
+          }
+        }
+        
+        // From lookup_customer result (pre-formatted strings)
+        const booking = toolResult.bookings?.[0];
+        if (booking) {
+          if (!data.booking_id && booking.id) data.booking_id = booking.id;
+          if (!data.booking_number && booking.reference) data.booking_number = booking.reference;
+          if (!data.address && booking.address) {
+            data.address = typeof booking.address === 'string' ? booking.address
+              : (booking.address.full_address || booking.address.address || null);
+          }
+          if (!data.car && booking.vehicle) data.car = booking.vehicle;
+          if (!data.date && booking.scheduledAt) data.date = (booking.scheduledAt.split(',')[0] || booking.scheduledAt).trim();
+          if (!data.time && booking.timeSlot) data.time = booking.timeSlot;
+          if (!data.service && booking.services?.[0]) {
+            data.service = typeof booking.services[0] === 'string' ? booking.services[0] : (booking.services[0].name || null);
+          }
+        }
+        
+        // From direct booking_id/id shape
+        if (!data.booking_id && (toolResult.booking_id || (toolResult.id && !toolResult.scheduledAt))) {
           data.booking_id = toolResult.booking_id || toolResult.id;
-          if (toolResult.booking_number || toolResult.reference) {
+          if (!data.booking_number && (toolResult.booking_number || toolResult.reference)) {
             data.booking_number = toolResult.booking_number || toolResult.reference;
           }
-          break;
-        }
-        // From lookup_customer result
-        const booking = toolResult.booking || toolResult.bookings?.[0];
-        if (booking) {
-          if (booking.id) data.booking_id = booking.id;
-          if (booking.reference) data.booking_number = booking.reference;
-          if (booking.address) data.address = typeof booking.address === 'string' ? booking.address : (booking.address.address || booking.address.full_address || data.address);
-          if (booking.vehicle) data.car = typeof booking.vehicle === 'string' ? booking.vehicle : data.car;
-          if (booking.scheduledAt) data.date = (booking.scheduledAt.split(',')[0] || booking.scheduledAt).trim();
-          if (booking.timeSlot) data.time = booking.timeSlot;
-          if (booking.services?.[0]) data.service = typeof booking.services[0] === 'string' ? booking.services[0] : (booking.services[0].name || data.service);
-          break;
         }
       } catch { /* not JSON */ }
     }
+    // DON'T break -- keep scanning to merge from multiple sources
   }
 
   const patched = reply.slice(0, startIdx) + marker + JSON.stringify(data) + reply.slice(endIdx);
