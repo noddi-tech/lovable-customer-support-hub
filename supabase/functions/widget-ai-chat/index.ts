@@ -402,12 +402,21 @@ async function patchBookingSummary(reply: string, messages: any[], visitorPhone?
 }
 
 /** Post-processor: wrap plain-text yes/no confirmation questions in [YES_NO] markers */
-function patchYesNo(reply: string): string {
+function patchYesNo(reply: string, messages?: any[]): string {
   // Skip if already contains [YES_NO]
   if (reply.includes('[YES_NO]')) return reply;
   // Skip if reply already has other interactive markers — YES_NO should only appear alone
-  const otherMarkers = ['[ACTION_MENU]', '[TIME_SLOT]', '[BOOKING_EDIT]', '[BOOKING_SUMMARY]', '[SERVICE_SELECT]', '[PHONE_VERIFY]', '[ADDRESS_SEARCH]', '[LICENSE_PLATE]'];
+  const otherMarkers = ['[ACTION_MENU]', '[TIME_SLOT]', '[BOOKING_EDIT]', '[BOOKING_SUMMARY]', '[SERVICE_SELECT]', '[PHONE_VERIFY]', '[ADDRESS_SEARCH]', '[LICENSE_PLATE]', '[BOOKING_CONFIRMED]'];
   if (otherMarkers.some(m => reply.includes(m))) return reply;
+
+  // Skip if last user message was a time slot selection — we want BOOKING_EDIT not YES_NO
+  if (messages) {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].role !== 'user') continue;
+      try { const p = JSON.parse(messages[i].content); if (p.delivery_window_id) return reply; } catch {}
+      break;
+    }
+  }
 
   // NEW: Skip if the question mentions multiple booking edit options — these are multi-choice, not binary
   if (/(?:tidspunkt|adresse|bil).*(?:tidspunkt|adresse|bil)/is.test(reply)) return reply;
@@ -485,6 +494,7 @@ async function saveErrorDetails(supabase: any, conversationId: string | null, er
 function patchBookingInfo(reply: string, messages: any[]): string {
   // If already contains BOOKING_INFO marker, skip
   if (reply.includes('[BOOKING_INFO]')) return reply;
+  if (reply.includes('[BOOKING_CONFIRMED]')) return reply;
   
   // CONTEXT-BASED: Check if ANY tool result has booking data
   // This fires regardless of what the AI wrote in its reply — no more regex whack-a-mole
@@ -576,6 +586,40 @@ function patchBookingInfo(reply: string, messages: any[]): string {
   if (!info.car && bookingData.license_plate) {
     info.car = bookingData.license_plate;
   }
+  // Handle booking_items_car (raw Noddi shape from update_booking/get_booking_details)
+  if (!info.car && Array.isArray(bookingData.booking_items_car) && bookingData.booking_items_car[0]?.car) {
+    const bic = bookingData.booking_items_car[0].car;
+    const plate = bic.license_plate_number || bic.license_plate || bic.registration || '';
+    info.car = `${bic.make || ''} ${bic.model || ''} ${plate ? `(${plate})` : ''}`.trim();
+  }
+  // Handle delivery_window_starts_at/ends_at (raw Noddi shape)
+  if (!info.time && bookingData.delivery_window_starts_at && bookingData.delivery_window_ends_at) {
+    try {
+      const s = new Date(bookingData.delivery_window_starts_at);
+      const e = new Date(bookingData.delivery_window_ends_at);
+      info.time = `${s.toLocaleTimeString('nb-NO', {hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'Europe/Oslo'})}–${e.toLocaleTimeString('nb-NO', {hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'Europe/Oslo'})}`;
+      if (!info.date) info.date = s.toLocaleDateString('nb-NO', {day:'numeric',month:'short',year:'numeric',timeZone:'Europe/Oslo'});
+    } catch {}
+  }
+  // Handle service_categories (raw Noddi shape)
+  if (!info.service && Array.isArray(bookingData.service_categories) && bookingData.service_categories.length > 0) {
+    info.service = bookingData.service_categories[0].name || bookingData.service_categories[0].label || '';
+  }
+  // Handle booking_items_car[].sales_items for service names
+  if (!info.service && Array.isArray(bookingData.booking_items_car)) {
+    for (const bic of bookingData.booking_items_car) {
+      if (Array.isArray(bic.sales_items) && bic.sales_items[0]?.name) {
+        info.service = bic.sales_items[0].name;
+        break;
+      }
+    }
+  }
+  // Handle raw address object (not already a string or with full_address)
+  if (!info.address && bookingData.address && typeof bookingData.address === 'object' && !bookingData.address.full_address && !bookingData.address.address) {
+    const a = bookingData.address;
+    const addr = `${a.street_name || ''} ${a.street_number || ''}, ${a.zip_code || ''} ${a.city || ''}`.replace(/\s+/g,' ').trim().replace(/^,|,$/g,'').trim();
+    if (addr) info.address = addr;
+  }
   
   const infoMarker = `[BOOKING_INFO]${JSON.stringify(info)}[/BOOKING_INFO]`;
   
@@ -616,6 +660,7 @@ function patchActionMenu(reply: string, messages: any[]): string {
   // and there's no ACTION_MENU already
   const hasCompleteActionMenu = reply.includes('[ACTION_MENU]') && reply.includes('[/ACTION_MENU]');
   if (!reply.includes('[BOOKING_INFO]') || hasCompleteActionMenu) return reply;
+  if (reply.includes('[BOOKING_CONFIRMED]')) return reply;
   
   // Check that we have booking data in tool results (confirms booking edit context)
   let hasBooking = false;
@@ -756,11 +801,37 @@ function patchBookingConfirmed(reply: string, messages: any[]): string {
           const plate = c.license_plate_number || c.license_plate || '';
           data.car = `${c.make || ''} ${c.model || ''} ${plate ? `(${plate})` : ''}`.trim();
         }
+        // Handle booking_items_car (raw Noddi shape)
+        if (!data.car && Array.isArray(b.booking_items_car) && b.booking_items_car[0]?.car) {
+          const bic = b.booking_items_car[0].car;
+          const plate = bic.license_plate_number || bic.license_plate || bic.registration || '';
+          data.car = `${bic.make || ''} ${bic.model || ''} ${plate ? `(${plate})` : ''}`.trim();
+        }
+        if (!data.service && Array.isArray(b.service_categories) && b.service_categories[0]?.name) {
+          data.service = b.service_categories[0].name;
+        }
+        if (!data.service && Array.isArray(b.booking_items_car)) {
+          for (const bic of b.booking_items_car) {
+            if (Array.isArray(bic.sales_items) && bic.sales_items[0]?.name) {
+              data.service = bic.sales_items[0].name;
+              break;
+            }
+          }
+        }
+        if (!data.time && b.delivery_window_starts_at && b.delivery_window_ends_at) {
+          try {
+            const s = new Date(b.delivery_window_starts_at);
+            const e = new Date(b.delivery_window_ends_at);
+            data.time = `${s.toLocaleTimeString('nb-NO', {hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'Europe/Oslo'})}–${e.toLocaleTimeString('nb-NO', {hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'Europe/Oslo'})}`;
+            if (!data.date) data.date = s.toLocaleDateString('nb-NO', {day:'numeric',month:'short',year:'numeric',timeZone:'Europe/Oslo'});
+          } catch {}
+        }
       }
       // Merge rich data from lookup_customer results
       const booking = r.bookings?.[0];
       if (booking) {
         if (!data.booking_id && booking.id) data.booking_id = booking.id;
+        if (!data.booking_number && booking.reference) data.booking_number = booking.reference;
         if (!data.address && booking.address) {
           data.address = typeof booking.address === 'string' ? booking.address : null;
         }
@@ -786,6 +857,68 @@ function patchBookingConfirmed(reply: string, messages: any[]): string {
   }
   
   return reply;
+}
+
+// ========== Post-processor: auto-inject [BOOKING_EDIT] after time slot selection ==========
+function patchTimeSlotConfirmToEdit(reply: string, messages: any[]): string {
+  if (reply.includes('[BOOKING_EDIT]')) return reply;
+  if (reply.includes('[TIME_SLOT]')) return reply;
+
+  // Check if the user's last message is a time slot selection
+  let timeSlotSelection: any = null;
+  let bookingData: any = null;
+
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const msg = messages[i];
+    if (msg.role === 'user' && !timeSlotSelection) {
+      try {
+        const parsed = JSON.parse(msg.content);
+        if (parsed.delivery_window_id) {
+          timeSlotSelection = parsed;
+        }
+      } catch {}
+      if (!timeSlotSelection) break; // Last user message wasn't time selection
+    }
+    if (msg.role === 'tool' && !bookingData) {
+      try {
+        const r = JSON.parse(msg.content);
+        if (r.bookings?.[0]) bookingData = r.bookings[0];
+        else if (r.booking) bookingData = r.booking;
+      } catch {}
+    }
+  }
+
+  if (!timeSlotSelection || !bookingData) return reply;
+
+  const fmtOslo = (iso: string) => {
+    try { return new Date(iso).toLocaleTimeString('nb-NO', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Europe/Oslo' }); }
+    catch { return iso; }
+  };
+  const fmtDateOslo = (iso: string) => {
+    try { return new Date(iso).toLocaleDateString('nb-NO', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Europe/Oslo' }); }
+    catch { return iso; }
+  };
+
+  const newTime = timeSlotSelection.start_time && timeSlotSelection.end_time
+    ? `${fmtOslo(timeSlotSelection.start_time)}\u2013${fmtOslo(timeSlotSelection.end_time)}`
+    : '';
+  const newDate = timeSlotSelection.start_time ? fmtDateOslo(timeSlotSelection.start_time) : '';
+
+  const editData = {
+    booking_id: bookingData.id,
+    changes: {
+      time: newTime,
+      old_time: bookingData.timeSlot || '',
+      date: newDate,
+      old_date: bookingData.scheduledAt ? (bookingData.scheduledAt.split(',')[0] || '').trim() : '',
+      delivery_window_id: timeSlotSelection.delivery_window_id,
+      delivery_window_start: timeSlotSelection.start_time,
+      delivery_window_end: timeSlotSelection.end_time,
+    }
+  };
+
+  console.log('[patchTimeSlotConfirmToEdit] Auto-injecting BOOKING_EDIT from time slot selection');
+  return `[BOOKING_EDIT]${JSON.stringify(editData)}[/BOOKING_EDIT]`;
 }
 
 
@@ -966,18 +1099,29 @@ async function executeLookupCustomer(phone?: string, email?: string): Promise<st
       || userGroups.find((g: any) => g.is_personal)?.id
       || userGroups[0]?.id;
 
+    // Extract bookings directly from the customer-lookup-support response
+    // (no second API call — same approach as the inbox's noddi-customer-lookup)
     let bookings: any[] = [];
+    const seenBookingIds = new Set<number>();
 
-    if (userGroupId) {
-      const bResp = await fetch(`${API_BASE}/v1/user-groups/${userGroupId}/bookings-for-customer/`, { headers });
-      if (bResp.ok) {
-        const data = await bResp.json();
-        bookings = Array.isArray(data) ? data : (data.results || []);
-      } else {
-        const errText = await bResp.text().catch(() => '');
-        console.error(`[lookup] Bookings error (userGroup ${userGroupId}): ${bResp.status} ${errText}`);
+    // 1. Collect priority_booking from each user group's bookings_summary
+    for (const group of userGroups) {
+      const pb = group.bookings_summary?.priority_booking;
+      if (pb?.id && !seenBookingIds.has(pb.id)) {
+        bookings.push(pb);
+        seenBookingIds.add(pb.id);
       }
     }
+
+    // 2. Supplement with unpaid_bookings
+    for (const ub of (lookupData.unpaid_bookings || [])) {
+      if (ub?.id && !seenBookingIds.has(ub.id)) {
+        bookings.push(ub);
+        seenBookingIds.add(ub.id);
+      }
+    }
+
+    console.log(`[lookup] Extracted ${bookings.length} bookings from customer-lookup-support response (no second API call)`);
 
     const name = `${noddihUser.first_name || ''} ${noddihUser.last_name || ''}`.trim()
       || noddihUser.name || '';
@@ -1019,6 +1163,20 @@ async function executeLookupCustomer(phone?: string, email?: string): Promise<st
               make: car.make || '',
               model: car.model || '',
               license_plate: car.license_plate_number || car.license_plate || '',
+            });
+          }
+        }
+      }
+      // Handle booking_items_car (Noddi's rich booking structure)
+      if (Array.isArray(b.booking_items_car)) {
+        for (const bic of b.booking_items_car) {
+          const car = bic.car;
+          if (car?.id && !storedCars.has(car.id)) {
+            storedCars.set(car.id, {
+              id: car.id,
+              make: car.make || '',
+              model: car.model || '',
+              license_plate: car.license_plate_number || car.license_plate || car.registration || '',
             });
           }
         }
@@ -1084,9 +1242,30 @@ async function executeLookupCustomer(phone?: string, email?: string): Promise<st
           address_id: b.address?.id || null,
           services: (() => {
             const lines = b.order_lines || b.items || b.sales_items || b.services || [];
-            if (Array.isArray(lines)) {
+            if (Array.isArray(lines) && lines.length > 0) {
               return lines.map((ol: any) => typeof ol === 'string' ? ol : (ol.service_name || ol.name || '')).filter(Boolean);
             }
+            // Check service_categories (priority_booking shape)
+            if (Array.isArray(b.service_categories) && b.service_categories.length > 0) {
+              return b.service_categories.map((sc: any) => sc.name || sc.label || '').filter(Boolean);
+            }
+            // Check booking_items_car[].sales_items
+            if (Array.isArray(b.booking_items_car)) {
+              const names: string[] = [];
+              for (const bic of b.booking_items_car) {
+                if (Array.isArray(bic.sales_items)) {
+                  for (const si of bic.sales_items) { if (si.name) names.push(si.name); }
+                }
+              }
+              if (names.length > 0) return names;
+            }
+            // Check order.lines (priority_booking shape)
+            if (b.order?.lines && Array.isArray(b.order.lines) && b.order.lines.length > 0) {
+              return b.order.lines.map((ol: any) => ol.name || ol.title || '').filter(Boolean);
+            }
+            // Fallback: service.name or service_name
+            if (b.service?.name) return [b.service.name];
+            if (b.service_name) return [b.service_name];
             return [];
           })(),
           sales_item_ids: (() => {
@@ -1096,12 +1275,18 @@ async function executeLookupCustomer(phone?: string, email?: string): Promise<st
             }
             return [];
           })(),
-          // === FIX 2: Vehicle with storedCars fallback ===
+          // === FIX 2: Vehicle with booking_items_car + storedCars fallback ===
           vehicle: (() => {
             const c = b.car || (Array.isArray(b.cars) && b.cars[0]) || null;
             if (c) {
-              const plate = c.license_plate_number || c.license_plate || '';
+              const plate = c.license_plate_number || c.license_plate || c.registration || '';
               return `${c.make || ''} ${c.model || ''} ${plate ? `(${plate})` : ''}`.trim() || null;
+            }
+            // Check booking_items_car (Noddi's actual structure from priority_booking)
+            if (Array.isArray(b.booking_items_car) && b.booking_items_car[0]?.car) {
+              const bic = b.booking_items_car[0].car;
+              const plate = bic.license_plate_number || bic.license_plate || bic.registration || '';
+              return `${bic.make || ''} ${bic.model || ''} ${plate ? `(${plate})` : ''}`.trim() || null;
             }
             // Fallback: look up from storedCars using car_id
             const carId = b.car?.id || (Array.isArray(b.cars) && b.cars[0]?.id) || null;
@@ -1907,6 +2092,7 @@ Deno.serve(async (req) => {
       if (!assistantMessage.tool_calls || assistantMessage.tool_calls.length === 0) {
         const rawReply = assistantMessage.content || 'I apologize, I was unable to generate a response.';
         let reply = await patchBookingSummary(rawReply, currentMessages, visitorPhone, visitorEmail);
+        reply = patchTimeSlotConfirmToEdit(reply, currentMessages);
         reply = await patchBookingEdit(reply, currentMessages, visitorPhone, visitorEmail);
         // === FIX 4: Strip redundant text before BOOKING_EDIT ===
         if (reply.includes('[BOOKING_EDIT]')) {
@@ -1916,7 +2102,7 @@ Deno.serve(async (req) => {
         reply = patchBookingConfirmed(reply, currentMessages);
         reply = patchBookingInfo(reply, currentMessages);
         reply = patchActionMenu(reply, currentMessages);
-        reply = patchYesNo(reply);
+        reply = patchYesNo(reply, currentMessages);
 
         // Save assistant reply & update conversation meta
         const savedMessageId = await saveMessage(supabase, dbConversationId, 'assistant', reply, allToolsUsed);
