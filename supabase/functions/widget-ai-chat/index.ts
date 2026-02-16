@@ -1509,7 +1509,24 @@ Deno.serve(async (req) => {
           tool_call_id: toolCall.id,
         });
       }
-      if (loopBroken) break;
+      if (loopBroken) {
+        // Pad missing tool responses so OpenAI doesn't reject the message history
+        const answeredIds = new Set(
+          currentMessages
+            .filter((m: any) => m.role === 'tool')
+            .map((m: any) => m.tool_call_id)
+        );
+        for (const tc of assistantMessage.tool_calls) {
+          if (!answeredIds.has(tc.id)) {
+            currentMessages.push({
+              role: 'tool',
+              content: JSON.stringify({ error: 'Tool call skipped due to safety limit. Use data already available in the conversation to answer the user. If the user wants to change time, output the [TIME_SLOT] marker.' }),
+              tool_call_id: tc.id,
+            });
+          }
+        }
+        break;
+      }
     }
 
     // Loop exhausted or broken — give AI one final chance with tool_choice: "none"
@@ -1528,7 +1545,10 @@ Deno.serve(async (req) => {
         }),
       });
 
-      if (finalResp.ok) {
+      if (!finalResp.ok) {
+        const errBody = await finalResp.text();
+        console.error('[widget-ai-chat] Final forced-text call returned', finalResp.status, errBody);
+      } else {
         const finalData = await finalResp.json();
         const finalContent = finalData.choices?.[0]?.message?.content;
         if (finalContent && finalContent.trim().length > 0) {
