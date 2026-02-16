@@ -401,8 +401,41 @@ async function patchBookingSummary(reply: string, messages: any[], visitorPhone?
   return reply;
 }
 
-function patchBookingEdit(reply: string, messages: any[]): string {
-  const marker = '[BOOKING_EDIT]';
+/** Post-processor: wrap plain-text yes/no confirmation questions in [YES_NO] markers */
+function patchYesNo(reply: string): string {
+  // Skip if already contains [YES_NO]
+  if (reply.includes('[YES_NO]')) return reply;
+
+  // Common Norwegian/English confirmation patterns
+  const patterns = [
+    /Er dette bestillingen du ønsker å endre\??/i,
+    /Er dette riktig\??/i,
+    /Ønsker du å (bekrefte|endre|avbestille|kansellere)\b.*\??/i,
+    /Vil du (bekrefte|endre|avbestille|fortsette)\b.*\??/i,
+    /Stemmer dette\??/i,
+    /Er det korrekt\??/i,
+    /Do you want to (confirm|change|cancel|proceed)\b.*\??/i,
+    /Is this correct\??/i,
+    /Would you like to (confirm|change|cancel|proceed)\b.*\??/i,
+    /Skal vi gå videre\b.*\??/i,
+  ];
+
+  for (const pattern of patterns) {
+    const match = reply.match(pattern);
+    if (match) {
+      const question = match[0];
+      // Replace the plain-text question with a [YES_NO] wrapped version
+      const before = reply.substring(0, match.index!).trimEnd();
+      const after = reply.substring(match.index! + question.length).trimStart();
+      const parts = [before, `[YES_NO]${question}[/YES_NO]`, after].filter(s => s.length > 0);
+      return parts.join('\n');
+    }
+  }
+  return reply;
+}
+
+
+  function patchBookingEdit(reply: string, messages: any[]): string {
   const closingMarker = '[/BOOKING_EDIT]';
   const startIdx = reply.indexOf(marker);
   const endIdx = reply.indexOf(closingMarker);
@@ -1047,7 +1080,10 @@ When a customer wants to modify an existing booking:
 1. Use get_booking_details to fetch the current booking. Remember the REAL booking_id from the result.
 2. If the customer has only ONE active booking, skip confirmation and ask what they want to change using [ACTION_MENU].
 3. If multiple bookings, ask which one using [ACTION_MENU] with booking options.
-4. ⚠️ ABSOLUTE RULE: NEVER ask plain text yes/no questions. When asking "Do you want to change X?", "Ønsker du å endre X?", or ANY binary question, you MUST use [YES_NO] marker. NEVER write these as plain text.
+    4. ⚠️ ABSOLUTE RULE: NEVER ask plain text yes/no questions. When asking "Do you want to change X?", "Ønsker du å endre X?", "Er dette bestillingen du ønsker å endre?", or ANY binary question, you MUST use [YES_NO] marker. NEVER write these as plain text.
+    Example — WRONG: "Er dette bestillingen du ønsker å endre?"
+    Example — CORRECT: [YES_NO]Er dette bestillingen du ønsker å endre?[/YES_NO]
+    This applies to ALL confirmation/yes-no questions in ANY language.
 
 ⚠️ CRITICAL — ACTION MENU SELECTIONS:
 When the customer selects an option from [ACTION_MENU] (e.g., "Endre tid", "Endre adresse"), you ALREADY have the booking details from the earlier lookup_customer or get_booking_details call in this conversation. Do NOT call get_booking_details again. Use the data already in the conversation context.
@@ -1454,6 +1490,7 @@ Deno.serve(async (req) => {
         const rawReply = assistantMessage.content || 'I apologize, I was unable to generate a response.';
         let reply = await patchBookingSummary(rawReply, currentMessages, visitorPhone, visitorEmail);
         reply = patchBookingEdit(reply, currentMessages);
+        reply = patchYesNo(reply);
 
         // Save assistant reply & update conversation meta
         const savedMessageId = await saveMessage(supabase, dbConversationId, 'assistant', reply, allToolsUsed);
@@ -1535,9 +1572,10 @@ Deno.serve(async (req) => {
       const finalResp = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+         body: JSON.stringify({
           model: 'gpt-4o-mini',
           messages: currentMessages,
+          tools,
           tool_choice: 'none',
           temperature: 0.7,
           max_tokens: 1024,
@@ -1555,6 +1593,7 @@ Deno.serve(async (req) => {
           console.log('[widget-ai-chat] Final forced-text response obtained, length:', finalContent.length);
           let reply = await patchBookingSummary(finalContent, currentMessages, visitorPhone, visitorEmail);
           reply = patchBookingEdit(reply, currentMessages);
+          reply = patchYesNo(reply);
 
           const savedMessageId = await saveMessage(supabase, dbConversationId, 'assistant', reply, allToolsUsed);
           await updateConversationMeta(supabase, dbConversationId, allToolsUsed);
