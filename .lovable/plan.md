@@ -1,69 +1,73 @@
 
 
-# Fix: Forced-Text Call Fails Due to Missing Tool Responses
+# Fix: Three Issues in Booking Edit Flow
 
-## Root Cause
+## Issue 1: Forced-Text Recovery Call Returns 400
 
-When the safety break triggers inside the tool execution loop, the assistant message (containing multiple `tool_calls`) has already been pushed to the conversation history. But the `break` exits before all tool calls have corresponding tool response messages. 
+**Root Cause**: The final recovery call sends `tool_choice: "none"` but does NOT include the `tools` array. OpenAI API requires `tools` to be present when `tool_choice` is specified.
 
-OpenAI's API strictly requires that every `tool_call` in an assistant message has a matching `tool` response message. The forced-text call sends this incomplete history, gets a **400 error**, and silently falls through to the "Beklager" fallback.
+**Error from logs**:
+```
+"Invalid value for 'tool_choice': 'tool_choice' is only allowed when 'tools' are specified."
+```
 
-This is why it fails every time -- the recovery mechanism itself is broken.
+**Fix**: In the forced-text recovery call (around line 1535), include the `tools` array in the request body alongside `tool_choice: "none"`.
 
-## Fix
+```typescript
+body: JSON.stringify({
+  model: 'gpt-4o-mini',
+  messages: currentMessages,
+  tools,                    // <-- ADD THIS
+  tool_choice: 'none',
+  temperature: 0.7,
+  max_tokens: 1024,
+  stream: false,
+}),
+```
+
+This is the critical fix -- every previous recovery attempt has been silently failing because of this one missing field.
+
+---
+
+## Issue 2: AI Asks Confirmation as Plain Text Instead of [YES_NO]
+
+**Problem**: When the AI asks "Er dette bestillingen du onsker a endre?", it uses plain text instead of the `[YES_NO]` marker (visible in screenshot 3).
+
+**Fix**: Strengthen the system prompt instruction (around line 1050) to be even more explicit and add an example. Also add a post-processing step that detects common confirmation patterns and wraps them in `[YES_NO]`.
+
+Add to system prompt after line 1050:
+```
+Example: Instead of writing "Er dette bestillingen du onsker a endre?" as plain text, write:
+[YES_NO]Er dette bestillingen du onsker a endre?[/YES_NO]
+```
+
+Add a `patchYesNo` post-processor that catches common Norwegian/English confirmation phrases and wraps them in `[YES_NO]` markers if missing. Apply it alongside the existing `patchBookingSummary` and `patchBookingEdit` calls.
+
+---
+
+## Issue 3: Crash After Selecting New Time Slot
+
+**Problem**: After the user selects a new time from `[TIME_SLOT]`, the AI tries to call `update_booking` or `get_booking_details` again, exhausting the loop and hitting the same broken recovery path (which is fixed by Issue 1 above).
+
+**Fix**: Issue 1's fix (adding `tools` to the recovery call) will resolve this crash too, since the recovery call will now succeed and the AI will produce the `[BOOKING_EDIT]` marker. No additional changes needed for this specific case.
+
+---
+
+## Summary of Changes
 
 ### File: `supabase/functions/widget-ai-chat/index.ts`
 
-**Change 1: When breaking the loop, add placeholder tool responses for any remaining unanswered tool calls** (lines 1484-1511)
+| Change | Location | Description |
+|--------|----------|-------------|
+| Add `tools` to recovery call | ~line 1538 | Include `tools` array so `tool_choice: "none"` is accepted |
+| Strengthen YES_NO prompt | ~line 1050 | Add explicit example of YES_NO usage for booking confirmation |
+| Add `patchYesNo` post-processor | New function + lines ~1455, ~1556 | Auto-wrap plain-text confirmation questions in [YES_NO] markers |
 
-After `loopBroken = true; break;`, before exiting the for-loop, iterate over the remaining tool calls in `assistantMessage.tool_calls` and push synthetic tool responses for each one that was skipped:
-
-```typescript
-if (loopBroken) {
-  // Pad missing tool responses so OpenAI doesn't reject the messages
-  const answeredIds = new Set(
-    currentMessages
-      .filter(m => m.role === 'tool')
-      .map(m => m.tool_call_id)
-  );
-  for (const tc of assistantMessage.tool_calls) {
-    if (!answeredIds.has(tc.id)) {
-      currentMessages.push({
-        role: 'tool',
-        content: JSON.stringify({ error: 'Tool call skipped. Use data already in conversation.' }),
-        tool_call_id: tc.id,
-      });
-    }
-  }
-  break;
-}
-```
-
-**Change 2: Add error logging for the forced-text call** (line 1531)
-
-When `finalResp.ok` is false, log the status and body so we can see failures:
-
-```typescript
-if (!finalResp.ok) {
-  const errBody = await finalResp.text();
-  console.error('[widget-ai-chat] Final forced-text call returned', finalResp.status, errBody);
-}
-```
-
-## Technical Details
-
-| Item | Detail |
-|------|--------|
-| File | `supabase/functions/widget-ai-chat/index.ts` |
-| Lines affected | ~1484-1512 (loop break logic), ~1531 (error logging) |
-| Deploy | Re-deploy `widget-ai-chat` edge function |
+### Deploy
+Re-deploy `widget-ai-chat` edge function.
 
 ## Expected Result
 
-When user clicks "Endre tid":
-1. AI calls tools, safety break triggers
-2. Missing tool responses are padded with synthetic messages
-3. Forced-text call succeeds (valid message history)
-4. AI outputs [TIME_SLOT] marker
-5. Widget renders the time slot picker
-
+1. "Endre tid" button click: Recovery call succeeds, AI emits [TIME_SLOT] marker
+2. Booking confirmation: Uses [YES_NO] interactive component
+3. After time slot selection: Recovery call succeeds, AI emits [BOOKING_EDIT] marker
