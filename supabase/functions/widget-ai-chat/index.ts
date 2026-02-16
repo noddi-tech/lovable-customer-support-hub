@@ -454,6 +454,110 @@ function patchYesNo(reply: string): string {
   return reply;
 }
 
+// ========== Error logging helper ==========
+async function saveErrorDetails(supabase: any, conversationId: string | null, errorType: string, details: string) {
+  if (!conversationId) return;
+  try {
+    // Append to existing error_details (JSON array)
+    const { data: existing } = await supabase
+      .from('widget_ai_conversations')
+      .select('error_details')
+      .eq('id', conversationId)
+      .single();
+    
+    let errors: any[] = [];
+    if (existing?.error_details) {
+      try { errors = JSON.parse(existing.error_details); } catch { errors = []; }
+    }
+    errors.push({ type: errorType, detail: details, ts: new Date().toISOString() });
+    
+    await supabase
+      .from('widget_ai_conversations')
+      .update({ error_details: JSON.stringify(errors) })
+      .eq('id', conversationId);
+  } catch (e) { console.error('[saveErrorDetails] Failed:', e); }
+}
+
+// ========== Post-processor: auto-wrap plain-text booking details in [BOOKING_INFO] ==========
+function patchBookingInfo(reply: string, messages: any[]): string {
+  // If already contains BOOKING_INFO marker, skip
+  if (reply.includes('[BOOKING_INFO]')) return reply;
+  // If doesn't contain ACTION_MENU, skip (this is specific to the edit flow)
+  if (!reply.includes('[ACTION_MENU]')) return reply;
+  
+  // Detect plain-text booking details patterns
+  const hasAddress = /(?:📍\s*)?Adresse\s*:/i.test(reply);
+  const hasDate = /(?:📅\s*)?Dato\s*:/i.test(reply);
+  const hasTime = /(?:🕐\s*)?Tid\s*:/i.test(reply);
+  
+  if (!hasAddress && !hasDate && !hasTime) return reply;
+  
+  // Try to extract booking info from tool results
+  let bookingData: any = null;
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const msg = messages[i];
+    if (msg.role === 'tool' && typeof msg.content === 'string') {
+      try {
+        const toolResult = JSON.parse(msg.content);
+        if (toolResult.booking) { bookingData = toolResult.booking; break; }
+        if (toolResult.bookings?.[0]) { bookingData = toolResult.bookings[0]; break; }
+      } catch { /* not JSON */ }
+    }
+  }
+  
+  if (!bookingData) return reply;
+  
+  // Build BOOKING_INFO marker from actual data
+  const info: any = {};
+  if (bookingData.id) info.booking_id = bookingData.id;
+  if (bookingData.address?.address || bookingData.address) {
+    info.address = typeof bookingData.address === 'string' ? bookingData.address : bookingData.address.address || '';
+  }
+  if (bookingData.start_time) {
+    try {
+      const d = new Date(bookingData.start_time);
+      info.date = d.toLocaleDateString('nb-NO', { day: 'numeric', month: 'short', year: 'numeric' });
+    } catch { /* ignore */ }
+  }
+  if (bookingData.start_time && bookingData.end_time) {
+    try {
+      const s = new Date(bookingData.start_time);
+      const e = new Date(bookingData.end_time);
+      info.time = `${s.getHours().toString().padStart(2,'0')}:${s.getMinutes().toString().padStart(2,'0')}–${e.getHours().toString().padStart(2,'0')}:${e.getMinutes().toString().padStart(2,'0')}`;
+    } catch { /* ignore */ }
+  }
+  if (bookingData.sales_items?.[0]?.name) info.service = bookingData.sales_items[0].name;
+  if (bookingData.cars?.[0]) {
+    const car = bookingData.cars[0];
+    info.car = `${car.make || ''} ${car.model || ''} (${car.license_plate || ''})`.trim();
+  }
+  
+  const infoMarker = `[BOOKING_INFO]${JSON.stringify(info)}[/BOOKING_INFO]`;
+  
+  // Remove the plain-text lines and inject the marker before [ACTION_MENU]
+  let cleaned = reply;
+  // Remove lines that look like bullet-point booking details
+  cleaned = cleaned.replace(/^[\s-]*(?:📍\s*)?Adresse\s*:.*$/gim, '');
+  cleaned = cleaned.replace(/^[\s-]*(?:📅\s*)?Dato\s*:.*$/gim, '');
+  cleaned = cleaned.replace(/^[\s-]*(?:🕐\s*)?Tid\s*:.*$/gim, '');
+  cleaned = cleaned.replace(/^[\s-]*(?:🛠️?\s*)?Tjeneste\s*:.*$/gim, '');
+  cleaned = cleaned.replace(/^[\s-]*(?:🚗\s*)?Bil\s*:.*$/gim, '');
+  cleaned = cleaned.replace(/^[\s-]*(?:💰\s*)?Pris\s*:.*$/gim, '');
+  // Remove "Her er din bestilling:" type intro lines
+  cleaned = cleaned.replace(/^.*(?:Her er|bestilling|detaljer).*:?\s*$/gim, '');
+  // Clean up excessive whitespace
+  cleaned = cleaned.replace(/\n{3,}/g, '\n\n').trim();
+  
+  // Insert BOOKING_INFO before ACTION_MENU
+  const actionIdx = cleaned.indexOf('[ACTION_MENU]');
+  if (actionIdx > -1) {
+    cleaned = cleaned.slice(0, actionIdx) + infoMarker + '\n\n' + cleaned.slice(actionIdx);
+  }
+  
+  console.log('[patchBookingInfo] Auto-wrapped plain-text booking details into [BOOKING_INFO]');
+  return cleaned;
+}
+
 
 async function patchBookingEdit(reply: string, messages: any[], visitorPhone?: string, visitorEmail?: string): Promise<string> {
   const marker = '[BOOKING_EDIT]';
@@ -466,50 +570,33 @@ async function patchBookingEdit(reply: string, messages: any[], visitorPhone?: s
   let editData: any;
   try { editData = JSON.parse(jsonStr); } catch { return reply; }
 
-  // ALWAYS try to extract the real booking ID from lookup_customer / get_booking_details results
-  // The AI frequently confuses car_ids and delivery_window_ids with booking_ids
+  // Extract the real booking ID from tool results — ONLY trust booking.id and bookings[].id
   let realBookingId: number | null = null;
   for (let i = messages.length - 1; i >= 0; i--) {
     const msg = messages[i];
     if (msg.role === 'tool' && typeof msg.content === 'string') {
       try {
         const toolResult = JSON.parse(msg.content);
-        // From get_booking_details tool result
         if (toolResult.booking?.id) {
           realBookingId = toolResult.booking.id;
           break;
         }
-        // From lookup_customer bookings array
         if (toolResult.bookings?.length > 0) {
           realBookingId = toolResult.bookings[0].id;
           break;
         }
-        // Direct id field (some tool responses)
-        if (toolResult.id && typeof toolResult.id === 'number' && toolResult.id > 100) {
-          realBookingId = toolResult.id;
-          break;
-        }
+        // NOTE: removed broad toolResult.id fallback — it matched car/address IDs
       } catch { /* not JSON */ }
     }
   }
 
-  // Fallback: if we still have no real ID and the AI-provided one looks wrong, do fresh lookup
-  if (!realBookingId && (!editData.booking_id || editData.booking_id <= 0)) {
-    console.log('[patchBookingEdit] No booking_id found in history, attempting fresh customer lookup');
-    // Extract visitor phone/email from system messages in conversation
-    let fallbackPhone = '';
-    let fallbackEmail = '';
-    for (const msg of messages) {
-      if (msg.role === 'system' && typeof msg.content === 'string') {
-        const phoneMatch = msg.content.match(/phone:\s*(\+?\d[\d\s-]+)/);
-        const emailMatch = msg.content.match(/email:\s*(\S+@\S+)/);
-        if (phoneMatch) fallbackPhone = phoneMatch[1].trim();
-        if (emailMatch) fallbackEmail = emailMatch[1].trim();
-      }
-    }
-    if (fallbackPhone || fallbackEmail) {
+  // Fallback: fresh customer lookup if no booking ID found anywhere
+  if (!realBookingId) {
+    const phone = visitorPhone || '';
+    const email = visitorEmail || '';
+    if (phone || email) {
       try {
-        const lookupResult = JSON.parse(await executeLookupCustomer(fallbackPhone, fallbackEmail));
+        const lookupResult = JSON.parse(await executeLookupCustomer(phone, email));
         if (lookupResult.bookings?.length > 0) {
           realBookingId = lookupResult.bookings[0].id;
           console.log('[patchBookingEdit] Fresh lookup found booking_id:', realBookingId);
@@ -518,8 +605,9 @@ async function patchBookingEdit(reply: string, messages: any[], visitorPhone?: s
     }
   }
 
-  if (realBookingId && realBookingId !== editData.booking_id) {
-    console.log('[patchBookingEdit] Overriding AI booking_id', editData.booking_id, 'with real:', realBookingId);
+  // Always override if we found a real ID
+  if (realBookingId) {
+    console.log('[patchBookingEdit] Setting booking_id to:', realBookingId, '(was:', editData.booking_id, ')');
     editData.booking_id = realBookingId;
   }
 
@@ -1132,7 +1220,8 @@ When presenting the customer's current booking details before asking what they w
 BOOKING EDIT FLOW:
 When a customer wants to modify an existing booking:
 1. Use get_booking_details to fetch the current booking. Remember the REAL booking_id from the result.
-2. If the customer has only ONE active booking, show their booking using [BOOKING_INFO] and ask what they want to change using [ACTION_MENU].
+2. If the customer has only ONE active booking, present its details using [BOOKING_INFO]{"booking_id": <id>, "address": "<addr>", "date": "<date>", "time": "<time>", "service": "<service>", "car": "<car>"}[/BOOKING_INFO] then ask what they want to change using [ACTION_MENU].
+   ⚠️ ABSOLUTE RULE: Your response MUST contain the [BOOKING_INFO] marker. NEVER list address/date/time as plain text bullet points (Adresse:, Dato:, Tid:, Tjeneste:, Bil:). The [BOOKING_INFO] component renders a styled card.
 3. If multiple bookings, ask which one using [ACTION_MENU] with booking options.
     4. ⚠️ ABSOLUTE RULE: NEVER ask plain text yes/no questions. When asking "Do you want to change X?", "Ønsker du å endre X?", "Er dette bestillingen du ønsker å endre?", or ANY binary question, you MUST use [YES_NO] marker. NEVER write these as plain text.
     Example — WRONG: "Er dette bestillingen du ønsker å endre?"
@@ -1523,6 +1612,7 @@ Deno.serve(async (req) => {
       if (!chatResp.ok) {
         const errorText = await chatResp.text();
         console.error('[widget-ai-chat] OpenAI error:', chatResp.status, errorText);
+        await saveErrorDetails(supabase, dbConversationId, 'openai_error', `Status ${chatResp.status}: ${errorText.slice(0, 500)}`);
         return new Response(
           JSON.stringify({ error: 'AI service temporarily unavailable' }),
           { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
@@ -1546,6 +1636,7 @@ Deno.serve(async (req) => {
         let reply = await patchBookingSummary(rawReply, currentMessages, visitorPhone, visitorEmail);
         reply = await patchBookingEdit(reply, currentMessages, visitorPhone, visitorEmail);
         reply = patchYesNo(reply);
+        reply = patchBookingInfo(reply, currentMessages);
 
         // Save assistant reply & update conversation meta
         const savedMessageId = await saveMessage(supabase, dbConversationId, 'assistant', reply, allToolsUsed);
@@ -1583,6 +1674,7 @@ Deno.serve(async (req) => {
         const maxCallsForTool = toolName === 'get_delivery_windows' ? 2 : 3;
         if (toolCallCounts[toolName] >= maxCallsForTool) {
           console.warn(`[widget-ai-chat] Tool ${toolName} called ${toolCallCounts[toolName]} times, breaking loop to prevent infinite cycling`);
+          await saveErrorDetails(supabase, dbConversationId, 'loop_break', `Tool ${toolName} called ${toolCallCounts[toolName]} times — loop broken`);
           loopBroken = true;
           break;
         }
@@ -1623,6 +1715,7 @@ Deno.serve(async (req) => {
 
     // Loop exhausted or broken — give AI one final chance with tool_choice: "none"
     console.log('[widget-ai-chat] Loop exhausted/broken, making final forced-text call with tool_choice: "none"');
+    await saveErrorDetails(supabase, dbConversationId, 'loop_exhaustion', 'Max tool rounds exhausted, forcing text response');
     try {
       const finalResp = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
@@ -1641,6 +1734,7 @@ Deno.serve(async (req) => {
       if (!finalResp.ok) {
         const errBody = await finalResp.text();
         console.error('[widget-ai-chat] Final forced-text call returned', finalResp.status, errBody);
+        await saveErrorDetails(supabase, dbConversationId, 'recovery_call_error', `Status ${finalResp.status}: ${errBody.slice(0, 500)}`);
       } else {
         const finalData = await finalResp.json();
         const finalContent = finalData.choices?.[0]?.message?.content;
@@ -1649,6 +1743,7 @@ Deno.serve(async (req) => {
           let reply = await patchBookingSummary(finalContent, currentMessages, visitorPhone, visitorEmail);
           reply = await patchBookingEdit(reply, currentMessages, visitorPhone, visitorEmail);
           reply = patchYesNo(reply);
+          reply = patchBookingInfo(reply, currentMessages);
 
           const savedMessageId = await saveMessage(supabase, dbConversationId, 'assistant', reply, allToolsUsed);
           await updateConversationMeta(supabase, dbConversationId, allToolsUsed);
@@ -1668,6 +1763,7 @@ Deno.serve(async (req) => {
     }
 
     // True fallback — final call also failed
+    await saveErrorDetails(supabase, dbConversationId, 'fallback_sent', 'All recovery attempts failed, sent fallback message');
     const fallback = language === 'no'
       ? 'Beklager, men jeg trenger et øyeblikk. Kan du prøve å omformulere spørsmålet ditt?'
       : 'I apologize, but I need a moment. Could you please try rephrasing your question?';
