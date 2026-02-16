@@ -455,7 +455,7 @@ function patchYesNo(reply: string): string {
 }
 
 
-function patchBookingEdit(reply: string, messages: any[]): string {
+async function patchBookingEdit(reply: string, messages: any[], visitorPhone?: string, visitorEmail?: string): Promise<string> {
   const marker = '[BOOKING_EDIT]';
   const closingMarker = '[/BOOKING_EDIT]';
   const startIdx = reply.indexOf(marker);
@@ -1544,7 +1544,7 @@ Deno.serve(async (req) => {
       if (!assistantMessage.tool_calls || assistantMessage.tool_calls.length === 0) {
         const rawReply = assistantMessage.content || 'I apologize, I was unable to generate a response.';
         let reply = await patchBookingSummary(rawReply, currentMessages, visitorPhone, visitorEmail);
-        reply = patchBookingEdit(reply, currentMessages);
+        reply = await patchBookingEdit(reply, currentMessages, visitorPhone, visitorEmail);
         reply = patchYesNo(reply);
 
         // Save assistant reply & update conversation meta
@@ -1647,7 +1647,7 @@ Deno.serve(async (req) => {
         if (finalContent && finalContent.trim().length > 0) {
           console.log('[widget-ai-chat] Final forced-text response obtained, length:', finalContent.length);
           let reply = await patchBookingSummary(finalContent, currentMessages, visitorPhone, visitorEmail);
-          reply = patchBookingEdit(reply, currentMessages);
+          reply = await patchBookingEdit(reply, currentMessages, visitorPhone, visitorEmail);
           reply = patchYesNo(reply);
 
           const savedMessageId = await saveMessage(supabase, dbConversationId, 'assistant', reply, allToolsUsed);
