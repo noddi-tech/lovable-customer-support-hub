@@ -1,118 +1,165 @@
 
-# Fix: Missing Car/Service in BOOKING_INFO + Broken ACTION_MENU
+# Fix: Missing Address/Car/Service in BOOKING_INFO + Missing BOOKING_CONFIRMED Card
 
-## Root Causes
+## What's Happening
 
-### Issue 1: Car and Service missing from BOOKING_INFO card
-The Noddi API returns `cars` (plural array) on bookings, not `car` (singular). The stored_cars extraction (line 930-941) already handles `b.cars`, but the booking mapping at line 1003 only checks `b.car`. Since `b.car` is likely undefined, `vehicle` is set to `null`.
+Based on the debug logs, the Noddi API returns booking objects where `car`, `cars`, and `order_lines` fields are all **null/empty**. The address object IS present on the raw booking but was **never mapped** to the output. This means:
 
-Similarly, `services` relies on `b.order_lines` which may not be populated by the `customer-lookup-support` endpoint. The services might be under a different field name (e.g., `items`, `sales_items`, `services`).
+- **Address**: Raw `b.address` exists (with `street_name`, `street_number`, etc.) but the booking mapping simply doesn't include an `address` field
+- **Car/Vehicle**: `b.car` and `b.cars` are null, so the vehicle IIFE returns null. However, the car data IS successfully extracted into `storedCars` earlier in the same function -- it just isn't linked back to individual bookings
+- **Services**: `order_lines`, `items`, `sales_items` are all empty. Services may only be available through a separate field or aren't populated by this endpoint
 
-### Issue 2: `[ACTION_MENU]` renders as raw text
-The AI outputs a bare `[ACTION_MENU]` marker (no options, no closing tag). The `patchActionMenu` function checks `reply.includes('[ACTION_MENU]')` at line 602 and exits early, thinking the marker is already there. But a bare `[ACTION_MENU]` without `[/ACTION_MENU]` and options is not parseable by the widget -- it renders as plain text.
-
-### Issue 3: No action menu at all
-Because `patchActionMenu` exits early (Issue 2), no proper `[ACTION_MENU]...[/ACTION_MENU]` is ever injected.
-
----
+Additionally, after a successful booking edit, the AI outputs plain text instead of the `[BOOKING_CONFIRMED]` marker, and the `[BOOKING_EDIT]` component shows with redundant explanatory text above it.
 
 ## Fixes
 
-### Fix A: Vehicle mapping -- handle `cars` array (plural)
+### Fix 1: Add `address` field to booking mapping in `executeLookupCustomer`
 
-In the booking mapping (line 1003), add fallback to `b.cars[0]`:
+The mapping at line 994 returns `id, status, scheduledAt, endTime, timeSlot, services, vehicle, car_id, ...` but has NO `address` field. Add it using the same construction logic already used for `storedAddresses`:
 
-```typescript
-vehicle: (() => {
-  const c = b.car || (Array.isArray(b.cars) && b.cars[0]) || null;
-  if (!c) return null;
-  const plate = c.license_plate_number || c.license_plate || '';
-  return `${c.make || ''} ${c.model || ''} ${plate ? `(${plate})` : ''}`.trim() || null;
-})(),
+```
+address: construct from b.address.street_name, street_number, zip_code, city
+address_id: b.address?.id
 ```
 
-### Fix B: Services mapping -- add fallback field names
+### Fix 2: Link car data from `storedCars` map when `b.car`/`b.cars` are null
 
-Check `b.order_lines`, `b.items`, `b.sales_items`, and `b.services`:
+Since the car data is extracted into `storedCars` (keyed by ID), use the booking's `car_id` or iterate the raw booking's car references to look up the formatted car from the map. Also use `b.address?.id` to look up from `storedAddresses`.
 
-```typescript
-services: (() => {
-  const lines = b.order_lines || b.items || b.sales_items || b.services || [];
-  if (Array.isArray(lines)) {
-    return lines.map((ol: any) => 
-      typeof ol === 'string' ? ol : (ol.service_name || ol.name || '')
-    ).filter(Boolean);
-  }
-  return [];
-})(),
-```
+### Fix 3: Add context-based `patchBookingConfirmed` injection
 
-### Fix C: Fix patchActionMenu guard to check for COMPLETE markers
+Currently, `patchBookingConfirmed` only fires if the AI outputs the `[BOOKING_CONFIRMED]` marker. Add a context-based trigger (similar to how `patchBookingInfo` works): if an `update_booking` tool result exists in the conversation AND the reply doesn't already contain `[BOOKING_CONFIRMED]`, automatically inject it with data merged from tool results.
 
-Change line 602 from:
-```typescript
-if (!reply.includes('[BOOKING_INFO]') || reply.includes('[ACTION_MENU]')) return reply;
-```
-To check for a properly formed `[ACTION_MENU]...[/ACTION_MENU]` pair:
-```typescript
-const hasCompleteActionMenu = reply.includes('[ACTION_MENU]') && reply.includes('[/ACTION_MENU]');
-if (!reply.includes('[BOOKING_INFO]') || hasCompleteActionMenu) return reply;
-```
+### Fix 4: Strip redundant text before `[BOOKING_EDIT]`
 
-Also strip any bare/malformed `[ACTION_MENU]` text before injecting the proper one:
-```typescript
-cleaned = cleaned.replace(/\[ACTION_MENU\](?!\n)/g, ''); // Remove bare [ACTION_MENU] without content
-```
-
-### Fix D: Also fix patchBookingInfo vehicle extraction (lines 554-563)
-
-Same issue -- the patchBookingInfo function also needs to handle `cars` array when building the info card from tool results:
-
-```typescript
-if (bookingData.vehicle) {
-  info.car = typeof bookingData.vehicle === 'string' ? bookingData.vehicle : ...;
-} else if (bookingData.car && typeof bookingData.car === 'object') {
-  // existing handling
-} else if (bookingData.cars?.[0]) {
-  const car = bookingData.cars[0];
-  const plate = car.license_plate_number || car.license_plate || '';
-  info.car = `${car.make || ''} ${car.model || ''} ${plate ? `(${plate})` : ''}`.trim();
-}
-```
-
-Also add `license_plate_number` fallback at line 562 (currently only checks `license_plate`).
-
-### Fix E: Add debug logging
-
-Log the actual booking data shape so future issues can be diagnosed without guessing:
-
-```typescript
-console.log('[patchBookingInfo] bookingData keys:', Object.keys(bookingData), 
-  'has car:', !!bookingData.car, 'has cars:', !!bookingData.cars,
-  'has vehicle:', !!bookingData.vehicle, 'has services:', !!bookingData.services,
-  'has order_lines:', !!bookingData.order_lines);
-```
-
----
+The AI outputs "Her er de gamle og nye tidene for bekreftelse: ... Bekrefter du denne endringen?" above the `[BOOKING_EDIT]` component. Add cleanup in the post-processor to strip this text when the marker is present.
 
 ## Technical Details
 
 ### File: `supabase/functions/widget-ai-chat/index.ts`
 
-**All changes in one file:**
+**Change A** -- Add `address` to booking mapping (after line 999, in the `.map()` block):
 
-1. **Line 602**: Fix patchActionMenu guard to require BOTH `[ACTION_MENU]` AND `[/ACTION_MENU]`
-2. **Lines 618-626**: Strip bare/malformed `[ACTION_MENU]` text before injecting proper one  
-3. **Lines 554-563**: Fix patchBookingInfo vehicle extraction to handle `cars` array and `license_plate_number`
-4. **Line 991**: Fix services mapping to check fallback field names
-5. **Line 1003**: Fix vehicle mapping to use `cars[0]` fallback
-6. **Add debug log** after line 515 to capture booking data shape
+```typescript
+// Inside the booking .map() at line 994
+address: (() => {
+  if (!b.address) return null;
+  if (typeof b.address === 'string') return b.address;
+  const sn = b.address.street_name || '';
+  const num = b.address.street_number || '';
+  const zip = b.address.zip_code || '';
+  const city = b.address.city || '';
+  return `${sn} ${num}, ${zip} ${city}`.replace(/\s+/g, ' ').trim().replace(/^,|,$/g, '').trim() || null;
+})(),
+address_id: b.address?.id || null,
+```
+
+**Change B** -- Fix vehicle to use `storedCars` fallback when `b.car`/`b.cars` are null (line 1014-1019):
+
+```typescript
+vehicle: (() => {
+  // Try direct car fields first
+  const c = b.car || (Array.isArray(b.cars) && b.cars[0]) || null;
+  if (c) {
+    const plate = c.license_plate_number || c.license_plate || '';
+    return `${c.make || ''} ${c.model || ''} ${plate ? `(${plate})` : ''}`.trim() || null;
+  }
+  // Fallback: look up from storedCars using car_id
+  const carId = b.car?.id || (Array.isArray(b.cars) && b.cars[0]?.id) || null;
+  if (carId && storedCars.has(carId)) {
+    const sc = storedCars.get(carId);
+    return `${sc.make} ${sc.model} ${sc.license_plate ? `(${sc.license_plate})` : ''}`.trim() || null;
+  }
+  // Last resort: if there's only one car in storedCars, use it
+  if (storedCars.size === 1) {
+    const sc = Array.from(storedCars.values())[0];
+    return `${sc.make} ${sc.model} ${sc.license_plate ? `(${sc.license_plate})` : ''}`.trim() || null;
+  }
+  return null;
+})(),
+```
+
+**Change C** -- Fix `patchBookingInfo` to read new `address` field (line 528-530):
+
+The existing code checks `bookingData.address` -- this will now work since we added the field. But also update the check at line 505 to recognize the `address` field:
+
+```typescript
+if (candidate.address && candidate.vehicle) {
+  bookingData = candidate;
+  break;
+}
+// Also break if we have the full set from lookup_customer
+if (candidate.address && (candidate.vehicle || candidate.license_plate)) {
+  bookingData = candidate;
+  break;
+}
+```
+
+And add a fallback for vehicle from `license_plate` field when `vehicle` is null:
+
+```typescript
+// After existing vehicle/car/cars checks (line 569)
+if (!info.car && bookingData.license_plate) {
+  // We have a plate but no car name -- at least show the plate
+  info.car = bookingData.license_plate;
+}
+```
+
+**Change D** -- Add context-based `patchBookingConfirmed` injection (modify function around lines 642-714):
+
+After the existing marker-based logic, add a new block:
+
+```typescript
+function patchBookingConfirmed(reply: string, messages: any[]): string {
+  // Existing marker-based logic...
+  
+  // If no [BOOKING_CONFIRMED] marker but update_booking was called, auto-inject
+  if (!reply.includes('[BOOKING_CONFIRMED]')) {
+    let hasUpdateResult = false;
+    const data: any = {};
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const msg = messages[i];
+      if (msg.role !== 'tool') continue;
+      try {
+        const r = JSON.parse(msg.content);
+        if (r.booking && (r.booking.id || r.booking.reference)) {
+          hasUpdateResult = true;
+          // ... merge data from all tool results (same logic as existing)
+        }
+        if (r.bookings?.[0]) {
+          // merge from lookup_customer
+        }
+      } catch {}
+    }
+    if (hasUpdateResult && Object.keys(data).length > 0) {
+      // Strip the AI's plain text summary and inject the card
+      let cleaned = reply;
+      cleaned = cleaned.replace(/^.*(?:oppdatert|updated|endret|changed).*$/gim, '');
+      cleaned = cleaned.replace(/^.*(?:Bestilling|Booking)\s*(?:ID|nummer).*$/gim, '');
+      // ... more cleanup
+      return `[BOOKING_CONFIRMED]${JSON.stringify(data)}[/BOOKING_CONFIRMED]\n\n${cleaned.trim()}`;
+    }
+  }
+  return reply;
+}
+```
+
+**Change E** -- Strip redundant text before `[BOOKING_EDIT]` (in `patchBookingEdit` or as a post-processing step):
+
+```typescript
+// Strip explanatory text when BOOKING_EDIT marker is present
+if (reply.includes('[BOOKING_EDIT]')) {
+  reply = reply.replace(/^.*(?:Gammel tid|Ny tid|gamle og nye|for bekreftelse|Bekrefter du).*$/gim, '');
+  reply = reply.replace(/\n{3,}/g, '\n\n').trim();
+}
+```
 
 ### Deploy
 
 Re-deploy `widget-ai-chat` edge function.
 
-## Expected Result
+## Expected Results
 
-1. BOOKING_INFO card shows all 5 fields: address, date, time, car (with reg nr), and service
-2. ACTION_MENU renders as clickable pills (not raw text) with options: "Endre tidspunkt", "Endre adresse", "Endre bil", "Legg til tjenester", "Avbestille bestilling"
+1. **BOOKING_INFO card**: Shows all 5 fields -- address, date, time, car (with reg nr), service
+2. **BOOKING_EDIT component**: No redundant text above it, just the diff card with confirm/cancel buttons
+3. **BOOKING_CONFIRMED card**: Renders as a green success card (not plain text) with correct address, car, date, time, and service
