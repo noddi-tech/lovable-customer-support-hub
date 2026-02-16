@@ -1,113 +1,116 @@
 
 
-# Fix: Group Select Flow, AI Text Replacement, and Re-lookup Logic
+# Fix: Cancel Booking Endpoint and YES_NO Display
 
 ## Root Causes
 
-### Problem 1: AI says "no active bookings" above the group selector
-The `patchGroupSelect` post-processor **appends** the `[GROUP_SELECT]` marker below whatever the AI wrote. Since the `needs_group_selection` response contains no bookings, the AI writes "Du har ingen aktive bestillinger" -- then the dropdown appears underneath that misleading text.
+### Issue 1: Cancellation fails with "booking_id is required"
+The edge function logs show:
+```
+Cancel failed: 400 {"type": "validation_error", "errors": [{"code": "required", "detail": "This field is required.", "attr": "booking_id"}]}
+```
 
-**Fix**: `patchGroupSelect` must **replace** the entire AI reply with a proper prompt text + the `[GROUP_SELECT]` marker, not append.
+The `executeCancelBooking` function sends a PATCH request to `/v1/bookings/{id}/cancel/` with `booking_id` as a query parameter, but the Noddi API expects `booking_id` in the **request body**. The PATCH request currently sends no body at all.
 
-### Problem 2: After selecting a group, it shows "no bookings" again + another dropdown
-Two sub-problems:
-- The hidden message sent after group selection (`{"user_group_id":123,"name":"..."}`) doesn't instruct the AI to re-call `lookup_customer` with that group ID. The AI doesn't know what to do.
-- The `patchGroupSelect` scans **all** tool results in conversation history. The old `needs_group_selection: true` result from a previous turn is still there, so the post-processor injects another `[GROUP_SELECT]` on every subsequent reply.
+Current code (line 1583-1588):
+```typescript
+const url = new URL(`${API_BASE}/v1/bookings/${bookingId}/cancel/`);
+url.searchParams.set('booking_id', String(bookingId));
+const resp = await fetch(url.toString(), {
+  method: 'PATCH',
+  headers: { ... },
+  // NO BODY!
+});
+```
 
-**Fix**:
-1. Update the system prompt to include explicit instructions about handling `needs_group_selection` results and re-calling `lookup_customer` with the selected `user_group_id`.
-2. Make `patchGroupSelect` only look at tool results from the **current** turn (not all history). If the most recent assistant reply already follows a group selection action, skip injection.
-3. In `handleActionSelect` in AiChat.tsx (or in the hidden message text), include a clear instruction prefix so the AI knows the user picked a group and should re-call `lookup_customer`.
+### Issue 2: Raw `[YES_NO]` markers visible as text
+The AI outputs something like:
+```
+Du har valgt a kansellere begge bestillingene. Vennligst bekreft...
+
+Du onsker a kansellere begge bestillingene. [YES_NO]Er du sikker?[/YES_NO]
+```
+
+The parser correctly splits this into a text block + a YES_NO component block, but the user sees BOTH: the introductory text AND the YES_NO component below it. The user wants only the YES_NO component with the full question inside it, no surrounding prose. The `patchYesNo` post-processor skips because `[YES_NO]` already exists in the reply (the AI put it there). The result is redundant text above the component.
+
+---
 
 ## Changes
 
-### 1. Fix `patchGroupSelect` to replace AI text (not append)
+### 1. Fix `executeCancelBooking` -- send `booking_id` in request body
 
-**File**: `supabase/functions/widget-ai-chat/index.ts`
+**File**: `supabase/functions/widget-ai-chat/index.ts`, lines 1582-1589
+
+Send `booking_id` and `notify_customer` in the JSON body instead of (or in addition to) query params:
 
 ```typescript
-function patchGroupSelect(reply: string, messages: any[]): string {
-  if (reply.includes('[GROUP_SELECT]')) return reply;
-  
-  // Only check the LAST tool result (not all history) to avoid re-triggering on old results
-  for (let i = messages.length - 1; i >= 0; i--) {
-    const msg = messages[i];
-    // Stop searching if we hit an assistant message (we've gone past current turn's tool results)
-    if (msg.role === 'assistant') break;
-    if (msg.role === 'tool') {
-      try {
-        const parsed = typeof msg.content === 'string' ? JSON.parse(msg.content) : msg.content;
-        if (parsed.needs_group_selection && parsed.user_groups) {
-          const customerName = parsed.customer?.name || '';
-          const payload = JSON.stringify({ groups: parsed.user_groups });
-          // REPLACE the entire reply with a proper prompt + the group select block
-          const greeting = customerName 
-            ? `Hei, ${customerName}! Vi ser at du har flere brukergrupper tilknyttet din konto. Hvem vil du representere?`
-            : `Vi ser at du har flere brukergrupper tilknyttet din konto. Hvem vil du representere?`;
-          return `${greeting}\n[GROUP_SELECT]${payload}[/GROUP_SELECT]`;
-        }
-      } catch {}
+async function executeCancelBooking(bookingId: number, reason?: string): Promise<string> {
+  const noddiToken = Deno.env.get('NODDI_API_TOKEN');
+  if (!noddiToken) return JSON.stringify({ error: 'Booking modification not configured' });
+
+  try {
+    const resp = await fetch(`${API_BASE}/v1/bookings/${bookingId}/cancel/`, {
+      method: 'PATCH',
+      headers: {
+        'Authorization': `Token ${noddiToken}`,
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        booking_id: bookingId,
+        notify_customer: true,
+      }),
+    });
+
+    if (!resp.ok) {
+      const errorBody = await resp.text();
+      console.error('[widget-ai-chat] Cancel failed:', resp.status, errorBody);
+      if (resp.status === 404) return JSON.stringify({ success: false, error: 'Booking not found' });
+      if (resp.status === 400) return JSON.stringify({ success: false, error: 'This booking cannot be cancelled. It may already be completed or cancelled.' });
+      return JSON.stringify({ success: false, error: 'Cancellation failed. Please contact support.' });
     }
+
+    return JSON.stringify({ success: true, message: 'Booking cancelled successfully' });
+  } catch (err) {
+    console.error('[widget-ai-chat] Cancel error:', err);
+    return JSON.stringify({ success: false, error: 'Cancellation failed' });
   }
-  return reply;
 }
 ```
 
-Key changes:
-- **Replace** the AI text entirely instead of appending
-- **Stop at the previous assistant message** so old `needs_group_selection` results from earlier turns don't trigger another dropdown
-- Include a friendly Norwegian greeting with the customer's name
+### 2. Clean up redundant text when `[YES_NO]` is already present
 
-### 2. Improve the hidden message sent after group selection
+**File**: `supabase/functions/widget-ai-chat/index.ts`, in `patchYesNo` function (line 406-468)
 
-**File**: `src/widget/components/blocks/GroupSelectBlock.tsx`
-
-Update `handleConfirm` to send a clearer action payload that the AI can understand:
+Instead of immediately returning when `[YES_NO]` is already present, strip out the surrounding prose so only the `[YES_NO]...[/YES_NO]` block remains (keeping a short lead-in if needed):
 
 ```typescript
-const handleConfirm = () => {
-  if (!selected) return;
-  const group = groups.find(g => String(g.id) === selected);
-  if (!group) return;
-  setConfirmed(true);
-  // Include a clear instruction for the AI
-  const payload = JSON.stringify({ 
-    user_group_id: group.id, 
-    name: group.name,
-    action: 'group_selected'
-  });
-  onAction(payload, blockKey);
-};
+function patchYesNo(reply: string, messages?: any[]): string {
+  // If AI already included [YES_NO], clean up: keep ONLY the [YES_NO] block
+  if (reply.includes('[YES_NO]') && reply.includes('[/YES_NO]')) {
+    const match = reply.match(/\[YES_NO\]([\s\S]*?)\[\/YES_NO\]/);
+    if (match) {
+      // Return ONLY the YES_NO block -- strip all surrounding text
+      return `[YES_NO]${match[1]}[/YES_NO]`;
+    }
+    return reply;
+  }
+
+  // ... rest of existing patchYesNo logic unchanged ...
+}
 ```
 
-### 3. Add system prompt instructions for group selection handling
+This ensures that when the AI outputs `"Du onsker a kansellere... [YES_NO]Er du sikker?[/YES_NO]"`, the post-processor strips the surrounding text and returns only `[YES_NO]Er du sikker?[/YES_NO]`.
 
-**File**: `supabase/functions/widget-ai-chat/index.ts` (system prompt section)
-
-Add to the system prompt instructions that explain the group selection flow:
-
-```
-## User Group Selection Flow
-When lookup_customer returns needs_group_selection: true, a [GROUP_SELECT] dropdown is automatically shown to the user.
-When the user selects a group, you will receive a message containing "user_group_id" and "group_selected".
-You MUST then call lookup_customer again with the user_group_id parameter to fetch that group's bookings.
-Do NOT say "no bookings" before the user has selected a group.
-```
-
-### 4. Handle group selection action in the edge function tool dispatch
-
-**File**: `supabase/functions/widget-ai-chat/index.ts`
-
-In the message processing logic, detect when the user's hidden message contains `group_selected` and ensure the AI understands it should re-run `lookup_customer`. This may require updating the tool-calling logic or adding a pre-processor that parses the group selection payload and injects it as context.
+---
 
 ## File Changes Summary
 
 | File | Change |
 |------|--------|
-| `supabase/functions/widget-ai-chat/index.ts` | 1) `patchGroupSelect`: replace AI text instead of appending; scope to current turn only 2) Add system prompt instructions for group selection flow 3) Ensure tool dispatch handles `user_group_id` parameter correctly |
-| `src/widget/components/blocks/GroupSelectBlock.tsx` | Add `action: 'group_selected'` to payload for clearer AI instruction |
+| `supabase/functions/widget-ai-chat/index.ts` | 1) Fix `executeCancelBooking` to send `booking_id` in the request body 2) Update `patchYesNo` to strip surrounding text when `[YES_NO]` markers already exist |
 
 ## Expected Results
-1. When phone is verified and multiple groups exist: "Hei, Joachim! Vi ser at du har flere brukergrupper tilknyttet din konto. Hvem vil du representere?" + dropdown
-2. After selecting "Joachim Rathke (Personlig)": AI calls `lookup_customer` with `user_group_id` and shows the bookings for that group
-3. No repeated dropdown on subsequent messages
+1. Cancel requests succeed -- `booking_id` is sent in the PATCH body as the API expects
+2. YES_NO confirmation shows ONLY the interactive component with the question inside, no redundant text above it
+
