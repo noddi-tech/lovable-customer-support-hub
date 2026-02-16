@@ -762,6 +762,27 @@ function patchActionMenu(reply: string, messages: any[]): string {
   return cleaned;
 }
 
+// ========== Post-processor: auto-inject [GROUP_SELECT] when needs_group_selection ==========
+function patchGroupSelect(reply: string, messages: any[]): string {
+  if (reply.includes('[GROUP_SELECT]')) return reply;
+  
+  // Find most recent lookup_customer tool result with needs_group_selection
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const msg = messages[i];
+    if (msg.role === 'tool') {
+      try {
+        const parsed = typeof msg.content === 'string' ? JSON.parse(msg.content) : msg.content;
+        if (parsed.needs_group_selection && parsed.user_groups) {
+          const payload = JSON.stringify({ groups: parsed.user_groups });
+          console.log('[patchGroupSelect] Injecting [GROUP_SELECT] with', parsed.user_groups.length, 'groups');
+          return `${reply}\n[GROUP_SELECT]${payload}[/GROUP_SELECT]`;
+        }
+      } catch { /* ignore */ }
+    }
+  }
+  return reply;
+}
+
 // ========== Post-processor: fix hallucinated IDs in [BOOKING_CONFIRMED] ==========
 function patchBookingConfirmed(reply: string, messages: any[]): string {
   const marker = '[BOOKING_CONFIRMED]';
@@ -2260,6 +2281,7 @@ Deno.serve(async (req) => {
         }
         reply = patchBookingConfirmed(reply, currentMessages);
         reply = patchBookingInfo(reply, currentMessages);
+        reply = patchGroupSelect(reply, currentMessages);
         reply = patchActionMenu(reply, currentMessages);
         reply = patchYesNo(reply, currentMessages);
 
@@ -2382,6 +2404,7 @@ Deno.serve(async (req) => {
           }
           reply = patchBookingConfirmed(reply, currentMessages);
           reply = patchBookingInfo(reply, currentMessages);
+          reply = patchGroupSelect(reply, currentMessages);
           reply = patchActionMenu(reply, currentMessages);
           reply = patchYesNo(reply);
 
