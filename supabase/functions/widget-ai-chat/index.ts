@@ -405,6 +405,9 @@ async function patchBookingSummary(reply: string, messages: any[], visitorPhone?
 function patchYesNo(reply: string): string {
   // Skip if already contains [YES_NO]
   if (reply.includes('[YES_NO]')) return reply;
+  // Skip if reply already has other interactive markers — YES_NO should only appear alone
+  const otherMarkers = ['[ACTION_MENU]', '[TIME_SLOT]', '[BOOKING_EDIT]', '[BOOKING_SUMMARY]', '[SERVICE_SELECT]', '[PHONE_VERIFY]', '[ADDRESS_SEARCH]', '[LICENSE_PLATE]'];
+  if (otherMarkers.some(m => reply.includes(m))) return reply;
 
   // Common Norwegian/English confirmation patterns
   const patterns = [
@@ -463,33 +466,30 @@ function patchBookingEdit(reply: string, messages: any[]): string {
   let editData: any;
   try { editData = JSON.parse(jsonStr); } catch { return reply; }
 
-  // Extract real booking_id from conversation context if AI used a placeholder
-  const PLACEHOLDER_IDS = [12345, 99999, 11111, 123, 0];
-  if (!editData.booking_id || PLACEHOLDER_IDS.includes(Number(editData.booking_id))) {
-    for (let i = messages.length - 1; i >= 0; i--) {
-      const msg = messages[i];
-      if (msg.role === 'tool' && typeof msg.content === 'string') {
-        try {
-          const toolResult = JSON.parse(msg.content);
-          // From get_booking_details or lookup_customer tool results
-          const bookingId = toolResult.booking?.id || toolResult.id || toolResult.booking_id;
-          if (bookingId && !PLACEHOLDER_IDS.includes(Number(bookingId))) {
-            console.log('[patchBookingEdit] Replaced placeholder booking_id with real:', bookingId);
-            editData.booking_id = bookingId;
-            break;
-          }
-          // From lookup_customer bookings array
-          if (toolResult.bookings?.length > 0) {
-            const realId = toolResult.bookings[0].id || toolResult.bookings[0].booking_id;
-            if (realId && !PLACEHOLDER_IDS.includes(Number(realId))) {
-              console.log('[patchBookingEdit] Replaced placeholder booking_id from bookings array:', realId);
-              editData.booking_id = realId;
-              break;
-            }
-          }
-        } catch { /* not JSON */ }
-      }
+  // ALWAYS try to extract the real booking ID from lookup_customer results
+  // The AI frequently confuses car_ids and delivery_window_ids with booking_ids
+  let realBookingId: number | null = null;
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const msg = messages[i];
+    if (msg.role === 'tool' && typeof msg.content === 'string') {
+      try {
+        const toolResult = JSON.parse(msg.content);
+        // From get_booking_details tool result
+        if (toolResult.booking?.id) {
+          realBookingId = toolResult.booking.id;
+          break;
+        }
+        // From lookup_customer bookings array
+        if (toolResult.bookings?.length > 0) {
+          realBookingId = toolResult.bookings[0].id;
+          break;
+        }
+      } catch { /* not JSON */ }
     }
+  }
+  if (realBookingId && realBookingId !== editData.booking_id) {
+    console.log('[patchBookingEdit] Overriding AI booking_id', editData.booking_id, 'with real:', realBookingId);
+    editData.booking_id = realBookingId;
   }
 
   const changes = editData.changes || {};
