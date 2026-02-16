@@ -1,73 +1,74 @@
 
 
-# Fix: Three Issues in Booking Edit Flow
+# Fix: Booking Edit Flow Stability + YES/NO Enforcement + Error Diagnostics Dashboard
 
-## Issue 1: Forced-Text Recovery Call Returns 400
+## Three changes needed
 
-**Root Cause**: The final recovery call sends `tool_choice: "none"` but does NOT include the `tools` array. OpenAI API requires `tools` to be present when `tool_choice` is specified.
+### 1. Critical Bug: `patchBookingEdit` references undefined `marker` variable
 
-**Error from logs**:
-```
-"Invalid value for 'tool_choice': 'tool_choice' is only allowed when 'tools' are specified."
-```
+The previous edit accidentally removed the `const marker = '[BOOKING_EDIT]';` line from `patchBookingEdit`. The function now references an undefined `marker` variable, causing `reply.indexOf(undefined)` to return `-1` every time. This means:
+- Booking edit JSON patching (replacing placeholder IDs, injecting delivery window times) is completely silently broken
+- After the user selects a new time slot, the `[BOOKING_EDIT]` marker data is never fixed up, leading to failures
 
-**Fix**: In the forced-text recovery call (around line 1535), include the `tools` array in the request body alongside `tool_choice: "none"`.
+**Fix**: Add `const marker = '[BOOKING_EDIT]';` back as the first line of `patchBookingEdit`, and fix the indentation.
 
-```typescript
-body: JSON.stringify({
-  model: 'gpt-4o-mini',
-  messages: currentMessages,
-  tools,                    // <-- ADD THIS
-  tool_choice: 'none',
-  temperature: 0.7,
-  max_tokens: 1024,
-  stream: false,
-}),
-```
+### 2. Strengthen `patchYesNo` with broader catch-all pattern
 
-This is the critical fix -- every previous recovery attempt has been silently failing because of this one missing field.
+The current `patchYesNo` function only catches specific hardcoded phrases. A more robust approach is to add a generic catch-all: any sentence ending with `?` that does not already contain a marker and where the reply has no other interactive markers should be considered for wrapping.
 
----
+**Fix**: Add a broader fallback regex that catches any Norwegian/English question ending with `?` that looks like a binary yes/no question (contains keywords like "riktig", "korrekt", "bekrefte", "endre", "correct", "confirm", "want to", etc.)
 
-## Issue 2: AI Asks Confirmation as Plain Text Instead of [YES_NO]
+### 3. New Admin Dashboard Tab: "Error Traces" for Booking Edit Diagnostics
 
-**Problem**: When the AI asks "Er dette bestillingen du onsker a endre?", it uses plain text instead of the `[YES_NO]` marker (visible in screenshot 3).
+Add a new tab to the AI Chatbot settings page showing recent conversations where the safety break triggered or the fallback message was returned. This surfaces:
+- Conversations where `tools_used` contains `get_delivery_windows` or `update_booking` AND the assistant's final message contains the "Beklager" fallback
+- Conversations where the loop was broken (identifiable by checking if assistant messages contain the fallback text)
+- Quick runbook links for common failure modes
 
-**Fix**: Strengthen the system prompt instruction (around line 1050) to be even more explicit and add an example. Also add a post-processing step that detects common confirmation patterns and wraps them in `[YES_NO]`.
-
-Add to system prompt after line 1050:
-```
-Example: Instead of writing "Er dette bestillingen du onsker a endre?" as plain text, write:
-[YES_NO]Er dette bestillingen du onsker a endre?[/YES_NO]
-```
-
-Add a `patchYesNo` post-processor that catches common Norwegian/English confirmation phrases and wraps them in `[YES_NO]` markers if missing. Apply it alongside the existing `patchBookingSummary` and `patchBookingEdit` calls.
+This will be a new component `AiErrorTraces.tsx` in `src/components/admin/widget/`.
 
 ---
 
-## Issue 3: Crash After Selecting New Time Slot
-
-**Problem**: After the user selects a new time from `[TIME_SLOT]`, the AI tries to call `update_booking` or `get_booking_details` again, exhausting the loop and hitting the same broken recovery path (which is fixed by Issue 1 above).
-
-**Fix**: Issue 1's fix (adding `tools` to the recovery call) will resolve this crash too, since the recovery call will now succeed and the AI will produce the `[BOOKING_EDIT]` marker. No additional changes needed for this specific case.
-
----
-
-## Summary of Changes
+## Technical Details
 
 ### File: `supabase/functions/widget-ai-chat/index.ts`
 
-| Change | Location | Description |
-|--------|----------|-------------|
-| Add `tools` to recovery call | ~line 1538 | Include `tools` array so `tool_choice: "none"` is accepted |
-| Strengthen YES_NO prompt | ~line 1050 | Add explicit example of YES_NO usage for booking confirmation |
-| Add `patchYesNo` post-processor | New function + lines ~1455, ~1556 | Auto-wrap plain-text confirmation questions in [YES_NO] markers |
+**Change A** (~line 438): Fix `patchBookingEdit` — add missing `marker` declaration
+
+```typescript
+function patchBookingEdit(reply: string, messages: any[]): string {
+  const marker = '[BOOKING_EDIT]';
+  const closingMarker = '[/BOOKING_EDIT]';
+  // ... rest unchanged
+}
+```
+
+**Change B** (~line 404): Broaden `patchYesNo` with additional catch-all patterns
+
+Add these patterns to the existing array:
+- `/(?:Kan|Kunne) du bekrefte\b.*\?/i`
+- `/(?:Stemmer|Passer) (?:det|dette)\b.*\?/i`  
+- `/Er du sikker\b.*\?/i`
+- Generic fallback: any short sentence (under 120 chars) ending with `?` that contains confirmation keywords
+
+### File: `src/components/admin/widget/AiErrorTraces.tsx` (new)
+
+A diagnostic dashboard component that:
+- Queries `widget_ai_conversations` joined with `widget_ai_messages` to find conversations where:
+  - The last assistant message contains "Beklager" or the fallback text
+  - `tools_used` includes booking-related tools
+- Shows a table with: timestamp, visitor phone/email, tools used, last AI message preview
+- Each row is expandable to show the full conversation
+- Includes a "Runbook" section with common failure modes and their fixes
+
+### File: `src/components/admin/AiChatbotSettings.tsx`
+
+Add the new "Error Traces" tab (7th tab) with a bug/alert icon.
+
+### File: `src/components/admin/widget/index.ts`
+
+Export `AiErrorTraces`.
 
 ### Deploy
-Re-deploy `widget-ai-chat` edge function.
 
-## Expected Result
-
-1. "Endre tid" button click: Recovery call succeeds, AI emits [TIME_SLOT] marker
-2. Booking confirmation: Uses [YES_NO] interactive component
-3. After time slot selection: Recovery call succeeds, AI emits [BOOKING_EDIT] marker
+Re-deploy `widget-ai-chat` edge function after fixing the `patchBookingEdit` bug.
