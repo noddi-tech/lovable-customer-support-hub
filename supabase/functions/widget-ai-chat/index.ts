@@ -490,6 +490,37 @@ async function saveErrorDetails(supabase: any, conversationId: string | null, er
   } catch (e) { console.error('[saveErrorDetails] Failed:', e); }
 }
 
+// ========== Post-processor: normalize BOOKING_SUMMARY time/date to Oslo timezone ==========
+function patchBookingSummaryTime(reply: string): string {
+  const re = /\[BOOKING_SUMMARY\]([\s\S]*?)\[\/BOOKING_SUMMARY\]/;
+  const m = reply.match(re);
+  if (!m) return reply;
+  try {
+    const data = JSON.parse(m[1].trim());
+    const dwStart = data.delivery_window_start;
+    const dwEnd = data.delivery_window_end;
+    if (dwStart && dwEnd) {
+      const startD = new Date(dwStart);
+      const endD = new Date(dwEnd);
+      if (!isNaN(startD.getTime()) && !isNaN(endD.getTime())) {
+        const fmt = (d: Date) => d.toLocaleString('nb-NO', {
+          timeZone: 'Europe/Oslo',
+          hour: '2-digit', minute: '2-digit', hour12: false
+        });
+        data.time = `${fmt(startD)}\u2013${fmt(endD)}`;
+      }
+    }
+    if (dwStart && (!data.date || /^\d{4}-\d{2}-\d{2}/.test(data.date))) {
+      const d = new Date(dwStart);
+      data.date = d.toLocaleDateString('nb-NO', {
+        timeZone: 'Europe/Oslo',
+        year: 'numeric', month: '2-digit', day: '2-digit'
+      });
+    }
+    return reply.replace(re, `[BOOKING_SUMMARY]${JSON.stringify(data)}[/BOOKING_SUMMARY]`);
+  } catch { return reply; }
+}
+
 // ========== Post-processor: auto-wrap plain-text booking details in [BOOKING_INFO] ==========
 function patchBookingInfo(reply: string, messages: any[]): string {
   // If already contains BOOKING_INFO marker, skip
@@ -507,6 +538,19 @@ function patchBookingInfo(reply: string, messages: any[]): string {
     if (msg.role === 'tool' && typeof msg.content === 'string') {
       try {
         const toolResult = JSON.parse(msg.content);
+        // Handle multiple bookings: if 2+ bookings, show selection menu
+        if (toolResult.bookings && toolResult.bookings.length > 1) {
+          const options = toolResult.bookings.map((b: any) => {
+            const svc = (b.services?.[0] || b.service || 'Bestilling');
+            const date = b.scheduledAt?.split(',')[0] || b.timeSlot || '';
+            const addr = b.address || '';
+            return `${svc} - ${date}${addr ? ', ' + addr : ''} (ID: ${b.id})`;
+          });
+          const menuMarker = `Du har ${toolResult.bookings.length} aktive bestillinger. Hvilken gjelder det?\n\n[ACTION_MENU]\n${options.join('\n')}\n[/ACTION_MENU]`;
+          console.log('[patchBookingInfo] Multiple bookings detected, showing selection menu');
+          return menuMarker;
+        }
+        
         let candidate: any = null;
         if (toolResult.booking) candidate = toolResult.booking;
         else if (toolResult.bookings?.[0]) candidate = toolResult.bookings[0];
@@ -662,7 +706,17 @@ function patchActionMenu(reply: string, messages: any[]): string {
   // Only inject if BOOKING_INFO is present (meaning we're in booking context)
   // and there's no ACTION_MENU already
   const hasCompleteActionMenu = reply.includes('[ACTION_MENU]') && reply.includes('[/ACTION_MENU]');
-  if (!reply.includes('[BOOKING_INFO]') || hasCompleteActionMenu) return reply;
+  // If an ACTION_MENU already exists, validate it has cancel option
+  if (hasCompleteActionMenu) {
+    const menuMatch = reply.match(/\[ACTION_MENU\]([\s\S]*?)\[\/ACTION_MENU\]/);
+    const menuContent = menuMatch?.[1] || '';
+    const hasCancel = /avbestill|kanseller|cancel/i.test(menuContent);
+    if (hasCancel) return reply; // Menu is complete with all options
+    // Menu is missing cancel — replace with standard set
+    const fullMenu = `[ACTION_MENU]\nEndre tidspunkt\nEndre adresse\nEndre bil\nLegg til tjenester\nAvbestille bestilling\n[/ACTION_MENU]`;
+    return reply.replace(/\[ACTION_MENU\][\s\S]*?\[\/ACTION_MENU\]/, fullMenu);
+  }
+  if (!reply.includes('[BOOKING_INFO]')) return reply;
   if (reply.includes('[BOOKING_CONFIRMED]')) return reply;
   // Skip during active edit sub-flows
   const activeFlowMarkers = ['[TIME_SLOT]', '[BOOKING_EDIT]', '[ADDRESS_SEARCH]', '[LICENSE_PLATE]', '[SERVICE_SELECT]', '[BOOKING_SUMMARY]'];
@@ -1197,6 +1251,24 @@ async function executeLookupCustomer(phone?: string, email?: string): Promise<st
       }
     }
 
+    // Also extract addresses from user_groups (broader coverage)
+    for (const group of userGroups) {
+      if (Array.isArray((group as any).addresses)) {
+        for (const addr of (group as any).addresses) {
+          if (addr?.id && !storedAddresses.has(addr.id)) {
+            const label = `${addr.street_name || ''} ${addr.street_number || ''}, ${addr.zip_code || ''} ${addr.city || ''}`.replace(/\s+/g, ' ').trim().replace(/^,|,$/g, '').trim();
+            storedAddresses.set(addr.id, {
+              id: addr.id,
+              full_address: label,
+              street: addr.street_name || '',
+              city: addr.city || '',
+              zip: addr.zip_code || '',
+            });
+          }
+        }
+      }
+    }
+
     return JSON.stringify({
       found: true,
       customer: {
@@ -1574,16 +1646,16 @@ function buildSystemPrompt(language: string, isVerified: boolean, actionFlows: A
 
   let verificationContext: string;
   if (isVerified) {
-    verificationContext = `VERIFICATION STATUS: The customer's phone number has been verified via SMS OTP. You can freely access their account data using lookup_customer.
+     verificationContext = `VERIFICATION STATUS: The customer's phone number has been verified via SMS OTP. You can freely access their account data using lookup_customer.
 
 After looking up the customer:
 - Greet them by name.
-- If they have UPCOMING bookings, mention them briefly.
+- Check which action flow matches their stated intent.
+- If a flow is matched (e.g., new_booking), proceed DIRECTLY to its first step. Do NOT mention or reference existing bookings unless the flow requires a booking lookup step.
+- If NO flow is matched and the customer hasn't stated an intent, briefly mention if they have upcoming bookings, then ask what they'd like help with.
 - NEVER list stored addresses or vehicles as a text list. The interactive blocks ([ADDRESS_SEARCH], [LICENSE_PLATE]) already display them as selectable options.
 - When it's time to collect an address, output ONLY the [ADDRESS_SEARCH] marker with stored addresses in JSON — no introductory text.
 - When it's time to collect a car, output ONLY the [LICENSE_PLATE] marker with stored cars in JSON — no introductory text.
-- If the customer already stated what they want, proceed with the matching action flow.
-- If not, offer available actions naturally in conversation (do NOT force a menu).
 - IMPORTANT: You ALREADY KNOW whether this is an existing customer from the lookup result. NEVER ask "have you ordered before?".
 - If the customer has stored_addresses or stored_cars, you MUST pass them inside the ADDRESS_SEARCH / LICENSE_PLATE markers as JSON.`;
   } else if (hasVerificationFlows) {
@@ -2104,7 +2176,9 @@ Deno.serve(async (req) => {
 
       // If no tool calls, we have the final answer
       if (!assistantMessage.tool_calls || assistantMessage.tool_calls.length === 0) {
-        const rawReply = assistantMessage.content || 'I apologize, I was unable to generate a response.';
+        let rawReply = assistantMessage.content || 'I apologize, I was unable to generate a response.';
+        // Patch BOOKING_SUMMARY time/date to Oslo timezone before further processing
+        rawReply = patchBookingSummaryTime(rawReply);
         let reply = await patchBookingSummary(rawReply, currentMessages, visitorPhone, visitorEmail);
         reply = patchTimeSlotConfirmToEdit(reply, currentMessages);
         reply = await patchBookingEdit(reply, currentMessages, visitorPhone, visitorEmail);
