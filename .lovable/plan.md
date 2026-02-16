@@ -1,45 +1,69 @@
 
 
-# Fix: Loop Break Falls Through to Fallback Instead of Letting AI Respond
+# Fix: Forced-Text Call Fails Due to Missing Tool Responses
 
 ## Root Cause
 
-When the safety break triggers (after `get_delivery_windows` is called twice), the code exits the entire while-loop and jumps straight to the hardcoded fallback message ("Beklager, men jeg trenger et oyeblikk..."). The AI never gets a chance to read the interception response and emit the `[TIME_SLOT]` marker.
+When the safety break triggers inside the tool execution loop, the assistant message (containing multiple `tool_calls`) has already been pushed to the conversation history. But the `break` exits before all tool calls have corresponding tool response messages. 
 
-The sequence:
-1. AI calls `get_delivery_windows` with empty items (count 1) -- intercepted, gets "use [TIME_SLOT] marker"
-2. AI calls `get_delivery_windows` again (count 2) -- safety break fires, loop exits
-3. Code falls to fallback -- the AI's tool response from step 1 is wasted
+OpenAI's API strictly requires that every `tool_call` in an assistant message has a matching `tool` response message. The forced-text call sends this incomplete history, gets a **400 error**, and silently falls through to the "Beklager" fallback.
 
-When the user types "Jeg vil endre tid" directly, the AI only takes 1-2 tool calls and successfully emits [TIME_SLOT] before exhausting iterations.
+This is why it fails every time -- the recovery mechanism itself is broken.
 
 ## Fix
 
 ### File: `supabase/functions/widget-ai-chat/index.ts`
 
-**Change 1: When the loop breaks, give the AI one final OpenAI call to generate a text response** (around lines 1503-1509)
+**Change 1: When breaking the loop, add placeholder tool responses for any remaining unanswered tool calls** (lines 1484-1511)
 
-After `if (loopBroken) break;`, instead of falling directly to the fallback, make one more OpenAI call with the current messages (which include the interception response). This gives the AI a chance to produce a [TIME_SLOT] marker. If this final call also results in tool calls (not text), then fall through to the fallback.
+After `loopBroken = true; break;`, before exiting the for-loop, iterate over the remaining tool calls in `assistantMessage.tool_calls` and push synthetic tool responses for each one that was skipped:
 
+```typescript
+if (loopBroken) {
+  // Pad missing tool responses so OpenAI doesn't reject the messages
+  const answeredIds = new Set(
+    currentMessages
+      .filter(m => m.role === 'tool')
+      .map(m => m.tool_call_id)
+  );
+  for (const tc of assistantMessage.tool_calls) {
+    if (!answeredIds.has(tc.id)) {
+      currentMessages.push({
+        role: 'tool',
+        content: JSON.stringify({ error: 'Tool call skipped. Use data already in conversation.' }),
+        tool_call_id: tc.id,
+      });
+    }
+  }
+  break;
+}
 ```
-After loop break:
-1. Make one final OpenAI call with tool_choice: "none" (forces text output)
-2. If the AI produces a text response, use it (it should contain [TIME_SLOT])
-3. If it fails, fall through to the existing fallback
+
+**Change 2: Add error logging for the forced-text call** (line 1531)
+
+When `finalResp.ok` is false, log the status and body so we can see failures:
+
+```typescript
+if (!finalResp.ok) {
+  const errBody = await finalResp.text();
+  console.error('[widget-ai-chat] Final forced-text call returned', finalResp.status, errBody);
+}
 ```
 
-Using `tool_choice: "none"` is the key -- it forces the AI to produce a text response instead of calling tools, which is exactly what we need.
+## Technical Details
 
-**Change 2: Also handle `get_booking_details` with wrong IDs** (around line 1135)
-
-The logs show `get_booking_details({"booking_id":1})` -- the AI uses `1` as a placeholder. Intercept this similarly: if `booking_id` is 1 or another small placeholder, return a synthetic response telling the AI to use the booking data already in the conversation context.
+| Item | Detail |
+|------|--------|
+| File | `supabase/functions/widget-ai-chat/index.ts` |
+| Lines affected | ~1484-1512 (loop break logic), ~1531 (error logging) |
+| Deploy | Re-deploy `widget-ai-chat` edge function |
 
 ## Expected Result
 
 When user clicks "Endre tid":
-1. AI calls `get_booking_details(1)` -- intercepted, told to use existing data
-2. AI calls `get_delivery_windows` with empty arrays -- intercepted, told to emit [TIME_SLOT]
-3. Safety break triggers
-4. Final forced-text OpenAI call with `tool_choice: "none"` -- AI outputs [TIME_SLOT] marker
+1. AI calls tools, safety break triggers
+2. Missing tool responses are padded with synthetic messages
+3. Forced-text call succeeds (valid message history)
+4. AI outputs [TIME_SLOT] marker
 5. Widget renders the time slot picker
 
