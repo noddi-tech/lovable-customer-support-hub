@@ -483,18 +483,17 @@ function patchBookingInfo(reply: string, messages: any[]): string {
   // If already contains BOOKING_INFO marker, skip
   if (reply.includes('[BOOKING_INFO]')) return reply;
   
-  // Detect plain-text booking details patterns
-  const hasAddress = /(?:📍\s*)?Adresse\s*:/i.test(reply);
-  const hasDate = /(?:📅\s*)?Dato\s*:/i.test(reply);
-  const hasTime = /(?:🕐\s*)?Tid\s*:/i.test(reply);
+  // BROAD TRIGGER: If reply has [ACTION_MENU] and conversation has booking data,
+  // always inject [BOOKING_INFO] — the AI should never show booking context as plain text
+  const hasActionMenu = reply.includes('[ACTION_MENU]');
+  
+  // Detect plain-text booking details (label-based AND natural language)
+  const hasPlainTextDetails = /Adresse\s*:|Dato\s*:|Tid\s*:|bestilling\s+den|planlagt\s+bestilling|har\s+en\s+bestilling|din\s+bestilling/i.test(reply);
   // Detect "couldn't access details" failure messages
   const hasFailureMsg = /ikke fikk tilgang|couldn't access|ikke finne detalj|kunne ikke hente/i.test(reply);
   
-  const hasPlainTextDetails = hasAddress || hasDate || hasTime;
-  
-  // Trigger if: plain text details with ACTION_MENU, OR failure message detected
-  if (!hasPlainTextDetails && !hasFailureMsg) return reply;
-  if (hasPlainTextDetails && !reply.includes('[ACTION_MENU]')) return reply;
+  // Trigger if: has ACTION_MENU (booking edit flow), OR plain text details, OR failure message
+  if (!hasActionMenu && !hasPlainTextDetails && !hasFailureMsg) return reply;
   
   // Try to extract booking info from tool results (both lookup_customer and get_booking_details shapes)
   let bookingData: any = null;
@@ -567,7 +566,9 @@ function patchBookingInfo(reply: string, messages: any[]): string {
   // Remove "couldn't access" failure messages
   cleaned = cleaned.replace(/^.*(?:ikke fikk tilgang|couldn't access|ikke finne detalj|kunne ikke hente).*$/gim, '');
   // Remove "Her er din bestilling:" type intro lines
-  cleaned = cleaned.replace(/^.*(?:Her er|bestilling|detaljer).*:?\s*$/gim, '');
+  cleaned = cleaned.replace(/^.*(?:Her er|detaljer).*:?\s*$/gim, '');
+  // Remove natural language booking descriptions
+  cleaned = cleaned.replace(/^.*(?:planlagt bestilling|har en bestilling|din bestilling|bestilling den).*$/gim, '');
   // Clean up excessive whitespace
   cleaned = cleaned.replace(/\n{3,}/g, '\n\n').trim();
   
@@ -582,6 +583,53 @@ function patchBookingInfo(reply: string, messages: any[]): string {
   
   console.log('[patchBookingInfo] Auto-wrapped booking details into [BOOKING_INFO]');
   return cleaned;
+}
+
+// ========== Post-processor: fix hallucinated IDs in [BOOKING_CONFIRMED] ==========
+function patchBookingConfirmed(reply: string, messages: any[]): string {
+  const marker = '[BOOKING_CONFIRMED]';
+  const closingMarker = '[/BOOKING_CONFIRMED]';
+  const startIdx = reply.indexOf(marker);
+  const endIdx = reply.indexOf(closingMarker);
+  if (startIdx === -1 || endIdx === -1) return reply;
+
+  const jsonStr = reply.slice(startIdx + marker.length, endIdx);
+  let data: any;
+  try { data = JSON.parse(jsonStr); } catch { return reply; }
+
+  // Extract real booking data from tool results
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const msg = messages[i];
+    if (msg.role === 'tool' && typeof msg.content === 'string') {
+      try {
+        const toolResult = JSON.parse(msg.content);
+        // From create_booking result
+        if (toolResult.booking_id || toolResult.id) {
+          data.booking_id = toolResult.booking_id || toolResult.id;
+          if (toolResult.booking_number || toolResult.reference) {
+            data.booking_number = toolResult.booking_number || toolResult.reference;
+          }
+          break;
+        }
+        // From lookup_customer result
+        const booking = toolResult.booking || toolResult.bookings?.[0];
+        if (booking) {
+          if (booking.id) data.booking_id = booking.id;
+          if (booking.reference) data.booking_number = booking.reference;
+          if (booking.address) data.address = typeof booking.address === 'string' ? booking.address : (booking.address.address || booking.address.full_address || data.address);
+          if (booking.vehicle) data.car = typeof booking.vehicle === 'string' ? booking.vehicle : data.car;
+          if (booking.scheduledAt) data.date = (booking.scheduledAt.split(',')[0] || booking.scheduledAt).trim();
+          if (booking.timeSlot) data.time = booking.timeSlot;
+          if (booking.services?.[0]) data.service = typeof booking.services[0] === 'string' ? booking.services[0] : (booking.services[0].name || data.service);
+          break;
+        }
+      } catch { /* not JSON */ }
+    }
+  }
+
+  const patched = reply.slice(0, startIdx) + marker + JSON.stringify(data) + reply.slice(endIdx);
+  console.log('[patchBookingConfirmed] Overrode booking confirmed data with real values');
+  return patched;
 }
 
 
@@ -1064,7 +1112,8 @@ Include ALL booking data as valid JSON (NEVER human-readable text):
 Include only the fields being changed with old and new values.
 IMPORTANT: When showing [BOOKING_EDIT] for time changes, you MUST include delivery_window_id, delivery_window_start (ISO), and delivery_window_end (ISO) from the customer's [TIME_SLOT] selection.`,
   BOOKING_CONFIRMED: `Your ENTIRE response must be ONLY the [BOOKING_CONFIRMED] marker. No text before or after. Do NOT list booking details as text.
-[BOOKING_CONFIRMED]{"booking_id": 12345, "booking_number": "B-12345", "service": "Dekkskift", "address": "Holtet 45, Oslo", "car": "Tesla Model Y (EC94156)", "date": "16. feb 2026", "time": "08:00–11:00", "price": "699 kr"}[/BOOKING_CONFIRMED]
+[BOOKING_CONFIRMED]{"booking_id": <REAL_ID>, "booking_number": "<REAL_REF>", "service": "<service>", "address": "<address>", "car": "<car>", "date": "<date>", "time": "<time>", "price": "<price>"}[/BOOKING_CONFIRMED]
+⚠️ CRITICAL: Use the EXACT booking_id and booking_number from the tool result. NEVER use example values like 12345 or B-12345.
 Use this marker AFTER a booking has been successfully created/confirmed. The component displays a read-only success card.`,
   ACTION_MENU: `Present choices as clickable buttons using:
 [ACTION_MENU]
@@ -1237,7 +1286,8 @@ IMPORTANT: When showing [BOOKING_EDIT] for time changes, you MUST include delive
 
 14. BOOKING CONFIRMED — show a read-only success card after a booking is confirmed:
 After a booking is successfully created (via [BOOKING_SUMMARY] confirm), output ONLY this marker with the booking details. Do NOT list details as a bullet list.
-[BOOKING_CONFIRMED]{"booking_id": 12345, "booking_number": "B-12345", "service": "Dekkskift", "address": "Holtet 45, Oslo", "car": "Tesla Model Y (EC94156)", "date": "16. feb 2026", "time": "08:00–11:00", "price": "699 kr"}[/BOOKING_CONFIRMED]
+[BOOKING_CONFIRMED]{"booking_id": <REAL_ID>, "booking_number": "<REAL_REF>", "service": "<service>", "address": "<address>", "car": "<car>", "date": "<date>", "time": "<time>", "price": "<price>"}[/BOOKING_CONFIRMED]
+⚠️ CRITICAL: Use the EXACT booking_id and booking_number from the create_booking tool result. NEVER use example values like 12345 or B-12345.
 
 15. BOOKING INFO — show a read-only info card for current booking details:
 When presenting the customer's current booking details before asking what they want to change, use this marker instead of bullet points or plain text lists.
@@ -1663,6 +1713,7 @@ Deno.serve(async (req) => {
         let reply = await patchBookingSummary(rawReply, currentMessages, visitorPhone, visitorEmail);
         reply = await patchBookingEdit(reply, currentMessages, visitorPhone, visitorEmail);
         reply = patchYesNo(reply);
+        reply = patchBookingConfirmed(reply, currentMessages);
         reply = patchBookingInfo(reply, currentMessages);
 
         // Save assistant reply & update conversation meta
@@ -1770,6 +1821,7 @@ Deno.serve(async (req) => {
           let reply = await patchBookingSummary(finalContent, currentMessages, visitorPhone, visitorEmail);
           reply = await patchBookingEdit(reply, currentMessages, visitorPhone, visitorEmail);
           reply = patchYesNo(reply);
+          reply = patchBookingConfirmed(reply, currentMessages);
           reply = patchBookingInfo(reply, currentMessages);
 
           const savedMessageId = await saveMessage(supabase, dbConversationId, 'assistant', reply, allToolsUsed);
