@@ -1,65 +1,46 @@
 
 
-# Fix: Booking Select Carousel, Missing Data, and Cancel Endpoint
+# Fix: Embla Carousel, User Group Filtering, and Complete Booking Data
 
-## Issue 1: Cards not displaying as proper carousel
+## Issue 1: Replace inline scroll with Embla Carousel
 
-The current layout uses `flex: 1 1 0` for 2 bookings, squeezing both into one row in the narrow widget. The cards should stack vertically (one per row) when there are 2 or fewer, and use horizontal scroll only for 3+.
+The current `BookingSelectBlock` uses raw CSS `overflow-x: auto` for horizontal scrolling. This produces a standard browser scrollbar instead of a proper swipeable carousel. The project already has `embla-carousel-react` installed and a fully functional `Carousel` component at `src/components/ui/carousel.tsx`.
+
+**Fix**: Rewrite `BookingSelectBlock` to use the existing `Carousel`, `CarouselContent`, and `CarouselItem` components. For 1-2 bookings, keep the vertical stack layout (no carousel needed). For 3+ bookings, wrap cards in the Embla carousel with `basis-[85%]` so users can see a peek of the next card and swipe between them.
 
 **File: `src/widget/components/blocks/BookingSelectBlock.tsx`**
 
-Change the flex container from horizontal row to vertical stack for 1-2 bookings:
-- For 1-2 bookings: `flexDirection: 'column'`, each card takes full width
-- For 3+: keep horizontal scroll with fixed card widths
+- Import `Carousel`, `CarouselContent`, `CarouselItem` from `@/components/ui/carousel`
+- For 3+ bookings: render cards inside `<Carousel><CarouselContent><CarouselItem>` with `basis-[85%]` sizing
+- For 1-2 bookings: keep vertical flex column (no carousel)
+- Add dot indicators showing current slide position using the Carousel API
+- Remove all raw CSS scroll logic (`overflowX`, `scrollSnapType`, `scrollSnapAlign`)
 
-Replace the outer flex container styles (line 37-43):
-```typescript
-display: 'flex',
-flexDirection: bookings.length <= 2 ? 'column' : 'row',
-gap: '10px',
-overflowX: bookings.length > 2 ? 'auto' : 'visible',
-paddingBottom: '8px',
-scrollSnapType: bookings.length > 2 ? 'x mandatory' : undefined,
-```
+## Issue 2: Filter bookings by selected user group
 
-Update card styles (line 57-59): remove `minWidth`/`maxWidth`/`flex` for vertical layout:
-```typescript
-minWidth: bookings.length <= 2 ? '100%' : '220px',
-maxWidth: bookings.length <= 2 ? '100%' : '260px',
-flex: bookings.length <= 2 ? 'none' : '0 0 auto',
-```
+The user "Joachim Rathke" is a member of multiple Noddi user groups (personal group + "Lomundal Oslo AS"). Booking #27483 belongs to "Lomundal Oslo AS" and is completed -- it should not appear. The current code at line 1170-1172 auto-selects the default/personal user group, but then line 1179-1232 collects bookings from ALL user groups indiscriminately (iterating over every group's `priority_booking` and `upcoming_bookings`).
 
-## Issue 2: Second booking missing date/time/address data
-
-The `executeLookupCustomer` function extracts bookings from two sources:
-1. `bookings_summary.priority_booking` -- one per group, has full delivery window data
-2. `unpaid_bookings` -- different shape, may lack `start_time`, `address`, etc.
-
-The mapping at line 1306-1398 tries to extract `start_time`, `address`, `car` etc., but `unpaid_bookings` uses different field names. We need to also check for:
-- `delivery_window.starts_at` / `delivery_window.ends_at` (common in unpaid_bookings)
-- `booking_items_car[].car` for vehicle data
-- `order.delivery_address` or `delivery_address` for address
+**Fix**: Only collect bookings from the selected user group, not all groups.
 
 **File: `supabase/functions/widget-ai-chat/index.ts`**
 
-In the booking mapping (line 1312-1313), expand the timestamp fallback chain:
-```typescript
-const startRaw = b.start_time || b.scheduled_at || b.delivery_window_starts_at 
-  || b.delivery_window?.starts_at || b.deliveryWindowStartsAt || '';
-const endRaw = b.end_time || b.delivery_window_ends_at 
-  || b.delivery_window?.ends_at || b.deliveryWindowEndsAt || '';
-```
+In `executeLookupCustomer` (lines 1179-1199):
 
-For address (line 1323-1331), add fallbacks:
-```typescript
-const addrObj = b.address || b.delivery_address || b.order?.delivery_address;
-```
+- After determining `userGroupId` (line 1170-1172), only extract `priority_booking` and `upcoming_bookings` from the matching group
+- Filter `unpaid_bookings` by `user_group_id === userGroupId`
+- When calling `bookings-for-customer` fallback (line 1214), use the selected `userGroupId`
+- Also include `all_user_groups` metadata in the response so the AI can mention which group is selected, and in a future iteration the widget could show a group selector
 
-Also add `upcoming_bookings` from `bookings_summary` if available -- some groups expose multiple upcoming bookings beyond just the priority one:
 ```typescript
-// 1b. Collect upcoming_bookings from bookings_summary
-for (const group of userGroups) {
-  const upcoming = group.bookings_summary?.upcoming_bookings;
+// Only collect bookings from the SELECTED user group
+const selectedGroup = userGroups.find((g: any) => g.id === userGroupId);
+if (selectedGroup) {
+  const pb = selectedGroup.bookings_summary?.priority_booking;
+  if (pb?.id && !seenBookingIds.has(pb.id)) {
+    bookings.push(pb);
+    seenBookingIds.add(pb.id);
+  }
+  const upcoming = selectedGroup.bookings_summary?.upcoming_bookings;
   if (Array.isArray(upcoming)) {
     for (const ub of upcoming) {
       if (ub?.id && !seenBookingIds.has(ub.id)) {
@@ -69,69 +50,95 @@ for (const group of userGroups) {
     }
   }
 }
-```
 
-Additionally, use the `bookings-for-customer` endpoint as a fallback to get ALL bookings with full data when the customer-lookup-support response has incomplete booking data:
-```typescript
-// 3. If bookings have incomplete data, fetch from bookings-for-customer
-if (userGroupId && bookings.some(b => !b.start_time && !b.delivery_window_starts_at && !b.delivery_window?.starts_at && !b.deliveryWindowStartsAt)) {
-  try {
-    const bfcResp = await fetch(`${API_BASE}/v1/user-groups/${userGroupId}/bookings-for-customer/?page_size=20`, { headers });
-    if (bfcResp.ok) {
-      const bfcData = await bfcResp.json();
-      const results = Array.isArray(bfcData) ? bfcData : (bfcData.results || []);
-      for (const fb of results) {
-        if (fb?.id && seenBookingIds.has(fb.id)) {
-          // Replace the incomplete booking with the full one
-          const idx = bookings.findIndex(b => b.id === fb.id);
-          if (idx >= 0) bookings[idx] = fb;
-        } else if (fb?.id && !seenBookingIds.has(fb.id)) {
-          bookings.push(fb);
-          seenBookingIds.add(fb.id);
-        }
-      }
-      console.log(`[lookup] Enriched bookings from bookings-for-customer: ${results.length} results`);
-    }
-  } catch (e) { console.error('[lookup] bookings-for-customer fallback failed:', e); }
+// Filter unpaid_bookings to selected group only
+for (const ub of (lookupData.unpaid_bookings || [])) {
+  if (ub?.id && !seenBookingIds.has(ub.id) && (!ub.user_group_id || ub.user_group_id === userGroupId)) {
+    bookings.push(ub);
+    seenBookingIds.add(ub.id);
+  }
 }
 ```
 
-## Issue 3: Cancel booking endpoint uses wrong HTTP method
+Also include the user group info in the response so the AI knows which group is active:
 
-The API spec clearly shows the cancel endpoint uses `PATCH`, not `POST`. The current `executeCancelBooking` (line 1490) sends `POST`.
-
-**File: `supabase/functions/widget-ai-chat/index.ts`**
-
-Change line 1491 from `method: 'POST'` to `method: 'PATCH'`:
 ```typescript
-const resp = await fetch(`${API_BASE}/v1/bookings/${bookingId}/cancel/`, {
-  method: 'PATCH',
-  headers: { 'Authorization': `Token ${noddiToken}`, 'Accept': 'application/json', 'Content-Type': 'application/json' },
-  body: JSON.stringify(body),
-});
+customer: {
+  ...existing fields,
+  userGroupName: selectedGroup?.name || '',
+  allUserGroups: userGroups.map((g: any) => ({ id: g.id, name: g.name, is_personal: g.is_personal })),
+},
 ```
 
-The `cancellation_reason` body field may not be part of the PATCH spec (which only takes `booking_id` and `notify_customer` as query params). Update to use query params instead:
+## Issue 3: Missing sales items and license plates in booking cards
+
+The `patchBookingInfo` creates the `[BOOKING_SELECT]` payload (lines 542-554) but only maps basic fields. The booking data returned by `executeLookupCustomer` already includes `services[]`, `vehicle`, and `license_plate` -- but the mapping in `patchBookingInfo` doesn't extract them fully.
+
+**Fix**: Enhance the `[BOOKING_SELECT]` payload mapping to include:
+- `service`: Join all services from the `services` array (not just `services[0]`)
+- `vehicle`: Include the full vehicle string with license plate
+- `license_plate`: Dedicated field for plate number
+
+**File: `supabase/functions/widget-ai-chat/index.ts`** (in `patchBookingInfo`, line 543-550):
+
 ```typescript
-const url = new URL(`${API_BASE}/v1/bookings/${bookingId}/cancel/`);
-url.searchParams.set('booking_id', String(bookingId));
-// notify_customer defaults to true per API spec
-const resp = await fetch(url.toString(), {
-  method: 'PATCH',
-  headers: { 'Authorization': `Token ${noddiToken}`, 'Accept': 'application/json', 'Content-Type': 'application/json' },
-});
+const bookingsPayload = toolResult.bookings.map((b: any) => ({
+  id: b.id,
+  service: Array.isArray(b.services) ? b.services.join(', ') : (b.service || 'Bestilling'),
+  date: b.scheduledAt?.split(',')[0] || '',
+  time: b.timeSlot || '',
+  address: b.address || '',
+  vehicle: b.vehicle || '',
+  license_plate: b.license_plate || '',
+}));
 ```
+
+**File: `src/widget/components/blocks/BookingSelectBlock.tsx`**: Add `license_plate` to the `BookingOption` interface and render it in the card body if present (as a separate row or appended to vehicle).
 
 ---
 
-## Summary of File Changes
+## Technical Details
+
+### BookingSelectBlock with Embla Carousel
+
+The widget uses inline styles (no Tailwind) for isolation, but the Embla Carousel component uses Tailwind classes. Since `BookingSelectBlock` is rendered inside the widget's shadow DOM / iframe context, we need to ensure the carousel works. The existing carousel component uses standard Tailwind classes that are available in the widget build.
+
+For 3+ bookings:
+```tsx
+<Carousel opts={{ align: 'start' }}>
+  <CarouselContent className="-ml-2">
+    {bookings.map(b => (
+      <CarouselItem key={b.id} className="pl-2 basis-[85%]">
+        {/* booking card */}
+      </CarouselItem>
+    ))}
+  </CarouselContent>
+</Carousel>
+```
+
+For 1-2 bookings: standard vertical flex layout with full-width cards (no carousel).
+
+### Dot indicators
+
+Below the carousel, render dots showing the current position:
+```tsx
+<div style={{ display: 'flex', justifyContent: 'center', gap: '6px', marginTop: '8px' }}>
+  {bookings.map((_, i) => (
+    <div key={i} style={{
+      width: '8px', height: '8px', borderRadius: '50%',
+      background: i === currentSlide ? primaryColor : '#cbd5e1',
+    }} />
+  ))}
+</div>
+```
+
+### File changes summary
 
 | File | Change |
 |------|--------|
-| `src/widget/components/blocks/BookingSelectBlock.tsx` | Vertical stack layout for 1-2 bookings, horizontal scroll for 3+ |
-| `supabase/functions/widget-ai-chat/index.ts` | 1) Expand booking data extraction with fallback fields and bookings-for-customer endpoint 2) Fix cancel to use PATCH with query params |
+| `src/widget/components/blocks/BookingSelectBlock.tsx` | Replace raw scroll with Embla Carousel for 3+ bookings; add license_plate field; add dot indicators |
+| `supabase/functions/widget-ai-chat/index.ts` | 1) Filter bookings to selected user group only 2) Enhance BOOKING_SELECT payload with full service list and license plate 3) Include user group metadata in response |
 
-## Expected Results
-1. Booking cards display vertically (full width) when 2 or fewer, making all details visible
-2. All active bookings show complete data (date, time, address, vehicle) by enriching from the bookings-for-customer endpoint
-3. Cancel booking works correctly using the PATCH method per the Noddi API spec
+### Deploy
+Re-deploy `widget-ai-chat` edge function after changes.
+
