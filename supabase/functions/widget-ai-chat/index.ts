@@ -80,6 +80,7 @@ const tools = [
         properties: {
           phone: { type: 'string', description: 'Customer phone number (primary identifier)' },
           email: { type: 'string', description: 'Customer email (fallback identifier)' },
+          user_group_id: { type: 'number', description: 'Specific user group ID to use (when customer selected a group from the options)' },
         },
       },
     },
@@ -617,8 +618,10 @@ function patchBookingInfo(reply: string, messages: any[]): string {
    // Services: lookup_customer returns services[] as strings, get_booking_details returns sales_items/order_lines/items
   const svcSource = bookingData.services || bookingData.order_lines || bookingData.items || bookingData.sales_items || [];
   if (Array.isArray(svcSource) && svcSource.length > 0) {
-    const svcName = typeof svcSource[0] === 'string' ? svcSource[0] : (svcSource[0].service_name || svcSource[0].name || '');
-    if (svcName) info.service = svcName;
+    const allNames = svcSource
+      .map((s: any) => typeof s === 'string' ? s : (s.service_name || s.name || ''))
+      .filter(Boolean);
+    if (allNames.length > 0) info.service = allNames.join(', ');
   }
   // Vehicle: lookup_customer returns vehicle as string, get_booking_details returns cars[], Noddi raw returns car object
   if (bookingData.vehicle) {
@@ -651,18 +654,20 @@ function patchBookingInfo(reply: string, messages: any[]): string {
       if (!info.date) info.date = s.toLocaleDateString('nb-NO', {day:'numeric',month:'short',year:'numeric',timeZone:'Europe/Oslo'});
     } catch {}
   }
-  // Handle service_categories (raw Noddi shape)
+  // Handle service_categories (raw Noddi shape) - join ALL names
   if (!info.service && Array.isArray(bookingData.service_categories) && bookingData.service_categories.length > 0) {
-    info.service = bookingData.service_categories[0].name || bookingData.service_categories[0].label || '';
+    const catNames = bookingData.service_categories.map((sc: any) => sc.name || sc.label || '').filter(Boolean);
+    if (catNames.length > 0) info.service = catNames.join(', ');
   }
-  // Handle booking_items_car[].sales_items for service names
+  // Handle booking_items_car[].sales_items for service names - join ALL names
   if (!info.service && Array.isArray(bookingData.booking_items_car)) {
+    const allSiNames: string[] = [];
     for (const bic of bookingData.booking_items_car) {
-      if (Array.isArray(bic.sales_items) && bic.sales_items[0]?.name) {
-        info.service = bic.sales_items[0].name;
-        break;
+      if (Array.isArray(bic.sales_items)) {
+        for (const si of bic.sales_items) { if (si.name) allSiNames.push(si.name); }
       }
     }
+    if (allSiNames.length > 0) info.service = allSiNames.join(', ');
   }
   // Handle raw address object (not already a string or with full_address)
   if (!info.address && bookingData.address && typeof bookingData.address === 'object' && !bookingData.address.full_address && !bookingData.address.address) {
@@ -1108,7 +1113,7 @@ async function patchBookingEdit(reply: string, messages: any[], visitorPhone?: s
   return patched;
 }
 
-async function executeLookupCustomer(phone?: string, email?: string): Promise<string> {
+async function executeLookupCustomer(phone?: string, email?: string, specifiedUserGroupId?: number): Promise<string> {
   const noddiToken = Deno.env.get('NODDI_API_TOKEN');
   if (!noddiToken) return JSON.stringify({ error: 'Customer lookup not configured' });
 
@@ -1168,7 +1173,31 @@ async function executeLookupCustomer(phone?: string, email?: string): Promise<st
       return JSON.stringify({ found: false, message: 'No customer found with the provided information.' });
     }
 
-    const userGroupId = userGroups.find((g: any) => g.is_default_user_group)?.id
+    // If multiple user groups and no specific group requested, ask the user to choose
+    if (!specifiedUserGroupId && userGroups.length > 1) {
+      const groupOptions = userGroups.map((g: any) => ({
+        id: g.id,
+        name: g.name || `Gruppe ${g.id}`,
+        is_personal: g.is_personal || false,
+        is_default: g.is_default_user_group || false,
+        total_bookings: g.bookings_summary?.total_bookings || 0,
+      }));
+      return JSON.stringify({
+        found: true,
+        needs_group_selection: true,
+        customer: {
+          name: `${noddihUser.first_name || ''} ${noddihUser.last_name || ''}`.trim() || noddihUser.name || '',
+          email: noddihUser.email,
+          phone: noddihUser.phone,
+          userId: noddihUser.id,
+        },
+        user_groups: groupOptions,
+        message: `Kunden er medlem av ${groupOptions.length} grupper. Be kunden velge hvilken gruppe det gjelder.`,
+      });
+    }
+
+    const userGroupId = specifiedUserGroupId
+      || userGroups.find((g: any) => g.is_default_user_group)?.id
       || userGroups.find((g: any) => g.is_personal)?.id
       || userGroups[0]?.id;
 
@@ -1206,8 +1235,9 @@ async function executeLookupCustomer(phone?: string, email?: string): Promise<st
 
     console.log(`[lookup] Extracted ${bookings.length} bookings from customer-lookup-support response`);
 
-    // 3. If bookings have incomplete data, fetch from bookings-for-customer as fallback
-    if (userGroupId && bookings.some((b: any) => !b.start_time && !b.delivery_window_starts_at && !b.delivery_window?.starts_at && !b.deliveryWindowStartsAt)) {
+    // 3. ALWAYS fetch full booking list from bookings-for-customer
+    // (customer-lookup-support only returns priority_booking, not all bookings)
+    if (userGroupId) {
       try {
         const bfcResp = await fetch(`${API_BASE}/v1/user-groups/${userGroupId}/bookings-for-customer/?page_size=20`, {
           headers: { 'Authorization': `Token ${noddiToken}`, 'Accept': 'application/json' },
@@ -1217,6 +1247,7 @@ async function executeLookupCustomer(phone?: string, email?: string): Promise<st
           const results = Array.isArray(bfcData) ? bfcData : (bfcData.results || []);
           for (const fb of results) {
             if (fb?.id && seenBookingIds.has(fb.id)) {
+              // Replace with richer data from this endpoint
               const idx = bookings.findIndex((b: any) => b.id === fb.id);
               if (idx >= 0) bookings[idx] = fb;
             } else if (fb?.id && !seenBookingIds.has(fb.id)) {
@@ -1224,9 +1255,9 @@ async function executeLookupCustomer(phone?: string, email?: string): Promise<st
               seenBookingIds.add(fb.id);
             }
           }
-          console.log(`[lookup] Enriched bookings from bookings-for-customer: ${results.length} results`);
+          console.log(`[lookup] Full bookings from bookings-for-customer: ${results.length} results`);
         }
-      } catch (e) { console.error('[lookup] bookings-for-customer fallback failed:', e); }
+      } catch (e) { console.error('[lookup] bookings-for-customer failed:', e); }
     }
 
     const name = `${noddihUser.first_name || ''} ${noddihUser.last_name || ''}`.trim()
@@ -1883,7 +1914,7 @@ async function executeTool(
     case 'search_knowledge_base':
       return executeSearchKnowledge(args.query, organizationId, supabase, openaiApiKey);
     case 'lookup_customer':
-      return executeLookupCustomer(args.phone || visitorPhone, args.email || visitorEmail);
+      return executeLookupCustomer(args.phone || visitorPhone, args.email || visitorEmail, args.user_group_id);
     case 'get_booking_details': {
       // Intercept placeholder IDs (1, 2, etc.) — AI uses these when it doesn't know the real ID
       const bid = args.booking_id;
