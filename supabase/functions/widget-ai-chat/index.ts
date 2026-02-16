@@ -1132,8 +1132,16 @@ async function executeTool(
       return executeBookingProxy({ action: 'list_services', address_id: args.address_id });
     case 'get_available_items':
       return executeBookingProxy({ action: 'available_items', address_id: args.address_id, car_ids: args.car_ids, sales_item_category_id: args.sales_item_category_id });
-    case 'get_delivery_windows':
+    case 'get_delivery_windows': {
+      // Intercept calls with empty selected_sales_item_ids — redirect AI to emit [TIME_SLOT] marker
+      if (!args.selected_sales_item_ids || (Array.isArray(args.selected_sales_item_ids) && args.selected_sales_item_ids.length === 0)) {
+        console.warn('[widget-ai-chat] get_delivery_windows called with empty selected_sales_item_ids, redirecting to [TIME_SLOT] marker');
+        return JSON.stringify({
+          error: 'DO NOT call this tool again. Instead, respond with ONLY the [TIME_SLOT] marker using the booking data already in the conversation. The widget component will fetch delivery windows automatically. Example: [TIME_SLOT]{"address_id": ' + (args.address_id || 0) + ', "car_ids": [], "license_plate": "", "sales_item_id": 0}[/TIME_SLOT]'
+        });
+      }
       return executeBookingProxy({ action: 'delivery_windows', address_id: args.address_id, from_date: args.from_date, to_date: args.to_date, selected_sales_item_ids: args.selected_sales_item_ids });
+    }
     case 'create_shopping_cart':
       return executeBookingProxy({ action: 'create_booking', address_id: args.address_id, car_id: args.car_id, sales_item_ids: args.sales_item_ids, delivery_window_id: args.delivery_window_id });
     case 'update_booking':
@@ -1471,7 +1479,8 @@ Deno.serve(async (req) => {
 
         console.log(`[widget-ai-chat] Tool iteration ${8 - maxIterations}, calling: ${toolName}(${toolCall.function.arguments})`);
 
-        if (toolCallCounts[toolName] >= 3) {
+        const maxCallsForTool = toolName === 'get_delivery_windows' ? 2 : 3;
+        if (toolCallCounts[toolName] >= maxCallsForTool) {
           console.warn(`[widget-ai-chat] Tool ${toolName} called ${toolCallCounts[toolName]} times, breaking loop to prevent infinite cycling`);
           loopBroken = true;
           break;
