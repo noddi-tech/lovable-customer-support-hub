@@ -146,18 +146,20 @@ export function EmailForwardingSetupStep({
       </div>
 
       {/* Domain Status */}
-      {publicEmail && !domainsLoading && (
-        <Alert className={configuredDomain ? "border-success/50 bg-success/5" : "border-warning/50 bg-warning/5"}>
-          {configuredDomain ? (
+      {publicEmail && emailDomain && !domainsLoading && (
+        <Alert className={matchingDomain ? "border-success/50 bg-success/5" : configuredDomain ? "border-warning/50 bg-warning/5" : "border-destructive/50 bg-destructive/5"}>
+          {matchingDomain ? (
             <CheckCircle2 className="h-4 w-4 text-success" />
           ) : (
             <AlertCircle className="h-4 w-4 text-warning" />
           )}
           <AlertDescription>
-            {configuredDomain ? (
-              <span>Email forwarding is ready! Domain <strong>{configuredDomain.domain}</strong> is configured.</span>
+            {matchingDomain ? (
+              <span>Domain <strong>{matchingDomain.domain}</strong> is configured and ready!</span>
+            ) : configuredDomain ? (
+              <span>Domain <strong>{emailDomain}</strong> is not configured yet. Falling back to <strong>{configuredDomain.domain}</strong>.</span>
             ) : (
-              <span>Domain configuration required. Contact support to set up email forwarding.</span>
+              <span>Domain <strong>{emailDomain}</strong> is not configured. Contact support to set it up.</span>
             )}
           </AlertDescription>
         </Alert>
