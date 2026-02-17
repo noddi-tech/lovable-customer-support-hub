@@ -1,11 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { registerBlock, BlockComponentProps, FlowPreviewProps } from './registry';
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  type CarouselApi,
-} from '@/components/ui/carousel';
 
 interface BookingOption {
   id: number | string;
@@ -112,19 +106,8 @@ const BookingCard: React.FC<{
 const BookingSelectBlock: React.FC<BlockComponentProps> = ({ primaryColor, data, usedBlocks, onAction }) => {
   const bookings: BookingOption[] = data.bookings || [];
   const [selected, setSelected] = useState<Set<string | number>>(new Set());
-  const [api, setApi] = useState<CarouselApi>();
-  const [currentSlide, setCurrentSlide] = useState(0);
   const blockKey = `booking_select_${bookings.map(b => b.id).join('_')}`;
   const isUsed = usedBlocks.has(blockKey);
-  const useCarousel = bookings.length > 2;
-
-  useEffect(() => {
-    if (!api) return;
-    const onSelect = () => setCurrentSlide(api.selectedScrollSnap());
-    api.on('select', onSelect);
-    onSelect();
-    return () => { api.off('select', onSelect); };
-  }, [api]);
 
   const toggle = (id: string | number) => {
     if (isUsed) return;
@@ -142,58 +125,21 @@ const BookingSelectBlock: React.FC<BlockComponentProps> = ({ primaryColor, data,
     onAction(JSON.stringify({ selected_ids: ids }), blockKey);
   };
 
-  const renderCards = () => {
-    if (useCarousel) {
-      return (
-        <>
-          <Carousel opts={{ align: 'start' }} setApi={setApi}>
-            <CarouselContent className="-ml-2">
-              {bookings.map((b) => (
-                <CarouselItem key={b.id} className="pl-2 basis-[85%]">
-                  <BookingCard
-                    b={b}
-                    isSelected={selected.has(b.id)}
-                    isUsed={isUsed}
-                    primaryColor={primaryColor}
-                    onToggle={toggle}
-                  />
-                </CarouselItem>
-              ))}
-            </CarouselContent>
-          </Carousel>
-          {/* Dot indicators */}
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '6px', marginTop: '8px' }}>
-            {bookings.map((_, i) => (
-              <div key={i} style={{
-                width: '8px',
-                height: '8px',
-                borderRadius: '50%',
-                background: i === currentSlide ? primaryColor : '#cbd5e1',
-                transition: 'background 0.2s',
-              }} />
-            ))}
-          </div>
-        </>
-      );
-    }
-
-    // 1-2 bookings: vertical stack
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        {bookings.map((b) => (
-          <BookingCard
-            key={b.id}
-            b={b}
-            isSelected={selected.has(b.id)}
-            isUsed={isUsed}
-            primaryColor={primaryColor}
-            onToggle={toggle}
-            fullWidth
-          />
-        ))}
-      </div>
-    );
-  };
+  const renderCards = () => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+      {bookings.map((b) => (
+        <BookingCard
+          key={b.id}
+          b={b}
+          isSelected={selected.has(b.id)}
+          isUsed={isUsed}
+          primaryColor={primaryColor}
+          onToggle={toggle}
+          fullWidth
+        />
+      ))}
+    </div>
+  );
 
   return (
     <div style={{ margin: '8px 0' }}>
