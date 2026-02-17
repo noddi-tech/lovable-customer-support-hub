@@ -443,6 +443,12 @@ function patchYesNo(reply: string, messages?: any[]): string {
   // NEW: Skip if the question mentions multiple booking edit options — these are multi-choice, not binary
   if (/(?:tidspunkt|adresse|bil).*(?:tidspunkt|adresse|bil)/is.test(reply)) return reply;
 
+  // Skip if reply contains a numbered list (selection question, not binary)
+  if (/\n\s*\d+\.\s/.test(reply)) return reply;
+
+  // Skip if question uses "hvilken/hvilke" (selection, not binary)
+  if (/\bhvilke[nt]?\b/i.test(reply)) return reply;
+
   // Common Norwegian/English confirmation patterns
   const patterns = [
     /Er dette bestillingen du ønsker å endre\??/i,
@@ -1820,6 +1826,7 @@ After looking up the customer:
 - Check which action flow matches their stated intent.
 - If a flow is matched (e.g., new_booking), proceed DIRECTLY to its first step. Do NOT mention or reference existing bookings unless the flow requires a booking lookup step.
 CRITICAL: For the "new_booking" flow, NEVER show existing bookings or a [BOOKING_SELECT] block. Go directly to address selection ([ADDRESS_SEARCH]). Only show [BOOKING_SELECT] for flows that explicitly require selecting an existing booking (e.g., change_time, change_address, cancel_booking).
+- For cancel_booking with multiple bookings: show [BOOKING_SELECT] so the customer can pick which booking(s) to cancel. NEVER list bookings as a numbered text list with a question.
 - If NO flow is matched and the customer hasn't stated an intent, briefly mention if they have upcoming bookings, then ask what they'd like help with.
 - NEVER list stored addresses or vehicles as a text list. The interactive blocks ([ADDRESS_SEARCH], [LICENSE_PLATE]) already display them as selectable options.
 - When it's time to collect an address, output ONLY the [ADDRESS_SEARCH] marker with stored addresses in JSON — no introductory text.
