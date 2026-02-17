@@ -1,51 +1,98 @@
 
+# Fix Cancel Booking Flow: Three Root Causes
 
-# Fix Cancel Booking Flow: Wrong YES/NO + Missing BOOKING_SELECT
+## Problems Identified
 
-## Problem
+**Problem 1: Booking info card + action menu shown after successful cancellation**
+After `cancel_booking` succeeds, `patchBookingInfo` still finds booking data from the earlier `lookup_customer` tool call and injects a `[BOOKING_INFO]` card. Then `patchActionMenu` sees `[BOOKING_INFO]` and auto-appends the edit action menu. Result: the user sees a "cancelled" message alongside a booking card with "Endre tidspunkt", "Avbestille bestilling" etc.
 
-When a customer with multiple bookings asks to cancel, two things go wrong:
+**Problem 2: Raw `[YES_NO]...[/YES_NO]` markers showing as text inside `[CONFIRM]` block**
+The AI nests `[YES_NO]` markers inside `[CONFIRM]` content: `[CONFIRM]Du har valgt a kansellere...[YES_NO]Er du sikker?[/YES_NO][/CONFIRM]`. The parser treats the outer `[CONFIRM]` as the block, so the inner `[YES_NO]...[/YES_NO]` becomes raw text displayed in the summary paragraph.
 
-1. The AI outputs a plain-text question ("Hvilken bestilling onsker du a kansellere?") with a numbered list instead of using the interactive [BOOKING_SELECT] component
-2. The `patchYesNo` post-processor incorrectly wraps that question in [YES_NO] markers because it matches the pattern "Onsker du a ... kansellere"
-3. Clicking "Ja" then tells the AI "yes, cancel" -- which cancels ALL bookings instead of letting the user pick
+**Problem 3: `patchYesNo` doesn't skip when `[CONFIRM]` is already present**
+The `otherMarkers` exclusion list doesn't include `[CONFIRM]`, so the post-processor may additionally wrap questions in `[YES_NO]` even when a confirm card is already present.
 
 ## Changes
 
-### 1. `supabase/functions/widget-ai-chat/index.ts` -- patchYesNo exclusion
+### 1. `supabase/functions/widget-ai-chat/index.ts` -- patchBookingInfo
 
-Add a check: skip wrapping in [YES_NO] if the reply contains a **numbered list** (e.g., `1.`, `2.`). A numbered list means the AI is presenting choices, not asking a binary question.
-
-```typescript
-// Skip if reply contains a numbered list (selection question, not binary)
-if (/\n\s*\d+\.\s/.test(reply)) return reply;
-```
-
-Also add a check for "hvilken" (which one) -- these are selection questions, never yes/no:
+Add a guard at the top: scan tool results for a successful `cancel_booking` call. If found, skip injection entirely.
 
 ```typescript
-// Skip if question uses "hvilken/hvilke" (selection, not binary)
-if (/\bhvilke[nt]?\b/i.test(reply)) return reply;
+// Skip if cancel_booking was called successfully — booking is gone
+for (let i = messages.length - 1; i >= 0; i--) {
+  if (messages[i].role === 'tool') {
+    try {
+      const r = JSON.parse(messages[i].content);
+      if (r.success && r.message?.toLowerCase().includes('cancelled')) return reply;
+    } catch {}
+  }
+}
 ```
 
-### 2. `supabase/functions/widget-ai-chat/index.ts` -- System prompt
+### 2. `supabase/functions/widget-ai-chat/index.ts` -- patchActionMenu
 
-Add explicit instruction to the cancel_booking flow section telling the AI to use [BOOKING_SELECT] when the customer has multiple bookings and wants to cancel, rather than listing them as text with a question.
+Same guard: skip if `cancel_booking` succeeded.
 
-Add near the existing BOOKING_SELECT instruction (around line 1822):
-
+```typescript
+// Skip if cancel_booking was called successfully
+for (let i = messages.length - 1; i >= 0; i--) {
+  if (messages[i].role === 'tool') {
+    try {
+      const r = JSON.parse(messages[i].content);
+      if (r.success && r.message?.toLowerCase().includes('cancelled')) return reply;
+    } catch {}
+  }
+}
 ```
-- For cancel_booking with multiple bookings: show [BOOKING_SELECT] so the customer can pick which booking(s) to cancel. NEVER list bookings as a numbered text list with a question.
+
+### 3. `supabase/functions/widget-ai-chat/index.ts` -- patchYesNo
+
+Add `[CONFIRM]` to the `otherMarkers` exclusion list so YES_NO wrapping is skipped when a confirm card is already present.
+
+### 4. `src/widget/components/blocks/ConfirmBlock.tsx` -- Strip nested markers from summary
+
+In `parseContent`, strip any `[TAG]...[/TAG]` patterns from the inner text so nested markers never render as raw text:
+
+```typescript
+parseContent: (inner) => {
+  // Strip any nested marker tags (e.g. [YES_NO]...[/YES_NO])
+  const cleaned = inner.replace(/\[[A-Z_]+\]([\s\S]*?)\[\/[A-Z_]+\]/g, '$1').trim();
+  return { summary: cleaned };
+},
 ```
 
-### 3. Deploy edge function
+### 5. `src/widget/utils/parseMessageBlocks.ts` -- More aggressive marker stripping
 
-Redeploy `widget-ai-chat` to apply the changes.
+Enhance the post-filter to strip text blocks that *contain* marker tags (not just exact matches), catching cases where markers appear inline with short surrounding text:
+
+```typescript
+return blocks.filter(b => {
+  if (b.type !== 'text') return true;
+  const trimmed = (b as any).content?.trim();
+  if (!trimmed) return false;
+  // Exact match: text is just a marker tag
+  if (markerTags.has(trimmed)) return false;
+  // Contains marker tags with minimal surrounding text
+  let stripped = trimmed;
+  for (const tag of markerTags) {
+    stripped = stripped.replaceAll(tag, '');
+  }
+  if (stripped.trim().length === 0) return false;
+  return true;
+});
+```
+
+### 6. Deploy edge function
+
+Redeploy `widget-ai-chat` after changes.
 
 ## Summary
 
 | File | Change |
 |------|--------|
-| `widget-ai-chat/index.ts` (patchYesNo) | Skip when reply has numbered lists or "hvilken/hvilke" |
-| `widget-ai-chat/index.ts` (system prompt) | Instruct AI to use BOOKING_SELECT for cancel flow |
-
+| `widget-ai-chat/index.ts` (patchBookingInfo) | Skip when cancel_booking succeeded |
+| `widget-ai-chat/index.ts` (patchActionMenu) | Skip when cancel_booking succeeded |
+| `widget-ai-chat/index.ts` (patchYesNo) | Add `[CONFIRM]` to exclusion list |
+| `ConfirmBlock.tsx` (parseContent) | Strip nested marker tags from summary text |
+| `parseMessageBlocks.ts` (post-filter) | Strip text blocks that are only marker tags |
