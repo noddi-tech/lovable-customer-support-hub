@@ -1312,6 +1312,8 @@ async function executeLookupCustomer(phone?: string, email?: string, specifiedUs
               cars: results[0].cars,
               booking_items_car: results[0].booking_items_car,
               booking_items: results[0].booking_items,
+              address: results[0].address,
+              user_group_address: results[0].user_group_address,
             }));
           }
         }
@@ -1470,7 +1472,7 @@ async function executeLookupCustomer(phone?: string, email?: string, specifiedUs
             const city = addrObj.city || '';
             return `${sn} ${num}, ${zip} ${city}`.replace(/\s+/g, ' ').trim().replace(/^,|,$/g, '').trim() || null;
           })(),
-          address_id: b.address?.id || null,
+          address_id: b.address?.id || b.user_group_address?.id || null,
           services: (() => {
             const lines = b.order_lines || b.items || b.sales_items || b.services || [];
             if (Array.isArray(lines) && lines.length > 0) {
@@ -1591,7 +1593,7 @@ async function executeGetBookingDetails(bookingId: number): Promise<string> {
       services: booking.order_lines?.map((ol: any) => ({ name: ol.service_name || ol.name, price: ol.price })) || [],
       sales_item_ids: booking.order_lines?.map((ol: any) => ol.sales_item_id || ol.id).filter(Boolean) || [],
       address: booking.address?.full_address || booking.address || null,
-      address_id: booking.address?.id || null,
+      address_id: booking.address?.id || booking.user_group_address?.id || null,
       vehicle: booking.car ? { make: booking.car.make, model: booking.car.model, licensePlate: booking.car.license_plate, year: booking.car.year } : null,
       car_id: booking.car?.id || null,
       car_ids: Array.isArray(booking.cars) ? booking.cars.map((c: any) => c.id).filter(Boolean) : (booking.car?.id ? [booking.car.id] : []),
