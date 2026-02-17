@@ -1407,7 +1407,7 @@ async function executeLookupCustomer(phone?: string, email?: string, specifiedUs
           const status = (
             typeof rawStatus === 'number' ? (STATUS_MAP[rawStatus] || '')
             : typeof rawStatus === 'string' ? rawStatus
-            : typeof rawStatus === 'object' && rawStatus !== null ? (rawStatus.name || rawStatus.slug || String(rawStatus.id || ''))
+            : typeof rawStatus === 'object' && rawStatus !== null ? (rawStatus.name || rawStatus.slug || STATUS_MAP[rawStatus.id] || String(rawStatus.id || ''))
             : ''
           ).toLowerCase();
           if (['completed', 'cancelled', 'canceled', 'no_show', 'expired', 'draft'].includes(status)) {
@@ -1424,7 +1424,7 @@ async function executeLookupCustomer(phone?: string, email?: string, specifiedUs
         const STATUS_MAP: Record<number, string> = { 0: 'draft', 1: 'confirmed', 2: 'assigned', 3: 'cancelled', 4: 'completed' };
         const statusStr = typeof rawSt === 'number' ? (STATUS_MAP[rawSt] || String(rawSt))
           : typeof rawSt === 'string' ? rawSt
-          : typeof rawSt === 'object' && rawSt !== null ? (rawSt.name || rawSt.slug || '') : '';
+          : typeof rawSt === 'object' && rawSt !== null ? (rawSt.name || rawSt.slug || STATUS_MAP[rawSt.id] || '') : '';
         const startFull = toOsloTime(b.start_time || b.scheduled_at || b.delivery_window_starts_at || b.delivery_window?.starts_at || b.deliveryWindowStartsAt || '');
         const endFull = toOsloTime(b.end_time || b.delivery_window_ends_at || b.delivery_window?.ends_at || b.deliveryWindowEndsAt || '');
         const startHM = startFull.split(', ')[1] || startFull;
@@ -1777,6 +1777,7 @@ After looking up the customer:
 - Greet them by name.
 - Check which action flow matches their stated intent.
 - If a flow is matched (e.g., new_booking), proceed DIRECTLY to its first step. Do NOT mention or reference existing bookings unless the flow requires a booking lookup step.
+CRITICAL: For the "new_booking" flow, NEVER show existing bookings or a [BOOKING_SELECT] block. Go directly to address selection ([ADDRESS_SEARCH]). Only show [BOOKING_SELECT] for flows that explicitly require selecting an existing booking (e.g., change_time, change_address, cancel_booking).
 - If NO flow is matched and the customer hasn't stated an intent, briefly mention if they have upcoming bookings, then ask what they'd like help with.
 - NEVER list stored addresses or vehicles as a text list. The interactive blocks ([ADDRESS_SEARCH], [LICENSE_PLATE]) already display them as selectable options.
 - When it's time to collect an address, output ONLY the [ADDRESS_SEARCH] marker with stored addresses in JSON — no introductory text.
