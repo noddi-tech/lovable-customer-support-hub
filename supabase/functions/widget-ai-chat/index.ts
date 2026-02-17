@@ -2318,7 +2318,11 @@ Deno.serve(async (req) => {
             );
             if (matches && Array.isArray(flow.flow_steps) && (flow.flow_steps as any[]).length > 0) {
               const firstStep = (flow.flow_steps as any[])[0];
-              matchedFlowHint = ` This matches the "${flow.intent_key}" flow. After lookup, proceed DIRECTLY to step 1: ${firstStep.instruction || firstStep.description || 'follow the flow'}. Do NOT call get_booking_details if lookup_customer already returned the booking with address_id, car_ids, sales_item_ids, and license_plate.`;
+              if (flow.intent_key === 'cancel_booking') {
+                matchedFlowHint = ` This matches the "cancel_booking" flow. After lookup, display the booking using [BOOKING_INFO] and ask "Er dette bestillingen du vil kansellere?" wrapped in [YES_NO]. Do NOT call cancel_booking until the customer confirms with "Ja". Do NOT call get_booking_details if lookup_customer already returned the booking data.`;
+              } else {
+                matchedFlowHint = ` This matches the "${flow.intent_key}" flow. After lookup, proceed DIRECTLY to step 1: ${firstStep.instruction || firstStep.description || 'follow the flow'}. Do NOT call get_booking_details if lookup_customer already returned the booking with address_id, car_ids, sales_item_ids, and license_plate.`;
+              }
               break;
             }
           }
@@ -2434,6 +2438,18 @@ Deno.serve(async (req) => {
           await saveErrorDetails(supabase, dbConversationId, 'loop_break', `Tool ${toolName} called ${toolCallCounts[toolName]} times — loop broken`);
           loopBroken = true;
           break;
+        }
+
+        // Force-break if AI tries to cancel without prior user confirmation
+        if (toolName === 'cancel_booking') {
+          const hasUserConfirmation = currentMessages.some(
+            (m: any) => m.role === 'user' && /\b(ja|yes|bekreft|confirm)\b/i.test(typeof m.content === 'string' ? m.content : '')
+          );
+          if (!hasUserConfirmation) {
+            console.log('[widget-ai-chat] cancel_booking blocked — no user confirmation yet, forcing text response');
+            loopBroken = true;
+            break;
+          }
         }
 
         const args = JSON.parse(toolCall.function.arguments);
