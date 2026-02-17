@@ -419,6 +419,17 @@ async function patchBookingSummary(reply: string, messages: any[], visitorPhone?
 
 /** Post-processor: wrap plain-text yes/no confirmation questions in [YES_NO] markers */
 function patchYesNo(reply: string, messages?: any[]): string {
+  // Handle bare [YES_NO] marker (AI wrote tag without wrapping the question)
+  if (reply.includes('[YES_NO]') && !reply.includes('[/YES_NO]')) {
+    const bareRemoved = reply.replace(/\[YES_NO\]/g, '').trim();
+    // Find the last question sentence
+    const qMatch = bareRemoved.match(/([^\n.]{10,150}\?)\s*$/);
+    if (qMatch) {
+      const before = bareRemoved.substring(0, qMatch.index!).trimEnd();
+      return [before, `[YES_NO]${qMatch[1]}[/YES_NO]`]
+        .filter(s => s.length > 0).join('\n');
+    }
+  }
   // If AI already included [YES_NO], clean up: keep ONLY the [YES_NO] block (strip surrounding prose)
   if (reply.includes('[YES_NO]') && reply.includes('[/YES_NO]')) {
     const yesNoMatch = reply.match(/\[YES_NO\]([\s\S]*?)\[\/YES_NO\]/);
@@ -755,6 +766,8 @@ function patchBookingInfo(reply: string, messages: any[]): string {
 
 // ========== Post-processor: auto-inject [ACTION_MENU] when booking context is present ==========
 function patchActionMenu(reply: string, messages: any[]): string {
+  // Skip if reply is asking a cancellation confirmation question
+  if (/(?:kansellere|avbestille|cancel).*\?/is.test(reply)) return reply;
   // Skip if BOOKING_SELECT is present (user is choosing which booking)
   if (reply.includes('[BOOKING_SELECT]')) return reply;
   // Skip if cancel_booking succeeded — booking is gone, don't show action menu
