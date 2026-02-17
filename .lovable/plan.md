@@ -1,59 +1,46 @@
 
 
-# Fix: Always Enforce Group Selection for Multi-Group Users
+# Fix: Pass Selected User Group ID to Booking Summary Re-Lookup
 
 ## Problem
-When a multi-group user verifies their phone, the AI tool-calling loop runs `lookup_customer`, gets back `needs_group_selection: true`, but then immediately calls `lookup_customer` again with a guessed/default `user_group_id` -- all within the same loop. The `patchGroupSelect` post-processor never fires because by the time the loop ends, the latest tool result has actual bookings (not `needs_group_selection`).
+When `patchBookingSummary` re-looks up the customer to inject `user_id` and `user_group_id`, it calls `executeLookupCustomer(visitorPhone, visitorEmail)` **without** the selected `user_group_id`. For multi-group users, this returns `needs_group_selection: true` instead of the actual IDs, so `user_group_id` stays as the placeholder string `"<FROM_LOOKUP>"`, causing the Noddi API to reject the booking with a validation error.
 
-## Changes
+## Fix
 
-### 1. Break the tool loop when `needs_group_selection` is detected
+**File**: `supabase/functions/widget-ai-chat/index.ts`, lines 354-370
 
-**File**: `supabase/functions/widget-ai-chat/index.ts` (lines 2362-2376)
-
-After each tool result is pushed to `currentMessages`, check if it contains `needs_group_selection`. If so, set `loopBroken = true` and break immediately -- preventing the AI from auto-selecting a group.
+Before the re-lookup call, scan `messages` for the `group_selected` action (the JSON payload sent when the user picks a group from the dropdown). Extract the `user_group_id` from it and pass it as the third argument to `executeLookupCustomer`.
 
 ```typescript
-currentMessages.push({
-  role: 'tool',
-  content: result,
-  tool_call_id: toolCall.id,
-});
-
-// Force-break if group selection is needed
-try {
-  const parsed = JSON.parse(result);
-  if (parsed.needs_group_selection && parsed.user_groups) {
-    console.log('[widget-ai-chat] Group selection required, breaking tool loop');
-    loopBroken = true;
-    break;
+// Extract selected user_group_id from conversation messages
+let selectedGroupId: number | undefined;
+for (let i = messages.length - 1; i >= 0; i--) {
+  const msg = messages[i];
+  if (msg.role === 'user' && typeof msg.content === 'string') {
+    try {
+      const d = JSON.parse(msg.content);
+      if (d.action === 'group_selected' && d.user_group_id) {
+        selectedGroupId = d.user_group_id;
+        break;
+      }
+    } catch {}
   }
-} catch {}
+}
+
+// Pass selectedGroupId so multi-group users get the correct group
+const lookupResult = JSON.parse(
+  await executeLookupCustomer(visitorPhone, visitorEmail, selectedGroupId)
+);
 ```
 
-The existing `loopBroken` padding logic (lines 2377-2394) will handle padding any unanswered tool calls, and the final `tool_choice: "none"` call will produce a text reply that `patchGroupSelect` can then replace with the dropdown.
-
-### 2. Add group selection awareness to the verification prompt
-
-**File**: `supabase/functions/widget-ai-chat/index.ts` (line 2245)
-
-Update the `__VERIFIED__` replacement message to include:
-
-```
-If I belong to multiple user groups, STOP and wait for me to select one -- do NOT auto-select a group.
-```
-
-This provides a soft instruction alongside the hard loop break.
+This ensures the re-lookup resolves to the correct group and returns `userGroupId` instead of triggering `needs_group_selection` again.
 
 ## Technical Details
 
-| File | Change |
-|------|--------|
-| `supabase/functions/widget-ai-chat/index.ts` | 1) Add `needs_group_selection` check after tool result push to force-break the loop 2) Update `__VERIFIED__` prompt text to mention group selection |
+| File | Lines | Change |
+|------|-------|--------|
+| `supabase/functions/widget-ai-chat/index.ts` | 354-370 | Extract `user_group_id` from `group_selected` message in conversation history, pass it to `executeLookupCustomer` |
 
 ## Expected Results
-- Single group users: auto-selected as before, no change in behavior
-- Multi-group users: tool loop breaks immediately, `patchGroupSelect` fires, user sees "Hei, [Name]! Vi ser at du har flere brukergrupper..." with dropdown
-- After selecting a group, `lookup_customer` is called with the specific `user_group_id` and bookings are shown
-- Applies to ALL action flows (cancel, change time, new booking, etc.)
-
+- Multi-group users who selected a group: booking creation gets the correct `user_group_id` (e.g., 2597) instead of `"<FROM_LOOKUP>"`
+- Single-group users: no change in behavior (auto-selected as before)
