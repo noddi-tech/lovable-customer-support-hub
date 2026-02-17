@@ -1,83 +1,69 @@
 
-# Fix Booking Card Layout + Add Diagnostic Logging
 
-## Part 1: Fix BookingCard header and add service as a detail row
+# Translate All Widget Blocks to Norwegian
 
-**File**: `src/widget/components/blocks/BookingSelectBlock.tsx`
+The following widget block components contain hardcoded English strings that need to be translated to Norwegian. The `BookingInfoBlock` and `BookingSelectBlock` are already fully Norwegian -- the remaining three booking blocks and error messages need updating.
 
-Currently the header shows `{b.service || 'Bestilling'} #${b.id}` -- mixing service name into the title. Instead:
+## Files and Changes
 
-- **Header**: Always show `Bestilling #${b.id}` (consistent with BookingConfirmedBlock)
-- **Body**: Add service as a row `🛠️ Tjeneste` before the other details
+### 1. `src/widget/components/blocks/BookingEditConfirmBlock.tsx`
 
-Changes to `BookingCard`:
-- Line 60-61: Change header text from `{b.service || 'Bestilling'}{b.id ? ' #' + b.id : ''}` to `Bestilling{b.id ? ' #' + b.id : ''}`
-- Line 22: Add service row at the top of the rows array: `if (b.service) rows.unshift({ label: '🛠️ Tjeneste', value: b.service })`
+| Line | English | Norwegian |
+|------|---------|-----------|
+| 94 | `Something went wrong, please try again later` | `Noe gikk galt, vennligst prøv igjen senere` |
+| 115 | `Booking updated!` | `Bestilling oppdatert!` |
+| 123 | `Edit cancelled` | `Endring avbrutt` |
+| 134 | `Booking updated!` | `Bestilling oppdatert!` |
+| 165 | `📍 Address` | `📍 Adresse` |
+| 173 | `🕐 Time` | `🕐 Tid` |
+| 179 | `📅 Date` | `📅 Dato` |
+| 181 | `🚗 Car` | `🚗 Bil` |
+| 182 | `🛠️ Service` | `🛠️ Tjeneste` |
+| 187 | `Confirm changes to booking` | `Bekreft endringer for bestilling` |
+| 191 | `Could not determine real booking ID. Please verify before confirming.` | `Kunne ikke finne riktig bestillings-ID. Vennligst bekreft før du fortsetter.` |
+| 208 | `Review changes` | `Se gjennom endringer` |
+| 228 | `Confirm Changes` | `Bekreft endringer` |
+| 239 | `Cancel` | `Avbryt` |
 
-## Part 2: Add diagnostic logging for vehicle/service data from API
+### 2. `src/widget/components/blocks/BookingSummaryBlock.tsx`
 
-**File**: `supabase/functions/widget-ai-chat/index.ts`
+| Line | English | Norwegian |
+|------|---------|-----------|
+| 91 | `Could not determine your selected time slot...` | `Kunne ikke finne valgt tidspunkt. Vennligst gå tilbake og velg et tidspunkt på nytt.` |
+| 105 | `Booking is temporarily unavailable...` | `Bestilling er midlertidig utilgjengelig, vennligst prøv igjen senere` |
+| 107 | `Failed to create booking` | `Kunne ikke opprette bestilling` |
+| 125 | `Something went wrong, please try again later` | `Noe gikk galt, vennligst prøv igjen senere` |
+| 146 | `Booking confirmed!` | `Bestilling bekreftet!` |
+| 150 | `Booking #` | `Bestilling #` |
+| 159 | `Booking cancelled` | `Bestilling avbrutt` |
+| 170 | `Booking confirmed!` | `Bestilling bekreftet!` |
+| 173 | `Booking #` | `Bestilling #` |
+| 181 | `📍 Address` | `📍 Adresse` |
+| 182 | `🚗 Car` | `🚗 Bil` |
+| 183 | `🛠️ Service` | `🛠️ Tjeneste` |
+| 184 | `📅 Date` | `📅 Dato` |
+| 185 | `🕐 Time` | `🕐 Tid` |
+| 186 | `💰 Price` | `💰 Pris` |
+| 201 | `Review your booking details` | `Se gjennom bestillingsdetaljer` |
+| 223 | `Confirm Booking` | `Bekreft bestilling` |
+| 234 | `Cancel` | `Avbryt` |
 
-Add two diagnostic logs:
+### 3. `src/widget/components/blocks/BookingConfirmedBlock.tsx`
 
-1. After the `bookings-for-customer` fetch (after line 1307), log a sample booking's keys and car-related fields:
-```typescript
-if (results.length > 0) {
-  console.log('[lookup] Sample booking keys:', Object.keys(results[0]));
-  console.log('[lookup] Sample booking car fields:', JSON.stringify({
-    car: results[0].car,
-    cars: results[0].cars,
-    booking_items_car: results[0].booking_items_car,
-    booking_items: results[0].booking_items,
-  }));
-}
-```
+| Line | English | Norwegian |
+|------|---------|-----------|
+| 6 | `🛠️ Service` | `🛠️ Tjeneste` |
+| 7 | `📍 Address` | `📍 Adresse` |
+| 8 | `🚗 Car` | `🚗 Bil` |
+| 9 | `📅 Date` | `📅 Dato` |
+| 10 | `🕐 Time` | `🕐 Tid` |
+| 11 | `💰 Price` | `💰 Pris` |
+| 24 | `Booking confirmed!` | `Bestilling bekreftet!` |
 
-2. After the booking mapping (after line 1515), log what was extracted:
-```typescript
-console.log('[lookup] Mapped sample:', JSON.stringify(
-  mappedBookings?.slice(0, 2).map((b: any) => ({
-    id: b.id, vehicle: b.vehicle, license_plate: b.license_plate, services: b.services
-  }))
-));
-```
+### 4. "Wheel change" in screenshot
 
-## Part 3: Add `booking_items` as vehicle extraction fallback
-
-**File**: `supabase/functions/widget-ai-chat/index.ts`
-
-After the `booking_items_car` check (line 1497), add a fallback for `booking_items`:
-```typescript
-if (Array.isArray(b.booking_items) && b.booking_items[0]?.car) {
-  const bic = b.booking_items[0].car;
-  const plate = extractPlateString(bic.license_plate_number || bic.license_plate || bic.registration);
-  return `${bic.make || ''} ${bic.model || ''} ${plate ? '(' + plate + ')' : ''}`.trim() || null;
-}
-```
-
-Also add `booking_items` to the stored cars loop (after line 1369):
-```typescript
-if (Array.isArray(b.booking_items)) {
-  for (const bi of b.booking_items) {
-    const car = bi.car;
-    if (car?.id && !storedCars.has(car.id)) {
-      storedCars.set(car.id, {
-        id: car.id,
-        make: car.make || '',
-        model: car.model || '',
-        license_plate: extractPlateString(car.license_plate_number || car.license_plate || car.registration),
-      });
-    }
-  }
-}
-```
+This comes from the Noddi API (`sales_items[].name`). The service name is returned by their backend, so we cannot control it -- it will display whatever language the Noddi API uses. No code change needed for this.
 
 ## Summary
 
-| File | Change |
-|------|--------|
-| `BookingSelectBlock.tsx` | Header always says "Bestilling #ID", service moved to detail row |
-| `widget-ai-chat/index.ts` | Diagnostic logs for raw API response shape |
-| `widget-ai-chat/index.ts` | `booking_items` fallback for vehicle extraction + stored cars |
-
-After deploying, trigger a booking lookup to check the logs and confirm what fields the API actually returns.
+Three files need translation: `BookingEditConfirmBlock.tsx`, `BookingSummaryBlock.tsx`, and `BookingConfirmedBlock.tsx`. All labels, buttons, success/error messages, and status texts will be changed from English to Norwegian, consistent with `BookingInfoBlock` and `BookingSelectBlock` which are already translated.
