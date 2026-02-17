@@ -91,7 +91,7 @@ const BookingEditConfirmBlock: React.FC<BlockComponentProps> = ({
       onAction(actionPayload, blockKey);
       onLogEvent?.('booking_edit_confirmed', `#${data.booking_id}`, 'success');
     } catch {
-      setError('Something went wrong, please try again later');
+      setError('Noe gikk galt, vennligst prøv igjen senere');
     }
     setConfirming(false);
   };
@@ -112,7 +112,7 @@ const BookingEditConfirmBlock: React.FC<BlockComponentProps> = ({
         <div style={{ margin: '8px 0', padding: '12px', borderRadius: '12px', background: '#f0fdf4', border: '1.5px solid #86efac' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700, color: '#15803d', fontSize: '14px' }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
-            Booking updated!
+            Bestilling oppdatert!
           </div>
         </div>
       );
@@ -120,7 +120,7 @@ const BookingEditConfirmBlock: React.FC<BlockComponentProps> = ({
     return (
       <div className="noddi-ai-verified-badge" style={{ margin: '8px 0' }}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-        <span style={{ fontSize: '12px' }}>Edit cancelled</span>
+        <span style={{ fontSize: '12px' }}>Endring avbrutt</span>
       </div>
     );
   }
@@ -131,7 +131,7 @@ const BookingEditConfirmBlock: React.FC<BlockComponentProps> = ({
       <div style={{ margin: '8px 0', padding: '12px', borderRadius: '12px', background: '#f0fdf4', border: '1.5px solid #86efac' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700, color: '#15803d', fontSize: '14px' }}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
-          Booking updated!
+          Bestilling oppdatert!
         </div>
       </div>
     );
@@ -162,7 +162,7 @@ const BookingEditConfirmBlock: React.FC<BlockComponentProps> = ({
   // Show changes summary
   const changes = data.changes || {};
   const rows: Array<{ label: string; old: string; new_val: string }> = [];
-  if (changes.address) rows.push({ label: '📍 Address', old: changes.old_address || '—', new_val: changes.address });
+  if (changes.address) rows.push({ label: '📍 Adresse', old: changes.old_address || '—', new_val: changes.address });
 
   // For time: prefer Oslo-converted delivery_window timestamps over raw 'time' field
   if (changes.time || changes.delivery_window_start) {
@@ -170,25 +170,25 @@ const BookingEditConfirmBlock: React.FC<BlockComponentProps> = ({
     if (changes.delivery_window_start && changes.delivery_window_end) {
       displayTime = `${formatOsloTime(changes.delivery_window_start)}\u2013${formatOsloTime(changes.delivery_window_end)}`;
     }
-    rows.push({ label: '🕐 Time', old: changes.old_time || '—', new_val: displayTime });
+    rows.push({ label: '🕐 Tid', old: changes.old_time || '—', new_val: displayTime });
   }
 
   // Auto-derive date from delivery_window_start if not explicitly provided
   const derivedDate = changes.date || (changes.delivery_window_start ? formatOsloDate(changes.delivery_window_start) : '');
   if (derivedDate) {
-    rows.push({ label: '📅 Date', old: changes.old_date || '—', new_val: derivedDate });
+    rows.push({ label: '📅 Dato', old: changes.old_date || '—', new_val: derivedDate });
   }
-  if (changes.car) rows.push({ label: '🚗 Car', old: changes.old_car || '—', new_val: changes.car });
-  if (changes.service) rows.push({ label: '🛠️ Service', old: changes.old_service || '—', new_val: changes.service });
+  if (changes.car) rows.push({ label: '🚗 Bil', old: changes.old_car || '—', new_val: changes.car });
+  if (changes.service) rows.push({ label: '🛠️ Tjeneste', old: changes.old_service || '—', new_val: changes.service });
 
   return (
     <div style={{ margin: '8px 0', border: '1.5px solid #e5e7eb', borderRadius: '12px', overflow: 'hidden', background: '#fafafa' }}>
       <div style={{ padding: '10px 12px', background: '#f8f9fa', borderBottom: '1px solid #e5e7eb', fontWeight: 700, fontSize: '13px' }}>
-        ✏️ Confirm changes to booking #{data.booking_id}
+        ✏️ Bekreft endringer for bestilling #{data.booking_id}
       </div>
       {isPlaceholderId && (
         <div style={{ padding: '6px 12px', background: '#fef3c7', fontSize: '11px', color: '#92400e', borderBottom: '1px solid #e5e7eb' }}>
-          ⚠️ Could not determine real booking ID. Please verify before confirming.
+          ⚠️ Kunne ikke finne riktig bestillings-ID. Vennligst bekreft før du fortsetter.
         </div>
       )}
       <div style={{ padding: '12px' }}>
@@ -205,7 +205,7 @@ const BookingEditConfirmBlock: React.FC<BlockComponentProps> = ({
             </div>
           </div>
         )) : (
-          <div style={{ fontSize: '13px', color: '#6b7280' }}>Review changes</div>
+          <div style={{ fontSize: '13px', color: '#6b7280' }}>Se gjennom endringer</div>
         )}
       </div>
       <div style={{ display: 'flex', gap: '8px', padding: '0 12px 12px' }}>
@@ -225,7 +225,7 @@ const BookingEditConfirmBlock: React.FC<BlockComponentProps> = ({
           ) : (
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
           )}
-          Confirm Changes
+          Bekreft endringer
         </button>
         <button
           onClick={handleCancel}
@@ -236,7 +236,7 @@ const BookingEditConfirmBlock: React.FC<BlockComponentProps> = ({
             cursor: isUsed || confirming ? 'default' : 'pointer',
           }}
         >
-          Cancel
+          Avbryt
         </button>
       </div>
       {error && <div style={{ padding: '0 12px 12px', color: '#ef4444', fontSize: '12px' }}>{error}</div>}

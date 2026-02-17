@@ -3,12 +3,12 @@ import { registerBlock, BlockComponentProps, FlowPreviewProps } from './registry
 
 const BookingConfirmedBlock: React.FC<BlockComponentProps> = ({ data }) => {
   const rows: Array<{ label: string; value: string }> = [];
-  if (data.service) rows.push({ label: '🛠️ Service', value: data.service });
-  if (data.address) rows.push({ label: '📍 Address', value: data.address });
-  if (data.car) rows.push({ label: '🚗 Car', value: data.car });
-  if (data.date) rows.push({ label: '📅 Date', value: data.date });
-  if (data.time) rows.push({ label: '🕐 Time', value: data.time });
-  if (data.price) rows.push({ label: '💰 Price', value: data.price });
+  if (data.service) rows.push({ label: '🛠️ Tjeneste', value: data.service });
+  if (data.address) rows.push({ label: '📍 Adresse', value: data.address });
+  if (data.car) rows.push({ label: '🚗 Bil', value: data.car });
+  if (data.date) rows.push({ label: '📅 Dato', value: data.date });
+  if (data.time) rows.push({ label: '🕐 Tid', value: data.time });
+  if (data.price) rows.push({ label: '💰 Pris', value: data.price });
 
   const bookingLabel = data.booking_number || data.booking_id || '';
 
@@ -21,7 +21,7 @@ const BookingConfirmedBlock: React.FC<BlockComponentProps> = ({ data }) => {
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
           <polyline points="20 6 9 17 4 12" />
         </svg>
-        Booking confirmed!{bookingLabel ? ` #${bookingLabel}` : ''}
+        Bestilling bekreftet!{bookingLabel ? ` #${bookingLabel}` : ''}
       </div>
       <div style={{ padding: '12px' }}>
         {rows.map((r, i) => (
