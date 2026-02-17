@@ -1,66 +1,49 @@
 
 
-# Fix Cancel Booking Flow: Force Stop After Lookup
+# Fix: Cancel Confirmation Showing Action Menu + Raw [YES_NO] Tag
 
 ## Problem
 
-The AI tool-calling loop runs up to 8 iterations per user turn. When a user says "cancel booking":
-1. The AI calls `lookup_customer` (returns booking data with IDs)
-2. In the **same turn**, it immediately calls `cancel_booking` with the ID
-3. The user never sees a confirmation step
+When the AI shows the booking and asks "Er dette bestillingen du vil kansellere?", two things go wrong:
 
-This happens because:
-- The `matchedFlowHint` (line 2321) says "proceed DIRECTLY to step 1" for ALL flows, including cancel
-- The tool loop has no guard to stop before destructive actions
-- System prompt instructions alone are not enough -- the AI optimizes for efficiency and completes everything in one turn
+1. **`patchActionMenu` auto-injects** the full edit action menu because it sees `[BOOKING_INFO]` in the reply -- it doesn't know we're in a cancellation confirmation context.
+2. **The AI outputs a bare `[YES_NO]` tag** (without wrapping the question or including a closing tag), so `patchYesNo` doesn't recognize it. Then `patchYesNo` also skips because `[ACTION_MENU]` was already injected.
 
-## Solution: Two-Layer Protection
+## Changes (all in `supabase/functions/widget-ai-chat/index.ts`)
 
-### 1. Fix the `matchedFlowHint` for cancel_booking
+### 1. `patchActionMenu` -- skip during cancel confirmation
 
-In the verified message construction (line 2319-2322), make the hint flow-aware. For `cancel_booking`, override the generic "proceed DIRECTLY" hint with a specific instruction:
-
-```
-This matches the "cancel_booking" flow. After lookup, display the booking 
-using [BOOKING_INFO] and ask "Er dette bestillingen du vil kansellere?" 
-wrapped in [YES_NO]. Do NOT call cancel_booking until the customer confirms.
-```
-
-### 2. Add a tool-loop guard for `cancel_booking`
-
-In the tool execution loop (around line 2425-2470), add a force-break similar to the existing group selection guard: if `cancel_booking` is about to be called AND the conversation does not yet contain an explicit user confirmation ("ja", "yes"), break the loop and force the AI to respond with text first.
+Add a guard near the top of `patchActionMenu`: if the reply text contains a cancellation confirmation question (mentions "kansellere" or "avbestille" in a question), skip injection entirely. The user is being asked whether to cancel -- showing "Endre tidspunkt / Endre adresse / Avbestille" alongside that makes no sense.
 
 ```typescript
-// Force-break if AI tries to cancel without prior user confirmation
-if (toolName === 'cancel_booking') {
-  const hasUserConfirmation = currentMessages.some(
-    (m: any) => m.role === 'user' && 
-    /\b(ja|yes|bekreft|confirm)\b/i.test(m.content)
-  );
-  if (!hasUserConfirmation) {
-    console.log('[widget-ai-chat] cancel_booking blocked — no user confirmation yet');
-    loopBroken = true;
-    break;
+// Skip if reply is asking a cancellation confirmation question
+if (/(?:kansellere|avbestille|cancel).*\?/is.test(reply)) return reply;
+```
+
+### 2. `patchYesNo` -- handle bare `[YES_NO]` markers
+
+Add handling at the top of `patchYesNo` for when the AI outputs a bare `[YES_NO]` tag (without closing tag or without wrapping the question). Find the preceding question sentence, wrap it properly, and remove the bare marker.
+
+```typescript
+// Handle bare [YES_NO] marker (AI wrote tag without wrapping the question)
+if (reply.includes('[YES_NO]') && !reply.includes('[/YES_NO]')) {
+  const bareRemoved = reply.replace(/\[YES_NO\]/g, '').trim();
+  // Find the last question sentence
+  const qMatch = bareRemoved.match(/([^\n.]{10,150}\?)\s*$/);
+  if (qMatch) {
+    const before = bareRemoved.substring(0, qMatch.index!).trimEnd();
+    return [before, `[YES_NO]${qMatch[1]}[/YES_NO]`]
+      .filter(s => s.length > 0).join('\n');
   }
 }
 ```
 
-### 3. No database changes needed
+### 3. Deploy
 
-The flow steps in `ai_action_flows` are already correct (3 steps: lookup, display, confirm). The issue is purely in the edge function runtime behavior.
+Redeploy `widget-ai-chat`.
 
-## Summary
+## Expected Result
 
-| File | Change |
-|------|--------|
-| `widget-ai-chat/index.ts` (matchedFlowHint) | Override hint for cancel_booking to say "show booking and ask before cancelling" |
-| `widget-ai-chat/index.ts` (tool loop) | Add force-break guard preventing `cancel_booking` without prior user confirmation |
-
-## Expected Behavior After Fix
-
-1. User: "Jeg vil kansellere bestillingen"
-2. AI verifies phone, looks up customer
-3. AI shows booking card with [BOOKING_INFO] and asks "Er dette bestillingen du vil kansellere?" with [YES_NO]
-4. User clicks "Ja"
-5. AI calls `cancel_booking` and shows confirmation
-
+1. User asks to cancel
+2. AI shows `[BOOKING_INFO]` card + "Er dette bestillingen du vil kansellere?" with `[YES_NO]` buttons
+3. No action menu. No raw tags.
