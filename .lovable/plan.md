@@ -1,43 +1,29 @@
 
 
-# Fix: Status Filter Missing `value` Field From Noddi API
+# Fix: Remove Carousel from BookingSelectBlock
 
 ## Problem
-The Noddi API returns booking status as `{label: "Cancelled", value: 3}` using the **`value`** field for the numeric code. The current filter only checks `rawStatus.id`, never `rawStatus.value`. When `id` is undefined, `STATUS_MAP[undefined]` returns nothing, and cancelled bookings slip through.
-
-This affects ALL flows -- new booking, change booking, cancel booking -- any time bookings are fetched and filtered.
+When there are 3+ bookings, the `BookingSelectBlock` uses an Embla carousel with `basis-[85%]` items, causing horizontal scrolling and clipped cards inside the narrow chat widget. This is a poor UX for a widget context.
 
 ## Fix
 
-**File**: `supabase/functions/widget-ai-chat/index.ts`
+**File**: `src/widget/components/blocks/BookingSelectBlock.tsx`
 
-Two lines need the same change -- add `rawStatus.value` as a fallback alongside `rawStatus.id`:
+Remove the carousel entirely and always use the vertical stack layout:
 
-**Line 1410** (filter):
-```
-// Before:
-rawStatus.name || rawStatus.slug || STATUS_MAP[rawStatus.id] || String(rawStatus.id || '')
+1. Remove imports: `Carousel`, `CarouselContent`, `CarouselItem`, `CarouselApi` from `@/components/ui/carousel`
+2. Remove state: `api`, `currentSlide`, `useCarousel` flag, and the `useEffect` for carousel API
+3. Remove the `renderCards` function's carousel branch (the `if (useCarousel)` block with dot indicators)
+4. Always render the vertical stack (the existing "1-2 bookings" path), which shows all cards fully visible and scrollable within the chat bubble
 
-// After:
-rawStatus.name || rawStatus.slug || STATUS_MAP[rawStatus.id ?? rawStatus.value] || rawStatus.label || String(rawStatus.id ?? rawStatus.value ?? '')
-```
+The vertical stack layout already exists in the component -- this change simply makes it the only layout, removing ~30 lines of carousel code.
 
-**Line 1427** (display mapping):
-```
-// Before:
-rawSt.name || rawSt.slug || STATUS_MAP[rawSt.id] || ''
+## Technical Details
 
-// After:
-rawSt.name || rawSt.slug || STATUS_MAP[rawSt.id ?? rawSt.value] || rawSt.label || ''
-```
-
-Adding `rawStatus.label` as another fallback also handles cases where the API sends `{label: "Cancelled"}` without a numeric code.
-
-## Why This Fixes It
-- `{value: 3}` -> `STATUS_MAP[3]` -> `"cancelled"` -> filtered out
-- `{id: 3}` -> `STATUS_MAP[3]` -> `"cancelled"` -> filtered out (still works)
-- `{label: "Cancelled"}` -> `"Cancelled"` -> `.toLowerCase()` -> `"cancelled"` -> filtered out
-- `{name: "cancelled"}` -> `"cancelled"` -> filtered out (still works)
-
-All status shapes are now covered across every booking flow.
+| What | Change |
+|------|--------|
+| Remove imports | `Carousel`, `CarouselContent`, `CarouselItem`, `CarouselApi` |
+| Remove state | `api` (`useState`), `currentSlide` (`useState`), `useCarousel` flag, carousel `useEffect` |
+| Remove render branch | The `if (useCarousel)` block including carousel markup and dot indicators |
+| Keep | Vertical stack layout (already exists), all `BookingCard` logic unchanged |
 
