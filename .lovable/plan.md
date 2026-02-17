@@ -1,69 +1,80 @@
 
 
-# Translate All Widget Blocks to Norwegian
+# Translate All Remaining English Strings + Fix YES/NO Marker Visibility
 
-The following widget block components contain hardcoded English strings that need to be translated to Norwegian. The `BookingInfoBlock` and `BookingSelectBlock` are already fully Norwegian -- the remaining three booking blocks and error messages need updating.
+## Problem
 
-## Files and Changes
+Two issues visible in the screenshot:
 
-### 1. `src/widget/components/blocks/BookingEditConfirmBlock.tsx`
+1. **Raw `[YES_NO]` and `[/YES_NO]` markers are showing** as plain text above and below the interactive buttons. This means the parser is not stripping these markers from the surrounding text block -- likely the AI is outputting the markers on separate lines from the question text, causing them to appear as leftover text.
 
-| Line | English | Norwegian |
-|------|---------|-----------|
-| 94 | `Something went wrong, please try again later` | `Noe gikk galt, vennligst prøv igjen senere` |
-| 115 | `Booking updated!` | `Bestilling oppdatert!` |
-| 123 | `Edit cancelled` | `Endring avbrutt` |
-| 134 | `Booking updated!` | `Bestilling oppdatert!` |
-| 165 | `📍 Address` | `📍 Adresse` |
-| 173 | `🕐 Time` | `🕐 Tid` |
-| 179 | `📅 Date` | `📅 Dato` |
-| 181 | `🚗 Car` | `🚗 Bil` |
-| 182 | `🛠️ Service` | `🛠️ Tjeneste` |
-| 187 | `Confirm changes to booking` | `Bekreft endringer for bestilling` |
-| 191 | `Could not determine real booking ID. Please verify before confirming.` | `Kunne ikke finne riktig bestillings-ID. Vennligst bekreft før du fortsetter.` |
-| 208 | `Review changes` | `Se gjennom endringer` |
-| 228 | `Confirm Changes` | `Bekreft endringer` |
-| 239 | `Cancel` | `Avbryt` |
+2. **English button labels**: The YesNo buttons say "Yes" and "No" plus the checkmark icon says "Confirm" and "Cancel" in ConfirmBlock, and several other blocks have English strings.
 
-### 2. `src/widget/components/blocks/BookingSummaryBlock.tsx`
+## Changes
 
-| Line | English | Norwegian |
-|------|---------|-----------|
-| 91 | `Could not determine your selected time slot...` | `Kunne ikke finne valgt tidspunkt. Vennligst gå tilbake og velg et tidspunkt på nytt.` |
-| 105 | `Booking is temporarily unavailable...` | `Bestilling er midlertidig utilgjengelig, vennligst prøv igjen senere` |
-| 107 | `Failed to create booking` | `Kunne ikke opprette bestilling` |
-| 125 | `Something went wrong, please try again later` | `Noe gikk galt, vennligst prøv igjen senere` |
-| 146 | `Booking confirmed!` | `Bestilling bekreftet!` |
-| 150 | `Booking #` | `Bestilling #` |
-| 159 | `Booking cancelled` | `Bestilling avbrutt` |
-| 170 | `Booking confirmed!` | `Bestilling bekreftet!` |
-| 173 | `Booking #` | `Bestilling #` |
-| 181 | `📍 Address` | `📍 Adresse` |
-| 182 | `🚗 Car` | `🚗 Bil` |
-| 183 | `🛠️ Service` | `🛠️ Tjeneste` |
-| 184 | `📅 Date` | `📅 Dato` |
-| 185 | `🕐 Time` | `🕐 Tid` |
-| 186 | `💰 Price` | `💰 Pris` |
-| 201 | `Review your booking details` | `Se gjennom bestillingsdetaljer` |
-| 223 | `Confirm Booking` | `Bekreft bestilling` |
-| 234 | `Cancel` | `Avbryt` |
+### 1. `src/widget/components/blocks/YesNoBlock.tsx`
+- Line 21/33: `'Yes'` -> `'Ja'` (button label)
+- Line 35/47: `'No'` -> `'Nei'` (button label)
+- Note: The `handleSelect` sends `'Yes'`/`'No'` as the action value -- change these to `'Ja'`/`'Nei'` as well since the AI receives this as user input
+- Preview component (lines 60, 64): `Yes` -> `Ja`, `No` -> `Nei`
 
-### 3. `src/widget/components/blocks/BookingConfirmedBlock.tsx`
+### 2. `src/widget/components/blocks/ConfirmBlock.tsx`
+- Line 32: `Confirm` -> `Bekreft`
+- Line 45: `Cancel` -> `Avbryt`
+- Preview (lines 56-57): Same translations
 
-| Line | English | Norwegian |
-|------|---------|-----------|
-| 6 | `🛠️ Service` | `🛠️ Tjeneste` |
-| 7 | `📍 Address` | `📍 Adresse` |
-| 8 | `🚗 Car` | `🚗 Bil` |
-| 9 | `📅 Date` | `📅 Dato` |
-| 10 | `🕐 Time` | `🕐 Tid` |
-| 11 | `💰 Price` | `💰 Pris` |
-| 24 | `Booking confirmed!` | `Bestilling bekreftet!` |
+### 3. `src/widget/components/blocks/EmailInputBlock.tsx`
+- Line 25: `'Please enter a valid email address'` -> `'Vennligst skriv inn en gyldig e-postadresse'`
 
-### 4. "Wheel change" in screenshot
+### 4. `src/widget/components/blocks/TextInputBlock.tsx`
+- Line 7: `'Type here...'` -> `'Skriv her...'`
+- Preview line 48: Same
 
-This comes from the Noddi API (`sales_items[].name`). The service name is returned by their backend, so we cannot control it -- it will display whatever language the Noddi API uses. No code change needed for this.
+### 5. `src/widget/components/blocks/LicensePlateBlock.tsx`
+- Line 45: `'Vehicle lookup is temporarily unavailable, please try again later'` -> `'Kjøretøyoppslag er midlertidig utilgjengelig, vennligst prøv igjen senere'`
+- Line 47: `'Car not found'` -> `'Bil ikke funnet'`
+- Line 65: `'Network error'` -> `'Nettverksfeil'`
+
+### 6. `src/widget/components/blocks/AddressSearchBlock.tsx`
+- Line 157: `'We deliver here!'` -> `'Vi leverer her!'`
+- Line 157: `"Sorry, we don't deliver here yet"` -> `'Beklager, vi leverer ikke her ennå'`
+- Line 172: `'Checking delivery area...'` -> `'Sjekker leveringsområde...'`
+- Line 226: `'Search address...'` -> `'Søk etter adresse...'`
+
+### 7. `src/widget/components/blocks/TimeSlotBlock.tsx`
+- Lines 7-8: English day/month names -> Norwegian:
+  - `['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']` -> `['Søn', 'Man', 'Tir', 'Ons', 'Tor', 'Fre', 'Lør']`
+  - `['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']` -> `['jan', 'feb', 'mar', 'apr', 'mai', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'des']`
+
+### 8. Fix raw `[YES_NO]`/`[/YES_NO]` marker text leaking
+
+**File**: `src/widget/utils/parseMessageBlocks.ts`
+
+The parser already handles markers, but the issue is that the AI outputs the markers on separate lines from the surrounding text. When the parser splits content, leftover text containing raw `[YES_NO]` or `[/YES_NO]` as standalone lines can slip through as text blocks.
+
+Add a post-processing step after parsing: strip any text block that is only a raw marker tag (e.g., `[YES_NO]`, `[/YES_NO]`). This ensures stray markers never render as visible text.
+
+At the end of `parseMessageBlocks`, before returning, filter text blocks:
+```typescript
+// Strip text blocks that are just leftover marker tags
+const markerTags = new Set(MARKERS.flatMap(m => [m.tag, m.closingTag].filter(Boolean)));
+return blocks.filter(b => {
+  if (b.type !== 'text') return true;
+  const trimmed = (b as any).content?.trim();
+  return trimmed && !markerTags.has(trimmed);
+});
+```
 
 ## Summary
 
-Three files need translation: `BookingEditConfirmBlock.tsx`, `BookingSummaryBlock.tsx`, and `BookingConfirmedBlock.tsx`. All labels, buttons, success/error messages, and status texts will be changed from English to Norwegian, consistent with `BookingInfoBlock` and `BookingSelectBlock` which are already translated.
+| File | Change |
+|------|--------|
+| `YesNoBlock.tsx` | Yes/No -> Ja/Nei |
+| `ConfirmBlock.tsx` | Confirm/Cancel -> Bekreft/Avbryt |
+| `EmailInputBlock.tsx` | Email validation error -> Norwegian |
+| `TextInputBlock.tsx` | Placeholder -> Norwegian |
+| `LicensePlateBlock.tsx` | Error messages -> Norwegian |
+| `AddressSearchBlock.tsx` | Delivery messages, placeholder -> Norwegian |
+| `TimeSlotBlock.tsx` | Day/month names -> Norwegian |
+| `parseMessageBlocks.ts` | Strip stray marker tags from text blocks |
+
