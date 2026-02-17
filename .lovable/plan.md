@@ -1,98 +1,57 @@
 
-# Fix Cancel Booking Flow: Three Root Causes
+# Fix Cancel Booking Flow: Show Booking Before Cancelling
 
-## Problems Identified
+## Problem
 
-**Problem 1: Booking info card + action menu shown after successful cancellation**
-After `cancel_booking` succeeds, `patchBookingInfo` still finds booking data from the earlier `lookup_customer` tool call and injects a `[BOOKING_INFO]` card. Then `patchActionMenu` sees `[BOOKING_INFO]` and auto-appends the edit action menu. Result: the user sees a "cancelled" message alongside a booking card with "Endre tidspunkt", "Avbestille bestilling" etc.
+The cancel booking flow currently jumps straight from phone verification to cancellation without showing the customer which booking will be cancelled. The user wants:
+1. Look up and display the booking
+2. Ask "Is this the one you want to cancel?" with Yes/No
+3. On "Ja" (Yes), cancel and show confirmation
 
-**Problem 2: Raw `[YES_NO]...[/YES_NO]` markers showing as text inside `[CONFIRM]` block**
-The AI nests `[YES_NO]` markers inside `[CONFIRM]` content: `[CONFIRM]Du har valgt a kansellere...[YES_NO]Er du sikker?[/YES_NO][/CONFIRM]`. The parser treats the outer `[CONFIRM]` as the block, so the inner `[YES_NO]...[/YES_NO]` becomes raw text displayed in the summary paragraph.
+## Root Cause
 
-**Problem 3: `patchYesNo` doesn't skip when `[CONFIRM]` is already present**
-The `otherMarkers` exclusion list doesn't include `[CONFIRM]`, so the post-processor may additionally wrap questions in `[YES_NO]` even when a confirm card is already present.
+The current `cancel_booking` flow steps in the database are:
+1. **Lookup** - Find the booking
+2. **Confirm** - Confirm cancellation (generic CONFIRM marker)
+
+Missing: a step to **display the booking details** and ask the customer to verify it's the right one before proceeding.
 
 ## Changes
 
-### 1. `supabase/functions/widget-ai-chat/index.ts` -- patchBookingInfo
+### 1. Update `cancel_booking` flow steps in the database
 
-Add a guard at the top: scan tool results for a successful `cancel_booking` call. If found, skip injection entirely.
+Update the flow from 2 steps to 3 steps:
 
-```typescript
-// Skip if cancel_booking was called successfully — booking is gone
-for (let i = messages.length - 1; i >= 0; i--) {
-  if (messages[i].role === 'tool') {
-    try {
-      const r = JSON.parse(messages[i].content);
-      if (r.success && r.message?.toLowerCase().includes('cancelled')) return reply;
-    } catch {}
-  }
-}
+| Step | Type | Instruction |
+|------|------|-------------|
+| 1 | lookup | Look up the customer's bookings. If multiple, show [BOOKING_SELECT]. If only one, proceed to step 2. |
+| 2 | display | Show the booking details using [BOOKING_INFO] and ask "Er dette bestillingen du vil kansellere?" wrapped in [YES_NO]. Wait for the customer's answer before proceeding. |
+| 3 | confirm | Only if the customer confirmed "Ja": call cancel_booking with the booking ID. Then display a cancellation confirmation message. |
+
+This will be done via a SQL update on the `ai_action_flows` table.
+
+### 2. Update system prompt in `widget-ai-chat/index.ts`
+
+Add an explicit instruction in the verification context section (around line 1847) reinforcing the cancel flow behavior:
+
+```
+- For cancel_booking: After identifying the booking, ALWAYS display it with [BOOKING_INFO] 
+  and ask the customer to confirm with [YES_NO] before calling cancel_booking. 
+  NEVER cancel without showing what will be cancelled first.
 ```
 
-### 2. `supabase/functions/widget-ai-chat/index.ts` -- patchActionMenu
+### 3. Update `patchBookingInfo` guard in `widget-ai-chat/index.ts`
 
-Same guard: skip if `cancel_booking` succeeded.
+The current guard skips `[BOOKING_INFO]` injection when `didCancelBookingSucceed` returns true. This is correct for *after* cancellation. But we also need to ensure that during the cancel flow (before the actual cancel call), `patchBookingInfo` still injects the card. No change needed here -- the existing logic already handles this correctly since `didCancelBookingSucceed` only returns true after the cancel tool call succeeds.
 
-```typescript
-// Skip if cancel_booking was called successfully
-for (let i = messages.length - 1; i >= 0; i--) {
-  if (messages[i].role === 'tool') {
-    try {
-      const r = JSON.parse(messages[i].content);
-      if (r.success && r.message?.toLowerCase().includes('cancelled')) return reply;
-    } catch {}
-  }
-}
-```
+### 4. Deploy edge function
 
-### 3. `supabase/functions/widget-ai-chat/index.ts` -- patchYesNo
-
-Add `[CONFIRM]` to the `otherMarkers` exclusion list so YES_NO wrapping is skipped when a confirm card is already present.
-
-### 4. `src/widget/components/blocks/ConfirmBlock.tsx` -- Strip nested markers from summary
-
-In `parseContent`, strip any `[TAG]...[/TAG]` patterns from the inner text so nested markers never render as raw text:
-
-```typescript
-parseContent: (inner) => {
-  // Strip any nested marker tags (e.g. [YES_NO]...[/YES_NO])
-  const cleaned = inner.replace(/\[[A-Z_]+\]([\s\S]*?)\[\/[A-Z_]+\]/g, '$1').trim();
-  return { summary: cleaned };
-},
-```
-
-### 5. `src/widget/utils/parseMessageBlocks.ts` -- More aggressive marker stripping
-
-Enhance the post-filter to strip text blocks that *contain* marker tags (not just exact matches), catching cases where markers appear inline with short surrounding text:
-
-```typescript
-return blocks.filter(b => {
-  if (b.type !== 'text') return true;
-  const trimmed = (b as any).content?.trim();
-  if (!trimmed) return false;
-  // Exact match: text is just a marker tag
-  if (markerTags.has(trimmed)) return false;
-  // Contains marker tags with minimal surrounding text
-  let stripped = trimmed;
-  for (const tag of markerTags) {
-    stripped = stripped.replaceAll(tag, '');
-  }
-  if (stripped.trim().length === 0) return false;
-  return true;
-});
-```
-
-### 6. Deploy edge function
-
-Redeploy `widget-ai-chat` after changes.
+Redeploy `widget-ai-chat` to pick up prompt changes.
 
 ## Summary
 
-| File | Change |
+| What | Change |
 |------|--------|
-| `widget-ai-chat/index.ts` (patchBookingInfo) | Skip when cancel_booking succeeded |
-| `widget-ai-chat/index.ts` (patchActionMenu) | Skip when cancel_booking succeeded |
-| `widget-ai-chat/index.ts` (patchYesNo) | Add `[CONFIRM]` to exclusion list |
-| `ConfirmBlock.tsx` (parseContent) | Strip nested marker tags from summary text |
-| `parseMessageBlocks.ts` (post-filter) | Strip text blocks that are only marker tags |
+| Database (`ai_action_flows`) | Update cancel_booking flow: 2 steps to 3 steps (lookup, display+confirm, cancel) |
+| `widget-ai-chat/index.ts` (system prompt) | Add explicit "show before cancel" instruction |
+| Deploy | Redeploy edge function |
