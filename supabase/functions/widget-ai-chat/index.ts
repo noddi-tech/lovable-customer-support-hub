@@ -1305,6 +1305,15 @@ async function executeLookupCustomer(phone?: string, email?: string, specifiedUs
             }
           }
           console.log(`[lookup] Full bookings from bookings-for-customer: ${results.length} results`);
+          if (results.length > 0) {
+            console.log('[lookup] Sample booking keys:', Object.keys(results[0]));
+            console.log('[lookup] Sample booking car fields:', JSON.stringify({
+              car: results[0].car,
+              cars: results[0].cars,
+              booking_items_car: results[0].booking_items_car,
+              booking_items: results[0].booking_items,
+            }));
+          }
         }
       } catch (e) { console.error('[lookup] bookings-for-customer failed:', e); }
     }
@@ -1367,6 +1376,20 @@ async function executeLookupCustomer(phone?: string, email?: string, specifiedUs
           }
         }
       }
+      // Also check booking_items (alternate field name)
+      if (Array.isArray(b.booking_items)) {
+        for (const bi of b.booking_items) {
+          const car = bi.car;
+          if (car?.id && !storedCars.has(car.id)) {
+            storedCars.set(car.id, {
+              id: car.id,
+              make: car.make || '',
+              model: car.model || '',
+              license_plate: extractPlateString(car.license_plate_number || car.license_plate || car.registration),
+            });
+          }
+        }
+      }
     }
 
     // Also extract addresses from user_groups (broader coverage)
@@ -1400,7 +1423,8 @@ async function executeLookupCustomer(phone?: string, email?: string, specifiedUs
       },
       stored_addresses: Array.from(storedAddresses.values()),
       stored_cars: Array.from(storedCars.values()),
-      bookings: bookings
+      bookings: (() => {
+        const mappedBookings = bookings
         .filter((b: any) => {
           const rawStatus = b.status;
           const STATUS_MAP: Record<number, string> = { 0: 'draft', 1: 'confirmed', 2: 'assigned', 3: 'cancelled', 4: 'completed' };
@@ -1495,6 +1519,12 @@ async function executeLookupCustomer(phone?: string, email?: string, specifiedUs
               const plate = extractPlateString(bic.license_plate_number || bic.license_plate || bic.registration);
               return `${bic.make || ''} ${bic.model || ''} ${plate ? `(${plate})` : ''}`.trim() || null;
             }
+            // Check booking_items (alternate field name)
+            if (Array.isArray(b.booking_items) && b.booking_items[0]?.car) {
+              const bic = b.booking_items[0].car;
+              const plate = extractPlateString(bic.license_plate_number || bic.license_plate || bic.registration);
+              return `${bic.make || ''} ${bic.model || ''} ${plate ? `(${plate})` : ''}`.trim() || null;
+            }
             // Fallback: look up from storedCars using car_id
             const carId = b.car?.id || (Array.isArray(b.cars) && b.cars[0]?.id) || null;
             if (carId && storedCars.has(carId)) {
@@ -1512,7 +1542,17 @@ async function executeLookupCustomer(phone?: string, email?: string, specifiedUs
           car_ids: Array.isArray(b.cars) ? b.cars.map((c: any) => c.id).filter(Boolean) : (b.car?.id ? [b.car.id] : []),
           license_plate: extractPlateString(b.car?.license_plate_number || b.car?.license_plate || b.car?.registration) || (Array.isArray(b.cars) && b.cars[0] ? extractPlateString(b.cars[0].license_plate_number || b.cars[0].license_plate || b.cars[0].registration) : ''),
         };
-      }),
+      });
+        // Diagnostic: log mapped booking sample
+        if (mappedBookings.length > 0) {
+          console.log('[lookup] Mapped sample:', JSON.stringify(
+            mappedBookings.slice(0, 2).map((b: any) => ({
+              id: b.id, vehicle: b.vehicle, license_plate: b.license_plate, services: b.services
+            }))
+          ));
+        }
+        return mappedBookings;
+      })(),
     });
   } catch (err) {
     console.error('[widget-ai-chat] Customer lookup error:', err);
