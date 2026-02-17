@@ -110,5 +110,11 @@ export function parseMessageBlocks(content: string): MessageBlock[] {
     return [{ type: 'text', content }];
   }
 
-  return blocks;
+  // Strip text blocks that are just leftover marker tags
+  const markerTags = new Set(MARKERS.flatMap(m => [m.tag, m.closingTag].filter(Boolean) as string[]));
+  return blocks.filter(b => {
+    if (b.type !== 'text') return true;
+    const trimmed = (b as any).content?.trim();
+    return trimmed && !markerTags.has(trimmed);
+  });
 }

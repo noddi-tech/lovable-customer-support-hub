@@ -42,9 +42,9 @@ const LicensePlateBlock: React.FC<BlockComponentProps> = ({
       const result = await resp.json();
       if (!resp.ok || !result.car) {
         if (resp.status >= 500) {
-          setError('Vehicle lookup is temporarily unavailable, please try again later');
+          setError('Kjøretøyoppslag er midlertidig utilgjengelig, vennligst prøv igjen senere');
         } else {
-          setError(result.error || 'Car not found');
+          setError(result.error || 'Bil ikke funnet');
         }
         setLoading(false);
         return;
@@ -62,7 +62,7 @@ const LicensePlateBlock: React.FC<BlockComponentProps> = ({
       onAction(payload, blockKey);
       onLogEvent?.('license_plate_found', `${car.make || car.brand} ${car.model}`, 'success');
     } catch {
-      setError('Network error');
+      setError('Nettverksfeil');
     }
     setLoading(false);
   };
