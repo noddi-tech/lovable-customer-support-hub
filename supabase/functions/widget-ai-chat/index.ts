@@ -1407,7 +1407,7 @@ async function executeLookupCustomer(phone?: string, email?: string, specifiedUs
           const status = (
             typeof rawStatus === 'number' ? (STATUS_MAP[rawStatus] || '')
             : typeof rawStatus === 'string' ? rawStatus
-            : typeof rawStatus === 'object' && rawStatus !== null ? (rawStatus.name || rawStatus.slug || STATUS_MAP[rawStatus.id] || String(rawStatus.id || ''))
+            : typeof rawStatus === 'object' && rawStatus !== null ? (rawStatus.name || rawStatus.slug || STATUS_MAP[rawStatus.id ?? rawStatus.value] || rawStatus.label || String(rawStatus.id ?? rawStatus.value ?? ''))
             : ''
           ).toLowerCase();
           if (['completed', 'cancelled', 'canceled', 'no_show', 'expired', 'draft'].includes(status)) {
@@ -1424,7 +1424,7 @@ async function executeLookupCustomer(phone?: string, email?: string, specifiedUs
         const STATUS_MAP: Record<number, string> = { 0: 'draft', 1: 'confirmed', 2: 'assigned', 3: 'cancelled', 4: 'completed' };
         const statusStr = typeof rawSt === 'number' ? (STATUS_MAP[rawSt] || String(rawSt))
           : typeof rawSt === 'string' ? rawSt
-          : typeof rawSt === 'object' && rawSt !== null ? (rawSt.name || rawSt.slug || STATUS_MAP[rawSt.id] || '') : '';
+          : typeof rawSt === 'object' && rawSt !== null ? (rawSt.name || rawSt.slug || STATUS_MAP[rawSt.id ?? rawSt.value] || rawSt.label || '') : '';
         const startFull = toOsloTime(b.start_time || b.scheduled_at || b.delivery_window_starts_at || b.delivery_window?.starts_at || b.deliveryWindowStartsAt || '');
         const endFull = toOsloTime(b.end_time || b.delivery_window_ends_at || b.delivery_window?.ends_at || b.deliveryWindowEndsAt || '');
         const startHM = startFull.split(', ')[1] || startFull;
