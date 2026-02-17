@@ -351,12 +351,27 @@ async function patchBookingSummary(reply: string, messages: any[], visitorPhone?
 
   let patched = false;
 
+  // Extract selected user_group_id from conversation messages (for multi-group users)
+  let selectedGroupId: number | undefined;
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const msg = messages[i];
+    if (msg.role === 'user' && typeof msg.content === 'string') {
+      try {
+        const d = JSON.parse(msg.content);
+        if (d.action === 'group_selected' && d.user_group_id) {
+          selectedGroupId = d.user_group_id;
+          break;
+        }
+      } catch {}
+    }
+  }
+
   // ALWAYS re-lookup customer IDs from the API when we have contact info.
   // The AI may emit hallucinated/placeholder IDs — the API lookup is the source of truth.
   if (visitorPhone || visitorEmail) {
-    console.log('[patchBookingSummary] Performing fresh customer lookup (always overwrites AI-emitted IDs)...');
+    console.log('[patchBookingSummary] Performing fresh customer lookup (always overwrites AI-emitted IDs), selectedGroupId:', selectedGroupId);
     try {
-      const lookupResult = JSON.parse(await executeLookupCustomer(visitorPhone, visitorEmail));
+      const lookupResult = JSON.parse(await executeLookupCustomer(visitorPhone, visitorEmail, selectedGroupId));
       if (lookupResult.customer?.userId) {
         summaryData.user_id = lookupResult.customer.userId;
         patched = true;
