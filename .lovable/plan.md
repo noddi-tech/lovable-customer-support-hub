@@ -1,57 +1,66 @@
 
-# Fix Cancel Booking Flow: Show Booking Before Cancelling
+
+# Fix Cancel Booking Flow: Force Stop After Lookup
 
 ## Problem
 
-The cancel booking flow currently jumps straight from phone verification to cancellation without showing the customer which booking will be cancelled. The user wants:
-1. Look up and display the booking
-2. Ask "Is this the one you want to cancel?" with Yes/No
-3. On "Ja" (Yes), cancel and show confirmation
+The AI tool-calling loop runs up to 8 iterations per user turn. When a user says "cancel booking":
+1. The AI calls `lookup_customer` (returns booking data with IDs)
+2. In the **same turn**, it immediately calls `cancel_booking` with the ID
+3. The user never sees a confirmation step
 
-## Root Cause
+This happens because:
+- The `matchedFlowHint` (line 2321) says "proceed DIRECTLY to step 1" for ALL flows, including cancel
+- The tool loop has no guard to stop before destructive actions
+- System prompt instructions alone are not enough -- the AI optimizes for efficiency and completes everything in one turn
 
-The current `cancel_booking` flow steps in the database are:
-1. **Lookup** - Find the booking
-2. **Confirm** - Confirm cancellation (generic CONFIRM marker)
+## Solution: Two-Layer Protection
 
-Missing: a step to **display the booking details** and ask the customer to verify it's the right one before proceeding.
+### 1. Fix the `matchedFlowHint` for cancel_booking
 
-## Changes
-
-### 1. Update `cancel_booking` flow steps in the database
-
-Update the flow from 2 steps to 3 steps:
-
-| Step | Type | Instruction |
-|------|------|-------------|
-| 1 | lookup | Look up the customer's bookings. If multiple, show [BOOKING_SELECT]. If only one, proceed to step 2. |
-| 2 | display | Show the booking details using [BOOKING_INFO] and ask "Er dette bestillingen du vil kansellere?" wrapped in [YES_NO]. Wait for the customer's answer before proceeding. |
-| 3 | confirm | Only if the customer confirmed "Ja": call cancel_booking with the booking ID. Then display a cancellation confirmation message. |
-
-This will be done via a SQL update on the `ai_action_flows` table.
-
-### 2. Update system prompt in `widget-ai-chat/index.ts`
-
-Add an explicit instruction in the verification context section (around line 1847) reinforcing the cancel flow behavior:
+In the verified message construction (line 2319-2322), make the hint flow-aware. For `cancel_booking`, override the generic "proceed DIRECTLY" hint with a specific instruction:
 
 ```
-- For cancel_booking: After identifying the booking, ALWAYS display it with [BOOKING_INFO] 
-  and ask the customer to confirm with [YES_NO] before calling cancel_booking. 
-  NEVER cancel without showing what will be cancelled first.
+This matches the "cancel_booking" flow. After lookup, display the booking 
+using [BOOKING_INFO] and ask "Er dette bestillingen du vil kansellere?" 
+wrapped in [YES_NO]. Do NOT call cancel_booking until the customer confirms.
 ```
 
-### 3. Update `patchBookingInfo` guard in `widget-ai-chat/index.ts`
+### 2. Add a tool-loop guard for `cancel_booking`
 
-The current guard skips `[BOOKING_INFO]` injection when `didCancelBookingSucceed` returns true. This is correct for *after* cancellation. But we also need to ensure that during the cancel flow (before the actual cancel call), `patchBookingInfo` still injects the card. No change needed here -- the existing logic already handles this correctly since `didCancelBookingSucceed` only returns true after the cancel tool call succeeds.
+In the tool execution loop (around line 2425-2470), add a force-break similar to the existing group selection guard: if `cancel_booking` is about to be called AND the conversation does not yet contain an explicit user confirmation ("ja", "yes"), break the loop and force the AI to respond with text first.
 
-### 4. Deploy edge function
+```typescript
+// Force-break if AI tries to cancel without prior user confirmation
+if (toolName === 'cancel_booking') {
+  const hasUserConfirmation = currentMessages.some(
+    (m: any) => m.role === 'user' && 
+    /\b(ja|yes|bekreft|confirm)\b/i.test(m.content)
+  );
+  if (!hasUserConfirmation) {
+    console.log('[widget-ai-chat] cancel_booking blocked — no user confirmation yet');
+    loopBroken = true;
+    break;
+  }
+}
+```
 
-Redeploy `widget-ai-chat` to pick up prompt changes.
+### 3. No database changes needed
+
+The flow steps in `ai_action_flows` are already correct (3 steps: lookup, display, confirm). The issue is purely in the edge function runtime behavior.
 
 ## Summary
 
-| What | Change |
+| File | Change |
 |------|--------|
-| Database (`ai_action_flows`) | Update cancel_booking flow: 2 steps to 3 steps (lookup, display+confirm, cancel) |
-| `widget-ai-chat/index.ts` (system prompt) | Add explicit "show before cancel" instruction |
-| Deploy | Redeploy edge function |
+| `widget-ai-chat/index.ts` (matchedFlowHint) | Override hint for cancel_booking to say "show booking and ask before cancelling" |
+| `widget-ai-chat/index.ts` (tool loop) | Add force-break guard preventing `cancel_booking` without prior user confirmation |
+
+## Expected Behavior After Fix
+
+1. User: "Jeg vil kansellere bestillingen"
+2. AI verifies phone, looks up customer
+3. AI shows booking card with [BOOKING_INFO] and asks "Er dette bestillingen du vil kansellere?" with [YES_NO]
+4. User clicks "Ja"
+5. AI calls `cancel_booking` and shows confirmation
+
