@@ -88,7 +88,7 @@ const BookingSummaryBlock: React.FC<BlockComponentProps> = ({
 
       // Final guard: abort if delivery_window_id is still missing
       if (!bookingPayload.delivery_window_id) {
-        setError('Could not determine your selected time slot. Please go back and select a time slot again.');
+        setError('Kunne ikke finne valgt tidspunkt. Vennligst gå tilbake og velg et tidspunkt på nytt.');
         setConfirming(false);
         onLogEvent?.('booking_delivery_window_missing', '', 'error');
         return;
@@ -102,9 +102,9 @@ const BookingSummaryBlock: React.FC<BlockComponentProps> = ({
       const bookingData = await resp.json();
       if (!resp.ok || !bookingData.booking) {
         if (resp.status >= 500) {
-          setError('Booking is temporarily unavailable, please try again later');
+          setError('Bestilling er midlertidig utilgjengelig, vennligst prøv igjen senere');
         } else {
-          setError(bookingData.error || 'Failed to create booking');
+          setError(bookingData.error || 'Kunne ikke opprette bestilling');
         }
         setConfirming(false);
         return;
@@ -122,7 +122,7 @@ const BookingSummaryBlock: React.FC<BlockComponentProps> = ({
       onAction(payload, blockKey);
       onLogEvent?.('booking_confirmed', `#${booking.booking_number || booking.id}`, 'success');
     } catch {
-      setError('Something went wrong, please try again later');
+      setError('Noe gikk galt, vennligst prøv igjen senere');
     }
     setConfirming(false);
   };
@@ -143,11 +143,11 @@ const BookingSummaryBlock: React.FC<BlockComponentProps> = ({
         <div style={{ margin: '8px 0', padding: '12px', borderRadius: '12px', background: '#f0fdf4', border: '1.5px solid #86efac' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700, color: '#15803d', fontSize: '14px' }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
-            Booking confirmed!
+            Bestilling bekreftet!
           </div>
           {parsed.booking_number && (
             <div style={{ marginTop: '4px', fontSize: '12px', color: '#6b7280' }}>
-              Booking #{parsed.booking_number}
+              Bestilling #{parsed.booking_number}
             </div>
           )}
         </div>
@@ -156,7 +156,7 @@ const BookingSummaryBlock: React.FC<BlockComponentProps> = ({
     return (
       <div className="noddi-ai-verified-badge" style={{ margin: '8px 0' }}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-        <span style={{ fontSize: '12px' }}>Booking cancelled</span>
+        <span style={{ fontSize: '12px' }}>Bestilling avbrutt</span>
       </div>
     );
   }
@@ -167,10 +167,10 @@ const BookingSummaryBlock: React.FC<BlockComponentProps> = ({
       <div style={{ margin: '8px 0', padding: '12px', borderRadius: '12px', background: '#f0fdf4', border: '1.5px solid #86efac' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700, color: '#15803d', fontSize: '14px' }}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
-          Booking confirmed!
+          Bestilling bekreftet!
         </div>
         <div style={{ marginTop: '4px', fontSize: '12px', color: '#6b7280' }}>
-          Booking #{result.booking_number || result.id}
+          Bestilling #{result.booking_number || result.id}
         </div>
       </div>
     );
@@ -178,12 +178,12 @@ const BookingSummaryBlock: React.FC<BlockComponentProps> = ({
 
   // Summary card
   const rows: Array<{ label: string; value: string }> = [];
-  if (data.address) rows.push({ label: '📍 Address', value: data.address });
-  if (data.car) rows.push({ label: '🚗 Car', value: data.car });
-  if (data.service) rows.push({ label: '🛠️ Service', value: data.service });
-  if (data.date) rows.push({ label: '📅 Date', value: data.date });
-  if (data.time) rows.push({ label: '🕐 Time', value: data.time });
-  if (data.price) rows.push({ label: '💰 Price', value: data.price });
+  if (data.address) rows.push({ label: '📍 Adresse', value: data.address });
+  if (data.car) rows.push({ label: '🚗 Bil', value: data.car });
+  if (data.service) rows.push({ label: '🛠️ Tjeneste', value: data.service });
+  if (data.date) rows.push({ label: '📅 Dato', value: data.date });
+  if (data.time) rows.push({ label: '🕐 Tid', value: data.time });
+  if (data.price) rows.push({ label: '💰 Pris', value: data.price });
 
   return (
     <div style={{ margin: '8px 0', border: '1.5px solid #e5e7eb', borderRadius: '12px', overflow: 'hidden', background: '#fafafa' }}>
@@ -198,7 +198,7 @@ const BookingSummaryBlock: React.FC<BlockComponentProps> = ({
             <span style={{ fontWeight: 600, textAlign: 'right', maxWidth: '60%' }}>{r.value}</span>
           </div>
         )) : (
-          <div style={{ fontSize: '13px', color: '#6b7280' }}>Review your booking details</div>
+          <div style={{ fontSize: '13px', color: '#6b7280' }}>Se gjennom bestillingsdetaljer</div>
         )}
       </div>
 
@@ -220,7 +220,7 @@ const BookingSummaryBlock: React.FC<BlockComponentProps> = ({
           ) : (
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
           )}
-          Confirm Booking
+          Bekreft bestilling
         </button>
         <button
           onClick={handleCancel}
@@ -231,7 +231,7 @@ const BookingSummaryBlock: React.FC<BlockComponentProps> = ({
             cursor: isUsed || confirming ? 'default' : 'pointer',
           }}
         >
-          Cancel
+          Avbryt
         </button>
       </div>
       {error && <div style={{ padding: '0 12px 12px', color: '#ef4444', fontSize: '12px' }}>{error}</div>}
