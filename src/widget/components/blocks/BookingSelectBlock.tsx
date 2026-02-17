@@ -20,6 +20,7 @@ const BookingCard: React.FC<{
   fullWidth?: boolean;
 }> = ({ b, isSelected, isUsed, primaryColor, onToggle, fullWidth }) => {
   const rows: Array<{ label: string; value: string }> = [];
+  if (b.service) rows.push({ label: '🛠️ Tjeneste', value: b.service });
   if (b.address) rows.push({ label: '📍 Adresse', value: b.address });
   if (b.date) rows.push({ label: '📅 Dato', value: b.date });
   if (b.time) rows.push({ label: '🕐 Tid', value: b.time });
@@ -58,7 +59,7 @@ const BookingCard: React.FC<{
             <line x1="3" y1="10" x2="21" y2="10" />
           </svg>
           <span style={{ fontWeight: 700, fontSize: '13px', color: isSelected ? '#1d4ed8' : '#334155' }}>
-            {b.service || 'Bestilling'}{b.id ? ` #${b.id}` : ''}
+            Bestilling{b.id ? ` #${b.id}` : ''}
           </span>
         </div>
         {/* Checkbox */}
