@@ -115,6 +115,15 @@ export function parseMessageBlocks(content: string): MessageBlock[] {
   return blocks.filter(b => {
     if (b.type !== 'text') return true;
     const trimmed = (b as any).content?.trim();
-    return trimmed && !markerTags.has(trimmed);
+    if (!trimmed) return false;
+    // Exact match: text is just a marker tag
+    if (markerTags.has(trimmed)) return false;
+    // Text block is only marker tags with whitespace — strip all tags and check
+    let stripped = trimmed;
+    for (const tag of markerTags) {
+      stripped = stripped.replaceAll(tag, '');
+    }
+    if (stripped.trim().length === 0) return false;
+    return true;
   });
 }
