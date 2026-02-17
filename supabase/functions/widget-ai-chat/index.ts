@@ -428,7 +428,7 @@ function patchYesNo(reply: string, messages?: any[]): string {
     return reply;
   }
   // Skip if reply already has other interactive markers — YES_NO should only appear alone
-  const otherMarkers = ['[ACTION_MENU]', '[TIME_SLOT]', '[BOOKING_EDIT]', '[BOOKING_SUMMARY]', '[SERVICE_SELECT]', '[PHONE_VERIFY]', '[ADDRESS_SEARCH]', '[LICENSE_PLATE]', '[BOOKING_CONFIRMED]'];
+  const otherMarkers = ['[ACTION_MENU]', '[TIME_SLOT]', '[BOOKING_EDIT]', '[BOOKING_SUMMARY]', '[SERVICE_SELECT]', '[PHONE_VERIFY]', '[ADDRESS_SEARCH]', '[LICENSE_PLATE]', '[BOOKING_CONFIRMED]', '[CONFIRM]', '[BOOKING_SELECT]'];
   if (otherMarkers.some(m => reply.includes(m))) return reply;
 
   // Skip if last user message was a time slot selection — we want BOOKING_EDIT not YES_NO
@@ -549,11 +549,28 @@ function patchBookingSummaryTime(reply: string): string {
   } catch { return reply; }
 }
 
+// ========== Helper: check if cancel_booking succeeded in current turn ==========
+function didCancelBookingSucceed(messages: any[]): boolean {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const msg = messages[i];
+    if (msg.role === 'assistant') break; // only check current turn
+    if (msg.role === 'tool' && typeof msg.content === 'string') {
+      try {
+        const r = JSON.parse(msg.content);
+        if (r.success && (r.action === 'cancelled' || r.message?.toLowerCase().includes('cancelled') || r.message?.toLowerCase().includes('kansellert'))) return true;
+      } catch {}
+    }
+  }
+  return false;
+}
+
 // ========== Post-processor: auto-wrap plain-text booking details in [BOOKING_INFO] ==========
 function patchBookingInfo(reply: string, messages: any[]): string {
   // If already contains BOOKING_INFO marker, skip
   if (reply.includes('[BOOKING_INFO]')) return reply;
   if (reply.includes('[BOOKING_CONFIRMED]')) return reply;
+  // Skip if cancel_booking succeeded — booking is gone, don't show card
+  if (didCancelBookingSucceed(messages)) return reply;
   // Skip during active edit sub-flows to prevent cluttered UI
   const activeFlowMarkers = ['[TIME_SLOT]', '[BOOKING_EDIT]', '[ADDRESS_SEARCH]', '[LICENSE_PLATE]', '[SERVICE_SELECT]', '[BOOKING_SUMMARY]'];
   if (activeFlowMarkers.some(m => reply.includes(m))) return reply;
@@ -740,6 +757,8 @@ function patchBookingInfo(reply: string, messages: any[]): string {
 function patchActionMenu(reply: string, messages: any[]): string {
   // Skip if BOOKING_SELECT is present (user is choosing which booking)
   if (reply.includes('[BOOKING_SELECT]')) return reply;
+  // Skip if cancel_booking succeeded — booking is gone, don't show action menu
+  if (didCancelBookingSucceed(messages)) return reply;
   // Only inject if BOOKING_INFO is present (meaning we're in booking context)
   // and there's no ACTION_MENU already
   const hasCompleteActionMenu = reply.includes('[ACTION_MENU]') && reply.includes('[/ACTION_MENU]');

@@ -63,7 +63,11 @@ registerBlock({
   type: 'confirm',
   marker: '[CONFIRM]',
   closingMarker: '[/CONFIRM]',
-  parseContent: (inner) => ({ summary: inner.trim() }),
+  parseContent: (inner) => {
+    // Strip any nested marker tags (e.g. [YES_NO]...[/YES_NO])
+    const cleaned = inner.replace(/\[[A-Z_]+\]([\s\S]*?)\[\/[A-Z_]+\]/g, '$1').trim();
+    return { summary: cleaned };
+  },
   component: ConfirmBlock,
   flowMeta: {
     label: 'Confirmation Card',
