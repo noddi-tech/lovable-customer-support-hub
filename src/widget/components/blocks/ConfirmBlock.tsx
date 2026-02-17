@@ -29,7 +29,7 @@ const ConfirmBlock: React.FC<BlockComponentProps> = ({
           }}
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-          Confirm
+          Bekreft
         </button>
         <button disabled={isUsed} onClick={() => handleSelect('Cancelled')}
           style={{
@@ -42,7 +42,7 @@ const ConfirmBlock: React.FC<BlockComponentProps> = ({
           }}
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          Cancel
+          Avbryt
         </button>
       </div>
     </div>
@@ -53,8 +53,8 @@ const ConfirmPreview: React.FC<FlowPreviewProps> = () => (
   <div className="rounded-md bg-white dark:bg-background border p-2">
     <p className="text-[9px] text-muted-foreground font-medium mb-1">Customer sees:</p>
     <div className="flex gap-1.5">
-      <div className="flex-1 flex items-center justify-center gap-1 border-2 border-green-400 rounded-lg py-1 text-green-600 text-[9px] font-semibold">✓ Confirm</div>
-      <div className="flex-1 flex items-center justify-center gap-1 border-2 border-red-400 rounded-lg py-1 text-red-600 text-[9px] font-semibold">✕ Cancel</div>
+      <div className="flex-1 flex items-center justify-center gap-1 border-2 border-green-400 rounded-lg py-1 text-green-600 text-[9px] font-semibold">✓ Bekreft</div>
+      <div className="flex-1 flex items-center justify-center gap-1 border-2 border-red-400 rounded-lg py-1 text-red-600 text-[9px] font-semibold">✕ Avbryt</div>
     </div>
   </div>
 );

@@ -4,7 +4,7 @@ import { registerBlock, BlockComponentProps, FlowPreviewProps } from './registry
 const TextInputBlock: React.FC<BlockComponentProps> = ({
   primaryColor, messageId, blockIndex, usedBlocks, onAction, data,
 }) => {
-  const placeholder: string = data.placeholder || 'Type here...';
+  const placeholder: string = data.placeholder || 'Skriv her...';
   const blockKey = `${messageId}:${blockIndex}`;
   const isUsed = usedBlocks.has(blockKey);
   const [value, setValue] = useState('');
@@ -45,7 +45,7 @@ const TextInputPreview: React.FC<FlowPreviewProps> = () => (
     <p className="text-[9px] text-muted-foreground font-medium mb-1">Customer sees:</p>
     <div className="flex items-center gap-1.5">
       <div className="flex items-center border rounded-md px-2 py-1 text-[10px] bg-muted/30 flex-1">
-        <span className="text-muted-foreground/50">Type here...</span>
+        <span className="text-muted-foreground/50">Skriv her...</span>
       </div>
       <div className="h-6 w-6 rounded-md bg-purple-500 flex items-center justify-center text-white text-[10px] font-bold">→</div>
     </div>

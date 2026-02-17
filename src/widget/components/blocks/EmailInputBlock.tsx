@@ -22,7 +22,7 @@ const EmailInputBlock: React.FC<BlockComponentProps> = ({
   const handleSubmit = () => {
     const trimmed = value.trim();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
-      setError('Please enter a valid email address');
+      setError('Vennligst skriv inn en gyldig e-postadresse');
       return;
     }
     setError('');

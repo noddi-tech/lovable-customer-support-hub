@@ -135,7 +135,7 @@ const AddressSearchBlock: React.FC<BlockComponentProps> = ({
     return (
       <div className="noddi-ai-verified-badge" style={{ margin: '8px 0' }}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={inArea ? '#22c55e' : '#f59e0b'} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
-        <span style={{ fontSize: '12px' }}>{addr}{inArea === false ? ' (outside delivery area)' : ''}</span>
+        <span style={{ fontSize: '12px' }}>{addr}{inArea === false ? ' (utenfor leveringsområde)' : ''}</span>
       </div>
     );
   }
@@ -154,7 +154,7 @@ const AddressSearchBlock: React.FC<BlockComponentProps> = ({
           ) : (
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
           )}
-          {result.is_in_delivery_area ? 'We deliver here!' : "Sorry, we don't deliver here yet"}
+          {result.is_in_delivery_area ? 'Vi leverer her!' : 'Beklager, vi leverer ikke her ennå'}
         </div>
         <div style={{ marginTop: '4px', color: '#6b7280', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px' }}>
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0" /><circle cx="12" cy="10" r="3" /></svg>
@@ -169,7 +169,7 @@ const AddressSearchBlock: React.FC<BlockComponentProps> = ({
     return (
       <div style={{ margin: '8px 0', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#9ca3af' }}>
         <div style={{ width: 16, height: 16, border: '2px solid #d1d5db', borderTopColor: primaryColor, borderRadius: '50%', animation: 'noddi-spin 0.6s linear infinite' }} />
-        Checking delivery area...
+        Sjekker leveringsområde...
       </div>
     );
   }
@@ -223,7 +223,7 @@ const AddressSearchBlock: React.FC<BlockComponentProps> = ({
         ) : (
           <input
             type="text"
-            placeholder={data.placeholder || 'Search address...'}
+            placeholder={data.placeholder || 'Søk etter adresse...'}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             style={{ flex: 1, border: 'none', outline: 'none', fontSize: '13px', background: 'transparent', padding: 0 }}
@@ -272,7 +272,7 @@ const AddressSearchPreview: React.FC<FlowPreviewProps> = () => (
       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground/60 shrink-0">
         <path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0" /><circle cx="12" cy="10" r="3" />
       </svg>
-      <span className="text-muted-foreground/50 truncate">Search address...</span>
+      <span className="text-muted-foreground/50 truncate">Søk etter adresse...</span>
     </div>
   </div>
 );
@@ -285,12 +285,12 @@ registerBlock({
   closingMarker: '[/ADDRESS_SEARCH]',
   parseContent: (inner) => {
     const trimmed = inner.trim();
-    if (!trimmed) return { placeholder: 'Search address...', stored: [] };
+    if (!trimmed) return { placeholder: 'Søk etter adresse...', stored: [] };
     try {
       const parsed = JSON.parse(trimmed);
-      return { placeholder: 'Search address...', stored: parsed.stored || [] };
+      return { placeholder: 'Søk etter adresse...', stored: parsed.stored || [] };
     } catch {
-      return { placeholder: trimmed || 'Search address...', stored: [] };
+      return { placeholder: trimmed || 'Søk etter adresse...', stored: [] };
     }
   },
   component: AddressSearchBlock,

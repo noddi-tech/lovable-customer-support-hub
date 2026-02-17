@@ -4,8 +4,8 @@ import { getApiUrl } from '../../api';
 
 function formatDate(dateStr: string): string {
   const d = new Date(dateStr + 'T12:00:00Z'); // noon UTC avoids date shifts near midnight
-  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const days = ['Søn', 'Man', 'Tir', 'Ons', 'Tor', 'Fre', 'Lør'];
+  const months = ['jan', 'feb', 'mar', 'apr', 'mai', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'des'];
   return `${days[d.getUTCDay()]} ${d.getUTCDate()} ${months[d.getUTCMonth()]}`;
 }
 
@@ -197,7 +197,7 @@ const TimeSlotBlock: React.FC<BlockComponentProps> = ({
         setAllWindows(byDate);
         setSelectedIdx(0);
       } catch {
-        setError('Failed to load available times');
+        setError('Kunne ikke laste tilgjengelige tider');
       }
       setLoading(false);
     })();
@@ -235,7 +235,7 @@ const TimeSlotBlock: React.FC<BlockComponentProps> = ({
     return (
       <div style={{ margin: '8px 0', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#9ca3af' }}>
         <div style={{ width: 16, height: 16, border: '2px solid #d1d5db', borderTopColor: primaryColor, borderRadius: '50%', animation: 'noddi-spin 0.6s linear infinite' }} />
-        Loading available times...
+        Laster tilgjengelige tider...
       </div>
     );
   }
@@ -245,7 +245,7 @@ const TimeSlotBlock: React.FC<BlockComponentProps> = ({
   }
 
   if (sortedDates.length === 0) {
-    return <div style={{ margin: '8px 0', fontSize: '12px', color: '#9ca3af' }}>No available times in the next 2 weeks</div>;
+    return <div style={{ margin: '8px 0', fontSize: '12px', color: '#9ca3af' }}>Ingen ledige tider de neste 2 ukene</div>;
   }
 
   const currentDate = sortedDates[selectedIdx];
