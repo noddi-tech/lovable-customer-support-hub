@@ -22,6 +22,8 @@ export const SendgridSetupWizard = () => {
   const { toast } = useToast();
   const [result, setResult] = useState<any>(null);
   const [verifying, setVerifying] = useState(false);
+  const [retryStatus, setRetryStatus] = useState<string | null>(null);
+  const [dnsVerifiedButPending, setDnsVerifiedButPending] = useState(false);
   const form = useForm<SetupFormValues>({
     defaultValues: { domain: '', parse_subdomain: 'inbound' },
   });
@@ -136,6 +138,7 @@ export const SendgridSetupWizard = () => {
         // Poll SendGrid validation for up to ~2 minutes
         const maxAttempts = 12;
         for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+          setRetryStatus(`Validating sender auth... attempt ${attempt}/${maxAttempts}`);
           const { data, error } = await supabase.functions.invoke('sendgrid-setup', {
             body: { ...values, action: 'validate' as const },
           });
@@ -143,25 +146,25 @@ export const SendgridSetupWizard = () => {
           const isValid = !!(data?.sender_auth_valid || data?.validation?.valid);
           if (isValid) {
             toast({ title: 'Sender auth validated', description: 'Creating parse route now...' });
-            // Try creating parse route with backoff (SendGrid can lag after validation)
-            const createAttempts = 12;
+            const createAttempts = 6;
             for (let c = 1; c <= createAttempts; c++) {
+              setRetryStatus(`Creating parse route... attempt ${c}/${createAttempts}`);
               const { data: createData, error: createErr } = await supabase.functions.invoke('sendgrid-setup', { body: values });
               if (createErr) break;
               if (createData?.ok) {
                 setResult(createData);
+                setDnsVerifiedButPending(false);
                 await loadDomainAndInboxes(values.domain, values.parse_subdomain);
                 toast({ title: 'Parse route created', description: 'MX is set and sender auth validated.' });
                 return;
               }
               const msg = JSON.stringify(createData);
               if (!msg.includes('matching senderauth domain')) {
-                // Some other error; stop retries
                 break;
               }
               await new Promise((res) => setTimeout(res, 10000));
             }
-            toast({ title: 'Still pending', description: 'SendGrid has not accepted the parse route yet. Please wait a few minutes and try again.', variant: 'destructive' });
+            setDnsVerifiedButPending(true);
             return;
           }
           await new Promise((res) => setTimeout(res, 10000));
@@ -175,6 +178,7 @@ export const SendgridSetupWizard = () => {
       }
     } finally {
       setVerifying(false);
+      setRetryStatus(null);
     }
   };
 
@@ -227,9 +231,19 @@ export const SendgridSetupWizard = () => {
                 </FormItem>
               )}
             />
-            <div className="sm:col-span-2 flex gap-2">
-              <Button type="submit" className="w-full sm:w-auto">Create Parse Route</Button>
-              <Button type="button" variant="outline" onClick={verifyDns} className="w-full sm:w-auto" disabled={verifying}>Verify DNS & Retry</Button>
+            <div className="sm:col-span-2 flex flex-col gap-2">
+              <div className="flex gap-2">
+                <Button type="submit" className="w-full sm:w-auto">Create Parse Route</Button>
+                <Button type="button" variant="outline" onClick={verifyDns} className="w-full sm:w-auto" disabled={verifying}>{verifying ? 'Verifying...' : 'Verify DNS & Retry'}</Button>
+              </div>
+              {retryStatus && (
+                <p className="text-sm text-muted-foreground animate-pulse">{retryStatus}</p>
+              )}
+              {dnsVerifiedButPending && !retryStatus && (
+                <div className="rounded-md border border-primary/30 bg-primary/5 p-3 text-sm">
+                  ✅ DNS and sender auth are verified. SendGrid needs a few more minutes for internal propagation. Click <strong>Create Parse Route</strong> to try again.
+                </div>
+              )}
             </div>
           </form>
         </Form>
