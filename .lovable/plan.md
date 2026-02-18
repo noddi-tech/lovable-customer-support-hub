@@ -1,49 +1,65 @@
 
-
-# Fix: Cancel Confirmation Showing Action Menu + Raw [YES_NO] Tag
+# Fix: Forwarding Address Uses Wrong Domain
 
 ## Problem
 
-When the AI shows the booking and asks "Er dette bestillingen du vil kansellere?", two things go wrong:
+When entering `hei@dekkfix.no`, the forwarding address shows `hei@inbound.noddi.no` instead of `hei@inbound.dekkfix.no`. This happens because `dekkfix.no` doesn't exist in `email_domains` yet, so the code falls back to the first available domain (noddi.no).
 
-1. **`patchActionMenu` auto-injects** the full edit action menu because it sees `[BOOKING_INFO]` in the reply -- it doesn't know we're in a cancellation confirmation context.
-2. **The AI outputs a bare `[YES_NO]` tag** (without wrapping the question or including a closing tag), so `patchYesNo` doesn't recognize it. Then `patchYesNo` also skips because `[ACTION_MENU]` was already injected.
+## Root Cause
 
-## Changes (all in `supabase/functions/widget-ai-chat/index.ts`)
-
-### 1. `patchActionMenu` -- skip during cancel confirmation
-
-Add a guard near the top of `patchActionMenu`: if the reply text contains a cancellation confirmation question (mentions "kansellere" or "avbestille" in a question), skip injection entirely. The user is being asked whether to cancel -- showing "Endre tidspunkt / Endre adresse / Avbestille" alongside that makes no sense.
-
-```typescript
-// Skip if reply is asking a cancellation confirmation question
-if (/(?:kansellere|avbestille|cancel).*\?/is.test(reply)) return reply;
+In `GoogleGroupSetupStep.tsx` line 58:
 ```
+const configuredDomain = matchingDomain || getConfiguredDomain();
+```
+When `matchingDomain` is null, it picks noddi.no. Then `generateForwardingAddress` uses that domain's `parse_subdomain` + `domain` to build the address.
 
-### 2. `patchYesNo` -- handle bare `[YES_NO]` markers
+## Fix
 
-Add handling at the top of `patchYesNo` for when the AI outputs a bare `[YES_NO]` tag (without closing tag or without wrapping the question). Find the preceding question sentence, wrap it properly, and remove the bare marker.
+**File: `src/hooks/useDomainConfiguration.ts`** -- Update `generateForwardingAddress` to accept an optional target domain name override. When the email's domain doesn't match any existing configured domain, construct the forwarding address using the email's own domain with a default `inbound` subdomain.
 
 ```typescript
-// Handle bare [YES_NO] marker (AI wrote tag without wrapping the question)
-if (reply.includes('[YES_NO]') && !reply.includes('[/YES_NO]')) {
-  const bareRemoved = reply.replace(/\[YES_NO\]/g, '').trim();
-  // Find the last question sentence
-  const qMatch = bareRemoved.match(/([^\n.]{10,150}\?)\s*$/);
-  if (qMatch) {
-    const before = bareRemoved.substring(0, qMatch.index!).trimEnd();
-    return [before, `[YES_NO]${qMatch[1]}[/YES_NO]`]
-      .filter(s => s.length > 0).join('\n');
+const generateForwardingAddress = (email: string, configuredDomain?: DomainConfig) => {
+  const localPart = email.split('@')[0];
+  const emailDomain = email.split('@')[1]?.toLowerCase();
+  const domain = configuredDomain || getConfiguredDomain();
+
+  if (domain) {
+    // If configuredDomain matches the email's domain, use it
+    if (domain.domain === emailDomain) {
+      return `${localPart}@${domain.parse_subdomain}.${domain.domain}`;
+    }
   }
-}
+
+  // For unconfigured domains, use the email's own domain with default subdomain
+  if (emailDomain) {
+    return `${localPart}@inbound.${emailDomain}`;
+  }
+
+  // Fallback
+  return `${localPart}@inbound.noddi.no`;
+};
 ```
 
-### 3. Deploy
+**File: `src/components/admin/wizard/GoogleGroupSetupStep.tsx`** -- Simplify the `configuredDomain` logic: only use `matchingDomain` (exact match), don't fall back to a different domain. The forwarding address generation will handle the unconfigured case.
 
-Redeploy `widget-ai-chat`.
+Change line 58 from:
+```
+const configuredDomain = matchingDomain || getConfiguredDomain();
+```
+to:
+```
+const configuredDomain = matchingDomain;
+```
 
-## Expected Result
+And update the condition on line 225 to also show the forwarding address when no `configuredDomain` exists (since `generateForwardingAddress` now handles that case):
+```
+{publicEmail && forwardingAddress && (
+```
 
-1. User asks to cancel
-2. AI shows `[BOOKING_INFO]` card + "Er dette bestillingen du vil kansellere?" with `[YES_NO]` buttons
-3. No action menu. No raw tags.
+Same update on line 249 for the "Create Route" button visibility.
+
+## Result
+
+- `hei@dekkfix.no` produces `hei@inbound.dekkfix.no`
+- `hei@noddi.no` (already configured) produces `hei@inbound.noddi.no`
+- The SendGrid setup call on route creation will auto-provision the new domain as it already does
