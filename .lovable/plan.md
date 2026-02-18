@@ -1,59 +1,65 @@
 
-# Per-Inbox Email Templates
 
-## What Changes
+# Fix: Sidebar Counts Not Updating in Real-Time
 
-Currently there is one email template per organization. Replies from all inboxes (Noddi, Dekkfix, etc.) use the same signature and styling. This fix adds the ability to assign different templates to different inboxes.
+## Root Cause
 
-## Changes Required
+The database functions are now returning correct data (confirmed via network response). The issue is that **sidebar counts never refresh when conversations change in real-time**.
 
-### 1. Database: Add `inbox_id` column to `email_templates`
+Here is how it works today:
 
-A migration to:
-- Add an optional `inbox_id` (uuid, FK to `inboxes.id`) column to `email_templates`
-- Allow multiple templates per org (one per inbox + one org-wide default with `inbox_id = NULL`)
+1. A conversation status changes (e.g., open -> pending)
+2. Supabase realtime fires an event for the `conversations` table
+3. The realtime handler (in `useSimpleRealtimeSubscriptions`) refetches queries where `queryKey[0] === 'conversations'`
+4. The conversation list updates correctly
+5. But `inboxCounts` and `all-counts` queries are **NOT refetched** -- they only update after the 30-second staleTime or on window refocus
 
-### 2. Admin UI: Inbox selector on Conversation Reply template
+This is why the counts appear stuck even though the conversation list shows updated data.
 
-**File: `src/components/settings/EmailTemplateSettings.tsx`**
+## The Fix
 
-- Add an inbox dropdown at the top of the "Conversation Reply" tab (only shown for that template type)
-- Options: "Organization Default" (inbox_id = null) + each inbox from the org
-- When an inbox is selected, load/save the template for that specific inbox
-- Uses existing `useQuery` to fetch inboxes from Supabase
-- The query for templates adds `.eq('inbox_id', selectedInboxId)` or `.is('inbox_id', null)` for the default
+**File: `src/hooks/useSimpleRealtimeSubscriptions.ts`** (lines 136-174)
 
-### 3. Edge Function: Prefer inbox-specific template
+Inside the realtime event handler for `conversations` table changes, add invalidation of count-related queries alongside the existing conversation cache update:
 
-**File: `supabase/functions/send-reply-email/index.ts`**
-
-Update the template loading logic (around line 146) to:
-1. First try to load a template matching the conversation's `inbox_id`
-2. If none found, fall back to the org-wide default (where `inbox_id IS NULL`)
-
-```text
-Current:  email_templates WHERE org_id = X AND is_default = true  (single query)
-
-New:      email_templates WHERE org_id = X AND inbox_id = Y       (inbox-specific)
-          if not found ->
-          email_templates WHERE org_id = X AND inbox_id IS NULL   (org default)
-          if not found ->
-          hardcoded fallback
+```
+if (table === 'conversations') {
+  // ... existing optimistic cache update code stays ...
+  
+  // NEW: Also invalidate count queries so sidebar updates immediately
+  queryClient.invalidateQueries({ queryKey: ['inboxCounts'] });
+  queryClient.invalidateQueries({ queryKey: ['all-counts'] });
+  queryClient.invalidateQueries({ queryKey: ['inbox-counts'] });
+}
 ```
 
-### 4. TypeScript types update
+This ensures that any time a conversation is created, updated, or deleted, all count queries are marked stale and refetched for active components.
 
-**File: `src/integrations/supabase/types.ts`**
+**File: `src/contexts/RealtimeProvider.tsx`** (lines 20-34)
 
-Add `inbox_id: string | null` to the `email_templates` Row/Insert/Update types.
+Add dedicated realtime config entries so the `conversations` table also triggers count refreshes:
 
-## Summary
+```
+{ table: 'conversations', queryKey: 'inboxCounts' },
+{ table: 'conversations', queryKey: 'all-counts' },
+```
 
-| Layer | Change |
+This provides a second layer of guarantee: even if the inline invalidation is missed, the standard refetch mechanism will also trigger for count queries.
+
+## Why This is Bulletproof
+
+Three layers of count refresh:
+1. **Realtime event** -- Immediate invalidation when any conversation changes (new fix)
+2. **Manual invalidation** -- Already exists in status change handlers, assign dialogs, bulk actions, etc.
+3. **Polling fallback** -- 30-second staleTime on `useInboxCounts`, 5-minute refetchInterval on `useOptimizedCounts`
+
+This covers: realtime DB changes, user actions in other tabs, and graceful degradation if realtime disconnects.
+
+## Changes Summary
+
+| File | Change |
 |---|---|
-| Database | Add `inbox_id` column to `email_templates` |
-| Admin UI | Add inbox selector dropdown on Conversation Reply template |
-| Edge Function | Load inbox-specific template first, fall back to org default |
-| Types | Add `inbox_id` to TypeScript types |
+| `src/hooks/useSimpleRealtimeSubscriptions.ts` | Add `inboxCounts` and `all-counts` invalidation inside the conversations realtime handler |
+| `src/contexts/RealtimeProvider.tsx` | Add two config entries linking `conversations` table to count query keys |
 
-This lets you configure a "Dekkfix" signature for the Dekkfix inbox and a "Noddi" signature for other inboxes.
+Two files, roughly 6 lines of code added. No database changes needed.
