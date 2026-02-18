@@ -1,46 +1,76 @@
 
-# Fix: Deleted Conversations Not Appearing + Stale Counts
+# Fix: Programmatic Widget Control (open/close without button)
 
-## What Happened
+## The Problem
 
-The 2 conversations you deleted earlier were **permanently removed** before the soft-delete fix was applied. Unfortunately, those cannot be recovered. Going forward, the soft-delete fix will work -- but there are additional issues to fix.
+When using `showButton: false` and calling `noddi('open')` after `noddi('init', ...)`, the open command fails because:
 
-## Problems Found
+1. `init` triggers React rendering + an async config fetch
+2. `open` runs immediately after, but `widgetAPI` is still `null` (React hasn't mounted yet)
+3. Result: "Cannot open widget - not initialized yet" warning, nothing happens
 
-### 1. Bulk delete still does hard DELETE
-The bulk delete function in `ConversationListContext.tsx` (used by the bulk actions bar) still permanently deletes messages and conversations instead of soft-deleting them.
+This makes it impossible to use the widget without the floating button.
 
-### 2. Missing cache invalidation after soft-delete
-When a conversation is soft-deleted from the detail view, the code doesn't invalidate React Query caches. This means the sidebar counts and conversation list stay stale until the next automatic refresh.
+## The Fix
 
-### 3. Row-level delete action also hard-deletes
-The per-row delete action in `ConversationTableRow.tsx` (via the conversation list context's `deleteConversation` dispatcher) also needs to be checked for soft-delete compliance.
+**File: `src/widget/index.tsx`**
 
-## Fixes
+Add a "pending commands" queue that buffers any commands (open/close/toggle) received before the widget API is ready, then automatically flushes them once `onMount` fires.
 
-### File: `src/components/dashboard/conversation-view/ConversationViewContent.tsx`
-**Add cache invalidation after soft-delete** (around line 583):
-- After the successful soft-delete update, add:
-  - `queryClient.invalidateQueries({ queryKey: ['conversations'] })`
-  - `queryClient.invalidateQueries({ queryKey: ['inboxCounts'] })`
-  - `queryClient.invalidateQueries({ queryKey: ['all-counts'] })`
-- Import `useQueryClient` from `@tanstack/react-query`
+Changes:
+- Add a `pendingCommands` array that collects commands while `widgetAPI` is null
+- In `openWidget`, `closeWidget`, `toggleWidget`: instead of just warning, push to the pending queue
+- In the `onMount` callback (line 67-69): after setting `widgetAPI`, flush all pending commands
+- Add an `onReady` callback option so host apps can know when programmatic control is available
 
-### File: `src/contexts/ConversationListContext.tsx`
-**Change bulk delete from hard-delete to soft-delete** (lines 828-866):
-- Replace the message hard-delete + conversation hard-delete with a single soft-delete update:
+**File: `src/widget/types.ts`**
+
+- Add `onReady?: () => void` to `WidgetInitOptions` for an optional callback when the widget is fully initialized
+
+## What This Enables
+
+```html
+<!-- No button, open on page load -->
+<script>
+  noddi('init', { widgetKey: 'abc', showButton: false });
+  noddi('open'); // will be queued and executed once widget is ready
+</script>
+
+<!-- Or with a custom button -->
+<button onclick="noddi('toggle')">Chat with us</button>
+```
+
+## Technical Details
+
+```
+Timeline (current - broken):
+init() → render starts → open() → widgetAPI is null → FAILS
+                        ↓
+              config fetch completes → onMount fires → widgetAPI set (too late)
+
+Timeline (fixed):
+init() → render starts → open() → queued as pending
+                        ↓
+              config fetch completes → onMount fires → widgetAPI set → flush pending → OPENS
+```
+
+### Specific code changes:
+
+**`src/widget/index.tsx`**:
+- Line 9: Add `let pendingCommands: Array<() => void> = [];`
+- Lines 78-85 (`openWidget`): Change the `else` branch from `console.warn` to `pendingCommands.push(() => widgetAPI!.setIsOpen(true))`
+- Lines 87-94 (`closeWidget`): Same pattern for close
+- Lines 96-103 (`toggleWidget`): Same pattern for toggle
+- Lines 67-69 (`onMount` callback): After setting `widgetAPI`, add a flush loop:
   ```
-  supabase
-    .from('conversations')
-    .update({ deleted_at: new Date().toISOString() })
-    .in('id', chunk)
+  pendingCommands.forEach(cmd => cmd());
+  pendingCommands = [];
   ```
-- Remove the message deletion step (messages stay linked to the soft-deleted conversation)
-- Add count cache invalidation (`inboxCounts`, `all-counts`)
 
-## Technical Summary
+**`src/widget/types.ts`**:
+- Add optional `onReady?: () => void` to `WidgetInitOptions`
 
-| Location | Current Behavior | Fixed Behavior |
-|---|---|---|
-| ConversationViewContent delete button | Soft-deletes but no cache refresh | Soft-deletes + invalidates all caches |
-| ConversationListContext bulkDelete | Hard-deletes messages and conversations | Soft-deletes conversations only |
+**`src/widget/Widget.tsx`**:
+- Pass `options.onReady` into the `onMount` effect so it fires after API is ready
+
+This is a small, focused change (roughly 15 lines modified) that makes the buttonless use case work reliably.
