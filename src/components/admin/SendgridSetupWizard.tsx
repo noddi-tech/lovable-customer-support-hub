@@ -239,7 +239,7 @@ export const SendgridSetupWizard = () => {
             <div>
               <p className="text-sm text-muted-foreground">Add this MX record to your DNS:</p>
               <div className="rounded-md border border-border/50 p-3 text-sm bg-background/50">
-                <div className="flex gap-2"><span className="font-semibold">Host:</span><span>{result.hostname}</span></div>
+                <div className="flex gap-2"><span className="font-semibold">Host:</span><span>{result.hostname || `${form.getValues().parse_subdomain}.${form.getValues().domain}`}</span></div>
                 <div className="flex gap-2"><span className="font-semibold">Type:</span><span>MX</span></div>
                 <div className="flex gap-2"><span className="font-semibold">Value:</span><span>mx.sendgrid.net</span></div>
                 <div className="flex gap-2"><span className="font-semibold">Priority:</span><span>10</span></div>

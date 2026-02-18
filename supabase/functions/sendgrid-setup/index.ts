@@ -171,6 +171,7 @@ Deno.serve(async (req: Request) => {
     if (!parseResult.ok && !parseAlreadyExists) {
       return new Response(JSON.stringify({
         ok: false,
+        hostname,
         error: 'SendGrid API error',
         details: parseResult.data,
         hint: 'Complete Sender Authentication for this domain in DNS, then re-run. We attempted to create it automatically.',
