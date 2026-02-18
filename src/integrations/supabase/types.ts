@@ -743,6 +743,7 @@ export type Database = {
           header_content: string | null
           header_text_color: string | null
           id: string
+          inbox_id: string | null
           include_agent_name: boolean | null
           is_default: boolean | null
           name: string
@@ -764,6 +765,7 @@ export type Database = {
           header_content?: string | null
           header_text_color?: string | null
           id?: string
+          inbox_id?: string | null
           include_agent_name?: boolean | null
           is_default?: boolean | null
           name?: string
@@ -785,6 +787,7 @@ export type Database = {
           header_content?: string | null
           header_text_color?: string | null
           id?: string
+          inbox_id?: string | null
           include_agent_name?: boolean | null
           is_default?: boolean | null
           name?: string
@@ -794,7 +797,15 @@ export type Database = {
           template_type?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "email_templates_inbox_id_fkey"
+            columns: ["inbox_id"]
+            isOneToOne: false
+            referencedRelation: "inboxes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       import_jobs: {
         Row: {

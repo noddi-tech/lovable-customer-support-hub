@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -25,53 +26,84 @@ interface EmailTemplate {
   body_text_color: string;
   signature_content: string;
   include_agent_name: boolean;
+  inbox_id?: string | null;
 }
+
+const defaultTemplate: EmailTemplate = {
+  name: 'Default Template',
+  header_background_color: '#3B82F6',
+  header_text_color: '#FFFFFF',
+  header_content: '',
+  footer_background_color: '#F8F9FA',
+  footer_text_color: '#6B7280',
+  footer_content: 'Best regards,<br>Support Team',
+  body_background_color: '#FFFFFF',
+  body_text_color: '#374151',
+  signature_content: 'Best regards,<br>{{agent_name}}<br>Support Team',
+  include_agent_name: true,
+};
 
 export function EmailTemplateSettings() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { t } = useTranslation();
   const [activeTemplateType, setActiveTemplateType] = useState('conversation_reply');
+  // "default" means org-wide (inbox_id IS NULL), otherwise an inbox UUID
+  const [selectedInboxId, setSelectedInboxId] = useState<string>('default');
   
-  const [template, setTemplate] = useState<EmailTemplate>({
-    name: 'Default Template',
-    header_background_color: '#3B82F6',
-    header_text_color: '#FFFFFF',
-    header_content: '',
-    footer_background_color: '#F8F9FA',
-    footer_text_color: '#6B7280',
-    footer_content: 'Best regards,<br>Support Team',
-    body_background_color: '#FFFFFF',
-    body_text_color: '#374151',
-    signature_content: 'Best regards,<br>{{agent_name}}<br>Support Team',
-    include_agent_name: true,
-  });
+  const [template, setTemplate] = useState<EmailTemplate>({ ...defaultTemplate });
 
-  // Fetch existing template for active type
-  const { data: existingTemplate } = useQuery({
-    queryKey: ['email-template', activeTemplateType],
+  // Fetch inboxes for the inbox selector
+  const { data: inboxes } = useQuery({
+    queryKey: ['inboxes-for-templates'],
     queryFn: async () => {
       const { data, error } = await supabase
+        .from('inboxes')
+        .select('id, name, is_active')
+        .eq('is_active', true)
+        .order('name');
+      if (error) throw error;
+      return data || [];
+    }
+  });
+
+  // Fetch existing template for active type + selected inbox
+  const { data: existingTemplate } = useQuery({
+    queryKey: ['email-template', activeTemplateType, selectedInboxId],
+    queryFn: async () => {
+      let query = supabase
         .from('email_templates')
         .select('*')
-        .eq('template_type', activeTemplateType)
-        .eq('is_default', true)
-        .single();
-      
-      if (error && error.code !== 'PGRST116') {
-        throw error;
+        .eq('template_type', activeTemplateType);
+
+      if (activeTemplateType === 'conversation_reply' && selectedInboxId !== 'default') {
+        query = query.eq('inbox_id', selectedInboxId);
+      } else {
+        query = query.is('inbox_id', null).eq('is_default', true);
       }
+
+      const { data, error } = await query.maybeSingle();
       
+      if (error) throw error;
       return data;
     }
   });
 
-  // Update template state when data is loaded
+  // Update template state when data is loaded or inbox changes
   useEffect(() => {
     if (existingTemplate) {
       setTemplate(existingTemplate);
+    } else {
+      setTemplate({ ...defaultTemplate, inbox_id: selectedInboxId === 'default' ? null : selectedInboxId });
     }
-  }, [existingTemplate]);
+  }, [existingTemplate, selectedInboxId]);
+
+  // Reset inbox selector when switching away from conversation_reply
+  useEffect(() => {
+    if (activeTemplateType !== 'conversation_reply') {
+      setSelectedInboxId('default');
+    }
+  }, [activeTemplateType]);
 
   // Save template mutation
   const saveTemplateMutation = useMutation({
@@ -87,19 +119,27 @@ export function EmailTemplateSettings() {
 
       if (!userProfile) throw new Error('User profile not found');
 
+      const inboxId = activeTemplateType === 'conversation_reply' && selectedInboxId !== 'default'
+        ? selectedInboxId
+        : null;
+
       const templatePayload = {
         ...templateData,
         organization_id: userProfile.organization_id,
         created_by_id: profile.user.id,
-        is_default: true,
+        is_default: inboxId === null,
         template_type: activeTemplateType,
-        scope: 'organization'
+        scope: 'organization',
+        inbox_id: inboxId,
       };
+
+      // Remove id from payload for insert
+      const { id, ...payloadWithoutId } = templatePayload;
 
       if (existingTemplate?.id) {
         const { data, error } = await supabase
           .from('email_templates')
-          .update(templatePayload)
+          .update(payloadWithoutId)
           .eq('id', existingTemplate.id)
           .select()
           .single();
@@ -109,7 +149,7 @@ export function EmailTemplateSettings() {
       } else {
         const { data, error } = await supabase
           .from('email_templates')
-          .insert(templatePayload)
+          .insert(payloadWithoutId)
           .select()
           .single();
         
@@ -191,6 +231,32 @@ export function EmailTemplateSettings() {
                   ))}
                 </div>
               </div>
+
+              {/* Inbox Selector - only for conversation_reply */}
+              {activeTemplateType === 'conversation_reply' && inboxes && inboxes.length > 0 && (
+                <div className="space-y-2">
+                  <Label>Inbox</Label>
+                  <Select value={selectedInboxId} onValueChange={setSelectedInboxId}>
+                    <SelectTrigger className="w-full max-w-xs">
+                      <SelectValue placeholder="Select inbox" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="default">Organization Default</SelectItem>
+                      {inboxes.map(inbox => (
+                        <SelectItem key={inbox.id} value={inbox.id}>
+                          {inbox.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-sm text-muted-foreground">
+                    {selectedInboxId === 'default'
+                      ? 'This template is used for inboxes without a specific template.'
+                      : 'This template overrides the organization default for this inbox.'}
+                  </p>
+                </div>
+              )}
+
           {/* Preview */}
           <div className="border rounded-lg p-4 bg-muted/50">
             <h4 className="font-medium mb-3">{t('emailTemplate.preview')}</h4>

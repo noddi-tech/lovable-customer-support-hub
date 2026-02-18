@@ -142,13 +142,29 @@ const handler = async (req: Request): Promise<Response> => {
     if (!customer?.email) throw new Error('Customer email not found');
     if (!fromEmail && !emailAccount?.email_address) throw new Error('Missing sending address (set inbound route public email or connect an email account)');
 
-    // Load org email template (optional)
-    const { data: template } = await supabaseClient
-      .from('email_templates')
-      .select('*')
-      .eq('organization_id', message.conversation.organization_id)
-      .eq('is_default', true)
-      .single();
+    // Load email template: prefer inbox-specific, fall back to org default
+    let template: any = null;
+    if (inboxId) {
+      const { data: inboxTemplate } = await supabaseClient
+        .from('email_templates')
+        .select('*')
+        .eq('organization_id', message.conversation.organization_id)
+        .eq('template_type', 'conversation_reply')
+        .eq('inbox_id', inboxId)
+        .maybeSingle();
+      template = inboxTemplate;
+    }
+    if (!template) {
+      const { data: orgTemplate } = await supabaseClient
+        .from('email_templates')
+        .select('*')
+        .eq('organization_id', message.conversation.organization_id)
+        .eq('template_type', 'conversation_reply')
+        .is('inbox_id', null)
+        .eq('is_default', true)
+        .maybeSingle();
+      template = orgTemplate;
+    }
 
     const templateSettings = template || {
       header_background_color: '#3B82F6',
