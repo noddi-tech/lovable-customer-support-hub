@@ -208,7 +208,7 @@ export const SendgridWebhookFixer: React.FC = () => {
             </div>
           )}
 
-          {!diagnostics.environment?.hasInboundToken && diagnostics && (
+          {diagnostics && !diagnostics.environment?.hasInboundToken && (
             <Alert variant="destructive">
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>
