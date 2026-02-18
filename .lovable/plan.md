@@ -1,42 +1,46 @@
 
 
-# Replace Status Buttons with a Dropdown
+# Fix: Widget Ignores `showButton: false`
 
-## What Changes
+## Problem
 
-In the conversation sidebar ("STATUS & ACTIONS" section), replace the current layout of individual status buttons (Reopen, Pending, Close Conversation) with a single `Select` dropdown that lists all statuses. This is cleaner UX -- one control instead of 2-3 conditional buttons.
+Your embed code correctly passes `showButton: false`, but the deployed widget bundle (hardcoded JS in the Edge Function) has no code to read or use that option. The floating button always renders.
 
-## File to Change
+## Changes
 
-**`src/components/dashboard/conversation-view/CustomerSidePanel.tsx`** (lines 515-575)
+**File: `supabase/functions/deploy-widget/index.ts`**
 
-Replace the "Current Status" badge + grid of conditional buttons with:
+### 1. Add a module-level variable (near line 1008)
 
-- A single `Select` dropdown showing the current status
-- Options: Open, Pending, Closed
-- On change, calls the existing `updateStatus()` function
-- Disabled while `statusLoading` is true
+Add `let showButton = true;` alongside the existing state variables.
 
-The result will look like:
+### 2. Capture the option during init (line 1010-1017)
 
-```
-STATUS & ACTIONS
-Status:  [ Open        v ]
-```
-
-Instead of:
+Inside the `init()` function, after validating `widgetKey`, store the option:
 
 ```
-STATUS & ACTIONS
-Current Status:        open
-[ Pending ]
-[   Close Conversation   ]
+showButton = options.showButton !== false;
 ```
 
-## Technical Details
+### 3. Conditionally render the button (lines 651-656)
 
-- Uses the existing `Select`, `SelectTrigger`, `SelectValue`, `SelectContent`, `SelectItem` components already imported/available in the project
-- Reuses the existing `updateStatus()` handler and `statusLoading` state -- no new logic needed
-- Removes ~50 lines of conditional button rendering, replaces with ~15 lines of Select markup
-- The `onValueChange` handler calls `updateStatus({ status: newValue })` directly
+Wrap the floating button HTML in a check:
+
+```
+if (showButton) {
+  const btnPos = ...;
+  const btnColor = ...;
+  html += '<button ...>';
+  html += state.isOpen ? icons.close : icons.chat;
+  html += '</button>';
+}
+```
+
+## After Code Change
+
+Since this is an Edge Function, it deploys automatically. Then click **"Deploy to Production"** once more in Admin > Widget to push the updated bundle to Supabase Storage.
+
+## Summary
+
+3 small edits in one file. No new dependencies. Your existing embed code will work as-is once deployed.
 
