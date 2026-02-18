@@ -55,7 +55,7 @@ export function GoogleGroupSetupStep({
 
   const emailDomain = extractDomainFromEmail(publicEmail);
   const matchingDomain = emailDomain ? getDomainByName(emailDomain) : null;
-  const configuredDomain = matchingDomain || getConfiguredDomain();
+  const configuredDomain = matchingDomain;
   const domainConfigured = emailDomain ? isDomainConfigured(emailDomain) : false;
 
   // Generate forwarding address when email changes
@@ -222,7 +222,7 @@ export function GoogleGroupSetupStep({
       )}
 
       {/* Forwarding Address Preview */}
-      {publicEmail && forwardingAddress && configuredDomain && (
+      {publicEmail && forwardingAddress && (
         <div className="space-y-2">
           <Label>Your forwarding address</Label>
           <div className="flex items-center gap-2">
@@ -246,7 +246,7 @@ export function GoogleGroupSetupStep({
       )}
 
       {/* Create Route Button */}
-      {publicEmail && forwardingAddress && configuredDomain && !routeCreated && (
+      {publicEmail && forwardingAddress && !routeCreated && (
         <Button
           onClick={createInboundRoute}
           disabled={isCreatingRoute}
