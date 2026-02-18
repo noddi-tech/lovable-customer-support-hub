@@ -25,6 +25,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { useDateFormatting } from '@/hooks/useDateFormatting';
 import { cn } from '@/lib/utils';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useConversationView } from '@/contexts/ConversationViewContext';
 import { NoddiCustomerDetails } from '@/components/dashboard/voice/NoddiCustomerDetails';
 import { supabase } from '@/integrations/supabase/client';
@@ -512,66 +513,39 @@ export const CustomerSidePanel = ({
           Status & Actions
         </h4>
         
-        {/* Current Status Display */}
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-xs text-muted-foreground">Current Status:</span>
-          <Badge variant={conversation.status === 'open' ? 'default' : 'secondary'}>
-            {conversation.status}
-          </Badge>
-        </div>
-        
-        {/* Status Change Buttons */}
-        <div className="grid grid-cols-2 gap-2">
-          {conversation.status !== 'open' && (
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={async () => {
-                setStatusLoading(true);
-                await updateStatus({ status: 'open' });
-                setStatusLoading(false);
-              }}
-              disabled={statusLoading}
-              className="text-xs"
-            >
-              <CircleDot className="h-3 w-3 mr-1" />
-              Reopen
-            </Button>
-          )}
-          
-          {conversation.status !== 'pending' && (
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={async () => {
-                setStatusLoading(true);
-                await updateStatus({ status: 'pending' });
-                setStatusLoading(false);
-              }}
-              disabled={statusLoading}
-              className="text-xs"
-            >
-              <Clock className="h-3 w-3 mr-1" />
-              Pending
-            </Button>
-          )}
-          
-          {conversation.status !== 'closed' && (
-            <Button 
-              variant="default" 
-              size="sm" 
-              onClick={async () => {
-                setStatusLoading(true);
-                await updateStatus({ status: 'closed' });
-                setStatusLoading(false);
-              }}
-              disabled={statusLoading}
-              className="col-span-2 text-xs"
-            >
-              <CheckCircle2 className="h-3 w-3 mr-1" />
-              Close Conversation
-            </Button>
-          )}
+        {/* Status Dropdown */}
+        <div className="space-y-1.5">
+          <span className="text-xs text-muted-foreground">Status</span>
+          <Select
+            value={conversation.status}
+            onValueChange={async (value) => {
+              setStatusLoading(true);
+              await updateStatus({ status: value });
+              setStatusLoading(false);
+            }}
+            disabled={statusLoading}
+          >
+            <SelectTrigger className="h-8 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="open">
+                <span className="flex items-center gap-1.5">
+                  <CircleDot className="h-3 w-3" /> Open
+                </span>
+              </SelectItem>
+              <SelectItem value="pending">
+                <span className="flex items-center gap-1.5">
+                  <Clock className="h-3 w-3" /> Pending
+                </span>
+              </SelectItem>
+              <SelectItem value="closed">
+                <span className="flex items-center gap-1.5">
+                  <CheckCircle2 className="h-3 w-3" /> Closed
+                </span>
+              </SelectItem>
+            </SelectContent>
+          </Select>
         </div>
         
         <Separator className="my-3" />
