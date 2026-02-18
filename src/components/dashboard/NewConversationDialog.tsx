@@ -133,6 +133,7 @@ export const NewConversationDialog: React.FC<NewConversationDialogProps> = ({ ch
 
       // Get the email account associated with the selected inbox
       let emailAccountId: string | null = null;
+      let canSendEmail = false;
       
       try {
         const { data: emailAccounts, error: emailError } = await supabase
@@ -143,8 +144,21 @@ export const NewConversationDialog: React.FC<NewConversationDialogProps> = ({ ch
 
         if (!emailError && emailAccounts && emailAccounts.length > 0) {
           emailAccountId = emailAccounts[0].id;
+          canSendEmail = true;
         } else {
-          console.warn('No email account found for inbox:', conversationData.inboxId);
+          // Fallback: check inbound_routes for a group_email (used by send-reply-email)
+          const { data: inboundRoutes } = await supabase
+            .from('inbound_routes')
+            .select('id, group_email')
+            .eq('inbox_id', conversationData.inboxId)
+            .eq('is_active', true)
+            .limit(1);
+          if (inboundRoutes?.length && inboundRoutes[0].group_email) {
+            canSendEmail = true;
+            console.log('Using inbound route for email sending:', inboundRoutes[0].group_email);
+          } else {
+            console.warn('No email account or inbound route found for inbox:', conversationData.inboxId);
+          }
         }
       } catch (error) {
         console.warn('Error fetching email account for inbox:', error);
@@ -188,7 +202,7 @@ export const NewConversationDialog: React.FC<NewConversationDialogProps> = ({ ch
         if (messageError) throw messageError;
 
         // Send the email if we have an email account connected
-        if (emailAccountId && newMessage) {
+        if (canSendEmail && newMessage) {
           try {
             console.log('Attempting to send email for new conversation message:', newMessage.id);
             
@@ -263,7 +277,13 @@ export const NewConversationDialog: React.FC<NewConversationDialogProps> = ({ ch
       
       setOpen(false);
       resetForm();
-      navigate(`/?conversation=${conversation.id}`);
+      // Preserve current inbox context
+      const currentParams = new URLSearchParams(window.location.search);
+      const currentInbox = currentParams.get('inbox') || selectedInboxId;
+      const basePath = window.location.pathname.includes('/interactions')
+        ? window.location.pathname
+        : '/interactions/text/open';
+      navigate(`${basePath}?inbox=${currentInbox}&c=${conversation.id}`);
     },
     onError: (error) => {
       console.error('Error creating conversation:', error);

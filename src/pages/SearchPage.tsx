@@ -269,8 +269,8 @@ const SearchPage = () => {
                       hasNextPage={hasNextPage}
                       isFetchingNextPage={isFetchingNextPage}
                       onLoadMore={fetchNextPage}
-                      onSelectConversation={(id) => navigate(`/?conversation=${id}`)}
-                      onSelectCustomer={(id) => navigate(`/?customer=${id}`)}
+                      onSelectConversation={(id) => navigate(`/c/${id}`)}
+                      onSelectCustomer={(id) => navigate(`/interactions/text/open?customer=${id}`)}
                     />
                   </TabsContent>
                 )}
