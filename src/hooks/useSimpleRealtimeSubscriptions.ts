@@ -167,6 +167,13 @@ export const useSimpleRealtimeSubscriptions = (
               );
             }
             
+            // When conversations change, also invalidate count queries so sidebar updates immediately
+            if (table === 'conversations') {
+              queryClient.invalidateQueries({ queryKey: ['inboxCounts'] });
+              queryClient.invalidateQueries({ queryKey: ['all-counts'] });
+              queryClient.invalidateQueries({ queryKey: ['inbox-counts'] });
+            }
+            
             // Also refetch to ensure consistency (backup)
             queryClient.refetchQueries({ 
               predicate: (query) => query.queryKey[0] === queryKey,
