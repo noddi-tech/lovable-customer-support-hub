@@ -1,32 +1,42 @@
 
 
-# Fix: Show hostname in MX record display
+# Improve SendGrid Retry UX with Progress Feedback
 
 ## Problem
 
-When the SendGrid setup returns `ok: false` (sender auth required), the API response omits the `hostname` field. The UI at line 242 of `SendgridSetupWizard.tsx` renders `{result.hostname}` which is undefined, so the Host field appears blank.
+After clicking "Verify DNS & Retry", the UI goes silent for up to 2 minutes while it retries creating the parse route in the background. The user sees "Creating parse route now..." toast but then nothing until it either succeeds or shows "Still pending".
 
-## Fix
+## Changes
 
 **File: `src/components/admin/SendgridSetupWizard.tsx`**
 
-On line 242, add a fallback that computes the hostname from the form values when `result.hostname` is missing:
+1. Add a `retryStatus` state variable (line ~24):
+   ```
+   const [retryStatus, setRetryStatus] = useState<string | null>(null);
+   ```
 
-Change:
-```
-<span>{result.hostname}</span>
-```
+2. In the parse route retry loop (lines 147-163), add progress updates before each attempt:
+   ```
+   setRetryStatus(`Creating parse route... attempt ${c}/6`);
+   ```
+   - Reduce from 12 attempts to 6 (60 seconds max instead of 2 minutes)
 
-To:
-```
-<span>{result.hostname || `${form.getValues().parse_subdomain}.${form.getValues().domain}`}</span>
-```
+3. In the validation polling loop (lines 137-168), add progress updates:
+   ```
+   setRetryStatus(`Validating sender auth... attempt ${attempt}/12`);
+   ```
 
-This ensures the MX Host always shows (e.g. `inbound.dekkfix.no`) regardless of whether the API included it in the response.
+4. Clear status in the `finally` block (line 176):
+   ```
+   setRetryStatus(null);
+   ```
 
-**File: `supabase/functions/sendgrid-setup/index.ts`**
+5. Add a progress indicator in the JSX near the buttons (after line ~220):
+   ```jsx
+   {retryStatus && (
+     <p className="text-sm text-muted-foreground animate-pulse">{retryStatus}</p>
+   )}
+   ```
 
-Also add `hostname` to the error response (around line 126-133) so future responses always include it:
-
-Add `hostname,` to the `ok: false` response object.
+6. After retries exhaust, show an info banner instead of only a destructive toast -- indicating DNS is verified and the user just needs to wait and try again.
 
