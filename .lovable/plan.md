@@ -1,26 +1,24 @@
 
-
-# Restore SendGrid Domain Setup to Integrations Page
+# Fix: SendgridWebhookFixer crash on null diagnostics
 
 ## Problem
 
-The `SendgridSetupWizard` component (for provisioning new domains, creating parse routes, and showing DNS records) is imported but never rendered anywhere in the UI. It was lost during the admin portal refactor.
+When expanding the "Domain Setup (SendGrid)" section, the `SendgridWebhookFixer` component crashes with `Cannot read properties of null (reading 'environment')`. The diagnostics data is fetched asynchronously, but the render code accesses `diagnostics.environment` before checking if `diagnostics` is null.
 
-## Solution
+## Fix
 
-Add the `SendgridSetupWizard` as a collapsible section within the Email tab of the Integrations page, below the existing Email Channels section. This keeps all email domain management in one place.
+**File: `src/components/admin/SendgridWebhookFixer.tsx`**
 
-## Changes
+Swap the condition order on the line that checks for missing inbound token (around line 211):
 
-### File: `src/components/admin/IntegrationSettings.tsx`
+From:
+```
+{!diagnostics.environment?.hasInboundToken && diagnostics && (
+```
 
-- Import `SendgridSetupWizard`
-- Add a new `IntegrationSection` after the "Email Channels (SendGrid)" section, titled something like "Domain Setup (SendGrid)" with a description like "Add new email domains, create parse routes, and manage DNS records"
-- This section will be collapsed by default since it's used less frequently
-- The `SendgridSetupWizard` already includes the webhook fixer and tester tools
+To:
+```
+{diagnostics && !diagnostics.environment?.hasInboundToken && (
+```
 
-This means you'll be able to:
-1. Scroll down on the Email tab past "Email Channels"
-2. Expand "Domain Setup (SendGrid)"
-3. Enter `dekkfix.no` / `inbound` and click "Create Parse Route" to re-trigger provisioning
-
+This ensures `diagnostics` is checked for null first, before accessing its `environment` property. A one-line fix.
