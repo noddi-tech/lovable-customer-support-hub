@@ -7,6 +7,8 @@ import widgetStyles from './styles/widget.css?inline';
 
 // Store widget API reference for programmatic control
 let widgetAPI: WidgetAPI | null = null;
+let pendingCommands: Array<() => void> = [];
+let initOptions: WidgetInitOptions | null = null;
 
 // Queue for commands before initialization
 declare global {
@@ -38,7 +40,7 @@ function injectStyles() {
 
 function initializeWidget(options: WidgetInitOptions) {
   console.log('[Noddi] initializeWidget called with options:', options);
-  console.log('[Noddi] showButton:', options.showButton, 'position:', options.position);
+  initOptions = options;
   
   // Inject CSS styles
   injectStyles();
@@ -66,7 +68,12 @@ function initializeWidget(options: WidgetInitOptions) {
       options={options} 
       onMount={(api) => {
         widgetAPI = api;
-        console.log('[Noddi] Widget API mounted, programmatic control available');
+        console.log('[Noddi] Widget API mounted, flushing', pendingCommands.length, 'pending commands');
+        pendingCommands.forEach(cmd => cmd());
+        pendingCommands = [];
+        if (initOptions?.onReady) {
+          initOptions.onReady();
+        }
       }}
     />
   );
@@ -80,7 +87,8 @@ function openWidget() {
     console.log('[Noddi] Opening widget programmatically');
     widgetAPI.setIsOpen(true);
   } else {
-    console.warn('[Noddi] Cannot open widget - not initialized yet');
+    console.log('[Noddi] Queuing open command (widget not ready yet)');
+    pendingCommands.push(() => widgetAPI!.setIsOpen(true));
   }
 }
 
@@ -89,7 +97,8 @@ function closeWidget() {
     console.log('[Noddi] Closing widget programmatically');
     widgetAPI.setIsOpen(false);
   } else {
-    console.warn('[Noddi] Cannot close widget - not initialized yet');
+    console.log('[Noddi] Queuing close command (widget not ready yet)');
+    pendingCommands.push(() => widgetAPI!.setIsOpen(false));
   }
 }
 
@@ -98,7 +107,8 @@ function toggleWidget() {
     console.log('[Noddi] Toggling widget programmatically');
     widgetAPI.toggle();
   } else {
-    console.warn('[Noddi] Cannot toggle widget - not initialized yet');
+    console.log('[Noddi] Queuing toggle command (widget not ready yet)');
+    pendingCommands.push(() => widgetAPI!.toggle());
   }
 }
 

@@ -22,6 +22,7 @@ export interface WidgetInitOptions {
   // Client-side overrides
   showButton?: boolean;      // Default: true - set to false to hide the floating button
   position?: 'bottom-right' | 'bottom-left';  // Override admin config position
+  onReady?: () => void;  // Callback when widget is fully initialized and ready for programmatic control
 }
 
 export type WidgetView = 'home' | 'contact' | 'search' | 'chat' | 'ai';
