@@ -1,42 +1,59 @@
 
-# Fix: Sidebar Filter Counters Always Showing Zero
+# Per-Inbox Email Templates
 
-## Root Cause
+## What Changes
 
-Both database functions `get_inbox_counts` and `get_all_counts` have a **column name mismatch** between their declared return types and the actual SELECT aliases. PostgreSQL returns 0 for every column because the names don't match.
+Currently there is one email template per organization. Replies from all inboxes (Noddi, Dekkfix, etc.) use the same signature and styling. This fix adds the ability to assign different templates to different inboxes.
 
-**Example from `get_inbox_counts`:**
-- Declared return column: `conversations_all`
-- Actual SELECT alias: `total`
+## Changes Required
 
-Since PostgreSQL maps by name for declared return types, every counter resolves to 0.
+### 1. Database: Add `inbox_id` column to `email_templates`
 
-## The Fix
+A migration to:
+- Add an optional `inbox_id` (uuid, FK to `inboxes.id`) column to `email_templates`
+- Allow multiple templates per org (one per inbox + one org-wide default with `inbox_id = NULL`)
 
-One database migration to update both functions, changing the SELECT aliases to match the declared return column names:
+### 2. Admin UI: Inbox selector on Conversation Reply template
 
-| Current Alias | Required Alias |
+**File: `src/components/settings/EmailTemplateSettings.tsx`**
+
+- Add an inbox dropdown at the top of the "Conversation Reply" tab (only shown for that template type)
+- Options: "Organization Default" (inbox_id = null) + each inbox from the org
+- When an inbox is selected, load/save the template for that specific inbox
+- Uses existing `useQuery` to fetch inboxes from Supabase
+- The query for templates adds `.eq('inbox_id', selectedInboxId)` or `.is('inbox_id', null)` for the default
+
+### 3. Edge Function: Prefer inbox-specific template
+
+**File: `supabase/functions/send-reply-email/index.ts`**
+
+Update the template loading logic (around line 146) to:
+1. First try to load a template matching the conversation's `inbox_id`
+2. If none found, fall back to the org-wide default (where `inbox_id IS NULL`)
+
+```text
+Current:  email_templates WHERE org_id = X AND is_default = true  (single query)
+
+New:      email_templates WHERE org_id = X AND inbox_id = Y       (inbox-specific)
+          if not found ->
+          email_templates WHERE org_id = X AND inbox_id IS NULL   (org default)
+          if not found ->
+          hardcoded fallback
+```
+
+### 4. TypeScript types update
+
+**File: `src/integrations/supabase/types.ts`**
+
+Add `inbox_id: string | null` to the `email_templates` Row/Insert/Update types.
+
+## Summary
+
+| Layer | Change |
 |---|---|
-| `total` | `conversations_all` |
-| `open_count` | `conversations_open` |
-| `unread_count` | `conversations_unread` |
-| `assigned_count` | `conversations_assigned` |
-| `pending_count` | `conversations_pending` |
-| `closed_count` | `conversations_closed` |
-| `archived_count` | `conversations_archived` |
-| `deleted_count` | `conversations_deleted` |
-| `email_count` | `channels_email` |
-| `facebook_count` | `channels_facebook` |
-| `instagram_count` | `channels_instagram` |
-| `whatsapp_count` | `channels_whatsapp` |
-| `unread_notifs` | `notifications_unread` |
+| Database | Add `inbox_id` column to `email_templates` |
+| Admin UI | Add inbox selector dropdown on Conversation Reply template |
+| Edge Function | Load inbox-specific template first, fall back to org default |
+| Types | Add `inbox_id` to TypeScript types |
 
-No frontend code changes are needed -- the frontend already expects the correct names. The fix is entirely in SQL.
-
-## Technical Details
-
-**Migration: Fix `get_inbox_counts` and `get_all_counts` column aliases**
-
-Both functions will be recreated with `CREATE OR REPLACE FUNCTION`, updating every SELECT alias to match the declared return type. For `get_all_counts`, the CTE aliases and final SELECT will also be updated, plus `COALESCE(id.data, '[]'::jsonb)` will be aliased as `inboxes_data`.
-
-This is a safe, non-breaking change -- only the internal aliases change; the return type declaration stays identical.
+This lets you configure a "Dekkfix" signature for the Dekkfix inbox and a "Noddi" signature for other inboxes.
