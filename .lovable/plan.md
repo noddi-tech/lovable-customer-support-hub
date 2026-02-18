@@ -1,48 +1,46 @@
 
-# Add "Copy Documentation for Slack" Button
+# Fix: Deleted Conversations Not Appearing + Stale Counts
 
-## What This Does
+## What Happened
 
-Adds a button to the widget admin page that copies all the widget documentation (embed code, API reference, configuration options, programmatic commands, and code examples) as nicely formatted plain text that pastes well into Slack and other messaging tools.
+The 2 conversations you deleted earlier were **permanently removed** before the soft-delete fix was applied. Unfortunately, those cannot be recovered. Going forward, the soft-delete fix will work -- but there are additional issues to fix.
 
-Slack uses its own markdown-like formatting (`*bold*`, `` `code` ``, ``` ```code blocks``` ```), so the copied text will use that format.
+## Problems Found
 
-## Changes
+### 1. Bulk delete still does hard DELETE
+The bulk delete function in `ConversationListContext.tsx` (used by the bulk actions bar) still permanently deletes messages and conversations instead of soft-deleting them.
 
-**File: `src/components/admin/widget/WidgetEmbedCode.tsx`**
+### 2. Missing cache invalidation after soft-delete
+When a conversation is soft-deleted from the detail view, the code doesn't invalidate React Query caches. This means the sidebar counts and conversation list stay stale until the next automatic refresh.
 
-1. Add a new state variable `copiedDocs` for the copy button feedback.
+### 3. Row-level delete action also hard-deletes
+The per-row delete action in `ConversationTableRow.tsx` (via the conversation list context's `deleteConversation` dispatcher) also needs to be checked for soft-delete compliance.
 
-2. Add a helper function `generateSlackFormattedDocs()` that builds a single string with all documentation formatted for Slack:
+## Fixes
 
-```
-*Noddi Contact Widget - Setup Guide*
+### File: `src/components/dashboard/conversation-view/ConversationViewContent.tsx`
+**Add cache invalidation after soft-delete** (around line 583):
+- After the successful soft-delete update, add:
+  - `queryClient.invalidateQueries({ queryKey: ['conversations'] })`
+  - `queryClient.invalidateQueries({ queryKey: ['inboxCounts'] })`
+  - `queryClient.invalidateQueries({ queryKey: ['all-counts'] })`
+- Import `useQueryClient` from `@tanstack/react-query`
 
-*Installation*
-Paste this before </body>:
-```html
-<!-- embed code here -->
-```
+### File: `src/contexts/ConversationListContext.tsx`
+**Change bulk delete from hard-delete to soft-delete** (lines 828-866):
+- Replace the message hard-delete + conversation hard-delete with a single soft-delete update:
+  ```
+  supabase
+    .from('conversations')
+    .update({ deleted_at: new Date().toISOString() })
+    .in('id', chunk)
+  ```
+- Remove the message deletion step (messages stay linked to the soft-deleted conversation)
+- Add count cache invalidation (`inboxCounts`, `all-counts`)
 
-*Widget Key:* `abc123...`
+## Technical Summary
 
-*Configuration Options*
-| Option | Type | Default | Description |
-| widgetKey | string | required | Your unique widget identifier |
-| apiUrl | string | auto | API endpoint (auto-configured) |
-| showButton | boolean | true | Set to `false` to hide the floating button |
-| position | string | 'bottom-right' | 'bottom-right' or 'bottom-left' |
-
-*Programmatic Commands*
-- `noddi('open')` - Open the widget panel
-- `noddi('close')` - Close the widget panel
-- `noddi('toggle')` - Toggle the widget open/closed
-
-*Code Examples*
-// custom button example
-// position override example
-```
-
-3. Add a "Copy Docs for Slack" button at the top of the page (next to or below the Deploy section), using a clipboard/share icon. On click it copies the formatted text and shows a "Copied!" confirmation.
-
-The button will be placed in a small card at the top of the component, styled consistently with the existing UI.
+| Location | Current Behavior | Fixed Behavior |
+|---|---|---|
+| ConversationViewContent delete button | Soft-deletes but no cache refresh | Soft-deletes + invalidates all caches |
+| ConversationListContext bulkDelete | Hard-deletes messages and conversations | Soft-deletes conversations only |
