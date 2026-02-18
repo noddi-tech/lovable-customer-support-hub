@@ -11,6 +11,8 @@ import { SlackIntegrationSettings } from './SlackIntegrationSettings';
 import { IntegrationSection } from './integrations/IntegrationSection';
 import { IntegrationStatusBadge } from './IntegrationStatusBadge';
 import { InboundRoutesContent } from './integrations/InboundRoutesContent';
+import { SendgridSetupWizard } from './SendgridSetupWizard';
+import { Globe } from 'lucide-react';
 import { ConnectedEmailAccountsContent } from '@/components/dashboard/ConnectedEmailAccounts';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
@@ -134,6 +136,16 @@ export const IntegrationSettings = () => {
             }
           >
             <InboundRoutesContent />
+          </IntegrationSection>
+
+          {/* Domain Setup (SendGrid) */}
+          <IntegrationSection
+            icon={Globe}
+            title="Domain Setup (SendGrid)"
+            description="Add new email domains, create parse routes, and manage DNS records"
+            defaultOpen={false}
+          >
+            <SendgridSetupWizard />
           </IntegrationSection>
 
           {/* Gmail Direct Sync - Secondary */}
