@@ -23,6 +23,8 @@ const REALTIME_CONFIGS: Array<{ table: string; queryKey: string }> = [
   { table: 'messages', queryKey: 'messages' },
   { table: 'messages', queryKey: 'thread-messages' },
   { table: 'messages', queryKey: 'conversation-messages' },
+  { table: 'conversations', queryKey: 'inboxCounts' },
+  { table: 'conversations', queryKey: 'all-counts' },
   { table: 'customers', queryKey: 'customers' },
   // Notifications
   { table: 'notifications', queryKey: 'notifications' },
