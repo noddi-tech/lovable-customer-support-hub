@@ -565,7 +565,7 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Conversation?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the conversation and all its messages.
+              This will move the conversation to trash. You can find it later in the "Deleted" filter.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -574,13 +574,13 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
               onClick={async () => {
                 const { error } = await supabase
                   .from('conversations')
-                  .delete()
+                  .update({ deleted_at: new Date().toISOString() })
                   .eq('id', conversationId);
                 
                 if (error) {
                   toast.error('Failed to delete conversation');
                 } else {
-                  toast.success('Conversation deleted');
+                  toast.success('Conversation moved to trash');
                   const newParams = new URLSearchParams(searchParams);
                   newParams.delete('c');
                   setSearchParams(newParams);
