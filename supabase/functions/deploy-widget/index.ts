@@ -648,12 +648,14 @@ const WIDGET_JS = `
       } // close the else block for config loading check
     }
 
-    // Floating button
-    const btnPos = config?.position === 'bottom-right' ? 'right:20px' : 'left:20px';
-    const btnColor = config?.primaryColor || '#7c3aed';
-    html += '<button class="noddi-widget-button" style="' + btnPos + ';background-color:' + btnColor + '" data-action="toggle">';
-    html += state.isOpen ? icons.close : icons.chat;
-    html += '</button>';
+    // Floating button - only render if showButton is true
+    if (showButton) {
+      const btnPos = config?.position === 'bottom-right' ? 'right:20px' : 'left:20px';
+      const btnColor = config?.primaryColor || '#7c3aed';
+      html += '<button class="noddi-widget-button" style="' + btnPos + ';background-color:' + btnColor + '" data-action="toggle">';
+      html += state.isOpen ? icons.close : icons.chat;
+      html += '</button>';
+    }
 
     html += '</div>';
 
@@ -1006,6 +1008,7 @@ const WIDGET_JS = `
   }
 
   let availabilityInterval = null;
+  let showButton = true;
 
   async function init(options) {
     console.log('[Noddi] init() called with:', options);
@@ -1015,7 +1018,8 @@ const WIDGET_JS = `
     }
 
     apiUrl = options.apiUrl || 'https://qgfaycwsangsqzpveoup.supabase.co/functions/v1';
-    console.log('[Noddi] Using API URL:', apiUrl);
+    showButton = options.showButton !== false;
+    console.log('[Noddi] Using API URL:', apiUrl, 'showButton:', showButton);
 
     injectStyles();
     console.log('[Noddi] Styles injected');
