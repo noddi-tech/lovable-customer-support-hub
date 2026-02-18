@@ -836,28 +836,20 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
     try {
       toast.loading(`Deleting ${ids.length} conversations...`, { id: 'bulk-delete' });
 
-      // First delete all messages in batches
-      for (const chunk of idChunks) {
-        const { error: messagesError } = await supabase
-          .from('messages')
-          .delete()
-          .in('conversation_id', chunk);
-        
-        if (messagesError) throw messagesError;
-      }
-
-      // Then delete all conversations in batches
+      // Soft-delete conversations in batches (messages stay linked)
       for (const chunk of idChunks) {
         const { error: conversationsError } = await supabase
           .from('conversations')
-          .delete()
+          .update({ deleted_at: new Date().toISOString() })
           .in('id', chunk);
         
         if (conversationsError) throw conversationsError;
       }
 
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
-      toast.success(`Deleted ${ids.length} conversations`, { id: 'bulk-delete' });
+      queryClient.invalidateQueries({ queryKey: ['inboxCounts'] });
+      queryClient.invalidateQueries({ queryKey: ['all-counts'] });
+      toast.success(`Moved ${ids.length} conversations to trash`, { id: 'bulk-delete' });
       dispatch({ type: 'CLEAR_BULK_SELECTION' });
     } catch (error) {
       logger.error('Failed to delete conversations', error, 'bulkDelete');

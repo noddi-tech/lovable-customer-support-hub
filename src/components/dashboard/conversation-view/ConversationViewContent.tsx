@@ -581,6 +581,9 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
                   toast.error('Failed to delete conversation');
                 } else {
                   toast.success('Conversation moved to trash');
+                  queryClient.invalidateQueries({ queryKey: ['conversations'] });
+                  queryClient.invalidateQueries({ queryKey: ['inboxCounts'] });
+                  queryClient.invalidateQueries({ queryKey: ['all-counts'] });
                   const newParams = new URLSearchParams(searchParams);
                   newParams.delete('c');
                   setSearchParams(newParams);
