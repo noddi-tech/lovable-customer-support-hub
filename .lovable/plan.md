@@ -1,24 +1,32 @@
 
-# Fix: SendgridWebhookFixer crash on null diagnostics
+
+# Fix: Show hostname in MX record display
 
 ## Problem
 
-When expanding the "Domain Setup (SendGrid)" section, the `SendgridWebhookFixer` component crashes with `Cannot read properties of null (reading 'environment')`. The diagnostics data is fetched asynchronously, but the render code accesses `diagnostics.environment` before checking if `diagnostics` is null.
+When the SendGrid setup returns `ok: false` (sender auth required), the API response omits the `hostname` field. The UI at line 242 of `SendgridSetupWizard.tsx` renders `{result.hostname}` which is undefined, so the Host field appears blank.
 
 ## Fix
 
-**File: `src/components/admin/SendgridWebhookFixer.tsx`**
+**File: `src/components/admin/SendgridSetupWizard.tsx`**
 
-Swap the condition order on the line that checks for missing inbound token (around line 211):
+On line 242, add a fallback that computes the hostname from the form values when `result.hostname` is missing:
 
-From:
+Change:
 ```
-{!diagnostics.environment?.hasInboundToken && diagnostics && (
+<span>{result.hostname}</span>
 ```
 
 To:
 ```
-{diagnostics && !diagnostics.environment?.hasInboundToken && (
+<span>{result.hostname || `${form.getValues().parse_subdomain}.${form.getValues().domain}`}</span>
 ```
 
-This ensures `diagnostics` is checked for null first, before accessing its `environment` property. A one-line fix.
+This ensures the MX Host always shows (e.g. `inbound.dekkfix.no`) regardless of whether the API included it in the response.
+
+**File: `supabase/functions/sendgrid-setup/index.ts`**
+
+Also add `hostname` to the error response (around line 126-133) so future responses always include it:
+
+Add `hostname,` to the `ok: false` response object.
+
