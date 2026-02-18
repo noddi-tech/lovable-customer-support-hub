@@ -91,13 +91,19 @@ export function useDomainConfiguration() {
 
   const generateForwardingAddress = (email: string, configuredDomain?: DomainConfig) => {
     const localPart = email.split('@')[0];
+    const emailDomain = email.split('@')[1]?.toLowerCase();
     const domain = configuredDomain || getConfiguredDomain();
-    
-    if (domain) {
+
+    if (domain && domain.domain === emailDomain) {
       return `${localPart}@${domain.parse_subdomain}.${domain.domain}`;
     }
-    
-    // Fallback - this shouldn't happen in production
+
+    // For unconfigured domains, use the email's own domain with default subdomain
+    if (emailDomain) {
+      return `${localPart}@inbound.${emailDomain}`;
+    }
+
+    // Fallback
     return `${localPart}@inbound.noddi.no`;
   };
 
