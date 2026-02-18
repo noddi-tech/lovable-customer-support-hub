@@ -1,42 +1,47 @@
 
 
-# Improve SendGrid Retry UX with Progress Feedback
+# Fix: Deleted conversations not appearing in "Deleted" filter
 
 ## Problem
 
-After clicking "Verify DNS & Retry", the UI goes silent for up to 2 minutes while it retries creating the parse route in the background. The user sees "Creating parse route now..." toast but then nothing until it either succeeds or shows "Still pending".
+When you delete a conversation, it's being **permanently removed** from the database instead of being soft-deleted. That's why the "Deleted" filter always shows 0 -- the conversations no longer exist at all.
 
-## Changes
+## Root Cause
 
-**File: `src/components/admin/SendgridSetupWizard.tsx`**
+The delete button in the conversation detail view (`ConversationViewContent.tsx`, line 575) uses a **hard DELETE**:
+```
+supabase.from('conversations').delete().eq('id', conversationId)
+```
 
-1. Add a `retryStatus` state variable (line ~24):
-   ```
-   const [retryStatus, setRetryStatus] = useState<string | null>(null);
-   ```
+This permanently removes the row instead of setting the `deleted_at` timestamp (soft delete), which is what the "Deleted" filter looks for.
 
-2. In the parse route retry loop (lines 147-163), add progress updates before each attempt:
-   ```
-   setRetryStatus(`Creating parse route... attempt ${c}/6`);
-   ```
-   - Reduce from 12 attempts to 6 (60 seconds max instead of 2 minutes)
+The same issue exists in several other files:
+- `ConversationCleanup.tsx` (admin tool -- may be intentionally permanent)
+- `DeleteAllButton.tsx` (admin tool -- may be intentionally permanent)
+- `ThreadMerger.tsx` (merges duplicates -- intentionally permanent)
+- `InboxManagement.tsx` (bulk inbox deletion -- intentionally permanent)
 
-3. In the validation polling loop (lines 137-168), add progress updates:
-   ```
-   setRetryStatus(`Validating sender auth... attempt ${attempt}/12`);
-   ```
+## Fix
 
-4. Clear status in the `finally` block (line 176):
-   ```
-   setRetryStatus(null);
-   ```
+**File: `src/components/dashboard/conversation-view/ConversationViewContent.tsx`** (lines 574-587)
 
-5. Add a progress indicator in the JSX near the buttons (after line ~220):
-   ```jsx
-   {retryStatus && (
-     <p className="text-sm text-muted-foreground animate-pulse">{retryStatus}</p>
-   )}
-   ```
+Change the hard delete to a soft delete by replacing `.delete()` with `.update({ deleted_at: new Date().toISOString() })`:
 
-6. After retries exhaust, show an info banner instead of only a destructive toast -- indicating DNS is verified and the user just needs to wait and try again.
+```typescript
+const { error } = await supabase
+  .from('conversations')
+  .update({ deleted_at: new Date().toISOString() })
+  .eq('id', conversationId);
+
+if (error) {
+  toast.error('Failed to delete conversation');
+} else {
+  toast.success('Conversation moved to trash');
+  // ... existing URL cleanup
+}
+```
+
+Also update the dialog description text from "permanently delete" to "move to trash", since soft-deleted conversations can be recovered.
+
+The admin tools (ConversationCleanup, DeleteAllButton, InboxManagement, ThreadMerger) will be left as hard deletes since they serve administrative/cleanup purposes.
 
