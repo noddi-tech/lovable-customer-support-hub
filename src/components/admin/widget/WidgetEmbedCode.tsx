@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Copy, Check, ExternalLink, Rocket, Loader2, ChevronDown, BookOpen, Code } from 'lucide-react';
+import { Copy, Check, ExternalLink, Rocket, Loader2, ChevronDown, BookOpen, Code, Share2 } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,6 +15,7 @@ export const WidgetEmbedCode: React.FC<WidgetEmbedCodeProps> = ({ widgetKey }) =
   const [apiRefOpen, setApiRefOpen] = useState(false);
   const [examplesOpen, setExamplesOpen] = useState(false);
   const [copiedExample, setCopiedExample] = useState<string | null>(null);
+  const [copiedDocs, setCopiedDocs] = useState(false);
 
   // Use the production Supabase URL
   const supabaseUrl = 'https://qgfaycwsangsqzpveoup.supabase.co';
@@ -98,8 +99,90 @@ document.querySelector('#my-help-btn').addEventListener('click', () => {
     }
   };
 
+  const generateSlackFormattedDocs = () => {
+    return `*Noddi Contact Widget - Setup Guide*
+
+*Installation*
+Paste this before \`</body>\`:
+\`\`\`
+${embedCode}
+\`\`\`
+
+*Widget Key:* \`${widgetKey}\`
+
+*Configuration Options*
+• \`widgetKey\` (string, required) — Your unique widget identifier
+• \`apiUrl\` (string, auto) — API endpoint (auto-configured)
+• \`showButton\` (boolean, \`true\`) — Set to \`false\` to hide the floating button
+• \`position\` (string, \`'bottom-right'\`) — \`'bottom-right'\` or \`'bottom-left'\`
+
+*Programmatic Commands*
+• \`noddi('open')\` — Open the widget panel
+• \`noddi('close')\` — Close the widget panel
+• \`noddi('toggle')\` — Toggle the widget open/closed
+
+*Code Examples*
+
+_Custom Button Integration:_
+\`\`\`
+${customButtonExample}
+\`\`\`
+
+_Position Override:_
+\`\`\`
+${positionExample}
+\`\`\`
+
+*Testing*
+Config API: ${supabaseUrl}/functions/v1/widget-config?key=${widgetKey}`;
+  };
+
+  const handleCopyDocs = async () => {
+    try {
+      await navigator.clipboard.writeText(generateSlackFormattedDocs());
+      setCopiedDocs(true);
+      toast.success('Documentation copied for Slack');
+      setTimeout(() => setCopiedDocs(false), 2000);
+    } catch (err) {
+      toast.error('Failed to copy documentation');
+    }
+  };
+
   return (
     <div className="space-y-6">
+      <div className="flex gap-3">
+        <Card className="flex-1 border-primary/20 bg-primary/5">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Share2 className="h-4 w-4" />
+              Share Documentation
+            </CardTitle>
+            <CardDescription>
+              Copy all widget docs formatted for Slack or other messaging tools
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button
+              onClick={handleCopyDocs}
+              variant="outline"
+              className="gap-2"
+            >
+              {copiedDocs ? (
+                <>
+                  <Check className="h-4 w-4" />
+                  Copied!
+                </>
+              ) : (
+                <>
+                  <Copy className="h-4 w-4" />
+                  Copy Docs for Slack
+                </>
+              )}
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+
       <Card className="border-primary/20 bg-primary/5">
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
