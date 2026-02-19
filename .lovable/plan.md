@@ -1,46 +1,72 @@
 
 
-# Fix: Widget Ignores `showButton: false`
+# Fix: Widget `open`/`close`/`toggle` Commands Not Working
 
-## Problem
+## Root Cause
 
-Your embed code correctly passes `showButton: false`, but the deployed widget bundle (hardcoded JS in the Edge Function) has no code to read or use that option. The floating button always renders.
+The hardcoded widget bundle's global API only handles the `init` command. When your code calls `noddi('open')`, it logs "API called: open undefined" but does nothing because there is no handler for `open`, `close`, or `toggle`.
+
+Two places need fixing in `supabase/functions/deploy-widget/index.ts`:
 
 ## Changes
 
-**File: `supabase/functions/deploy-widget/index.ts`**
+### 1. Add `open`/`close`/`toggle` to the API handler (line 1079-1082)
 
-### 1. Add a module-level variable (near line 1008)
-
-Add `let showButton = true;` alongside the existing state variables.
-
-### 2. Capture the option during init (line 1010-1017)
-
-Inside the `init()` function, after validating `widgetKey`, store the option:
-
-```
-showButton = options.showButton !== false;
+Current code only handles `init`:
+```javascript
+const api = function(cmd, opts) {
+  console.log('[Noddi] API called:', cmd, opts);
+  if (cmd === 'init') init(opts);
+};
 ```
 
-### 3. Conditionally render the button (lines 651-656)
-
-Wrap the floating button HTML in a check:
-
+Updated to handle all commands:
+```javascript
+const api = function(cmd, opts) {
+  console.log('[Noddi] API called:', cmd, opts);
+  if (cmd === 'init') init(opts);
+  else if (cmd === 'open') { state.isOpen = true; render(); }
+  else if (cmd === 'close') { state.isOpen = false; render(); }
+  else if (cmd === 'toggle') { state.isOpen = !state.isOpen; render(); }
+};
 ```
-if (showButton) {
-  const btnPos = ...;
-  const btnColor = ...;
-  html += '<button ...>';
-  html += state.isOpen ? icons.close : icons.chat;
-  html += '</button>';
-}
+
+### 2. Add `open`/`close`/`toggle` to queue processing (line 1071-1076)
+
+Current queue processing only handles `init`:
+```javascript
+q.forEach(args => {
+  console.log('[Noddi] Processing command:', args[0], args[1]);
+  if (args[0] === 'init') init(args[1]);
+});
+```
+
+Updated to handle all queued commands:
+```javascript
+q.forEach(args => {
+  console.log('[Noddi] Processing command:', args[0], args[1]);
+  api(args[0], args[1]);
+});
+```
+
+### 3. Add named methods to the API object (after line 1083)
+
+Add convenience methods so `NoddiWidget.open()` etc. also work:
+```javascript
+api.open = function() { state.isOpen = true; render(); };
+api.close = function() { state.isOpen = false; render(); };
+api.toggle = function() { state.isOpen = !state.isOpen; render(); };
 ```
 
 ## After Code Change
 
-Since this is an Edge Function, it deploys automatically. Then click **"Deploy to Production"** once more in Admin > Widget to push the updated bundle to Supabase Storage.
+The Edge Function deploys automatically. Then click **"Deploy to Production"** once more in Admin > Widget to push the updated bundle to Supabase Storage.
 
 ## Summary
 
-3 small edits in one file. No new dependencies. Your existing embed code will work as-is once deployed.
+| Area | What |
+|---|---|
+| File | `supabase/functions/deploy-widget/index.ts` |
+| Changes | 3 small edits adding open/close/toggle command handling |
+| Root cause | API handler only recognized `init`, silently ignored all other commands |
 
