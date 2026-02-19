@@ -214,6 +214,7 @@ const WIDGET_JS = `
   let pollInterval = null;
   let heartbeatInterval = null;
   let container = null;
+  let initPosition = null;
 
   // ========== API ==========
   async function fetchConfig(widgetKey) {
@@ -418,7 +419,7 @@ const WIDGET_JS = `
 
     // Panel
     if (state.isOpen) {
-      const pos = config?.position === 'bottom-right' ? 'right:20px' : 'left:20px';
+      const pos = (config?.position || initPosition) === 'bottom-right' ? 'right:20px' : 'left:20px';
       
       // Show loading state while config is being fetched
       if (configLoading || !config) {
@@ -1019,7 +1020,8 @@ const WIDGET_JS = `
 
     apiUrl = options.apiUrl || 'https://qgfaycwsangsqzpveoup.supabase.co/functions/v1';
     showButton = options.showButton !== false;
-    console.log('[Noddi] Using API URL:', apiUrl, 'showButton:', showButton);
+    initPosition = options.position || null;
+    console.log('[Noddi] Using API URL:', apiUrl, 'showButton:', showButton, 'initPosition:', initPosition);
 
     injectStyles();
     console.log('[Noddi] Styles injected');
