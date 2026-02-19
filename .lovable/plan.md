@@ -1,72 +1,40 @@
 
+# Fix: Loading State Ignores `position` Argument
 
-# Fix: Widget `open`/`close`/`toggle` Commands Not Working
+## Problem
 
-## Root Cause
-
-The hardcoded widget bundle's global API only handles the `init` command. When your code calls `noddi('open')`, it logs "API called: open undefined" but does nothing because there is no handler for `open`, `close`, or `toggle`.
-
-Two places need fixing in `supabase/functions/deploy-widget/index.ts`:
-
-## Changes
-
-### 1. Add `open`/`close`/`toggle` to the API handler (line 1079-1082)
-
-Current code only handles `init`:
-```javascript
-const api = function(cmd, opts) {
-  console.log('[Noddi] API called:', cmd, opts);
-  if (cmd === 'init') init(opts);
-};
+When the widget panel opens before the config has loaded, the position is calculated at line 421:
+```
+const pos = config?.position === 'bottom-right' ? 'right:20px' : 'left:20px';
 ```
 
-Updated to handle all commands:
+Since `config` is `null` during loading, this always evaluates to `left:20px`, regardless of the `position` passed in the init options.
+
+## Fix
+
+**File: `supabase/functions/deploy-widget/index.ts`**
+
+### 1. Store `position` from init options (around line 1021)
+
+Add a module-level variable and capture it during init:
+
 ```javascript
-const api = function(cmd, opts) {
-  console.log('[Noddi] API called:', cmd, opts);
-  if (cmd === 'init') init(opts);
-  else if (cmd === 'open') { state.isOpen = true; render(); }
-  else if (cmd === 'close') { state.isOpen = false; render(); }
-  else if (cmd === 'toggle') { state.isOpen = !state.isOpen; render(); }
-};
+let initPosition = null; // add near showButton declaration
+
+// Inside init():
+initPosition = options.position || null;
 ```
 
-### 2. Add `open`/`close`/`toggle` to queue processing (line 1071-1076)
+### 2. Use `initPosition` as fallback in the render function (line 421)
 
-Current queue processing only handles `init`:
+Update the position calculation to fall back to the init option when config is not yet loaded:
+
 ```javascript
-q.forEach(args => {
-  console.log('[Noddi] Processing command:', args[0], args[1]);
-  if (args[0] === 'init') init(args[1]);
-});
+const pos = (config?.position || initPosition) === 'bottom-right' ? 'right:20px' : 'left:20px';
 ```
 
-Updated to handle all queued commands:
-```javascript
-q.forEach(args => {
-  console.log('[Noddi] Processing command:', args[0], args[1]);
-  api(args[0], args[1]);
-});
-```
-
-### 3. Add named methods to the API object (after line 1083)
-
-Add convenience methods so `NoddiWidget.open()` etc. also work:
-```javascript
-api.open = function() { state.isOpen = true; render(); };
-api.close = function() { state.isOpen = false; render(); };
-api.toggle = function() { state.isOpen = !state.isOpen; render(); };
-```
-
-## After Code Change
-
-The Edge Function deploys automatically. Then click **"Deploy to Production"** once more in Admin > Widget to push the updated bundle to Supabase Storage.
+This single expression checks `config.position` first (once loaded), then falls back to the `initPosition` passed during init.
 
 ## Summary
 
-| Area | What |
-|---|---|
-| File | `supabase/functions/deploy-widget/index.ts` |
-| Changes | 3 small edits adding open/close/toggle command handling |
-| Root cause | API handler only recognized `init`, silently ignored all other commands |
-
+Two small edits in one file. The loading spinner will now appear on the correct side immediately. After the code change, click **"Deploy to Production"** in Admin > Widget to update the live bundle.
