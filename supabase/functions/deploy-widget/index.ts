@@ -1071,7 +1071,7 @@ const WIDGET_JS = `
     if (q && Array.isArray(q)) {
       q.forEach(args => {
         console.log('[Noddi] Processing command:', args[0], args[1]);
-        if (args[0] === 'init') init(args[1]);
+        api(args[0], args[1]);
       });
     }
   }
@@ -1079,8 +1079,14 @@ const WIDGET_JS = `
   const api = function(cmd, opts) {
     console.log('[Noddi] API called:', cmd, opts);
     if (cmd === 'init') init(opts);
+    else if (cmd === 'open') { state.isOpen = true; render(); }
+    else if (cmd === 'close') { state.isOpen = false; render(); }
+    else if (cmd === 'toggle') { state.isOpen = !state.isOpen; render(); }
   };
   api.init = init;
+  api.open = function() { state.isOpen = true; render(); };
+  api.close = function() { state.isOpen = false; render(); };
+  api.toggle = function() { state.isOpen = !state.isOpen; render(); };
   api.q = (window.NoddiWidget && window.NoddiWidget.q) || [];
 
   console.log('[Noddi] Setting up global API, existing queue:', api.q);
