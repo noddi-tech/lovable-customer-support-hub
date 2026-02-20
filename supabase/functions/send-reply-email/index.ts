@@ -248,6 +248,33 @@ const handler = async (req: Request): Promise<Response> => {
     const SENDGRID_API_KEY = Deno.env.get('SENDGRID_API_KEY');
     if (!SENDGRID_API_KEY) throw new Error('SENDGRID_API_KEY is not configured');
 
+    // Process attachments from message metadata
+    const sgAttachments: { content: string; filename: string; type: string; disposition: string }[] = [];
+    if (message.attachments && Array.isArray(message.attachments)) {
+      for (const att of message.attachments as any[]) {
+        if (!att.storageKey) continue;
+        try {
+          const { data: fileData, error: dlError } = await supabaseClient.storage
+            .from('message-attachments')
+            .download(att.storageKey);
+          if (dlError || !fileData) {
+            console.warn('Failed to download attachment:', att.storageKey, dlError);
+            continue;
+          }
+          const arrayBuffer = await fileData.arrayBuffer();
+          const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+          sgAttachments.push({
+            content: base64,
+            filename: att.filename || 'attachment',
+            type: att.mimeType || 'application/octet-stream',
+            disposition: att.isInline ? 'inline' : 'attachment',
+          });
+        } catch (attErr) {
+          console.warn('Error processing attachment:', att.storageKey, attErr);
+        }
+      }
+    }
+
     const messageIdHeader = createMessageId(fromEmailFinal);
     const headers: Record<string, string> = {
       'Message-ID': messageIdHeader,
@@ -272,6 +299,7 @@ const handler = async (req: Request): Promise<Response> => {
         { type: 'text/html', value: emailHTML },
       ],
       headers,
+      ...(sgAttachments.length > 0 ? { attachments: sgAttachments } : {}),
     } as any;
 
     console.log('Sending via SendGrid to:', toEmail, 'from:', fromEmailFinal);

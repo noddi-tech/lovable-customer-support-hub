@@ -155,7 +155,7 @@ interface ConversationViewContextType {
   isLoading: boolean;
   messagesLoading: boolean;
   conversationIds?: string | string[];
-  sendReply: (content: string, isInternal: boolean, status?: string) => Promise<void>;
+  sendReply: (content: string, isInternal: boolean, status?: string, files?: File[]) => Promise<void>;
   assignConversation: (userId: string) => Promise<void>;
   moveConversation: (inboxId: string) => Promise<void>;
   updateStatus: (updates: { status?: string; isArchived?: boolean }) => Promise<void>;
@@ -294,8 +294,40 @@ export const ConversationViewProvider = ({ children, conversationId, conversatio
 
   // Send reply mutation
   const sendReplyMutation = useMutation({
-    mutationFn: async ({ content, isInternal, status }: { content: string; isInternal: boolean; status?: string }) => {
+    mutationFn: async ({ content, isInternal, status, files }: { content: string; isInternal: boolean; status?: string; files?: File[] }) => {
       if (!conversationId) throw new Error('No conversation ID');
+
+      // Upload attachments to storage if any
+      let attachmentsMeta: any[] | null = null;
+      if (files && files.length > 0) {
+        const orgId = conversation?.organization_id;
+        if (!orgId) throw new Error('No organization ID for file upload');
+        
+        attachmentsMeta = [];
+        for (const file of files) {
+          const uniqueName = `${crypto.randomUUID()}_${file.name}`;
+          const storagePath = `${orgId}/${conversationId}/${uniqueName}`;
+          
+          const { error: uploadError } = await supabase.storage
+            .from('message-attachments')
+            .upload(storagePath, file);
+          
+          if (uploadError) {
+            logger.warn('Failed to upload attachment', uploadError, 'ConversationViewProvider');
+            toast.error(`Failed to upload ${file.name}`);
+            continue;
+          }
+          
+          attachmentsMeta.push({
+            filename: file.name,
+            mimeType: file.type || 'application/octet-stream',
+            size: file.size,
+            storageKey: storagePath,
+            isInline: false,
+          });
+        }
+        if (attachmentsMeta.length === 0) attachmentsMeta = null;
+      }
 
       const { data: message, error: insertError } = await supabase
         .from('messages')
@@ -303,9 +335,10 @@ export const ConversationViewProvider = ({ children, conversationId, conversatio
           conversation_id: conversationId,
           content,
           sender_type: 'agent',
-          sender_id: user.id,  // Critical: Set sender_id for proper author attribution
+          sender_id: user.id,
           is_internal: isInternal,
-          content_type: 'text/plain'
+          content_type: 'text/plain',
+          ...(attachmentsMeta ? { attachments: attachmentsMeta } : {}),
         })
         .select()
         .single();
@@ -671,10 +704,10 @@ export const ConversationViewProvider = ({ children, conversationId, conversatio
     },
   });
 
-  const sendReply = async (content: string, isInternal: boolean, status?: string) => {
+  const sendReply = async (content: string, isInternal: boolean, status?: string, files?: File[]) => {
     dispatch({ type: 'SET_SEND_LOADING', payload: true });
     try {
-      await sendReplyMutation.mutateAsync({ content, isInternal, status });
+      await sendReplyMutation.mutateAsync({ content, isInternal, status, files });
     } finally {
       dispatch({ type: 'SET_SEND_LOADING', payload: false });
     }

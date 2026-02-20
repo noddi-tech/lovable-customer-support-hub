@@ -16,7 +16,10 @@ import {
   Database,
   Eye,
   Star,
-  StickyNote
+  StickyNote,
+  Paperclip,
+  X,
+  FileIcon
 } from "lucide-react";
 import { useConversationView } from "@/contexts/ConversationViewContext";
 import { useTranslation } from "react-i18next";
@@ -58,10 +61,45 @@ export const ReplyArea = () => {
   const { clearConversation } = useInteractionsNavigation();
   const { processMentions } = useMentionNotifications();
   const replyRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [replyStatus, setReplyStatus] = React.useState<string>('pending');
   const [selectedSuggestionForDialog, setSelectedSuggestionForDialog] = useState<string | null>(null);
   const [originalSuggestionText, setOriginalSuggestionText] = useState<string>('');
   const [mentionedUserIds, setMentionedUserIds] = useState<string[]>([]);
+  const [attachments, setAttachments] = useState<{ file: File; previewUrl: string }[]>([]);
+
+  const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    const validFiles: { file: File; previewUrl: string }[] = [];
+    
+    for (const file of files) {
+      if (file.size > MAX_FILE_SIZE) {
+        toast.error(`${file.name} exceeds 10MB limit`);
+        continue;
+      }
+      validFiles.push({ file, previewUrl: URL.createObjectURL(file) });
+    }
+    
+    setAttachments(prev => [...prev, ...validFiles]);
+    // Reset input so the same file can be selected again
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const removeAttachment = (index: number) => {
+    setAttachments(prev => {
+      const removed = prev[index];
+      if (removed) URL.revokeObjectURL(removed.previewUrl);
+      return prev.filter((_, i) => i !== index);
+    });
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
 
   // Available languages for translation
   const languages = [
@@ -99,6 +137,9 @@ export const ReplyArea = () => {
     dispatch({ type: 'SET_SHOW_REPLY_AREA', payload: false });
     dispatch({ type: 'SET_IS_INTERNAL_NOTE', payload: false });
     setMentionedUserIds([]);
+    // Clear attachments
+    const currentAttachments = [...attachments];
+    setAttachments([]);
     
     // Show toast immediately
     toast.success(isInternal ? 'Internal note added' : 'Reply sent');
@@ -107,7 +148,7 @@ export const ReplyArea = () => {
     clearConversation();
     
     // Fire mutation in background (non-blocking)
-    sendReply(replyText, isInternal, replyStatus)
+    sendReply(replyText, isInternal, replyStatus, currentAttachments.map(a => a.file))
       .then(() => {
         // Process mentions after successful send
         if (isInternal && currentMentionedUserIds.length > 0 && conversationIdForMentions) {
@@ -354,6 +395,28 @@ export const ReplyArea = () => {
                   {!isMobile && <span className="text-xs">Translate</span>}
                 </Button>
               </PopoverTrigger>
+
+            {/* Attachment Button */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              className="hidden"
+              onChange={handleFileSelect}
+            />
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => fileInputRef.current?.click()}
+              className="gap-2"
+              title="Attach files"
+            >
+              <Paperclip className="h-4 w-4" />
+              {!isMobile && <span className="text-xs">Attach</span>}
+              {attachments.length > 0 && (
+                <Badge variant="secondary" className="text-xs px-1.5 py-0 h-5">{attachments.length}</Badge>
+              )}
+            </Button>
               <PopoverContent className="w-80 bg-popover border border-border shadow-md z-50" align="end">
                 <div className="space-y-3">
                   <h4 className="font-medium text-sm">{t('conversation.translate')}</h4>
@@ -466,7 +529,28 @@ export const ReplyArea = () => {
           </p>
         </div>
 
-        {/* Action Buttons */}
+        {/* Attachment Previews */}
+        {attachments.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {attachments.map((att, index) => (
+              <div
+                key={index}
+                className="flex items-center gap-2 px-3 py-1.5 bg-muted rounded-md border text-sm group"
+              >
+                <FileIcon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                <span className="truncate max-w-[150px]">{att.file.name}</span>
+                <span className="text-xs text-muted-foreground">{formatFileSize(att.file.size)}</span>
+                <button
+                  onClick={() => removeAttachment(index)}
+                  className="ml-1 text-muted-foreground hover:text-destructive transition-colors"
+                  type="button"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
         <div className="flex items-center justify-between gap-3">
           <Button
             variant="ghost"
