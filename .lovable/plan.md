@@ -1,40 +1,72 @@
 
-# Fix: Loading State Ignores `position` Argument
+
+# Add Attachments to Reply Messages
 
 ## Problem
 
-When the widget panel opens before the config has loaded, the position is calculated at line 421:
-```
-const pos = config?.position === 'bottom-right' ? 'right:20px' : 'left:20px';
-```
+The reply area has no way to attach files when composing replies. The infrastructure partially exists (a `message-attachments` storage bucket, an `attachments` JSONB column on `messages`, and the `send-reply-email` Edge Function), but the UI is missing and the Edge Function doesn't include attachments in outgoing emails.
 
-Since `config` is `null` during loading, this always evaluates to `left:20px`, regardless of the `position` passed in the init options.
+## What Will Be Built
 
-## Fix
+1. **Attachment picker UI** in the ReplyArea (paperclip button, file previews with remove, drag-and-drop)
+2. **Upload files** to the existing `message-attachments` Supabase Storage bucket
+3. **Store attachment metadata** in the `messages.attachments` JSONB column (same format as inbound emails)
+4. **Send attachments with outgoing emails** via SendGrid's attachment API
+5. **Storage policy** so authenticated agents can upload files
 
-**File: `supabase/functions/deploy-widget/index.ts`**
+## Technical Details
 
-### 1. Store `position` from init options (around line 1021)
+### 1. Storage RLS Policy (SQL migration)
 
-Add a module-level variable and capture it during init:
+The `message-attachments` bucket currently only allows INSERT for service role. Add a policy so authenticated users (agents) can upload:
 
-```javascript
-let initPosition = null; // add near showButton declaration
-
-// Inside init():
-initPosition = options.position || null;
-```
-
-### 2. Use `initPosition` as fallback in the render function (line 421)
-
-Update the position calculation to fall back to the init option when config is not yet loaded:
-
-```javascript
-const pos = (config?.position || initPosition) === 'bottom-right' ? 'right:20px' : 'left:20px';
+```sql
+CREATE POLICY "Authenticated users can upload attachments"
+ON storage.objects FOR INSERT TO authenticated
+WITH CHECK (bucket_id = 'message-attachments');
 ```
 
-This single expression checks `config.position` first (once loaded), then falls back to the `initPosition` passed during init.
+### 2. ReplyArea UI Changes (`src/components/dashboard/conversation-view/ReplyArea.tsx`)
 
-## Summary
+- Add a `Paperclip` icon button (already imported as `lucide-react` icon) next to the Translate button
+- Add local state: `attachments: { file: File; previewUrl: string }[]`
+- File input (hidden) triggered by the paperclip button, accepting multiple files
+- Render attachment preview chips below the toolbar (filename, size, remove button)
+- Pass attachments array into `sendReply()`
 
-Two small edits in one file. The loading spinner will now appear on the correct side immediately. After the code change, click **"Deploy to Production"** in Admin > Widget to update the live bundle.
+### 3. ConversationViewContext Changes (`src/contexts/ConversationViewContext.tsx`)
+
+- Update `sendReply` signature to accept optional attachments: `sendReply(content, isInternal, status, attachments?)`
+- In `sendReplyMutation`:
+  - Upload each file to `message-attachments` bucket under `{org_id}/{conversation_id}/{uuid}_{filename}`
+  - Build attachment metadata array matching the existing `EmailAttachment` format:
+    ```json
+    { "filename": "doc.pdf", "mimeType": "application/pdf", "size": 12345, "storageKey": "org/.../doc.pdf", "isInline": false }
+    ```
+  - Include attachments in the message INSERT
+
+### 4. send-reply-email Edge Function (`supabase/functions/send-reply-email/index.ts`)
+
+- After building the SendGrid payload, check `message.attachments`
+- For each attachment with a `storageKey`, download from `message-attachments` bucket
+- Convert to base64 and add to SendGrid's `attachments` array:
+  ```json
+  { "content": "<base64>", "filename": "doc.pdf", "type": "application/pdf", "disposition": "attachment" }
+  ```
+
+### 5. File Structure
+
+No new files needed. Changes to:
+
+| File | Change |
+|---|---|
+| SQL migration | Add upload RLS policy for `message-attachments` |
+| `ReplyArea.tsx` | Paperclip button, file state, preview chips |
+| `ConversationViewContext.tsx` | Upload files to storage, attach metadata to message |
+| `send-reply-email/index.ts` | Download attachments from storage and include in SendGrid payload |
+
+### Constraints
+
+- Max file size: 10MB per file (SendGrid limit is 30MB total)
+- Reuses existing `message-attachments` bucket and `messages.attachments` JSONB column
+- Attachment format matches inbound email attachments for consistency
