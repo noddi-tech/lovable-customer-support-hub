@@ -1,72 +1,73 @@
 
 
-# Add Attachments to Reply Messages
+# Fix All Console Warnings
 
-## Problem
+## Summary
 
-The reply area has no way to attach files when composing replies. The infrastructure partially exists (a `message-attachments` storage bucket, an `attachments` JSONB column on `messages`, and the `send-reply-email` Edge Function), but the UI is missing and the Edge Function doesn't include attachments in outgoing emails.
+Three categories of warnings found in the console. All fixes are additive or log-gating changes with zero risk of breaking functionality.
 
-## What Will Be Built
+## 1. Missing i18n Translation Keys
 
-1. **Attachment picker UI** in the ReplyArea (paperclip button, file previews with remove, drag-and-drop)
-2. **Upload files** to the existing `message-attachments` Supabase Storage bucket
-3. **Store attachment metadata** in the `messages.attachments` JSONB column (same format as inbound emails)
-4. **Send attachments with outgoing emails** via SendGrid's attachment API
-5. **Storage policy** so authenticated agents can upload files
+**Problem**: 10 keys used in `ConversationListHeader.tsx` are missing from `en/common.json` (and other locale files), causing `[i18n MISSING]` warnings. They all have inline fallback strings so the UI works, but logs are noisy.
 
-## Technical Details
+**Missing keys to add under `dashboard.conversationList`:**
 
-### 1. Storage RLS Policy (SQL migration)
+| Key | Value (English) |
+|---|---|
+| `new` | `New` |
+| `filters` | `Filters` |
+| `filterConversations` | `Filter Conversations` |
+| `markAllRead` | `Mark all read` |
+| `sortLatest` | `Latest` |
+| `sortOldest` | `Oldest` |
+| `sortPriority` | `Priority` |
+| `sortUnread` | `Unread First` |
+| `activeFilters` | `Active filters:` |
+| `clearAll` | `Clear all` |
 
-The `message-attachments` bucket currently only allows INSERT for service role. Add a policy so authenticated users (agents) can upload:
+**Files to update:**
+- `src/locales/en/common.json` — add all 10 keys
+- `src/locales/no/common.json` — add Norwegian translations
+- `src/locales/de/common.json` — add German translations
+- `src/locales/sv/common.json` — add Swedish translations
+- `src/locales/da/common.json` — add Danish translations
+- `src/locales/nl/common.json` — add Dutch translations
+- `src/locales/fr/common.json` — add French translations
+- `src/locales/es/common.json` — add Spanish translations
+- `src/locales/it/common.json` — add Italian translations
+- `src/locales/pt/common.json` — add Portuguese translations
 
-```sql
-CREATE POLICY "Authenticated users can upload attachments"
-ON storage.objects FOR INSERT TO authenticated
-WITH CHECK (bucket_id = 'message-attachments');
+**Risk**: None. Adding keys to JSON files cannot break anything.
+
+## 2. Excessive AircallLoginModal Logging
+
+**Problem**: `AircallLoginModal.tsx` has a `console.log('[AircallLoginModal] Render:', ...)` call at line 159 that fires on every render (8+ times on page load), even when the modal is closed. The `useEffect` debug log at line 44 also fires repeatedly.
+
+**Fix**: Wrap both debug logs in `import.meta.env.DEV` checks so they only appear in development:
+
+```typescript
+// Line 159 - render log
+if (import.meta.env.DEV) {
+  console.log('[AircallLoginModal] Render:', { ... });
+}
+
+// Line 44 - state change log  
+if (import.meta.env.DEV) {
+  console.log('[AircallLoginModal] State changed:', { ... });
+}
 ```
 
-### 2. ReplyArea UI Changes (`src/components/dashboard/conversation-view/ReplyArea.tsx`)
+**File**: `src/components/dashboard/voice/AircallLoginModal.tsx`
 
-- Add a `Paperclip` icon button (already imported as `lucide-react` icon) next to the Translate button
-- Add local state: `attachments: { file: File; previewUrl: string }[]`
-- File input (hidden) triggered by the paperclip button, accepting multiple files
-- Render attachment preview chips below the toolbar (filename, size, remove button)
-- Pass attachments array into `sendReply()`
+**Risk**: None. Only suppresses debug logs in production. Modal functionality is unchanged.
 
-### 3. ConversationViewContext Changes (`src/contexts/ConversationViewContext.tsx`)
+## 3. Tailwind CDN Warning (No Action)
 
-- Update `sendReply` signature to accept optional attachments: `sendReply(content, isInternal, status, attachments?)`
-- In `sendReplyMutation`:
-  - Upload each file to `message-attachments` bucket under `{org_id}/{conversation_id}/{uuid}_{filename}`
-  - Build attachment metadata array matching the existing `EmailAttachment` format:
-    ```json
-    { "filename": "doc.pdf", "mimeType": "application/pdf", "size": 12345, "storageKey": "org/.../doc.pdf", "isInline": false }
-    ```
-  - Include attachments in the message INSERT
+The `cdn.tailwindcss.com should not be used in production` warning comes from the embedded widget iframe, not the main application. This is expected behavior for the widget's self-contained bundle and is not actionable from the main codebase.
 
-### 4. send-reply-email Edge Function (`supabase/functions/send-reply-email/index.ts`)
+## Execution Order
 
-- After building the SendGrid payload, check `message.attachments`
-- For each attachment with a `storageKey`, download from `message-attachments` bucket
-- Convert to base64 and add to SendGrid's `attachments` array:
-  ```json
-  { "content": "<base64>", "filename": "doc.pdf", "type": "application/pdf", "disposition": "attachment" }
-  ```
+All changes are independent and can be made in parallel:
+1. Add missing i18n keys to all 10 locale files
+2. Gate AircallLoginModal debug logs behind `import.meta.env.DEV`
 
-### 5. File Structure
-
-No new files needed. Changes to:
-
-| File | Change |
-|---|---|
-| SQL migration | Add upload RLS policy for `message-attachments` |
-| `ReplyArea.tsx` | Paperclip button, file state, preview chips |
-| `ConversationViewContext.tsx` | Upload files to storage, attach metadata to message |
-| `send-reply-email/index.ts` | Download attachments from storage and include in SendGrid payload |
-
-### Constraints
-
-- Max file size: 10MB per file (SendGrid limit is 30MB total)
-- Reuses existing `message-attachments` bucket and `messages.attachments` JSONB column
-- Attachment format matches inbound email attachments for consistency
