@@ -170,7 +170,17 @@
       "archiveSuccess": "Unterhaltung erfolgreich archiviert",
       "archiveError": "Fehler beim Archivieren der Unterhaltung",
       "deleteSuccess": "Unterhaltung erfolgreich gelöscht",
-      "deleteError": "Fehler beim Löschen der Unterhaltung"
+      "deleteError": "Fehler beim Löschen der Unterhaltung",
+      "new": "Neu",
+      "filters": "Filter",
+      "filterConversations": "Unterhaltungen filtern",
+      "markAllRead": "Alle als gelesen markieren",
+      "sortLatest": "Neueste",
+      "sortOldest": "Älteste",
+      "sortPriority": "Priorität",
+      "sortUnread": "Ungelesene zuerst",
+      "activeFilters": "Aktive Filter:",
+      "clearAll": "Alle löschen"
     },
     "navigation": {
       "back": "← Zurück",

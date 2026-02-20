@@ -132,7 +132,17 @@
       "archiveSuccess": "Conversa arquivada com sucesso",
       "archiveError": "Falha ao arquivar conversa",
       "deleteSuccess": "Conversa excluída com sucesso",
-      "deleteError": "Falha ao excluir conversa"
+      "deleteError": "Falha ao excluir conversa",
+      "new": "Novo",
+      "filters": "Filtros",
+      "filterConversations": "Filtrar Conversas",
+      "markAllRead": "Marcar tudo como lido",
+      "sortLatest": "Mais recente",
+      "sortOldest": "Mais antigo",
+      "sortPriority": "Prioridade",
+      "sortUnread": "Não lidos primeiro",
+      "activeFilters": "Filtros ativos:",
+      "clearAll": "Limpar tudo"
     },
     "navigation": {
       "back": "← Voltar",

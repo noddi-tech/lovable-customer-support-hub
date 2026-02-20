@@ -173,7 +173,17 @@
       "archiveSuccess": "Conversation archivée avec succès",
       "archiveError": "Échec de l'archivage de la conversation",
       "deleteSuccess": "Conversation supprimée avec succès",
-      "deleteError": "Échec de la suppression de la conversation"
+      "deleteError": "Échec de la suppression de la conversation",
+      "new": "Nouveau",
+      "filters": "Filtres",
+      "filterConversations": "Filtrer les Conversations",
+      "markAllRead": "Tout marquer comme lu",
+      "sortLatest": "Plus récent",
+      "sortOldest": "Plus ancien",
+      "sortPriority": "Priorité",
+      "sortUnread": "Non lus en premier",
+      "activeFilters": "Filtres actifs :",
+      "clearAll": "Tout effacer"
     },
     "navigation": {
       "back": "← Retour",

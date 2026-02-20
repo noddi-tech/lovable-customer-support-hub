@@ -173,7 +173,17 @@
       "archiveSuccess": "Conversación archivada exitosamente",
       "archiveError": "Error al archivar conversación",
       "deleteSuccess": "Conversación eliminada exitosamente",
-      "deleteError": "Error al eliminar conversación"
+      "deleteError": "Error al eliminar conversación",
+      "new": "Nuevo",
+      "filters": "Filtros",
+      "filterConversations": "Filtrar Conversaciones",
+      "markAllRead": "Marcar todo como leído",
+      "sortLatest": "Más reciente",
+      "sortOldest": "Más antiguo",
+      "sortPriority": "Prioridad",
+      "sortUnread": "No leídos primero",
+      "activeFilters": "Filtros activos:",
+      "clearAll": "Limpiar todo"
     },
     "navigation": {
       "back": "← Atrás",

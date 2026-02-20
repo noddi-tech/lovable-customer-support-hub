@@ -132,7 +132,17 @@
       "archiveSuccess": "Gesprek succesvol gearchiveerd",
       "archiveError": "Fout bij archiveren van gesprek",
       "deleteSuccess": "Gesprek succesvol verwijderd",
-      "deleteError": "Fout bij verwijderen van gesprek"
+      "deleteError": "Fout bij verwijderen van gesprek",
+      "new": "Nieuw",
+      "filters": "Filters",
+      "filterConversations": "Gesprekken Filteren",
+      "markAllRead": "Alles als gelezen markeren",
+      "sortLatest": "Nieuwste",
+      "sortOldest": "Oudste",
+      "sortPriority": "Prioriteit",
+      "sortUnread": "Ongelezen eerst",
+      "activeFilters": "Actieve filters:",
+      "clearAll": "Alles wissen"
     },
     "navigation": {
       "back": "← Terug",

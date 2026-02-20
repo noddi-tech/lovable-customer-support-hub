@@ -41,12 +41,14 @@ const AircallLoginModalComponent: React.FC<AircallLoginModalProps> = ({
 
   // Debug: Log when modal state changes
   useEffect(() => {
-    console.log('[AircallLoginModal] State changed:', {
-      isOpen,
-      isConnected,
-      shouldShow: isOpen && !isConnected,
-      verificationStatus
-    });
+    if (import.meta.env.DEV) {
+      console.log('[AircallLoginModal] State changed:', {
+        isOpen,
+        isConnected,
+        shouldShow: isOpen && !isConnected,
+        verificationStatus
+      });
+    }
   }, [isOpen, isConnected, verificationStatus]);
 
   // Track elapsed time for progressive messages
@@ -156,12 +158,14 @@ const AircallLoginModalComponent: React.FC<AircallLoginModalProps> = ({
 
   const shouldShowModal = isOpen && !isConnected;
   
-  console.log('[AircallLoginModal] Render:', {
-    isOpen,
-    isConnected,
-    shouldShowModal,
-    verificationStatus
-  });
+  if (import.meta.env.DEV) {
+    console.log('[AircallLoginModal] Render:', {
+      isOpen,
+      isConnected,
+      shouldShowModal,
+      verificationStatus
+    });
+  }
 
   return (
     <Dialog open={shouldShowModal}>
