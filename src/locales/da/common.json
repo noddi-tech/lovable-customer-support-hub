@@ -132,7 +132,17 @@
       "archiveSuccess": "Samtale arkiveret succesfuldt",
       "archiveError": "Fejl ved arkivering af samtale",
       "deleteSuccess": "Samtale slettet succesfuldt",
-      "deleteError": "Fejl ved sletning af samtale"
+      "deleteError": "Fejl ved sletning af samtale",
+      "new": "Ny",
+      "filters": "Filtre",
+      "filterConversations": "Filtrer Samtaler",
+      "markAllRead": "Markér alle som læst",
+      "sortLatest": "Nyeste",
+      "sortOldest": "Ældste",
+      "sortPriority": "Prioritet",
+      "sortUnread": "Ulæste først",
+      "activeFilters": "Aktive filtre:",
+      "clearAll": "Ryd alle"
     },
     "navigation": {
       "back": "← Tilbage",

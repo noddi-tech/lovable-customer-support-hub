@@ -132,7 +132,17 @@
       "archiveSuccess": "Konversation arkiverad framgångsrikt",
       "archiveError": "Misslyckades med att arkivera konversation",
       "deleteSuccess": "Konversation borttagen framgångsrikt",
-      "deleteError": "Misslyckades med att ta bort konversation"
+      "deleteError": "Misslyckades med att ta bort konversation",
+      "new": "Ny",
+      "filters": "Filter",
+      "filterConversations": "Filtrera Konversationer",
+      "markAllRead": "Markera alla som lästa",
+      "sortLatest": "Senaste",
+      "sortOldest": "Äldsta",
+      "sortPriority": "Prioritet",
+      "sortUnread": "Olästa först",
+      "activeFilters": "Aktiva filter:",
+      "clearAll": "Rensa alla"
     },
     "navigation": {
       "back": "← Tillbaka",
