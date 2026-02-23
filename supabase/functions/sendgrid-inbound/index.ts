@@ -311,25 +311,41 @@ Deno.serve(async (req: Request) => {
     
     console.log(`[SendGrid-Inbound] Final author determination - Email: ${authorEmail}, Display: ${displayName}`);
 
-    // Find or create customer using the detected author
+    // Find or create customer using the detected author (case-insensitive email match)
+    const normalizedEmail = authorEmail.toLowerCase().trim();
     const { data: customerExisting } = await supabase
       .from("customers")
       .select("id")
-      .eq("email", authorEmail)
       .eq("organization_id", organization_id)
+      .ilike("email", normalizedEmail)
       .maybeSingle();
 
     let customer_id = customerExisting?.id as string | null;
     if (!customer_id) {
-      console.log(`[SendGrid-Inbound] Creating new customer - Email: ${authorEmail}, Name: ${displayName}`);
+      console.log(`[SendGrid-Inbound] Creating new customer - Email: ${normalizedEmail}, Name: ${displayName}`);
       const { data: inserted, error: insErr } = await supabase
         .from("customers")
-        .insert({ email: authorEmail, full_name: displayName, organization_id })
+        .insert({ email: normalizedEmail, full_name: displayName, organization_id })
         .select("id")
         .single();
-      if (insErr) throw insErr;
-      customer_id = inserted.id;
-      console.log(`[SendGrid-Inbound] Created customer with ID: ${customer_id}`);
+      if (insErr) {
+        // Handle race condition: another request may have created the customer
+        if (insErr.code === '23505') {
+          const { data: raceCustomer } = await supabase
+            .from("customers")
+            .select("id")
+            .eq("organization_id", organization_id)
+            .ilike("email", normalizedEmail)
+            .single();
+          customer_id = raceCustomer?.id ?? null;
+          console.log(`[SendGrid-Inbound] Race condition resolved, using customer: ${customer_id}`);
+        } else {
+          throw insErr;
+        }
+      } else {
+        customer_id = inserted.id;
+        console.log(`[SendGrid-Inbound] Created customer with ID: ${customer_id}`);
+      }
     } else {
       console.log(`[SendGrid-Inbound] Found existing customer with ID: ${customer_id}`);
     }
