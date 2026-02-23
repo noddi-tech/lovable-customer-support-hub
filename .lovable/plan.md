@@ -1,31 +1,44 @@
 
-# Fix HTML Showing in Search Message Previews
+# Normalize Text Size to Match Table Headers (text-xs)
 
-## Problem
+## Goal
 
-Message search results display raw HTML tags in the preview text (e.g., `<div dir="ltr">Hei, <div><br></div>...`). This is because the content from the search API contains HTML, and line 189 of `SearchCommandPalette.tsx` renders it directly with `.substring(0, 120)` -- no stripping.
+Make all text across the conversation list UI consistent with the table header size (`text-xs` / 12px). Currently the table headers use `text-xs` but other elements use the larger `text-sm` (14px).
 
-## Fix
+## Changes
 
-**File: `src/components/search/SearchCommandPalette.tsx`**
+### 1. `src/components/dashboard/conversation-list/ConversationTableRow.tsx`
 
-Import the existing `stripHtml` utility from `@/utils/stripHtml` and wrap `r.content` with it before truncating.
+Change customer name and subject text from `text-sm` to `text-xs`:
+- Line 160: Customer name `text-sm` -> `text-xs`
+- Line 173: Subject/conversation text `text-sm` -> `text-xs`
+- Line 300 (mobile view): Customer name `text-sm` -> `text-xs`
 
-```tsx
-// Line 1-2: Add import
-import { stripHtml } from '@/utils/stripHtml';
+### 2. `src/components/layout/InboxList.tsx`
 
-// Line 189: Change from:
-{r.content?.substring(0, 120)}
+Change sidebar section headers and filter labels from `text-sm` to `text-xs`:
+- Line 122: "Inboxes" heading `text-sm` -> `text-xs`
+- Line 168: "Filters" heading `text-sm` -> `text-xs`
+- Line 185: Filter name labels `text-sm` -> `text-xs`
 
-// To:
-{stripHtml(r.content)?.substring(0, 120)}
-```
+### 3. `src/components/dashboard/conversation-list/ConversationListHeader.tsx`
 
-This reuses the existing `stripHtml` function which already handles removing tags, decoding HTML entities, and collapsing whitespace.
+Change toolbar controls from `text-sm` to `text-xs`:
+- Line 166: Filters dropdown trigger `text-sm` -> `text-xs`
+- Line 217: Sort select trigger `text-sm` -> `text-xs`
 
-## Files Changed
+### 4. `src/components/ui/button.tsx`
 
-| File | Change |
-|---|---|
-| `src/components/search/SearchCommandPalette.tsx` | Import `stripHtml`, apply to message content preview |
+Change the base button font size from `text-sm` to `text-xs` so all buttons (Select, New, Merge, Migrate, Mark Read, etc.) match:
+- Line 8: Base button class `text-sm` -> `text-xs`
+
+## What stays the same
+
+- Badge text sizes (already `text-xs`)
+- Icon sizes (unchanged)
+- Table header cells (already `text-xs`)
+- Channel labels, waiting time, etc. (already `text-xs`)
+
+## Impact
+
+All visible text in the conversation list view -- sidebar labels, toolbar buttons, filter/sort controls, customer names, and conversation subjects -- will use 12px (`text-xs`), matching the table header size the user prefers.
