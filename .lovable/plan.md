@@ -1,39 +1,43 @@
 
+Issue confirmed. You are right: the grey area is the conversation table region, not the top app header.
 
-# Fix Grey Background in Conversation List (Correct File)
+Root cause identified:
+- In this app, `bg-background` is currently not pure white at runtime because `DesignSystemProvider` overrides `--background` to `210 20% 98` (light grey).
+- `--card` remains pure white (`0 0% 100`).
+- Recent changes replaced white/card surfaces with `bg-background`, which unintentionally turned the conversation list area grey.
 
-## Problem
+What I will change after approval (targeted white-only fix for `/interactions/text/...`):
 
-The previous changes were applied to `InteractionsLayout.tsx`, but the user is actually on `EnhancedInteractionsLayout` which uses `MasterDetailShell` for layout. The grey background is caused by:
+1) Revert conversation-list surfaces from `bg-background` to `bg-card` (white)
+- File: `src/components/dashboard/ConversationList.tsx`
+  - Change main table wrapper from `bg-background` -> `bg-card`.
+- File: `src/components/dashboard/conversation-list/ConversationListHeader.tsx`
+  - Change toolbar container from `bg-background` -> `bg-card`.
+- File: `src/components/dashboard/conversation-list/BulkActionsBar.tsx`
+  - Change bar container from `bg-background` -> `bg-card`.
 
-1. **`MasterDetailShell.tsx`** -- The grid layout has `gap-6 md:gap-8` between columns, and the page background (slightly off-white or grey) shows through the gaps
-2. **`MasterDetailShell.tsx`** -- Uses hardcoded `bg-white` instead of theme-aware `bg-background`
-3. **`BulkActionsBar.tsx`** -- Uses `bg-card` (grey) instead of `bg-background`
+2) Make table header strips white as well
+- File: `src/components/dashboard/conversation-list/ConversationTable.tsx`
+  - Sticky `<TableHeader>` currently uses `bg-background`; change to `bg-card`.
+- File: `src/components/dashboard/conversation-list/VirtualizedConversationTable.tsx`
+  - Fixed header wrapper currently `border-b bg-background`; change to `border-b bg-card`.
 
-## Changes
+3) Fix the surrounding shell where it was switched from white to grey
+- File: `src/components/admin/design/components/layouts/MasterDetailShell.tsx`
+  - In list mode and detail mode panes, change surface classes from `bg-background` back to `bg-card` where those panes should be white.
+  - Keep `gap-0` (that part is correct and avoids background bleed between panes).
 
-### 1. MasterDetailShell.tsx
+4) Keep separators/borders unchanged
+- Preserve existing `border-b` / `border-r` lines to maintain structure while making all panel surfaces white.
 
-**Line 170** -- Remove excessive gap and ensure seamless white background on the list-mode grid:
-- Change `gap-6 md:gap-8` to `gap-0` (borders already provide visual separation)
+5) Validation checklist
+- Route: `/interactions/text/open?...`
+- Confirm:
+  - Conversation table area behind toolbar/buttons is white.
+  - Column header strip is white.
+  - Bulk actions strip is white.
+  - No grey bleed between left/center panes.
+  - Top app header remains as-is.
 
-**Lines 174, 184** -- Replace hardcoded `bg-white` with `bg-background` for theme consistency.
-
-**Lines 145, 157** -- Same for detail mode panes: `bg-white` to `bg-background`.
-
-### 2. BulkActionsBar.tsx (conversation-list)
-
-**Line 37** -- Change `bg-card` to `bg-background` so the bulk actions bar matches the white toolbar.
-
-### 3. ConversationList.tsx
-
-**Line 134** -- Change `bg-white` to `bg-background` for theme consistency.
-
-## Summary
-
-| File | Change |
-|---|---|
-| `src/components/admin/design/components/layouts/MasterDetailShell.tsx` | Remove gap between grid columns; replace `bg-white` with `bg-background` |
-| `src/components/dashboard/conversation-list/BulkActionsBar.tsx` | Change `bg-card` to `bg-background` |
-| `src/components/dashboard/ConversationList.tsx` | Change `bg-white` to `bg-background` |
-
+Technical note:
+- I will use `bg-card` (not `bg-white`) so the fix stays theme-token based while still giving true white in your current design system configuration.
