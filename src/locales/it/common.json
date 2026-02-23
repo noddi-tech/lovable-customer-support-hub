@@ -215,6 +215,11 @@
       "success": "Tutte le conversazioni e i messaggi eliminati con successo",
       "error": "Errore nell'eliminazione di tutte le conversazioni"
     },
+    "search": {
+      "title": "Cerca conversazioni",
+      "placeholder": "Cerca per cliente, oggetto o contenuto...",
+      "search": "Cerca"
+    },
     "sync": {
       "success": "Sincronizzazione Gmail avviata con successo",
       "error": "Errore nell'avvio della sincronizzazione"

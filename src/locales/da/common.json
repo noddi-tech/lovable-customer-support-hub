@@ -177,6 +177,11 @@
       "success": "Alle samtaler og beskeder slettet succesfuldt",
       "error": "Fejl ved sletning af alle samtaler"
     },
+    "search": {
+      "title": "Søg i samtaler",
+      "placeholder": "Søg efter kunde, emne eller indhold...",
+      "search": "Søg"
+    },
     "sync": {
       "success": "Gmail synkronisering startet succesfuldt",
       "error": "Fejl ved start af synkronisering"

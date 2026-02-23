@@ -51,11 +51,11 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   // Search handler
   const handleSearch = (query: string) => {
     if (!query.trim()) return;
-    
-    // Navigate to dedicated search page with query
     navigate(`/search?q=${encodeURIComponent(query)}`);
-    setSearchOpen(false);
-    setSearchQuery('');
+    requestAnimationFrame(() => {
+      setSearchOpen(false);
+      setSearchQuery('');
+    });
   };
 
   const handleSignOut = async () => {
@@ -142,12 +142,14 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
                     onChange={(e) => setSearchQuery(e.target.value)}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
+                        e.preventDefault();
                         handleSearch(searchQuery);
                       }
                     }}
                     autoFocus
                   />
                   <Button 
+                    type="button"
                     className="w-full" 
                     size="sm"
                     onClick={() => handleSearch(searchQuery)}
