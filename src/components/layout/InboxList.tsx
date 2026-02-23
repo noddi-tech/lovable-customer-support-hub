@@ -119,7 +119,7 @@ export const InboxList: React.FC<InboxListProps> = ({
       
       {/* Inbox Selector */}
       <div className="space-y-2">
-        <h3 className="text-sm font-semibold text-foreground/70 px-2">Inboxes</h3>
+        <h3 className="text-xs font-semibold text-foreground/70 px-2">Inboxes</h3>
         
         {inboxesLoading ? (
           <Skeleton className="h-10 w-full" />
@@ -165,7 +165,7 @@ export const InboxList: React.FC<InboxListProps> = ({
 
       {/* Status Filters */}
       <div className="space-y-2">
-        <h3 className="text-sm font-semibold text-foreground/70 px-2">Filters</h3>
+        <h3 className="text-xs font-semibold text-foreground/70 px-2">Filters</h3>
         
         <div className="space-y-1">
           {statusFilters.map((filter) => (
@@ -182,7 +182,7 @@ export const InboxList: React.FC<InboxListProps> = ({
                 <span className={cn("flex-shrink-0", filter.color)}>
                   {filter.icon}
                 </span>
-                <span className="text-sm font-medium truncate">
+                <span className="text-xs font-medium truncate">
                   {filter.name}
                 </span>
               </div>

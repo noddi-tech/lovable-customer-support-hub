@@ -157,7 +157,7 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
               </AvatarFallback>
             </Avatar>
             <div className="min-w-0 flex-1">
-              <div className="text-sm truncate">{computedValues.customerName}</div>
+              <div className="text-xs truncate">{computedValues.customerName}</div>
               {computedValues.customerEmail && (
                 <div className="text-xs text-muted-foreground truncate hidden xl:block">
                   {computedValues.customerEmail}
@@ -170,7 +170,7 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
         {/* Conversation (Subject) */}
         <div className="p-2 flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className="text-sm truncate">{computedValues.subjectText}</span>
+            <span className="text-xs truncate">{computedValues.subjectText}</span>
             {conversation.thread_count && conversation.thread_count > 1 && (
               <Badge variant="outline" className="px-1.5 py-0 text-xs shrink-0 border-primary/30 text-primary bg-primary/5">
                 {conversation.thread_count}
@@ -297,7 +297,7 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
             </AvatarFallback>
           </Avatar>
           <div className="min-w-0 flex-1">
-            <div className="text-sm truncate">{computedValues.customerName}</div>
+            <div className="text-xs truncate">{computedValues.customerName}</div>
             {computedValues.customerEmail && (
               <div className="text-xs text-muted-foreground truncate hidden xl:block">
                 {computedValues.customerEmail}

@@ -165,7 +165,7 @@ export const ConversationListHeader = ({
             <DropdownMenuTrigger asChild>
               <button className="flex h-9 items-center justify-between gap-1 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-50 whitespace-nowrap">
                 <Filter className="!w-3.5 !h-3.5 shrink-0" />
-                <span className="truncate max-w-[80px]">{getFilterLabel()}</span>
+                <span className="truncate max-w-[80px] text-xs">{getFilterLabel()}</span>
                 {activeFilterCount > 0 && (
                   <Badge className="h-4 w-4 p-0 flex items-center justify-center text-[9px] bg-primary text-primary-foreground rounded-full">
                     {activeFilterCount}
@@ -214,7 +214,7 @@ export const ConversationListHeader = ({
             value={state.sortBy} 
             onValueChange={(value: SortBy) => dispatch({ type: 'SET_SORT_BY', payload: value })}
           >
-            <SelectTrigger className="w-auto h-9 text-sm gap-1 px-3">
+            <SelectTrigger className="w-auto h-9 text-xs gap-1 px-3">
               <span className="text-muted-foreground text-xs">{t('dashboard.conversationList.sort', 'Sort:')}</span>
               <SelectValue>{getSortLabel(state.sortBy)}</SelectValue>
             </SelectTrigger>
