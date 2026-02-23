@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { Search, Filter, X, Mail, Users, MessageSquare, Loader2 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -15,8 +15,10 @@ import debounce from 'lodash.debounce';
 const SearchPage = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const [query, setQuery] = useState('');
-  const [debouncedQuery, setDebouncedQuery] = useState('');
+  const [searchParams] = useSearchParams();
+  const initialQuery = searchParams.get('q') || '';
+  const [query, setQuery] = useState(initialQuery);
+  const [debouncedQuery, setDebouncedQuery] = useState(initialQuery);
   const [activeTab, setActiveTab] = useState<'conversations' | 'customers' | 'messages'>('conversations');
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState<SearchFiltersType>({});

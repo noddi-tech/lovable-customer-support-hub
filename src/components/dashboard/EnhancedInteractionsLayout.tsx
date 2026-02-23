@@ -237,12 +237,8 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
 
   const handleSearchChange = useCallback((value: string) => {
     setSearchQuery(value);
-    // Debounced search will be handled by the navigation hook
-    const timeoutId = setTimeout(() => {
-      navigation.setSearch(value);
-    }, 300);
-    return () => clearTimeout(timeoutId);
-  }, [navigation]);
+    // Search query is passed as prop to ConversationList, which dispatches to ConversationListContext
+  }, []);
 
   const handleSendReply = useCallback(async (text: string) => {
     if (!conversationId) return;
@@ -302,6 +298,7 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
           selectedConversation={selectedConversation as any}
           selectedInboxId={effectiveInboxId}
           onToggleCollapse={() => {}}
+          searchQuery={searchQuery}
         />
       </div>
     );
