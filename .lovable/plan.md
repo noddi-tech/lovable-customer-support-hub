@@ -1,105 +1,77 @@
 
 
-# Fix Duplicate Customers: Cleanup + Prevention
+# Fix Command Palette: Results Hidden + Dark Overlay
 
-## Problem
+## Problem 1: Search results invisible
 
-There are 6 duplicate customer records in the database for "Line Drolsum" (ldr.alt2@gmail.com), all with the same email. The search correctly returns all of them -- the issue is duplicate data, not a search bug.
+The `cmdk` library applies its own **client-side text filtering** by default. When the user types "Line drolsum", cmdk checks each `CommandItem`'s `value` prop (e.g. `conv-f414...`, `cust-2696...`) for a match. None match, so cmdk hides every item and sets `--cmdk-list-height: 0px`.
 
-| ID | Created | Phone |
-|---|---|---|
-| 353caac8... | 2025-11-30 | (none) |
-| f4148969... | 2026-01-09 | +47 93 46 86 90 |
-| 2696fd9c... | 2026-02-22 | (none) |
-| 0a800caa... | 2026-02-22 | +4793468690 |
-| 5161124d... | 2026-02-22 | (none) |
-| 911bd1a2... | 2026-02-23 | (none) |
+Since we do **server-side searching** via Supabase, cmdk's built-in filter must be turned off.
 
-## Root Cause
+**Fix:** Add `shouldFilter={false}` to the `Command` component inside `CommandDialog`.
 
-Customer creation paths (inbound email processing, widget chat, manual creation) insert new rows without checking if a customer with the same email already exists in the same organization.
+## Problem 2: Header bar gets darkened
 
-## Plan
+The `CommandDialog` renders inside a standard `DialogContent`, which includes a full-screen `DialogOverlay` with `bg-black/80` (80% opacity black). This covers the entire page including the header, making it look "highlighted"/darkened.
 
-### 1. Run deduplication SQL to merge these duplicates now
+**Fix:** Override the overlay to use a lighter opacity for the command palette specifically.
 
-Keep the most complete record (f4148969, which has both name and phone) and reassign all conversations from the other 5 records to it, then delete the duplicates.
+## Changes
 
-This will be done via a targeted SQL migration that:
-- Updates all `conversations.customer_id` references from duplicate IDs to the kept ID
-- Updates all `messages` or other tables referencing these customer IDs (if any foreign keys exist)
-- Deletes the 5 duplicate rows
+### 1. `src/components/ui/command.tsx` — CommandDialog
 
-### 2. Add a unique constraint to prevent future duplicates
+Update the `CommandDialog` component to:
+- Pass `shouldFilter={false}` to the inner `Command` so cmdk does not interfere with server-side search results
+- Override the `DialogContent` to use a lighter overlay (e.g. `bg-black/50`) so the backdrop is less aggressive
 
-Add a database unique index on `(organization_id, email)` in the `customers` table (partial index, only where email is not null). This prevents any code path from inserting a second customer with the same email in the same org.
-
-### 3. Update customer creation logic to "upsert"
-
-Modify the customer lookup/creation utility so that when a new inbound email or chat arrives, it first searches for an existing customer by email within the organization. If found, it reuses that record (and updates the name/phone if newer data is available). If not found, it creates a new one.
-
-The key files to update are wherever `supabase.from('customers').insert(...)` is called without a prior lookup. This likely includes edge functions handling inbound emails and widget submissions.
-
-## Technical Details
-
-### Migration SQL (Step 1)
-
-```text
--- Keep f4148969-f5c2-4175-9e86-a8976a3d0431 (has name + phone)
--- Reassign conversations from duplicates
-UPDATE conversations 
-SET customer_id = 'f4148969-f5c2-4175-9e86-a8976a3d0431'
-WHERE customer_id IN (
-  '353caac8-f540-41d1-8d84-28fa78860fa0',
-  '2696fd9c-548b-431b-b730-0e3644ac017e',
-  '0a800caa-e914-4ede-bb84-95e823a3eb91',
-  '5161124d-1db8-4939-8cda-f519ca9c0cca',
-  '911bd1a2-3128-4310-a929-2a73c0ce0619'
-);
-
--- Delete duplicates
-DELETE FROM customers 
-WHERE id IN (
-  '353caac8-f540-41d1-8d84-28fa78860fa0',
-  '2696fd9c-548b-431b-b730-0e3644ac017e',
-  '0a800caa-e914-4ede-bb84-95e823a3eb91',
-  '5161124d-1db8-4939-8cda-f519ca9c0cca',
-  '911bd1a2-3128-4310-a929-2a73c0ce0619'
-);
+```tsx
+const CommandDialog = ({ children, ...props }: CommandDialogProps) => {
+  return (
+    <Dialog {...props}>
+      <DialogContent className="overflow-hidden p-0 shadow-lg" overlayClassName="bg-black/50">
+        <Command
+          shouldFilter={false}
+          className="[&_[cmdk-group-heading]]:px-2 ..."
+        >
+          {children}
+        </Command>
+      </DialogContent>
+    </Dialog>
+  )
+}
 ```
 
-### Unique index (Step 2)
+### 2. `src/components/ui/dialog.tsx` — DialogContent
 
-```text
-CREATE UNIQUE INDEX IF NOT EXISTS idx_customers_org_email_unique 
-ON customers (organization_id, lower(email)) 
-WHERE email IS NOT NULL;
+Add an optional `overlayClassName` prop to `DialogContent` so callers (like `CommandDialog`) can customize the overlay opacity without affecting all dialogs globally.
+
+```tsx
+const DialogContent = React.forwardRef<
+  ...,
+  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & {
+    overlayClassName?: string;
+  }
+>(({ className, children, overlayClassName, ...props }, ref) => (
+  <DialogPortal>
+    <DialogOverlay className={overlayClassName} />
+    <DialogPrimitive.Content ...>
+      {children}
+      ...
+    </DialogPrimitive.Content>
+  </DialogPortal>
+))
 ```
 
-### Upsert pattern (Step 3)
+### Files changed
 
-In edge functions that create customers, replace direct `.insert()` with a lookup-first pattern:
-
-```text
--- Find existing
-SELECT id FROM customers 
-WHERE organization_id = $org AND lower(email) = lower($email) 
-LIMIT 1;
-
--- If found: use that ID (optionally update name/phone)
--- If not found: INSERT new row
-```
-
-## Files to Change
-
-| File | Action |
+| File | Change |
 |---|---|
-| New SQL migration | Deduplicate existing records + add unique index |
-| Edge functions that insert customers (inbound email, widget, etc.) | Add lookup-before-insert logic |
+| `src/components/ui/dialog.tsx` | Add optional `overlayClassName` prop to `DialogContent` |
+| `src/components/ui/command.tsx` | Add `shouldFilter={false}` to Command; pass lighter overlay class |
 
-## Impact
+### Why this works
 
-- Immediate: Search for "Line Drolsum" will return 1 result instead of 5-6
-- Future: No more duplicate customers created from repeated emails/chats
-- All conversation history is preserved (reassigned to the kept record)
+- `shouldFilter={false}` tells cmdk to display all `CommandItem`s as-is without client-side matching -- our Supabase queries handle the filtering
+- The lighter overlay (`bg-black/50`) still provides visual focus on the palette without making the header appear "highlighted"
+- No other dialogs are affected since the overlay override is opt-in via the new prop
 
