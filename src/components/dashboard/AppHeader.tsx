@@ -51,11 +51,9 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   // Search handler
   const handleSearch = (query: string) => {
     if (!query.trim()) return;
-    navigate(`/search?q=${encodeURIComponent(query)}`);
-    requestAnimationFrame(() => {
-      setSearchOpen(false);
-      setSearchQuery('');
-    });
+    window.open(`/search?q=${encodeURIComponent(query)}`, '_blank');
+    setSearchOpen(false);
+    setSearchQuery('');
   };
 
   const handleSignOut = async () => {
