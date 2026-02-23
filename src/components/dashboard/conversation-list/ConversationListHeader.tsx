@@ -77,7 +77,7 @@ export const ConversationListHeader = ({
   };
 
   return (
-    <div className="flex-shrink-0 p-1 md:p-1.5 border-b border-border bg-card/80 backdrop-blur-sm shadow-surface">
+    <div className="flex-shrink-0 p-2 md:p-3 border-b border-border bg-background">
       <div className="flex items-center gap-2">
         {/* Left side: Action ButtonGroup */}
         <ButtonGroup className="flex-shrink-0">
