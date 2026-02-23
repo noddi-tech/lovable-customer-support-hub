@@ -1,64 +1,57 @@
 
 
-# Fix "+New" Button: Text Cursor and Consistent Styling
+# Fix: Search Button Causing Page Navigation/Refresh
 
 ## Problem
 
-The "+New" button is wrapped with `asChild` and renders as a `<span>` element (line 100-105). This causes:
-1. **Text cursor on hover** instead of pointer cursor -- because `<span>` is not a button element
-2. **Visual inconsistency** -- it uses `variant="default"` but the `asChild` + `<span>` pattern breaks the button behavior
+Clicking the search icon in the top-right header and submitting a query navigates to `/search?q=...`, which unmounts the current `/interactions/...` page entirely. The user experiences this as a "page refresh" -- they lose their current inbox context and conversation state.
 
 ## Fix
 
-**File: `src/components/dashboard/conversation-list/ConversationListHeader.tsx`**
+**File: `src/components/dashboard/AppHeader.tsx`**
 
-Replace lines 98-106:
+Change the `handleSearch` function to open the search page **in a new browser tab** or, better yet, use the search popover only as a quick inline preview and keep the navigation as an explicit user choice.
 
-```tsx
-{/* New */}
-<NewConversationDialog>
-  <Button variant="default" size="sm" asChild>
-    <span>
-      <Plus className="!w-3.5 !h-3.5" />
-      {t('dashboard.conversationList.new', 'New')}
-    </span>
-  </Button>
-</NewConversationDialog>
-```
+The simplest and cleanest fix: make the search button navigate using `window.open` or `navigate` but with state preservation. However, the real issue is the user doesn't want to leave their current page.
 
-With:
+**Recommended approach:** Keep the search popover for entering the query, but open the `/search` page in a way that doesn't disrupt the current view. Two options:
+
+### Option A -- Open search results in a new tab (minimal change)
+
+Update `handleSearch` in `AppHeader.tsx` (line 52-58):
 
 ```tsx
-{/* New */}
-<NewConversationDialog>
-  <Button variant="default" size="sm">
-    <Plus className="!w-3.5 !h-3.5" />
-    {t('dashboard.conversationList.new', 'New')}
-  </Button>
-</NewConversationDialog>
+const handleSearch = (query: string) => {
+  if (!query.trim()) return;
+  window.open(`/search?q=${encodeURIComponent(query)}`, '_blank');
+  setSearchOpen(false);
+  setSearchQuery('');
+};
 ```
 
-The key change: remove `asChild` and the inner `<span>` wrapper. The `NewConversationDialog` component likely uses a `DialogTrigger` internally that handles the click -- we just need to ensure the Button renders as a proper `<button>` element so cursor behavior is correct.
+This opens the search page in a new tab, keeping the current interactions page intact.
 
-If `NewConversationDialog` requires `asChild` to work as a trigger, the fix is to use a `<button>` instead of `<span>`:
+### Option B -- Navigate but preserve inbox context (alternative)
+
+If same-tab navigation is preferred, preserve the inbox param so the user can easily return:
 
 ```tsx
-<NewConversationDialog>
-  <Button variant="default" size="sm" asChild>
-    <button>
-      <Plus className="!w-3.5 !h-3.5" />
-      {t('dashboard.conversationList.new', 'New')}
-    </button>
-  </Button>
-</NewConversationDialog>
+const handleSearch = (query: string) => {
+  if (!query.trim()) return;
+  const currentInbox = new URLSearchParams(window.location.search).get('inbox');
+  navigate(`/search?q=${encodeURIComponent(query)}${currentInbox ? `&returnInbox=${currentInbox}` : ''}`);
+  requestAnimationFrame(() => {
+    setSearchOpen(false);
+    setSearchQuery('');
+  });
+};
 ```
 
-This ensures the rendered element is a `<button>`, which natively shows a pointer cursor and behaves correctly.
+**I recommend Option A** -- opening in a new tab is the standard UX pattern for global search that shouldn't disrupt the user's workflow.
 
-## Summary
+## Files Changed
 
-| What | Before | After |
-|---|---|---|
-| Rendered element | `<span>` | `<button>` |
-| Cursor on hover | Text cursor | Pointer cursor |
-| Visual style | Same (default/primary) | Same (default/primary) |
+| File | Change |
+|---|---|
+| `src/components/dashboard/AppHeader.tsx` | Update `handleSearch` to use `window.open` instead of `navigate` (1 line change) |
+
