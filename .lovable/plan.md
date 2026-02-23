@@ -1,41 +1,81 @@
 
 
-# Ultra-Compact Toolbar: Uniform Button Heights
+# Fix Filters UI + Uniform Toolbar Buttons
 
-## Problem
+## Problems
 
-From the screenshot, the buttons are still visually too tall and inconsistent. The `+New` button with its filled background appears larger than the ghost buttons. The Sort dropdown also appears taller than the action buttons. All elements need to be uniformly compact.
+1. **Filter popover looks bad** -- large Select dropdowns inside a popover feel heavy and clunky (as shown in screenshot)
+2. **Toolbar buttons still have inconsistent sizing** -- text labels cause varying widths
 
-## Changes
+## Solution
 
-### File: `src/components/dashboard/conversation-list/ConversationListHeader.tsx`
+### 1. Replace Filter Popover with DropdownMenu
 
-**Height reduction**: Change all buttons from `h-6` (24px) to `h-5` (20px) for a truly compact, Linear-style toolbar. This applies uniformly to:
+Replace the current Popover containing two large Select dropdowns with a clean **DropdownMenu** using radio groups for Status and Priority. This gives a native-feeling, compact filter experience.
 
-- Select button (line 95)
-- +New button (line 109)
-- Filters button (line 124)
-- Merge button (line 167)
-- Migrate button (line 192)
-- Mark all read button (line 217)
-- Sort SelectTrigger (line 231)
+```text
+Filter Conversations
+---
+Status
+  (*) All Status
+  ( ) Open
+  ( ) Pending
+  ( ) Closed
+---
+Priority
+  (*) All Priority
+  ( ) Low
+  ( ) Normal
+  ( ) High
+  ( ) Urgent
+---
+[Clear Filters]
+```
 
-**Icon size reduction**: Change all icons from `!w-3 !h-3` (12px) to `!w-3.5 !h-3.5` (14px) -- actually keep at `!w-3 !h-3` since h-5 is very compact.
+**File: `src/components/dashboard/conversation-list/ConversationListHeader.tsx`**
 
-**Uniform sizing**: Every interactive element in the toolbar will use exactly `h-5 px-1.5 text-xs` to ensure visual consistency regardless of variant (ghost, default, outline).
+- Replace the `<Popover>` wrapping filters (lines 118-158) with a `<DropdownMenu>` 
+- Import `DropdownMenu, DropdownMenuContent, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuRadioGroup, DropdownMenuRadioItem` from `@/components/ui/dropdown-menu`
+- Remove `Popover, PopoverContent, PopoverTrigger` imports
+- Inline the status and priority radio groups directly -- no need for the separate `ConversationListFilters` component
 
-**Sort dropdown border removal**: Add `border-0` to the SelectTrigger so it matches the ghost button styling and doesn't appear heavier than other elements. Also add `shadow-none` to remove any box shadow.
+### 2. Icon-Only Toolbar Buttons with Tooltips
 
-**Container padding**: Reduce from `p-1.5 md:p-2` to `p-1 md:p-1.5` for tighter spacing.
+Convert all 6 action buttons to uniform **h-7 w-7** icon-only squares with tooltips:
 
-### Summary of specific class changes
+- Import `Tooltip, TooltipTrigger, TooltipContent, TooltipProvider` from `@/components/ui/tooltip`
+- Each button becomes:
+  ```tsx
+  <Tooltip>
+    <TooltipTrigger asChild>
+      <Button variant="ghost" size="icon" className="h-7 w-7">
+        <IconName className="!w-3.5 !h-3.5" />
+      </Button>
+    </TooltipTrigger>
+    <TooltipContent side="bottom"><p>Label</p></TooltipContent>
+  </Tooltip>
+  ```
+- Applies to: Select, +New (keeps `variant="default"`), Filters (uses DropdownMenuTrigger), Merge, Migrate, Mark all read
+- Sort dropdown trigger also gets `h-7` to match
 
-| Element | Before | After |
-|---|---|---|
-| Container | `p-1.5 md:p-2` | `p-1 md:p-1.5` |
-| All buttons | `h-6 px-1.5` | `h-5 px-1.5` |
-| Sort trigger | `h-6` | `h-5 border-0 shadow-none` |
-| Unread badge | `h-4` | `h-3.5` |
+### 3. Wrap in TooltipProvider
 
-This creates a toolbar where every element is exactly 20px tall, giving a clean, professional, uniform density.
+Wrap the entire toolbar return in `<TooltipProvider delayDuration={300}>` so all tooltips work.
+
+### Files Changed
+
+| File | Change |
+|---|---|
+| `ConversationListHeader.tsx` | Replace Popover with DropdownMenu for filters; convert all buttons to icon-only h-7 w-7 with tooltips; wrap in TooltipProvider |
+| `ConversationListFilters.tsx` | No changes needed (component becomes unused from header but kept for potential reuse elsewhere) |
+
+### Visual Result
+
+```text
+[Select] [+New] [Filter v] [Merge] [Migrate] [Read]  Sort: Latest v
+  28x28   28x28   28x28    28x28    28x28    28x28
+  ghost  default  ghost    ghost    ghost    ghost
+```
+
+Filter dropdown opens as a clean DropdownMenu with radio groups instead of clunky Select dropdowns inside a popover.
 
