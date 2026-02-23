@@ -13,6 +13,7 @@ import {
   CommandSeparator,
 } from '@/components/ui/command';
 import { MessageSquare, User, Mail, Loader2, ExternalLink } from 'lucide-react';
+import { stripHtml } from '@/utils/stripHtml';
 
 interface SearchCommandPaletteProps {
   open: boolean;
@@ -186,7 +187,7 @@ export const SearchCommandPalette: React.FC<SearchCommandPaletteProps> = ({
                       {r.subject || '(no subject)'}
                     </span>
                     <span className="truncate text-xs text-muted-foreground line-clamp-1">
-                      {r.content?.substring(0, 120)}
+                      {stripHtml(r.content)?.substring(0, 120)}
                     </span>
                   </div>
                 </CommandItem>
