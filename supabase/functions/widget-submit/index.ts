@@ -73,15 +73,16 @@ Deno.serve(async (req) => {
 
     const { inbox_id, organization_id } = widgetConfig;
 
-    // Find or create customer
+    // Find or create customer (case-insensitive email match)
     let customerId: string;
+    const normalizedEmail = email.toLowerCase().trim();
     
     const { data: existingCustomer } = await supabase
       .from('customers')
       .select('id')
-      .eq('email', email.toLowerCase())
       .eq('organization_id', organization_id)
-      .single();
+      .ilike('email', normalizedEmail)
+      .maybeSingle();
 
     if (existingCustomer) {
       customerId = existingCustomer.id;
@@ -98,22 +99,41 @@ Deno.serve(async (req) => {
       const { data: newCustomer, error: customerError } = await supabase
         .from('customers')
         .insert({
-          email: email.toLowerCase(),
+          email: normalizedEmail,
           full_name: name || null,
           organization_id,
         })
         .select('id')
         .single();
 
-      if (customerError || !newCustomer) {
-        console.error('Error creating customer:', customerError);
-        return new Response(
-          JSON.stringify({ error: 'Failed to create customer' }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+      if (customerError) {
+        // Handle race condition: unique constraint violation
+        if (customerError.code === '23505') {
+          const { data: raceCustomer } = await supabase
+            .from('customers')
+            .select('id')
+            .eq('organization_id', organization_id)
+            .ilike('email', normalizedEmail)
+            .single();
+          if (raceCustomer) {
+            customerId = raceCustomer.id;
+          } else {
+            console.error('Error finding customer after race condition:', customerError);
+            return new Response(
+              JSON.stringify({ error: 'Failed to create customer' }),
+              { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            );
+          }
+        } else {
+          console.error('Error creating customer:', customerError);
+          return new Response(
+            JSON.stringify({ error: 'Failed to create customer' }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+      } else {
+        customerId = newCustomer!.id;
       }
-
-      customerId = newCustomer.id;
     }
 
     // Create conversation

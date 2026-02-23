@@ -517,29 +517,42 @@ async function syncGmailMessages(account: any, supabaseClient: any, folder: 'inb
         
         const senderType = isFromAgent ? 'agent' : 'customer';
 
-        // Find or create customer
+        // Find or create customer (case-insensitive email match)
+        const normalizedCustomerEmail = customerEmail?.toLowerCase().trim();
         let { data: customer } = await supabaseClient
           .from('customers')
           .select('id')
-          .eq('email', customerEmail)
+          .ilike('email', normalizedCustomerEmail || '')
           .eq('organization_id', account.organization_id)
-          .single();
+          .maybeSingle();
 
-        if (!customer) {
+        if (!customer && normalizedCustomerEmail) {
           const displayName = isFromAgent 
             ? (to.replace(/<[^>]+>/, '').trim() || customerEmail)
             : (authorDisplayName || customerEmail);
             
-          const { data: newCustomer } = await supabaseClient
+          const { data: newCustomer, error: custInsertErr } = await supabaseClient
             .from('customers')
             .insert({
               organization_id: account.organization_id,
-              email: customerEmail,
+              email: normalizedCustomerEmail,
               full_name: displayName,
             })
             .select('id')
             .single();
-          customer = newCustomer;
+          
+          if (custInsertErr && custInsertErr.code === '23505') {
+            // Race condition: another sync created the customer already
+            const { data: raceCustomer } = await supabaseClient
+              .from('customers')
+              .select('id')
+              .ilike('email', normalizedCustomerEmail)
+              .eq('organization_id', account.organization_id)
+              .single();
+            customer = raceCustomer;
+          } else {
+            customer = newCustomer;
+          }
         }
 
         // Find existing conversation by threadId or inReplyTo
