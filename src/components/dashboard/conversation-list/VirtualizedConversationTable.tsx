@@ -153,7 +153,7 @@ const VirtualizedConversationTable = memo(({ onSelectConversation, selectedConve
       )}
       
       {/* Fixed Table Header - always mounted */}
-      <div className="border-b bg-background">
+      <div className="border-b bg-card">
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent">

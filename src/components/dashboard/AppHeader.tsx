@@ -51,7 +51,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   // Search handler
   const handleSearch = (query: string) => {
     if (!query.trim()) return;
-    window.open(`/search?q=${encodeURIComponent(query)}`, '_blank');
+    navigate(`/search?q=${encodeURIComponent(query)}`);
     setSearchOpen(false);
     setSearchQuery('');
   };

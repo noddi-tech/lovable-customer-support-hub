@@ -68,7 +68,7 @@ export const ConversationTable = memo<ConversationTableProps>(({
   return (
     <div className="flex-1 overflow-auto">
       <Table>
-        <TableHeader className="sticky top-0 bg-background z-10 border-b">
+        <TableHeader className="sticky top-0 bg-card z-10 border-b">
           <TableRow className="hover:bg-transparent">
             {state.bulkSelectionMode && (
               <TableHead className="w-10 p-2">

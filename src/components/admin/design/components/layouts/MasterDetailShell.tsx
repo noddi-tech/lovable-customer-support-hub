@@ -142,7 +142,7 @@ export const MasterDetailShell: React.FC<MasterDetailShellProps> = ({
         >
           {/* Detail left: Message thread */}
           <div className={cn(
-            "min-h-0 min-w-0 bg-background",
+            "min-h-0 min-w-0 bg-card",
             detailRight && "border-r border-border"
           )}>
             <ScrollArea className="h-full overflow-y-auto" aria-label={detailLeftLabel}>
@@ -154,7 +154,7 @@ export const MasterDetailShell: React.FC<MasterDetailShellProps> = ({
           
           {/* Detail right: Reply & Actions sidebar (optional) */}
           {detailRight && (
-            <div className="min-h-0 min-w-0 bg-background">
+            <div className="min-h-0 min-w-0 bg-card">
               <ScrollArea className="h-full overflow-y-auto" aria-label={detailRightLabel}>
                 <div className="py-3 sm:py-4 px-0">
                   {detailRight}
@@ -171,7 +171,7 @@ export const MasterDetailShell: React.FC<MasterDetailShellProps> = ({
         >
           {/* Left: Inbox list */}
           {left && (
-            <div className="min-h-0 min-w-0 border-r border-border bg-background">
+            <div className="min-h-0 min-w-0 border-r border-border bg-card">
               <ScrollArea className="h-full overflow-y-auto" aria-label={leftPaneLabel}>
                 <div className="py-4 px-0">
                   {left}
@@ -181,7 +181,7 @@ export const MasterDetailShell: React.FC<MasterDetailShellProps> = ({
           )}
           
           {/* Center: Conversation list */}
-          <div className="min-h-0 min-w-0 bg-background overflow-hidden h-full">
+          <div className="min-h-0 min-w-0 bg-card overflow-hidden h-full">
             <div className="h-full py-3 sm:py-4 px-0">
               {center}
             </div>
