@@ -177,6 +177,11 @@
       "success": "Todas as conversas e mensagens excluídas com sucesso",
       "error": "Falha ao excluir todas as conversas"
     },
+    "search": {
+      "title": "Pesquisar conversas",
+      "placeholder": "Pesquisar por cliente, assunto ou conteúdo...",
+      "search": "Pesquisar"
+    },
     "sync": {
       "success": "Sincronização do Gmail iniciada com sucesso",
       "error": "Falha ao iniciar sincronização"

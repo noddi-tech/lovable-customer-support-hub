@@ -177,6 +177,11 @@
       "success": "Alle gesprekken en berichten succesvol verwijderd",
       "error": "Fout bij verwijderen van alle gesprekken"
     },
+    "search": {
+      "title": "Gesprekken zoeken",
+      "placeholder": "Zoek op klant, onderwerp of inhoud...",
+      "search": "Zoeken"
+    },
     "sync": {
       "success": "Gmail synchronisatie succesvol gestart",
       "error": "Fout bij starten van synchronisatie"

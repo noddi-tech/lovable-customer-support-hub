@@ -177,6 +177,11 @@
       "success": "Alla konversationer och meddelanden borttagna framgångsrikt",
       "error": "Misslyckades med att ta bort alla konversationer"
     },
+    "search": {
+      "title": "Sök konversationer",
+      "placeholder": "Sök efter kund, ämne eller innehåll...",
+      "search": "Sök"
+    },
     "sync": {
       "success": "Gmail-synkronisering startad framgångsrikt",
       "error": "Misslyckades med att starta synkronisering"

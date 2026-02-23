@@ -215,6 +215,11 @@
       "success": "Alle Unterhaltungen und Nachrichten erfolgreich gelöscht",
       "error": "Fehler beim Löschen aller Unterhaltungen"
     },
+    "search": {
+      "title": "Konversationen durchsuchen",
+      "placeholder": "Nach Kunde, Betreff oder Inhalt suchen...",
+      "search": "Suchen"
+    },
     "sync": {
       "success": "Gmail-Synchronisation erfolgreich gestartet",
       "error": "Fehler beim Starten der Synchronisation"

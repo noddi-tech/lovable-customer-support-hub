@@ -165,6 +165,11 @@
       "success": "All conversations and messages deleted successfully",
       "error": "Failed to delete all conversations"
     },
+    "search": {
+      "title": "Search Conversations",
+      "placeholder": "Search by customer, subject, or content...",
+      "search": "Search"
+    },
     "sync": {
       "success": "Gmail sync started successfully",
       "error": "Failed to start sync"

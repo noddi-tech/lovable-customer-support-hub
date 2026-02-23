@@ -218,6 +218,11 @@
       "success": "Todas las conversaciones y mensajes eliminados exitosamente",
       "error": "Error al eliminar todas las conversaciones"
     },
+    "search": {
+      "title": "Buscar conversaciones",
+      "placeholder": "Buscar por cliente, asunto o contenido...",
+      "search": "Buscar"
+    },
     "sync": {
       "success": "Sincronización de Gmail iniciada exitosamente",
       "error": "Error al iniciar sincronización"
