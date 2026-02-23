@@ -97,11 +97,9 @@ export const ConversationListHeader = ({
 
           {/* New */}
           <NewConversationDialog>
-            <Button variant="default" size="sm" asChild>
-              <span>
-                <Plus className="!w-3.5 !h-3.5" />
-                {t('dashboard.conversationList.new', 'New')}
-              </span>
+            <Button variant="default" size="sm">
+              <Plus className="!w-3.5 !h-3.5" />
+              {t('dashboard.conversationList.new', 'New')}
             </Button>
           </NewConversationDialog>
 
