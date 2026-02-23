@@ -74,24 +74,25 @@ export const ConversationListHeader = ({
   };
 
   return (
-    <div className="flex-shrink-0 p-2 md:p-3 border-b border-border bg-card/80 backdrop-blur-sm shadow-surface">
-      {/* Row 1: Actions */}
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-2">
+    <div className="flex-shrink-0 p-1.5 md:p-2 border-b border-border bg-card/80 backdrop-blur-sm shadow-surface">
+      {/* Single compact toolbar row */}
+      <div className="flex items-center gap-1">
+        {/* Left group: all action buttons */}
+        <div className="flex items-center gap-1 flex-wrap flex-1 min-w-0">
           {/* Unread Count Badge */}
           {unreadCount > 0 && (
-            <Badge variant="destructive" className="h-5 px-2 text-xs">
-              {unreadCount} unread
+            <Badge variant="destructive" className="h-4 px-1.5 text-[10px]">
+              {unreadCount}
             </Badge>
           )}
           
           {/* Select Button for Bulk Operations */}
           {onToggleBulkMode && (
             <Button
-              variant={bulkSelectionMode ? "default" : "outline"}
+              variant={bulkSelectionMode ? "default" : "ghost"}
               size="sm"
               onClick={handleToggleBulkMode}
-              className="h-7 px-2 gap-1 text-xs"
+              className="h-6 px-1.5 gap-1 text-xs"
             >
               <CheckSquare className="!w-3 !h-3" />
               <span className="hidden sm:inline">
@@ -99,15 +100,13 @@ export const ConversationListHeader = ({
               </span>
             </Button>
           )}
-        </div>
-        
-        <div className="flex items-center gap-1.5">
-          {/* New Conversation Button */}
+
+          {/* New Conversation Button - Primary CTA */}
           <NewConversationDialog>
             <Button
               variant="default"
               size="sm"
-              className="h-7 px-2 gap-1 text-xs"
+              className="h-6 px-1.5 gap-1 text-xs"
             >
               <Plus className="!w-3 !h-3" />
               <span className="hidden sm:inline">
@@ -122,18 +121,18 @@ export const ConversationListHeader = ({
               <Button 
                 variant={hasActiveFilters ? "default" : "outline"}
                 size="sm" 
-                className="h-7 px-2 gap-1 text-xs relative"
+                className="h-6 px-1.5 gap-1 text-xs relative"
               >
                 <Filter className="!w-3 !h-3" />
                 <span className="hidden sm:inline">
                   {t('dashboard.conversationList.filters', 'Filters')}
                 </span>
                 {activeFilterCount > 0 && (
-                  <Badge className="ml-1 h-4 w-4 p-0 flex items-center justify-center text-[10px] bg-primary text-primary-foreground">
+                  <Badge className="ml-0.5 h-3.5 w-3.5 p-0 flex items-center justify-center text-[9px] bg-primary text-primary-foreground">
                     {activeFilterCount}
                   </Badge>
                 )}
-                <ChevronDown className="!w-3 !h-3" />
+                <ChevronDown className="!w-2.5 !h-2.5" />
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-80" align="end">
@@ -163,9 +162,9 @@ export const ConversationListHeader = ({
           <Dialog open={showThreadMerger} onOpenChange={setShowThreadMerger}>
             <DialogTrigger asChild>
               <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
-                className="h-7 px-2 gap-1 text-xs"
+                className="h-6 px-1.5 gap-1 text-xs"
               >
                 <Settings className="!w-3 !h-3" />
                 <span className="hidden sm:inline">
@@ -188,9 +187,9 @@ export const ConversationListHeader = ({
           <Dialog open={showMigrator} onOpenChange={setShowMigrator}>
             <DialogTrigger asChild>
               <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
-                className="h-7 px-2 gap-1 text-xs"
+                className="h-6 px-1.5 gap-1 text-xs"
               >
                 <Move className="!w-3 !h-3" />
                 <span className="hidden sm:inline">
@@ -211,11 +210,11 @@ export const ConversationListHeader = ({
 
           {/* Mark All Read Button */}
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
             onClick={markAllAsRead}
             disabled={isMarkingAllAsRead || unreadCount === 0}
-            className="h-7 px-2 gap-1 text-xs"
+            className="h-6 px-1.5 gap-1 text-xs"
           >
             <CheckCheck className="!w-3 !h-3" />
             <span className="hidden sm:inline">
@@ -223,16 +222,14 @@ export const ConversationListHeader = ({
             </span>
           </Button>
         </div>
-      </div>
-      
-      {/* Row 2: Sort Only */}
-      <div className="flex items-center justify-end">
-        {/* Sort Dropdown */}
+        
+        {/* Sort Dropdown - right aligned */}
         <Select 
           value={state.sortBy} 
           onValueChange={(value: SortBy) => dispatch({ type: 'SET_SORT_BY', payload: value })}
         >
-          <SelectTrigger className="w-28 h-7 text-xs">
+          <SelectTrigger className="w-auto h-6 text-xs gap-1 ml-auto flex-shrink-0">
+            <span className="text-muted-foreground">Sort:</span>
             <SelectValue>{getSortLabel(state.sortBy)}</SelectValue>
           </SelectTrigger>
           <SelectContent align="end">
