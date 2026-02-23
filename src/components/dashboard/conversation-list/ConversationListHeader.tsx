@@ -77,18 +77,18 @@ export const ConversationListHeader = ({
   };
 
   return (
-    <div className="flex-shrink-0 p-2 md:p-3 border-b border-border bg-card">
-      <div className="flex items-center gap-2">
+    <div className="flex-shrink-0 px-2 py-1.5 border-b border-border bg-card">
+      <div className="flex items-center gap-1.5">
         {/* Left side: Action ButtonGroup */}
         <ButtonGroup className="flex-shrink-0">
           {/* Select */}
           {onToggleBulkMode && (
             <Button
               variant={bulkSelectionMode ? "default" : "outline"}
-              size="sm"
+              size="xs"
               onClick={() => onToggleBulkMode?.()}
             >
-              <CheckSquare className="!w-3.5 !h-3.5" />
+              <CheckSquare className="!w-3 !h-3" />
               {bulkSelectionMode 
                 ? t('dashboard.conversationList.exitSelection', 'Exit') 
                 : t('dashboard.conversationList.select', 'Select')}
@@ -97,8 +97,8 @@ export const ConversationListHeader = ({
 
           {/* New */}
           <NewConversationDialog>
-            <Button variant="default" size="sm">
-              <Plus className="!w-3.5 !h-3.5" />
+            <Button variant="default" size="xs">
+              <Plus className="!w-3 !h-3" />
               {t('dashboard.conversationList.new', 'New')}
             </Button>
           </NewConversationDialog>
@@ -106,8 +106,8 @@ export const ConversationListHeader = ({
           {/* Merge */}
           <Dialog open={showThreadMerger} onOpenChange={setShowThreadMerger}>
             <DialogTrigger asChild>
-              <Button variant="outline" size="sm">
-                <Settings className="!w-3.5 !h-3.5" />
+              <Button variant="outline" size="xs">
+                <Settings className="!w-3 !h-3" />
                 {t('dashboard.conversationList.merge', 'Merge')}
               </Button>
             </DialogTrigger>
@@ -125,8 +125,8 @@ export const ConversationListHeader = ({
           {/* Migrate */}
           <Dialog open={showMigrator} onOpenChange={setShowMigrator}>
             <DialogTrigger asChild>
-              <Button variant="outline" size="sm">
-                <Move className="!w-3.5 !h-3.5" />
+              <Button variant="outline" size="xs">
+                <Move className="!w-3 !h-3" />
                 {t('dashboard.conversationList.migrate', 'Migrate')}
               </Button>
             </DialogTrigger>
@@ -144,11 +144,11 @@ export const ConversationListHeader = ({
           {/* Mark All Read */}
           <Button
             variant="outline"
-            size="sm"
+            size="xs"
             onClick={markAllAsRead}
             disabled={isMarkingAllAsRead || unreadCount === 0}
           >
-            <CheckCheck className="!w-3.5 !h-3.5" />
+            <CheckCheck className="!w-3 !h-3" />
             {t('dashboard.conversationList.markAllRead', 'Read')}
             {unreadCount > 0 && (
               <Badge variant="destructive" className="h-4 px-1 text-[10px] ml-0.5">
@@ -159,19 +159,19 @@ export const ConversationListHeader = ({
         </ButtonGroup>
 
         {/* Right side: Filters + Sort */}
-        <div className="flex items-center gap-1.5 ml-auto flex-shrink-0">
+        <div className="flex items-center gap-1 ml-auto flex-shrink-0">
           {/* Filters as DropdownMenu styled like Select */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="flex h-7 items-center justify-between gap-1 rounded-md border border-input bg-background px-2.5 py-1 text-xs ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-50 whitespace-nowrap">
-                <Filter className="!w-3.5 !h-3.5 shrink-0" />
-                <span className="truncate max-w-[80px] text-xs">{getFilterLabel()}</span>
+              <button className="flex h-6 items-center justify-between gap-0.5 rounded-md border border-input bg-background px-2 py-0.5 text-[11px] ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-50 whitespace-nowrap">
+                <Filter className="!w-3 !h-3 shrink-0" />
+                <span className="truncate max-w-[80px] text-[11px]">{getFilterLabel()}</span>
                 {activeFilterCount > 0 && (
                   <Badge className="h-4 w-4 p-0 flex items-center justify-center text-[9px] bg-primary text-primary-foreground rounded-full">
                     {activeFilterCount}
                   </Badge>
                 )}
-                <ChevronDown className="!h-3.5 !w-3.5 opacity-50 shrink-0" />
+                <ChevronDown className="!h-3 !w-3 opacity-50 shrink-0" />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
@@ -214,8 +214,8 @@ export const ConversationListHeader = ({
             value={state.sortBy} 
             onValueChange={(value: SortBy) => dispatch({ type: 'SET_SORT_BY', payload: value })}
           >
-            <SelectTrigger className="w-auto h-7 text-xs gap-1 px-2.5">
-              <span className="text-muted-foreground text-xs">{t('dashboard.conversationList.sort', 'Sort:')}</span>
+            <SelectTrigger className="w-auto h-6 text-[11px] gap-0.5 px-2">
+              <span className="text-muted-foreground text-[11px]">{t('dashboard.conversationList.sort', 'Sort:')}</span>
               <SelectValue>{getSortLabel(state.sortBy)}</SelectValue>
             </SelectTrigger>
             <SelectContent align="end">
