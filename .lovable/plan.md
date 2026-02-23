@@ -1,76 +1,70 @@
 
 
-# Fix Top-Right Search White Flash
+# World-Class Toolbar UI Cleanup
 
-## Root Cause
+## Current Problems (from screenshot)
 
-Two issues contribute to the white flash when using the header search:
+1. **Two-row layout wastes vertical space** -- Select sits alone on the left, other actions cluster on the right, and Sort floats on a separate row below
+2. **Buttons are too tall** (h-7 = 28px) for a dense toolbar -- feels clunky
+3. **Sort dropdown is orphaned** on its own row with no label, looks disconnected
+4. **Sync button** still visible in top header despite being unused
+5. **Visual hierarchy is unclear** -- primary action (+New) doesn't stand out enough from utility actions (Merge, Migrate)
 
-1. **Missing `type="button"`** on the Search `<Button>` in `AppHeader.tsx` (line 150). The shadcn Button component renders a `<button>` element without an explicit `type`, which defaults to `type="submit"` in HTML. While there's no direct `<form>` ancestor in the current DOM, the Radix Popover portal placement can occasionally inherit form contexts from parent DOM structures, potentially triggering a full browser form submission (page reload) rather than a client-side SPA navigation.
+## Design Approach
 
-2. **State clearing before navigation**: `handleSearch` calls `setSearchOpen(false)` and `setSearchQuery('')` before the `navigate()` call completes its render cycle. This causes an intermediate render where the popover unmounts and the current page re-renders briefly before the route transition fires, producing a visible flash.
+A single compact toolbar row, inspired by tools like Linear and Intercom:
 
-3. **Missing i18n keys** for `dashboard.search.title`, `dashboard.search.placeholder`, and `dashboard.search.search` causing console warnings on every render of the popover.
+```text
+[ Select ] [ + New ] [ Filters v ] [ Merge ] [ Migrate ] [ Mark all read ]  ----  [ Sort: Latest v ]
+```
+
+Key principles:
+- **Single row** with flex-wrap for small screens
+- **h-6 (24px) buttons** -- compact, professional density
+- **Primary action (+New)** keeps `variant="default"` to stand out
+- **Utility actions** (Select, Merge, Migrate, Mark all read) use `variant="ghost"` to reduce visual noise
+- **Filters** keeps `variant="outline"` (or `default` when active) since it's frequently used
+- **Sort dropdown** moves to the right end of the same row with a "Sort:" prefix label
+- **Reduced padding** on the container (p-1.5 instead of p-2/p-3)
+- **Active filter badges** remain as a conditional second row (unchanged)
 
 ## Changes
 
-### File 1: `src/components/dashboard/AppHeader.tsx`
+### 1. Remove SyncButton from AppHeader
 
-- Reorder `handleSearch`: call `navigate()` first, then defer popover close and state clearing
-- Add `type="button"` to the Search Button to prevent any accidental form submission behavior
-- Prevent default on Enter keypress as an extra safety measure
+**File**: `src/components/dashboard/AppHeader.tsx`
+- Remove `SyncButton` import (line 13)
+- Remove `{!isMobile && <SyncButton />}` (lines 125-126)
 
-```typescript
-const handleSearch = (query: string) => {
-  if (!query.trim()) return;
-  navigate(`/search?q=${encodeURIComponent(query)}`);
-  // Defer cleanup so navigation commits first
-  requestAnimationFrame(() => {
-    setSearchOpen(false);
-    setSearchQuery('');
-  });
-};
-```
+### 2. Redesign ConversationListHeader
 
-And on the Button:
-```tsx
-<Button
-  type="button"
-  className="w-full"
-  size="sm"
-  onClick={() => handleSearch(searchQuery)}
-  disabled={!searchQuery.trim()}
->
-```
+**File**: `src/components/dashboard/conversation-list/ConversationListHeader.tsx`
 
-And on the Input's onKeyDown:
-```tsx
-onKeyDown={(e) => {
-  if (e.key === 'Enter') {
-    e.preventDefault();
-    handleSearch(searchQuery);
-  }
-}}
-```
+Merge the two rows into one single flex row:
 
-### File 2: `src/locales/en/common.json` (and all other locale files)
+- **Container**: reduce padding to `p-1.5 md:p-2`
+- **Single row**: `flex items-center gap-1`
+- **Left group**: all action buttons in a `flex items-center gap-1 flex-wrap flex-1 min-w-0`
+- **Right side**: Sort dropdown `ml-auto flex-shrink-0`
+- **All buttons**: `h-6` height, `px-1.5` padding
+- **Utility buttons** (Select, Merge, Migrate, Mark all read): `variant="ghost"` for lower visual weight
+- **+New button**: keeps `variant="default"` as the primary CTA
+- **Filters button**: keeps `variant="outline"` (switches to `default` when filters active)
+- **Sort trigger**: `h-6`, `w-auto`, with `"Sort:"` prefix in muted text
+- **Unread badge**: inlined before the Select button, `h-4` size for compactness
 
-Add the missing `dashboard.search` section:
+The active filter badges row (Row 3) remains unchanged -- it only appears when filters are active and provides useful context.
 
-```json
-"search": {
-  "title": "Search Conversations",
-  "placeholder": "Search by customer, subject, or content...",
-  "search": "Search"
-}
-```
+### Summary of visual improvements
 
-This section needs to be added inside the `"dashboard"` object in all 10 locale files (en, no, de, sv, da, nl, fr, es, it, pt) with appropriate translations.
-
-## Risk Assessment
-
-- **`type="button"`**: Purely defensive, prevents accidental form submit. No functionality change.
-- **`e.preventDefault()`**: Only fires on Enter inside the search input. Prevents any default button/form behavior while still calling handleSearch.
-- **`requestAnimationFrame` for cleanup**: The navigate fires immediately (SPA navigation), then the popover closes on the next frame. This eliminates the intermediate blank render. No logic change.
-- **i18n keys**: Additive only. Replaces fallback strings with identical values from locale files.
+| Aspect | Before | After |
+|---|---|---|
+| Rows | 2 rows (actions + sort) | 1 compact row |
+| Button height | 28px (h-7) | 24px (h-6) |
+| Container padding | p-2 / p-3 | p-1.5 / p-2 |
+| Sort position | Isolated on own row | Inline, right-aligned |
+| Sort label | None | "Sort:" prefix |
+| Utility buttons | outline (heavy borders) | ghost (clean, minimal) |
+| Sync button | Visible in header | Removed |
+| Overall feel | Clunky, spread out | Dense, professional, Linear-inspired |
 
