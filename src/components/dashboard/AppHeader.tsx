@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useDateFormatting } from '@/hooks/useDateFormatting';
@@ -8,12 +8,10 @@ import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { NotificationDropdown } from '@/components/notifications/NotificationDropdown';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Input } from '@/components/ui/input';
+import { SearchCommandPalette } from '@/components/search/SearchCommandPalette';
 
 import { ConnectionStatusIndicator } from '@/components/layout/ConnectionStatusIndicator';
 import { OrganizationSwitcher } from '@/components/organization/OrganizationSwitcher';
-import { useState } from 'react';
 import { 
   Search,
   LogOut,
@@ -44,17 +42,19 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   const { dateTime, timezone } = useDateFormatting();
   const isMobile = useIsMobile();
   
-  // Search state
   const [searchOpen, setSearchOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
 
-  // Search handler
-  const handleSearch = (query: string) => {
-    if (!query.trim()) return;
-    navigate(`/search?q=${encodeURIComponent(query)}`);
-    setSearchOpen(false);
-    setSearchQuery('');
-  };
+  // Cmd+K / Ctrl+K shortcut
+  useEffect(() => {
+    const down = (e: KeyboardEvent) => {
+      if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        setSearchOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', down);
+    return () => window.removeEventListener('keydown', down);
+  }, []);
 
   const handleSignOut = async () => {
     try {
@@ -119,43 +119,18 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
           <div className="flex items-center gap-2">
             {/* Connection Status */}
             <ConnectionStatusIndicator />
-            
 
-            <Popover open={searchOpen} onOpenChange={setSearchOpen}>
-              <PopoverTrigger asChild>
-                <Button variant="ghost" size="sm" className="hidden sm:flex">
-                  <Search className="h-4 w-4" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-80" align="end">
-                <div className="space-y-2">
-                  <h4 className="font-medium text-sm">
-                    {t('dashboard.search.title', 'Search Conversations')}
-                  </h4>
-                  <Input
-                    placeholder={t('dashboard.search.placeholder', 'Search by customer, subject, or content...')}
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        handleSearch(searchQuery);
-                      }
-                    }}
-                    autoFocus
-                  />
-                  <Button 
-                    type="button"
-                    className="w-full" 
-                    size="sm"
-                    onClick={() => handleSearch(searchQuery)}
-                    disabled={!searchQuery.trim()}
-                  >
-                    {t('dashboard.search.search', 'Search')}
-                  </Button>
-                </div>
-              </PopoverContent>
-            </Popover>
+            {/* Search button – opens command palette */}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="hidden sm:flex"
+              onClick={() => setSearchOpen(true)}
+            >
+              <Search className="h-4 w-4" />
+            </Button>
+
+            <SearchCommandPalette open={searchOpen} onOpenChange={setSearchOpen} />
             
             <NotificationDropdown />
           </div>
@@ -199,7 +174,6 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
           </DropdownMenu>
         </div>
       </header>
-
     </div>
   );
 };
