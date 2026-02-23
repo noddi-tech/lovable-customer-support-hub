@@ -142,7 +142,7 @@ export const MasterDetailShell: React.FC<MasterDetailShellProps> = ({
         >
           {/* Detail left: Message thread */}
           <div className={cn(
-            "min-h-0 min-w-0 bg-white",
+            "min-h-0 min-w-0 bg-background",
             detailRight && "border-r border-border"
           )}>
             <ScrollArea className="h-full overflow-y-auto" aria-label={detailLeftLabel}>
@@ -154,7 +154,7 @@ export const MasterDetailShell: React.FC<MasterDetailShellProps> = ({
           
           {/* Detail right: Reply & Actions sidebar (optional) */}
           {detailRight && (
-            <div className="min-h-0 min-w-0 bg-white">
+            <div className="min-h-0 min-w-0 bg-background">
               <ScrollArea className="h-full overflow-y-auto" aria-label={detailRightLabel}>
                 <div className="py-3 sm:py-4 px-0">
                   {detailRight}
@@ -167,11 +167,11 @@ export const MasterDetailShell: React.FC<MasterDetailShellProps> = ({
         // List mode: Inbox list + Conversation list  
         <div 
           data-testid="list-grid"
-          className="grid h-full min-h-0 w-full max-w-none grid-cols-[280px_minmax(0,1fr)] xl:grid-cols-[300px_minmax(0,1fr)] gap-6 md:gap-8"
+          className="grid h-full min-h-0 w-full max-w-none grid-cols-[280px_minmax(0,1fr)] xl:grid-cols-[300px_minmax(0,1fr)] gap-0"
         >
           {/* Left: Inbox list */}
           {left && (
-            <div className="min-h-0 min-w-0 border-r border-border bg-white">
+            <div className="min-h-0 min-w-0 border-r border-border bg-background">
               <ScrollArea className="h-full overflow-y-auto" aria-label={leftPaneLabel}>
                 <div className="py-4 px-0">
                   {left}
@@ -181,7 +181,7 @@ export const MasterDetailShell: React.FC<MasterDetailShellProps> = ({
           )}
           
           {/* Center: Conversation list */}
-          <div className="min-h-0 min-w-0 bg-white overflow-hidden h-full">
+          <div className="min-h-0 min-w-0 bg-background overflow-hidden h-full">
             <div className="h-full py-3 sm:py-4 px-0">
               {center}
             </div>

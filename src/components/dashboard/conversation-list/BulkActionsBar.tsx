@@ -34,7 +34,7 @@ export function BulkActionsBar({
   if (selectedCount === 0) return null;
 
   return (
-    <div className="bg-card border-b border-border px-4 py-3 flex items-center justify-between gap-4">
+    <div className="bg-background border-b border-border px-4 py-3 flex items-center justify-between gap-4">
       <div className="flex items-center gap-3">
         <span className="text-sm font-medium">
           {selectedCount} selected
