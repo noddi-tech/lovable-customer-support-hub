@@ -1,89 +1,64 @@
 
 
-# Redesign Toolbar: ButtonGroup + Text Labels + Select for Filters/Sort
+# Fix "+New" Button: Text Cursor and Consistent Styling
 
-## Overview
+## Problem
 
-Restructure the conversation list toolbar to use a **ButtonGroup** for action buttons (with text + icon), and **Select** components for Filters and Sort -- grouped on the right side.
+The "+New" button is wrapped with `asChild` and renders as a `<span>` element (line 100-105). This causes:
+1. **Text cursor on hover** instead of pointer cursor -- because `<span>` is not a button element
+2. **Visual inconsistency** -- it uses `variant="default"` but the `asChild` + `<span>` pattern breaks the button behavior
 
-## Layout
+## Fix
 
-```text
-LEFT SIDE                                    RIGHT SIDE
-[Select] [+New] [Merge] [Migrate] [Read]     [Filters: All v] [Sort: Latest v]
- ButtonGroup (outline buttons)                Two Select components
-```
+**File: `src/components/dashboard/conversation-list/ConversationListHeader.tsx`**
 
-## Changes
-
-### 1. Create `src/components/ui/button-group.tsx`
-
-A simple container component that groups buttons with connected borders (first child gets rounded-left, last gets rounded-right, middle children have no border-radius). Uses `role="group"`.
+Replace lines 98-106:
 
 ```tsx
-const ButtonGroup = ({ className, ...props }) => (
-  <div
-    role="group"
-    className={cn(
-      "inline-flex items-center rounded-md [&>*:not(:first-child):not(:last-child)]:rounded-none [&>*:first-child]:rounded-r-none [&>*:last-child]:rounded-l-none [&>*:not(:first-child)]:-ml-px",
-      className
-    )}
-    {...props}
-  />
-)
+{/* New */}
+<NewConversationDialog>
+  <Button variant="default" size="sm" asChild>
+    <span>
+      <Plus className="!w-3.5 !h-3.5" />
+      {t('dashboard.conversationList.new', 'New')}
+    </span>
+  </Button>
+</NewConversationDialog>
 ```
 
-### 2. Rewrite `ConversationListHeader.tsx`
+With:
 
-**Left side -- ButtonGroup with text + icon buttons:**
+```tsx
+{/* New */}
+<NewConversationDialog>
+  <Button variant="default" size="sm">
+    <Plus className="!w-3.5 !h-3.5" />
+    {t('dashboard.conversationList.new', 'New')}
+  </Button>
+</NewConversationDialog>
+```
 
-- **Select** button: `<Button variant="outline" size="sm"><CheckSquare /> Select</Button>`
-- **+New** button: `<Button variant="default" size="sm"><Plus /> New</Button>` (primary CTA, stands out)
-- **Merge** button: `<Button variant="outline" size="sm"><Settings /> Merge</Button>`
-- **Migrate** button: `<Button variant="outline" size="sm"><Move /> Migrate</Button>`
-- **Mark Read** button: `<Button variant="outline" size="sm"><CheckCheck /> Read</Button>`
+The key change: remove `asChild` and the inner `<span>` wrapper. The `NewConversationDialog` component likely uses a `DialogTrigger` internally that handles the click -- we just need to ensure the Button renders as a proper `<button>` element so cursor behavior is correct.
 
-All wrapped in `<ButtonGroup>`. Each button shows **icon + text label** (not icon-only). Size `sm` (h-9) keeps them compact but readable.
+If `NewConversationDialog` requires `asChild` to work as a trigger, the fix is to use a `<button>` instead of `<span>`:
 
-**Right side -- Two Select components:**
+```tsx
+<NewConversationDialog>
+  <Button variant="default" size="sm" asChild>
+    <button>
+      <Plus className="!w-3.5 !h-3.5" />
+      {t('dashboard.conversationList.new', 'New')}
+    </button>
+  </Button>
+</NewConversationDialog>
+```
 
-- **Filters Select**: Replace the DropdownMenu with a custom filter trigger. Since Select only supports single value, keep filters as a DropdownMenu but styled to look like a Select (with the chevron-down icon and border styling). The trigger text shows the active filter summary (e.g., "Status: Open" or "Filters" when none active).
+This ensures the rendered element is a `<button>`, which natively shows a pointer cursor and behaves correctly.
 
-- **Sort Select**: Keep as `<Select>` component (already works well). Shows current sort value.
+## Summary
 
-Both are grouped together on the right with `ml-auto`.
-
-**Specific implementation details:**
-
-| Element | Component | Variant | Content |
-|---|---|---|---|
-| Select toggle | Button in ButtonGroup | outline | CheckSquare icon + "Select" text |
-| New | Button in ButtonGroup | default | Plus icon + "New" text |
-| Merge | DialogTrigger Button in ButtonGroup | outline | Settings icon + "Merge" text |
-| Migrate | DialogTrigger Button in ButtonGroup | outline | Move icon + "Migrate" text |
-| Mark Read | Button in ButtonGroup | outline | CheckCheck icon + "Read" text |
-| Filters | DropdownMenu (styled like Select) | - | Filter icon + current filter text + ChevronDown |
-| Sort | Select component | - | Current sort value + ChevronDown |
-
-### 3. Remove tooltips from action buttons
-
-Since all buttons now have visible text labels, tooltips are no longer needed on the action buttons. TooltipProvider can be removed.
-
-### 4. Keep active filter badges
-
-The bottom row showing active filter badges (Status: open, Priority: high, etc.) remains unchanged.
-
-### Files Changed
-
-| File | Action |
-|---|---|
-| `src/components/ui/button-group.tsx` | **Create** -- new ButtonGroup component |
-| `src/components/dashboard/conversation-list/ConversationListHeader.tsx` | **Rewrite** -- ButtonGroup for actions, Select-styled filters, text+icon buttons |
-
-### Technical Notes
-
-- The ButtonGroup component uses CSS selectors (`[&>*:first-child]`, `[&>*:last-child]`) to handle connected border-radius, avoiding extra wrapper elements.
-- The `-ml-px` on non-first children prevents double borders between buttons.
-- Buttons inside DialogTrigger work via `asChild` prop to pass through the ButtonGroup styling.
-- The Filters trigger stays as a DropdownMenu (since it needs radio groups for two dimensions: status + priority) but is styled with the same border/height as the Sort Select for visual consistency.
-
+| What | Before | After |
+|---|---|---|
+| Rendered element | `<span>` | `<button>` |
+| Cursor on hover | Text cursor | Pointer cursor |
+| Visual style | Same (default/primary) | Same (default/primary) |
