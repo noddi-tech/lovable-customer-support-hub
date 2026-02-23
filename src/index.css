@@ -1494,17 +1494,11 @@ Optimized for accessibility with WCAG AA compliance.
   opacity: 0.7;
 }
 
-/* Touch and accessibility */
-button, input, a { 
-  font-size: 16px; /* avoid iOS zoom on focus */
-}
-
-/* Minimum touch targets - exclude form control primitives */
-button:not([role="checkbox"]):not([role="radio"]):not([role="switch"]), 
-[role="button"], 
-[role="tab"] {
-  min-height: 44px;
-  min-width: 44px;
+/* Touch and accessibility - scoped to mobile form fields only */
+@media (max-width: 767px) {
+  input, textarea, select {
+    font-size: 16px; /* avoid iOS zoom on focus */
+  }
 }
 
 /* Dashboard/cards pattern for responsive layout */
