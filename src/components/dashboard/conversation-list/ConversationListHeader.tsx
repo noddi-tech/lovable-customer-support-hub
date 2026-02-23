@@ -74,14 +74,14 @@ export const ConversationListHeader = ({
   };
 
   return (
-    <div className="flex-shrink-0 p-1.5 md:p-2 border-b border-border bg-card/80 backdrop-blur-sm shadow-surface">
+    <div className="flex-shrink-0 p-1 md:p-1.5 border-b border-border bg-card/80 backdrop-blur-sm shadow-surface">
       {/* Single compact toolbar row */}
       <div className="flex items-center gap-1">
         {/* Left group: all action buttons */}
         <div className="flex items-center gap-1 flex-wrap flex-1 min-w-0">
           {/* Unread Count Badge */}
           {unreadCount > 0 && (
-            <Badge variant="destructive" className="h-4 px-1.5 text-[10px]">
+            <Badge variant="destructive" className="h-3.5 px-1.5 text-[10px]">
               {unreadCount}
             </Badge>
           )}
@@ -92,7 +92,7 @@ export const ConversationListHeader = ({
               variant={bulkSelectionMode ? "default" : "ghost"}
               size="sm"
               onClick={handleToggleBulkMode}
-              className="h-6 px-1.5 gap-1 text-xs"
+              className="h-5 px-1.5 gap-1 text-xs"
             >
               <CheckSquare className="!w-3 !h-3" />
               <span className="hidden sm:inline">
@@ -106,7 +106,7 @@ export const ConversationListHeader = ({
             <Button
               variant="default"
               size="sm"
-              className="h-6 px-1.5 gap-1 text-xs"
+              className="h-5 px-1.5 gap-1 text-xs"
             >
               <Plus className="!w-3 !h-3" />
               <span className="hidden sm:inline">
@@ -121,7 +121,7 @@ export const ConversationListHeader = ({
               <Button 
                 variant={hasActiveFilters ? "default" : "outline"}
                 size="sm" 
-                className="h-6 px-1.5 gap-1 text-xs relative"
+                className="h-5 px-1.5 gap-1 text-xs relative"
               >
                 <Filter className="!w-3 !h-3" />
                 <span className="hidden sm:inline">
@@ -164,7 +164,7 @@ export const ConversationListHeader = ({
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-6 px-1.5 gap-1 text-xs"
+                className="h-5 px-1.5 gap-1 text-xs"
               >
                 <Settings className="!w-3 !h-3" />
                 <span className="hidden sm:inline">
@@ -189,7 +189,7 @@ export const ConversationListHeader = ({
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-6 px-1.5 gap-1 text-xs"
+                className="h-5 px-1.5 gap-1 text-xs"
               >
                 <Move className="!w-3 !h-3" />
                 <span className="hidden sm:inline">
@@ -214,7 +214,7 @@ export const ConversationListHeader = ({
             size="sm"
             onClick={markAllAsRead}
             disabled={isMarkingAllAsRead || unreadCount === 0}
-            className="h-6 px-1.5 gap-1 text-xs"
+            className="h-5 px-1.5 gap-1 text-xs"
           >
             <CheckCheck className="!w-3 !h-3" />
             <span className="hidden sm:inline">
@@ -228,7 +228,7 @@ export const ConversationListHeader = ({
           value={state.sortBy} 
           onValueChange={(value: SortBy) => dispatch({ type: 'SET_SORT_BY', payload: value })}
         >
-          <SelectTrigger className="w-auto h-6 text-xs gap-1 ml-auto flex-shrink-0">
+          <SelectTrigger className="w-auto h-5 border-0 shadow-none text-xs gap-1 ml-auto flex-shrink-0 px-1.5">
             <span className="text-muted-foreground">Sort:</span>
             <SelectValue>{getSortLabel(state.sortBy)}</SelectValue>
           </SelectTrigger>
