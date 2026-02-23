@@ -10,7 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { NotificationDropdown } from '@/components/notifications/NotificationDropdown';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Input } from '@/components/ui/input';
-import { SyncButton } from '@/components/dashboard/SyncButton';
+
 import { ConnectionStatusIndicator } from '@/components/layout/ConnectionStatusIndicator';
 import { OrganizationSwitcher } from '@/components/organization/OrganizationSwitcher';
 import { useState } from 'react';
@@ -122,8 +122,6 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
             {/* Connection Status */}
             <ConnectionStatusIndicator />
             
-            {/* Sync Button - Desktop only */}
-            {!isMobile && <SyncButton />}
 
             <Popover open={searchOpen} onOpenChange={setSearchOpen}>
               <PopoverTrigger asChild>
