@@ -24,9 +24,10 @@ interface ConversationListProps {
   selectedConversation?: Conversation;
   selectedInboxId: string;
   onToggleCollapse?: () => void;
+  searchQuery?: string;
 }
 
-const ConversationListContent = ({ onSelectConversation, selectedConversation, onToggleCollapse, selectedInboxId }: Omit<ConversationListProps, 'selectedTab'>) => {
+const ConversationListContent = ({ onSelectConversation, selectedConversation, onToggleCollapse, selectedInboxId, searchQuery }: Omit<ConversationListProps, 'selectedTab'>) => {
   const { 
     filteredConversations, 
     isLoading, 
@@ -63,6 +64,13 @@ const ConversationListContent = ({ onSelectConversation, selectedConversation, o
       setShowSessionBanner(false);
     }
   }, [hasSessionError, filteredConversations.length, isLoading]);
+
+  // Sync external searchQuery prop into ConversationListContext
+  useEffect(() => {
+    if (searchQuery !== undefined) {
+      dispatch({ type: 'SET_SEARCH_QUERY', payload: searchQuery });
+    }
+  }, [searchQuery, dispatch]);
 
   // Note: Real-time subscriptions are now centralized in useOptimizedCounts
   // to prevent duplicate subscriptions and improve performance
@@ -142,7 +150,7 @@ const ConversationListContent = ({ onSelectConversation, selectedConversation, o
   );
 };
 
-export const ConversationList = ({ selectedTab, onSelectConversation, selectedConversation, selectedInboxId, onToggleCollapse }: ConversationListProps) => {
+export const ConversationList = ({ selectedTab, onSelectConversation, selectedConversation, selectedInboxId, onToggleCollapse, searchQuery }: ConversationListProps) => {
   return (
     <ConversationListProvider selectedTab={selectedTab} selectedInboxId={selectedInboxId}>
       <ConversationListContent 
@@ -150,6 +158,7 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
         selectedConversation={selectedConversation}
         onToggleCollapse={onToggleCollapse}
         selectedInboxId={selectedInboxId}
+        searchQuery={searchQuery}
       />
     </ConversationListProvider>
   );

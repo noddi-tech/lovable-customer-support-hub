@@ -52,8 +52,8 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   const handleSearch = (query: string) => {
     if (!query.trim()) return;
     
-    // Navigate to dashboard with search query
-    navigate(`/?search=${encodeURIComponent(query)}`);
+    // Navigate to dedicated search page with query
+    navigate(`/search?q=${encodeURIComponent(query)}`);
     setSearchOpen(false);
     setSearchQuery('');
   };
