@@ -1,81 +1,89 @@
 
 
-# Fix Filters UI + Uniform Toolbar Buttons
+# Redesign Toolbar: ButtonGroup + Text Labels + Select for Filters/Sort
 
-## Problems
+## Overview
 
-1. **Filter popover looks bad** -- large Select dropdowns inside a popover feel heavy and clunky (as shown in screenshot)
-2. **Toolbar buttons still have inconsistent sizing** -- text labels cause varying widths
+Restructure the conversation list toolbar to use a **ButtonGroup** for action buttons (with text + icon), and **Select** components for Filters and Sort -- grouped on the right side.
 
-## Solution
-
-### 1. Replace Filter Popover with DropdownMenu
-
-Replace the current Popover containing two large Select dropdowns with a clean **DropdownMenu** using radio groups for Status and Priority. This gives a native-feeling, compact filter experience.
+## Layout
 
 ```text
-Filter Conversations
----
-Status
-  (*) All Status
-  ( ) Open
-  ( ) Pending
-  ( ) Closed
----
-Priority
-  (*) All Priority
-  ( ) Low
-  ( ) Normal
-  ( ) High
-  ( ) Urgent
----
-[Clear Filters]
+LEFT SIDE                                    RIGHT SIDE
+[Select] [+New] [Merge] [Migrate] [Read]     [Filters: All v] [Sort: Latest v]
+ ButtonGroup (outline buttons)                Two Select components
 ```
 
-**File: `src/components/dashboard/conversation-list/ConversationListHeader.tsx`**
+## Changes
 
-- Replace the `<Popover>` wrapping filters (lines 118-158) with a `<DropdownMenu>` 
-- Import `DropdownMenu, DropdownMenuContent, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuRadioGroup, DropdownMenuRadioItem` from `@/components/ui/dropdown-menu`
-- Remove `Popover, PopoverContent, PopoverTrigger` imports
-- Inline the status and priority radio groups directly -- no need for the separate `ConversationListFilters` component
+### 1. Create `src/components/ui/button-group.tsx`
 
-### 2. Icon-Only Toolbar Buttons with Tooltips
+A simple container component that groups buttons with connected borders (first child gets rounded-left, last gets rounded-right, middle children have no border-radius). Uses `role="group"`.
 
-Convert all 6 action buttons to uniform **h-7 w-7** icon-only squares with tooltips:
+```tsx
+const ButtonGroup = ({ className, ...props }) => (
+  <div
+    role="group"
+    className={cn(
+      "inline-flex items-center rounded-md [&>*:not(:first-child):not(:last-child)]:rounded-none [&>*:first-child]:rounded-r-none [&>*:last-child]:rounded-l-none [&>*:not(:first-child)]:-ml-px",
+      className
+    )}
+    {...props}
+  />
+)
+```
 
-- Import `Tooltip, TooltipTrigger, TooltipContent, TooltipProvider` from `@/components/ui/tooltip`
-- Each button becomes:
-  ```tsx
-  <Tooltip>
-    <TooltipTrigger asChild>
-      <Button variant="ghost" size="icon" className="h-7 w-7">
-        <IconName className="!w-3.5 !h-3.5" />
-      </Button>
-    </TooltipTrigger>
-    <TooltipContent side="bottom"><p>Label</p></TooltipContent>
-  </Tooltip>
-  ```
-- Applies to: Select, +New (keeps `variant="default"`), Filters (uses DropdownMenuTrigger), Merge, Migrate, Mark all read
-- Sort dropdown trigger also gets `h-7` to match
+### 2. Rewrite `ConversationListHeader.tsx`
 
-### 3. Wrap in TooltipProvider
+**Left side -- ButtonGroup with text + icon buttons:**
 
-Wrap the entire toolbar return in `<TooltipProvider delayDuration={300}>` so all tooltips work.
+- **Select** button: `<Button variant="outline" size="sm"><CheckSquare /> Select</Button>`
+- **+New** button: `<Button variant="default" size="sm"><Plus /> New</Button>` (primary CTA, stands out)
+- **Merge** button: `<Button variant="outline" size="sm"><Settings /> Merge</Button>`
+- **Migrate** button: `<Button variant="outline" size="sm"><Move /> Migrate</Button>`
+- **Mark Read** button: `<Button variant="outline" size="sm"><CheckCheck /> Read</Button>`
+
+All wrapped in `<ButtonGroup>`. Each button shows **icon + text label** (not icon-only). Size `sm` (h-9) keeps them compact but readable.
+
+**Right side -- Two Select components:**
+
+- **Filters Select**: Replace the DropdownMenu with a custom filter trigger. Since Select only supports single value, keep filters as a DropdownMenu but styled to look like a Select (with the chevron-down icon and border styling). The trigger text shows the active filter summary (e.g., "Status: Open" or "Filters" when none active).
+
+- **Sort Select**: Keep as `<Select>` component (already works well). Shows current sort value.
+
+Both are grouped together on the right with `ml-auto`.
+
+**Specific implementation details:**
+
+| Element | Component | Variant | Content |
+|---|---|---|---|
+| Select toggle | Button in ButtonGroup | outline | CheckSquare icon + "Select" text |
+| New | Button in ButtonGroup | default | Plus icon + "New" text |
+| Merge | DialogTrigger Button in ButtonGroup | outline | Settings icon + "Merge" text |
+| Migrate | DialogTrigger Button in ButtonGroup | outline | Move icon + "Migrate" text |
+| Mark Read | Button in ButtonGroup | outline | CheckCheck icon + "Read" text |
+| Filters | DropdownMenu (styled like Select) | - | Filter icon + current filter text + ChevronDown |
+| Sort | Select component | - | Current sort value + ChevronDown |
+
+### 3. Remove tooltips from action buttons
+
+Since all buttons now have visible text labels, tooltips are no longer needed on the action buttons. TooltipProvider can be removed.
+
+### 4. Keep active filter badges
+
+The bottom row showing active filter badges (Status: open, Priority: high, etc.) remains unchanged.
 
 ### Files Changed
 
-| File | Change |
+| File | Action |
 |---|---|
-| `ConversationListHeader.tsx` | Replace Popover with DropdownMenu for filters; convert all buttons to icon-only h-7 w-7 with tooltips; wrap in TooltipProvider |
-| `ConversationListFilters.tsx` | No changes needed (component becomes unused from header but kept for potential reuse elsewhere) |
+| `src/components/ui/button-group.tsx` | **Create** -- new ButtonGroup component |
+| `src/components/dashboard/conversation-list/ConversationListHeader.tsx` | **Rewrite** -- ButtonGroup for actions, Select-styled filters, text+icon buttons |
 
-### Visual Result
+### Technical Notes
 
-```text
-[Select] [+New] [Filter v] [Merge] [Migrate] [Read]  Sort: Latest v
-  28x28   28x28   28x28    28x28    28x28    28x28
-  ghost  default  ghost    ghost    ghost    ghost
-```
-
-Filter dropdown opens as a clean DropdownMenu with radio groups instead of clunky Select dropdowns inside a popover.
+- The ButtonGroup component uses CSS selectors (`[&>*:first-child]`, `[&>*:last-child]`) to handle connected border-radius, avoiding extra wrapper elements.
+- The `-ml-px` on non-first children prevents double borders between buttons.
+- Buttons inside DialogTrigger work via `asChild` prop to pass through the ButtonGroup styling.
+- The Filters trigger stays as a DropdownMenu (since it needs radio groups for two dimensions: status + priority) but is styled with the same border/height as the Sort Select for visual consistency.
 
