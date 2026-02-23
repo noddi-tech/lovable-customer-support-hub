@@ -194,7 +194,7 @@ export const InteractionsLayout: React.FC<InteractionsLayoutProps> = ({
     return (
       <div className="flex flex-col flex-1 min-h-0">
         {shouldShowConversationList ? (
-          <div className="flex flex-col bg-card border-b border-border min-h-0 flex-1">
+          <div className="flex flex-col bg-background border-b border-border min-h-0 flex-1">
             <ConversationList 
               selectedConversation={selectedConversation}
               onSelectConversation={handleSelectConversation}
@@ -240,7 +240,7 @@ export const InteractionsLayout: React.FC<InteractionsLayoutProps> = ({
               minSize={getPanelSize('conversationList') < 100 ? 20 : 100}
               maxSize={getPanelSize('conversationList') < 100 ? 60 : 100}
               onResize={(size) => updatePanelSize('conversationList', size)}
-              className="flex flex-col bg-card border-r border-border/30 min-h-0"
+              className="flex flex-col bg-background border-r border-border/30 min-h-0"
             >
               <ConversationList 
                 selectedConversation={selectedConversation}
