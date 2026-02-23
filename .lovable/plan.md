@@ -1,43 +1,59 @@
 
-Issue confirmed. You are right: the grey area is the conversation table region, not the top app header.
+# Replace Header Search with Command Palette Overlay
 
-Root cause identified:
-- In this app, `bg-background` is currently not pure white at runtime because `DesignSystemProvider` overrides `--background` to `210 20% 98` (light grey).
-- `--card` remains pure white (`0 0% 100`).
-- Recent changes replaced white/card surfaces with `bg-background`, which unintentionally turned the conversation list area grey.
+## Problem
 
-What I will change after approval (targeted white-only fix for `/interactions/text/...`):
+Clicking the search icon in the header navigates to `/search`, which unmounts the current page and remounts a new one -- feels like a full page refresh and loses all current context (selected conversation, scroll position, etc.).
 
-1) Revert conversation-list surfaces from `bg-background` to `bg-card` (white)
-- File: `src/components/dashboard/ConversationList.tsx`
-  - Change main table wrapper from `bg-background` -> `bg-card`.
-- File: `src/components/dashboard/conversation-list/ConversationListHeader.tsx`
-  - Change toolbar container from `bg-background` -> `bg-card`.
-- File: `src/components/dashboard/conversation-list/BulkActionsBar.tsx`
-  - Change bar container from `bg-background` -> `bg-card`.
+## Solution
 
-2) Make table header strips white as well
-- File: `src/components/dashboard/conversation-list/ConversationTable.tsx`
-  - Sticky `<TableHeader>` currently uses `bg-background`; change to `bg-card`.
-- File: `src/components/dashboard/conversation-list/VirtualizedConversationTable.tsx`
-  - Fixed header wrapper currently `border-b bg-background`; change to `border-b bg-card`.
+Replace the header's search popover + navigate pattern with a **command palette overlay** (using the already-installed `cmdk` library and existing `CommandDialog` component). Search results appear in a floating dialog on top of the current page -- no navigation, no refresh, no context loss.
 
-3) Fix the surrounding shell where it was switched from white to grey
-- File: `src/components/admin/design/components/layouts/MasterDetailShell.tsx`
-  - In list mode and detail mode panes, change surface classes from `bg-background` back to `bg-card` where those panes should be white.
-  - Keep `gap-0` (that part is correct and avoids background bleed between panes).
+## How It Works
 
-4) Keep separators/borders unchanged
-- Preserve existing `border-b` / `border-r` lines to maintain structure while making all panel surfaces white.
+1. User clicks the search icon (or presses Cmd+K) -- a `CommandDialog` opens as an overlay
+2. User types their query -- results load inline via the existing `useGlobalSearch` hook (debounced)
+3. User clicks a result -- dialog closes, navigates to that conversation/customer
+4. The `/search` page remains available for users who navigate there directly (e.g., bookmarks)
 
-5) Validation checklist
-- Route: `/interactions/text/open?...`
-- Confirm:
-  - Conversation table area behind toolbar/buttons is white.
-  - Column header strip is white.
-  - Bulk actions strip is white.
-  - No grey bleed between left/center panes.
-  - Top app header remains as-is.
+## Changes
 
-Technical note:
-- I will use `bg-card` (not `bg-white`) so the fix stays theme-token based while still giving true white in your current design system configuration.
+### 1. New Component: `src/components/search/SearchCommandPalette.tsx`
+
+A self-contained command palette component that:
+- Accepts `open` and `onOpenChange` props
+- Uses `CommandDialog` (from `cmdk`) for the overlay UI
+- Has a search input with 300ms debounce
+- Shows results grouped by type (Conversations, Customers, Messages) using `CommandGroup`
+- Each result is a `CommandItem` that navigates on click and closes the dialog
+- Shows loading spinner, empty state, and result counts
+- Reuses `useGlobalSearch` hook for data fetching (queries all 3 types in parallel)
+- Limits to top 5 results per category with a "View all in Search" link that navigates to `/search?q=...`
+
+### 2. Update: `src/components/dashboard/AppHeader.tsx`
+
+- Remove the `Popover`-based search UI (lines 124-158)
+- Remove `searchQuery` state
+- Import and render `SearchCommandPalette` controlled by `searchOpen` state
+- Keep the search icon button -- it now toggles the command palette
+- Register Cmd+K keyboard shortcut in this component (move from SearchPage)
+
+### 3. Keep: `src/pages/SearchPage.tsx`
+
+- No changes -- the full search page stays as-is for deep searches, filters, and direct URL access
+- The "View all" link in the command palette links here
+
+## Technical Details
+
+- The command palette fetches all 3 types simultaneously using 3 parallel `useGlobalSearch` calls (conversations, customers, messages) with a shared debounced query
+- Results are capped at 5 per group in the overlay for speed
+- `CommandDialog` handles focus trap, Escape to close, and accessibility automatically
+- `useNavigate` is used for result selection (same-tab, preserves auth)
+- Keyboard: Arrow keys navigate results, Enter selects, Escape closes
+
+## Files Changed
+
+| File | Action |
+|---|---|
+| `src/components/search/SearchCommandPalette.tsx` | **New** -- command palette overlay component |
+| `src/components/dashboard/AppHeader.tsx` | **Edit** -- swap Popover for CommandPalette |
