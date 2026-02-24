@@ -1,73 +1,17 @@
 
+## Match Filter and Sort Controls to Button Sizes
 
-## Remove Top Header Bar — Move Features to Sidebar
+The Filters dropdown and Sort select are currently `h-5 px-1.5` (20px tall, 6px padding) while all the action buttons use `size="xxs"` which is `h-7 px-3` (28px tall, 12px padding). This makes them visually mismatched.
 
-The top header bar takes 56px of vertical space and duplicates functionality already in the sidebar. This plan removes it entirely and relocates its unique features into the sidebar.
+### Changes
 
-### Current header features and where they go
+**File: `src/components/dashboard/conversation-list/ConversationListHeader.tsx`**
 
-| Feature | Currently in header | Destination |
-|---|---|---|
-| Logo + "Customer Support" | Left side | **Remove** (sidebar already has "Customer Platform" branding) |
-| OrganizationSwitcher | Left side | **Sidebar header** (below the "Customer Platform" title) |
-| Timezone display | Right side | **Sidebar footer** (small text above user profile) |
-| ConnectionStatusIndicator | Right side | **Sidebar footer** (next to timezone) |
-| Search button | Right side | **Remove** (search icon already in sidebar nav; Cmd+K shortcut stays) |
-| NotificationDropdown | Right side | **Remove** (notifications link already in sidebar nav) |
-| User avatar + dropdown menu | Right side | **Sidebar footer** (avatar with name + dropdown for settings/sign out) |
-| Cmd+K keyboard shortcut | Header component | **Move to UnifiedAppLayout** (global handler, not tied to header) |
+1. **Filters dropdown trigger** (line 166): Change the custom `<button>` classes from `h-5 px-1.5 text-[10px] gap-0.5` to `h-7 px-3 text-[10px] gap-1.5` to match `xxs` button sizing.
 
-### Changes by file
+2. **Sort select trigger** (line 217): Change `SelectTrigger` classes from `h-5 text-[10px] gap-0.5 px-1.5` to `h-7 text-[10px] gap-1.5 px-3`.
 
-**1. `src/components/layout/UnifiedAppLayout.tsx`**
-- Remove `<AppHeader />` import and usage
-- Change grid from `grid-rows-[56px_1fr]` to just `flex-1 min-h-0` (no header row)
-- Add the Cmd+K keyboard shortcut handler + `SearchCommandPalette` here (global level)
+3. **Gap between filter/sort** (line 162): Increase gap from `gap-0.5` to `gap-1` to match the left-side button spacing.
 
-**2. `src/components/layout/AppMainNav.tsx`**
-- **Header section**: Add `<OrganizationSwitcher />` below the "Customer Platform" title
-- **Footer section**: Replace the simple collapse button with a richer footer containing:
-  - Connection status indicator + timezone (small row)
-  - User avatar with name + dropdown menu (settings, design library, sign out)
-  - Collapse/expand toggle button (kept at bottom)
-- When sidebar is collapsed, footer shows just the avatar (clickable for dropdown) and a small status dot
-
-**3. `src/components/dashboard/AppHeader.tsx`**
-- No deletion needed immediately (keep file for potential future use), but it will no longer be imported anywhere
-
-**4. `src/components/layout/__tests__/UnifiedAppLayout.test.tsx`**
-- Remove assertions for header elements like "Customer Support Hub" and `getByRole('banner')`
-- Update to reflect new layout without header row
-
-### Sidebar footer design (expanded state)
-
-```text
-------------------------------
- Europe/Oslo . 14:32    [wifi]
-------------------------------
- [avatar] John Doe        [v]
-          john@email.com
-------------------------------
- [<< Collapse]
-------------------------------
-```
-
-### Sidebar footer design (collapsed state)
-
-```text
---------
- [wifi]
---------
- [avatar]
---------
-  [<<]
---------
-```
-
-### Technical notes
-
-- The `SearchCommandPalette` dialog is a portal-based modal, so moving its state to `UnifiedAppLayout` keeps Cmd+K working globally without the header
-- `OrganizationSwitcher` already handles its own visibility logic (hides when user has only one org)
-- The layout gains 56px of vertical space for the conversation table
-- Mobile: the sidebar trigger button needs to remain accessible -- we'll add a small floating trigger or use the existing `SidebarTrigger` from the sidebar component that's visible when collapsed
-
+### Result
+All controls in the toolbar row will be the same height (28px) with consistent padding, creating a uniform look across the entire header bar.
