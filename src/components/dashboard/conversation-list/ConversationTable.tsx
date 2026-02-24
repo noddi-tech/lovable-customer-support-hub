@@ -44,10 +44,10 @@ export const ConversationTable = memo<ConversationTableProps>(({
 
   if (isLoading) {
     return (
-      <div className="flex-1 flex items-center justify-center text-muted-foreground">
+      <div className="flex items-center justify-center h-32 text-muted-foreground">
         <div className="text-center">
-          <Clock className="w-12 h-12 mx-auto mb-4 opacity-50 animate-spin" />
-          <p>{t('dashboard.conversationList.loadingConversations', 'Loading conversations...')}</p>
+          <Clock className="w-8 h-8 mx-auto mb-2 opacity-50 animate-spin" />
+          <p className="text-sm">{t('dashboard.conversationList.loadingConversations', 'Loading conversations...')}</p>
         </div>
       </div>
     );
@@ -55,20 +55,20 @@ export const ConversationTable = memo<ConversationTableProps>(({
 
   if (filteredConversations.length === 0) {
     return (
-      <div className="flex-1 flex items-center justify-center text-muted-foreground">
+      <div className="flex items-center justify-center h-32 text-muted-foreground">
         <div className="text-center">
-          <Inbox className="w-12 h-12 mx-auto mb-4 opacity-50" />
-          <p className="text-lg mb-2">{t('dashboard.conversationList.noConversations', 'No conversations found')}</p>
-          <p className="text-sm">{t('dashboard.conversationList.noConversationsDescription', 'There are no conversations matching your current filters.')}</p>
+          <Inbox className="w-8 h-8 mx-auto mb-2 opacity-50" />
+          <p className="text-sm mb-1">{t('dashboard.conversationList.noConversations', 'No conversations found')}</p>
+          <p className="text-xs">{t('dashboard.conversationList.noConversationsDescription', 'There are no conversations matching your current filters.')}</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex-1 overflow-auto">
+    <div className="flex-1 overflow-auto border rounded-lg">
       <Table>
-        <TableHeader className="sticky top-0 bg-card z-10 border-b">
+        <TableHeader className="sticky top-0 z-20 bg-muted/50 backdrop-blur-sm border-b-2">
           <TableRow className="hover:bg-transparent">
             {state.bulkSelectionMode && (
               <TableHead className="w-10 p-2">
@@ -91,27 +91,7 @@ export const ConversationTable = memo<ConversationTableProps>(({
               currentSort={state.tableSort}
               onSort={handleSort}
             />
-            <TableHeaderCell
-              label={t('dashboard.conversationList.channel', 'Channel')}
-              sortKey="channel"
-              currentSort={state.tableSort}
-              onSort={handleSort}
-              className="w-20"
-            />
-            <TableHeaderCell
-              label={t('dashboard.conversationList.waiting', 'Waiting')}
-              sortKey="waiting"
-              currentSort={state.tableSort}
-              onSort={handleSort}
-              className="w-24"
-            />
-            <TableHeaderCell
-              label={t('dashboard.conversationList.sla', 'SLA')}
-              sortKey="sla"
-              currentSort={state.tableSort}
-              onSort={handleSort}
-              className="w-16"
-            />
+            {/* Status & Priority before Channel for urgency scanning */}
             <TableHeaderCell
               label={t('dashboard.conversationList.status', 'Status')}
               sortKey="status"
@@ -125,6 +105,27 @@ export const ConversationTable = memo<ConversationTableProps>(({
               currentSort={state.tableSort}
               onSort={handleSort}
               className="w-24"
+            />
+            <TableHeaderCell
+              label={t('dashboard.conversationList.channel', 'Channel')}
+              sortKey="channel"
+              currentSort={state.tableSort}
+              onSort={handleSort}
+              className="w-20"
+            />
+            <TableHeaderCell
+              label={t('dashboard.conversationList.waiting', 'Waiting')}
+              sortKey="waiting"
+              currentSort={state.tableSort}
+              onSort={handleSort}
+              className="w-20"
+            />
+            <TableHeaderCell
+              label={t('dashboard.conversationList.sla', 'SLA')}
+              sortKey="sla"
+              currentSort={state.tableSort}
+              onSort={handleSort}
+              className="w-20"
             />
             <TableHead className="w-12 p-2"></TableHead>
           </TableRow>

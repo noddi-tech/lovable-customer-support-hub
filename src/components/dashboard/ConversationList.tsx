@@ -14,8 +14,10 @@ import { SessionHealthMonitor } from "@/components/conversations/SessionHealthMo
 import { useMemoryLeakPrevention } from "@/hooks/useMemoryLeakPrevention";
 import { useAuth } from '@/hooks/useAuth';
 import { useTranslation } from "react-i18next";
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { Badge } from '@/components/ui/badge';
+import { X } from 'lucide-react';
 
 
 interface ConversationListProps {
@@ -79,6 +81,26 @@ const ConversationListContent = ({ onSelectConversation, selectedConversation, o
   // This prevents switching between table types during bulk load
   const shouldUseVirtualization = filteredConversations.length > 50 || hasNextPage || isFetchingNextPage || hasSessionError || state.bulkSelectionMode;
 
+  // Active filter chips
+  const activeFilters = useMemo(() => {
+    const filters: { key: string; label: string; onClear: () => void }[] = [];
+    if (state.statusFilter && state.statusFilter !== 'all') {
+      filters.push({
+        key: 'status',
+        label: `Status: ${state.statusFilter}`,
+        onClear: () => dispatch({ type: 'SET_STATUS_FILTER', payload: 'all' }),
+      });
+    }
+    if (state.priorityFilter && state.priorityFilter !== 'all') {
+      filters.push({
+        key: 'priority',
+        label: `Priority: ${state.priorityFilter}`,
+        onClear: () => dispatch({ type: 'SET_PRIORITY_FILTER', payload: 'all' }),
+      });
+    }
+    return filters;
+  }, [state.statusFilter, state.priorityFilter, dispatch]);
+
   return (
     <div className="flex flex-col h-full min-h-0">
       {/* Session Recovery Banner */}
@@ -130,6 +152,34 @@ const ConversationListContent = ({ onSelectConversation, selectedConversation, o
         agents={agents}
       />
       
+      {/* Active Filter Chips */}
+      {activeFilters.length > 0 && (
+        <div className="flex items-center gap-1.5 px-3 py-1.5 border-b bg-muted/30">
+          {activeFilters.map((filter) => (
+            <Badge
+              key={filter.key}
+              variant="secondary"
+              className="text-[10px] px-2 py-0.5 flex items-center gap-1 cursor-pointer hover:bg-secondary/80"
+              onClick={filter.onClear}
+            >
+              {filter.label}
+              <X className="w-3 h-3" />
+            </Badge>
+          ))}
+          {activeFilters.length > 1 && (
+            <button
+              className="text-[10px] text-muted-foreground hover:text-foreground ml-1"
+              onClick={() => {
+                dispatch({ type: 'SET_STATUS_FILTER', payload: 'all' });
+                dispatch({ type: 'SET_PRIORITY_FILTER', payload: 'all' });
+              }}
+            >
+              Clear all
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Conversation List - Table layout */}
       <div className="pane flex-1 flex flex-col overflow-hidden min-h-0 h-full bg-card">
         {shouldUseVirtualization ? (
