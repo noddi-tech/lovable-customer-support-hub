@@ -1,88 +1,73 @@
 
 
-## Inbox UI/UX Improvements from v0 Suggestions
+## Remove Top Header Bar — Move Features to Sidebar
 
-Integrate the visual enhancements from the v0-generated components into the existing codebase, adapting them to work with the current architecture (ConversationListContext, TableHeaderCell API, existing hooks).
+The top header bar takes 56px of vertical space and duplicates functionality already in the sidebar. This plan removes it entirely and relocates its unique features into the sidebar.
 
-### What changes (and what does NOT change)
+### Current header features and where they go
 
-The v0 output provides 4 component files. Rather than blindly replacing them (which would break due to API mismatches), we selectively adopt the **visual improvements** while keeping our existing architecture intact.
+| Feature | Currently in header | Destination |
+|---|---|---|
+| Logo + "Customer Support" | Left side | **Remove** (sidebar already has "Customer Platform" branding) |
+| OrganizationSwitcher | Left side | **Sidebar header** (below the "Customer Platform" title) |
+| Timezone display | Right side | **Sidebar footer** (small text above user profile) |
+| ConnectionStatusIndicator | Right side | **Sidebar footer** (next to timezone) |
+| Search button | Right side | **Remove** (search icon already in sidebar nav; Cmd+K shortcut stays) |
+| NotificationDropdown | Right side | **Remove** (notifications link already in sidebar nav) |
+| User avatar + dropdown menu | Right side | **Sidebar footer** (avatar with name + dropdown for settings/sign out) |
+| Cmd+K keyboard shortcut | Header component | **Move to UnifiedAppLayout** (global handler, not tied to header) |
 
----
+### Changes by file
 
-### 1. Enhanced SLABadge with time remaining and colored dots
+**1. `src/components/layout/UnifiedAppLayout.tsx`**
+- Remove `<AppHeader />` import and usage
+- Change grid from `grid-rows-[56px_1fr]` to just `flex-1 min-h-0` (no header row)
+- Add the Cmd+K keyboard shortcut handler + `SearchCommandPalette` here (global level)
 
-**File:** `src/components/dashboard/conversation-list/SLABadge.tsx`
+**2. `src/components/layout/AppMainNav.tsx`**
+- **Header section**: Add `<OrganizationSwitcher />` below the "Customer Platform" title
+- **Footer section**: Replace the simple collapse button with a richer footer containing:
+  - Connection status indicator + timezone (small row)
+  - User avatar with name + dropdown menu (settings, design library, sign out)
+  - Collapse/expand toggle button (kept at bottom)
+- When sidebar is collapsed, footer shows just the avatar (clickable for dropdown) and a small status dot
 
-Replace the current minimal badge with the v0 version which adds:
-- Colored status dot indicator (emerald/amber/red)
-- Icon per status (CheckCircle/AlertCircle/XCircle)
-- Time remaining display ("3h left") for at_risk and breached statuses
-- Dark mode support with proper color tokens
-- `cn()` utility import (currently missing)
+**3. `src/components/dashboard/AppHeader.tsx`**
+- No deletion needed immediately (keep file for potential future use), but it will no longer be imported anywhere
 
-The props interface stays the same (`status`, `slaBreachAt`), so no caller changes needed.
+**4. `src/components/layout/__tests__/UnifiedAppLayout.test.tsx`**
+- Remove assertions for header elements like "Customer Support Hub" and `getByRole('banner')`
+- Update to reflect new layout without header row
 
----
+### Sidebar footer design (expanded state)
 
-### 2. SLA left-border accent colors on conversation rows
+```text
+------------------------------
+ Europe/Oslo . 14:32    [wifi]
+------------------------------
+ [avatar] John Doe        [v]
+          john@email.com
+------------------------------
+ [<< Collapse]
+------------------------------
+```
 
-**File:** `src/components/dashboard/conversation-list/ConversationTableRow.tsx`
+### Sidebar footer design (collapsed state)
 
-Key visual changes adopted from v0:
-- Add `getSLABorderColor()` utility that returns `border-l-4 border-green-500` / `border-amber-500` / `border-red-500` based on SLA status
-- Apply the border class to both the virtualized `<div>` and the `<TableRow>`
-- Add `group` class to rows for hover-based action reveal
-- Enhanced status badges with icons (using `statusConfig` map with `MessageCircle`, `Clock`, `CheckCircle`, `XCircle`)
-- Enhanced priority badge colors (slate/indigo/amber/red instead of current semantic tokens)
-- Compact time formatting utility (`formatCompactTime`) showing "22h" instead of "about 22 hours"
-- Hover-reveal reply button on rows (visible only on hover via `opacity-0 group-hover:opacity-100`)
-- Row selection uses `bg-primary/8` instead of `bg-primary/5`
-- Actions column hidden by default, shown on hover
+```text
+--------
+ [wifi]
+--------
+ [avatar]
+--------
+  [<<]
+--------
+```
 
-**What stays the same:** All imports, hook usage, callback signatures, context integration, bulk selection logic.
+### Technical notes
 
----
-
-### 3. Sticky table header with backdrop blur
-
-**File:** `src/components/dashboard/conversation-list/ConversationTable.tsx`
-
-Changes:
-- Add `sticky top-0 z-20 bg-muted/50 backdrop-blur-sm border-b-2` to `TableHeader`
-- Reorder columns: move Status and Priority **before** Channel (earlier in scan path for urgency assessment)
-- Add `border rounded-lg` wrapper around the table
-- Compact loading/empty states (smaller icons, `h-32` instead of full flex)
-
-**Compatibility note:** The v0 `ConversationTable` calls `TableHeaderCell` without `currentSort` prop. Our existing `TableHeaderCell` requires it. We keep our existing `TableHeaderCell` API and pass `currentSort={state.tableSort}` as we do now.
-
----
-
-### 4. Active filter chips in ConversationList
-
-**File:** `src/components/dashboard/ConversationList.tsx`
-
-Add a filter chips bar below the header that shows active filters as removable badges. This requires:
-- Reading filter state from context (if `state.filters` exists) or from `state.statusFilter`/`state.priorityFilter`
-- Rendering Badge chips with X buttons to clear individual filters
-- "Clear All" button when multiple filters active
-
-**Compatibility note:** The v0 version references `state.filters.status` (array), `CLEAR_FILTER`, and `CLEAR_ALL_FILTERS` actions that don't exist in our context. We'll adapt to use the existing `state.statusFilter`/`state.priorityFilter` string values and dispatch `SET_STATUS_FILTER`/`SET_PRIORITY_FILTER` with `'all'` to clear.
-
-The v0 version also changes `SessionRecoveryBanner` props (`onDismiss` vs `onHide`, `SessionSyncButton` `onSync` vs `onSyncSuccess`, `BulkActionsBar` `count` vs `selectedCount`). We keep our existing prop names.
-
----
-
-### Files affected (4 files)
-
-1. `src/components/dashboard/conversation-list/SLABadge.tsx` -- full rewrite with v0 version
-2. `src/components/dashboard/conversation-list/ConversationTableRow.tsx` -- visual enhancements (SLA borders, status icons, compact time, hover actions)
-3. `src/components/dashboard/conversation-list/ConversationTable.tsx` -- sticky header, column reorder, rounded wrapper
-4. `src/components/dashboard/ConversationList.tsx` -- add active filter chips display
-
-### What we intentionally skip
-
-- The v0 `ConversationList.tsx` changes prop names for `SessionRecoveryBanner`, `SessionSyncButton`, `BulkActionsBar`, and `ConversationListProvider` -- we keep our existing APIs
-- The v0 `TableHeaderCell` API difference -- we keep our existing component unchanged
-- No new dependencies needed -- all imports already exist in the project
+- The `SearchCommandPalette` dialog is a portal-based modal, so moving its state to `UnifiedAppLayout` keeps Cmd+K working globally without the header
+- `OrganizationSwitcher` already handles its own visibility logic (hides when user has only one org)
+- The layout gains 56px of vertical space for the conversation table
+- Mobile: the sidebar trigger button needs to remain accessible -- we'll add a small floating trigger or use the existing `SidebarTrigger` from the sidebar component that's visible when collapsed
 
