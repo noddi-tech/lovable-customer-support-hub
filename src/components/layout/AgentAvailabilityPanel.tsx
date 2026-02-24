@@ -210,16 +210,16 @@ export const AgentAvailabilityPanel: React.FC<AgentAvailabilityPanelProps> = ({
   }
 
   return (
-    <div className={cn("px-3 space-y-4", className)}>
+    <div className={cn("px-1.5 space-y-3", className)}>
       {/* Section header */}
-      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+      <p className="text-[9px] font-medium text-muted-foreground uppercase tracking-wide">
         Availability
       </p>
       
       {/* Chat Availability Section */}
-      <div className="space-y-2 p-2 rounded-lg bg-muted/30">
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <MessageSquare className="h-3 w-3" />
+      <div className="space-y-1.5 p-1.5 rounded-lg bg-muted/30">
+        <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground">
+          <MessageSquare className="h-2.5 w-2.5" />
           <span>Chat</span>
         </div>
         
@@ -228,18 +228,18 @@ export const AgentAvailabilityPanel: React.FC<AgentAvailabilityPanelProps> = ({
             <Button
               variant="ghost"
               size="sm"
-              className="w-full justify-start gap-2 h-8"
+              className="w-full justify-start gap-2 h-7"
               disabled={chatUpdating}
             >
               <div className="relative flex-shrink-0">
-                <Circle className={cn("h-3 w-3 fill-current", currentChatConfig.color)} />
+                <Circle className={cn("h-2 w-2 fill-current", currentChatConfig.color)} />
                 {chatStatus === 'online' && (
                   <span className="absolute inset-0 animate-ping">
-                    <Circle className="h-3 w-3 fill-current text-green-500 opacity-50" />
+                    <Circle className="h-2 w-2 fill-current text-green-500 opacity-50" />
                   </span>
                 )}
               </div>
-              <span className="flex-1 text-left text-sm">
+              <span className="flex-1 text-left text-[10px]">
                 {currentChatConfig.label}
               </span>
               {chatUpdating ? (
@@ -294,9 +294,9 @@ export const AgentAvailabilityPanel: React.FC<AgentAvailabilityPanelProps> = ({
       
       {/* Phone Availability Section - only show if Aircall is configured */}
       {showPhoneSection && (
-        <div className="space-y-2 p-2 rounded-lg bg-muted/30">
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <Phone className="h-3 w-3" />
+        <div className="space-y-1.5 p-1.5 rounded-lg bg-muted/30">
+        <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground">
+            <Phone className="h-2.5 w-2.5" />
             <span>Phone</span>
           </div>
           
@@ -310,7 +310,7 @@ export const AgentAvailabilityPanel: React.FC<AgentAvailabilityPanelProps> = ({
                     <Circle className="h-3 w-3 fill-current text-green-500 opacity-50" />
                   </span>
                 </div>
-                <span className="text-sm text-foreground truncate">Logged in</span>
+                <span className="text-[10px] text-foreground truncate">Logged in</span>
               </div>
               <Button
                 variant="ghost"
@@ -328,7 +328,7 @@ export const AgentAvailabilityPanel: React.FC<AgentAvailabilityPanelProps> = ({
               variant="outline"
               size="sm"
               onClick={handlePhoneLogin}
-              className="w-full h-8 text-sm justify-center gap-2"
+              className="w-full h-7 text-[10px] justify-center gap-2"
               disabled={initializationPhase === 'failed'}
             >
               <LogIn className="h-3.5 w-3.5" />
@@ -347,24 +347,24 @@ export const AgentAvailabilityPanel: React.FC<AgentAvailabilityPanelProps> = ({
       
       {/* Online agents list */}
       {otherAgents.length > 0 && (
-        <div className="pt-3 mt-1 border-t border-border/50">
-          <p className="text-xs text-muted-foreground mb-2">Online now:</p>
+        <div className="pt-2 mt-1 border-t border-border/50">
+          <p className="text-[9px] text-muted-foreground mb-1.5">Online now:</p>
           <div className="flex flex-wrap gap-1.5">
             {otherAgents.slice(0, 3).map(agent => (
               <div 
                 key={agent.id} 
-                className="flex items-center gap-1.5 px-1.5 py-0.5 bg-muted/50 rounded-md"
+                className="flex items-center gap-1 px-1.5 py-0.5 bg-muted/50 rounded-md"
                 title={agent.full_name}
               >
-                <Avatar className="h-5 w-5">
+                <Avatar className="h-4 w-4">
                   {agent.avatar_url && (
                     <AvatarImage src={agent.avatar_url} alt={agent.full_name} />
                   )}
-                  <AvatarFallback className="text-[9px] bg-primary/10">
+                  <AvatarFallback className="text-[8px] bg-primary/10">
                     {getInitials(agent.full_name)}
                   </AvatarFallback>
                 </Avatar>
-                <span className="text-xs text-foreground truncate max-w-[60px]">
+                <span className="text-[9px] text-foreground truncate max-w-[60px]">
                   {agent.full_name.split(' ')[0]}
                 </span>
                 <Circle className={cn(
@@ -375,7 +375,7 @@ export const AgentAvailabilityPanel: React.FC<AgentAvailabilityPanelProps> = ({
             ))}
             {otherAgents.length > 3 && (
               <div className="flex items-center px-1.5 py-0.5 bg-muted/50 rounded-md">
-                <span className="text-xs text-muted-foreground">
+              <span className="text-[9px] text-muted-foreground">
                   +{otherAgents.length - 3} more
                 </span>
               </div>
@@ -386,7 +386,7 @@ export const AgentAvailabilityPanel: React.FC<AgentAvailabilityPanelProps> = ({
       
       {/* Empty state when no other agents online */}
       {otherAgents.length === 0 && !agentsLoading && (
-        <p className="text-xs text-muted-foreground">
+        <p className="text-[9px] text-muted-foreground">
           No other agents online
         </p>
       )}
