@@ -52,20 +52,20 @@ describe('UnifiedAppLayout', () => {
     // Check that content is rendered
     expect(screen.getByText('Test Content')).toBeInTheDocument();
     
-    // Check header elements are present
-    expect(screen.getByText('Customer Support Hub')).toBeInTheDocument();
+    // Sidebar branding
     expect(screen.getByText('Customer Platform')).toBeInTheDocument();
   });
 
-  it('renders header actions', () => {
+  it('renders without a top header bar', () => {
     renderWithProviders(
       <UnifiedAppLayout>
         <div>Test Content</div>
       </UnifiedAppLayout>
     );
 
-    // Header should contain action buttons (checking for their presence via container)
-    const header = screen.getByRole('banner');
-    expect(header).toBeInTheDocument();
+    // No banner role — header has been removed
+    expect(screen.queryByRole('banner')).not.toBeInTheDocument();
+    // Old header branding should be gone
+    expect(screen.queryByText('Customer Support')).not.toBeInTheDocument();
   });
 });

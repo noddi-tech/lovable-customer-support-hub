@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { AppMainNav } from './AppMainNav';
-import { AppHeader } from '@/components/dashboard/AppHeader';
+import { SearchCommandPalette } from '@/components/search/SearchCommandPalette';
 import { UIProbe } from '@/dev/UIProbe';
 
 interface UnifiedAppLayoutProps {
@@ -11,42 +11,32 @@ interface UnifiedAppLayoutProps {
 export const UnifiedAppLayout: React.FC<UnifiedAppLayoutProps> = ({
   children
 }) => {
+  const [searchOpen, setSearchOpen] = useState(false);
 
-  // (Optional) Keep this only for local dev and only when explicitly enabled
-  // React.useEffect(() => {
-  //   if (import.meta.env.DEV && import.meta.env.VITE_LAYOUT_DOCTOR === '1') {
-  //     const root = document.getElementById('interactions-root') ?? document.body;
-  //     const offenders: Element[] = [];
-  //     root.querySelectorAll<HTMLElement>('*').forEach(el => {
-  //       const cs = getComputedStyle(el);
-  //       const mw = parseFloat(cs.maxWidth);
-  //       if ((cs.marginLeft === 'auto' && cs.marginRight === 'auto') ||
-  //           (!Number.isNaN(mw) && mw > 0 && mw < window.innerWidth - 40)) {
-  //         offenders.push(el);
-  //       }
-  //     });
-  //     // eslint-disable-next-line no-console
-  //     console.log('Clamp offenders:', offenders.map(e => ({class: e.className, id: e.id})));
-  //   }
-  // }, []);
+  // Global Cmd+K / Ctrl+K shortcut
+  useEffect(() => {
+    const down = (e: KeyboardEvent) => {
+      if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        setSearchOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', down);
+    return () => window.removeEventListener('keydown', down);
+  }, []);
 
   return (
     <SidebarProvider defaultOpen={false}>
       {import.meta.env.DEV && import.meta.env.VITE_UI_PROBE === '1' && <UIProbe />}
-      <div className="h-svh flex w-full bg-white">
+      <SearchCommandPalette open={searchOpen} onOpenChange={setSearchOpen} />
+      <div className="h-svh flex w-full bg-background">
         {/* Sidebar Navigation */}
         <AppMainNav />
 
-        {/* Main Content Area */}
-        <div className="flex-1 grid grid-rows-[56px_1fr] min-h-0">
-          {/* Top Header with full functionality */}
-          <AppHeader />
-
-          {/* Main Content */}
-          <main className="min-h-0 w-full max-w-none overflow-auto bg-white">
-            {children}
-          </main>
-        </div>
+        {/* Main Content Area — no header row */}
+        <main className="flex-1 min-h-0 w-full max-w-none overflow-auto bg-background">
+          {children}
+        </main>
       </div>
     </SidebarProvider>
   );

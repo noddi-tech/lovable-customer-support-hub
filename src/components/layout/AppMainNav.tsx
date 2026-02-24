@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useLocation, NavLink } from 'react-router-dom';
+import { useLocation, NavLink, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { 
   Sidebar,
@@ -18,19 +18,32 @@ import { SidebarCounter } from '@/components/ui/sidebar-counter';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useAuth } from '@/hooks/useAuth';
 import { useOptimizedCounts } from '@/hooks/useOptimizedCounts';
+import { useDateFormatting } from '@/hooks/useDateFormatting';
 import { getGroupedNavItems, logNavMatch } from '@/navigation/nav-config';
 import { cn } from '@/lib/utils';
-import { Crown, ChevronRight, ChevronLeft } from 'lucide-react';
+import { Crown, ChevronRight, ChevronLeft, LogOut, Settings, Palette } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { AgentAvailabilityPanel } from './AgentAvailabilityPanel';
+import { ConnectionStatusIndicator } from '@/components/layout/ConnectionStatusIndicator';
+import { OrganizationSwitcher } from '@/components/organization/OrganizationSwitcher';
 
 export const AppMainNav = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const { t } = useTranslation();
   const { state, toggleSidebar } = useSidebar();
   const { isAdmin: checkIsAdmin, isLoading: permissionsLoading } = usePermissions();
-  const { isSuperAdmin } = useAuth();
+  const { user, profile, signOut, isSuperAdmin } = useAuth();
   const { notifications: unreadNotifications } = useOptimizedCounts();
+  const { dateTime, timezone } = useDateFormatting();
   
   const isCollapsed = state === 'collapsed';
   const isAdmin = checkIsAdmin();
@@ -42,7 +55,6 @@ export const AppMainNav = () => {
   }, [location.pathname]);
 
   const isActive = (path: string) => {
-    // Handle hierarchical paths correctly
     if (path === '/interactions/text') {
       return location.pathname === '/interactions/text' || location.pathname.startsWith('/interactions/text/');
     }
@@ -67,6 +79,15 @@ export const AppMainNav = () => {
 
   const groupOrder = ['notifications', 'interactions', 'marketing', 'operations', 'settings', 'admin', 'super_admin'];
 
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      navigate('/auth');
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+  };
+
   if (permissionsLoading) {
     return (
       <Sidebar collapsible="offcanvas">
@@ -87,7 +108,10 @@ export const AppMainNav = () => {
           Customer Platform
         </h2>
         
-        {/* Agent Availability Toggle - at the top for prominence */}
+        {/* Organization Switcher — for super admins / multi-org users */}
+        {!isCollapsed && <OrganizationSwitcher />}
+
+        {/* Agent Availability Toggle */}
         <AgentAvailabilityPanel collapsed={isCollapsed} />
       </SidebarHeader>
 
@@ -95,15 +119,11 @@ export const AppMainNav = () => {
         {groupOrder.map(groupKey => {
           const items = groupedItems[groupKey as keyof typeof groupedItems];
           if (!items || items.length === 0) return null;
-          
-          // Don't show admin group if user is not admin
           if (groupKey === 'admin' && !isAdmin) return null;
-          // Don't show super admin group if user is not super admin
           if (groupKey === 'super_admin' && !isSuperAdmin) return null;
 
           return (
             <SidebarGroup key={groupKey}>
-              {/* Hide label for notifications group */}
               {groupKey !== 'notifications' && (
                 <SidebarGroupLabel className={cn(
                   groupKey === 'super_admin' && "text-yellow-600 dark:text-yellow-500 font-semibold"
@@ -153,7 +173,72 @@ export const AppMainNav = () => {
         })}
       </SidebarContent>
 
-      <SidebarFooter className="mt-auto border-t border-sidebar-border py-2">
+      <SidebarFooter className="mt-auto border-t border-sidebar-border py-2 space-y-1">
+        {/* Connection status + Timezone row */}
+        <div className={cn(
+          "flex items-center px-3 py-1",
+          isCollapsed ? "justify-center" : "justify-between"
+        )}>
+          <ConnectionStatusIndicator />
+          {!isCollapsed && (
+            <span className="text-[11px] text-muted-foreground truncate ml-2">
+              {timezone} · {dateTime(new Date()).split(' ')[1] || ''}
+            </span>
+          )}
+        </div>
+
+        {/* User profile + dropdown */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button className={cn(
+              "flex items-center gap-2 w-full rounded-md px-3 py-2 hover:bg-muted/50 transition-colors text-left",
+              isCollapsed && "justify-center px-0"
+            )}>
+              <Avatar className="h-7 w-7 shrink-0">
+                <AvatarImage src={profile?.avatar_url || user?.user_metadata?.avatar_url} />
+                <AvatarFallback className="text-xs">
+                  {profile?.full_name?.[0] || user?.user_metadata?.full_name?.[0] || user?.email?.[0] || 'U'}
+                </AvatarFallback>
+              </Avatar>
+              {!isCollapsed && (
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium leading-tight truncate">
+                    {profile?.full_name || user?.user_metadata?.full_name || 'User'}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground truncate">
+                    {user?.email}
+                  </p>
+                </div>
+              )}
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent side="top" align="start" className="w-56">
+            <div className="flex flex-col space-y-1 p-2">
+              <p className="text-sm font-medium leading-none">
+                {profile?.full_name || user?.user_metadata?.full_name || 'User'}
+              </p>
+              <p className="text-xs leading-none text-muted-foreground">
+                {user?.email}
+              </p>
+            </div>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => navigate('/settings')}>
+              <Settings className="mr-2 h-4 w-4" />
+              <span>{t('header.settings', 'Settings')}</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate('/admin/design-library')}>
+              <Palette className="mr-2 h-4 w-4" />
+              <span>{t('header.designLibrary', 'Design Library')}</span>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={handleSignOut}>
+              <LogOut className="mr-2 h-4 w-4" />
+              <span>{t('header.signOut', 'Sign out')}</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        {/* Collapse toggle */}
         <Button
           variant="ghost"
           size="sm"
