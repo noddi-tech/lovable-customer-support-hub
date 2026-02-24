@@ -66,7 +66,7 @@ export const ConversationTable = memo<ConversationTableProps>(({
   }
 
   return (
-    <div className="flex-1 overflow-auto border rounded-lg">
+    <div className="flex-1 overflow-auto border-x border-b rounded-b-lg">
       <Table>
         <TableHeader className="sticky top-0 z-20 bg-muted/50 backdrop-blur-sm border-b-2">
           <TableRow className="hover:bg-transparent">
