@@ -79,56 +79,61 @@ export function OrganizationSwitcher() {
   };
 
   return (
-    <div className="flex items-center gap-2 px-3 py-2">
-      {isFiltered ? (
-        <Building2 className="h-4 w-4 text-amber-500" />
-      ) : (
-        <Globe className="h-4 w-4 text-muted-foreground" />
-      )}
-      <Select
-        value={currentOrganizationId || 'all'}
-        onValueChange={handleOrgChange}
-      >
-        <SelectTrigger 
-          className={cn(
-            "w-[200px]",
-            isFiltered && "border-amber-500/50 bg-amber-500/10"
-          )}
+    <div className="px-1.5 py-0 space-y-1">
+      <p className="text-[9px] text-muted-foreground uppercase tracking-wide font-medium">
+        Organization
+      </p>
+      <div className="flex items-center gap-1.5">
+        {isFiltered ? (
+          <Building2 className="h-3 w-3 text-amber-500" />
+        ) : (
+          <Globe className="h-3 w-3 text-muted-foreground" />
+        )}
+        <Select
+          value={currentOrganizationId || 'all'}
+          onValueChange={handleOrgChange}
         >
-          <SelectValue placeholder="Select organization">
-            {getCurrentOrgName()}
-          </SelectValue>
-        </SelectTrigger>
-        <SelectContent>
-          {/* All Organizations option - only for Super Admins */}
-          {isSuperAdmin && (
-            <SelectItem value="all">
-              <span className="flex items-center gap-2">
-                <Globe className="h-4 w-4" />
-                All Organizations
-              </span>
-            </SelectItem>
-          )}
-          {organizations.map((org) => (
-            <SelectItem key={org.id} value={org.id}>
-              <span className="flex items-center gap-2">
-                <Building2 className="h-4 w-4" />
-                {org.name}
-              </span>
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-      {isFiltered && (
-        <span className="text-xs text-amber-600 px-2 py-0.5 bg-amber-100 dark:bg-amber-900/30 dark:text-amber-400 rounded-full">
-          Filtered
-        </span>
-      )}
-      {isSuperAdmin && !isFiltered && (
-        <span className="text-xs text-muted-foreground px-2 py-1 bg-primary/10 rounded">
-          Super Admin
-        </span>
-      )}
+          <SelectTrigger 
+            className={cn(
+              "w-[160px] h-7 text-[10px]",
+              isFiltered && "border-amber-500/50 bg-amber-500/10"
+            )}
+          >
+            <SelectValue placeholder="Select organization">
+              {getCurrentOrgName()}
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            {/* All Organizations option - only for Super Admins */}
+            {isSuperAdmin && (
+              <SelectItem value="all">
+                <span className="flex items-center gap-2">
+                  <Globe className="h-3 w-3" />
+                  All Organizations
+                </span>
+              </SelectItem>
+            )}
+            {organizations.map((org) => (
+              <SelectItem key={org.id} value={org.id}>
+                <span className="flex items-center gap-2">
+                  <Building2 className="h-3 w-3" />
+                  {org.name}
+                </span>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {isFiltered && (
+          <span className="text-[9px] text-amber-600 px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/30 dark:text-amber-400 rounded-full">
+            Filtered
+          </span>
+        )}
+        {isSuperAdmin && !isFiltered && (
+          <span className="text-[9px] text-muted-foreground px-1.5 py-0.5 bg-primary/10 rounded">
+            Super Admin
+          </span>
+        )}
+      </div>
     </div>
   );
 }
