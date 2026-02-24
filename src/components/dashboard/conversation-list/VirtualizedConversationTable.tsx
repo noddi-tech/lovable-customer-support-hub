@@ -155,7 +155,7 @@ const VirtualizedConversationTable = memo(({ onSelectConversation, selectedConve
       {/* Fixed Table Header - always mounted */}
       <div className="bg-card">
         <Table>
-          <TableHeader>
+          <TableHeader className="border-b">
             <TableRow className="hover:bg-transparent">
               {state.bulkSelectionMode && (
                 <TableHead className="w-10 p-2">

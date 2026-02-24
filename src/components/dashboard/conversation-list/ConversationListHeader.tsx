@@ -77,7 +77,7 @@ export const ConversationListHeader = ({
   };
 
   return (
-    <div className="flex-shrink-0 px-1.5 pt-1 pb-1.5 border-b border-border bg-card">
+    <div className="flex-shrink-0 px-1.5 pt-1 pb-1.5 bg-card">
       <div className="flex items-center justify-between mb-0.5 px-0.5">
         <span className="text-[9px] text-muted-foreground uppercase tracking-wide font-medium">
           {t('dashboard.conversationList.quickActions', 'Quick actions')}
