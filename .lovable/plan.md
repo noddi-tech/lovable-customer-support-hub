@@ -1,16 +1,24 @@
 
 
-## Remove Top Border from Conversation Table
+## Remove Remaining Border Between Toolbar and Table
 
-The `border rounded-lg` wrapper around the table adds a visible top border that creates a double-line effect against the toolbar's bottom border. Removing just the top border should make the transition from toolbar to table feel cleaner.
+The visible border line between the toolbar and the table header comes from two sources:
+
+1. **The toolbar's `border-b`** on line 80 of `ConversationListHeader.tsx` -- this draws a bottom border under the buttons
+2. **The table header's `border-b-2`** on line 71 of `ConversationTable.tsx` -- this draws a thick border under the "Customer / Conversation" header row
+
+Since the toolbar and table should flow seamlessly, we need to remove the toolbar's bottom border and rely only on the table header's bottom border to separate the header from the data rows.
 
 ### Changes
 
+**File: `src/components/dashboard/conversation-list/ConversationListHeader.tsx`**
+- Line 80: Remove `border-b border-border` from the outer container classes, changing it to just `flex-shrink-0 px-1.5 pt-1 pb-1.5 bg-card`
+
 **File: `src/components/dashboard/conversation-list/ConversationTable.tsx`**
-- Line 69: Change `border rounded-lg` to `border-x border-b rounded-b-lg` (keeps side and bottom borders, removes top border and top rounding)
+- Line 69: Remove `border-x border-b rounded-b-lg` from the wrapper div (change to just `flex-1 overflow-auto`) so there are no side/bottom borders creating visible edges
+- Line 71: Keep the `border-b-2` on the `TableHeader` as the only separator between the column headers and the data rows
 
 **File: `src/components/dashboard/conversation-list/VirtualizedConversationTable.tsx`**
-- Line 156: Change `border-b bg-card` on the fixed header wrapper to `bg-card` (remove the top separator border of the header since the toolbar's bottom border already provides separation)
+- Line 158: Add `border-b` to the `TableHeader` so the virtualized table also has a clean separator between header and rows (matching the non-virtualized table)
 
-This is a minimal two-line change to test the visual effect.
-
+This removes the double-line effect while keeping a single clean divider between column headers and table content.
