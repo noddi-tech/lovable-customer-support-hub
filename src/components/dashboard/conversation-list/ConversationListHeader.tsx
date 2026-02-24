@@ -159,11 +159,11 @@ export const ConversationListHeader = ({
         </div>
 
         {/* Right side: Filters + Sort */}
-        <div className="flex items-center gap-0.5 ml-auto flex-shrink-0">
+        <div className="flex items-center gap-1 ml-auto flex-shrink-0">
           {/* Filters as DropdownMenu styled like Select */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="flex h-5 items-center justify-between gap-0.5 rounded-md border border-input bg-background px-1.5 text-[10px] ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-50 whitespace-nowrap">
+              <button className="flex h-7 items-center justify-between gap-1.5 rounded-md border border-input bg-background px-3 text-[10px] ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-50 whitespace-nowrap">
                 <Filter className="!w-2.5 !h-2.5 shrink-0" />
                 <span className="truncate max-w-[70px] text-[10px]">{getFilterLabel()}</span>
                 {activeFilterCount > 0 && (
@@ -214,7 +214,7 @@ export const ConversationListHeader = ({
             value={state.sortBy} 
             onValueChange={(value: SortBy) => dispatch({ type: 'SET_SORT_BY', payload: value })}
           >
-            <SelectTrigger className="w-auto h-5 text-[10px] gap-0.5 px-1.5">
+            <SelectTrigger className="w-auto h-7 text-[10px] gap-1.5 px-3">
               <SelectValue>{getSortLabel(state.sortBy)}</SelectValue>
             </SelectTrigger>
             <SelectContent align="end">
