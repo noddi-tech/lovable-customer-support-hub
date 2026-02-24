@@ -1,24 +1,52 @@
 
 
-## Remove Remaining Border Between Toolbar and Table
+## Compact Sidebar Header: Org Selector, Chat & Phone
 
-The visible border line between the toolbar and the table header comes from two sources:
-
-1. **The toolbar's `border-b`** on line 80 of `ConversationListHeader.tsx` -- this draws a bottom border under the buttons
-2. **The table header's `border-b-2`** on line 71 of `ConversationTable.tsx` -- this draws a thick border under the "Customer / Conversation" header row
-
-Since the toolbar and table should flow seamlessly, we need to remove the toolbar's bottom border and rely only on the table header's bottom border to separate the header from the data rows.
+Make the Organization Switcher, Chat availability, and Phone sections in the sidebar header match the ultra-compact toolbar style used in the conversation list (9px uppercase labels, xxs-sized controls, 10px text).
 
 ### Changes
 
-**File: `src/components/dashboard/conversation-list/ConversationListHeader.tsx`**
-- Line 80: Remove `border-b border-border` from the outer container classes, changing it to just `flex-shrink-0 px-1.5 pt-1 pb-1.5 bg-card`
+**File: `src/components/organization/OrganizationSwitcher.tsx`**
 
-**File: `src/components/dashboard/conversation-list/ConversationTable.tsx`**
-- Line 69: Remove `border-x border-b rounded-b-lg` from the wrapper div (change to just `flex-1 overflow-auto`) so there are no side/bottom borders creating visible edges
-- Line 71: Keep the `border-b-2` on the `TableHeader` as the only separator between the column headers and the data rows
+1. **Reduce outer padding**: Change `px-3 py-2` to `px-1.5 py-0`
+2. **Shrink icons**: Change `h-4 w-4` to `h-3 w-3` on Building2/Globe icons
+3. **Shrink Select trigger**: Add `h-7 text-[10px]` and reduce width from `w-[200px]` to `w-[160px]`
+4. **Shrink "Filtered" badge**: Change `text-xs` to `text-[9px]` and reduce padding
+5. **Add section label**: Add `text-[9px] text-muted-foreground uppercase tracking-wide font-medium` label reading "Organization" above the selector
 
-**File: `src/components/dashboard/conversation-list/VirtualizedConversationTable.tsx`**
-- Line 158: Add `border-b` to the `TableHeader` so the virtualized table also has a clean separator between header and rows (matching the non-virtualized table)
+**File: `src/components/layout/AgentAvailabilityPanel.tsx`** (expanded mode, lines 212-393)
 
-This removes the double-line effect while keeping a single clean divider between column headers and table content.
+1. **Section header**: Change `text-xs` to `text-[9px]` on the "AVAILABILITY" label (already uppercase, just resize)
+2. **Chat sub-label**: Change `text-xs` to `text-[9px]` on the "Chat" / "Phone" sub-labels, icons from `h-3 w-3` to `h-2.5 w-2.5`
+3. **Chat dropdown button**: Change from `h-8` to `h-7`, text from `text-sm` to `text-[10px]`, shrink status circle from `h-3 w-3` to `h-2 w-2`
+4. **Phone login button**: Change from `h-8 text-sm` to `h-7 text-[10px]`
+5. **Phone logout button**: Align to same compact sizing
+6. **Section backgrounds**: Change `p-2` to `p-1.5` on the `bg-muted/30` containers
+7. **Online agents section**: Shrink text from `text-xs` to `text-[9px]`, avatar from `h-5 w-5` to `h-4 w-4`
+8. **Outer padding**: Change `px-3` to `px-1.5` to match toolbar horizontal padding
+
+### Visual result
+
+```text
+ORGANIZATION
+[lock] Noddi v          Filtered
+
+AVAILABILITY
+Chat
+ * Offline              v
+
+Phone
+ [-> Login to Aircall]
+
+No other agents online
+```
+
+All text at 9-10px, all controls at h-7, matching the conversation list toolbar density.
+
+### Technical notes
+
+- No structural changes, only class name adjustments
+- Both files: swap size classes to match the `xxs` button variant convention (h-7, text-[10px], px-3)
+- Section labels: `text-[9px] uppercase tracking-wide font-medium text-muted-foreground`
+- The collapsed/popover mode in AgentAvailabilityPanel is left unchanged since it already uses compact sizing
+
