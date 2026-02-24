@@ -1,31 +1,16 @@
 
 
-## Add Section Labels and Bottom Margin to Toolbar
+## Remove Top Border from Conversation Table
 
-Add descriptive labels above the two button groups and balance the vertical padding.
+The `border rounded-lg` wrapper around the table adds a visible top border that creates a double-line effect against the toolbar's bottom border. Removing just the top border should make the transition from toolbar to table feel cleaner.
 
 ### Changes
 
-**File: `src/components/dashboard/conversation-list/ConversationListHeader.tsx`**
+**File: `src/components/dashboard/conversation-list/ConversationTable.tsx`**
+- Line 69: Change `border rounded-lg` to `border-x border-b rounded-b-lg` (keeps side and bottom borders, removes top border and top rounding)
 
-1. **Add bottom padding**: Change the outer container from `py-1` to `py-1.5` (or `pb-1.5`) so the spacing below the buttons matches the top.
+**File: `src/components/dashboard/conversation-list/VirtualizedConversationTable.tsx`**
+- Line 156: Change `border-b bg-card` on the fixed header wrapper to `bg-card` (remove the top separator border of the header since the toolbar's bottom border already provides separation)
 
-2. **Add "Quick actions" label** above the left button group: A small `text-[9px] text-muted-foreground uppercase tracking-wide` label reading "Quick actions".
-
-3. **Add "Sort / Filtering" label** above the right button group: Same styling, text-aligned right, reading "Sort / Filtering".
-
-4. **Layout restructure**: Wrap the current single-row `flex` in a small two-row structure:
-   - **Row 1**: Two labels left-aligned and right-aligned (using `flex justify-between`)
-   - **Row 2**: The existing button row (unchanged)
-
-### Visual result
-
-```text
-Quick actions                              Sort / Filtering
-[Select] [+New] [Merge] [Migrate] [Read]   [Filters v] [Latest v]
-```
-
-### Technical detail
-
-The labels row adds roughly 14px of height. The `pb-1.5` adds 6px bottom margin to match the top, keeping the toolbar feeling balanced.
+This is a minimal two-line change to test the visual effect.
 
