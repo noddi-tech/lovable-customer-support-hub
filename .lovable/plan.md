@@ -1,17 +1,31 @@
 
-## Match Filter and Sort Controls to Button Sizes
 
-The Filters dropdown and Sort select are currently `h-5 px-1.5` (20px tall, 6px padding) while all the action buttons use `size="xxs"` which is `h-7 px-3` (28px tall, 12px padding). This makes them visually mismatched.
+## Add Section Labels and Bottom Margin to Toolbar
+
+Add descriptive labels above the two button groups and balance the vertical padding.
 
 ### Changes
 
 **File: `src/components/dashboard/conversation-list/ConversationListHeader.tsx`**
 
-1. **Filters dropdown trigger** (line 166): Change the custom `<button>` classes from `h-5 px-1.5 text-[10px] gap-0.5` to `h-7 px-3 text-[10px] gap-1.5` to match `xxs` button sizing.
+1. **Add bottom padding**: Change the outer container from `py-1` to `py-1.5` (or `pb-1.5`) so the spacing below the buttons matches the top.
 
-2. **Sort select trigger** (line 217): Change `SelectTrigger` classes from `h-5 text-[10px] gap-0.5 px-1.5` to `h-7 text-[10px] gap-1.5 px-3`.
+2. **Add "Quick actions" label** above the left button group: A small `text-[9px] text-muted-foreground uppercase tracking-wide` label reading "Quick actions".
 
-3. **Gap between filter/sort** (line 162): Increase gap from `gap-0.5` to `gap-1` to match the left-side button spacing.
+3. **Add "Sort / Filtering" label** above the right button group: Same styling, text-aligned right, reading "Sort / Filtering".
 
-### Result
-All controls in the toolbar row will be the same height (28px) with consistent padding, creating a uniform look across the entire header bar.
+4. **Layout restructure**: Wrap the current single-row `flex` in a small two-row structure:
+   - **Row 1**: Two labels left-aligned and right-aligned (using `flex justify-between`)
+   - **Row 2**: The existing button row (unchanged)
+
+### Visual result
+
+```text
+Quick actions                              Sort / Filtering
+[Select] [+New] [Merge] [Migrate] [Read]   [Filters v] [Latest v]
+```
+
+### Technical detail
+
+The labels row adds roughly 14px of height. The `pb-1.5` adds 6px bottom margin to match the top, keeping the toolbar feeling balanced.
+
