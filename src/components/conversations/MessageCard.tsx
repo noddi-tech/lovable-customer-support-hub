@@ -15,7 +15,8 @@ import {
   Check,
   StickyNote,
   Pin,
-  PinOff
+  PinOff,
+  Mail
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { type EmailAttachment } from "@/utils/emailFormatting";
@@ -251,6 +252,18 @@ const MessageCardComponent = ({
     } catch (error) {
       setIsPinned(!newPinned); // Revert on error
       toast({ title: "Failed to update pin", variant: "destructive" });
+    }
+  };
+
+  const handleResendEmail = async () => {
+    try {
+      const { error } = await supabase.functions.invoke('send-reply-email', {
+        body: { messageId: message.id }
+      });
+      if (error) throw error;
+      toast({ title: "Email sent successfully" });
+    } catch (error) {
+      toast({ title: "Failed to send email", variant: "destructive" });
     }
   };
 
@@ -503,6 +516,13 @@ const MessageCardComponent = ({
                             Pin note
                           </>
                         )}
+                      </DropdownMenuItem>
+                    )}
+                    {/* Resend Email - only for agent messages that are not internal notes */}
+                    {isAgent && !isInternalNote && (
+                      <DropdownMenuItem onClick={handleResendEmail}>
+                        <Mail className="w-4 h-4 mr-2" />
+                        Resend Email
                       </DropdownMenuItem>
                     )}
                     <DropdownMenuSeparator />
