@@ -441,9 +441,28 @@ export const ConversationViewProvider = ({ children, conversationId, conversatio
         }
       }
 
-      // Only send email for email channel conversations (not widget/chat)
+      // Send email for all channels EXCEPT active live chat sessions
       const conversationChannel = conversation?.channel;
-      if (!isInternal && conversationChannel !== 'widget') {
+      let shouldSendEmail = !isInternal;
+      
+      if (shouldSendEmail && conversationChannel === 'widget') {
+        // Check if visitor is actively chatting (active session with recent heartbeat)
+        const { data: chatSession } = await supabase
+          .from('widget_chat_sessions')
+          .select('status, last_seen_at')
+          .eq('conversation_id', conversationId)
+          .eq('status', 'active')
+          .maybeSingle();
+        
+        const isActivelyLive = chatSession && chatSession.last_seen_at &&
+          (new Date().getTime() - new Date(chatSession.last_seen_at).getTime() < 30000);
+        
+        if (isActivelyLive) {
+          shouldSendEmail = false; // Visitor sees reply in real-time
+        }
+      }
+      
+      if (shouldSendEmail) {
         const { error: emailError } = await supabase.functions.invoke('send-reply-email', {
           body: { messageId: message.id }
         });

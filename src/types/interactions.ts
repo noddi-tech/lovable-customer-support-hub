@@ -62,6 +62,7 @@ export interface ConversationRow {
   firstResponseAt?: string;
   slaBreachAt?: string;
   slaStatus?: 'on_track' | 'at_risk' | 'breached' | 'met';
+  metadata?: Record<string, any>;
 }
 
 export interface Message {

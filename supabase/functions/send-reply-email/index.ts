@@ -63,8 +63,7 @@ const handler = async (req: Request): Promise<Response> => {
       });
     }
 
-    // Skip widget/live chat conversations - they don't need email replies
-    // We need to fetch conversation channel separately
+    // For widget channel: only skip if visitor is actively in a live chat session
     const { data: convData } = await supabaseClient
       .from('conversations')
       .select('channel')
@@ -72,11 +71,25 @@ const handler = async (req: Request): Promise<Response> => {
       .single();
     
     if (convData?.channel === 'widget') {
-      console.log('Conversation is widget channel, skipping email send');
-      return new Response(JSON.stringify({ success: true, skipped: 'widget_channel' }), {
-        status: 200,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      });
+      // Check for an active chat session with a recent heartbeat (within 60s)
+      const { data: chatSession } = await supabaseClient
+        .from('widget_chat_sessions')
+        .select('status, last_seen_at')
+        .eq('conversation_id', message.conversation_id)
+        .eq('status', 'active')
+        .maybeSingle();
+      
+      const isActivelyLive = chatSession && chatSession.last_seen_at &&
+        (new Date().getTime() - new Date(chatSession.last_seen_at).getTime() < 60000);
+      
+      if (isActivelyLive) {
+        console.log('Widget conversation has active live chat session, skipping email send');
+        return new Response(JSON.stringify({ success: true, skipped: 'active_live_chat' }), {
+          status: 200,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      }
+      console.log('Widget conversation is not actively live, proceeding with email send');
     }
 
     // Get sender (agent) info

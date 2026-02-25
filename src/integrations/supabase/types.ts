@@ -3873,6 +3873,7 @@ export type Database = {
               is_archived: boolean
               is_deleted: boolean
               is_read: boolean
+              metadata: Json
               organization_id: string
               preview_text: string
               priority: string
