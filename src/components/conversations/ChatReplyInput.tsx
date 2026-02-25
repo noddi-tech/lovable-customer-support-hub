@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Send, Loader2, MessageSquareX, UserRoundPlus, Smile, Paperclip, Mic, Image, X, Languages } from 'lucide-react';
 import { useConversationView } from '@/contexts/ConversationViewContext';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -224,7 +224,7 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
     sendMessageMutation.mutate(trimmedMessage);
   }, [message, attachments, sendMessageMutation, stopTyping]);
 
-  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setMessage(e.target.value);
     handleTyping(); // Trigger typing indicator
   }, [handleTyping]);
@@ -336,7 +336,7 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
         </div>
       )}
       
-      <div className="flex items-center gap-2 p-4 border-t border-border bg-background">
+      <div className="flex items-end gap-2 p-4 border-t border-border bg-background">
         {/* Hidden file input */}
         <input
           ref={fileInputRef}
@@ -425,14 +425,15 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
         </Popover>
 
         {/* Message input */}
-        <Input 
+        <Textarea 
           placeholder="Type a message..." 
-          className="flex-1 rounded-full bg-muted/50 border-0 focus-visible:ring-2 focus-visible:ring-primary/20"
+          className="flex-1 min-h-[80px] resize-none rounded-2xl bg-muted/50 border-0 focus-visible:ring-2 focus-visible:ring-primary/20"
           value={message}
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
           onBlur={stopTyping}
           disabled={isPending}
+          emojiAutocomplete={false}
         />
         
         {/* Mic button (placeholder) */}
