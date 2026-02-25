@@ -1,42 +1,23 @@
 
-## Add Translation to Chat Reply Input
 
-Add the same translation popover to the live chat `ChatReplyInput` that already exists in the text message `ReplyArea`. The text message translation remains unchanged.
+## Make Chat Reply Input Taller
 
-### Changes
+Change the single-line `Input` to a multi-line `Textarea` so agents can see more text while composing messages.
+
+### Change
 
 **File: `src/components/conversations/ChatReplyInput.tsx`**
 
-1. **Add imports**: `Languages` icon from lucide-react, `Label` from UI components
+1. **Replace `Input` import with `Textarea`**: Swap `import { Input }` for `import { Textarea }` from `@/components/ui/textarea`
 
-2. **Add state variables** (3 new):
-   - `translateLoading` (boolean, default false)
-   - `sourceLanguage` (string, default `'auto'`)
-   - `targetLanguage` (string, default `'no'`)
+2. **Update `handleInputChange`**: Change the event type from `React.ChangeEvent<HTMLInputElement>` to `React.ChangeEvent<HTMLTextAreaElement>`
 
-3. **Add languages list** (same as used in `NewConversationDialog` and `ReplyArea`):
-   ```text
-   auto=Auto Detect, en=English, no=Norwegian, sv=Swedish, da=Danish, de=German, fr=French, es=Spanish
-   ```
+3. **Replace the `<Input>` element (line 428-436) with a `<Textarea>`**:
+   - Add `min-h-[80px]` (roughly 3x the default ~28px input height) to make the area taller by default
+   - Add `resize-none` to prevent manual resizing (keeps the layout clean)
+   - Keep the existing `rounded-full` replaced with `rounded-2xl` (textarea looks odd fully round)
+   - Keep all existing props: `placeholder`, `value`, `onChange`, `onKeyDown`, `onBlur`, `disabled`
+   - Keep the same styling classes adapted for textarea
 
-4. **Add `handleTranslate` function**: Calls `supabase.functions.invoke('translate-text', { body: { text: message, sourceLanguage, targetLanguage } })` directly (same pattern as `NewConversationDialog`). On success, replaces `message` state with translated text. Shows toast on error.
+4. **Update the outer container**: Change `items-center` to `items-end` on the parent `div` (line 339) so the buttons align to the bottom of the taller textarea instead of vertically centering
 
-5. **Add Translate button + Popover** in the input bar between the attachment button and the message input (next to emoji/paperclip):
-   - Ghost icon button with `Languages` icon (same `h-9 w-9` sizing as emoji/attachment buttons)
-   - Popover containing:
-     - "Translate" header
-     - "From" language selector (includes auto-detect)
-     - "To" language selector (excludes auto-detect)
-     - "Translate" action button with loading spinner
-
-### UI placement
-
-```text
-[Emoji] [Attach] [Translate] [............message input............] [Mic] [Send] [Transfer] [End]
-```
-
-### What stays the same
-
-- The existing translation in `ReplyArea` (text messages) is untouched
-- The `translate-text` edge function is reused as-is
-- No new dependencies needed -- all UI components already imported or available in the file
