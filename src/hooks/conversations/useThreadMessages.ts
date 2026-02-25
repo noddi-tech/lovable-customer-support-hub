@@ -67,7 +67,7 @@ export function useThreadMessages(conversationIds?: string | string[]) {
       // Agent names are resolved via normalizeMessage using email headers or stored sender info
       const seedSel = supabase
         .from("messages")
-        .select("id, email_headers, email_subject, created_at, sender_type, sender_id, content, content_type, is_internal, attachments, external_id, conversation:conversations(customer:customers(email, full_name), email_account:email_accounts(email_address), inbox:inboxes(sender_display_name, inbound_routes(group_email)))")
+        .select("id, email_headers, email_subject, email_status, created_at, sender_type, sender_id, content, content_type, is_internal, attachments, external_id, conversation:conversations(customer:customers(email, full_name), email_account:email_accounts(email_address), inbox:inboxes(sender_display_name, inbound_routes(group_email)))")
         .in("conversation_id", ids)
         .order("created_at", { ascending: false })
         .limit(5);
@@ -95,7 +95,7 @@ export function useThreadMessages(conversationIds?: string | string[]) {
       // Agent display names are resolved in normalizeMessage from email headers or agent lookup
       let base = supabase
         .from("messages")
-        .select("id, email_message_id, email_thread_id, email_headers, email_subject, created_at, sender_type, sender_id, content, content_type, is_internal, is_pinned, attachments, external_id, conversation:conversations(customer:customers(email, full_name), email_account:email_accounts(email_address), inbox:inboxes(sender_display_name, inbound_routes(group_email)))")
+        .select("id, email_message_id, email_thread_id, email_headers, email_subject, email_status, created_at, sender_type, sender_id, content, content_type, is_internal, is_pinned, attachments, external_id, conversation:conversations(customer:customers(email, full_name), email_account:email_accounts(email_address), inbox:inboxes(sender_display_name, inbound_routes(group_email)))")
         .in("conversation_id", ids) // Filter by conversation(s)
         .order("created_at", { ascending: false })
         .limit(pageParam ? PAGE : INITIAL);
