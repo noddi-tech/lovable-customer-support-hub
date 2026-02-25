@@ -1,54 +1,37 @@
 
 
-## Make "Resend Email" Button Visible for Failed/Unsent Messages
+## Add `email_status` to Database Queries for Inline Warning
 
 ### Problem
 
-The "Resend Email" option exists but is buried in a hover-only dropdown menu (`...` button). There's no visual indicator that a message was never emailed, so agents don't know they need to resend.
+The inline "Email not sent" warning and Resend button were added to the UI, but they never appear because `email_status` is not included in the database `select` columns. The normalization code reads `rawMessage.email_status`, but the field is always `undefined` since it's never fetched.
 
-### Changes
+### Fix
 
-#### 1. Pass `email_status` through to `NormalizedMessage`
+Add `email_status` to the select columns in all three query locations:
 
-**File: `src/lib/normalizeMessage.ts`**
+#### 1. `src/hooks/conversations/useThreadMessages.ts`
 
-Add `emailStatus?: string` field to the `NormalizedMessage` interface, and populate it from `originalMessage.email_status` during normalization.
+**Line 70 (seed query)**: Add `email_status` to the select string.
 
-#### 2. Show inline "Resend Email" button on failed/unsent agent messages
+**Line 98 (main query)**: Add `email_status` to the select string.
 
-**File: `src/components/conversations/ChatMessagesList.tsx`**
+#### 2. `src/hooks/conversations/useConversationMessages.ts`
 
-Below the timestamp/delivery status area (lines 250-258), add a visible inline button when the message is an agent message with `email_status` of `'failed'`, `'pending'`, or `'retry'`:
-
-- Show a small warning icon and "Email not sent" text in orange/red
-- Show a visible "Resend Email" button (not hidden in dropdown) 
-- Keep the dropdown option too for convenience
-
-The inline indicator replaces the `CheckCheck` icon for failed messages, showing an alert icon instead.
-
-#### 3. Show inline indicator in MessageCard (email view)
-
-**File: `src/components/conversations/MessageCard.tsx`**
-
-Add a small banner/badge below agent messages when `emailStatus` is `'failed'`/`'pending'`/`'retry'`:
-
-- Shows "Email not delivered" with a "Resend" button
-- Styled as a warning badge so it's immediately noticeable
-
-### Visual result
-
-For agent messages that weren't emailed, instead of just the `checkcheck` icon, agents will see:
-
-```text
-[message bubble]
-2h ago  ⚠ Email not sent  [Resend Email]
+**Lines 105-108**: Add `email_status` to the select string, changing:
+```
+id, content, content_type, sender_type, sender_id, 
+is_internal, attachments, created_at, email_subject, email_headers, 
+external_id, email_message_id
+```
+to:
+```
+id, content, content_type, sender_type, sender_id, 
+is_internal, attachments, created_at, email_subject, email_headers, 
+external_id, email_message_id, email_status
 ```
 
-### Files changed
+### Result
 
-| File | Change |
-|------|--------|
-| `src/lib/normalizeMessage.ts` | Add `emailStatus` field to `NormalizedMessage` |
-| `src/components/conversations/ChatMessagesList.tsx` | Show inline warning + resend button for failed emails |
-| `src/components/conversations/MessageCard.tsx` | Show inline warning badge + resend for failed emails |
+After this fix, `email_status` will flow from the database through normalization to the UI, and agent messages with `failed`/`pending`/`retry` status will show the inline warning with the Resend button.
 
