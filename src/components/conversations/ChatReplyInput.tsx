@@ -2,7 +2,7 @@ import { useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Send, Loader2, MessageSquareX, UserRoundPlus, Smile, Paperclip, Mic, Image, X } from 'lucide-react';
+import { Send, Loader2, MessageSquareX, UserRoundPlus, Smile, Paperclip, Mic, Image, X, Languages } from 'lucide-react';
 import { useConversationView } from '@/contexts/ConversationViewContext';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -27,6 +27,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
+
+const LANGUAGES = [
+  { code: 'auto', label: 'Auto Detect' },
+  { code: 'en', label: 'English' },
+  { code: 'no', label: 'Norwegian' },
+  { code: 'sv', label: 'Swedish' },
+  { code: 'da', label: 'Danish' },
+  { code: 'de', label: 'German' },
+  { code: 'fr', label: 'French' },
+  { code: 'es', label: 'Spanish' },
+];
 
 interface ChatReplyInputProps {
   conversationId: string;
@@ -45,6 +57,9 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
   const [selectedAgentId, setSelectedAgentId] = useState<string>('');
   const [attachments, setAttachments] = useState<AttachmentPreview[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [translateLoading, setTranslateLoading] = useState(false);
+  const [sourceLanguage, setSourceLanguage] = useState('auto');
+  const [targetLanguage, setTargetLanguage] = useState('no');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -267,6 +282,26 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
     setMessage(prev => prev + emoji);
   }, []);
 
+  const handleTranslate = useCallback(async () => {
+    if (!message.trim() || translateLoading) return;
+    setTranslateLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('translate-text', {
+        body: { text: message, sourceLanguage, targetLanguage },
+      });
+      if (error) throw error;
+      if (data?.translatedText) {
+        setMessage(data.translatedText);
+        toast.success('Message translated');
+      }
+    } catch (err) {
+      console.error('Translation error:', err);
+      toast.error('Failed to translate message');
+    } finally {
+      setTranslateLoading(false);
+    }
+  }, [message, sourceLanguage, targetLanguage, translateLoading]);
+
   // Filter out current user from transfer targets
   const transferableAgents = agents?.filter(a => a.user_id !== user?.id) || [];
 
@@ -331,6 +366,63 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
         >
           <Paperclip className="h-5 w-5" />
         </Button>
+
+        {/* Translate button */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="shrink-0 h-9 w-9 text-muted-foreground hover:text-foreground"
+              title="Translate message"
+            >
+              <Languages className="h-5 w-5" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-72" side="top" align="start">
+            <div className="space-y-3">
+              <p className="font-medium text-sm">Translate</p>
+              <div className="space-y-1.5">
+                <Label className="text-xs">From</Label>
+                <Select value={sourceLanguage} onValueChange={setSourceLanguage}>
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {LANGUAGES.map(l => (
+                      <SelectItem key={l.code} value={l.code}>{l.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">To</Label>
+                <Select value={targetLanguage} onValueChange={setTargetLanguage}>
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {LANGUAGES.filter(l => l.code !== 'auto').map(l => (
+                      <SelectItem key={l.code} value={l.code}>{l.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button 
+                size="sm" 
+                className="w-full" 
+                onClick={handleTranslate}
+                disabled={!message.trim() || translateLoading}
+              >
+                {translateLoading ? (
+                  <><Loader2 className="h-3 w-3 animate-spin mr-1" /> Translating...</>
+                ) : (
+                  'Translate'
+                )}
+              </Button>
+            </div>
+          </PopoverContent>
+        </Popover>
 
         {/* Message input */}
         <Input 
