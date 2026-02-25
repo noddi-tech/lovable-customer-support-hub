@@ -281,7 +281,8 @@ export async function listConversations(params: {
           ? 'breached'
           : conv.sla_breach_at && new Date(conv.sla_breach_at).getTime() - new Date().getTime() < 2 * 60 * 60 * 1000
             ? 'at_risk'
-            : 'on_track'
+            : 'on_track',
+      metadata: conv.metadata || undefined,
     })) as ConversationRow[];
     
     // Log session debugging info

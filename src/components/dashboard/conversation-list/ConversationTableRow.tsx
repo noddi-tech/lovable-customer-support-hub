@@ -246,7 +246,7 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
             <span className="text-xs text-muted-foreground capitalize">
               {conversation.channel === 'widget' ? 'Chat' : conversation.channel}
             </span>
-            {conversation.channel === 'widget' && conversation.status === 'open' && (
+            {conversation.channel === 'widget' && (conversation.metadata as any)?.chatSessionStatus === 'active' && (
               <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-700 animate-pulse">
                 LIVE
               </Badge>

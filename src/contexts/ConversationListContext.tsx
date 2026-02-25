@@ -52,6 +52,7 @@ export interface Conversation {
   thread_count?: number; // Number of conversations in this thread
   thread_ids?: string[]; // IDs of all conversations in thread
   is_thread_representative?: boolean; // True for the main/latest conversation in thread
+  metadata?: Record<string, any>;
 }
 
 interface ConversationListState {
