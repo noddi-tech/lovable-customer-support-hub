@@ -166,6 +166,9 @@ export interface NormalizedMessage {
   visibleBody: string;         // without quoted sections
   quotedBlocks?: QuotedBlock[];
   
+  // Email delivery status
+  emailStatus?: string;        // 'sent' | 'failed' | 'pending' | 'retry' | null
+  
   // Original fields for compatibility
   originalMessage: any;
 }
@@ -427,6 +430,7 @@ export function normalizeMessage(rawMessage: any, ctx: NormalizationContext): No
     isInternalNote: rawMessage.is_internal === true,
     visibleBody: parsedContent.visibleContent,
     quotedBlocks: quotedBlocks?.length > 0 ? quotedBlocks : undefined,
+    emailStatus: rawMessage.email_status ?? undefined,
     originalMessage: {
       ...rawMessage,
       _quotedMessages: parsedContent.quotedMessages?.filter(q => q !== null) || []

@@ -12,7 +12,7 @@ import {
   DropdownMenuItem, 
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, Copy, Trash2, Check, CheckCheck, Paperclip, Image, Mail } from 'lucide-react';
+import { MoreHorizontal, Copy, Trash2, Check, CheckCheck, Paperclip, Image, Mail, AlertCircle, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -252,10 +252,26 @@ export const ChatMessagesList = ({
                   <span className="text-xs text-muted-foreground">
                     {formatRelative(new Date(message.createdAt))}
                   </span>
-                  {isAgent && (
+                  {isAgent && (!message.emailStatus || message.emailStatus === 'sent') && (
                     <CheckCheck className="h-3 w-3 text-primary" />
                   )}
                 </div>
+                {/* Inline resend for failed/pending emails */}
+                {isAgent && (message.emailStatus === 'failed' || message.emailStatus === 'pending' || message.emailStatus === 'retry') && (
+                  <div className="flex items-center gap-1.5 mt-1 px-1">
+                    <AlertCircle className="h-3 w-3 text-destructive" />
+                    <span className="text-xs text-destructive font-medium">Email not sent</span>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="h-5 text-[10px] px-2 py-0 gap-1 text-destructive border-destructive/30 hover:bg-destructive/10"
+                      onClick={() => handleResendEmail(message.id)}
+                    >
+                      <RefreshCw className="h-2.5 w-2.5" />
+                      Resend
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
           );

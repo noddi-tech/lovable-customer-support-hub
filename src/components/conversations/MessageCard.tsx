@@ -16,7 +16,9 @@ import {
   StickyNote,
   Pin,
   PinOff,
-  Mail
+  Mail,
+  AlertCircle,
+  RefreshCw
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { type EmailAttachment } from "@/utils/emailFormatting";
@@ -590,6 +592,23 @@ const MessageCardComponent = ({
                     ))}
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* Email delivery warning for failed/pending */}
+            {isAgent && !isInternalNote && (message.emailStatus === 'failed' || message.emailStatus === 'pending' || message.emailStatus === 'retry') && (
+              <div className="flex items-center gap-2 mt-3 p-2 rounded-md bg-destructive/10 border border-destructive/20">
+                <AlertCircle className="h-4 w-4 text-destructive shrink-0" />
+                <span className="text-sm text-destructive font-medium">Email not delivered</span>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="h-6 text-xs px-2 gap-1 ml-auto text-destructive border-destructive/30 hover:bg-destructive/10"
+                  onClick={handleResendEmail}
+                >
+                  <RefreshCw className="h-3 w-3" />
+                  Resend Email
+                </Button>
               </div>
             )}
 
