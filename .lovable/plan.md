@@ -1,74 +1,58 @@
 
 
-## Fix Widget Reply Email Delivery and LIVE Badge
+## Fix Contact Form Conversations and Add Resend Email Button
 
 ### Problem
 
-Two issues with widget/chat conversations:
+1. The 4 contact form conversations still show "Chat LIVE" badges (the code fix is deployed but the metadata on older conversations still triggers it in the `ConversationListItem` path)
+2. Two agent replies (to Mehran Rezai and Robert Bue) were sent before the email fix -- they have `email_status: 'pending'` and were never emailed
+3. Agents need a way to resend emails for messages that failed or were never sent
 
-1. **No email sent for replies**: When an agent replies to a widget conversation (contact form or ended live chat), the reply is silently saved but never emailed to the customer. The customer has no way to see the response.
-2. **Misleading LIVE badge**: All open widget conversations show a "LIVE" badge, even contact form submissions where no one is actively chatting.
+### Changes
 
-### Solution
+#### 1. Database migration to fix existing data
 
-#### 1. Send email replies when chat is not actively live
+Create a migration that:
+- Updates the 4 widget contact form conversations to set `metadata.chatSessionStatus` to `null` (removing any live status)
+- Resets `email_status` on the 2 agent replies from `'pending'` to `'retry'` so the resend button is clearly visible
 
-**File: `src/contexts/ConversationViewContext.tsx` (~line 444-455)**
+Message IDs to fix:
+- `bbee134d-6293-4064-9df0-f73488a76f64` (reply to Mehran Rezai)
+- `1c25ddb4-95b9-423c-abd0-f44597ecc6f8` (reply to Robert Bue)
 
-Change the reply logic from "never send email for widget channel" to "check if the chat session is still active before skipping email":
+#### 2. Add "Resend Email" button to MessageCard dropdown
 
-- Instead of `if (conversationChannel !== 'widget')`, query `widget_chat_sessions` for this conversation to check if there is an active session (status = `'active'` AND `last_seen_at` within last 30 seconds).
-- If the session is active (visitor is online and chatting) -- skip email (visitor sees the reply in real-time).
-- If the session is ended, abandoned, waiting, or there is no session at all (contact form) -- send the reply email.
+**File: `src/components/conversations/MessageCard.tsx`**
 
-**File: `supabase/functions/send-reply-email/index.ts` (~line 66-80)**
+- Add `Mail` and `RefreshCw` icons to the lucide imports
+- Add a `handleResendEmail` function that calls `supabase.functions.invoke('send-reply-email', { body: { messageId } })` and shows a toast on success/failure
+- Add a "Resend Email" `DropdownMenuItem` in the message action menu (between Edit and Delete), shown only for agent messages (`authorType === 'agent'`) that are not internal notes
+- The menu item shows a mail icon and "Resend Email" text
 
-Update the edge function with the same logic:
+#### 3. Add "Resend Email" option to ChatMessagesList dropdown
 
-- Instead of blanket-skipping all `widget` channel conversations, query `widget_chat_sessions` for the conversation.
-- Only skip if there is an active session with recent `last_seen_at` (within 60 seconds as a generous window).
-- Otherwise, proceed with sending the email as normal.
+**File: `src/components/conversations/ChatMessagesList.tsx`**
 
-This means:
-- Contact form submissions: agent replies are emailed (no active session exists)
-- Ended/abandoned live chats: agent replies are emailed (session is not active)
-- Active live chats: agent replies appear in real-time only (no email sent)
+- Add the same resend capability to agent messages in the chat view
+- Add `Mail` icon import and `supabase` import
+- Add "Resend Email" menu item for outbound (agent) messages in the existing dropdown menu
 
-#### 2. Fix LIVE badge to only show for actual live sessions
+### Technical details
 
-**File: `src/components/dashboard/conversation-list/ConversationTableRow.tsx` (~line 249-253)**
-
-Change the LIVE badge condition from:
+```text
+handleResendEmail flow:
+1. Call supabase.functions.invoke('send-reply-email', { messageId })
+2. On success: toast.success('Email sent successfully')
+3. On error: toast.error('Failed to send email')
 ```
-conversation.channel === 'widget' && conversation.status === 'open'
-```
-to:
-```
-conversation.channel === 'widget' && conversation.metadata?.chatSessionStatus === 'active'
-```
 
-This matches the logic already used in `ConversationListItem.tsx` (line 69-70) where the LIVE badge only shows when `metadata.chatSessionStatus === 'active'`.
+The `send-reply-email` edge function already handles all the logic (template, threading, SendGrid) -- we just need to re-invoke it with the message ID.
 
-**File: `supabase/functions/widget-submit/index.ts` (~line 155)**
+### Summary
 
-The contact form currently does not set `chatSessionStatus` in metadata (only sets `source: 'widget'`), so with the fix above, contact form conversations will correctly NOT show the LIVE badge. No change needed here.
-
-#### 3. Update banner text for ended chats
-
-**File: `src/components/dashboard/conversation-view/ConversationViewContent.tsx` (~line 173-183)**
-
-When the visitor has left the chat, update the banner to inform the agent that further replies will be sent via email:
-
-- Change "Visitor has left the chat" to "Visitor has left the chat -- replies will be sent via email"
-
-This gives agents clear feedback about how their messages will be delivered.
-
-### Summary of changes
-
-| File | Change |
-|------|--------|
-| `src/contexts/ConversationViewContext.tsx` | Check active chat session before deciding to send email |
-| `supabase/functions/send-reply-email/index.ts` | Replace blanket widget skip with active-session check |
-| `src/components/dashboard/conversation-list/ConversationTableRow.tsx` | LIVE badge only when `metadata.chatSessionStatus === 'active'` |
-| `src/components/dashboard/conversation-view/ConversationViewContent.tsx` | Banner: "replies will be sent via email" |
+| Change | File |
+|--------|------|
+| Fix metadata + email_status on existing conversations | New migration |
+| Add "Resend Email" to message dropdown (email view) | `MessageCard.tsx` |
+| Add "Resend Email" to message dropdown (chat view) | `ChatMessagesList.tsx` |
 
