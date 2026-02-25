@@ -12,7 +12,8 @@ import {
   DropdownMenuItem, 
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, Copy, Trash2, Check, CheckCheck, Paperclip, Image } from 'lucide-react';
+import { MoreHorizontal, Copy, Trash2, Check, CheckCheck, Paperclip, Image, Mail } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 interface ChatMessagesListProps {
@@ -80,6 +81,18 @@ export const ChatMessagesList = ({
   const handleDeleteMessage = useCallback((messageId: string) => {
     // TODO: Implement delete functionality
     toast.info('Delete functionality coming soon');
+  }, []);
+
+  const handleResendEmail = useCallback(async (messageId: string) => {
+    try {
+      const { error } = await supabase.functions.invoke('send-reply-email', {
+        body: { messageId }
+      });
+      if (error) throw error;
+      toast.success('Email sent successfully');
+    } catch (error) {
+      toast.error('Failed to send email');
+    }
   }, []);
 
   // Render attachments
@@ -205,6 +218,12 @@ export const ChatMessagesList = ({
                           <Copy className="h-4 w-4 mr-2" />
                           Copy
                         </DropdownMenuItem>
+                        {isAgent && (
+                          <DropdownMenuItem onClick={() => handleResendEmail(message.id)}>
+                            <Mail className="h-4 w-4 mr-2" />
+                            Resend Email
+                          </DropdownMenuItem>
+                        )}
                         <DropdownMenuItem 
                           onClick={() => handleDeleteMessage(message.id)}
                           className="text-destructive"
