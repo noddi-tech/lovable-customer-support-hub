@@ -1,70 +1,41 @@
 
 
-## Compact Customer Information Panel -- 3 UI Improvements
+## Fix Conversation & Timeline Sections in Customer Side Panel
 
-Based on the screenshots and your existing `text-xs` / `h-7` density system, these three improvements will make the customer panel tighter, cleaner, and consistent with the rest of your toolbar/filter UI.
+### Problem
+1. **Conversation section** uses `text-sm` instead of the compact `text-xs` density standard
+2. **Timeline section** uses `text-sm` and shows empty dates because the `useConversationMeta` hook returns `lastUpdated` (not `updated_at`) and doesn't fetch `created_at` at all
+3. Icons in both sections use `h-4 w-4` instead of `h-3 w-3`
 
----
+### Changes
 
-### Improvement 1: Shrink all text sizes to match toolbar density
+#### 1. Add `created_at` to conversation meta hook
 
-The `NoddiCustomerDetails` component currently uses `text-base` for names, `text-sm` for details, and `text-lg` for card titles. Everything will be scaled down one notch to match the toolbar convention.
+**File: `src/hooks/conversations/useConversationMeta.ts`**
 
-**File: `src/components/dashboard/voice/NoddiCustomerDetails.tsx`**
+- Add `created_at` to the Supabase select query
+- Add `createdAt: string` to the `ConversationMeta` interface
+- Map `conversation.created_at` to `createdAt` in the return object
+
+#### 2. Fix Timeline to use correct field names and compact sizing
+
+**File: `src/components/dashboard/conversation-view/CustomerSidePanel.tsx`** (lines 848-930)
 
 | Current | New |
 |---------|-----|
-| `CardTitle text-base` (header) | Remove Card wrapper entirely -- inline the header |
-| Customer name `text-base font-semibold` | `text-xs font-semibold` |
-| Email/phone `text-sm` | `text-xs` |
-| Booking date/service/vehicle `text-sm` | `text-xs` |
-| "Order Summary" heading `text-sm font-medium` | `text-xs font-medium` |
-| Order line items `text-sm` | `text-xs` |
-| VAT/Total rows `text-sm` | `text-xs` |
-| Section labels like "Service Tags" | Already `text-xs` -- keep as-is |
-| Icon sizes `h-4 w-4` | `h-3 w-3` throughout |
+| `conversation.created_at` | `conversation.createdAt` |
+| `conversation.updated_at` | `conversation.lastUpdated` |
+| `text-sm` on labels | `text-xs` |
+| Icons `h-4 w-4` | `h-3 w-3` |
 
-This single change brings the entire panel into the same visual weight as toolbar buttons and filters.
+Also fix the Conversation section (lines 866-901):
+- Change all `text-sm` to `text-xs` on the status/priority/channel rows
+- Change Email/Phone section icons from `h-4 w-4` to `h-3 w-3` and text from `text-sm` to `text-xs`
 
----
+### Summary
 
-### Improvement 2: Remove Card nesting -- flat layout with tighter spacing
-
-Currently the component renders inside a `<Card>` with `<CardHeader>` + `<CardContent className="space-y-4">`. Since it's already inside the `CustomerSidePanel` which has its own panel chrome, the nested Card adds unnecessary padding and borders.
-
-**File: `src/components/dashboard/voice/NoddiCustomerDetails.tsx`**
-
-- Replace outer `<Card>` / `<CardHeader>` / `<CardContent>` with a plain `<div className="space-y-2">` (tighter `space-y-2` instead of `space-y-4`)
-- Move the "Customer Information" title + Refresh button into a compact single-line row: `text-xs font-semibold uppercase text-muted-foreground` (matching the "Status & Actions" label style in the side panel)
-- Reduce booking card internal padding from `p-3` to `p-2`
-- Reduce Order Summary card padding from `p-3` to `p-2`
-- Remove excessive `mb-2` margins between badge rows, replace with `mb-1`
-
-This eliminates the double-border visual clutter visible in the screenshots.
-
----
-
-### Improvement 3: Inline badges on same line as name + single-line contact info
-
-Currently the name, verified badge, personal/business badge, and "Default" badge wrap across 2-3 lines. Contact info (email, phone) takes separate lines with labels.
-
-**File: `src/components/dashboard/voice/NoddiCustomerDetails.tsx`**
-
-- Put name + badges in a single `flex items-center gap-1 flex-wrap` row with smaller badges (`h-4 px-1 text-[10px]`)
-- Combine email + phone into a single compact line: `email@example.com | +47XXXXXXXX` using `text-xs text-muted-foreground` and a `·` separator, removing the "Customer Email (Primary):" label prefix
-- Remove the "Noddi Account Email" line unless it differs from primary (already conditional, but also shrink)
-- Remove the registration date line entirely (low-value info that clutters)
-
-**Also in `src/components/dashboard/conversation-view/CustomerSidePanel.tsx`:**
-- The panel header "Customer Details" already uses `text-sm` -- change to `text-xs font-semibold uppercase` matching the "Status & Actions" label
-- Reduce padding from `p-4` to `p-3` in the scrollable content area
-
----
-
-### Summary of files changed
-
-| File | Changes |
-|------|---------|
-| `src/components/dashboard/voice/NoddiCustomerDetails.tsx` | Remove Card wrapper, text-xs everywhere, inline badges, compact contact info, tighter spacing |
-| `src/components/dashboard/conversation-view/CustomerSidePanel.tsx` | Match header label style, reduce content padding |
+| File | Change |
+|------|--------|
+| `src/hooks/conversations/useConversationMeta.ts` | Add `created_at` to query and expose as `createdAt` |
+| `src/components/dashboard/conversation-view/CustomerSidePanel.tsx` | Fix field name references (`createdAt`, `lastUpdated`), compact all text to `text-xs`, icons to `h-3 w-3` |
 
