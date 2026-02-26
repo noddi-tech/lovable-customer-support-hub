@@ -15,6 +15,7 @@ interface ConversationMeta {
   } | null;
   messageCount: number;
   newestMessageId: string | null;
+  createdAt: string;
   lastUpdated: string;
   status: string;
   priority: string;
@@ -42,6 +43,7 @@ export function useConversationMeta(conversationId?: string) {
           status,
           priority,
           is_read,
+          created_at,
           updated_at,
           channel,
           customer:customers(id, full_name, email, phone, metadata)
@@ -75,6 +77,7 @@ export function useConversationMeta(conversationId?: string) {
         customer: conversation.customer,
         messageCount: count || 0,
         newestMessageId: newestMessage?.id || null,
+        createdAt: conversation.created_at,
         lastUpdated: conversation.updated_at,
         status: conversation.status,
         priority: conversation.priority,
