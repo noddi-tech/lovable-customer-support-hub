@@ -69,7 +69,12 @@ export const MessageItem = ({ message, conversation, onEdit, onDelete }: Message
               <AvatarFallback className={cn(
                 isFromCustomer ? "bg-primary text-primary-foreground" : "bg-muted"
               )}>
-                {(message.from.name || message.from.email || '•').trim().charAt(0).toUpperCase()}
+                {(() => {
+                  const raw = (message.from.name || message.from.email || '•').trim();
+                  const cleaned = raw.replace(/^['"]+/, '').replace(/['"]+$/, '').split(/\s+via\s+/i)[0].trim();
+                  const parts = cleaned.split(/[\s._-]+/).filter(Boolean);
+                  return parts.map(p => p[0]).join('').toUpperCase().slice(0, 3) || '•';
+                })()}
               </AvatarFallback>
             </Avatar>
             <div className="min-w-0 flex-1">

@@ -303,58 +303,53 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
     <div className="flex h-full">
       {/* Main conversation area */}
       <div className="flex flex-col min-h-0 flex-1 bg-white">
-        {/* Enhanced Conversation Header */}
-        <div className="flex-shrink-0 p-5 border-b-2 border-border bg-white shadow-sm transition-colors duration-200">
-          <div className="flex items-center gap-4">
-            {/* Left Section: Back + Customer Info */}
-            <div className="flex items-center gap-4 min-w-0 flex-1">
+        {/* Compact Conversation Header */}
+        <div className="flex-shrink-0 px-3 py-2 border-b border-border bg-card/80 backdrop-blur-sm shadow-sm">
+          <div className="flex items-center gap-3">
+            {/* Left: Back + Customer Info + Subject */}
+            <div className="flex items-center gap-3 min-w-0 flex-1">
               <Button 
                 variant="ghost" 
                 size="sm"
                 onClick={handleBack}
-                className="flex items-center gap-2 shrink-0"
+                className="flex items-center gap-1 shrink-0 h-8 px-2"
               >
                 <ArrowLeft className="h-4 w-4" />
-                {!isMobile && <span className="text-sm">Back</span>}
+                {!isMobile && <span className="text-xs">Back</span>}
               </Button>
               
-              <div className="flex items-center gap-4 min-w-0">
-                <Avatar className="h-14 w-14 ring-2 ring-border shrink-0">
-                  <AvatarFallback className="text-xl font-bold">
-                    {getCustomerInitial(conversation.customer?.full_name, conversation.customer?.email)}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="min-w-0 flex-1">
-                  <h1 className="text-xl font-bold mb-1">
+              <Avatar className="h-8 w-8 ring-1 ring-border shrink-0">
+                <AvatarFallback className="text-xs font-semibold">
+                  {getCustomerInitial(conversation.customer?.full_name, conversation.customer?.email)}
+                </AvatarFallback>
+              </Avatar>
+              
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-sm font-semibold truncate">
                     {customerDisplay.displayName}
-                  </h1>
+                  </span>
                   {customerDisplay.showEmail && customerDisplay.email && (
-                    <p className="text-sm text-muted-foreground">
-                      {customerDisplay.email}
-                    </p>
+                    <span className="text-xs text-muted-foreground truncate hidden sm:inline">
+                      · {customerDisplay.email}
+                    </span>
                   )}
                 </div>
+                {conversation.subject && (
+                  <p className="text-xs text-muted-foreground truncate">
+                    Subject: {conversation.subject}
+                  </p>
+                )}
               </div>
             </div>
-
-            {/* Center Section: Subject (if exists) */}
-            {conversation.subject && !isMobile && (
-              <div className="flex-1 text-center">
-                <p className="text-sm font-medium text-muted-foreground">Subject</p>
-                <h2 className="text-base font-semibold">
-                  {conversation.subject}
-                </h2>
-              </div>
-            )}
             
-            {/* Right Section: Actions */}
+            {/* Right: Actions */}
             <div className="flex items-center gap-2 shrink-0">
-              {/* Presence Avatars */}
               <PresenceAvatarStack 
                 conversationId={conversationId} 
-                size="md"
+                size="sm"
                 maxAvatars={3}
-                className="mr-2"
+                className="mr-1"
               />
               <Button
                 variant="outline"
@@ -364,44 +359,34 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
                   queryClient.invalidateQueries({ queryKey: ['conversation-meta', conversationId] });
                   toast.success('Conversation refreshed');
                 }}
-                className="gap-2"
+                className="gap-1 h-7"
                 title="Refresh (Ctrl+R)"
               >
-                <RefreshCw className="h-4 w-4" />
+                <RefreshCw className="h-3.5 w-3.5" />
                 {!isMobile && <span className="text-xs">Refresh</span>}
               </Button>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handleToggleAll}
-                className="gap-2"
+                className="gap-1 h-7"
                 title={allExpanded ? "Collapse all messages" : "Expand all messages"}
               >
                 {allExpanded ? (
                   <>
-                    <ChevronsUp className="h-4 w-4" />
-                    {!isMobile && <span className="text-xs">Collapse All</span>}
+                    <ChevronsUp className="h-3.5 w-3.5" />
+                    {!isMobile && <span className="text-xs">Collapse</span>}
                   </>
                 ) : (
                   <>
-                    <ChevronsDown className="h-4 w-4" />
-                    {!isMobile && <span className="text-xs">Expand All</span>}
+                    <ChevronsDown className="h-3.5 w-3.5" />
+                    {!isMobile && <span className="text-xs">Expand</span>}
                   </>
                 )}
               </Button>
             </div>
           </div>
         </div>
-
-        {/* Conversation Metadata Header */}
-        {conversation.subject && (
-          <div className="flex-shrink-0 px-4 py-3 bg-muted/20 border-b">
-            <div className="grid grid-cols-[100px_1fr] gap-x-4 gap-y-2 text-sm max-w-4xl">
-              <span className="text-muted-foreground font-medium">Subject:</span>
-              <span className="font-semibold text-foreground">{conversation.subject}</span>
-            </div>
-          </div>
-        )}
 
         {/* Messages Area with Progressive Loading */}
         <div className="flex-1 min-h-0 w-full flex flex-col bg-white">

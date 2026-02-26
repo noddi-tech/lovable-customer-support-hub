@@ -42,11 +42,35 @@ function display(addr?: Addr) {
   return addr.name?.trim() || addr.email || '';
 }
 
+/** Strip quotes and "via Inbox" suffix from a name before computing initials */
+function cleanNameForInitials(raw: string): string {
+  return raw.replace(/^['"]+/, '').replace(/['"]+$/, '').split(/\s+via\s+/i)[0].trim();
+}
+
+/** Multi-char initials: first letter of each word part (e.g. "Hanne Blaasvær Stangnes" → "HBS") */
+function multiInitials(name?: string, email?: string): string {
+  const raw = name?.trim() || email?.split('@')[0] || '';
+  if (!raw) return '•';
+  const cleaned = cleanNameForInitials(raw);
+  const parts = cleaned.split(/[\s._-]+/).filter(Boolean);
+  if (parts.length === 0) return '•';
+  const inits = parts.map(p => p[0]).join('').toUpperCase();
+  return inits.slice(0, 3); // max 3 chars
+}
+
 function initials(addr?: Addr) {
-  const s = display(addr);
-  const parts = s.split('@')[0].split(/[.\s_-]+/).filter(Boolean);
-  const two = (parts[0]?.[0] || '') + (parts[1]?.[0] || '');
-  return (two || s[0] || '•').toUpperCase();
+  return multiInitials(addr?.name, addr?.email);
+}
+
+/** Short name: first name + last initial(s), e.g. "Hanne B.S." or "Robert P." */
+function shortName(fullName?: string): string {
+  if (!fullName) return '';
+  const cleaned = cleanNameForInitials(fullName);
+  const parts = cleaned.split(/\s+/).filter(Boolean);
+  if (parts.length <= 1) return cleaned;
+  const first = parts[0];
+  const rest = parts.slice(1).map(p => p[0]?.toUpperCase() + '.').join('');
+  return `${first} ${rest}`;
 }
 
 function formatList(list: Addr[] = [], max = 3) {
@@ -192,8 +216,8 @@ const MessageCardComponent = ({
   // Use the real author label from normalization
   const display = message.authorLabel;
   
-  // Avatar initial from sender (name -> initials; else first letter of email)
-  const initial = (message.from.name?.[0] ?? message.from.email?.[0] ?? '•').toUpperCase();
+  // Avatar initials from sender - multi-char
+  const initial = multiInitials(message.from.name, message.from.email);
 
   function formatRecipients(list: {name?: string; email?: string}[] = [], max = 3) {
     if (!list.length) return '';
@@ -349,19 +373,23 @@ const MessageCardComponent = ({
                   {dateTime(typeof message.createdAt === 'string' ? message.createdAt : new Date(message.createdAt).toISOString())}
                 </span>
                 
-                {/* Name */}
-                <span className={cn(
-                  "font-semibold shrink-0",
-                  effectiveCollapsed ? "text-xs leading-none" : "text-base leading-tight"
-                )}>
-                  {display}
-                </span>
-                
-                {/* Author type badge - only show for messages, not notes */}
+                {/* Author type badge with name inside - replaces separate name span */}
                 {!isInternalNote && messageStyle && (
                   <Badge className={cn("text-xs shrink-0", messageStyle.labelBadge)}>
-                    {messageStyle.label}
+                    {message.authorType === 'customer' 
+                      ? shortName(message.from.name) || message.from.email?.split('@')[0] || 'Customer'
+                      : shortName(message.from.name) || message.from.email?.split('@')[0] || 'Agent'}
                   </Badge>
+                )}
+                
+                {/* Note author name next to note badge */}
+                {isInternalNote && (
+                  <span className={cn(
+                    "text-xs text-muted-foreground shrink-0",
+                    effectiveCollapsed ? "leading-none" : ""
+                  )}>
+                    {shortName(message.from.name) || message.from.email?.split('@')[0] || 'Agent'}
+                  </span>
                 )}
                 
                 {/* New badge for newest message */}
