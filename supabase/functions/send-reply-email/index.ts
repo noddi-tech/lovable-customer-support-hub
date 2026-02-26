@@ -192,7 +192,10 @@ const handler = async (req: Request): Promise<Response> => {
       include_agent_name: true
     } as any;
 
-    // Threading headers from last customer message if available
+    // Threading headers: build a proper References chain
+    const conversationExternalId = (message.conversation as any)?.external_id || null;
+
+    // Get the last customer message for In-Reply-To
     let inReplyToId: string | null = null;
     const { data: lastCustomer } = await supabaseClient
       .from('messages')
@@ -203,6 +206,35 @@ const handler = async (req: Request): Promise<Response> => {
       .order('created_at', { ascending: false })
       .limit(1);
     inReplyToId = lastCustomer?.[0]?.email_message_id || null;
+
+    // Fetch ALL previous email_message_ids for the full References chain
+    const { data: allPrevMessages } = await supabaseClient
+      .from('messages')
+      .select('email_message_id')
+      .eq('conversation_id', message.conversation_id)
+      .not('email_message_id', 'is', null)
+      .neq('id', messageId)
+      .order('created_at', { ascending: true });
+
+    // Build References: conversation external_id first, then all previous message IDs
+    const referencesChain: string[] = [];
+    const seenRefs = new Set<string>();
+    const addRef = (id: string) => {
+      const normalized = id.startsWith('<') ? id : `<${id}>`;
+      const clean = id.replace(/[<>]/g, '');
+      if (clean && !seenRefs.has(clean)) {
+        seenRefs.add(clean);
+        referencesChain.push(normalized);
+      }
+    };
+    // Add the conversation's original external_id first (thread root)
+    if (conversationExternalId) addRef(conversationExternalId);
+    // Add all previous message IDs
+    if (allPrevMessages) {
+      for (const m of allPrevMessages) {
+        if (m.email_message_id) addRef(m.email_message_id);
+      }
+    }
 
     // Check if this is the first message (new conversation) or a reply
     const { count: previousMessageCount } = await supabaseClient
@@ -295,6 +327,12 @@ const handler = async (req: Request): Promise<Response> => {
     if (inReplyToId) {
       const normalized = inReplyToId.startsWith('<') ? inReplyToId : `<${inReplyToId}>`;
       headers['In-Reply-To'] = normalized;
+    }
+    // Use the full References chain instead of just In-Reply-To
+    if (referencesChain.length > 0) {
+      headers['References'] = referencesChain.join(' ');
+    } else if (inReplyToId) {
+      const normalized = inReplyToId.startsWith('<') ? inReplyToId : `<${inReplyToId}>`;
       headers['References'] = normalized;
     }
 
@@ -341,16 +379,22 @@ const handler = async (req: Request): Promise<Response> => {
     if (inReplyToId) {
       const normalized = inReplyToId.startsWith('<') ? inReplyToId : `<${inReplyToId}>`;
       emailHeaders['In-Reply-To'] = normalized;
+    }
+    if (referencesChain.length > 0) {
+      emailHeaders['References'] = referencesChain.join(' ');
+    } else if (inReplyToId) {
+      const normalized = inReplyToId.startsWith('<') ? inReplyToId : `<${inReplyToId}>`;
       emailHeaders['References'] = normalized;
     }
 
-    // Update message as sent, store Message-ID and headers
+    // Update message as sent, store Message-ID, thread ID, and headers
     // IMPORTANT: Store original content, not wrapped HTML, to prevent exponential growth
     const { error: updateError } = await supabaseClient
       .from('messages')
       .update({
         email_status: 'sent',
         email_message_id: messageIdHeader.replace(/[<>]/g, ''),
+        email_thread_id: conversationExternalId || undefined,
         content_type: 'html',
         content: message.content, // Keep original content, don't store wrapped HTML
         email_headers: emailHeaders,
