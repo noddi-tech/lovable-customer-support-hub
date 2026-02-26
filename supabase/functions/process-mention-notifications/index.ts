@@ -23,8 +23,8 @@ interface RequestBody {
   context: MentionContext;
 }
 
-// Helper function to send Slack notification (non-blocking)
-async function sendSlackNotification(payload: {
+// Helper: send Slack channel notification (existing behavior)
+async function sendSlackChannelNotification(payload: {
   organization_id: string;
   event_type: 'mention';
   conversation_id?: string;
@@ -43,15 +43,140 @@ async function sendSlackNotification(payload: {
       },
       body: JSON.stringify(payload)
     });
-    console.log(`📱 Slack mention notification sent`);
+    console.log(`📱 Slack channel mention notification sent`);
   } catch (error) {
-    // Non-blocking - just log the error
-    console.log('Slack notification failed (non-blocking):', error);
+    console.log('Slack channel notification failed (non-blocking):', error);
+  }
+}
+
+// Helper: send personal Slack DM to a mentioned user
+async function sendSlackDM(params: {
+  accessToken: string;
+  userEmail: string;
+  mentionerName: string;
+  previewText: string;
+  contextType: string;
+  conversationUrl?: string;
+}) {
+  try {
+    // Look up Slack user by email
+    const lookupRes = await fetch(`https://slack.com/api/users.lookupByEmail?email=${encodeURIComponent(params.userEmail)}`, {
+      headers: { 'Authorization': `Bearer ${params.accessToken}` },
+    });
+    const lookupData = await lookupRes.json();
+    
+    if (!lookupData.ok || !lookupData.user?.id) {
+      console.log(`Slack user not found for email ${params.userEmail}: ${lookupData.error || 'no user'}`);
+      return;
+    }
+
+    const slackUserId = lookupData.user.id;
+    
+    // Build DM message
+    const contextLabel = params.contextType === 'internal_note' ? 'a note' 
+      : params.contextType === 'ticket_comment' ? 'a ticket comment'
+      : params.contextType === 'customer_note' ? 'a customer note'
+      : params.contextType === 'call_note' ? 'a call note' : 'a message';
+
+    const blocks: any[] = [
+      {
+        type: 'section',
+        text: {
+          type: 'mrkdwn',
+          text: `📣 *${params.mentionerName}* mentioned you in ${contextLabel}`,
+        },
+      },
+      {
+        type: 'section',
+        text: {
+          type: 'mrkdwn',
+          text: `> ${params.previewText}`,
+        },
+      },
+    ];
+
+    if (params.conversationUrl) {
+      blocks.push({
+        type: 'actions',
+        elements: [{
+          type: 'button',
+          text: { type: 'plain_text', text: '👀 View', emoji: true },
+          url: params.conversationUrl,
+        }],
+      });
+    }
+
+    const dmRes = await fetch('https://slack.com/api/chat.postMessage', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${params.accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        channel: slackUserId,
+        text: `${params.mentionerName} mentioned you: ${params.previewText}`,
+        blocks,
+        unfurl_links: false,
+      }),
+    });
+    
+    const dmData = await dmRes.json();
+    if (dmData.ok) {
+      console.log(`✉️ Slack DM sent to ${params.userEmail}`);
+    } else {
+      console.log(`Slack DM failed for ${params.userEmail}: ${dmData.error}`);
+    }
+  } catch (error) {
+    console.log('Slack DM failed (non-blocking):', error);
+  }
+}
+
+// Helper: send email notification for a mention
+async function sendMentionEmail(params: {
+  supabaseUrl: string;
+  serviceKey: string;
+  toEmail: string;
+  mentionerName: string;
+  previewText: string;
+  contextType: string;
+  linkUrl?: string;
+}) {
+  try {
+    const contextLabel = params.contextType === 'internal_note' ? 'a note'
+      : params.contextType === 'ticket_comment' ? 'a ticket comment'
+      : params.contextType === 'customer_note' ? 'a customer note'
+      : params.contextType === 'call_note' ? 'a call note' : 'a message';
+
+    const subject = `${params.mentionerName} mentioned you in ${contextLabel}`;
+    const htmlBody = `
+      <div style="font-family: sans-serif; max-width: 500px;">
+        <p><strong>${params.mentionerName}</strong> mentioned you in ${contextLabel}:</p>
+        <blockquote style="border-left: 3px solid #3b82f6; margin: 16px 0; padding: 8px 16px; color: #374151;">
+          ${params.previewText}
+        </blockquote>
+        ${params.linkUrl ? `<p><a href="${params.linkUrl}" style="display:inline-block;padding:8px 20px;background:#3b82f6;color:#fff;text-decoration:none;border-radius:6px;">View in App</a></p>` : ''}
+      </div>
+    `;
+
+    await fetch(`${params.supabaseUrl}/functions/v1/send-email`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${params.serviceKey}`,
+      },
+      body: JSON.stringify({
+        to: params.toEmail,
+        subject,
+        html: htmlBody,
+      }),
+    });
+    console.log(`📧 Mention email sent to ${params.toEmail}`);
+  } catch (error) {
+    console.log('Email notification failed (non-blocking):', error);
   }
 }
 
 const handler = async (req: Request): Promise<Response> => {
-  // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -59,7 +184,6 @@ const handler = async (req: Request): Promise<Response> => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const body: RequestBody = await req.json();
@@ -88,71 +212,72 @@ const handler = async (req: Request): Promise<Response> => {
       organizationId = ticket?.organization_id;
     }
 
-    // Get context-specific title and link info
+    // Get Slack integration for DMs
+    let slackAccessToken: string | null = null;
+    if (organizationId) {
+      const { data: slackIntegration } = await supabase
+        .from('slack_integrations')
+        .select('access_token')
+        .eq('organization_id', organizationId)
+        .eq('is_active', true)
+        .single();
+      slackAccessToken = slackIntegration?.access_token || null;
+    }
+
     const getContextInfo = () => {
       switch (context.type) {
         case 'internal_note':
-          return {
-            title: 'You were mentioned in a note',
-            linkType: 'conversation',
-          };
+          return { title: 'You were mentioned in a note', linkType: 'conversation' };
         case 'ticket_comment':
-          return {
-            title: 'You were mentioned in a ticket comment',
-            linkType: 'ticket',
-          };
+          return { title: 'You were mentioned in a ticket comment', linkType: 'ticket' };
         case 'customer_note':
-          return {
-            title: 'You were mentioned in a customer note',
-            linkType: 'customer',
-          };
+          return { title: 'You were mentioned in a customer note', linkType: 'customer' };
         case 'call_note':
-          return {
-            title: 'You were mentioned in a call note',
-            linkType: 'call',
-          };
+          return { title: 'You were mentioned in a call note', linkType: 'call' };
         default:
-          return {
-            title: 'You were mentioned',
-            linkType: 'general',
-          };
+          return { title: 'You were mentioned', linkType: 'general' };
       }
     };
 
     const contextInfo = getContextInfo();
+    const truncatedContent = content.length > 150 ? content.slice(0, 150) + '...' : content;
     
-    // Truncate content for notification message
-    const truncatedContent = content.length > 150 
-      ? content.slice(0, 150) + '...' 
-      : content;
+    // Build a link URL for notifications
+    const appUrl = Deno.env.get('APP_URL') || 'https://support.noddi.co';
+    let linkUrl: string | undefined;
+    if (context.conversation_id) {
+      linkUrl = `${appUrl}/?c=${context.conversation_id}`;
+    } else if (context.ticket_id) {
+      linkUrl = `${appUrl}/service-tickets?ticket=${context.ticket_id}`;
+    }
 
-    // Track if Slack notification was sent (only send once per mention event)
-    let slackNotificationSent = false;
+    let slackChannelNotificationSent = false;
 
     // Process each mentioned user
     const notificationPromises = mentionedUserIds
-      .filter(userId => userId !== mentionerUserId) // Don't notify if you mention yourself
+      .filter(userId => userId !== mentionerUserId)
       .map(async (userId) => {
         try {
-          // Check user's notification preferences
-          const { data: preferences } = await supabase
-            .from('notification_preferences')
-            .select('app_on_mention, email_on_mention')
-            .eq('user_id', userId)
-            .single();
+          // Get preferences and profile in parallel
+          const [prefsResult, profileResult] = await Promise.all([
+            supabase
+              .from('notification_preferences')
+              .select('app_on_mention, email_on_mention')
+              .eq('user_id', userId)
+              .single(),
+            supabase
+              .from('profiles')
+              .select('full_name, email')
+              .eq('user_id', userId)
+              .single(),
+          ]);
 
-          // Default to true if no preferences found
+          const preferences = prefsResult.data;
+          const profile = profileResult.data;
           const appEnabled = preferences?.app_on_mention ?? true;
           const emailEnabled = preferences?.email_on_mention ?? false;
 
-          // Get mentioned user's name for Slack notification
-          const { data: mentionedUser } = await supabase
-            .from('profiles')
-            .select('full_name')
-            .eq('user_id', userId)
-            .single();
-
-          // Create in-app notification if enabled
+          // 1. Create in-app notification
           if (appEnabled) {
             const { error: notifError } = await supabase
               .from('notifications')
@@ -177,25 +302,45 @@ const handler = async (req: Request): Promise<Response> => {
             if (notifError) {
               console.error(`Failed to create notification for user ${userId}:`, notifError);
             } else {
-              console.log(`Created in-app notification for user ${userId}`);
-              
-              // Send Slack notification (only once per mention event, not per user)
-              if (!slackNotificationSent && organizationId) {
-                sendSlackNotification({
+              console.log(`✅ In-app notification for user ${userId}`);
+
+              // Send Slack channel notification (once per mention event)
+              if (!slackChannelNotificationSent && organizationId) {
+                sendSlackChannelNotification({
                   organization_id: organizationId,
                   event_type: 'mention',
                   conversation_id: context.conversation_id,
-                  mentioned_user_name: mentionedUser?.full_name || 'Someone',
-                  preview_text: truncatedContent
+                  mentioned_user_name: profile?.full_name || 'Someone',
+                  preview_text: truncatedContent,
                 });
-                slackNotificationSent = true;
+                slackChannelNotificationSent = true;
               }
             }
           }
 
-          // TODO: Implement email notifications when email service is set up
-          if (emailEnabled) {
-            console.log(`Email notification enabled for user ${userId} - email sending not implemented yet`);
+          // 2. Send personal Slack DM
+          if (slackAccessToken && profile?.email) {
+            sendSlackDM({
+              accessToken: slackAccessToken,
+              userEmail: profile.email,
+              mentionerName,
+              previewText: truncatedContent,
+              contextType: context.type,
+              conversationUrl: linkUrl,
+            });
+          }
+
+          // 3. Send email notification if opted in
+          if (emailEnabled && profile?.email) {
+            sendMentionEmail({
+              supabaseUrl,
+              serviceKey: supabaseServiceKey,
+              toEmail: profile.email,
+              mentionerName,
+              previewText: truncatedContent,
+              contextType: context.type,
+              linkUrl,
+            });
           }
         } catch (err) {
           console.error(`Error processing mention for user ${userId}:`, err);
@@ -208,7 +353,7 @@ const handler = async (req: Request): Promise<Response> => {
       JSON.stringify({ 
         success: true, 
         processed: mentionedUserIds.filter(id => id !== mentionerUserId).length,
-        slackNotificationSent
+        slackChannelNotificationSent,
       }),
       {
         status: 200,
