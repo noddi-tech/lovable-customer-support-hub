@@ -845,16 +845,16 @@ export const CustomerSidePanel = ({
           <Separator />
           
           {/* Customer Basic Info */}
-          <div className="space-y-3">
-            <div className="flex items-center gap-2 text-sm">
-              <Mail className="h-4 w-4 text-muted-foreground" />
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-xs">
+              <Mail className="h-3 w-3 text-muted-foreground" />
               <span className="text-muted-foreground">Email:</span>
               <span className="font-medium truncate">{conversation.customer?.email || 'N/A'}</span>
             </div>
             
             {conversation.customer?.phone && (
-              <div className="flex items-center gap-2 text-sm">
-                <Phone className="h-4 w-4 text-muted-foreground" />
+              <div className="flex items-center gap-2 text-xs">
+                <Phone className="h-3 w-3 text-muted-foreground" />
                 <span className="text-muted-foreground">Phone:</span>
                 <span className="font-medium">{conversation.customer.phone}</span>
               </div>
@@ -864,35 +864,35 @@ export const CustomerSidePanel = ({
           <Separator />
 
           {/* Conversation Details */}
-          <div className="space-y-3">
+          <div className="space-y-2">
             <h4 className="text-xs font-semibold text-muted-foreground uppercase">Conversation</h4>
             
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-sm">
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between text-xs">
                 <span className="text-muted-foreground">Status:</span>
-                <Badge variant="outline" className="text-xs">
+                <Badge variant="outline" className="text-[10px] h-4 px-1">
                   {conversation.status}
                 </Badge>
               </div>
 
-              <div className="flex items-center justify-between text-sm">
+              <div className="flex items-center justify-between text-xs">
                 <span className="text-muted-foreground">Priority:</span>
-                <Badge variant="outline" className="text-xs">
+                <Badge variant="outline" className="text-[10px] h-4 px-1">
                   {conversation.priority}
                 </Badge>
               </div>
 
-              <div className="flex items-center justify-between text-sm">
+              <div className="flex items-center justify-between text-xs">
                 <span className="text-muted-foreground">Channel:</span>
-                <Badge variant="outline" className="text-xs capitalize">
+                <Badge variant="outline" className="text-[10px] h-4 px-1 capitalize">
                   {conversation.channel}
                 </Badge>
               </div>
 
               {conversation.assigned_to && (
-                <div className="flex items-center justify-between text-sm">
+                <div className="flex items-center justify-between text-xs">
                   <span className="text-muted-foreground">Assigned to:</span>
-                  <span className="font-medium text-xs">
+                  <span className="font-medium">
                     {conversation.assigned_to.full_name}
                   </span>
                 </div>
@@ -903,27 +903,27 @@ export const CustomerSidePanel = ({
           <Separator />
 
           {/* Timestamps */}
-          <div className="space-y-3">
+          <div className="space-y-2">
             <h4 className="text-xs font-semibold text-muted-foreground uppercase">Timeline</h4>
             
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-sm">
-                <Calendar className="h-4 w-4 text-muted-foreground" />
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2 text-xs">
+                <Calendar className="h-3 w-3 text-muted-foreground" />
                 <span className="text-muted-foreground">Created:</span>
-                <span className="text-xs">{dateTime(conversation.created_at)}</span>
+                <span>{dateTime(conversation.createdAt)}</span>
               </div>
 
-              <div className="flex items-center gap-2 text-sm">
-                <Clock className="h-4 w-4 text-muted-foreground" />
+              <div className="flex items-center gap-2 text-xs">
+                <Clock className="h-3 w-3 text-muted-foreground" />
                 <span className="text-muted-foreground">Updated:</span>
-                <span className="text-xs">{dateTime(conversation.updated_at)}</span>
+                <span>{dateTime(conversation.lastUpdated)}</span>
               </div>
 
               {conversation.snooze_until && (
-                <div className="flex items-center gap-2 text-sm">
-                  <Clock className="h-4 w-4 text-warning" />
+                <div className="flex items-center gap-2 text-xs">
+                  <Clock className="h-3 w-3 text-warning" />
                   <span className="text-muted-foreground">Snoozed until:</span>
-                  <span className="text-xs text-warning">{dateTime(conversation.snooze_until)}</span>
+                  <span className="text-warning">{dateTime(conversation.snooze_until)}</span>
                 </div>
               )}
             </div>
