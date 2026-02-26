@@ -395,6 +395,8 @@ async function handleSendMessage(supabase: any, data: MessageRequest) {
       .update({ 
         preview_text: sanitizedContent.substring(0, 200),
         updated_at: new Date().toISOString(),
+        status: 'open',
+        is_read: false,
       })
       .eq('id', session.conversation_id),
   ]);
