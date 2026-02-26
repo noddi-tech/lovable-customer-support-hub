@@ -62,7 +62,7 @@ export const ReplyArea = () => {
   const { processMentions } = useMentionNotifications();
   const replyRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [replyStatus, setReplyStatus] = React.useState<string>('pending');
+  const [replyStatus, setReplyStatus] = React.useState<string>('closed');
   const [selectedSuggestionForDialog, setSelectedSuggestionForDialog] = useState<string | null>(null);
   const [originalSuggestionText, setOriginalSuggestionText] = useState<string>('');
   const [mentionedUserIds, setMentionedUserIds] = useState<string[]>([]);

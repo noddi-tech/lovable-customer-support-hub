@@ -182,6 +182,12 @@ Deno.serve(async (req: Request) => {
         });
       }
       conversation = newConversation;
+    } else {
+      // Existing conversation found - reopen it on customer reply
+      await supabaseClient
+        .from('conversations')
+        .update({ status: 'open', is_read: false, updated_at: new Date().toISOString() })
+        .eq('id', conversation.id);
     }
 
     // Create message
