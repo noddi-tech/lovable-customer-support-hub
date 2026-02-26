@@ -1,78 +1,94 @@
 
 
-## Fix Email Thread Splitting Bug
+## Declutter Message Cards + Fix Note Attribution + Compact Header
 
-### Problem
-When a customer replies to an email thread, the webhook picks the **first** `<Message-ID>` from the `References` header as the thread key. But Outlook often puts the **most recent reply's Message-ID first** (not the original thread root). Since agent replies aren't stored with a matching `email_thread_id` in the conversation's `external_id`, each customer reply creates a new conversation.
+### Problem Summary (from screenshots)
 
-Evidence: The "avlevering av dekk" thread split into 3 conversations with these `external_id` values -- all different Outlook Message-IDs:
-- `98e53a37`: `DU2P250MB0148...` (original)
-- `53504a1c`: `AM8P250MB0159...0643...` (reply 2)  
-- `75a89ca0`: `AM8P250MB0159...9260...` (reply 3)
+1. **Too much name repetition**: Each message shows full name like "'Hanne Blaasvær Stangnes' via Hei" when the customer name is already in the conversation header -- redundant clutter
+2. **Avatar shows wrong initial**: Customer avatar shows `'` (first char of `'Hanne...`) instead of proper initials like "HB". Agent avatar shows single letter instead of initials
+3. **Note shows wrong author**: Internal notes show "H" avatar and "hei@noddi.no" because `sender_id` is null in DB -- should show actual note creator's name
+4. **Header too large**: Avatar is `h-14 w-14`, name is `text-xl` -- wastes vertical space. Subject is in a separate centered column instead of inline with customer info
 
-### Root Cause (two bugs)
+---
 
-**Bug 1 -- Webhook thread lookup is too naive:** Both `email-webhook` and `sendgrid-inbound` compute a single `threadId`/`threadKey` from the first References entry, then do `WHERE external_id = threadKey`. If that specific Message-ID was never stored as a conversation's `external_id`, it creates a new conversation.
+### Change 1: Remove name from message rows, put name INSIDE the badge
 
-**Bug 2 -- Agent replies don't chain back:** `send-reply-email` sets `In-Reply-To` and `References` to only the last customer's `email_message_id`. It does NOT store the conversation's `external_id` in the outgoing `References` chain. So when the customer's email client builds its own `References`, none of the IDs match the conversation's `external_id`.
+**File: `src/components/conversations/MessageCard.tsx`** (lines 352-365)
 
-### Fix
+Currently the header row shows: `[Avatar] [Timestamp] [Full Name] [Customer badge]`
 
-#### 1. `sendgrid-inbound/index.ts` -- Look up ALL References against existing conversations
+Change to: `[Avatar] [Timestamp] [Customer: Hanne B.S. badge] [preview...]`
 
-Instead of computing one `threadKey` and doing a single `eq('external_id', threadKey)`, extract ALL Message-IDs from the References + In-Reply-To headers, then:
+- For **customer messages**: The badge text changes from "Customer" to the customer's shortened name (e.g., "Hanne B.S." or first name). Remove the separate name `<span>` entirely.
+- For **agent messages**: The badge text changes from "You" to the agent's first name (e.g., "Robert"). Remove the separate name `<span>`.
+- For **notes**: Keep "Note" badge as-is, but add the author's name next to it (e.g., "Note" badge + "Joachim R." text)
 
-1. Query `conversations` WHERE `external_id IN (all_ref_ids)` for the org
-2. Query `messages` WHERE `email_message_id IN (all_ref_ids)` to find conversations by message
-3. If any match is found, use that conversation (merge into the oldest one if multiple matches)
-4. Only create a new conversation if zero matches
+This dramatically reduces the visual noise per row since the customer name is already in the header.
 
-Changes to `getThreadKey()` function (lines 21-64): Rename to `extractAllThreadIds()`, return an array of all cleaned Message-IDs from References, In-Reply-To, and Message-ID.
+Add a helper function `shortName(fullName)` that returns first name + last initial (e.g., "Hanne Blaasvær Stangnes" becomes "Hanne B.S.", "Robert Pinar" becomes "Robert P.").
 
-New lookup logic (lines 353-401): Replace the single `eq('external_id', threadKey)` with:
+---
 
+### Change 2: Fix avatar initials to use multi-letter initials
+
+**File: `src/components/conversations/MessageCard.tsx`** (line 196)
+
+Current: `const initial = (message.from.name?.[0] ?? message.from.email?.[0] ?? '•').toUpperCase();`
+
+This takes only the first character, which for the name `'Hanne Blaasvær Stangnes' via Hei` gives `'` (the quote character).
+
+Replace with the existing `initials()` helper (already defined at line 45-50) which splits on spaces/dots/hyphens and takes first char of each part. Also strip leading quotes/apostrophes from the name before computing initials.
+
+**File: `src/lib/normalizeMessage.ts`** (line 408)
+
+Same fix for `avatarInitial` -- use multi-char initials instead of single char. Also strip the `'...' via Hei` pattern from customer names before computing initials.
+
+---
+
+### Change 3: Fix note author attribution
+
+**Problem**: Notes in DB have `sender_id: null`, so `senderProfile` is null, and the fallback shows inbox email `hei@noddi.no`.
+
+Two fixes:
+
+**File: `src/contexts/ConversationViewContext.tsx`**: Verify the insert path always includes `sender_id: user.id` for notes (it does at line 338 -- but check the edge function path too).
+
+**File: `src/lib/normalizeMessage.ts`** (lines 316-319, 374-395): When `is_internal === true` and no `senderProfile` exists, the current fallback goes to email headers which contain `hei@noddi.no` (the inbox email). Fix: for internal notes with no profile, fall back to a stored `sender_name` field, or show "Agent" rather than the inbox email. Also, for the avatar, don't use the inbox email initial.
+
+**Data fix**: Update existing notes to set `sender_id` where possible (match by `created_at` timestamp to auth audit log or conversation assignment).
+
+---
+
+### Change 4: Compact the conversation header
+
+**File: `src/components/dashboard/conversation-view/ConversationViewContent.tsx`** (lines 306-404)
+
+Current layout:
 ```text
-1. Parse all reference IDs from headers
-2. SELECT id FROM conversations WHERE external_id = ANY(ref_ids) AND org_id = ?
-3. If no match: SELECT conversation_id FROM messages WHERE email_message_id = ANY(ref_ids)
-4. Use first match, or create new conversation
+[Back] [Big Avatar h-14] [Name text-xl]          [Subject centered]          [Refresh] [Expand All]
+                                                   Subject: ...  (separate row)
 ```
 
-#### 2. `email-webhook/index.ts` -- Same fix for the legacy webhook
+New layout -- single compact row with subject inline:
+```text
+[Back] [Avatar h-8] [Name text-sm / email text-xs] · Subject: avlevering av dekk...   [Refresh] [Expand All]
+```
 
-Apply identical multi-ID lookup logic to the `getThreadId` function and conversation lookup (lines 34-84 and 151-157). Same pattern: extract all IDs, query conversations + messages for any match.
+Changes:
+- Shrink avatar from `h-14 w-14` to `h-8 w-8`
+- Shrink name from `text-xl font-bold` to `text-sm font-semibold`
+- Remove the separate centered subject column
+- Put subject inline with name using a flex row: `Name · email` on first line, `Subject: ...` on second line (or same line if space)
+- Remove the duplicate `conversation.subject` metadata row (lines 397-404) since it's now in the header
+- Reduce header padding from `p-5` to `p-3`
 
-#### 3. `send-reply-email/index.ts` -- Build proper References chain
+---
 
-When sending a reply (lines 196-299), build the `References` header properly:
+### Summary of files changed
 
-1. Fetch the conversation's `external_id` (already available as `message.conversation.external_id`)
-2. Fetch ALL previous `email_message_id` values from messages in the conversation
-3. Build `References` as: `<conversation.external_id> <previous_message_ids...> <in_reply_to_id>`
-4. Also store the `email_thread_id` on the outgoing message matching the conversation's `external_id`
-
-This ensures the customer's email client includes the conversation's `external_id` in future replies, making thread matching reliable.
-
-#### 4. Merge the 3 existing split conversations
-
-After deploying the fix, run a one-time data fix to merge conversations `53504a1c` and `75a89ca0` into `98e53a37`:
-
-- Move all messages from the two newer conversations to the oldest one
-- Delete the empty conversations
-- This can be done via a simple SQL migration or a manual query
-
-### Files changed
-
-| File | Change |
-|------|--------|
-| `supabase/functions/sendgrid-inbound/index.ts` | Multi-ID thread lookup instead of single `external_id` match |
-| `supabase/functions/email-webhook/index.ts` | Same multi-ID thread lookup |
-| `supabase/functions/send-reply-email/index.ts` | Build full References chain, store `email_thread_id` on outgoing messages |
-
-### Risk & Testing
-
-- The multi-ID lookup is backward-compatible: existing threads with correct `external_id` still match on the first query
-- New threads (no References) still create new conversations as before
-- HelpScout pattern detection remains unchanged (checked first)
-- Edge case: if References contains IDs from two genuinely different conversations, we pick the oldest -- this matches email threading convention
+| File | Changes |
+|------|---------|
+| `src/components/conversations/MessageCard.tsx` | Remove name span, put name inside badge, fix avatar to use multi-char initials, add `shortName()` helper |
+| `src/lib/normalizeMessage.ts` | Fix `avatarInitial` to use multi-char initials, strip quote/via patterns from customer names, improve note author fallback |
+| `src/components/dashboard/conversation-view/ConversationViewContent.tsx` | Compact header: smaller avatar, inline subject with name, remove duplicate subject row |
 
