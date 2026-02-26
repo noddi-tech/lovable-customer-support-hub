@@ -23,12 +23,32 @@ interface RequestBody {
   context: MentionContext;
 }
 
-// Helper: send Slack channel notification (existing behavior)
+// Helper: resolve Slack user ID by email
+async function resolveSlackUserId(accessToken: string, email: string): Promise<string | null> {
+  try {
+    const res = await fetch(`https://slack.com/api/users.lookupByEmail?email=${encodeURIComponent(email)}`, {
+      headers: { 'Authorization': `Bearer ${accessToken}` },
+    });
+    const data = await res.json();
+    if (data.ok && data.user?.id) {
+      return data.user.id;
+    }
+    console.log(`Slack user not found for ${email}: ${data.error || 'no user'}`);
+    return null;
+  } catch (e) {
+    console.log(`Slack lookup failed for ${email}:`, e);
+    return null;
+  }
+}
+
+// Helper: send Slack channel notification with real <@ID> tags
 async function sendSlackChannelNotification(payload: {
   organization_id: string;
   event_type: 'mention';
   conversation_id?: string;
   mentioned_user_name: string;
+  mentioned_slack_ids?: string[];
+  mentioner_slack_id?: string;
   preview_text?: string;
 }) {
   try {
@@ -52,38 +72,31 @@ async function sendSlackChannelNotification(payload: {
 // Helper: send personal Slack DM to a mentioned user
 async function sendSlackDM(params: {
   accessToken: string;
+  slackUserId: string;
   userEmail: string;
   mentionerName: string;
+  mentionerSlackId?: string | null;
   previewText: string;
   contextType: string;
   conversationUrl?: string;
 }) {
   try {
-    // Look up Slack user by email
-    const lookupRes = await fetch(`https://slack.com/api/users.lookupByEmail?email=${encodeURIComponent(params.userEmail)}`, {
-      headers: { 'Authorization': `Bearer ${params.accessToken}` },
-    });
-    const lookupData = await lookupRes.json();
-    
-    if (!lookupData.ok || !lookupData.user?.id) {
-      console.log(`Slack user not found for email ${params.userEmail}: ${lookupData.error || 'no user'}`);
-      return;
-    }
-
-    const slackUserId = lookupData.user.id;
-    
-    // Build DM message
     const contextLabel = params.contextType === 'internal_note' ? 'a note' 
       : params.contextType === 'ticket_comment' ? 'a ticket comment'
       : params.contextType === 'customer_note' ? 'a customer note'
       : params.contextType === 'call_note' ? 'a call note' : 'a message';
+
+    // Use <@ID> for mentioner if available, otherwise plain name
+    const mentionerDisplay = params.mentionerSlackId 
+      ? `<@${params.mentionerSlackId}>` 
+      : `*${params.mentionerName}*`;
 
     const blocks: any[] = [
       {
         type: 'section',
         text: {
           type: 'mrkdwn',
-          text: `📣 *${params.mentionerName}* mentioned you in ${contextLabel}`,
+          text: `📣 ${mentionerDisplay} mentioned you in ${contextLabel}`,
         },
       },
       {
@@ -106,6 +119,8 @@ async function sendSlackDM(params: {
       });
     }
 
+    const fallbackMentioner = params.mentionerSlackId ? `<@${params.mentionerSlackId}>` : params.mentionerName;
+
     const dmRes = await fetch('https://slack.com/api/chat.postMessage', {
       method: 'POST',
       headers: {
@@ -113,8 +128,8 @@ async function sendSlackDM(params: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        channel: slackUserId,
-        text: `${params.mentionerName} mentioned you: ${params.previewText}`,
+        channel: params.slackUserId,
+        text: `${fallbackMentioner} mentioned you: ${params.previewText}`,
         blocks,
         unfurl_links: false,
       }),
@@ -253,6 +268,35 @@ const handler = async (req: Request): Promise<Response> => {
 
     let slackChannelNotificationSent = false;
 
+    // Batch-resolve all Slack user IDs upfront (mentioned users + mentioner)
+    const slackIdMap = new Map<string, string>(); // email -> slackUserId
+    let mentionerSlackId: string | null = null;
+
+    if (slackAccessToken) {
+      // Get all profiles (mentioned + mentioner) for email lookup
+      const allUserIds = [...new Set([...mentionedUserIds.filter(id => id !== mentionerUserId), mentionerUserId])];
+      const { data: allProfiles } = await supabase
+        .from('profiles')
+        .select('user_id, email')
+        .in('user_id', allUserIds);
+
+      if (allProfiles) {
+        const lookupPromises = allProfiles
+          .filter(p => p.email)
+          .map(async (p) => {
+            const slackId = await resolveSlackUserId(slackAccessToken!, p.email!);
+            if (slackId) {
+              slackIdMap.set(p.email!, slackId);
+              if (p.user_id === mentionerUserId) {
+                mentionerSlackId = slackId;
+              }
+            }
+          });
+        await Promise.all(lookupPromises);
+      }
+      console.log(`Resolved ${slackIdMap.size} Slack IDs (mentioner: ${mentionerSlackId || 'not found'})`);
+    }
+
     // Process each mentioned user
     const notificationPromises = mentionedUserIds
       .filter(userId => userId !== mentionerUserId)
@@ -304,13 +348,18 @@ const handler = async (req: Request): Promise<Response> => {
             } else {
               console.log(`✅ In-app notification for user ${userId}`);
 
-              // Send Slack channel notification (once per mention event)
+              // Send Slack channel notification (once per mention event) with real <@ID> tags
               if (!slackChannelNotificationSent && organizationId) {
+                const allMentionedSlackIds = Array.from(slackIdMap.values())
+                  .filter(id => id !== mentionerSlackId); // only mentioned users, not mentioner
+                
                 sendSlackChannelNotification({
                   organization_id: organizationId,
                   event_type: 'mention',
                   conversation_id: context.conversation_id,
                   mentioned_user_name: profile?.full_name || 'Someone',
+                  mentioned_slack_ids: allMentionedSlackIds.length > 0 ? allMentionedSlackIds : undefined,
+                  mentioner_slack_id: mentionerSlackId || undefined,
                   preview_text: truncatedContent,
                 });
                 slackChannelNotificationSent = true;
@@ -318,12 +367,15 @@ const handler = async (req: Request): Promise<Response> => {
             }
           }
 
-          // 2. Send personal Slack DM
-          if (slackAccessToken && profile?.email) {
+          // 2. Send personal Slack DM with real <@ID> tags
+          const userSlackId = profile?.email ? slackIdMap.get(profile.email) : null;
+          if (slackAccessToken && userSlackId && profile?.email) {
             sendSlackDM({
               accessToken: slackAccessToken,
+              slackUserId: userSlackId,
               userEmail: profile.email,
               mentionerName,
+              mentionerSlackId,
               previewText: truncatedContent,
               contextType: context.type,
               conversationUrl: linkUrl,
