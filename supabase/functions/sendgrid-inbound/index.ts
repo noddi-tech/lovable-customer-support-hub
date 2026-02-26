@@ -18,49 +18,50 @@ function parseHeaderValue(headersRaw?: string | null, name?: string): string | n
   return m ? m[1].trim() : null;
 }
 
-function getThreadKey(headersRaw?: string | null): string | null {
+/** Extract ALL Message-IDs from References, In-Reply-To and Message-ID headers.
+ *  Returns an array of cleaned IDs (no angle brackets) for multi-ID conversation lookup.
+ *  Also returns a HelpScout thread key if detected (takes priority). */
+function extractAllThreadIds(headersRaw?: string | null): { helpScoutKey: string | null; allIds: string[] } {
   const references = parseHeaderValue(headersRaw, "References");
   const inReply = parseHeaderValue(headersRaw, "In-Reply-To");
   const messageId = parseHeaderValue(headersRaw, "Message-ID") || parseHeaderValue(headersRaw, "Message-Id");
-  
-  // Check for HelpScout pattern first (reply-{id1}-{id2}-*@helpscout.net)
+
+  const cleanId = (id: string) => id?.replace(/[<>]/g, '').trim();
+
+  // Check for HelpScout pattern first
   const helpScoutPattern = /reply-(\d+)-(\d+)(-\d+)?@helpscout\.net/;
-  
-  // Check Message-ID for HelpScout
-  if (messageId) {
-    const match = messageId.match(helpScoutPattern);
-    if (match) {
-      const helpScoutThreadId = `reply-${match[1]}-${match[2]}`;
-      console.log(`[SendGrid-Inbound] Detected HelpScout Message-ID: ${helpScoutThreadId}`);
-      return helpScoutThreadId;
+  for (const header of [messageId, inReply, references]) {
+    if (header) {
+      const match = header.match(helpScoutPattern);
+      if (match) {
+        const helpScoutThreadId = `reply-${match[1]}-${match[2]}`;
+        console.log(`[SendGrid-Inbound] Detected HelpScout thread: ${helpScoutThreadId}`);
+        return { helpScoutKey: helpScoutThreadId, allIds: [helpScoutThreadId] };
+      }
     }
   }
-  
-  // Check In-Reply-To for HelpScout
-  if (inReply) {
-    const match = inReply.match(helpScoutPattern);
-    if (match) {
-      const helpScoutThreadId = `reply-${match[1]}-${match[2]}`;
-      console.log(`[SendGrid-Inbound] Detected HelpScout In-Reply-To: ${helpScoutThreadId}`);
-      return helpScoutThreadId;
+
+  // Collect ALL Message-IDs from all headers
+  const allIds: string[] = [];
+  const seen = new Set<string>();
+  const addId = (id: string) => {
+    const cleaned = cleanId(id);
+    if (cleaned && !seen.has(cleaned)) {
+      seen.add(cleaned);
+      allIds.push(cleaned);
     }
-  }
-  
-  // Check References for HelpScout
+  };
+
+  // References can contain multiple Message-IDs
   if (references) {
-    const match = references.match(helpScoutPattern);
-    if (match) {
-      const helpScoutThreadId = `reply-${match[1]}-${match[2]}`;
-      console.log(`[SendGrid-Inbound] Detected HelpScout References: ${helpScoutThreadId}`);
-      return helpScoutThreadId;
-    }
+    const refIds = references.match(/<[^>]+>/g);
+    if (refIds) refIds.forEach(addId);
+    else addId(references); // Single ID without angle brackets
   }
-  
-  // PRIORITY 1: First Message-ID from References (thread root)
-  const refFirst = references ? (references.match(/<[^>]+>/g)?.[0] || references) : null;
-  
-  // PRIORITY 2: In-Reply-To (fallback), PRIORITY 3: Message-ID (new thread)
-  return (refFirst || inReply || messageId || null)?.replace(/[<>]/g, "") || null;
+  if (inReply) addId(inReply);
+  if (messageId) addId(messageId);
+
+  return { helpScoutKey: null, allIds };
 }
 
 // Helper to log email ingestion events
@@ -350,17 +351,56 @@ Deno.serve(async (req: Request) => {
       console.log(`[SendGrid-Inbound] Found existing customer with ID: ${customer_id}`);
     }
 
-    // Find or create conversation by thread key
-    const threadKey = getThreadKey(headersRaw) || `sg_${crypto.randomUUID()}`;
+    // Find or create conversation using multi-ID thread lookup
+    const { helpScoutKey, allIds } = extractAllThreadIds(headersRaw);
+    let threadKey: string;
+    let conversation_id: string | null = null;
+    let isNewConversation = true;
 
-    const { data: existingConv } = await supabase
-      .from("conversations")
-      .select("id")
-      .eq("external_id", threadKey)
-      .eq("organization_id", organization_id)
-      .maybeSingle();
+    if (helpScoutKey) {
+      // HelpScout: use dedicated key as before
+      threadKey = helpScoutKey;
+      const { data: hsConv } = await supabase
+        .from("conversations")
+        .select("id")
+        .eq("external_id", threadKey)
+        .eq("organization_id", organization_id)
+        .maybeSingle();
+      conversation_id = hsConv?.id ?? null;
+    } else if (allIds.length > 0) {
+      threadKey = allIds[0]; // Default thread key for new conversations
 
-    let conversation_id = existingConv?.id as string | null;
+      // STEP 1: Check conversations.external_id for ANY of the reference IDs
+      console.log(`[SendGrid-Inbound] Multi-ID lookup with ${allIds.length} IDs:`, allIds);
+      const { data: convByExtId } = await supabase
+        .from("conversations")
+        .select("id, created_at")
+        .in("external_id", allIds)
+        .eq("organization_id", organization_id)
+        .order("created_at", { ascending: true })
+        .limit(1);
+
+      if (convByExtId && convByExtId.length > 0) {
+        conversation_id = convByExtId[0].id;
+        console.log(`[SendGrid-Inbound] Found conversation by external_id: ${conversation_id}`);
+      } else {
+        // STEP 2: Check messages.email_message_id for ANY of the reference IDs
+        const { data: msgMatch } = await supabase
+          .from("messages")
+          .select("conversation_id, conversation:conversations!inner(organization_id)")
+          .in("email_message_id", allIds)
+          .limit(5);
+
+        const orgMatch = msgMatch?.find((m: any) => m.conversation?.organization_id === organization_id);
+        if (orgMatch) {
+          conversation_id = orgMatch.conversation_id;
+          console.log(`[SendGrid-Inbound] Found conversation by message email_message_id: ${conversation_id}`);
+        }
+      }
+    } else {
+      threadKey = `sg_${crypto.randomUUID()}`;
+    }
+
     if (!conversation_id) {
       console.log(`[SendGrid-Inbound] Creating new conversation - Thread: ${threadKey}, Subject: ${subject}`);
       const { data: convIns, error: convErr } = await supabase
@@ -380,6 +420,7 @@ Deno.serve(async (req: Request) => {
       conversation_id = convIns.id;
       console.log(`[SendGrid-Inbound] Created conversation with ID: ${conversation_id}`);
     } else {
+      isNewConversation = false;
       console.log(`[SendGrid-Inbound] Found existing conversation with ID: ${conversation_id}`);
       
       // Update existing conversation - reopen, mark as unread, and update received_at to move to top
@@ -388,14 +429,13 @@ Deno.serve(async (req: Request) => {
         .update({
           status: "open",
           is_read: false,
-          received_at: new Date().toISOString(), // Move conversation to top of list
+          received_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         })
         .eq("id", conversation_id);
       
       if (updateErr) {
         console.error(`[SendGrid-Inbound] Error updating conversation status:`, updateErr);
-        // Don't throw - message insertion is more critical
       } else {
         console.log(`[SendGrid-Inbound] Updated conversation to open/unread status`);
       }
@@ -535,7 +575,7 @@ Deno.serve(async (req: Request) => {
 
     // Create notification for new email (handled by database trigger for customer replies)
     // For new conversations, we create an explicit notification here
-    if (!existingConv) {
+    if (isNewConversation) {
       // Get agents to notify (inbox members or org admins)
       const { data: agentsToNotify } = await supabase
         .from('organization_memberships')

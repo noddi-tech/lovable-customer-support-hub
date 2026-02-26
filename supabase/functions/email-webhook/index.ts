@@ -30,57 +30,39 @@ Deno.serve(async (req: Request) => {
     const emailData: IncomingEmail = await req.json();
     console.log('Received email:', emailData);
 
-    // Helper function to extract thread ID from email headers (ALWAYS uses thread root)
-    const getThreadId = (messageId: string, inReplyTo?: string, references?: string): string => {
+    // Helper: extract ALL Message-IDs from email headers for multi-ID lookup
+    const extractAllIds = (messageId: string, inReplyTo?: string, references?: string): { helpScoutKey: string | null; allIds: string[] } => {
       const cleanId = (id: string) => id?.replace(/[<>]/g, '').trim();
-      
-      // Check for HelpScout pattern first (reply-{id1}-{id2}-*@helpscout.net)
       const helpScoutPattern = /reply-(\d+)-(\d+)(-\d+)?@helpscout\.net/;
-      const messageIdMatch = messageId?.match(helpScoutPattern);
-      if (messageIdMatch) {
-        const helpScoutThreadId = `reply-${messageIdMatch[1]}-${messageIdMatch[2]}`;
-        console.log('Detected HelpScout email, using conversation ID:', helpScoutThreadId);
-        return helpScoutThreadId;
-      }
-      
-      // Check In-Reply-To for HelpScout pattern
-      if (inReplyTo) {
-        const inReplyToMatch = inReplyTo.match(helpScoutPattern);
-        if (inReplyToMatch) {
-          const helpScoutThreadId = `reply-${inReplyToMatch[1]}-${inReplyToMatch[2]}`;
-          console.log('Detected HelpScout in In-Reply-To, using conversation ID:', helpScoutThreadId);
-          return helpScoutThreadId;
+
+      // Check HelpScout pattern across all headers
+      for (const header of [messageId, inReplyTo, references]) {
+        if (header) {
+          const match = header.match(helpScoutPattern);
+          if (match) {
+            const key = `reply-${match[1]}-${match[2]}`;
+            console.log('Detected HelpScout thread:', key);
+            return { helpScoutKey: key, allIds: [key] };
+          }
         }
       }
-      
-      // Check References for HelpScout pattern
+
+      const allIds: string[] = [];
+      const seen = new Set<string>();
+      const addId = (id: string) => {
+        const cleaned = cleanId(id);
+        if (cleaned && !seen.has(cleaned)) { seen.add(cleaned); allIds.push(cleaned); }
+      };
+
       if (references) {
-        const referencesMatch = references.match(helpScoutPattern);
-        if (referencesMatch) {
-          const helpScoutThreadId = `reply-${referencesMatch[1]}-${referencesMatch[2]}`;
-          console.log('Detected HelpScout in References, using conversation ID:', helpScoutThreadId);
-          return helpScoutThreadId;
-        }
+        const refIds = references.match(/<[^>]+>/g);
+        if (refIds) refIds.forEach(addId);
+        else addId(references);
       }
-      
-      // PRIORITY 1: References header (first Message-ID is the thread root)
-      if (references) {
-        const messageIds = references.match(/<[^>]+>/g);
-        if (messageIds && messageIds.length > 0) {
-          console.log('Using first reference (thread root) for thread ID:', messageIds[0]);
-          return cleanId(messageIds[0]);
-        }
-      }
-      
-      // PRIORITY 2: In-Reply-To (fallback if no References)
-      if (inReplyTo) {
-        console.log('Using In-Reply-To for thread ID:', inReplyTo);
-        return cleanId(inReplyTo);
-      }
-      
-      // PRIORITY 3: Message-ID (new thread)
-      console.log('Using Message-ID for new thread:', messageId);
-      return cleanId(messageId);
+      if (inReplyTo) addId(inReplyTo);
+      if (messageId) addId(messageId);
+
+      return { helpScoutKey: null, allIds };
     };
 
     // Extract the forwarding address from the 'to' field
@@ -104,7 +86,7 @@ Deno.serve(async (req: Request) => {
 
     // Extract customer email from the 'from' field
     const customerEmail = emailData.from;
-    const customerName = customerEmail.split('@')[0]; // Simple name extraction
+    const customerName = customerEmail.split('@')[0];
 
     // Find or create customer
     let { data: customer, error: customerError } = await supabaseClient
@@ -115,7 +97,6 @@ Deno.serve(async (req: Request) => {
       .single();
 
     if (customerError && customerError.code === 'PGRST116') {
-      // Customer doesn't exist, create new one
       const { data: newCustomer, error: createError } = await supabaseClient
         .from('customers')
         .insert({
@@ -136,28 +117,60 @@ Deno.serve(async (req: Request) => {
       customer = newCustomer;
     }
 
-    // Generate thread ID using intelligent parsing
-    const threadId = getThreadId(emailData.messageId, emailData.inReplyTo, emailData.references);
-    
-    console.log('Thread ID determination:', {
-      messageId: emailData.messageId,
-      inReplyTo: emailData.inReplyTo,
-      references: emailData.references,
-      resolvedThreadId: threadId,
-      method: emailData.references ? 'references (thread root)' : 
-              (emailData.inReplyTo ? 'inReplyTo' : 'messageId (new thread)')
-    });
+    // Multi-ID thread lookup
+    const { helpScoutKey, allIds } = extractAllIds(emailData.messageId, emailData.inReplyTo, emailData.references);
+    let threadId: string;
+    let conversation: any = null;
 
-    // Find or create conversation
-    let { data: conversation, error: conversationError } = await supabaseClient
-      .from('conversations')
-      .select('*')
-      .eq('external_id', threadId)
-      .eq('organization_id', emailAccount.organization_id)
-      .single();
+    if (helpScoutKey) {
+      threadId = helpScoutKey;
+      const { data: hsConv } = await supabaseClient
+        .from('conversations').select('*')
+        .eq('external_id', threadId)
+        .eq('organization_id', emailAccount.organization_id)
+        .maybeSingle();
+      conversation = hsConv;
+    } else if (allIds.length > 0) {
+      threadId = allIds[0];
+      console.log('Multi-ID lookup with', allIds.length, 'IDs:', allIds);
 
-    if (conversationError && conversationError.code === 'PGRST116') {
-      // Conversation doesn't exist, create new one
+      // STEP 1: Check conversations.external_id
+      const { data: convByExtId } = await supabaseClient
+        .from('conversations').select('*')
+        .in('external_id', allIds)
+        .eq('organization_id', emailAccount.organization_id)
+        .order('created_at', { ascending: true })
+        .limit(1);
+
+      if (convByExtId && convByExtId.length > 0) {
+        conversation = convByExtId[0];
+        console.log('Found conversation by external_id:', conversation.id);
+      } else {
+        // STEP 2: Check messages.email_message_id
+        const { data: msgMatch } = await supabaseClient
+          .from('messages')
+          .select('conversation_id, conversation:conversations!inner(id, organization_id, subject, customer_id, email_account_id, inbox_id, channel, status, is_read, external_id)')
+          .in('email_message_id', allIds)
+          .limit(5);
+
+        const orgMatch = (msgMatch as any[])?.find((m: any) => m.conversation?.organization_id === emailAccount.organization_id);
+        if (orgMatch) {
+          // Fetch the full conversation
+          const { data: fullConv } = await supabaseClient
+            .from('conversations').select('*').eq('id', orgMatch.conversation_id).single();
+          conversation = fullConv;
+          console.log('Found conversation by message email_message_id:', conversation?.id);
+        }
+      }
+    } else {
+      threadId = cleanId(emailData.messageId);
+    }
+
+    // Helper for cleaning IDs at top scope
+    function cleanId(id: string) { return id?.replace(/[<>]/g, '').trim(); }
+
+    if (!conversation) {
+      // Create new conversation
       const { data: newConversation, error: createConversationError } = await supabaseClient
         .from('conversations')
         .insert({
