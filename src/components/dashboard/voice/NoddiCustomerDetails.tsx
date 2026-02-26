@@ -1,5 +1,4 @@
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -217,66 +216,46 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
 
   if (isLoadingData) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <User className="h-4 w-4" />
-            Customer Information
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-          </div>
-        </CardContent>
-      </Card>
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-semibold uppercase text-muted-foreground">Customer Information</span>
+        </div>
+        <div className="flex items-center justify-center py-4">
+          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+        </div>
+      </div>
     );
   }
 
   if (!displayedData?.data?.found) {
     // SOLUTION 4: Show customer name/phone even when Noddi lookup fails
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <User className="h-4 w-4" />
-            Customer Information
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {/* Show available contact info even without Noddi data */}
-          {customerName && (
-            <div>
-              <p className="font-semibold text-base">{customerName}</p>
-              <Badge variant="outline" className="mt-1 h-5 px-1.5 text-xs">
-                From Call Record
-              </Badge>
-            </div>
-          )}
-          
-          <div className="text-sm text-muted-foreground space-y-1">
-            {customerEmail && (
-              <p>
-                <span className="text-muted-foreground">Email: </span>
-                {customerEmail}
-              </p>
-            )}
-            {customerPhone && (
-              <p>
-                <span className="text-muted-foreground">Phone: </span>
-                {customerPhone}
-              </p>
-            )}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-semibold uppercase text-muted-foreground">Customer Information</span>
+        </div>
+        {customerName && (
+          <div>
+            <p className="font-semibold text-xs">{customerName}</p>
+            <Badge variant="outline" className="mt-1 h-4 px-1 text-[10px]">
+              From Call Record
+            </Badge>
           </div>
-          
-          <Alert className="bg-muted/30">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription className="text-xs">
-              No Noddi customer data found for this contact. The customer may not be registered in Noddi.
-            </AlertDescription>
-          </Alert>
-        </CardContent>
-      </Card>
+        )}
+        
+        {(customerEmail || customerPhone) && (
+          <p className="text-xs text-muted-foreground">
+            {[customerEmail, customerPhone].filter(Boolean).join(' · ')}
+          </p>
+        )}
+        
+        <Alert className="bg-muted/30">
+          <AlertCircle className="h-3 w-3" />
+          <AlertDescription className="text-xs">
+            No Noddi customer data found for this contact.
+          </AlertDescription>
+        </Alert>
+      </div>
     );
   }
 
@@ -317,25 +296,19 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
   const bookingId = data.ui_meta?.partner_urls?.booking_id;
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-base flex items-center gap-2">
-            <User className="h-4 w-4" />
-            Customer Information
-          </CardTitle>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleForceRefresh}
-            disabled={isLoadingData}
-          >
-            <RefreshCw className={`h-3 w-3 mr-1 ${isLoadingData ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-semibold uppercase text-muted-foreground">Customer Information</span>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-6 px-1.5"
+          onClick={handleForceRefresh}
+          disabled={isLoadingData}
+        >
+          <RefreshCw className={`h-3 w-3 ${isLoadingData ? 'animate-spin' : ''}`} />
+        </Button>
+      </div>
         {/* Show email alias indicator if using different email for lookups */}
         {noddiEmail && noddiEmail !== customerEmail && (
           <Alert className="bg-blue-50 border-blue-200">
@@ -363,64 +336,49 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
 
         {/* Customer Name and Status */}
         <div>
-          <div className="flex items-center gap-2 mb-2 flex-wrap">
+          <div className="flex items-center gap-1 mb-1 flex-wrap">
             {customerUrl ? (
               <a 
                 href={customerUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="font-semibold text-base hover:text-primary hover:underline flex items-center gap-1"
+                className="font-semibold text-xs hover:text-primary hover:underline flex items-center gap-1"
               >
                 {customerDisplayName}
                 <ExternalLink className="h-3 w-3" />
               </a>
             ) : (
-              <p className="font-semibold text-base">{customerDisplayName}</p>
+              <span className="font-semibold text-xs">{customerDisplayName}</span>
             )}
-            <Badge variant="outline" className="h-5 px-1.5 text-xs border-success/50 bg-success/5">
-              <CheckCircle2 className="h-3 w-3 text-success mr-1" />
+            <Badge variant="outline" className="h-4 px-1 text-[10px] border-success/50 bg-success/5">
+              <CheckCircle2 className="h-2.5 w-2.5 text-success mr-0.5" />
               Verified
             </Badge>
             
-            {/* Customer Type Badges */}
             {userGroup?.is_personal && (
-              <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
-                <User className="h-3 w-3 mr-1" />
+              <Badge variant="outline" className="h-4 px-1 text-[10px] bg-blue-50 text-blue-700 border-blue-200">
                 Personal
               </Badge>
             )}
             {!userGroup?.is_personal && userGroup?.name && (
-              <Badge variant="outline" className="text-xs bg-purple-50 text-purple-700 border-purple-200">
-                <Building2 className="h-3 w-3 mr-1" />
+              <Badge variant="outline" className="h-4 px-1 text-[10px] bg-purple-50 text-purple-700 border-purple-200">
                 Business
               </Badge>
             )}
             {userGroup?.is_default && (
-              <Badge variant="outline" className="text-xs bg-gray-50 text-gray-600 border-gray-200">
+              <Badge variant="outline" className="h-4 px-1 text-[10px] bg-gray-50 text-gray-600 border-gray-200">
                 Default
               </Badge>
             )}
           </div>
-          <div className="text-sm text-muted-foreground space-y-1">
-            {/* Show customer email (primary - the one we communicate with) */}
-            {customerEmail && (
-              <p className="font-medium">
-                <span className="text-muted-foreground">Customer Email (Primary): </span>
-                {customerEmail}
-              </p>
-            )}
-            {/* Show Noddi email if different */}
-            {data.user?.email && data.user.email !== customerEmail && (
-              <p>
-                <span className="text-muted-foreground">Noddi Account Email: </span>
-                {data.user.email}
-              </p>
-            )}
-            {data.user?.phone && <p>Phone: {data.user.phone}</p>}
-            {data.user?.registrationDate && (
-              <p>Registered: {format(new Date(data.user.registrationDate), 'MMM d, yyyy')}</p>
-            )}
-          </div>
+          <p className="text-xs text-muted-foreground">
+            {[customerEmail, data.user?.phone].filter(Boolean).join(' · ')}
+          </p>
+          {data.user?.email && data.user.email !== customerEmail && (
+            <p className="text-xs text-muted-foreground">
+              Noddi: {data.user.email}
+            </p>
+          )}
         </div>
 
         {/* User Group Selector - show if multiple groups available */}
@@ -467,13 +425,13 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
 
         {/* Priority Status */}
         {isPriority && (
-          <div className="p-3 rounded-lg bg-warning/5 border border-warning/20">
-            <div className="flex items-center gap-2 mb-1">
-              <Star className="h-4 w-4 text-warning" />
-              <p className="font-medium text-sm">Priority Customer</p>
+          <div className="p-2 rounded-lg bg-warning/5 border border-warning/20">
+            <div className="flex items-center gap-1 mb-0.5">
+              <Star className="h-3 w-3 text-warning" />
+              <p className="font-medium text-xs">Priority Customer</p>
             </div>
             <p className="text-xs text-muted-foreground">
-              This customer has an upcoming booking and should receive priority service.
+              Upcoming booking — priority service.
             </p>
           </div>
         )}
@@ -483,33 +441,33 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
           <div className="space-y-3">
             {/* Existing priority booking section */}
             {hasBooking && (
-              <div className="p-3 rounded-lg bg-muted">
-            <div className="flex items-center gap-2 mb-2">
-              <Package className="h-4 w-4" />
+              <div className="p-2 rounded-lg bg-muted">
+            <div className="flex items-center gap-1 mb-1">
+              <Package className="h-3 w-3" />
               {bookingUrl ? (
                 <a
                   href={bookingUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="font-medium text-sm hover:text-primary hover:underline flex items-center gap-1"
+                  className="font-medium text-xs hover:text-primary hover:underline flex items-center gap-1"
                 >
                   {data.priority_booking_type === 'upcoming' ? 'Upcoming' : 'Recent'} Booking
                   <ExternalLink className="h-3 w-3" />
                 </a>
               ) : (
-                <p className="font-medium text-sm">
+                <span className="font-medium text-xs">
                   {data.priority_booking_type === 'upcoming' ? 'Upcoming' : 'Recent'} Booking
-                </p>
+                </span>
               )}
               {bookingId && (
-                <Badge variant="outline" className="text-xs">
+                <Badge variant="outline" className="h-4 px-1 text-[10px]">
                   #{bookingId}
                 </Badge>
               )}
             </div>
             
             {/* Status Chips */}
-            <div className="flex flex-wrap gap-2 mb-2">
+            <div className="flex flex-wrap gap-1 mb-1">
               {data.ui_meta?.status_label && (
                 <Badge variant="outline" className="text-xs">
                   {data.ui_meta.status_label}
@@ -540,30 +498,30 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
             </div>
 
             {data.ui_meta?.booking_date_iso && (
-              <p className="text-sm text-muted-foreground mb-2">
+              <p className="text-xs text-muted-foreground mb-1">
                 Date: {format(new Date(data.ui_meta.booking_date_iso), 'PPP')}
               </p>
             )}
             {data.ui_meta?.service_title && (
-              <p className="text-sm text-muted-foreground mb-1">
+              <p className="text-xs text-muted-foreground mb-0.5">
                 Service: {data.ui_meta.service_title}
               </p>
             )}
             {data.ui_meta?.vehicle_label && (
-              <p className="text-sm text-muted-foreground mb-1">
+              <p className="text-xs text-muted-foreground mb-0.5">
                 Vehicle: {data.ui_meta.vehicle_label}
               </p>
             )}
 
             {/* Order Summary with Line Items */}
             {data.ui_meta?.order_lines && data.ui_meta.order_lines.length > 0 && (
-              <div className="mt-3 rounded-lg border p-3">
-                <div className="font-medium mb-2 text-sm">Order Summary</div>
+              <div className="mt-2 rounded-lg border p-2">
+                <div className="font-medium mb-1 text-xs">Order Summary</div>
 
                 {/* Line Items */}
-                <div className="space-y-1 mb-2">
+                <div className="space-y-0.5 mb-1">
                   {data.ui_meta.order_lines.map((line: any, idx: number) => (
-                    <div key={idx} className="flex items-center justify-between text-sm">
+                    <div key={idx} className="flex items-center justify-between text-xs">
                       <div className="truncate">
                         {line.name}{line.quantity > 1 ? ` × ${line.quantity}` : ''}
                       </div>
@@ -576,7 +534,7 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
 
                 {/* Totals */}
                 {data.ui_meta?.money && (
-                  <div className="border-t pt-2 text-sm space-y-1">
+                  <div className="border-t pt-1 text-xs space-y-0.5">
                     <div className="flex justify-between text-muted-foreground">
                       <span>VAT</span>
                       <span className={data.ui_meta?.unable_to_complete ? 'line-through text-muted-foreground' : ''}>
@@ -633,10 +591,10 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
 
             {/* NEW: Show unpaid bookings list if no priority booking */}
             {!hasBooking && hasUnpaidBookings && (
-              <div className="p-3 rounded-lg bg-amber-50 border border-amber-200">
-                <div className="flex items-center gap-2 mb-2">
-                  <AlertCircle className="h-4 w-4 text-amber-700" />
-                  <p className="font-medium text-sm text-amber-900">
+              <div className="p-2 rounded-lg bg-amber-50 border border-amber-200">
+                <div className="flex items-center gap-1 mb-1">
+                  <AlertCircle className="h-3 w-3 text-amber-700" />
+                  <p className="font-medium text-xs text-amber-900">
                     {unpaidCount} Unpaid Booking{unpaidCount !== 1 ? 's' : ''}
                   </p>
                 </div>
@@ -648,10 +606,10 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
 
             {/* Booking History Summary - when no active/priority bookings */}
             {!hasBooking && !hasUnpaidBookings && hasBookingHistory && bookingsSummary && (
-              <div className="p-3 rounded-lg bg-green-50 border border-green-200">
-                <div className="flex items-center gap-2 mb-2">
-                  <Package className="h-4 w-4 text-green-700" />
-                  <p className="font-medium text-sm text-green-900">
+              <div className="p-2 rounded-lg bg-green-50 border border-green-200">
+                <div className="flex items-center gap-1 mb-1">
+                  <Package className="h-3 w-3 text-green-700" />
+                  <p className="font-medium text-xs text-green-900">
                     Most Recent Booking
                   </p>
                 </div>
@@ -672,19 +630,18 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
                   <>
                     {/* Booking date */}
                     {mostRecentBooking.completedAt && (
-                      <p className="text-sm text-muted-foreground mb-2">
+                      <p className="text-xs text-muted-foreground mb-1">
                         Date: {format(new Date(mostRecentBooking.completedAt), 'PPP')}
                       </p>
                     )}
                     
-                    {/* Vehicle and service info */}
                     {extractVehicleLabel(mostRecentBooking) && (
-                      <p className="text-sm text-muted-foreground mb-1">
+                      <p className="text-xs text-muted-foreground mb-0.5">
                         Vehicle: {extractVehicleLabel(mostRecentBooking)}
                       </p>
                     )}
                     {extractServiceTitle(mostRecentBooking) && (
-                      <p className="text-sm text-muted-foreground mb-1">
+                      <p className="text-xs text-muted-foreground mb-0.5">
                         Service: {extractServiceTitle(mostRecentBooking)}
                       </p>
                     )}
@@ -710,13 +667,12 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
 
                     {/* Order lines and totals */}
                     {mostRecentBooking.order?.order_lines && mostRecentBooking.order.order_lines.length > 0 && (
-                      <div className="mt-3 rounded-lg border border-green-300 bg-white p-3">
-                        <div className="font-medium mb-2 text-sm">Order Summary</div>
+                      <div className="mt-2 rounded-lg border border-green-300 bg-white p-2">
+                        <div className="font-medium mb-1 text-xs">Order Summary</div>
                         
-                        {/* Line Items */}
-                        <div className="space-y-1 mb-2">
+                        <div className="space-y-0.5 mb-1">
                           {extractLineItems(mostRecentBooking).map((line: any, idx: number) => (
-                            <div key={idx} className="flex items-center justify-between text-sm">
+                            <div key={idx} className="flex items-center justify-between text-xs">
                               <div className="truncate">
                                 {line.name}{line.quantity > 1 ? ` × ${line.quantity}` : ''}
                               </div>
@@ -729,7 +685,7 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
 
                         {/* Totals */}
                         {extractMoney(mostRecentBooking) && (
-                          <div className="border-t pt-2 text-sm space-y-1">
+                          <div className="border-t pt-1 text-xs space-y-0.5">
                             <div className="flex justify-between text-muted-foreground">
                               <span>VAT</span>
                               <span>{moneyFmt(extractMoney(mostRecentBooking).vat, extractMoney(mostRecentBooking).currency)}</span>
@@ -757,10 +713,10 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
 
         {/* Unpaid Bookings Warning - shown for ALL customers with unpaid bookings */}
         {unpaidCount > 0 && (
-          <div className="p-3 rounded-lg bg-destructive/5 border border-destructive/20">
-            <div className="flex items-center gap-2 mb-1">
-              <AlertCircle className="h-4 w-4 text-destructive" />
-              <p className="font-medium text-sm text-destructive">
+          <div className="p-2 rounded-lg bg-destructive/5 border border-destructive/20">
+            <div className="flex items-center gap-1 mb-0.5">
+              <AlertCircle className="h-3 w-3 text-destructive" />
+              <p className="font-medium text-xs text-destructive">
                 {unpaidCount} Unpaid Booking{unpaidCount !== 1 ? 's' : ''}
               </p>
             </div>
@@ -773,7 +729,7 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
         {/* Service Tags with Icons */}
         {data.ui_meta?.order_tags && data.ui_meta.order_tags.length > 0 && (
           <div>
-            <p className="text-xs font-medium text-muted-foreground mb-2">Service Tags</p>
+            <p className="text-xs font-medium text-muted-foreground mb-1">Service Tags</p>
             <div className="flex flex-wrap gap-1.5">
               {data.ui_meta.order_tags.map((tag: string, idx: number) => {
                 const style = getServiceTagStyle(tag);
@@ -791,13 +747,12 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
         )}
 
         {/* Data Source */}
-        <div className="pt-3 border-t text-xs text-muted-foreground">
+        <div className="pt-2 border-t text-xs text-muted-foreground">
           <p>
             Data source: {noddiData.source === 'cache' ? 'Cached' : 'Live'} 
             {data.ui_meta?.version && ` • v${data.ui_meta.version}`}
           </p>
         </div>
-      </CardContent>
-    </Card>
+    </div>
   );
 };

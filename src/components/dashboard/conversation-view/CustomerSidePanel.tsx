@@ -480,7 +480,7 @@ export const CustomerSidePanel = ({
     )}>
       {/* Header with improved styling */}
       <div className="p-4 border-b border-border flex items-center justify-between bg-muted/30">
-        <h3 className="font-semibold text-sm text-foreground">Customer Details</h3>
+        <span className="text-xs font-semibold uppercase text-muted-foreground">Customer Details</span>
         <div className="flex items-center gap-1">
           {onToggleCollapse && (
             <Button
@@ -618,7 +618,7 @@ export const CustomerSidePanel = ({
 
       {/* Customer Info Section - Scrollable */}
       <div className="flex-1 overflow-y-auto relative" style={{ isolation: 'isolate' }}>
-        <div className="p-4 space-y-4">
+        <div className="p-3 space-y-3">
           
           {/* Enhanced Noddi Customer Details Component */}
           <NoddiCustomerDetails
