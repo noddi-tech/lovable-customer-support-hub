@@ -1,94 +1,71 @@
 
-## Make @Mentions Unmissable: Sound + Slack DM + Email
 
-### Root Cause of Missing Slack Notification
+## Fix Slack @Mentions to Use Real Slack Tags (Blue Clickable Text)
 
-The edge function logs show: **"Event type mention not enabled for organization"**. Your Slack integration config has `enabled_events: ['new_conversation', 'customer_reply', 'assignment']` -- the `mention` event was added later but your existing config was never updated. This is a data migration issue.
+### Problem
+Slack notifications show plain text names ("Bob Vu was mentioned") instead of real Slack @mentions (`<@U12345>`) that create clickable blue text and actually ping the user in Slack.
 
 ### Changes
 
-#### 1. Fix: Auto-include `mention` in existing Slack configs
+#### 1. Resolve Slack user IDs upfront in `process-mention-notifications/index.ts`
+
+Before processing individual notifications, batch-resolve all mentioned users' Slack IDs by email. Store a map of `userId -> slackUserId`.
+
+```text
+For each mentioned user:
+  1. Get their email from profiles (already done)
+  2. Call Slack users.lookupByEmail (already done in sendSlackDM)
+  3. Store slackUserId in a map
+```
+
+#### 2. Update channel notification to use `<@SLACK_ID>` tags
+
+**File: `supabase/functions/process-mention-notifications/index.ts`**
+
+Instead of sending one `mentioned_user_name` string, collect all resolved Slack user IDs and build a string like `<@U123> <@U456>` for the channel post.
+
+Change `sendSlackChannelNotification` to accept a `mentioned_slack_ids: string[]` parameter and format the channel notification with real Slack tags.
+
+#### 3. Update `send-slack-notification/index.ts` to render Slack user tags
 
 **File: `supabase/functions/send-slack-notification/index.ts`**
 
-When loading `enabled_events`, treat `mention` as always-on (or add a migration). Simplest fix: in the event check, skip the enabled_events filter for `mention` type since mentions should always notify. Alternatively, run a one-time SQL update:
+- Add a new field `mentioned_slack_ids?: string[]` to `SlackNotificationRequest`
+- In the mention context block (line 302-312), use `<@ID>` format:
+  ```
+  // Before:  "Bob Vu was mentioned"  
+  // After:   "<@U123ABC> <@U456DEF> were mentioned"
+  ```
+- In the fallback text (line 242-251), also include the Slack tags so native push notifications ping the users
 
-```sql
-UPDATE slack_integrations
-SET configuration = jsonb_set(
-  configuration::jsonb,
-  '{enabled_events}',
-  (configuration->'enabled_events')::jsonb || '["mention"]'::jsonb
-)
-WHERE is_active = true
-  AND NOT (configuration->'enabled_events')::jsonb @> '["mention"]'::jsonb;
-```
-
-This immediately fixes the "not enabled" issue for all existing orgs.
-
-#### 2. Add notification sound for mentions (and all notifications)
-
-**New file: `src/hooks/useNotificationSound.ts`**
-
-Create a hook using Web Audio API (same pattern as existing `useChatMessageNotifications.ts`):
-- `playMentionSound()` -- distinctive double-tone "ding-ding" (880Hz + 1100Hz, ~300ms total)
-- `playNotificationSound()` -- single short tone for general notifications
-- Lazy AudioContext initialization on first user interaction
-- Respects a `soundEnabled` preference (localStorage)
-
-**File: `src/hooks/useRealtimeNotifications.tsx`**
-
-Integrate the sound hook:
-- On any new notification INSERT via realtime, play a sound
-- `mention` type notifications play the distinctive mention sound
-- Other notifications play the standard sound
-- This ensures the tagged person hears an alert immediately
-
-#### 3. Send personal Slack DMs to each mentioned user
+#### 4. Update DM messages to tag the mentioner
 
 **File: `supabase/functions/process-mention-notifications/index.ts`**
 
-Currently sends one channel notification for all mentions. Add per-user Slack DMs:
-- For each mentioned user, look up their email from `profiles`
-- Use the org's Slack bot token + Slack `users.lookupByEmail` API to find their Slack user ID
-- Send a personal DM via `chat.postMessage` with:
-  - Who mentioned them
-  - Preview of the note content
-  - "View Conversation" button link
-- This is non-blocking (fire-and-forget), so if someone isn't on Slack it won't fail the whole flow
-- Keep the existing channel notification as well
+In `sendSlackDM`, also resolve the mentioner's Slack ID and use `<@MENTIONER_ID>` in the DM text so the recipient can see who tagged them as a clickable Slack mention.
 
-#### 4. Implement email notifications for mentions
+### Implementation Detail
 
-**File: `supabase/functions/process-mention-notifications/index.ts`**
-
-Replace the current TODO with actual email sending:
-- Check the user's `email_on_mention` preference (already queried)
-- If enabled, call the existing `send-email` edge function (or Supabase auth email)
-- Simple email: subject "[Name] mentioned you", body with preview text and link
-- Only sends if the user has opted in via notification preferences
-
-### Result
-
-When someone @mentions you, you get notified through **every channel**:
+The key change in `process-mention-notifications/index.ts`:
 
 ```text
-@mention in note
-  |
-  +---> In-app notification (existing) + badge update
-  +---> Toast popup in browser (existing)
-  +---> Browser notification (existing, if permitted)
-  +---> Sound alert (NEW - distinctive "ding-ding")
-  +---> Slack channel post (existing, now fixed)
-  +---> Personal Slack DM (NEW)
-  +---> Email (NEW, if opted in)
+1. Collect all mentioned user emails + the mentioner email
+2. Batch lookup all Slack IDs via users.lookupByEmail
+3. Build slackMentionTags = resolved IDs mapped to "<@ID>" format
+4. Pass tags to channel notification
+5. Use mentioner's Slack ID in DM messages
 ```
 
 ### Files Changed
 
 | File | Change |
 |------|--------|
-| SQL migration | One-time fix to add `mention` to existing `enabled_events` configs |
-| `src/hooks/useNotificationSound.ts` | **New** -- Web Audio sound hook with mention + standard sounds |
-| `src/hooks/useRealtimeNotifications.tsx` | Add sound playback on new notifications |
-| `supabase/functions/process-mention-notifications/index.ts` | Add Slack DM per user + email sending |
+| `supabase/functions/process-mention-notifications/index.ts` | Resolve Slack IDs upfront, pass to channel notification, use in DMs |
+| `supabase/functions/send-slack-notification/index.ts` | Accept `mentioned_slack_ids[]`, render `<@ID>` tags in mention blocks |
+
+### Result
+
+- Channel notification: "📣 `<@Bob>` `<@Robert>` were mentioned" (blue, clickable, pings them)
+- DM: "`<@Joachim>` mentioned you in a note" (blue, clickable)
+- Native Slack push notifications will also ping tagged users
+
