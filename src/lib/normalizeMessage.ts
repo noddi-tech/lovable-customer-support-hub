@@ -313,9 +313,21 @@ export function normalizeMessage(rawMessage: any, ctx: NormalizationContext): No
   let { name: fromName, email: fromEmail } = extractNameEmail(fromLine);
 
   // For internal notes, prefer profile data for accurate author attribution
-  if (rawMessage.is_internal === true && senderProfile) {
-    fromName = senderProfile.full_name || fromName;
-    fromEmail = senderProfile.email || fromEmail;
+  if (rawMessage.is_internal === true) {
+    if (senderProfile) {
+      fromName = senderProfile.full_name || fromName;
+      fromEmail = senderProfile.email || fromEmail;
+    } else {
+      // No profile found - avoid falling back to inbox email for notes
+      // Use sender_name if available, otherwise "Agent"
+      if (!fromName || fromName === fromEmail) {
+        fromName = rawMessage.sender_name?.trim() || 'Agent';
+      }
+      // Clear fromEmail if it's the inbox email (not the actual note author)
+      if (fromEmail && ctx.inboxEmail && fromEmail.toLowerCase() === ctx.inboxEmail) {
+        fromEmail = undefined;
+      }
+    }
   }
 
   // Fallbacks if header missing
@@ -404,8 +416,10 @@ export function normalizeMessage(rawMessage: any, ctx: NormalizationContext): No
   
   const subject = rawMessage.email_subject || getHeader(headers, 'Subject');
   
-  // Avatar initial
-  const initial = (from.name || from.email || "A").trim()[0]?.toUpperCase() || "A";
+  // Avatar initials - multi-char, with name cleaning
+  const cleanedAvatarName = from.name ? from.name.replace(/^['"]+/, '').replace(/['"]+$/, '').split(/\s+via\s+/i)[0].trim() : undefined;
+  const avatarParts = (cleanedAvatarName || from.email?.split('@')[0] || 'A').split(/[\s._-]+/).filter(Boolean);
+  const initial = avatarParts.map(p => p[0]).join('').toUpperCase().slice(0, 3) || 'A';
   
   // Determine direction
   const direction: 'inbound' | 'outbound' = isAgent ? 'outbound' : 'inbound';
