@@ -17,6 +17,8 @@ interface SlackNotificationRequest {
   assigned_to_name?: string;
   assigned_to_email?: string;
   mentioned_user_name?: string;
+  mentioned_slack_ids?: string[];
+  mentioner_slack_id?: string;
   inbox_name?: string;
   channel?: 'email' | 'widget' | 'chat' | 'facebook' | 'instagram' | 'whatsapp';
 }
@@ -154,6 +156,8 @@ Deno.serve(async (req) => {
       preview_text,
       assigned_to_name,
       mentioned_user_name,
+      mentioned_slack_ids,
+      mentioner_slack_id,
       inbox_name,
       channel,
     } = body;
@@ -298,14 +302,26 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Mention info (assignment info now shown in title)
-    if (event_type === 'mention' && mentioned_user_name) {
+    // Mention info - use real Slack <@ID> tags when available
+    if (event_type === 'mention') {
+      let mentionText: string;
+      if (mentioned_slack_ids && mentioned_slack_ids.length > 0) {
+        const tags = mentioned_slack_ids.map(id => `<@${id}>`).join(' ');
+        mentionText = mentioned_slack_ids.length === 1
+          ? `📣 ${tags} was mentioned`
+          : `📣 ${tags} were mentioned`;
+      } else if (mentioned_user_name) {
+        mentionText = `📣 *${mentioned_user_name}* was mentioned`;
+      } else {
+        mentionText = '📣 Someone was mentioned';
+      }
+
       attachmentBlocks.push({
         type: 'context',
         elements: [
           {
             type: 'mrkdwn',
-            text: `📣 *${mentioned_user_name}* was mentioned`,
+            text: mentionText,
           },
         ],
       });
