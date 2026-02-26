@@ -4,11 +4,13 @@ import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useAuth } from './useAuth';
 import { useBrowserNotifications } from './useBrowserNotifications';
+import { useNotificationSound } from './useNotificationSound';
 
 export const useRealtimeNotifications = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const { showNotification, permission } = useBrowserNotifications();
+  const { playMentionSound, playNotificationSound } = useNotificationSound();
 
   useEffect(() => {
     if (!user) return;
@@ -29,6 +31,13 @@ export const useRealtimeNotifications = () => {
           // Invalidate queries to update notification badge
           queryClient.invalidateQueries({ queryKey: ['notifications'] });
           queryClient.invalidateQueries({ queryKey: ['unread-notifications-count'] });
+
+          // Play sound based on notification type
+          if (notification.type === 'mention') {
+            playMentionSound();
+          } else {
+            playNotificationSound();
+          }
 
           // Show toast notification
           toast(notification.title, {
@@ -62,5 +71,5 @@ export const useRealtimeNotifications = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user, queryClient, showNotification, permission]);
+  }, [user, queryClient, showNotification, permission, playMentionSound, playNotificationSound]);
 };
