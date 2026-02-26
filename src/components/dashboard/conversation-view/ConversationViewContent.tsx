@@ -102,7 +102,7 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
   useConversationShortcuts();
 
   const [sidePanelCollapsed, setSidePanelCollapsed] = React.useState(false);
-  const [showNoddiPanel, setShowNoddiPanel] = useState(false);
+  const [showNoddiPanel, setShowNoddiPanel] = useState(true);
 
   // Fetch Noddi data for customer display
   const { data: noddiData } = useNoddihKundeData(conversation.customer || null);
