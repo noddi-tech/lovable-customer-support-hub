@@ -101,8 +101,14 @@ Deno.serve(async (req) => {
 
     if (!resp.ok) {
       console.error('OpenAI error:', data);
-      return new Response(JSON.stringify({ error: 'Translation request failed', detail: data }), {
-        status: 500,
+      const isQuota = data?.error?.code === 'insufficient_quota' || resp.status === 429;
+      return new Response(JSON.stringify({ 
+        error: isQuota 
+          ? 'OpenAI quota exceeded. Please check your OpenAI billing at platform.openai.com/account/billing.' 
+          : 'Translation request failed', 
+        detail: data 
+      }), {
+        status: isQuota ? 402 : 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
