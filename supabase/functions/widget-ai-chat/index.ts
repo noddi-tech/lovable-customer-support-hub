@@ -24,6 +24,100 @@ function isRateLimited(widgetKey: string): boolean {
 
 const API_BASE = (Deno.env.get("NODDI_API_BASE") || "https://api.noddi.co").replace(/\/+$/, "");
 
+// ========== MCP Client ==========
+const MCP_URL = Deno.env.get("MCP_URL") || "https://mcp.noddi.co/mcp";
+
+interface McpToolResult {
+  content: Array<{ type: string; text?: string }>;
+  isError?: boolean;
+}
+
+/**
+ * Call a tool on the Navio MCP server via Streamable HTTP (JSON-RPC).
+ * Returns the parsed text content from the first text block.
+ * Throws on transport or MCP-level errors.
+ */
+async function callMcpTool(name: string, args: Record<string, any>): Promise<any> {
+  const resp = await fetch(MCP_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json, text/event-stream',
+    },
+    body: JSON.stringify({
+      jsonrpc: '2.0',
+      id: crypto.randomUUID(),
+      method: 'tools/call',
+      params: { name, arguments: args },
+    }),
+  });
+
+  if (!resp.ok) {
+    const errText = await resp.text().catch(() => '');
+    throw new Error(`MCP HTTP ${resp.status}: ${errText.slice(0, 300)}`);
+  }
+
+  const contentType = resp.headers.get('content-type') || '';
+
+  // Handle SSE response (text/event-stream)
+  if (contentType.includes('text/event-stream')) {
+    const text = await resp.text();
+    // Parse SSE events — find the last JSON-RPC result
+    const lines = text.split('\n');
+    for (const line of lines) {
+      if (line.startsWith('data: ')) {
+        try {
+          const parsed = JSON.parse(line.slice(6));
+          if (parsed.result) {
+            const result: McpToolResult = parsed.result;
+            if (result.isError) throw new Error(result.content?.[0]?.text || 'MCP tool error');
+            const textBlock = result.content?.find((c: any) => c.type === 'text');
+            if (textBlock?.text) {
+              try { return JSON.parse(textBlock.text); } catch { return textBlock.text; }
+            }
+            return result;
+          }
+          if (parsed.error) throw new Error(parsed.error.message || 'MCP error');
+        } catch (e) {
+          if (e instanceof Error && (e.message.startsWith('MCP') || e.message.includes('tool error'))) throw e;
+          // Skip non-JSON lines
+        }
+      }
+    }
+    throw new Error('MCP: no result in SSE response');
+  }
+
+  // Handle plain JSON response
+  const data = await resp.json();
+  if (data.error) throw new Error(data.error.message || 'MCP error');
+  const result: McpToolResult = data.result;
+  if (result?.isError) throw new Error(result.content?.[0]?.text || 'MCP tool error');
+  const textBlock = result?.content?.find((c: any) => c.type === 'text');
+  if (textBlock?.text) {
+    try { return JSON.parse(textBlock.text); } catch { return textBlock.text; }
+  }
+  return result || data;
+}
+
+/**
+ * Call an MCP tool with fallback to the legacy booking proxy.
+ * Returns JSON string (same shape as executeBookingProxy).
+ */
+async function callMcpWithFallback(
+  mcpToolName: string,
+  mcpArgs: Record<string, any>,
+  fallbackPayload: Record<string, any>,
+): Promise<string> {
+  try {
+    const result = await callMcpTool(mcpToolName, mcpArgs);
+    console.log(`[MCP] ${mcpToolName} succeeded`);
+    return typeof result === 'string' ? result : JSON.stringify(result);
+  } catch (err) {
+    console.warn(`[MCP] ${mcpToolName} failed, falling back to proxy:`, (err as Error).message);
+    return executeBookingProxy(fallbackPayload);
+  }
+}
+
 function toOsloTime(utcIso: string): string {
   try {
     const d = new Date(utcIso);
@@ -2053,12 +2147,27 @@ async function executeTool(
   openaiApiKey: string,
   visitorPhone?: string,
   visitorEmail?: string,
+  mcpAuthToken?: string,
 ): Promise<string> {
   switch (toolName) {
     case 'search_knowledge_base':
       return executeSearchKnowledge(args.query, organizationId, supabase, openaiApiKey);
-    case 'lookup_customer':
+    case 'lookup_customer': {
+      // Try MCP customer_lookup if we have an auth_token, fall back to legacy
+      if (mcpAuthToken) {
+        try {
+          console.log('[executeTool] Using MCP customer_lookup with auth_token');
+          const mcpArgs: any = { auth_token: mcpAuthToken };
+          if (args.user_group_id) mcpArgs.user_group_id = args.user_group_id;
+          const mcpResult = await callMcpTool('customer_lookup', mcpArgs);
+          console.log('[executeTool] MCP customer_lookup succeeded');
+          return typeof mcpResult === 'string' ? mcpResult : JSON.stringify(mcpResult);
+        } catch (err) {
+          console.warn('[executeTool] MCP customer_lookup failed, falling back:', (err as Error).message);
+        }
+      }
       return executeLookupCustomer(args.phone || visitorPhone, args.email || visitorEmail, args.user_group_id);
+    }
     case 'get_booking_details': {
       // Intercept placeholder IDs (1, 2, etc.) — AI uses these when it doesn't know the real ID
       const bid = args.booking_id;
@@ -2068,18 +2177,70 @@ async function executeTool(
           error: 'The booking details are already available in the conversation history above. Do NOT call this tool with a placeholder ID. Use the booking data (address_id, car info, sales items, delivery window) already provided in the conversation to continue the flow.'
         });
       }
+      // Try MCP if auth_token available
+      if (mcpAuthToken) {
+        try {
+          console.log('[executeTool] Using MCP booking_details_get for booking_id:', bid);
+          const mcpResult = await callMcpTool('booking_details_get', { booking_id: bid, auth_token: mcpAuthToken });
+          console.log('[executeTool] MCP booking_details_get succeeded');
+          return typeof mcpResult === 'string' ? mcpResult : JSON.stringify(mcpResult);
+        } catch (err) {
+          console.warn('[executeTool] MCP booking_details_get failed, falling back:', (err as Error).message);
+        }
+      }
       return executeGetBookingDetails(bid);
     }
-    case 'reschedule_booking':
+    case 'reschedule_booking': {
+      // MCP uses booking_update for reschedule
+      if (mcpAuthToken) {
+        try {
+          console.log('[executeTool] Using MCP booking_update for reschedule, booking_id:', args.booking_id);
+          const mcpResult = await callMcpTool('booking_update', {
+            booking_id: args.booking_id,
+            delivery_window_starts_at: args.new_date,
+            auth_token: mcpAuthToken,
+          });
+          console.log('[executeTool] MCP booking_update (reschedule) succeeded');
+          return typeof mcpResult === 'string' ? mcpResult : JSON.stringify(mcpResult);
+        } catch (err) {
+          console.warn('[executeTool] MCP booking_update (reschedule) failed, falling back:', (err as Error).message);
+        }
+      }
       return executeRescheduleBooking(args.booking_id, args.new_date);
-    case 'cancel_booking':
+    }
+    case 'cancel_booking': {
+      if (mcpAuthToken) {
+        try {
+          console.log('[executeTool] Using MCP booking_cancel, booking_id:', args.booking_id);
+          const mcpArgs: any = { booking_id: args.booking_id, auth_token: mcpAuthToken };
+          if (args.reason) mcpArgs.cancellation_reason = args.reason;
+          const mcpResult = await callMcpTool('booking_cancel', mcpArgs);
+          console.log('[executeTool] MCP booking_cancel succeeded');
+          return typeof mcpResult === 'string' ? mcpResult : JSON.stringify(mcpResult);
+        } catch (err) {
+          console.warn('[executeTool] MCP booking_cancel failed, falling back:', (err as Error).message);
+        }
+      }
       return executeCancelBooking(args.booking_id, args.reason);
+    }
     case 'lookup_car_by_plate':
-      return executeBookingProxy({ action: 'lookup_car', country_code: args.country_code || 'NO', license_plate: args.license_plate });
+      return callMcpWithFallback(
+        'car_lookup',
+        { license_plate_number: args.license_plate, country_code: args.country_code || 'NO' },
+        { action: 'lookup_car', country_code: args.country_code || 'NO', license_plate: args.license_plate },
+      );
     case 'list_available_services':
-      return executeBookingProxy({ action: 'list_services', address_id: args.address_id });
+      return callMcpWithFallback(
+        'sales_item_list',
+        { address_id: args.address_id },
+        { action: 'list_services', address_id: args.address_id },
+      );
     case 'get_available_items':
-      return executeBookingProxy({ action: 'available_items', address_id: args.address_id, car_ids: args.car_ids, sales_item_category_id: args.sales_item_category_id });
+      return callMcpWithFallback(
+        'sales_item_list',
+        { address_id: args.address_id, car_ids: args.car_ids, sales_item_category_id: args.sales_item_category_id },
+        { action: 'available_items', address_id: args.address_id, car_ids: args.car_ids, sales_item_category_id: args.sales_item_category_id },
+      );
     case 'get_delivery_windows': {
       // Intercept calls with empty selected_sales_item_ids — redirect AI to emit [TIME_SLOT] marker
       if (!args.selected_sales_item_ids || (Array.isArray(args.selected_sales_item_ids) && args.selected_sales_item_ids.length === 0)) {
@@ -2088,11 +2249,48 @@ async function executeTool(
           error: 'DO NOT call this tool again. Instead, respond with ONLY the [TIME_SLOT] marker using the booking data already in the conversation. The widget component will fetch delivery windows automatically. Example: [TIME_SLOT]{"address_id": ' + (args.address_id || 0) + ', "car_ids": [], "license_plate": "", "sales_item_id": 0}[/TIME_SLOT]'
         });
       }
-      return executeBookingProxy({ action: 'delivery_windows', address_id: args.address_id, from_date: args.from_date, to_date: args.to_date, selected_sales_item_ids: args.selected_sales_item_ids });
+      return callMcpWithFallback(
+        'delivery_window_get',
+        { address_id: args.address_id, from_date: args.from_date, to_date: args.to_date, sales_item_ids: args.selected_sales_item_ids },
+        { action: 'delivery_windows', address_id: args.address_id, from_date: args.from_date, to_date: args.to_date, selected_sales_item_ids: args.selected_sales_item_ids },
+      );
     }
-    case 'create_shopping_cart':
+    case 'create_shopping_cart': {
+      if (mcpAuthToken) {
+        try {
+          console.log('[executeTool] Using MCP booking_create');
+          const mcpResult = await callMcpTool('booking_create', {
+            address_id: args.address_id,
+            delivery_window_id: args.delivery_window_id,
+            cars: args.car_id ? [{ car_id: args.car_id, selected_sales_item_ids: args.sales_item_ids }] : [],
+            auth_token: mcpAuthToken,
+            brand_domain: 'noddi',
+          });
+          console.log('[executeTool] MCP booking_create succeeded');
+          return typeof mcpResult === 'string' ? mcpResult : JSON.stringify(mcpResult);
+        } catch (err) {
+          console.warn('[executeTool] MCP booking_create failed, falling back:', (err as Error).message);
+        }
+      }
       return executeBookingProxy({ action: 'create_booking', address_id: args.address_id, car_id: args.car_id, sales_item_ids: args.sales_item_ids, delivery_window_id: args.delivery_window_id });
-    case 'update_booking':
+    }
+    case 'update_booking': {
+      if (mcpAuthToken) {
+        try {
+          console.log('[executeTool] Using MCP booking_update, booking_id:', args.booking_id);
+          const mcpArgs: any = { booking_id: args.booking_id, auth_token: mcpAuthToken };
+          if (args.address_id) mcpArgs.address_id = args.address_id;
+          if (args.delivery_window_id) mcpArgs.delivery_window_id = args.delivery_window_id;
+          if (args.delivery_window_start) mcpArgs.delivery_window_starts_at = args.delivery_window_start;
+          if (args.delivery_window_end) mcpArgs.delivery_window_ends_at = args.delivery_window_end;
+          if (args.cars) mcpArgs.cars = args.cars;
+          const mcpResult = await callMcpTool('booking_update', mcpArgs);
+          console.log('[executeTool] MCP booking_update succeeded');
+          return typeof mcpResult === 'string' ? mcpResult : JSON.stringify(mcpResult);
+        } catch (err) {
+          console.warn('[executeTool] MCP booking_update failed, falling back:', (err as Error).message);
+        }
+      }
       return executeBookingProxy({
         action: 'update_booking',
         booking_id: args.booking_id,
@@ -2102,6 +2300,7 @@ async function executeTool(
         delivery_window_end: args.delivery_window_end,
         cars: args.cars,
       });
+    }
     default:
       return JSON.stringify({ error: `Unknown tool: ${toolName}` });
   }
@@ -2284,6 +2483,20 @@ Deno.serve(async (req) => {
       supabase, conversationId, organizationId, widgetConfig.id,
       visitorPhone, visitorEmail, test,
     );
+
+    // Retrieve MCP auth_token from conversation metadata (set by widget-verify-phone)
+    let mcpAuthToken: string | undefined;
+    if (dbConversationId) {
+      try {
+        const { data: convMeta } = await supabase
+          .from('widget_ai_conversations')
+          .select('metadata')
+          .eq('id', dbConversationId)
+          .single();
+        mcpAuthToken = convMeta?.metadata?.mcp_auth_token || undefined;
+        if (mcpAuthToken) console.log('[widget-ai-chat] Found MCP auth_token in conversation metadata');
+      } catch { /* best effort */ }
+    }
 
     // Save user message
     const lastUserMsg = messages[messages.length - 1];
@@ -2470,7 +2683,7 @@ Deno.serve(async (req) => {
 
         const result = await executeTool(
           toolName, args, organizationId, supabase, OPENAI_API_KEY,
-          visitorPhone, visitorEmail,
+          visitorPhone, visitorEmail, mcpAuthToken,
         );
 
         // Log tool errors to error_details for the Error Traces dashboard

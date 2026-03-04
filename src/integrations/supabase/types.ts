@@ -3231,6 +3231,7 @@ export type Database = {
           escalated_at: string | null
           id: string
           message_count: number
+          metadata: Json | null
           organization_id: string
           phone_verified: boolean | null
           primary_intent: string | null
@@ -3252,6 +3253,7 @@ export type Database = {
           escalated_at?: string | null
           id?: string
           message_count?: number
+          metadata?: Json | null
           organization_id: string
           phone_verified?: boolean | null
           primary_intent?: string | null
@@ -3273,6 +3275,7 @@ export type Database = {
           escalated_at?: string | null
           id?: string
           message_count?: number
+          metadata?: Json | null
           organization_id?: string
           phone_verified?: boolean | null
           primary_intent?: string | null
@@ -3709,12 +3712,12 @@ export type Database = {
       cleanup_old_email_ingestion_logs: { Args: never; Returns: undefined }
       count_old_audit_logs:
         | { Args: { days_old?: number }; Returns: number }
-        | { Args: { p_age?: unknown }; Returns: number }
+        | { Args: { p_age?: string }; Returns: number }
       create_test_notification: { Args: never; Returns: undefined }
       delete_email_account: { Args: { account_id: string }; Returns: undefined }
       detect_suspicious_audit_activity:
         | {
-            Args: { p_threshold?: number; p_time_window?: unknown }
+            Args: { p_threshold?: number; p_time_window?: string }
             Returns: {
               action_count: number
               actor_email: string
