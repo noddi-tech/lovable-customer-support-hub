@@ -22,6 +22,49 @@ function isSmsRateLimited(phone: string): boolean {
 }
 
 const API_BASE = (Deno.env.get("NODDI_API_BASE") || "https://api.noddi.co").replace(/\/+$/, "");
+const MCP_URL = Deno.env.get("MCP_URL") || "https://mcp.noddi.co/mcp";
+
+/** Call a tool on the Navio MCP server */
+async function callMcpTool(name: string, args: Record<string, any>): Promise<any> {
+  const resp = await fetch(MCP_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json, text/event-stream',
+    },
+    body: JSON.stringify({
+      jsonrpc: '2.0',
+      id: crypto.randomUUID(),
+      method: 'tools/call',
+      params: { name, arguments: args },
+    }),
+  });
+  if (!resp.ok) throw new Error(`MCP HTTP ${resp.status}`);
+  const contentType = resp.headers.get('content-type') || '';
+  if (contentType.includes('text/event-stream')) {
+    const text = await resp.text();
+    for (const line of text.split('\n')) {
+      if (line.startsWith('data: ')) {
+        try {
+          const parsed = JSON.parse(line.slice(6));
+          if (parsed.result) {
+            if (parsed.result.isError) throw new Error(parsed.result.content?.[0]?.text || 'MCP error');
+            const tb = parsed.result.content?.find((c: any) => c.type === 'text');
+            if (tb?.text) { try { return JSON.parse(tb.text); } catch { return tb.text; } }
+            return parsed.result;
+          }
+          if (parsed.error) throw new Error(parsed.error.message);
+        } catch (e) { if ((e as Error).message?.startsWith('MCP')) throw e; }
+      }
+    }
+    throw new Error('MCP: no result');
+  }
+  const data = await resp.json();
+  if (data.error) throw new Error(data.error.message);
+  const tb = data.result?.content?.find((c: any) => c.type === 'text');
+  if (tb?.text) { try { return JSON.parse(tb.text); } catch { return tb.text; } }
+  return data.result || data;
+}
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -40,7 +83,7 @@ Deno.serve(async (req) => {
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     const NODDI_API_TOKEN = Deno.env.get('NODDI_API_TOKEN');
 
-    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY || !NODDI_API_TOKEN) {
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
       return new Response(
         JSON.stringify({ error: 'Verification not configured' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
@@ -82,41 +125,63 @@ Deno.serve(async (req) => {
       );
     }
 
-    const domainFinal = String(domain || 'noddi');
-    const requestUrl = new URL(`${API_BASE}/v1/users/send-phone-number-verification/`);
-    requestUrl.searchParams.set('domain', domainFinal);
-    requestUrl.searchParams.set('phone_number', cleanPhone);
+    // Try MCP first, fall back to direct Noddi API
+    let success = false;
+    let responseData: any = {};
 
-    console.log('[widget-send-verification] GET', requestUrl.toString());
+    try {
+      console.log('[widget-send-verification] Trying MCP login_sms_send for', cleanPhone);
+      const mcpResult = await callMcpTool('login_sms_send', { phone_number: cleanPhone });
+      console.log('[widget-send-verification] MCP success:', JSON.stringify(mcpResult));
+      success = true;
+      responseData = mcpResult || {};
+    } catch (mcpErr) {
+      console.warn('[widget-send-verification] MCP failed, falling back to direct API:', (mcpErr as Error).message);
 
-    const resp = await fetch(requestUrl.toString(), {
-      method: 'GET',
-      headers: {
-        'Authorization': `Token ${NODDI_API_TOKEN}`,
-        'Accept': 'application/json',
-        'User-Agent': 'NoddiWidget/1.0',
-      },
-    });
+      // Fallback: direct Noddi API
+      if (!NODDI_API_TOKEN) {
+        return new Response(
+          JSON.stringify({ error: 'Verification not configured (no API token)' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        );
+      }
 
-    const respText = await resp.text();
-    console.log('[widget-send-verification] Response:', resp.status, respText);
+      const domainFinal = String(domain || 'noddi');
+      const requestUrl = new URL(`${API_BASE}/v1/users/send-phone-number-verification/`);
+      requestUrl.searchParams.set('domain', domainFinal);
+      requestUrl.searchParams.set('phone_number', cleanPhone);
 
-    if (!resp.ok) {
-      const isClientError = resp.status >= 400 && resp.status < 500;
-      const userMessage = isClientError
-        ? 'Dette telefonnummeret kunne ikke verifiseres. Vennligst sjekk nummeret og prøv igjen.'
-        : 'Failed to send verification code';
-      return new Response(
-        JSON.stringify({ error: userMessage, debug_status: resp.status, debug_body: respText }),
-        { status: isClientError ? resp.status : 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-      );
+      console.log('[widget-send-verification] GET', requestUrl.toString());
+
+      const resp = await fetch(requestUrl.toString(), {
+        method: 'GET',
+        headers: {
+          'Authorization': `Token ${NODDI_API_TOKEN}`,
+          'Accept': 'application/json',
+          'User-Agent': 'NoddiWidget/1.0',
+        },
+      });
+
+      const respText = await resp.text();
+      console.log('[widget-send-verification] Response:', resp.status, respText);
+
+      if (!resp.ok) {
+        const isClientError = resp.status >= 400 && resp.status < 500;
+        const userMessage = isClientError
+          ? 'Dette telefonnummeret kunne ikke verifiseres. Vennligst sjekk nummeret og prøv igjen.'
+          : 'Failed to send verification code';
+        return new Response(
+          JSON.stringify({ error: userMessage, debug_status: resp.status, debug_body: respText }),
+          { status: isClientError ? resp.status : 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        );
+      }
+
+      try { responseData = JSON.parse(respText); } catch (_) { /* non-JSON */ }
+      success = true;
     }
 
-    let data = {};
-    try { data = JSON.parse(respText); } catch (_) { /* non-JSON */ }
-
     return new Response(
-      JSON.stringify({ success: true, ...data }),
+      JSON.stringify({ success, ...responseData }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
   } catch (err) {

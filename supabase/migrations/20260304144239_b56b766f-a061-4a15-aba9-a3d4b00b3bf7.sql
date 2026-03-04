@@ -1,0 +1,1 @@
+ALTER TABLE public.widget_ai_conversations ADD COLUMN IF NOT EXISTS metadata jsonb DEFAULT '{}'::jsonb;
