@@ -460,22 +460,39 @@ async function patchBookingSummary(reply: string, messages: any[], visitorPhone?
     }
   }
 
-  // ALWAYS re-lookup customer IDs from the API when we have contact info.
-  // The AI may emit hallucinated/placeholder IDs — the API lookup is the source of truth.
+  // Fix 3: Extract customer IDs from conversation context (cached) to avoid redundant API calls
   if (visitorPhone || visitorEmail) {
-    console.log('[patchBookingSummary] Performing fresh customer lookup (always overwrites AI-emitted IDs), selectedGroupId:', selectedGroupId);
-    try {
-      const lookupResult = JSON.parse(await executeLookupCustomer(visitorPhone, visitorEmail, selectedGroupId));
-      if (lookupResult.customer?.userId) {
-        summaryData.user_id = lookupResult.customer.userId;
-        patched = true;
+    let foundInContext = false;
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const msg = messages[i];
+      if (msg.role === 'tool' && typeof msg.content === 'string') {
+        try {
+          const toolResult = JSON.parse(msg.content);
+          if (toolResult.customer?.userId) {
+            summaryData.user_id = toolResult.customer.userId;
+            patched = true;
+            foundInContext = true;
+          }
+          if (toolResult.customer?.userGroupId) {
+            summaryData.user_group_id = toolResult.customer.userGroupId;
+            patched = true;
+            foundInContext = true;
+          }
+          if (foundInContext) {
+            console.log('[patchBookingSummary] Got customer IDs from cached context');
+            break;
+          }
+        } catch {}
       }
-      if (lookupResult.customer?.userGroupId) {
-        summaryData.user_group_id = lookupResult.customer.userGroupId;
-        patched = true;
-      }
-    } catch (e) {
-      console.error('[patchBookingSummary] Customer re-lookup failed:', e);
+    }
+    // Fallback: fresh lookup only if not found in context
+    if (!foundInContext) {
+      console.log('[patchBookingSummary] No cached customer data, performing fresh lookup, selectedGroupId:', selectedGroupId);
+      try {
+        const lookupResult = JSON.parse(await executeLookupCustomer(visitorPhone, visitorEmail, selectedGroupId));
+        if (lookupResult.customer?.userId) { summaryData.user_id = lookupResult.customer.userId; patched = true; }
+        if (lookupResult.customer?.userGroupId) { summaryData.user_group_id = lookupResult.customer.userGroupId; patched = true; }
+      } catch (e) { console.error('[patchBookingSummary] Customer re-lookup failed:', e); }
     }
   } else if (!summaryData.user_id || !summaryData.user_group_id) {
     console.warn('[patchBookingSummary] Missing customer IDs but no visitorPhone/visitorEmail available');
@@ -1212,18 +1229,34 @@ async function patchBookingEdit(reply: string, messages: any[], visitorPhone?: s
     }
   }
 
-  // Fallback: fresh customer lookup if no booking ID found anywhere
+  // Fix 3: Try extracting booking ID from conversation context first (avoid fresh API call)
   if (!realBookingId) {
-    const phone = visitorPhone || '';
-    const email = visitorEmail || '';
-    if (phone || email) {
-      try {
-        const lookupResult = JSON.parse(await executeLookupCustomer(phone, email));
-        if (lookupResult.bookings?.length > 0) {
-          realBookingId = lookupResult.bookings[0].id;
-          console.log('[patchBookingEdit] Fresh lookup found booking_id:', realBookingId);
-        }
-      } catch (e) { console.error('[patchBookingEdit] Fresh lookup failed:', e); }
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const msg = messages[i];
+      if (msg.role === 'tool' && typeof msg.content === 'string') {
+        try {
+          const toolResult = JSON.parse(msg.content);
+          if (toolResult.bookings?.length > 0) {
+            realBookingId = toolResult.bookings[0].id;
+            console.log('[patchBookingEdit] Found booking_id from cached context:', realBookingId);
+            break;
+          }
+        } catch {}
+      }
+    }
+    // Only do fresh lookup as last resort
+    if (!realBookingId) {
+      const phone = visitorPhone || '';
+      const email = visitorEmail || '';
+      if (phone || email) {
+        try {
+          const lookupResult = JSON.parse(await executeLookupCustomer(phone, email));
+          if (lookupResult.bookings?.length > 0) {
+            realBookingId = lookupResult.bookings[0].id;
+            console.log('[patchBookingEdit] Fresh lookup found booking_id:', realBookingId);
+          }
+        } catch (e) { console.error('[patchBookingEdit] Fresh lookup failed:', e); }
+      }
     }
   }
 
@@ -2652,64 +2685,75 @@ Deno.serve(async (req) => {
 
       // Track tool call counts to prevent infinite loops
       let loopBroken = false;
+
+      // Pre-filter: check circuit breakers and safety for all tool calls
+      const eligibleCalls: any[] = [];
       for (const toolCall of assistantMessage.tool_calls) {
         const toolName = toolCall.function.name;
         toolCallCounts[toolName] = (toolCallCounts[toolName] || 0) + 1;
 
-        console.log(`[widget-ai-chat] Tool iteration ${8 - maxIterations}, calling: ${toolName}(${toolCall.function.arguments})`);
-
         const maxCallsForTool = toolName === 'get_delivery_windows' ? 2 : 3;
         if (toolCallCounts[toolName] >= maxCallsForTool) {
-          console.warn(`[widget-ai-chat] Tool ${toolName} called ${toolCallCounts[toolName]} times, breaking loop to prevent infinite cycling`);
-          await saveErrorDetails(supabase, dbConversationId, 'loop_break', `Tool ${toolName} called ${toolCallCounts[toolName]} times — loop broken`);
+          console.warn(`[widget-ai-chat] Tool ${toolName} called ${toolCallCounts[toolName]} times, breaking loop`);
+          await saveErrorDetails(supabase, dbConversationId, 'loop_break', `Tool ${toolName} called ${toolCallCounts[toolName]} times`);
           loopBroken = true;
           break;
         }
 
-        // Force-break if AI tries to cancel without prior user confirmation
         if (toolName === 'cancel_booking') {
           const hasUserConfirmation = currentMessages.some(
             (m: any) => m.role === 'user' && /\b(ja|yes|bekreft|confirm)\b/i.test(typeof m.content === 'string' ? m.content : '')
           );
           if (!hasUserConfirmation) {
-            console.log('[widget-ai-chat] cancel_booking blocked — no user confirmation yet, forcing text response');
+            console.log('[widget-ai-chat] cancel_booking blocked — no user confirmation');
             loopBroken = true;
             break;
           }
         }
 
-        const args = JSON.parse(toolCall.function.arguments);
-        allToolsUsed.push(toolName);
+        eligibleCalls.push(toolCall);
+      }
 
-        const result = await executeTool(
-          toolName, args, organizationId, supabase, OPENAI_API_KEY,
-          visitorPhone, visitorEmail, mcpAuthToken,
-        );
+      if (!loopBroken && eligibleCalls.length > 0) {
+        // Execute all eligible tool calls in PARALLEL (Fix 1)
+        console.log(`[widget-ai-chat] Executing ${eligibleCalls.length} tool call(s) in parallel, iteration ${8 - maxIterations}`);
+        const results = await Promise.all(eligibleCalls.map(async (toolCall: any) => {
+          const toolName = toolCall.function.name;
+          const args = JSON.parse(toolCall.function.arguments);
+          console.log(`[widget-ai-chat] Parallel tool call: ${toolName}(${toolCall.function.arguments})`);
+          allToolsUsed.push(toolName);
 
-        // Log tool errors to error_details for the Error Traces dashboard
-        try {
-          const parsed = JSON.parse(result);
-          if (parsed.error) {
-            await saveErrorDetails(supabase, dbConversationId, 'tool_error',
-              `${toolName}: ${parsed.error}`);
-          }
-        } catch {}
+          const result = await executeTool(
+            toolName, args, organizationId, supabase, OPENAI_API_KEY,
+            visitorPhone, visitorEmail, mcpAuthToken,
+          );
+          return { toolCall, toolName, result };
+        }));
 
-        currentMessages.push({
-          role: 'tool',
-          content: result,
-          tool_call_id: toolCall.id,
-        });
+        // Process results (maintain message ordering, check group selection)
+        for (const { toolCall, toolName, result } of results) {
+          try {
+            const parsed = JSON.parse(result);
+            if (parsed.error) {
+              await saveErrorDetails(supabase, dbConversationId, 'tool_error', `${toolName}: ${parsed.error}`);
+            }
+          } catch {}
 
-        // Force-break if group selection is needed — do NOT let AI auto-resolve
-        try {
-          const parsedResult = JSON.parse(result);
-          if (parsedResult.needs_group_selection && parsedResult.user_groups) {
-            console.log('[widget-ai-chat] Group selection required, breaking tool loop');
-            loopBroken = true;
-            break;
-          }
-        } catch {}
+          currentMessages.push({
+            role: 'tool',
+            content: result,
+            tool_call_id: toolCall.id,
+          });
+
+          try {
+            const parsedResult = JSON.parse(result);
+            if (parsedResult.needs_group_selection && parsedResult.user_groups) {
+              console.log('[widget-ai-chat] Group selection required, breaking tool loop');
+              loopBroken = true;
+              break;
+            }
+          } catch {}
+        }
       }
       if (loopBroken) {
         // Pad missing tool responses so OpenAI doesn't reject the message history
@@ -2851,17 +2895,29 @@ async function detectKnowledgeGap(
 // Stream the final reply text as SSE events
 function streamTextResponse(text: string, conversationId: string | null, messageId: string | null): Response {
   const encoder = new TextEncoder();
+
+  // Fix 5: Detect pure-marker responses and send immediately (no typing delay)
+  const markerPattern = /^\s*\[(?:ADDRESS_SEARCH|TIME_SLOT|LICENSE_PLATE|PHONE_VERIFY|SERVICE_SELECT|ACTION_MENU|BOOKING_SUMMARY|BOOKING_EDIT|BOOKING_CONFIRMED|BOOKING_INFO|BOOKING_SELECT|GROUP_SELECT|YES_NO|CONFIRM)\]/;
+  const isMarkerOnly = markerPattern.test(text.trim());
+
   const stream = new ReadableStream({
     start(controller) {
-      // Send conversationId and messageId first
       if (conversationId || messageId) {
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'meta', conversationId, messageId })}\n\n`));
       }
 
-      // Stream text in small chunks for a natural typing effect
+      if (isMarkerOnly) {
+        // Send marker responses instantly — no typing delay needed
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'token', content: text })}\n\n`));
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'done' })}\n\n`));
+        controller.close();
+        return;
+      }
+
+      // Stream text in chunks — faster: 5 words at 10ms intervals (was 3 words at 30ms)
       const words = text.split(/(\s+)/);
       let i = 0;
-      const chunkSize = 3; // Send 3 words at a time
+      const chunkSize = 5;
 
       const interval = setInterval(() => {
         if (i >= words.length) {
@@ -2873,7 +2929,7 @@ function streamTextResponse(text: string, conversationId: string | null, message
         const chunk = words.slice(i, i + chunkSize).join('');
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'token', content: chunk })}\n\n`));
         i += chunkSize;
-      }, 30);
+      }, 10);
     },
   });
 
