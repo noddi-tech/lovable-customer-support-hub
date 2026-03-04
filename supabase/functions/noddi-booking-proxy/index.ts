@@ -160,6 +160,58 @@ Deno.serve(async (req) => {
         if (!dwAddr) {
           return jsonResponse({ error: "address_id required" }, 400);
         }
+
+        // Try MCP first (Navio MCP server)
+        try {
+          const mcpArgs: Record<string, any> = { address_id: dwAddr };
+          if (from_date) mcpArgs.from_date = from_date;
+          if (to_date) mcpArgs.to_date = to_date;
+          if (selected_sales_item_ids) {
+            mcpArgs.selected_sales_item_ids = Array.isArray(selected_sales_item_ids) ? selected_sales_item_ids : [selected_sales_item_ids];
+          }
+          const mcpResp = await fetch("https://mcp.noddi.co/mcp", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Accept": "application/json, text/event-stream",
+            },
+            body: JSON.stringify({
+              jsonrpc: "2.0",
+              id: crypto.randomUUID(),
+              method: "tools/call",
+              params: { name: "delivery_window_get", arguments: mcpArgs },
+            }),
+          });
+          if (mcpResp.ok) {
+            const ct = mcpResp.headers.get("content-type") || "";
+            let mcpData: any;
+            if (ct.includes("text/event-stream")) {
+              const text = await mcpResp.text();
+              const lastData = text.split("\n").filter((l: string) => l.startsWith("data: ")).pop();
+              mcpData = lastData ? JSON.parse(lastData.slice(6)) : null;
+            } else {
+              mcpData = await mcpResp.json();
+            }
+            if (mcpData && !mcpData.error) {
+              console.log("Delivery windows resolved via MCP");
+              // MCP result content is in mcpData.result.content[0].text
+              const content = mcpData?.result?.content?.[0]?.text;
+              if (content) {
+                try {
+                  return jsonResponse(JSON.parse(content));
+                } catch {
+                  return jsonResponse(mcpData.result || mcpData);
+                }
+              }
+              return jsonResponse(mcpData.result || mcpData);
+            }
+          }
+          console.warn("MCP delivery_window_get failed, falling back to REST");
+        } catch (mcpErr) {
+          console.warn("MCP delivery_window_get error, falling back to REST:", mcpErr);
+        }
+
+        // Fallback to REST API
         let url = `${API_BASE}/v1/delivery-windows/for-new-booking/?address_id=${dwAddr}`;
         if (from_date) url += `&from_date=${encodeURIComponent(from_date)}`;
         if (to_date) url += `&to_date=${encodeURIComponent(to_date)}`;
@@ -172,7 +224,7 @@ Deno.serve(async (req) => {
         const res = await fetch(url, { headers });
         if (!res.ok) {
           const text = await res.text();
-          console.error("Delivery windows error:", res.status, text);
+          console.error("Delivery windows REST fallback error:", res.status, text);
           return jsonResponse({ error: "Failed to fetch delivery windows" }, 502);
         }
         const data = await res.json();
