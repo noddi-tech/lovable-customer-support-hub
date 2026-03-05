@@ -167,7 +167,7 @@ Deno.serve(async (req) => {
           if (from_date) mcpArgs.from_date = from_date;
           if (to_date) mcpArgs.to_date = to_date;
           if (selected_sales_item_ids) {
-            mcpArgs.selected_sales_item_ids = Array.isArray(selected_sales_item_ids) ? selected_sales_item_ids : [selected_sales_item_ids];
+            mcpArgs.sales_item_ids = Array.isArray(selected_sales_item_ids) ? selected_sales_item_ids : [selected_sales_item_ids];
           }
           const mcpResp = await fetch("https://mcp.noddi.co/mcp", {
             method: "POST",
@@ -182,31 +182,31 @@ Deno.serve(async (req) => {
               params: { name: "delivery_window_get", arguments: mcpArgs },
             }),
           });
-          if (mcpResp.ok) {
-            const ct = mcpResp.headers.get("content-type") || "";
-            let mcpData: any;
-            if (ct.includes("text/event-stream")) {
-              const text = await mcpResp.text();
-              const lastData = text.split("\n").filter((l: string) => l.startsWith("data: ")).pop();
-              mcpData = lastData ? JSON.parse(lastData.slice(6)) : null;
-            } else {
-              mcpData = await mcpResp.json();
-            }
-            if (mcpData && !mcpData.error) {
-              console.log("Delivery windows resolved via MCP");
-              // MCP result content is in mcpData.result.content[0].text
-              const content = mcpData?.result?.content?.[0]?.text;
-              if (content) {
-                try {
-                  return jsonResponse(JSON.parse(content));
-                } catch {
-                  return jsonResponse(mcpData.result || mcpData);
-                }
-              }
-              return jsonResponse(mcpData.result || mcpData);
-            }
+          console.log("MCP delivery_window_get response status:", mcpResp.status);
+          const ct = mcpResp.headers.get("content-type") || "";
+          let mcpData: any;
+          if (ct.includes("text/event-stream")) {
+            const text = await mcpResp.text();
+            console.log("MCP SSE raw (first 500 chars):", text.slice(0, 500));
+            const lastData = text.split("\n").filter((l: string) => l.startsWith("data: ")).pop();
+            mcpData = lastData ? JSON.parse(lastData.slice(6)) : null;
+          } else {
+            mcpData = await mcpResp.json();
           }
-          console.warn("MCP delivery_window_get failed, falling back to REST");
+          console.log("MCP delivery_window_get parsed:", JSON.stringify(mcpData)?.slice(0, 800));
+          if (mcpResp.ok && mcpData && !mcpData.error) {
+            console.log("Delivery windows resolved via MCP");
+            const content = mcpData?.result?.content?.[0]?.text;
+            if (content) {
+              try {
+                return jsonResponse(JSON.parse(content));
+              } catch {
+                return jsonResponse(mcpData.result || mcpData);
+              }
+            }
+            return jsonResponse(mcpData.result || mcpData);
+          }
+          console.warn("MCP delivery_window_get failed, falling back to REST. Status:", mcpResp.status);
         } catch (mcpErr) {
           console.warn("MCP delivery_window_get error, falling back to REST:", mcpErr);
         }
@@ -224,8 +224,8 @@ Deno.serve(async (req) => {
         const res = await fetch(url, { headers });
         if (!res.ok) {
           const text = await res.text();
-          console.error("Delivery windows REST fallback error:", res.status, text);
-          return jsonResponse({ error: "Failed to fetch delivery windows" }, 502);
+          console.error("Delivery windows REST fallback error:", res.status, text, "URL:", url);
+          return jsonResponse({ error: "Failed to fetch delivery windows", rest_status: res.status, rest_detail: text.slice(0, 300) }, 502);
         }
         const data = await res.json();
         return jsonResponse(data);
