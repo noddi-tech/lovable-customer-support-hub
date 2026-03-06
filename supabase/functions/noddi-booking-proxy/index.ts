@@ -87,11 +87,11 @@ Deno.serve(async (req) => {
 
       // ========== Available Items for Booking ==========
       case "available_items": {
-        const { address_id: aiAddr, car_ids, license_plates, sales_item_category_id, country_code: aiCountry } = body;
+        const { address_id: aiAddr, car_ids, license_plates, sales_item_category_id, country_code: aiCountry, brand } = body;
         if (!aiAddr) {
           return jsonResponse({ error: "address_id required" }, 400);
         }
-        const payload: any = { address_id: aiAddr };
+        const payload: any = { address_id: aiAddr, brand: brand || "noddi" };
         // Noddi API requires license_plates as objects: [{number, country_code}]
         if (license_plates) {
           const lpArray = Array.isArray(license_plates) ? license_plates : [license_plates];
@@ -103,6 +103,8 @@ Deno.serve(async (req) => {
         }
         if (sales_item_category_id) payload.sales_item_category_id = sales_item_category_id;
 
+        console.log("Available items payload:", JSON.stringify(payload));
+
         const res = await fetch(`${API_BASE}/v1/sales-items/initial-available-for-booking/`, {
           method: "POST",
           headers,
@@ -110,8 +112,8 @@ Deno.serve(async (req) => {
         });
         if (!res.ok) {
           const text = await res.text();
-          console.error("Available items error:", res.status, text);
-          return jsonResponse({ error: "Failed to fetch available items" }, 502);
+          console.error("Available items error:", res.status, text, "Payload:", JSON.stringify(payload));
+          return jsonResponse({ error: "Failed to fetch available items", detail: text.slice(0, 300) }, 502);
         }
         const data = await res.json();
         return jsonResponse(data);
