@@ -499,10 +499,12 @@ Deno.serve(async (req) => {
         }
 
         try {
+          // Use secondary workspace token if available, otherwise fall back to primary
+          const criticalToken = integration.secondary_access_token || integration.access_token;
           const criticalResponse = await fetch('https://slack.com/api/chat.postMessage', {
             method: 'POST',
             headers: {
-              'Authorization': `Bearer ${integration.access_token}`,
+              'Authorization': `Bearer ${criticalToken}`,
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({

@@ -169,8 +169,133 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Handle save-secondary-token action
+    if (action === 'save-secondary-token') {
+      const authHeader = req.headers.get('Authorization');
+      if (!authHeader) {
+        return new Response(
+          JSON.stringify({ error: 'Not authenticated' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const token = authHeader.replace('Bearer ', '');
+      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+
+      if (authError || !user) {
+        return new Response(
+          JSON.stringify({ error: 'Invalid authentication' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const body = await req.json();
+      const { bot_token, organization_id } = body;
+
+      if (!bot_token || !organization_id) {
+        return new Response(
+          JSON.stringify({ error: 'Bot token and organization ID are required' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      if (!bot_token.startsWith('xoxb-')) {
+        return new Response(
+          JSON.stringify({ error: 'Invalid token format. Bot tokens should start with xoxb-' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Validate token with Slack API
+      const testResponse = await fetch('https://slack.com/api/auth.test', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${bot_token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const testData = await testResponse.json();
+      if (!testData.ok) {
+        return new Response(
+          JSON.stringify({ error: `Invalid token: ${testData.error}` }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Save secondary token
+      const { error: updateError } = await supabase
+        .from('slack_integrations')
+        .update({
+          secondary_access_token: bot_token,
+          secondary_team_id: testData.team_id,
+          secondary_team_name: testData.team,
+        })
+        .eq('organization_id', organization_id);
+
+      if (updateError) {
+        console.error('Error saving secondary token:', updateError);
+        return new Response(
+          JSON.stringify({ error: 'Failed to save secondary workspace' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      console.log(`Secondary workspace saved for org ${organization_id} - team: ${testData.team}`);
+
+      return new Response(
+        JSON.stringify({ success: true, team_name: testData.team, team_id: testData.team_id }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Handle disconnect-secondary action
+    if (action === 'disconnect-secondary') {
+      const authHeader = req.headers.get('Authorization');
+      if (!authHeader) {
+        return new Response(
+          JSON.stringify({ error: 'Not authenticated' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const token = authHeader.replace('Bearer ', '');
+      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+
+      if (authError || !user) {
+        return new Response(
+          JSON.stringify({ error: 'Invalid authentication' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const body = await req.json();
+      const organizationId = body.organization_id;
+
+      const { error } = await supabase
+        .from('slack_integrations')
+        .update({
+          secondary_access_token: null,
+          secondary_team_id: null,
+          secondary_team_name: null,
+        })
+        .eq('organization_id', organizationId);
+
+      if (error) {
+        return new Response(
+          JSON.stringify({ error: 'Failed to disconnect secondary workspace' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      return new Response(
+        JSON.stringify({ success: true }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     return new Response(
-      JSON.stringify({ error: 'Invalid action. Valid actions: save-token, disconnect' }),
+      JSON.stringify({ error: 'Invalid action. Valid actions: save-token, disconnect, save-secondary-token, disconnect-secondary' }),
       { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 

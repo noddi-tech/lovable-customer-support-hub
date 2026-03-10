@@ -153,11 +153,12 @@ Deno.serve(async (req) => {
         } as any,
       );
 
-      // Post to Slack
+      // Post to Slack — use secondary workspace token if available
+      const digestToken = integration.secondary_access_token || integration.access_token;
       const slackResponse = await fetch('https://slack.com/api/chat.postMessage', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${integration.access_token}`,
+          'Authorization': `Bearer ${digestToken}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
