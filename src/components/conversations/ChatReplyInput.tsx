@@ -2,7 +2,9 @@ import { useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Send, Loader2, MessageSquareX, UserRoundPlus, Smile, Paperclip, Mic, Image, X, Languages } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Send, Loader2, MessageSquareX, UserRoundPlus, Smile, Paperclip, Mic, Image, X, Languages, StickyNote } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { useConversationView } from '@/contexts/ConversationViewContext';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -53,6 +55,7 @@ interface AttachmentPreview {
 
 export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) => {
   const [message, setMessage] = useState('');
+  const [isInternalNote, setIsInternalNote] = useState(false);
   const [transferDialogOpen, setTransferDialogOpen] = useState(false);
   const [selectedAgentId, setSelectedAgentId] = useState<string>('');
   const [attachments, setAttachments] = useState<AttachmentPreview[]>([]);
@@ -94,11 +97,9 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
       return null;
     }
     
-    // Create a signed URL that expires in 1 hour (for immediate display)
-    // The storagePath is stored in the message for later access via get-attachment
     const { data: signedUrlData, error: signedError } = await supabase.storage
       .from('chat-attachments')
-      .createSignedUrl(fileName, 3600); // 1 hour expiry
+      .createSignedUrl(fileName, 3600);
     
     if (signedError || !signedUrlData) {
       console.error('Signed URL error:', signedError);
@@ -112,7 +113,6 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
     mutationFn: async (content: string) => {
       if (!user) throw new Error('Not authenticated');
 
-      // Upload attachments first
       const uploadedAttachments: { url: string; name: string; type: string; storagePath: string }[] = [];
       
       if (attachments.length > 0) {
@@ -131,7 +131,6 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
         setIsUploading(false);
       }
 
-      // Get user's profile to get their ID
       const { data: profile } = await supabase
         .from('profiles')
         .select('id, full_name, email')
@@ -147,7 +146,7 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
           content: messageContent,
           sender_type: 'agent',
           sender_id: user.id,
-          is_internal: false,
+          is_internal: isInternalNote,
           attachments: uploadedAttachments.length > 0 ? uploadedAttachments : null,
         });
 
@@ -155,8 +154,8 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
     },
     onSuccess: () => {
       setMessage('');
+      setIsInternalNote(false);
       setAttachments([]);
-      // Invalidate messages to trigger refetch
       queryClient.invalidateQueries({ 
         queryKey: ['conversation-messages', conversationId] 
       });
@@ -173,7 +172,6 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
 
   const endChatMutation = useMutation({
     mutationFn: async () => {
-      // Try to find active/waiting session (may not exist if visitor already left)
       const { data: session } = await supabase
         .from('widget_chat_sessions')
         .select('id')
@@ -181,7 +179,6 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
         .in('status', ['active', 'waiting'])
         .maybeSingle();
 
-      // Update session if it exists
       if (session) {
         await supabase
           .from('widget_chat_sessions')
@@ -192,7 +189,6 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
           .eq('id', session.id);
       }
 
-      // Always close the conversation
       const { error: convError } = await supabase
         .from('conversations')
         .update({ 
@@ -208,7 +204,6 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
       queryClient.invalidateQueries({ queryKey: ['conversation', conversationId] });
       queryClient.invalidateQueries({ queryKey: ['chat-conversations'] });
       queryClient.invalidateQueries({ queryKey: ['chat-counts'] });
-      // Navigate to ended tab
       navigate('/interactions/chat/ended');
     },
     onError: (error) => {
@@ -220,14 +215,16 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
   const handleSend = useCallback(() => {
     const trimmedMessage = message.trim();
     if ((!trimmedMessage && attachments.length === 0) || sendMessageMutation.isPending) return;
-    stopTyping(); // Clear typing indicator before sending
+    stopTyping();
     sendMessageMutation.mutate(trimmedMessage);
   }, [message, attachments, sendMessageMutation, stopTyping]);
 
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setMessage(e.target.value);
-    handleTyping(); // Trigger typing indicator
-  }, [handleTyping]);
+    if (!isInternalNote) {
+      handleTyping();
+    }
+  }, [handleTyping, isInternalNote]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -263,7 +260,6 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
     }));
     
     setAttachments(prev => [...prev, ...newAttachments]);
-    // Reset input
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -302,9 +298,7 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
     }
   }, [message, sourceLanguage, targetLanguage, translateLoading]);
 
-  // Filter out current user from transfer targets
   const transferableAgents = agents?.filter(a => a.user_id !== user?.id) || [];
-
   const isPending = sendMessageMutation.isPending || isUploading;
 
   return (
@@ -335,8 +329,19 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
           ))}
         </div>
       )}
+
+      {/* Internal note banner */}
+      {isInternalNote && (
+        <div className="flex items-center gap-2 px-4 py-2 border-t border-warning/50 bg-warning/10">
+          <StickyNote className="h-4 w-4 text-warning" />
+          <span className="text-xs font-medium text-warning">Internal note — not visible to the customer</span>
+        </div>
+      )}
       
-      <div className="flex items-end gap-2 p-4 border-t border-border bg-background">
+      <div className={cn(
+        "flex items-end gap-2 p-4 border-t border-border bg-background",
+        isInternalNote && "bg-warning/5 border-t-warning/50"
+      )}>
         {/* Hidden file input */}
         <input
           ref={fileInputRef}
@@ -365,6 +370,22 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
           onClick={() => fileInputRef.current?.click()}
         >
           <Paperclip className="h-5 w-5" />
+        </Button>
+
+        {/* Internal note toggle */}
+        <Button 
+          variant={isInternalNote ? "secondary" : "ghost"}
+          size="icon" 
+          className={cn(
+            "shrink-0 h-9 w-9",
+            isInternalNote 
+              ? "text-warning bg-warning/15 hover:bg-warning/25" 
+              : "text-muted-foreground hover:text-foreground"
+          )}
+          onClick={() => setIsInternalNote(!isInternalNote)}
+          title={isInternalNote ? "Switch to reply" : "Write internal note"}
+        >
+          <StickyNote className="h-5 w-5" />
         </Button>
 
         {/* Translate button */}
@@ -426,8 +447,11 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
 
         {/* Message input */}
         <Textarea 
-          placeholder="Type a message..." 
-          className="flex-1 min-h-[80px] resize-none rounded-2xl bg-muted/50 border-0 focus-visible:ring-2 focus-visible:ring-primary/20"
+          placeholder={isInternalNote ? "Write an internal note..." : "Type a message..."} 
+          className={cn(
+            "flex-1 min-h-[80px] resize-none rounded-2xl border-0 focus-visible:ring-2 focus-visible:ring-primary/20",
+            isInternalNote ? "bg-warning/10" : "bg-muted/50"
+          )}
           value={message}
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
@@ -450,7 +474,10 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
         {/* Send button */}
         <Button 
           size="icon" 
-          className="rounded-full shrink-0 h-10 w-10"
+          className={cn(
+            "rounded-full shrink-0 h-10 w-10",
+            isInternalNote && "bg-warning hover:bg-warning/90 text-warning-foreground"
+          )}
           onClick={handleSend}
           disabled={(!message.trim() && attachments.length === 0) || isPending}
         >
