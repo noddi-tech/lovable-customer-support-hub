@@ -181,7 +181,7 @@ Max 150 words total. No extra sections.`;
                 { role: 'system', content: systemPrompt },
                 { role: 'user', content: `Here are ${customerMessages.length} customer messages from the last ${periodDays} day(s):\n\n${messagesForAI}` },
               ],
-              max_tokens: 800,
+              max_tokens: 500,
               temperature: 0.3,
             }),
           });
