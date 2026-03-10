@@ -96,6 +96,25 @@ export const useSlackIntegration = () => {
     enabled: !!currentOrganizationId && !!integration?.is_active,
   });
 
+  // Fetch channels from the secondary workspace (if connected)
+  const { data: secondaryChannels = [], isLoading: isLoadingSecondaryChannels, refetch: refetchSecondaryChannels } = useQuery({
+    queryKey: ['slack-secondary-channels', currentOrganizationId],
+    queryFn: async () => {
+      if (!currentOrganizationId || !integration?.secondary_team_id) return [];
+
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return [];
+
+      const response = await supabase.functions.invoke('slack-list-channels', {
+        body: { organization_id: currentOrganizationId, use_secondary: true },
+      });
+
+      if (response.error) throw response.error;
+      return (response.data?.channels || []) as SlackChannel[];
+    },
+    enabled: !!currentOrganizationId && !!integration?.secondary_team_id,
+  });
+
   // Save bot token (main connection method)
   const saveDirectToken = useMutation({
     mutationFn: async ({ bot_token }: { bot_token: string }) => {
