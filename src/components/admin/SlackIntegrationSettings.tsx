@@ -453,6 +453,31 @@ export const SlackIntegrationSettings = () => {
                 Weekdays only (Mon–Fri), Oslo timezone
               </p>
             </div>
+
+            <div className="space-y-2">
+              <Label>Digest Frequency</Label>
+              <Select
+                value={localConfig.digest_frequency}
+                onValueChange={(value: 'daily' | 'weekly' | 'both') => {
+                  setLocalConfig(prev => ({ ...prev, digest_frequency: value }));
+                  updateConfiguration.mutate({
+                    configuration: { digest_frequency: value },
+                  });
+                }}
+              >
+                <SelectTrigger className="w-48">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="daily">Daily</SelectItem>
+                  <SelectItem value="weekly">Weekly (Mondays)</SelectItem>
+                  <SelectItem value="both">Both</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Weekly digest includes AI-powered trend analysis comparing week-over-week patterns
+              </p>
+            </div>
           </CardContent>
         )}
       </Card>
