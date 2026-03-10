@@ -53,8 +53,13 @@ export const SlackIntegrationSettings = () => {
         enabled_events: integration.configuration?.enabled_events || [],
         mention_assigned_user: integration.configuration?.mention_assigned_user ?? true,
         include_message_preview: integration.configuration?.include_message_preview ?? true,
+        digest_enabled: integration.configuration?.digest_enabled ?? false,
+        digest_time: integration.configuration?.digest_time || '08:00',
+        critical_alerts_enabled: integration.configuration?.critical_alerts_enabled ?? false,
       });
       setSelectedChannelId(integration.default_channel_id || '');
+      setDigestChannelId(integration.digest_channel_id || '');
+      setCriticalChannelId(integration.critical_channel_id || '');
     }
   }, [integration]);
 
