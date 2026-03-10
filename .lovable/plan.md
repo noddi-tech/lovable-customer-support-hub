@@ -1,79 +1,30 @@
 
 
-## Fix: MCP customer_lookup Missing Stored Addresses & Cars
-
-### Problem
-
-Two issues visible in the screenshots:
-
-1. **Addresses listed as plain text bullets** instead of the interactive `[ADDRESS_SEARCH]` component with clickable pills
-2. **Cars not shown at all** — the AI doesn't offer the `[LICENSE_PLATE]` component with stored cars
+## Fix: Delivery Windows 502 — Parameter Name Mismatch + Better Error Handling
 
 ### Root Cause
 
-When the MCP `customer_lookup` tool succeeds (line 2191-2197 in `widget-ai-chat/index.ts`), the raw MCP result is returned directly to the AI. The MCP response likely does NOT include `stored_addresses` and `stored_cars` in the format the AI expects, because only the legacy `executeLookupCustomer` function extracts and formats these from booking history.
+The `delivery_windows` case in `noddi-booking-proxy` has two issues:
 
-Without `stored_addresses`/`stored_cars` in the tool result, the AI:
-- Lists addresses as plain text bullets (no data to pass to `[ADDRESS_SEARCH]{"stored": [...]}`)
-- Skips car selection entirely (no `stored_cars` data to pass to `[LICENSE_PLATE]{"stored": [...]}`)
+1. **MCP parameter name mismatch**: The code passes `selected_sales_item_ids` to the MCP tool, but the Navio MCP docs show `delivery_window_get` expects `sales_item_ids`. The MCP call silently fails, then the REST fallback also fails (likely deprecated endpoint).
+
+2. **No diagnostic logging on MCP response**: When MCP returns an error or unexpected shape, the code silently falls through to REST without logging what MCP actually returned.
 
 ### Fix
 
-After the MCP `customer_lookup` call succeeds, **enrich the result** with `stored_addresses` and `stored_cars` extracted from the MCP response's booking data. This mirrors what the legacy function does.
+In `supabase/functions/noddi-booking-proxy/index.ts`, the `delivery_windows` case (lines 157-232):
 
-**File: `supabase/functions/widget-ai-chat/index.ts`** (lines 2188-2202)
+1. **Rename the MCP argument** from `selected_sales_item_ids` to `sales_item_ids` to match the MCP tool's expected schema.
 
-In the `lookup_customer` case, after getting `mcpResult`:
+2. **Add diagnostic logging** for the MCP response body so failures are visible in edge function logs.
 
-1. Parse the MCP result and check if it already has `stored_addresses`/`stored_cars`
-2. If missing, extract them from the booking data in the MCP response (same extraction logic as the legacy function: scan `booking_items_car`, `cars`, `car`, addresses from bookings and user groups)
-3. Also call the legacy `executeLookupCustomer` as a supplementary data source if the MCP result lacks booking detail, and merge `stored_addresses`/`stored_cars` into the MCP result
-4. Return the enriched result to the AI
+3. **Consume the REST response body** on failure to prevent resource leaks and log the actual status + body.
 
-The simplest reliable approach: **always run the legacy `executeLookupCustomer` alongside MCP, and merge `stored_addresses` and `stored_cars` from the legacy result into the MCP result** if the MCP result is missing them. This ensures the AI always gets the extracted address/car data regardless of MCP response format.
+### Changes
 
-```typescript
-case 'lookup_customer': {
-  let result: any = null;
-  
-  // Try MCP first
-  if (mcpAuthToken) {
-    try {
-      const mcpArgs: any = { auth_token: mcpAuthToken };
-      if (args.user_group_id) mcpArgs.user_group_id = args.user_group_id;
-      const mcpResult = await callMcpTool('customer_lookup', mcpArgs);
-      result = typeof mcpResult === 'string' ? JSON.parse(mcpResult) : mcpResult;
-    } catch (err) {
-      console.warn('[executeTool] MCP customer_lookup failed:', (err as Error).message);
-    }
-  }
-  
-  // Always run legacy lookup to get stored_addresses/stored_cars
-  const legacyResultStr = await executeLookupCustomer(
-    args.phone || visitorPhone, args.email || visitorEmail, args.user_group_id
-  );
-  const legacyResult = JSON.parse(legacyResultStr);
-  
-  if (!result) {
-    // MCP failed, use legacy entirely
-    return legacyResultStr;
-  }
-  
-  // Merge stored data from legacy into MCP result
-  if (!result.stored_addresses && legacyResult.stored_addresses) {
-    result.stored_addresses = legacyResult.stored_addresses;
-  }
-  if (!result.stored_cars && legacyResult.stored_cars) {
-    result.stored_cars = legacyResult.stored_cars;
-  }
-  
-  return JSON.stringify(result);
-}
-```
+**File: `supabase/functions/noddi-booking-proxy/index.ts`**
 
-### Files Changed
-
-| File | Change |
-|---|---|
-| `supabase/functions/widget-ai-chat/index.ts` | Enrich MCP customer_lookup result with `stored_addresses` and `stored_cars` from legacy lookup |
+- Line 170: Change `mcpArgs.selected_sales_item_ids` → `mcpArgs.sales_item_ids`
+- Lines 185-211: Add `console.log` for MCP response status and parsed data before the success check
+- Lines 224-228: Add more detail to REST fallback error logging
 

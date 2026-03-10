@@ -2186,20 +2186,45 @@ async function executeTool(
     case 'search_knowledge_base':
       return executeSearchKnowledge(args.query, organizationId, supabase, openaiApiKey);
     case 'lookup_customer': {
-      // Try MCP customer_lookup if we have an auth_token, fall back to legacy
+      let mcpResultObj: any = null;
+
+      // Try MCP customer_lookup if we have an auth_token
       if (mcpAuthToken) {
         try {
           console.log('[executeTool] Using MCP customer_lookup with auth_token');
           const mcpArgs: any = { auth_token: mcpAuthToken };
           if (args.user_group_id) mcpArgs.user_group_id = args.user_group_id;
           const mcpResult = await callMcpTool('customer_lookup', mcpArgs);
+          mcpResultObj = typeof mcpResult === 'string' ? JSON.parse(mcpResult) : mcpResult;
           console.log('[executeTool] MCP customer_lookup succeeded');
-          return typeof mcpResult === 'string' ? mcpResult : JSON.stringify(mcpResult);
         } catch (err) {
           console.warn('[executeTool] MCP customer_lookup failed, falling back:', (err as Error).message);
         }
       }
-      return executeLookupCustomer(args.phone || visitorPhone, args.email || visitorEmail, args.user_group_id);
+
+      // Always run legacy lookup to extract stored_addresses/stored_cars from booking history
+      const legacyResultStr = await executeLookupCustomer(args.phone || visitorPhone, args.email || visitorEmail, args.user_group_id);
+
+      if (!mcpResultObj) {
+        // MCP failed or unavailable, use legacy entirely
+        return legacyResultStr;
+      }
+
+      // Merge stored_addresses and stored_cars from legacy into MCP result
+      try {
+        const legacyResult = JSON.parse(legacyResultStr);
+        if (!mcpResultObj.stored_addresses && legacyResult.stored_addresses) {
+          mcpResultObj.stored_addresses = legacyResult.stored_addresses;
+        }
+        if (!mcpResultObj.stored_cars && legacyResult.stored_cars) {
+          mcpResultObj.stored_cars = legacyResult.stored_cars;
+        }
+        console.log('[executeTool] Merged stored data into MCP result — addresses:', mcpResultObj.stored_addresses?.length || 0, 'cars:', mcpResultObj.stored_cars?.length || 0);
+      } catch (mergeErr) {
+        console.warn('[executeTool] Failed to merge legacy data:', (mergeErr as Error).message);
+      }
+
+      return JSON.stringify(mcpResultObj);
     }
     case 'get_booking_details': {
       // Intercept placeholder IDs (1, 2, etc.) — AI uses these when it doesn't know the real ID
