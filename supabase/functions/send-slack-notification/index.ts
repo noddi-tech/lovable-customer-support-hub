@@ -402,6 +402,123 @@ Deno.serve(async (req) => {
 
     console.log(`Slack notification sent for ${event_type} to channel ${channelId}`);
 
+    // === Critical Triage Detection ===
+    const criticalConfig = config;
+    const criticalChannelId = integration.critical_channel_id;
+    
+    if (criticalConfig.critical_alerts_enabled && criticalChannelId && criticalChannelId !== channelId) {
+      const CRITICAL_KEYWORDS = [
+        'booking', "can't book", 'cannot book', 'payment failed', 'payment error',
+        'error', 'not working', 'broken', 'down', 'outage', 'can\'t access',
+        'unable to', 'fails', 'failure', 'critical', 'urgent',
+      ];
+
+      const textToCheck = [subject, preview_text, customer_name]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+
+      const matchedKeyword = CRITICAL_KEYWORDS.find(kw => textToCheck.includes(kw));
+      const isPriorityUrgent = false; // Could be extended with conversation priority lookup
+
+      if (matchedKeyword || isPriorityUrgent) {
+        const criticalBlocks = [
+          {
+            type: 'section',
+            text: {
+              type: 'mrkdwn',
+              text: `🚨 *CRITICAL ALERT* — ${title}`,
+            },
+          },
+          {
+            type: 'section',
+            fields: [
+              {
+                type: 'mrkdwn',
+                text: `*From:*\n${customer_name || 'Unknown'}${customer_email ? ` (${customer_email})` : ''}`,
+              },
+              {
+                type: 'mrkdwn',
+                text: `*Subject:*\n${subject || 'No subject'}`,
+              },
+            ],
+          },
+        ];
+
+        if (preview_text) {
+          const cleanedPreview = cleanPreviewText(preview_text, 180);
+          if (cleanedPreview) {
+            criticalBlocks.push({
+              type: 'section',
+              text: {
+                type: 'mrkdwn',
+                text: `> ${cleanedPreview.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}`,
+              },
+            } as any);
+          }
+        }
+
+        if (matchedKeyword) {
+          criticalBlocks.push({
+            type: 'context',
+            elements: [
+              {
+                type: 'mrkdwn',
+                text: `Triggered by keyword: \`${matchedKeyword}\``,
+              },
+            ],
+          } as any);
+        }
+
+        if (conversation_id) {
+          const appUrl = Deno.env.get('APP_URL') || 'https://support.noddi.co';
+          const conversationUrl = inbox_id
+            ? `${appUrl}/?inbox=${inbox_id}&c=${conversation_id}`
+            : `${appUrl}/?c=${conversation_id}`;
+          criticalBlocks.push({
+            type: 'actions',
+            elements: [
+              {
+                type: 'button',
+                text: { type: 'plain_text', text: '👀 View Conversation', emoji: true },
+                url: conversationUrl,
+              },
+            ],
+          } as any);
+        }
+
+        try {
+          const criticalResponse = await fetch('https://slack.com/api/chat.postMessage', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${integration.access_token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              channel: criticalChannelId,
+              text: `🚨 CRITICAL: ${title} from ${customer_name || 'Unknown'} — ${subject || 'No subject'} <!channel>`,
+              attachments: [
+                {
+                  color: '#dc2626',
+                  blocks: criticalBlocks,
+                },
+              ],
+              unfurl_links: false,
+              unfurl_media: false,
+            }),
+          });
+          const critResult = await criticalResponse.json();
+          if (!critResult.ok) {
+            console.error('Critical alert Slack error:', critResult.error);
+          } else {
+            console.log(`Critical alert sent to ${criticalChannelId} (keyword: ${matchedKeyword})`);
+          }
+        } catch (critErr) {
+          console.error('Failed to send critical alert:', critErr);
+        }
+      }
+    }
+
     return new Response(
       JSON.stringify({ success: true, ts: slackResult.ts }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

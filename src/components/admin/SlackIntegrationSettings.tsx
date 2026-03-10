@@ -7,7 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, CheckCircle2, Hash, Lock, Send, ExternalLink, Slack, Info } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Loader2, CheckCircle2, Hash, Lock, Send, ExternalLink, Slack, Info, Clock, AlertTriangle, BarChart3 } from 'lucide-react';
 import { useSlackIntegration } from '@/hooks/useSlackIntegration';
 import { SlackSetupWizard } from './SlackSetupWizard';
 
@@ -38,8 +39,13 @@ export const SlackIntegrationSettings = () => {
     enabled_events: ['new_conversation', 'customer_reply', 'assignment', 'mention'] as string[],
     mention_assigned_user: true,
     include_message_preview: true,
+    digest_enabled: false,
+    digest_time: '08:00',
+    critical_alerts_enabled: false,
   });
   const [selectedChannelId, setSelectedChannelId] = useState<string>('');
+  const [digestChannelId, setDigestChannelId] = useState<string>('');
+  const [criticalChannelId, setCriticalChannelId] = useState<string>('');
 
   // Sync local state with fetched integration
   useEffect(() => {
@@ -48,8 +54,13 @@ export const SlackIntegrationSettings = () => {
         enabled_events: integration.configuration?.enabled_events || [],
         mention_assigned_user: integration.configuration?.mention_assigned_user ?? true,
         include_message_preview: integration.configuration?.include_message_preview ?? true,
+        digest_enabled: integration.configuration?.digest_enabled ?? false,
+        digest_time: integration.configuration?.digest_time || '08:00',
+        critical_alerts_enabled: integration.configuration?.critical_alerts_enabled ?? false,
       });
       setSelectedChannelId(integration.default_channel_id || '');
+      setDigestChannelId(integration.digest_channel_id || '');
+      setCriticalChannelId(integration.critical_channel_id || '');
     }
   }, [integration]);
 
@@ -259,6 +270,172 @@ export const SlackIntegrationSettings = () => {
             </div>
           ))}
         </CardContent>
+      </Card>
+
+      {/* Daily Digest Channel */}
+      <Card className="bg-gradient-surface border-border/50">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <BarChart3 className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <CardTitle className="text-lg">Daily Digest</CardTitle>
+                <CardDescription>
+                  Push a daily summary of conversations to a Slack channel
+                </CardDescription>
+              </div>
+            </div>
+            <Switch
+              checked={localConfig.digest_enabled}
+              onCheckedChange={(checked) => {
+                setLocalConfig(prev => ({ ...prev, digest_enabled: checked }));
+                updateConfiguration.mutate({
+                  configuration: { digest_enabled: checked },
+                });
+              }}
+              disabled={updateConfiguration.isPending}
+            />
+          </div>
+        </CardHeader>
+        {localConfig.digest_enabled && (
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label>Digest Channel</Label>
+              <div className="flex gap-2">
+                <Select
+                  value={digestChannelId}
+                  onValueChange={(channelId) => {
+                    const channel = channels.find(c => c.id === channelId);
+                    setDigestChannelId(channelId);
+                    updateConfiguration.mutate({
+                      digest_channel_id: channelId,
+                      digest_channel_name: channel?.name || '',
+                    });
+                  }}
+                  disabled={isLoadingChannels}
+                >
+                  <SelectTrigger className="flex-1">
+                    <SelectValue placeholder="Select a channel for daily digest..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {channels.map((channel) => (
+                      <SelectItem key={channel.id} value={channel.id}>
+                        <div className="flex items-center gap-2">
+                          {channel.is_private ? (
+                            <Lock className="h-3 w-3 text-muted-foreground" />
+                          ) : (
+                            <Hash className="h-3 w-3 text-muted-foreground" />
+                          )}
+                          {channel.name}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <Clock className="h-4 w-4 text-muted-foreground" />
+                Send digest at
+              </Label>
+              <Input
+                type="time"
+                value={localConfig.digest_time}
+                onChange={(e) => {
+                  const newTime = e.target.value;
+                  setLocalConfig(prev => ({ ...prev, digest_time: newTime }));
+                  updateConfiguration.mutate({
+                    configuration: { digest_time: newTime },
+                  });
+                }}
+                className="w-32"
+              />
+              <p className="text-xs text-muted-foreground">
+                Weekdays only (Mon–Fri), Oslo timezone
+              </p>
+            </div>
+          </CardContent>
+        )}
+      </Card>
+
+      {/* Critical Alerts Channel */}
+      <Card className="bg-gradient-surface border-border/50">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-destructive/10">
+                <AlertTriangle className="h-5 w-5 text-destructive" />
+              </div>
+              <div>
+                <CardTitle className="text-lg">Critical Alerts</CardTitle>
+                <CardDescription>
+                  Instantly push critical issues (booking errors, payment failures) to a dedicated channel
+                </CardDescription>
+              </div>
+            </div>
+            <Switch
+              checked={localConfig.critical_alerts_enabled}
+              onCheckedChange={(checked) => {
+                setLocalConfig(prev => ({ ...prev, critical_alerts_enabled: checked }));
+                updateConfiguration.mutate({
+                  configuration: { critical_alerts_enabled: checked },
+                });
+              }}
+              disabled={updateConfiguration.isPending}
+            />
+          </div>
+        </CardHeader>
+        {localConfig.critical_alerts_enabled && (
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label>Critical Alerts Channel</Label>
+              <div className="flex gap-2">
+                <Select
+                  value={criticalChannelId}
+                  onValueChange={(channelId) => {
+                    const channel = channels.find(c => c.id === channelId);
+                    setCriticalChannelId(channelId);
+                    updateConfiguration.mutate({
+                      critical_channel_id: channelId,
+                      critical_channel_name: channel?.name || '',
+                    });
+                  }}
+                  disabled={isLoadingChannels}
+                >
+                  <SelectTrigger className="flex-1">
+                    <SelectValue placeholder="Select a channel for critical alerts..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {channels.map((channel) => (
+                      <SelectItem key={channel.id} value={channel.id}>
+                        <div className="flex items-center gap-2">
+                          {channel.is_private ? (
+                            <Lock className="h-3 w-3 text-muted-foreground" />
+                          ) : (
+                            <Hash className="h-3 w-3 text-muted-foreground" />
+                          )}
+                          {channel.name}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <Alert className="bg-destructive/5 border-destructive/20">
+              <AlertTriangle className="h-4 w-4 text-destructive" />
+              <AlertDescription className="text-sm">
+                Critical alerts are triggered by keywords like <span className="font-mono text-xs bg-muted px-1 py-0.5 rounded">booking</span>, <span className="font-mono text-xs bg-muted px-1 py-0.5 rounded">payment failed</span>, <span className="font-mono text-xs bg-muted px-1 py-0.5 rounded">not working</span>, or conversations marked as <span className="font-semibold">urgent/high</span> priority.
+                Messages will include <span className="font-mono text-xs bg-muted px-1 py-0.5 rounded">@channel</span> to notify everyone.
+              </AlertDescription>
+            </Alert>
+          </CardContent>
+        )}
       </Card>
 
       {/* Advanced Settings */}

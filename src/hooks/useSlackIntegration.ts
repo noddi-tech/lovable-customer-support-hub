@@ -7,6 +7,9 @@ export interface SlackIntegrationConfig {
   enabled_events: string[];
   mention_assigned_user: boolean;
   include_message_preview: boolean;
+  digest_enabled: boolean;
+  digest_time: string;
+  critical_alerts_enabled: boolean;
 }
 
 export interface SlackIntegration {
@@ -18,6 +21,10 @@ export interface SlackIntegration {
   bot_user_id: string | null;
   default_channel_id: string | null;
   default_channel_name: string | null;
+  digest_channel_id: string | null;
+  digest_channel_name: string | null;
+  critical_channel_id: string | null;
+  critical_channel_name: string | null;
   configuration: SlackIntegrationConfig;
   setup_completed: boolean;
   created_at: string;
@@ -57,6 +64,9 @@ export const useSlackIntegration = () => {
           enabled_events: (config.enabled_events as string[]) || [],
           mention_assigned_user: config.mention_assigned_user !== false,
           include_message_preview: config.include_message_preview !== false,
+          digest_enabled: !!config.digest_enabled,
+          digest_time: (config.digest_time as string) || '08:00',
+          critical_alerts_enabled: !!config.critical_alerts_enabled,
         },
         setup_completed: data.setup_completed || false,
       } as SlackIntegration;
@@ -155,6 +165,10 @@ export const useSlackIntegration = () => {
     mutationFn: async (updates: {
       default_channel_id?: string;
       default_channel_name?: string;
+      digest_channel_id?: string;
+      digest_channel_name?: string;
+      critical_channel_id?: string;
+      critical_channel_name?: string;
       is_active?: boolean;
       configuration?: Partial<SlackIntegrationConfig>;
     }) => {
@@ -169,6 +183,18 @@ export const useSlackIntegration = () => {
       }
       if (updates.default_channel_name !== undefined) {
         updateData.default_channel_name = updates.default_channel_name;
+      }
+      if (updates.digest_channel_id !== undefined) {
+        updateData.digest_channel_id = updates.digest_channel_id;
+      }
+      if (updates.digest_channel_name !== undefined) {
+        updateData.digest_channel_name = updates.digest_channel_name;
+      }
+      if (updates.critical_channel_id !== undefined) {
+        updateData.critical_channel_id = updates.critical_channel_id;
+      }
+      if (updates.critical_channel_name !== undefined) {
+        updateData.critical_channel_name = updates.critical_channel_name;
       }
       if (updates.is_active !== undefined) {
         updateData.is_active = updates.is_active;
