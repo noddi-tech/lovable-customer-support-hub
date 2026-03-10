@@ -91,7 +91,7 @@ Deno.serve(async (req) => {
         if (!aiAddr) {
           return jsonResponse({ error: "address_id required" }, 400);
         }
-        const payload: any = { address_id: aiAddr, brand: brand || "noddi" };
+        const payload: any = { address_id: aiAddr, brand_domain: brand || "noddi" };
         // Noddi API requires license_plates as objects: [{number, country_code}]
         if (license_plates) {
           const lpArray = Array.isArray(license_plates) ? license_plates : [license_plates];
