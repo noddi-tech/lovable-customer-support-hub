@@ -9,7 +9,7 @@ export interface SlackIntegrationConfig {
   include_message_preview: boolean;
   digest_enabled: boolean;
   digest_time: string;
-  digest_frequency: 'daily' | 'weekly' | 'both';
+  digest_frequency?: 'daily' | 'weekly' | 'both';
   critical_alerts_enabled: boolean;
 }
 
