@@ -184,6 +184,18 @@ export const useSlackIntegration = () => {
       if (updates.default_channel_name !== undefined) {
         updateData.default_channel_name = updates.default_channel_name;
       }
+      if (updates.digest_channel_id !== undefined) {
+        updateData.digest_channel_id = updates.digest_channel_id;
+      }
+      if (updates.digest_channel_name !== undefined) {
+        updateData.digest_channel_name = updates.digest_channel_name;
+      }
+      if (updates.critical_channel_id !== undefined) {
+        updateData.critical_channel_id = updates.critical_channel_id;
+      }
+      if (updates.critical_channel_name !== undefined) {
+        updateData.critical_channel_name = updates.critical_channel_name;
+      }
       if (updates.is_active !== undefined) {
         updateData.is_active = updates.is_active;
       }
