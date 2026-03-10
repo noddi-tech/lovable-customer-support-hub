@@ -48,6 +48,7 @@ export const SlackIntegrationSettings = () => {
     include_message_preview: true,
     digest_enabled: false,
     digest_time: '08:00',
+    digest_frequency: 'daily' as 'daily' | 'weekly' | 'both',
     critical_alerts_enabled: false,
   });
   const [selectedChannelId, setSelectedChannelId] = useState<string>('');
