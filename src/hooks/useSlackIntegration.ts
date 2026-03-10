@@ -165,6 +165,10 @@ export const useSlackIntegration = () => {
     mutationFn: async (updates: {
       default_channel_id?: string;
       default_channel_name?: string;
+      digest_channel_id?: string;
+      digest_channel_name?: string;
+      critical_channel_id?: string;
+      critical_channel_name?: string;
       is_active?: boolean;
       configuration?: Partial<SlackIntegrationConfig>;
     }) => {
