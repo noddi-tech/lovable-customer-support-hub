@@ -1,30 +1,94 @@
 
 
-## Fix: Delivery Windows 502 — Parameter Name Mismatch + Better Error Handling
+## Investigation Summary
 
-### Root Cause
+I found **two root causes** behind the issues:
 
-The `delivery_windows` case in `noddi-booking-proxy` has two issues:
+### Problem 1: Counter numbers don't match what's shown in the list
 
-1. **MCP parameter name mismatch**: The code passes `selected_sales_item_ids` to the MCP tool, but the Navio MCP docs show `delivery_window_get` expects `sales_item_ids`. The MCP call silently fails, then the REST fallback also fails (likely deprecated endpoint).
+The SQL count functions (`get_all_counts` and `get_inbox_counts`) count conversations differently than the client-side tab filters, causing mismatched numbers.
 
-2. **No diagnostic logging on MCP response**: When MCP returns an error or unexpected shape, the code silently falls through to REST without logging what MCP actually returned.
+**SQL counts "Open" as:**
+```sql
+COUNT(*) FILTER (WHERE status = 'open' AND deleted_at IS NULL)
+```
 
-### Fix
+**Client-side "Open" tab shows:**
+```
+status === 'open' AND !is_archived AND !isSnoozedActive AND !is_deleted
+```
 
-In `supabase/functions/noddi-booking-proxy/index.ts`, the `delivery_windows` case (lines 157-232):
+The SQL doesn't exclude **archived** or **snoozed** conversations from the Open/Pending/Closed counts. So if 3 conversations are snoozed but still `status='open'`, the counter shows them but the list hides them. Same issue for archived conversations — they get double-counted in both their status bucket and the archived count.
 
-1. **Rename the MCP argument** from `selected_sales_item_ids` to `sales_item_ids` to match the MCP tool's expected schema.
+### Problem 2: Counters don't update in real-time
 
-2. **Add diagnostic logging** for the MCP response body so failures are visible in edge function logs.
+The realtime subscription correctly invalidates `inboxCounts` and `all-counts` query keys when conversation changes are detected. However, the `useInboxCounts` hook only has a 30-second staleTime with no polling fallback. If the Supabase realtime channel drops or events are missed, counters go stale until the next window focus.
 
-3. **Consume the REST response body** on failure to prevent resource leaks and log the actual status + body.
+---
 
-### Changes
+## Fix Plan
 
-**File: `supabase/functions/noddi-booking-proxy/index.ts`**
+### 1. Fix SQL count functions to match client-side filter logic
 
-- Line 170: Change `mcpArgs.selected_sales_item_ids` → `mcpArgs.sales_item_ids`
-- Lines 185-211: Add `console.log` for MCP response status and parsed data before the success check
-- Lines 224-228: Add more detail to REST fallback error logging
+**New migration** — Update both `get_all_counts()` and `get_inbox_counts(uuid)` to exclude archived and snoozed conversations from status-specific counts:
+
+```sql
+-- Open: status='open', not archived, not snoozed, not deleted
+COUNT(*) FILTER (WHERE status = 'open' AND deleted_at IS NULL 
+  AND is_archived = false 
+  AND (snooze_until IS NULL OR snooze_until <= NOW()))::bigint
+
+-- Pending: same exclusions
+COUNT(*) FILTER (WHERE status = 'pending' AND deleted_at IS NULL 
+  AND is_archived = false 
+  AND (snooze_until IS NULL OR snooze_until <= NOW()))::bigint
+
+-- Closed: same exclusions  
+COUNT(*) FILTER (WHERE status = 'closed' AND deleted_at IS NULL 
+  AND is_archived = false 
+  AND (snooze_until IS NULL OR snooze_until <= NOW()))::bigint
+
+-- Assigned: also exclude archived/snoozed
+COUNT(*) FILTER (WHERE assigned_to_id = v_profile_id AND deleted_at IS NULL
+  AND is_archived = false
+  AND (snooze_until IS NULL OR snooze_until <= NOW()))::bigint
+
+-- Unread: exclude archived/snoozed
+COUNT(*) FILTER (WHERE is_read = false AND deleted_at IS NULL
+  AND is_archived = false
+  AND (snooze_until IS NULL OR snooze_until <= NOW()))::bigint
+
+-- All: everything not archived, not snoozed, not deleted
+COUNT(*) FILTER (WHERE deleted_at IS NULL 
+  AND is_archived = false
+  AND (snooze_until IS NULL OR snooze_until <= NOW()))::bigint
+
+-- Archived and Deleted stay as-is
+```
+
+### 2. Add polling fallback for counter freshness
+
+**File: `src/hooks/useInteractionsData.ts`** — Add a `refetchInterval` to `useInboxCounts` as a safety net for when realtime events are missed:
+
+```typescript
+export function useInboxCounts(inboxId: InboxId) {
+  return useQuery({
+    queryKey: ['inboxCounts', inboxId],
+    queryFn: () => getInboxCounts(inboxId),
+    enabled: !!inboxId,
+    staleTime: 15 * 1000,        // 15 seconds (was 30s)
+    gcTime: 5 * 60 * 1000,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+    refetchInterval: 30 * 1000,  // NEW: poll every 30s as fallback
+  });
+}
+```
+
+### Files changed
+
+| File | Change |
+|---|---|
+| New SQL migration | Fix `get_all_counts` and `get_inbox_counts` to exclude archived/snoozed from status counts |
+| `src/hooks/useInteractionsData.ts` | Add 30s polling fallback to `useInboxCounts` |
 
