@@ -25,6 +25,9 @@ export interface SlackIntegration {
   digest_channel_name: string | null;
   critical_channel_id: string | null;
   critical_channel_name: string | null;
+  secondary_access_token: string | null;
+  secondary_team_name: string | null;
+  secondary_team_id: string | null;
   configuration: SlackIntegrationConfig;
   setup_completed: boolean;
   created_at: string;
@@ -91,6 +94,25 @@ export const useSlackIntegration = () => {
       return (response.data?.channels || []) as SlackChannel[];
     },
     enabled: !!currentOrganizationId && !!integration?.is_active,
+  });
+
+  // Fetch channels from the secondary workspace (if connected)
+  const { data: secondaryChannels = [], isLoading: isLoadingSecondaryChannels, refetch: refetchSecondaryChannels } = useQuery({
+    queryKey: ['slack-secondary-channels', currentOrganizationId],
+    queryFn: async () => {
+      if (!currentOrganizationId || !integration?.secondary_team_id) return [];
+
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return [];
+
+      const response = await supabase.functions.invoke('slack-list-channels', {
+        body: { organization_id: currentOrganizationId, use_secondary: true },
+      });
+
+      if (response.error) throw response.error;
+      return (response.data?.channels || []) as SlackChannel[];
+    },
+    enabled: !!currentOrganizationId && !!integration?.secondary_team_id,
   });
 
   // Save bot token (main connection method)
@@ -254,6 +276,70 @@ export const useSlackIntegration = () => {
     },
   });
 
+  // Save secondary workspace token
+  const saveSecondaryToken = useMutation({
+    mutationFn: async ({ bot_token }: { bot_token: string }) => {
+      if (!currentOrganizationId) throw new Error('No organization selected');
+
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not authenticated');
+
+      const functionUrl = `https://qgfaycwsangsqzpveoup.supabase.co/functions/v1/slack-integration?action=save-secondary-token`;
+      const response = await fetch(functionUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ bot_token, organization_id: currentOrganizationId }),
+      });
+
+      const data = await response.json();
+      if (data.error) throw new Error(data.error);
+      return data as { success: boolean; team_name: string; team_id: string };
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['slack-integration'] });
+      queryClient.invalidateQueries({ queryKey: ['slack-secondary-channels'] });
+      toast.success(`Secondary workspace connected: ${data.team_name}`);
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to connect secondary workspace: ${error.message}`);
+    },
+  });
+
+  // Disconnect secondary workspace
+  const disconnectSecondary = useMutation({
+    mutationFn: async () => {
+      if (!currentOrganizationId) throw new Error('No organization selected');
+
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not authenticated');
+
+      const functionUrl = `https://qgfaycwsangsqzpveoup.supabase.co/functions/v1/slack-integration?action=disconnect-secondary`;
+      const response = await fetch(functionUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ organization_id: currentOrganizationId }),
+      });
+
+      const data = await response.json();
+      if (data.error) throw new Error(data.error);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['slack-integration'] });
+      queryClient.invalidateQueries({ queryKey: ['slack-secondary-channels'] });
+      toast.success('Secondary workspace disconnected');
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to disconnect: ${error.message}`);
+    },
+  });
+
   return {
     integration,
     isLoading,
@@ -262,12 +348,18 @@ export const useSlackIntegration = () => {
     isConnected: !!integration?.is_active && !!integration?.team_id,
     hasCredentials: !!integration?.setup_completed,
     setupCompleted: !!integration?.setup_completed,
+    hasSecondaryWorkspace: !!integration?.secondary_team_id,
     channels,
     isLoadingChannels,
     refetchChannels,
+    secondaryChannels,
+    isLoadingSecondaryChannels,
+    refetchSecondaryChannels,
     disconnectSlack,
     updateConfiguration,
     testConnection,
     saveDirectToken,
+    saveSecondaryToken,
+    disconnectSecondary,
   };
 };

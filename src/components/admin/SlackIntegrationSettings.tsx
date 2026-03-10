@@ -8,7 +8,7 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Input } from '@/components/ui/input';
-import { Loader2, CheckCircle2, Hash, Lock, Send, ExternalLink, Slack, Info, Clock, AlertTriangle, BarChart3 } from 'lucide-react';
+import { Loader2, CheckCircle2, Hash, Lock, Send, ExternalLink, Slack, Info, Clock, AlertTriangle, BarChart3, Building2 } from 'lucide-react';
 import { useSlackIntegration } from '@/hooks/useSlackIntegration';
 import { SlackSetupWizard } from './SlackSetupWizard';
 
@@ -33,6 +33,12 @@ export const SlackIntegrationSettings = () => {
     disconnectSlack,
     updateConfiguration,
     testConnection,
+    hasSecondaryWorkspace,
+    secondaryChannels,
+    isLoadingSecondaryChannels,
+    refetchSecondaryChannels,
+    saveSecondaryToken,
+    disconnectSecondary,
   } = useSlackIntegration();
 
   const [localConfig, setLocalConfig] = useState({
@@ -46,6 +52,11 @@ export const SlackIntegrationSettings = () => {
   const [selectedChannelId, setSelectedChannelId] = useState<string>('');
   const [digestChannelId, setDigestChannelId] = useState<string>('');
   const [criticalChannelId, setCriticalChannelId] = useState<string>('');
+  const [secondaryToken, setSecondaryToken] = useState('');
+
+  // Channels for digest/critical: use secondary workspace if connected, else primary
+  const routingChannels = hasSecondaryWorkspace ? secondaryChannels : channels;
+  const isLoadingRoutingChannels = hasSecondaryWorkspace ? isLoadingSecondaryChannels : isLoadingChannels;
 
   // Sync local state with fetched integration
   useEffect(() => {
@@ -95,6 +106,19 @@ export const SlackIntegrationSettings = () => {
     updateConfiguration.mutate({
       configuration: { [key]: enabled },
     });
+  };
+
+  const handleConnectSecondary = () => {
+    if (!secondaryToken.trim()) return;
+    saveSecondaryToken.mutate({ bot_token: secondaryToken.trim() }, {
+      onSuccess: () => setSecondaryToken(''),
+    });
+  };
+
+  const handleDisconnectSecondary = () => {
+    if (confirm('Disconnect secondary workspace? Digest and critical alerts will fall back to the primary workspace.')) {
+      disconnectSecondary.mutate();
+    }
   };
 
   if (isLoading) {
@@ -239,6 +263,76 @@ export const SlackIntegrationSettings = () => {
         </CardContent>
       </Card>
 
+      {/* Secondary Workspace (Product Team) */}
+      <Card className="bg-gradient-surface border-border/50">
+        <CardHeader>
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-primary/10">
+              <Building2 className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <CardTitle className="text-lg">Product Team Workspace</CardTitle>
+              <CardDescription>
+                Route daily digests and critical alerts to a different Slack workspace
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {hasSecondaryWorkspace ? (
+            <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
+              <div className="flex items-center gap-3">
+                <CheckCircle2 className="h-5 w-5 text-success" />
+                <div>
+                  <p className="font-medium">{integration?.secondary_team_name}</p>
+                  <p className="text-sm text-muted-foreground">Secondary Workspace</p>
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleDisconnectSecondary}
+                disabled={disconnectSecondary.isPending}
+              >
+                {disconnectSecondary.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  'Disconnect'
+                )}
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Connect a second Slack workspace to receive digest summaries and critical alerts in your product/engineering team's workspace.
+              </p>
+              <div className="flex gap-2">
+                <Input
+                  type="password"
+                  placeholder="xoxb-... (Bot User OAuth Token)"
+                  value={secondaryToken}
+                  onChange={(e) => setSecondaryToken(e.target.value)}
+                  className="flex-1 font-mono text-sm"
+                />
+                <Button
+                  onClick={handleConnectSecondary}
+                  disabled={!secondaryToken.trim() || saveSecondaryToken.isPending}
+                >
+                  {saveSecondaryToken.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    'Connect'
+                  )}
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Create a Slack app in your product team's workspace and paste the Bot User OAuth Token here.
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Event Configuration */}
       <Card className="bg-gradient-surface border-border/50">
         <CardHeader>
@@ -284,6 +378,11 @@ export const SlackIntegrationSettings = () => {
                 <CardTitle className="text-lg">Daily Digest</CardTitle>
                 <CardDescription>
                   Push a daily summary of conversations to a Slack channel
+                  {hasSecondaryWorkspace && (
+                    <span className="ml-1 text-primary">
+                      (→ {integration?.secondary_team_name})
+                    </span>
+                  )}
                 </CardDescription>
               </div>
             </div>
@@ -307,20 +406,20 @@ export const SlackIntegrationSettings = () => {
                 <Select
                   value={digestChannelId}
                   onValueChange={(channelId) => {
-                    const channel = channels.find(c => c.id === channelId);
+                    const channel = routingChannels.find(c => c.id === channelId);
                     setDigestChannelId(channelId);
                     updateConfiguration.mutate({
                       digest_channel_id: channelId,
                       digest_channel_name: channel?.name || '',
                     });
                   }}
-                  disabled={isLoadingChannels}
+                  disabled={isLoadingRoutingChannels}
                 >
                   <SelectTrigger className="flex-1">
                     <SelectValue placeholder="Select a channel for daily digest..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {channels.map((channel) => (
+                    {routingChannels.map((channel) => (
                       <SelectItem key={channel.id} value={channel.id}>
                         <div className="flex items-center gap-2">
                           {channel.is_private ? (
@@ -334,6 +433,20 @@ export const SlackIntegrationSettings = () => {
                     ))}
                   </SelectContent>
                 </Select>
+                {hasSecondaryWorkspace && (
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => refetchSecondaryChannels()}
+                    disabled={isLoadingSecondaryChannels}
+                  >
+                    {isLoadingSecondaryChannels ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <ExternalLink className="h-4 w-4" />
+                    )}
+                  </Button>
+                )}
               </div>
             </div>
 
@@ -374,6 +487,11 @@ export const SlackIntegrationSettings = () => {
                 <CardTitle className="text-lg">Critical Alerts</CardTitle>
                 <CardDescription>
                   Instantly push critical issues (booking errors, payment failures) to a dedicated channel
+                  {hasSecondaryWorkspace && (
+                    <span className="ml-1 text-primary">
+                      (→ {integration?.secondary_team_name})
+                    </span>
+                  )}
                 </CardDescription>
               </div>
             </div>
@@ -397,20 +515,20 @@ export const SlackIntegrationSettings = () => {
                 <Select
                   value={criticalChannelId}
                   onValueChange={(channelId) => {
-                    const channel = channels.find(c => c.id === channelId);
+                    const channel = routingChannels.find(c => c.id === channelId);
                     setCriticalChannelId(channelId);
                     updateConfiguration.mutate({
                       critical_channel_id: channelId,
                       critical_channel_name: channel?.name || '',
                     });
                   }}
-                  disabled={isLoadingChannels}
+                  disabled={isLoadingRoutingChannels}
                 >
                   <SelectTrigger className="flex-1">
                     <SelectValue placeholder="Select a channel for critical alerts..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {channels.map((channel) => (
+                    {routingChannels.map((channel) => (
                       <SelectItem key={channel.id} value={channel.id}>
                         <div className="flex items-center gap-2">
                           {channel.is_private ? (
@@ -424,13 +542,27 @@ export const SlackIntegrationSettings = () => {
                     ))}
                   </SelectContent>
                 </Select>
+                {hasSecondaryWorkspace && (
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => refetchSecondaryChannels()}
+                    disabled={isLoadingSecondaryChannels}
+                  >
+                    {isLoadingSecondaryChannels ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <ExternalLink className="h-4 w-4" />
+                    )}
+                  </Button>
+                )}
               </div>
             </div>
 
             <Alert className="bg-destructive/5 border-destructive/20">
               <AlertTriangle className="h-4 w-4 text-destructive" />
               <AlertDescription className="text-sm">
-                Critical alerts are triggered by keywords like <span className="font-mono text-xs bg-muted px-1 py-0.5 rounded">booking</span>, <span className="font-mono text-xs bg-muted px-1 py-0.5 rounded">payment failed</span>, <span className="font-mono text-xs bg-muted px-1 py-0.5 rounded">not working</span>, or conversations marked as <span className="font-semibold">urgent/high</span> priority.
+                Critical alerts are triggered by keywords in Norwegian and English like <span className="font-mono text-xs bg-muted px-1 py-0.5 rounded">bestilling feilet</span>, <span className="font-mono text-xs bg-muted px-1 py-0.5 rounded">fungerer ikke</span>, <span className="font-mono text-xs bg-muted px-1 py-0.5 rounded">payment failed</span>, or conversations marked as <span className="font-semibold">urgent/high</span> priority.
                 Messages will include <span className="font-mono text-xs bg-muted px-1 py-0.5 rounded">@channel</span> to notify everyone.
               </AlertDescription>
             </Alert>

@@ -408,9 +408,20 @@ Deno.serve(async (req) => {
     
     if (criticalConfig.critical_alerts_enabled && criticalChannelId && criticalChannelId !== channelId) {
       const CRITICAL_KEYWORDS = [
+        // English
         'booking', "can't book", 'cannot book', 'payment failed', 'payment error',
         'error', 'not working', 'broken', 'down', 'outage', 'can\'t access',
         'unable to', 'fails', 'failure', 'critical', 'urgent',
+        // Norwegian
+        'kan ikke bestille', 'bestilling feilet', 'bestilling feiler',
+        'betaling feilet', 'betaling feiler', 'betalingsfeil',
+        'fungerer ikke', 'virker ikke', 'funker ikke',
+        'feil', 'feilmelding', 'feiler',
+        'nedetid', 'ødelagt', 'nede',
+        'får ikke til', 'klarer ikke', 'ikke tilgjengelig',
+        'kritisk', 'haster', 'akutt',
+        'kan ikke logge inn', 'innlogging feiler',
+        'appen krasjer', 'krasjer', 'tom side', 'blank side',
       ];
 
       const textToCheck = [subject, preview_text, customer_name]
@@ -488,10 +499,12 @@ Deno.serve(async (req) => {
         }
 
         try {
+          // Use secondary workspace token if available, otherwise fall back to primary
+          const criticalToken = integration.secondary_access_token || integration.access_token;
           const criticalResponse = await fetch('https://slack.com/api/chat.postMessage', {
             method: 'POST',
             headers: {
-              'Authorization': `Bearer ${integration.access_token}`,
+              'Authorization': `Bearer ${criticalToken}`,
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({

@@ -1,67 +1,79 @@
 
 
-## Plan: Norwegian Keyword Support + Multi-Workspace Slack
+## Plan: Fix Counter Mismatch + Add Internal Notes to Chat
 
-### Two Issues Identified
+### Bug 1: Open counter shows 9 but only 6 rows visible
 
-**Issue 1: Critical triage only scans English keywords**
-The `CRITICAL_KEYWORDS` array in `send-slack-notification` only contains English terms (`booking`, `payment failed`, `not working`, etc.). Since customer messages are primarily in Norwegian, keywords like `kan ikke bestille`, `fungerer ikke`, `betaling feilet` will never trigger alerts.
+**Root cause**: The SQL `get_inbox_counts` / `get_all_counts` functions count every individual conversation with `status='open'`. But the conversation list applies **client-side threading** (`groupConversationsByThread`) which groups conversations from the same customer+subject into a single row. If 3 pairs of conversations get threaded together, you see 6 rows but the counter shows 9.
 
-**Issue 2: Digest/Critical alerts can only go to channels in the same workspace**
-The channel selectors for Daily Digest and Critical Alerts pull from the same `slack-list-channels` call, which uses the single connected bot token. The team wants to push these to a **different** Slack workspace (e.g., the product/dev workspace), but currently only one workspace connection exists per organization.
+The SQL knows nothing about threading. The counter and the list count different things.
+
+**Fix (Hybrid approach)**: After the `ConversationListContext` computes `filteredAndSortedConversations` (which includes threading), expose these counts so the sidebar can use them for the **active** filter. For non-active filters, continue using SQL counts (they're approximate but acceptable as indicators).
+
+**Changes:**
+
+1. **`src/contexts/ConversationListContext.tsx`** — After `filteredAndSortedConversations` is computed, derive a `threadedOpenCount` (the actual number of visible rows for the current tab). Expose this via context as `visibleCount`.
+
+2. **`src/components/layout/InboxList.tsx`** — Accept an optional `visibleCount` prop for the currently active filter. When provided, display it instead of the SQL count for that specific filter button. Other filters keep using SQL counts.
+
+3. **`src/components/dashboard/EnhancedInteractionsLayout.tsx`** — Pass the `visibleCount` from the conversation list context down to `InboxList` for the active status tab.
+
+Alternatively (simpler, no cross-context wiring): **Do the threading-aware counting in SQL**. Add a `COUNT(DISTINCT ...)` with a thread key (lower(customer_email) || '::' || lower(regexp_replace(subject, ...))). This keeps the count logic centralized and always correct.
+
+**Recommended approach**: SQL-level fix. Add a thread-aware count column to `get_all_counts` and `get_inbox_counts` that groups by `(customer_email, normalized_subject)` before counting, matching the client-side threading logic:
+
+```sql
+-- Replace simple COUNT with thread-aware count
+-- Thread key = customer email + normalized subject (matching client logic)
+WITH threaded AS (
+  SELECT DISTINCT ON (
+    LOWER(COALESCE(cu.email, '')),
+    LOWER(REGEXP_REPLACE(c.subject, '^(re:|fwd?:|fw:|aw:|sv:|vs:)\s*', '', 'gi'))
+  )
+  c.id, c.status, c.is_archived, c.is_read, c.deleted_at, 
+  c.snooze_until, c.assigned_to_id, c.channel
+  FROM conversations c
+  LEFT JOIN customers cu ON c.customer_id = cu.id
+  WHERE c.organization_id = v_org_id
+  ORDER BY LOWER(COALESCE(cu.email, '')),
+    LOWER(REGEXP_REPLACE(c.subject, '^(re:|fwd?:|fw:|aw:|sv:|vs:)\s*', '', 'gi')),
+    COALESCE(c.received_at, c.updated_at) DESC
+)
+SELECT
+  COUNT(*) FILTER (WHERE status='open' AND deleted_at IS NULL 
+    AND NOT is_archived AND (snooze_until IS NULL OR snooze_until <= NOW()))
+  AS conversations_open,
+  -- ... other counts ...
+FROM threaded;
+```
+
+This applies the same deduplication the client does: for each (customer_email, normalized_subject) group, only the most recent conversation is counted. The counter will then match the visible rows exactly.
+
+**Migration**: New SQL migration updating both `get_all_counts()` and `get_inbox_counts(uuid)`.
 
 ---
 
-### Changes
+### Feature 2: Add internal notes to live chat
 
-#### 1. Add Norwegian keywords to critical triage
+**Current state**: The live chat view uses `ChatReplyInput` (line 377 of `ProgressiveMessagesList.tsx`) which is a dedicated chat composer that **hardcodes `is_internal: false`** on every message insert. It has no internal note toggle or button.
 
-**`supabase/functions/send-slack-notification/index.ts`** — Expand `CRITICAL_KEYWORDS` to include Norwegian equivalents:
+Meanwhile, the email view uses `LazyReplyArea` → `ReplyArea` which has full internal note support (toggle, yellow styling, mention support).
 
-```
-'kan ikke bestille', 'bestilling feilet', 'betaling feilet', 'fungerer ikke',
-'virker ikke', 'feil', 'nedetid', 'ødelagt', 'får ikke til', 'klarer ikke',
-'kritisk', 'haster', 'ikke tilgjengelig', 'feiler', 'feilmelding'
-```
+**Fix**: Add an "Internal Note" button to `ChatReplyInput`, matching the email pattern:
 
-This is a simple array expansion — the `.toLowerCase().includes()` check works identically for Norwegian strings.
+1. **`src/components/conversations/ChatReplyInput.tsx`**:
+   - Add `isInternalNote` state toggle
+   - Add a sticky note icon button next to Send that toggles note mode
+   - When in note mode: change textarea background to yellow tint, show "Internal note" badge, set `is_internal: true` on the message insert
+   - Internal notes skip the typing indicator (`handleTyping`) since they're not visible to the visitor
+   - Add keyboard shortcut: `N` key to toggle note mode when textarea is not focused
 
-#### 2. Support a second Slack workspace for digest/critical
-
-Add an optional **secondary Slack bot token** field to the integration, allowing digest and critical alerts to be routed to a different workspace.
-
-**New migration** — Add columns to `slack_integrations`:
-- `secondary_access_token` (text, nullable) — bot token for the second workspace
-- `secondary_team_name` (text, nullable)
-- `secondary_team_id` (text, nullable)
-
-**`src/components/admin/SlackIntegrationSettings.tsx`** — Add a new card section "Product Team Workspace" below the existing connection card:
-- A text input for a second bot token (same flow as the setup wizard step 3)
-- A "Connect" button that validates via `auth.test`
-- Once connected, show the workspace name + Disconnect button
-- The digest and critical channel selectors will then fetch channels from the secondary workspace when a secondary token is present
-
-**`src/hooks/useSlackIntegration.ts`** — Add a `saveSecondaryToken` mutation (similar to `saveDirectToken`) and expose `secondaryChannels` query that calls `slack-list-channels` with the secondary token.
-
-**`supabase/functions/slack-integration/index.ts`** — Add `action=save-secondary-token` handler: validate the token, save to `secondary_access_token`, `secondary_team_name`, `secondary_team_id`.
-
-**`supabase/functions/slack-list-channels/index.ts`** — Accept an optional `use_secondary: true` param. When set, use `secondary_access_token` instead of `access_token`.
-
-**`supabase/functions/send-slack-notification/index.ts`** — When posting critical alerts, use `secondary_access_token` if present (falling back to primary).
-
-**`supabase/functions/slack-daily-digest/index.ts`** — Same: use `secondary_access_token` for digest posts if present.
-
-**UI flow**: The digest/critical channel dropdowns will show channels from the secondary workspace when connected. If no secondary workspace is connected, they fall back to channels from the primary workspace (current behavior).
+2. **`src/components/conversations/ChatMessagesList.tsx`** — Ensure internal notes render with the yellow note styling (they already flow through `MessageCard` which handles `isInternalNote` styling, but verify the chat message list passes the flag correctly).
 
 ### Files changed
 
 | File | Change |
 |---|---|
-| New SQL migration | Add `secondary_access_token`, `secondary_team_name`, `secondary_team_id` columns |
-| `supabase/functions/send-slack-notification/index.ts` | Add Norwegian keywords + use secondary token for critical |
-| `supabase/functions/slack-daily-digest/index.ts` | Use secondary token for digest posts |
-| `supabase/functions/slack-integration/index.ts` | Add `save-secondary-token` action |
-| `supabase/functions/slack-list-channels/index.ts` | Support `use_secondary` param |
-| `src/hooks/useSlackIntegration.ts` | Add secondary token mutation + secondary channels query |
-| `src/components/admin/SlackIntegrationSettings.tsx` | Add secondary workspace connection UI + wire digest/critical to secondary channels |
+| New SQL migration | Thread-aware counting in `get_all_counts` and `get_inbox_counts` |
+| `src/components/conversations/ChatReplyInput.tsx` | Add internal note toggle, button, and yellow styling |
 

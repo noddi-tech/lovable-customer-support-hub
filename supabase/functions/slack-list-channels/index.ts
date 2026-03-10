@@ -44,16 +44,21 @@ Deno.serve(async (req) => {
       );
     }
 
+    const useSecondary = body.use_secondary === true;
+
     // Get the Slack integration for this organization
     const { data: integration, error: integrationError } = await supabase
       .from('slack_integrations')
-      .select('access_token')
+      .select('access_token, secondary_access_token')
       .eq('organization_id', organizationId)
       .single();
 
-    if (integrationError || !integration?.access_token) {
+    // Pick the right token based on use_secondary flag
+    const token = useSecondary ? integration?.secondary_access_token : integration?.access_token;
+
+    if (integrationError || !token) {
       return new Response(
-        JSON.stringify({ error: 'Slack not connected', channels: [] }),
+        JSON.stringify({ error: useSecondary ? 'Secondary workspace not connected' : 'Slack not connected', channels: [] }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -72,7 +77,7 @@ Deno.serve(async (req) => {
 
       const response = await fetch(`https://slack.com/api/conversations.list?${params}`, {
         headers: {
-          'Authorization': `Bearer ${integration.access_token}`,
+          'Authorization': `Bearer ${token}`,
         },
       });
 

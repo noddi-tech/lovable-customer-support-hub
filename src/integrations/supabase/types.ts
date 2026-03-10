@@ -2787,6 +2787,9 @@ export type Database = {
           id: string
           is_active: boolean | null
           organization_id: string
+          secondary_access_token: string | null
+          secondary_team_id: string | null
+          secondary_team_name: string | null
           setup_completed: boolean | null
           team_id: string | null
           team_name: string | null
@@ -2808,6 +2811,9 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           organization_id: string
+          secondary_access_token?: string | null
+          secondary_team_id?: string | null
+          secondary_team_name?: string | null
           setup_completed?: boolean | null
           team_id?: string | null
           team_name?: string | null
@@ -2829,6 +2835,9 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           organization_id?: string
+          secondary_access_token?: string | null
+          secondary_team_id?: string | null
+          secondary_team_name?: string | null
           setup_completed?: boolean | null
           team_id?: string | null
           team_name?: string | null
