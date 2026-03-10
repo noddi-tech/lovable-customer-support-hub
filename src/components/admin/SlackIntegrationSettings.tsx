@@ -7,7 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, CheckCircle2, Hash, Lock, Send, ExternalLink, Slack, Info } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Loader2, CheckCircle2, Hash, Lock, Send, ExternalLink, Slack, Info, Clock, AlertTriangle, BarChart3 } from 'lucide-react';
 import { useSlackIntegration } from '@/hooks/useSlackIntegration';
 import { SlackSetupWizard } from './SlackSetupWizard';
 
