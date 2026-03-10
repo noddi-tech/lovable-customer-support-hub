@@ -302,33 +302,12 @@ export const SlackIntegrationSettings = () => {
               </Button>
             </div>
           ) : (
-            <div className="space-y-3">
-              <p className="text-sm text-muted-foreground">
-                Connect a second Slack workspace to receive digest summaries and critical alerts in your product/engineering team's workspace.
-              </p>
-              <div className="flex gap-2">
-                <Input
-                  type="password"
-                  placeholder="xoxb-... (Bot User OAuth Token)"
-                  value={secondaryToken}
-                  onChange={(e) => setSecondaryToken(e.target.value)}
-                  className="flex-1 font-mono text-sm"
-                />
-                <Button
-                  onClick={handleConnectSecondary}
-                  disabled={!secondaryToken.trim() || saveSecondaryToken.isPending}
-                >
-                  {saveSecondaryToken.isPending ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    'Connect'
-                  )}
-                </Button>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Create a Slack app in your product team's workspace and paste the Bot User OAuth Token here.
-              </p>
-            </div>
+            <SecondarySlackSetupWizard
+              onConnect={async (token) => {
+                await saveSecondaryToken.mutateAsync({ bot_token: token });
+              }}
+              isConnecting={saveSecondaryToken.isPending}
+            />
           )}
         </CardContent>
       </Card>
