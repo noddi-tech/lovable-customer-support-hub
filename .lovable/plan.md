@@ -1,30 +1,52 @@
 
 
-## Fix: Delivery Windows 502 — Parameter Name Mismatch + Better Error Handling
+## Fix Plan: Two Bugs in Booking Flow
 
-### Root Cause
+### Bug 1: Wrong cars extracted from booking history
 
-The `delivery_windows` case in `noddi-booking-proxy` has two issues:
+**Root cause**: In `executeLookupCustomer` (widget-ai-chat, line 1533-1544), the code does `const car = bic.car` for `booking_items_car` entries. But the Noddi API returns `booking_items_car` items where the car data IS the item itself — there's no nested `.car` property. The actual structure from logs:
 
-1. **MCP parameter name mismatch**: The code passes `selected_sales_item_ids` to the MCP tool, but the Navio MCP docs show `delivery_window_get` expects `sales_item_ids`. The MCP call silently fails, then the REST fallback also fails (likely deprecated endpoint).
+```json
+{"booking_items_car": [{"id": 13725, "make": "Tesla", "model": "Model y", "license_plate": {"country_code": "NO", "number": "EC94156"}}]}
+```
 
-2. **No diagnostic logging on MCP response**: When MCP returns an error or unexpected shape, the code silently falls through to REST without logging what MCP actually returned.
+So `bic.car` is `undefined`, causing real cars to be skipped. The AI then likely fabricates dummy cars (like "Audi Q5 AB12345") or gets them from stale data.
 
-### Fix
+**Fix**: In `widget-ai-chat/index.ts` lines 1533-1544, change `const car = bic.car` to treat `bic` itself as the car object (with fallback to `bic.car` for compatibility):
 
-In `supabase/functions/noddi-booking-proxy/index.ts`, the `delivery_windows` case (lines 157-232):
+```typescript
+for (const bic of b.booking_items_car) {
+  const car = bic.car || bic;  // bic IS the car in Noddi's structure
+  if (car?.id && !storedCars.has(car.id)) {
+    storedCars.set(car.id, {
+      id: car.id,
+      make: car.make || car.brand || '',
+      model: car.model || '',
+      license_plate: extractPlateString(car.license_plate_number || car.license_plate || car.registration),
+    });
+  }
+}
+```
 
-1. **Rename the MCP argument** from `selected_sales_item_ids` to `sales_item_ids` to match the MCP tool's expected schema.
+Same fix for the `booking_items` loop (line 1548): `const car = bi.car || bi;`
 
-2. **Add diagnostic logging** for the MCP response body so failures are visible in edge function logs.
+### Bug 2: `brand` → `brand_domain` in available_items
 
-3. **Consume the REST response body** on failure to prevent resource leaks and log the actual status + body.
+**Root cause**: The error is explicit: `"'brand' is an invalid field. Did you mean 'brand_domain'?"`. The Noddi API changed the field name.
 
-### Changes
+**Fix**: In `noddi-booking-proxy/index.ts` line 94, change:
+```typescript
+const payload: any = { address_id: aiAddr, brand: brand || "noddi" };
+```
+to:
+```typescript
+const payload: any = { address_id: aiAddr, brand_domain: brand || "noddi" };
+```
 
-**File: `supabase/functions/noddi-booking-proxy/index.ts`**
+### Files changed
 
-- Line 170: Change `mcpArgs.selected_sales_item_ids` → `mcpArgs.sales_item_ids`
-- Lines 185-211: Add `console.log` for MCP response status and parsed data before the success check
-- Lines 224-228: Add more detail to REST fallback error logging
+| File | Change |
+|---|---|
+| `supabase/functions/widget-ai-chat/index.ts` | Fix car extraction from `booking_items_car` (use `bic` directly, not `bic.car`) |
+| `supabase/functions/noddi-booking-proxy/index.ts` | Rename `brand` → `brand_domain` in available_items payload |
 
