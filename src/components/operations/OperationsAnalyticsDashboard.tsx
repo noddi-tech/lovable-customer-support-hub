@@ -226,27 +226,69 @@ export default function OperationsAnalyticsDashboard() {
               Sentiment Analysis
               {isLoadingAI && <Loader2 className="h-3 w-3 animate-spin" />}
             </CardTitle>
+            {data?.aiInsights?.summary && (
+              <CardDescription className="text-xs italic">
+                "{data.aiInsights.summary}"
+              </CardDescription>
+            )}
           </CardHeader>
           <CardContent>
             {data?.aiInsights?.sentimentBreakdown ? (
-              <div className="space-y-4">
-                {Object.entries(data.aiInsights.sentimentBreakdown).map(([key, value]) => (
-                  <div key={key} className="space-y-1">
-                    <div className="flex justify-between text-sm">
-                      <span className="capitalize text-foreground">{key}</span>
-                      <span className="font-medium text-foreground">{value}%</span>
+              <div className="space-y-5">
+                {/* Percentage bars */}
+                <div className="space-y-3">
+                  {Object.entries(data.aiInsights.sentimentBreakdown).map(([key, value]) => (
+                    <div key={key} className="space-y-1">
+                      <div className="flex justify-between text-sm">
+                        <span className="capitalize text-foreground">{key}</span>
+                        <span className="font-medium text-foreground">{value}%</span>
+                      </div>
+                      <div className="h-2 rounded-full bg-muted overflow-hidden">
+                        <div
+                          className="h-full rounded-full transition-all"
+                          style={{
+                            width: `${value}%`,
+                            backgroundColor: SENTIMENT_COLORS[key as keyof typeof SENTIMENT_COLORS] || '#6b7280',
+                          }}
+                        />
+                      </div>
                     </div>
-                    <div className="h-2 rounded-full bg-muted overflow-hidden">
-                      <div
-                        className="h-full rounded-full transition-all"
-                        style={{
-                          width: `${value}%`,
-                          backgroundColor: SENTIMENT_COLORS[key as keyof typeof SENTIMENT_COLORS] || '#6b7280',
-                        }}
-                      />
+                  ))}
+                </div>
+
+                {/* Key Drivers */}
+                {data.aiInsights.themes && data.aiInsights.themes.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Key Drivers</p>
+                    <div className="space-y-1.5">
+                      {data.aiInsights.themes
+                        .filter(t => t.sentiment !== 'neutral')
+                        .sort((a, b) => b.count - a.count)
+                        .slice(0, 5)
+                        .map((theme, idx) => (
+                          <div key={idx} className="flex items-center justify-between text-sm">
+                            <div className="flex items-center gap-2">
+                              <span
+                                className="w-2 h-2 rounded-full shrink-0"
+                                style={{
+                                  backgroundColor: SENTIMENT_COLORS[theme.sentiment as keyof typeof SENTIMENT_COLORS] || '#6b7280',
+                                }}
+                              />
+                              <span className="text-foreground">{theme.topic}</span>
+                            </div>
+                            <span className="text-xs text-muted-foreground">{theme.count} mentions</span>
+                          </div>
+                        ))}
                     </div>
                   </div>
-                ))}
+                )}
+
+                {/* Message count context */}
+                {(data.messagesReceived > 0) && (
+                  <p className="text-xs text-muted-foreground pt-1 border-t border-border">
+                    Based on {data.messagesReceived.toLocaleString()} customer messages
+                  </p>
+                )}
               </div>
             ) : (
               <p className="text-sm text-muted-foreground text-center py-8">
