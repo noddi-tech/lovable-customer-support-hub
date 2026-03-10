@@ -109,17 +109,11 @@ const Index = () => {
           return <RecruitmentInterface />;
         }
         if (subSection === 'analytics') {
+          const OperationsAnalyticsDashboard = React.lazy(() => import('@/components/operations/OperationsAnalyticsDashboard'));
           return (
-            <div className="flex items-center justify-center h-full p-8 text-center">
-              <div className="max-w-md">
-                <h2 className="text-2xl font-semibold mb-4 text-foreground">
-                  Operations Analytics
-                </h2>
-                <p className="text-muted-foreground">
-                  Analytics dashboard for operations performance and metrics.
-                </p>
-              </div>
-            </div>
+            <React.Suspense fallback={<div className="flex items-center justify-center h-full"><div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full" /></div>}>
+              <OperationsAnalyticsDashboard />
+            </React.Suspense>
           );
         }
         if (subSection === 'operations-settings') {

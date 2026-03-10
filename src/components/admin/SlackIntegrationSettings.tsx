@@ -69,6 +69,7 @@ export const SlackIntegrationSettings = () => {
         include_message_preview: integration.configuration?.include_message_preview ?? true,
         digest_enabled: integration.configuration?.digest_enabled ?? false,
         digest_time: integration.configuration?.digest_time || '08:00',
+        digest_frequency: integration.configuration?.digest_frequency || 'daily',
         critical_alerts_enabled: integration.configuration?.critical_alerts_enabled ?? false,
       });
       setSelectedChannelId(integration.default_channel_id || '');
