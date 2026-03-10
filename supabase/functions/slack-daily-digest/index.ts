@@ -137,22 +137,37 @@ Deno.serve(async (req) => {
           ).join('\n');
 
           const systemPrompt = digestType === 'weekly'
-            ? `You are a support analytics assistant. Summarize this week's customer support messages. Provide:
-1. **Key Themes** — Top 3-5 recurring topics customers are writing about
-2. **Urgent Issues** — Any critical problems that need immediate attention
-3. **Sentiment Overview** — Overall customer sentiment and any notable frustration patterns
-4. **Week Trends** — How this week compares to typical patterns, any emerging issues
-5. **Recommendations** — 2-3 actionable suggestions for the team
+            ? `You are a support analytics assistant. Summarize this week's customer messages using Slack mrkdwn format.
 
-Keep it concise and actionable. Use bullet points. Max 400 words. Write in a professional tone suitable for a Slack message.`
-            : `You are a support analytics assistant. Summarize today's customer support messages. Provide:
-1. **Key Themes** — Top 3-5 recurring topics customers are writing about
-2. **Urgent Issues** — Any critical problems that need immediate attention  
-3. **Sentiment Overview** — Overall customer sentiment and any notable frustration patterns
-4. **Notable Patterns** — Anything unusual or worth flagging
-5. **Recommendations** — 1-2 actionable suggestions for the team
+CRITICAL: Use *bold* (single asterisks) for emphasis. NEVER use **double asterisks**. Use • for bullet points. Be extremely concise.
 
-Keep it concise and actionable. Use bullet points. Max 300 words. Write in a professional tone suitable for a Slack message.`;
+Format exactly like this:
+*Key Themes*
+• Theme 1 — one sentence
+• Theme 2 — one sentence
+• Theme 3 — one sentence
+
+*Action Items*
+• Urgent issues and recommendations combined
+
+*Sentiment:* One sentence overview.
+
+Max 200 words total. No extra sections.`
+            : `You are a support analytics assistant. Summarize today's customer messages using Slack mrkdwn format.
+
+CRITICAL: Use *bold* (single asterisks) for emphasis. NEVER use **double asterisks**. Use • for bullet points. Be extremely concise.
+
+Format exactly like this:
+*Key Themes*
+• Theme 1 — one sentence
+• Theme 2 — one sentence
+
+*Action Items*
+• Urgent issues and recommendations
+
+*Sentiment:* One sentence overview.
+
+Max 150 words total. No extra sections.`;
 
           const aiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
             method: 'POST',
@@ -166,7 +181,7 @@ Keep it concise and actionable. Use bullet points. Max 300 words. Write in a pro
                 { role: 'system', content: systemPrompt },
                 { role: 'user', content: `Here are ${customerMessages.length} customer messages from the last ${periodDays} day(s):\n\n${messagesForAI}` },
               ],
-              max_tokens: 800,
+              max_tokens: 500,
               temperature: 0.3,
             }),
           });
@@ -174,6 +189,10 @@ Keep it concise and actionable. Use bullet points. Max 300 words. Write in a pro
           if (aiResponse.ok) {
             const aiResult = await aiResponse.json();
             aiSummary = aiResult.choices?.[0]?.message?.content || '';
+            // Post-process: convert **bold** to *bold* for Slack mrkdwn
+            aiSummary = aiSummary.replace(/\*\*([^*]+)\*\*/g, '*$1*');
+            // Truncate to 2800 chars to stay under Slack's 3000-char block limit
+            if (aiSummary.length > 2800) aiSummary = aiSummary.substring(0, 2800) + '…';
           } else {
             console.error('OpenAI API error:', await aiResponse.text());
           }
