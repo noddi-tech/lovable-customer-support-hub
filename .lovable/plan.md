@@ -1,41 +1,51 @@
 
 
-## Fix Plan: Sentiment Analysis + Trigger Daily Digest
+## Fix: Richer Sentiment Analysis Card + Trigger Daily Digest
 
-### Problem 1: Sentiment Analysis Empty
+### Problem
+The Sentiment Analysis card shows bare percentage bars with no context — impossible to understand *why* sentiment is positive/negative. The AI already returns a `summary` and `themes` (with per-theme sentiment), but none of that context appears in the sentiment card.
 
-The deployed `generate-analytics-report` edge function is **still running the old code**. Production logs confirm it returns `{ knowledge_base, response_tracking, outcomes }` — no `ai_insights`, no `message_volume`, no `conversations`. Previous redeployment attempts failed silently.
+### Changes
 
-**Fix:** Force-redeploy `generate-analytics-report` and verify the new code is live by checking the response includes `ai_insights` with `sentimentBreakdown`.
+**`src/components/operations/OperationsAnalyticsDashboard.tsx`** — Enhance the Sentiment Analysis card (lines 221-257):
 
-Additionally, the old deployed code tries to query a non-existent `knowledge_system_health` table (causing a PGRST205 error). The current codebase already removed that reference, so redeployment fixes both issues.
+- Add the AI `summary` as a `CardDescription` below the title — this is the 2-3 sentence overview the AI generates
+- Below the percentage bars, add a "Key Drivers" section showing themes grouped by sentiment:
+  - Positive themes with green badge + mention count
+  - Negative themes with red badge + mention count  
+  - Neutral themes with gray badge
+- Add total message count analyzed (e.g., "Based on 47 customer messages")
+- Show common questions as a collapsible section or tooltip for additional context
 
-**No code changes needed** — the source code in the repo is correct. This is purely a deployment issue.
+Layout:
+```text
+┌─────────────────────────────────────────┐
+│ 🧠 Sentiment Analysis                  │
+│ "Overall customer sentiment is mixed... │
+│  booking issues driving negativity..."  │
+│                                         │
+│ Positive  ████████████░░░░░  45%        │
+│ Neutral   █████░░░░░░░░░░░░  25%        │
+│ Negative  ██████░░░░░░░░░░░  30%        │
+│                                         │
+│ Key Drivers                             │
+│ 🟢 Quick responses (12 mentions)       │
+│ 🟢 Helpful staff (8 mentions)          │
+│ 🔴 Booking errors (15 mentions)        │
+│ 🔴 Payment issues (6 mentions)         │
+│                                         │
+│ Based on 47 customer messages           │
+└─────────────────────────────────────────┘
+```
 
----
+**Trigger daily digest**: Invoke `slack-daily-digest` edge function with `{"digest_type": "daily"}` after deploying.
 
-### Problem 2: Trigger Daily Digest to Slack
+### Files changed
 
-**Action:** Invoke the `slack-daily-digest` edge function with `{ "digest_type": "daily" }` to send today's digest to the configured Slack channel. This will:
-
-1. Find all active Slack integrations with `digest_enabled: true`
-2. Fetch today's conversations and customer messages
-3. Generate an AI summary via OpenAI (themes, urgent issues, sentiment, recommendations)
-4. Post a Block Kit message to the configured `digest_channel_id`
-
-The function is already fully implemented in the codebase. It just needs to be:
-- Redeployed (to ensure the latest code with AI summary is live)
-- Invoked manually via curl
-
----
-
-### Steps
-
-| # | Action |
+| File | Change |
 |---|---|
-| 1 | Deploy both `generate-analytics-report` and `slack-daily-digest` edge functions |
-| 2 | Invoke `slack-daily-digest` with `{ "digest_type": "daily" }` to send today's digest |
-| 3 | Verify `generate-analytics-report` returns `ai_insights` with sentiment data |
+| `src/components/operations/OperationsAnalyticsDashboard.tsx` | Enhance sentiment card with summary, theme drivers, and message count |
+| Edge function invocation | Trigger `slack-daily-digest` |
 
-No file changes required — all code is already correct in the repo.
+No backend changes needed — all the data (`summary`, `themes`, `sentimentBreakdown`) is already returned by the edge function.
 
