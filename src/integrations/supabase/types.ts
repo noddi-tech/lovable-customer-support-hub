@@ -2778,8 +2778,12 @@ export type Database = {
           client_secret: string | null
           configuration: Json | null
           created_at: string | null
+          critical_channel_id: string | null
+          critical_channel_name: string | null
           default_channel_id: string | null
           default_channel_name: string | null
+          digest_channel_id: string | null
+          digest_channel_name: string | null
           id: string
           is_active: boolean | null
           organization_id: string
@@ -2795,8 +2799,12 @@ export type Database = {
           client_secret?: string | null
           configuration?: Json | null
           created_at?: string | null
+          critical_channel_id?: string | null
+          critical_channel_name?: string | null
           default_channel_id?: string | null
           default_channel_name?: string | null
+          digest_channel_id?: string | null
+          digest_channel_name?: string | null
           id?: string
           is_active?: boolean | null
           organization_id: string
@@ -2812,8 +2820,12 @@ export type Database = {
           client_secret?: string | null
           configuration?: Json | null
           created_at?: string | null
+          critical_channel_id?: string | null
+          critical_channel_name?: string | null
           default_channel_id?: string | null
           default_channel_name?: string | null
+          digest_channel_id?: string | null
+          digest_channel_name?: string | null
           id?: string
           is_active?: boolean | null
           organization_id?: string
