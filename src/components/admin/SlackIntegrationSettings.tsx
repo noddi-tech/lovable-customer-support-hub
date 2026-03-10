@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Loader2, CheckCircle2, Hash, Lock, Send, ExternalLink, Slack, Info, Clock, AlertTriangle, BarChart3, Building2 } from 'lucide-react';
 import { useSlackIntegration } from '@/hooks/useSlackIntegration';
 import { SlackSetupWizard } from './SlackSetupWizard';
+import { SecondarySlackSetupWizard } from './SecondarySlackSetupWizard';
 
 const EVENT_OPTIONS = [
   { id: 'new_conversation', label: 'New Conversation', description: 'When a new email/message arrives' },
