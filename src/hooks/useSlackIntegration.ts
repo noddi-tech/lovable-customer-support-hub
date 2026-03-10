@@ -21,6 +21,10 @@ export interface SlackIntegration {
   bot_user_id: string | null;
   default_channel_id: string | null;
   default_channel_name: string | null;
+  digest_channel_id: string | null;
+  digest_channel_name: string | null;
+  critical_channel_id: string | null;
+  critical_channel_name: string | null;
   configuration: SlackIntegrationConfig;
   setup_completed: boolean;
   created_at: string;
