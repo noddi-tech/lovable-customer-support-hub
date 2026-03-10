@@ -1532,11 +1532,11 @@ async function executeLookupCustomer(phone?: string, email?: string, specifiedUs
       // Handle booking_items_car (Noddi's rich booking structure)
       if (Array.isArray(b.booking_items_car)) {
         for (const bic of b.booking_items_car) {
-          const car = bic.car;
+          const car = bic.car || bic;  // bic IS the car in Noddi's structure
           if (car?.id && !storedCars.has(car.id)) {
             storedCars.set(car.id, {
               id: car.id,
-              make: car.make || '',
+              make: car.make || car.brand || '',
               model: car.model || '',
               license_plate: extractPlateString(car.license_plate_number || car.license_plate || car.registration),
             });
@@ -1546,11 +1546,11 @@ async function executeLookupCustomer(phone?: string, email?: string, specifiedUs
       // Also check booking_items (alternate field name)
       if (Array.isArray(b.booking_items)) {
         for (const bi of b.booking_items) {
-          const car = bi.car;
+          const car = bi.car || bi;  // bi may BE the car in Noddi's structure
           if (car?.id && !storedCars.has(car.id)) {
             storedCars.set(car.id, {
               id: car.id,
-              make: car.make || '',
+              make: car.make || car.brand || '',
               model: car.model || '',
               license_plate: extractPlateString(car.license_plate_number || car.license_plate || car.registration),
             });
