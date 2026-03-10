@@ -38,8 +38,13 @@ export const SlackIntegrationSettings = () => {
     enabled_events: ['new_conversation', 'customer_reply', 'assignment', 'mention'] as string[],
     mention_assigned_user: true,
     include_message_preview: true,
+    digest_enabled: false,
+    digest_time: '08:00',
+    critical_alerts_enabled: false,
   });
   const [selectedChannelId, setSelectedChannelId] = useState<string>('');
+  const [digestChannelId, setDigestChannelId] = useState<string>('');
+  const [criticalChannelId, setCriticalChannelId] = useState<string>('');
 
   // Sync local state with fetched integration
   useEffect(() => {
