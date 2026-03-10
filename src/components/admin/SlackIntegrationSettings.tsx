@@ -357,9 +357,9 @@ export const SlackIntegrationSettings = () => {
                 <BarChart3 className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <CardTitle className="text-lg">Daily Digest</CardTitle>
+                <CardTitle className="text-lg">AI-Powered Digest</CardTitle>
                 <CardDescription>
-                  Push a daily summary of conversations to a Slack channel
+                  AI-generated summary of customer conversations with themes, sentiment, and recommendations
                   {hasSecondaryWorkspace && (
                     <span className="ml-1 text-primary">
                       (→ {integration?.secondary_team_name})
