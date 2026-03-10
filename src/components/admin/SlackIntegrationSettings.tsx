@@ -569,8 +569,7 @@ export const SlackIntegrationSettings = () => {
             <Alert className="bg-destructive/5 border-destructive/20">
               <AlertTriangle className="h-4 w-4 text-destructive" />
               <AlertDescription className="text-sm">
-                Critical alerts are triggered by keywords in Norwegian and English like <span className="font-mono text-xs bg-muted px-1 py-0.5 rounded">bestilling feilet</span>, <span className="font-mono text-xs bg-muted px-1 py-0.5 rounded">fungerer ikke</span>, <span className="font-mono text-xs bg-muted px-1 py-0.5 rounded">payment failed</span>, or conversations marked as <span className="font-semibold">urgent/high</span> priority.
-                Messages will include <span className="font-mono text-xs bg-muted px-1 py-0.5 rounded">@channel</span> to notify everyone.
+                Critical alerts use a hybrid detection system: <strong>keyword matching</strong> (Norwegian &amp; English) for instant detection of common issues, plus <strong>AI-powered context analysis</strong> that reads the full conversation to catch nuanced problems like frustrated customers, delayed responses, or safety concerns. Messages include <span className="font-mono text-xs bg-muted px-1 py-0.5 rounded">@channel</span> to notify everyone.
               </AlertDescription>
             </Alert>
           </CardContent>
