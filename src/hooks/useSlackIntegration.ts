@@ -7,6 +7,9 @@ export interface SlackIntegrationConfig {
   enabled_events: string[];
   mention_assigned_user: boolean;
   include_message_preview: boolean;
+  digest_enabled: boolean;
+  digest_time: string;
+  critical_alerts_enabled: boolean;
 }
 
 export interface SlackIntegration {
