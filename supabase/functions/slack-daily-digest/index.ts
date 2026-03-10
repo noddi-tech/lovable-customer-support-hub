@@ -5,6 +5,21 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+/**
+ * Clean HTML tags from text for AI processing
+ */
+function stripHtml(text: string): string {
+  if (!text) return '';
+  let result = text;
+  result = result.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
+  result = result.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
+  result = result.replace(/<head[^>]*>[\s\S]*?<\/head>/gi, '');
+  result = result.replace(/<[^>]+>/g, ' ');
+  result = result.replace(/&nbsp;/gi, ' ').replace(/&amp;/gi, '&').replace(/&lt;/gi, '<').replace(/&gt;/gi, '>');
+  result = result.replace(/[\r\n\t]+/g, ' ').replace(/\s+/g, ' ').trim();
+  return result;
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -13,7 +28,18 @@ Deno.serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Support manual invocation with digest_type parameter
+    let digestType = 'daily';
+    try {
+      const body = await req.json();
+      if (body?.digest_type) digestType = body.digest_type;
+    } catch { /* no body = cron invocation, default to daily */ }
+
+    const periodDays = digestType === 'weekly' ? 7 : 1;
+    const periodLabel = digestType === 'weekly' ? 'Weekly' : 'Daily';
 
     // Get all active Slack integrations with digest enabled
     const { data: integrations, error: intError } = await supabase
@@ -36,10 +62,16 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      const orgId = integration.organization_id;
-      const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      // Check digest frequency setting
+      const frequency = config.digest_frequency || 'daily';
+      if (digestType === 'daily' && frequency === 'weekly') continue;
+      if (digestType === 'weekly' && frequency === 'daily') continue;
+      // 'both' always runs
 
-      // Fetch conversation stats for last 24h
+      const orgId = integration.organization_id;
+      const since = new Date(Date.now() - periodDays * 24 * 60 * 60 * 1000).toISOString();
+
+      // Fetch conversation stats for the period
       const { data: conversations, error: convError } = await supabase
         .from('conversations')
         .select('id, status, channel, priority, subject, customer_id, created_at, updated_at')
@@ -55,33 +87,100 @@ Deno.serve(async (req) => {
         continue;
       }
 
+      // Fetch actual message content for AI summary
+      const conversationIds = (conversations || []).map(c => c.id);
+      let customerMessages: { content: string; conversation_subject: string }[] = [];
+
+      if (conversationIds.length > 0) {
+        // Fetch customer messages from the period (limit to 150 for AI context)
+        const { data: messages, error: msgError } = await supabase
+          .from('messages')
+          .select('content, conversation_id')
+          .in('conversation_id', conversationIds.slice(0, 100))
+          .eq('sender_type', 'customer')
+          .gte('created_at', since)
+          .order('created_at', { ascending: false })
+          .limit(150);
+
+        if (msgError) {
+          console.error(`Error fetching messages for org ${orgId}:`, msgError);
+        } else {
+          const convMap = new Map((conversations || []).map(c => [c.id, c.subject || '(no subject)']));
+          customerMessages = (messages || []).map(m => ({
+            content: stripHtml(m.content).substring(0, 300),
+            conversation_subject: convMap.get(m.conversation_id) || '(no subject)',
+          }));
+        }
+      }
+
+      // Compute numeric stats
       const newConversations = (conversations || []).filter(c => c.created_at >= since);
       const openCount = (conversations || []).filter(c => c.status === 'open').length;
       const pendingCount = (conversations || []).filter(c => c.status === 'pending').length;
       const closedCount = (conversations || []).filter(c => c.status === 'closed').length;
       const urgentCount = (conversations || []).filter(c => c.priority === 'urgent' || c.priority === 'high').length;
 
-      // Count by channel
       const channelCounts: Record<string, number> = {};
       for (const c of newConversations) {
         channelCounts[c.channel] = (channelCounts[c.channel] || 0) + 1;
       }
-
       const channelBreakdown = Object.entries(channelCounts)
         .map(([ch, count]) => `${ch}: ${count}`)
         .join(' · ') || 'None';
 
-      // Top subjects (most active)
-      const subjectCounts: Record<string, number> = {};
-      for (const c of conversations || []) {
-        const subj = c.subject || '(no subject)';
-        subjectCounts[subj] = (subjectCounts[subj] || 0) + 1;
+      // Generate AI summary if OpenAI key is available and we have messages
+      let aiSummary = '';
+      if (openaiApiKey && customerMessages.length > 0) {
+        try {
+          const messagesForAI = customerMessages.slice(0, 80).map((m, i) =>
+            `[${i + 1}] Subject: "${m.conversation_subject}" — "${m.content}"`
+          ).join('\n');
+
+          const systemPrompt = digestType === 'weekly'
+            ? `You are a support analytics assistant. Summarize this week's customer support messages. Provide:
+1. **Key Themes** — Top 3-5 recurring topics customers are writing about
+2. **Urgent Issues** — Any critical problems that need immediate attention
+3. **Sentiment Overview** — Overall customer sentiment and any notable frustration patterns
+4. **Week Trends** — How this week compares to typical patterns, any emerging issues
+5. **Recommendations** — 2-3 actionable suggestions for the team
+
+Keep it concise and actionable. Use bullet points. Max 400 words. Write in a professional tone suitable for a Slack message.`
+            : `You are a support analytics assistant. Summarize today's customer support messages. Provide:
+1. **Key Themes** — Top 3-5 recurring topics customers are writing about
+2. **Urgent Issues** — Any critical problems that need immediate attention  
+3. **Sentiment Overview** — Overall customer sentiment and any notable frustration patterns
+4. **Notable Patterns** — Anything unusual or worth flagging
+5. **Recommendations** — 1-2 actionable suggestions for the team
+
+Keep it concise and actionable. Use bullet points. Max 300 words. Write in a professional tone suitable for a Slack message.`;
+
+          const aiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${openaiApiKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              model: 'gpt-4o-mini',
+              messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: `Here are ${customerMessages.length} customer messages from the last ${periodDays} day(s):\n\n${messagesForAI}` },
+              ],
+              max_tokens: 800,
+              temperature: 0.3,
+            }),
+          });
+
+          if (aiResponse.ok) {
+            const aiResult = await aiResponse.json();
+            aiSummary = aiResult.choices?.[0]?.message?.content || '';
+          } else {
+            console.error('OpenAI API error:', await aiResponse.text());
+          }
+        } catch (aiErr) {
+          console.error('AI summary generation failed:', aiErr);
+        }
       }
-      const topSubjects = Object.entries(subjectCounts)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 5)
-        .map(([subj, count]) => `• ${subj} (${count})`)
-        .join('\n');
 
       const now = new Date().toLocaleDateString('en-US', {
         timeZone: 'Europe/Oslo',
@@ -91,12 +190,12 @@ Deno.serve(async (req) => {
       });
 
       // Build Block Kit message
-      const blocks = [
+      const blocks: any[] = [
         {
           type: 'header',
           text: {
             type: 'plain_text',
-            text: `📊 Daily Support Digest — ${now}`,
+            text: `📊 ${periodLabel} Support Digest — ${now}`,
             emoji: true,
           },
         },
@@ -106,7 +205,7 @@ Deno.serve(async (req) => {
             { type: 'mrkdwn', text: `*New conversations:*\n${newConversations.length}` },
             { type: 'mrkdwn', text: `*Open:*\n${openCount}` },
             { type: 'mrkdwn', text: `*Pending:*\n${pendingCount}` },
-            { type: 'mrkdwn', text: `*Closed (24h):*\n${closedCount}` },
+            { type: 'mrkdwn', text: `*Closed (${periodDays}d):*\n${closedCount}` },
           ],
         },
       ];
@@ -117,7 +216,7 @@ Deno.serve(async (req) => {
           fields: [
             { type: 'mrkdwn', text: `*🔴 Urgent/High priority:*\n${urgentCount}` },
           ],
-        } as any);
+        });
       }
 
       blocks.push({
@@ -125,35 +224,47 @@ Deno.serve(async (req) => {
         fields: [
           { type: 'mrkdwn', text: `*By channel:*\n${channelBreakdown}` },
         ],
-      } as any);
+      });
 
-      if (topSubjects) {
+      // Add AI summary section
+      if (aiSummary) {
         blocks.push(
-          { type: 'divider' } as any,
+          { type: 'divider' },
           {
             type: 'section',
             text: {
               type: 'mrkdwn',
-              text: `*🔥 Most active conversations:*\n${topSubjects}`,
+              text: `*🤖 AI Summary*\n\n${aiSummary}`,
             },
-          } as any,
+          },
+        );
+      } else if (customerMessages.length === 0) {
+        blocks.push(
+          { type: 'divider' },
+          {
+            type: 'section',
+            text: {
+              type: 'mrkdwn',
+              text: `_No customer messages to summarize for this period._`,
+            },
+          },
         );
       }
 
       blocks.push(
-        { type: 'divider' } as any,
+        { type: 'divider' },
         {
           type: 'context',
           elements: [
             {
               type: 'mrkdwn',
-              text: `Data from the last 24 hours · ${(conversations || []).length} conversations active`,
+              text: `${periodLabel} digest · ${(conversations || []).length} conversations active · ${customerMessages.length} messages analyzed`,
             },
           ],
-        } as any,
+        },
       );
 
-      // Post to Slack — use secondary workspace token if available
+      // Post to Slack
       const digestToken = integration.secondary_access_token || integration.access_token;
       const slackResponse = await fetch('https://slack.com/api/chat.postMessage', {
         method: 'POST',
@@ -163,7 +274,7 @@ Deno.serve(async (req) => {
         },
         body: JSON.stringify({
           channel: integration.digest_channel_id,
-          text: `📊 Daily Support Digest — ${now}: ${newConversations.length} new, ${openCount} open, ${urgentCount} urgent`,
+          text: `📊 ${periodLabel} Support Digest — ${now}: ${newConversations.length} new, ${openCount} open, ${urgentCount} urgent`,
           blocks,
           unfurl_links: false,
           unfurl_media: false,
@@ -175,12 +286,12 @@ Deno.serve(async (req) => {
         console.error(`Slack error for org ${orgId}:`, slackResult.error);
         results.push({ org: orgId, sent: false, error: slackResult.error });
       } else {
-        console.log(`Digest sent for org ${orgId}`);
+        console.log(`${periodLabel} digest sent for org ${orgId}`);
         results.push({ org: orgId, sent: true });
       }
     }
 
-    return new Response(JSON.stringify({ success: true, results }), {
+    return new Response(JSON.stringify({ success: true, digest_type: digestType, results }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
