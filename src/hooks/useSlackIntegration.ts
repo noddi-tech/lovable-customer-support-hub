@@ -64,6 +64,9 @@ export const useSlackIntegration = () => {
           enabled_events: (config.enabled_events as string[]) || [],
           mention_assigned_user: config.mention_assigned_user !== false,
           include_message_preview: config.include_message_preview !== false,
+          digest_enabled: !!config.digest_enabled,
+          digest_time: (config.digest_time as string) || '08:00',
+          critical_alerts_enabled: !!config.critical_alerts_enabled,
         },
         setup_completed: data.setup_completed || false,
       } as SlackIntegration;
