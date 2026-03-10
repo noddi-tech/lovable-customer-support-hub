@@ -16,6 +16,9 @@ verify_jwt = false
 [functions.timezone-aware-scheduler]
 verify_jwt = false
 
+[functions.slack-daily-digest]
+verify_jwt = false
+
 [db]
 port = 54322
 
