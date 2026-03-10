@@ -25,6 +25,9 @@ export interface SlackIntegration {
   digest_channel_name: string | null;
   critical_channel_id: string | null;
   critical_channel_name: string | null;
+  secondary_access_token: string | null;
+  secondary_team_name: string | null;
+  secondary_team_id: string | null;
   configuration: SlackIntegrationConfig;
   setup_completed: boolean;
   created_at: string;
