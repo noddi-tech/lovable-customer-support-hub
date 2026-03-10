@@ -189,6 +189,10 @@ Max 150 words total. No extra sections.`;
           if (aiResponse.ok) {
             const aiResult = await aiResponse.json();
             aiSummary = aiResult.choices?.[0]?.message?.content || '';
+            // Post-process: convert **bold** to *bold* for Slack mrkdwn
+            aiSummary = aiSummary.replace(/\*\*([^*]+)\*\*/g, '*$1*');
+            // Truncate to 2800 chars to stay under Slack's 3000-char block limit
+            if (aiSummary.length > 2800) aiSummary = aiSummary.substring(0, 2800) + '…';
           } else {
             console.error('OpenAI API error:', await aiResponse.text());
           }
