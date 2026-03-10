@@ -48,6 +48,7 @@ export const SlackIntegrationSettings = () => {
     include_message_preview: true,
     digest_enabled: false,
     digest_time: '08:00',
+    digest_frequency: 'daily' as 'daily' | 'weekly' | 'both',
     critical_alerts_enabled: false,
   });
   const [selectedChannelId, setSelectedChannelId] = useState<string>('');
@@ -68,6 +69,7 @@ export const SlackIntegrationSettings = () => {
         include_message_preview: integration.configuration?.include_message_preview ?? true,
         digest_enabled: integration.configuration?.digest_enabled ?? false,
         digest_time: integration.configuration?.digest_time || '08:00',
+        digest_frequency: integration.configuration?.digest_frequency || 'daily',
         critical_alerts_enabled: integration.configuration?.critical_alerts_enabled ?? false,
       });
       setSelectedChannelId(integration.default_channel_id || '');
@@ -355,9 +357,9 @@ export const SlackIntegrationSettings = () => {
                 <BarChart3 className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <CardTitle className="text-lg">Daily Digest</CardTitle>
+                <CardTitle className="text-lg">AI-Powered Digest</CardTitle>
                 <CardDescription>
-                  Push a daily summary of conversations to a Slack channel
+                  AI-generated summary of customer conversations with themes, sentiment, and recommendations
                   {hasSecondaryWorkspace && (
                     <span className="ml-1 text-primary">
                       (→ {integration?.secondary_team_name})
@@ -451,6 +453,31 @@ export const SlackIntegrationSettings = () => {
                 Weekdays only (Mon–Fri), Oslo timezone
               </p>
             </div>
+
+            <div className="space-y-2">
+              <Label>Digest Frequency</Label>
+              <Select
+                value={localConfig.digest_frequency}
+                onValueChange={(value: 'daily' | 'weekly' | 'both') => {
+                  setLocalConfig(prev => ({ ...prev, digest_frequency: value }));
+                  updateConfiguration.mutate({
+                    configuration: { digest_frequency: value },
+                  });
+                }}
+              >
+                <SelectTrigger className="w-48">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="daily">Daily</SelectItem>
+                  <SelectItem value="weekly">Weekly (Mondays)</SelectItem>
+                  <SelectItem value="both">Both</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Weekly digest includes AI-powered trend analysis comparing week-over-week patterns
+              </p>
+            </div>
           </CardContent>
         )}
       </Card>
@@ -542,8 +569,7 @@ export const SlackIntegrationSettings = () => {
             <Alert className="bg-destructive/5 border-destructive/20">
               <AlertTriangle className="h-4 w-4 text-destructive" />
               <AlertDescription className="text-sm">
-                Critical alerts are triggered by keywords in Norwegian and English like <span className="font-mono text-xs bg-muted px-1 py-0.5 rounded">bestilling feilet</span>, <span className="font-mono text-xs bg-muted px-1 py-0.5 rounded">fungerer ikke</span>, <span className="font-mono text-xs bg-muted px-1 py-0.5 rounded">payment failed</span>, or conversations marked as <span className="font-semibold">urgent/high</span> priority.
-                Messages will include <span className="font-mono text-xs bg-muted px-1 py-0.5 rounded">@channel</span> to notify everyone.
+                Critical alerts use a hybrid detection system: <strong>keyword matching</strong> (Norwegian &amp; English) for instant detection of common issues, plus <strong>AI-powered context analysis</strong> that reads the full conversation to catch nuanced problems like frustrated customers, delayed responses, or safety concerns. Messages include <span className="font-mono text-xs bg-muted px-1 py-0.5 rounded">@channel</span> to notify everyone.
               </AlertDescription>
             </Alert>
           </CardContent>

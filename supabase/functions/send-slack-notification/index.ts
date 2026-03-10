@@ -54,56 +54,34 @@ const EVENT_EMOJIS: Record<string, string> = {
 
 /**
  * Clean and extract readable preview text from email content
- * Aggressively strips ALL HTML including namespaced tags, footers, and whitespace
  */
 function cleanPreviewText(text: string | undefined, maxLength: number = 180): string {
   if (!text) return '';
   
   let result = text;
   
-  // FIRST: Remove entire document structure wrapper tags (including namespaced attributes)
   result = result.replace(/<html[^>]*>/gi, '');
   result = result.replace(/<\/html>/gi, '');
   result = result.replace(/<body[^>]*>/gi, '');
   result = result.replace(/<\/body>/gi, '');
-  
-  // Remove DOCTYPE declarations
   result = result.replace(/<!DOCTYPE[^>]*>/gi, '');
-  
-  // Remove XML declarations and processing instructions
   result = result.replace(/<\?xml[^>]*\?>/gi, '');
   result = result.replace(/<\?[^>]*\?>/gi, '');
-  
-  // Remove namespaced tags (o:p, v:shape, etc.)
   result = result.replace(/<[a-z]+:[^>]*>[\s\S]*?<\/[a-z]+:[^>]*>/gi, '');
   result = result.replace(/<[a-z]+:[^>]*\/>/gi, '');
   result = result.replace(/<[a-z]+:[^>]*>/gi, '');
   result = result.replace(/<\/[a-z]+:[^>]*>/gi, '');
-  
-  // Remove HEAD section entirely (including all content)
   result = result.replace(/<head[^>]*>[\s\S]*?<\/head>/gi, '');
-  
-  // Remove STYLE, SCRIPT, TITLE sections
   result = result.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
   result = result.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
   result = result.replace(/<title[^>]*>[\s\S]*?<\/title>/gi, '');
-  
-  // Remove HTML comments (including conditional comments)
   result = result.replace(/<!--[\s\S]*?-->/g, '');
   result = result.replace(/<!\[if[^>]*\]>[\s\S]*?<!\[endif\]>/gi, '');
-  
-  // Convert common block tags to newlines for readability
   result = result.replace(/<\/?(p|div|br|tr|li|td|th|h[1-6])[^>]*>/gi, '\n');
-  
-  // AGGRESSIVE: Strip ALL remaining HTML tags (including malformed and namespaced)
   result = result.replace(/<[^>]+>/g, ' ');
-  result = result.replace(/<[^>]*$/g, ''); // Remove incomplete tags at end
-  result = result.replace(/^[^<]*>/g, ''); // Remove incomplete tags at start
-  
-  // Remove any leftover angle brackets
+  result = result.replace(/<[^>]*$/g, '');
+  result = result.replace(/^[^<]*>/g, '');
   result = result.replace(/[<>]/g, ' ');
-  
-  // Decode HTML entities
   result = result
     .replace(/&nbsp;/gi, ' ')
     .replace(/&amp;/gi, '&')
@@ -114,28 +92,104 @@ function cleanPreviewText(text: string | undefined, maxLength: number = 180): st
     .replace(/&apos;/gi, "'")
     .replace(/&#x([0-9a-f]+);/gi, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
     .replace(/&#(\d+);/g, (_, num) => String.fromCharCode(parseInt(num)))
-    .replace(/&[a-z]+;/gi, ' '); // Remove remaining entities
-  
-  // Remove Google Group / mailing list footers
+    .replace(/&[a-z]+;/gi, ' ');
   result = result.replace(/To unsubscribe from this group[\s\S]*?@[^\s.]+\.[^\s]+/gi, '');
   result = result.replace(/You received this message because you are subscribed[\s\S]*/gi, '');
   result = result.replace(/--\s*\nYou received this message[\s\S]*/gi, '');
   result = result.replace(/Unsubscribe from this group[\s\S]*/gi, '');
-  
-  // Remove common email signature delimiters and content after them
   result = result.replace(/\n--\s*\n[\s\S]*/g, '');
-  
-  // Clean excessive whitespace
   result = result.replace(/[\r\n\t]+/g, ' ');
   result = result.replace(/\s+/g, ' ');
   result = result.trim();
   
-  // Truncate to max length
   if (result.length > maxLength) {
     result = result.substring(0, maxLength).trim() + '...';
   }
   
   return result;
+}
+
+/**
+ * AI-powered critical triage: analyze message context for urgency
+ */
+async function aiCriticalTriage(
+  supabase: any,
+  conversationId: string,
+  openaiApiKey: string
+): Promise<{ critical: boolean; category: string; reason: string; severity: number } | null> {
+  try {
+    // Fetch last 5 messages for context
+    const { data: recentMessages, error } = await supabase
+      .from('messages')
+      .select('content, sender_type, created_at')
+      .eq('conversation_id', conversationId)
+      .order('created_at', { ascending: false })
+      .limit(5);
+
+    if (error || !recentMessages || recentMessages.length === 0) return null;
+
+    const messageContext = recentMessages.reverse().map((m: any) => {
+      const role = m.sender_type === 'customer' ? 'Customer' : 'Agent';
+      const content = cleanPreviewText(m.content, 300);
+      return `${role}: ${content}`;
+    }).join('\n');
+
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openaiApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'system',
+            content: `You are a customer support triage system. Analyze the conversation and determine if it's critical/urgent.
+
+Categories: billing_issue, service_failure, safety_concern, frustrated_customer, escalation_request, legal_threat, data_issue, none.
+
+Return ONLY valid JSON (no markdown): { "critical": boolean, "category": string, "reason": string, "severity": number (1-5) }
+
+A message is critical (severity >= 3) if the customer:
+- Reports a payment/billing failure
+- Reports a service not working or broken feature
+- Expresses significant frustration (waiting long, no response)
+- Mentions safety concerns or damage
+- Threatens legal action or regulatory complaints
+- Reports data loss or privacy issues
+- Explicitly asks for escalation or manager
+
+Be conservative: only flag truly critical issues. Normal questions and feature requests are NOT critical.`,
+          },
+          {
+            role: 'user',
+            content: `Analyze this conversation:\n\n${messageContext}`,
+          },
+        ],
+        max_tokens: 200,
+        temperature: 0.1,
+      }),
+    });
+
+    if (!response.ok) {
+      console.error('AI triage API error:', response.status);
+      return null;
+    }
+
+    const result = await response.json();
+    const content = result.choices?.[0]?.message?.content;
+    if (!content) return null;
+
+    // Parse JSON from response (handle potential markdown wrapping)
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) return null;
+
+    return JSON.parse(jsonMatch[0]);
+  } catch (err) {
+    console.error('AI triage failed:', err);
+    return null;
+  }
 }
 
 Deno.serve(async (req) => {
@@ -171,6 +225,7 @@ Deno.serve(async (req) => {
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Get Slack integration for this organization
@@ -212,11 +267,9 @@ Deno.serve(async (req) => {
     }
 
     // Build the Slack message using Block Kit
-    // Determine emoji based on channel or event type
     const channelLabel = CHANNEL_LABELS[channel || 'email'] || 'Email';
     const emoji = CHANNEL_EMOJIS[channel || 'email'] || EVENT_EMOJIS[event_type] || '📨';
     
-    // Build dynamic title based on event type and channel
     let title: string;
     switch (event_type) {
       case 'new_conversation':
@@ -241,8 +294,7 @@ Deno.serve(async (req) => {
         title = 'Notification';
     }
 
-    // Build fallback text for native push notifications (Mac/iPhone)
-    // This appears in system notifications but NOT in the Slack channel
+    // Build fallback text for native push notifications
     let fallbackText = title;
     if (customer_name) {
       fallbackText += ` from ${customer_name}`;
@@ -266,7 +318,7 @@ Deno.serve(async (req) => {
       },
     });
 
-    // Customer info with subject - always show both
+    // Customer info with subject
     attachmentBlocks.push({
       type: 'section',
       fields: [
@@ -281,12 +333,11 @@ Deno.serve(async (req) => {
       ],
     });
 
-    // Message preview - always show if available, use 180 chars
+    // Message preview
     if (preview_text && config.include_message_preview !== false) {
       const cleanedPreview = cleanPreviewText(preview_text, 180);
       
       if (cleanedPreview) {
-        // Escape Slack markdown special characters in preview
         const escapedPreview = cleanedPreview
           .replace(/&/g, '&amp;')
           .replace(/</g, '&lt;')
@@ -302,7 +353,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Mention info - use real Slack <@ID> tags when available
+    // Mention info
     if (event_type === 'mention') {
       let mentionText: string;
       if (mentioned_slack_ids && mentioned_slack_ids.length > 0) {
@@ -318,21 +369,13 @@ Deno.serve(async (req) => {
 
       attachmentBlocks.push({
         type: 'context',
-        elements: [
-          {
-            type: 'mrkdwn',
-            text: mentionText,
-          },
-        ],
+        elements: [{ type: 'mrkdwn', text: mentionText }],
       });
     }
 
     // Action button
     if (conversation_id) {
-      // Get the app URL from environment or construct from Supabase URL
       const appUrl = Deno.env.get('APP_URL') || 'https://support.noddi.co';
-      
-      // Construct URL with query params (inbox + conversation)
       const conversationUrl = inbox_id 
         ? `${appUrl}/?inbox=${inbox_id}&c=${conversation_id}`
         : `${appUrl}/?c=${conversation_id}`;
@@ -342,11 +385,7 @@ Deno.serve(async (req) => {
         elements: [
           {
             type: 'button',
-            text: {
-              type: 'plain_text',
-              text: '👀 View Conversation',
-              emoji: true,
-            },
+            text: { type: 'plain_text', text: '👀 View Conversation', emoji: true },
             url: conversationUrl,
           },
         ],
@@ -377,7 +416,7 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         channel: channelId,
-        text: fallbackText, // Required for native push notifications on Mac/iPhone
+        text: fallbackText,
         blocks: blocks,
         attachments: [
           {
@@ -403,10 +442,9 @@ Deno.serve(async (req) => {
     console.log(`Slack notification sent for ${event_type} to channel ${channelId}`);
 
     // === Critical Triage Detection ===
-    const criticalConfig = config;
     const criticalChannelId = integration.critical_channel_id;
     
-    if (criticalConfig.critical_alerts_enabled && criticalChannelId && criticalChannelId !== channelId) {
+    if (config.critical_alerts_enabled && criticalChannelId && criticalChannelId !== channelId) {
       const CRITICAL_KEYWORDS = [
         // English
         'booking', "can't book", 'cannot book', 'payment failed', 'payment error',
@@ -430,10 +468,19 @@ Deno.serve(async (req) => {
         .toLowerCase();
 
       const matchedKeyword = CRITICAL_KEYWORDS.find(kw => textToCheck.includes(kw));
-      const isPriorityUrgent = false; // Could be extended with conversation priority lookup
+      
+      // AI triage: if no keyword match, use AI for context-aware detection
+      let aiTriageResult: { critical: boolean; category: string; reason: string; severity: number } | null = null;
+      
+      if (!matchedKeyword && openaiApiKey && conversation_id && 
+          (event_type === 'new_conversation' || event_type === 'customer_reply')) {
+        aiTriageResult = await aiCriticalTriage(supabase, conversation_id, openaiApiKey);
+      }
 
-      if (matchedKeyword || isPriorityUrgent) {
-        const criticalBlocks = [
+      const shouldAlert = matchedKeyword || (aiTriageResult?.critical && (aiTriageResult?.severity || 0) >= 3);
+
+      if (shouldAlert) {
+        const criticalBlocks: any[] = [
           {
             type: 'section',
             text: {
@@ -465,20 +512,28 @@ Deno.serve(async (req) => {
                 type: 'mrkdwn',
                 text: `> ${cleanedPreview.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}`,
               },
-            } as any);
+            });
           }
         }
 
+        // Show trigger reason
         if (matchedKeyword) {
           criticalBlocks.push({
             type: 'context',
             elements: [
-              {
-                type: 'mrkdwn',
-                text: `Triggered by keyword: \`${matchedKeyword}\``,
+              { type: 'mrkdwn', text: `🔑 Triggered by keyword: \`${matchedKeyword}\`` },
+            ],
+          });
+        } else if (aiTriageResult) {
+          criticalBlocks.push({
+            type: 'context',
+            elements: [
+              { 
+                type: 'mrkdwn', 
+                text: `🤖 AI detected: *${aiTriageResult.category.replace(/_/g, ' ')}* (severity ${aiTriageResult.severity}/5)\n${aiTriageResult.reason}` 
               },
             ],
-          } as any);
+          });
         }
 
         if (conversation_id) {
@@ -495,11 +550,10 @@ Deno.serve(async (req) => {
                 url: conversationUrl,
               },
             ],
-          } as any);
+          });
         }
 
         try {
-          // Use secondary workspace token if available, otherwise fall back to primary
           const criticalToken = integration.secondary_access_token || integration.access_token;
           const criticalResponse = await fetch('https://slack.com/api/chat.postMessage', {
             method: 'POST',
@@ -524,7 +578,8 @@ Deno.serve(async (req) => {
           if (!critResult.ok) {
             console.error('Critical alert Slack error:', critResult.error);
           } else {
-            console.log(`Critical alert sent to ${criticalChannelId} (keyword: ${matchedKeyword})`);
+            const triggerSource = matchedKeyword ? `keyword: ${matchedKeyword}` : `AI: ${aiTriageResult?.category}`;
+            console.log(`Critical alert sent to ${criticalChannelId} (${triggerSource})`);
           }
         } catch (critErr) {
           console.error('Failed to send critical alert:', critErr);

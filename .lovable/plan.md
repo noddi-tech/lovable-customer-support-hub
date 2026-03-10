@@ -1,112 +1,79 @@
 
 
-## Plan: AI-Powered Digests, Smart Critical Alerts, and Operations Analytics Dashboard
+## Plan: Fix Counter Mismatch + Add Internal Notes to Chat
 
-Three interconnected improvements to close the current gaps.
+### Bug 1: Open counter shows 9 but only 6 rows visible
 
----
+**Root cause**: The SQL `get_inbox_counts` / `get_all_counts` functions count every individual conversation with `status='open'`. But the conversation list applies **client-side threading** (`groupConversationsByThread`) which groups conversations from the same customer+subject into a single row. If 3 pairs of conversations get threaded together, you see 6 rows but the counter shows 9.
 
-### 1. AI-Powered Daily + Weekly Digest
+The SQL knows nothing about threading. The counter and the list count different things.
 
-**Current state:** `slack-daily-digest` counts conversations and lists top subjects — no actual message content is read.
+**Fix (Hybrid approach)**: After the `ConversationListContext` computes `filteredAndSortedConversations` (which includes threading), expose these counts so the sidebar can use them for the **active** filter. For non-active filters, continue using SQL counts (they're approximate but acceptable as indicators).
 
-**Change:** Fetch the latest messages (not just conversation metadata) and pass them to OpenAI for a natural-language summary.
+**Changes:**
 
-**`supabase/functions/slack-daily-digest/index.ts`** — Major rewrite:
-- Fetch messages from `messages` table joined on conversations for the period (last 24h for daily, last 7d for weekly)
-- Select up to ~100 recent customer messages (`sender_type = 'customer'`), cleaned via `cleanPreviewText`
-- Build a prompt: "Summarize these customer support conversations. Highlight recurring themes, urgent issues, sentiment trends, and notable patterns."
-- Call OpenAI (`gpt-4o-mini`) to generate a structured summary with sections: Key Themes, Urgent Issues, Sentiment Overview, Notable Patterns, Recommendations
-- Build Slack Block Kit with the AI summary + the existing numeric stats (open/closed/new counts)
-- Add a `digest_type` parameter: `'daily'` (default) or `'weekly'`
-- Weekly mode: fetch 7 days of data, use a more comprehensive prompt asking for week-over-week trends
-- Support `digest_frequency` in `slack_integrations.configuration` (`daily`, `weekly`, `both`)
+1. **`src/contexts/ConversationListContext.tsx`** — After `filteredAndSortedConversations` is computed, derive a `threadedOpenCount` (the actual number of visible rows for the current tab). Expose this via context as `visibleCount`.
 
-**New edge function: `supabase/functions/slack-weekly-digest/index.ts`**:
-- Thin wrapper that calls the daily digest function with `digest_type: 'weekly'` and 7-day window
-- Alternatively, keep it all in one function with a parameter — simpler
+2. **`src/components/layout/InboxList.tsx`** — Accept an optional `visibleCount` prop for the currently active filter. When provided, display it instead of the SQL count for that specific filter button. Other filters keep using SQL counts.
 
-**Migration** — Add `digest_frequency` field to `slack_integrations.configuration` (no schema change needed, it's JSONB).
+3. **`src/components/dashboard/EnhancedInteractionsLayout.tsx`** — Pass the `visibleCount` from the conversation list context down to `InboxList` for the active status tab.
 
-**UI update in `SlackIntegrationSettings.tsx`**:
-- Add a "Digest Frequency" selector: Daily / Weekly / Both
-- Store in `configuration.digest_frequency`
+Alternatively (simpler, no cross-context wiring): **Do the threading-aware counting in SQL**. Add a `COUNT(DISTINCT ...)` with a thread key (lower(customer_email) || '::' || lower(regexp_replace(subject, ...))). This keeps the count logic centralized and always correct.
 
-**Cron schedule**: Daily at 07:00 UTC (existing), Weekly on Monday 07:00 UTC (new cron job).
+**Recommended approach**: SQL-level fix. Add a thread-aware count column to `get_all_counts` and `get_inbox_counts` that groups by `(customer_email, normalized_subject)` before counting, matching the client-side threading logic:
 
----
+```sql
+-- Replace simple COUNT with thread-aware count
+-- Thread key = customer email + normalized subject (matching client logic)
+WITH threaded AS (
+  SELECT DISTINCT ON (
+    LOWER(COALESCE(cu.email, '')),
+    LOWER(REGEXP_REPLACE(c.subject, '^(re:|fwd?:|fw:|aw:|sv:|vs:)\s*', '', 'gi'))
+  )
+  c.id, c.status, c.is_archived, c.is_read, c.deleted_at, 
+  c.snooze_until, c.assigned_to_id, c.channel
+  FROM conversations c
+  LEFT JOIN customers cu ON c.customer_id = cu.id
+  WHERE c.organization_id = v_org_id
+  ORDER BY LOWER(COALESCE(cu.email, '')),
+    LOWER(REGEXP_REPLACE(c.subject, '^(re:|fwd?:|fw:|aw:|sv:|vs:)\s*', '', 'gi')),
+    COALESCE(c.received_at, c.updated_at) DESC
+)
+SELECT
+  COUNT(*) FILTER (WHERE status='open' AND deleted_at IS NULL 
+    AND NOT is_archived AND (snooze_until IS NULL OR snooze_until <= NOW()))
+  AS conversations_open,
+  -- ... other counts ...
+FROM threaded;
+```
 
-### 2. AI-Powered Critical Alert Triage
+This applies the same deduplication the client does: for each (customer_email, normalized_subject) group, only the most recent conversation is counted. The counter will then match the visible rows exactly.
 
-**Current state:** Simple keyword matching on subject + preview text. Misses nuanced messages like "I've been waiting 3 weeks and nobody has responded" or "the car was damaged during service."
-
-**Change:** Add an AI classification step that reads the full message context.
-
-**`supabase/functions/send-slack-notification/index.ts`** — Extend the critical triage section:
-- Keep existing keyword check as a fast first pass (no API call needed for obvious keywords)
-- When keywords don't match but the event is `new_conversation` or `customer_reply`: fetch the last 3-5 messages from the conversation and call OpenAI with a classification prompt:
-  ```
-  "Analyze this customer message in context. Is this critical/urgent?
-   Categories: billing_issue, service_failure, safety_concern, frustrated_customer,
-   escalation_request, legal_threat, data_issue, none.
-   Return JSON: { critical: boolean, category: string, reason: string, severity: 1-5 }"
-  ```
-- If `critical: true` and `severity >= 3`, trigger the critical alert with the AI-provided `reason` as context
-- Add rate limiting: max 1 AI triage call per conversation per 10 minutes (track in memory or a simple cache)
-- Include the AI reason in the Slack critical alert block: "AI detected: frustrated customer — waiting 3 weeks with no response"
-
-This gives context-aware detection without removing the fast keyword path.
+**Migration**: New SQL migration updating both `get_all_counts()` and `get_inbox_counts(uuid)`.
 
 ---
 
-### 3. Operations Analytics Dashboard
+### Feature 2: Add internal notes to live chat
 
-**Current state:** The `/operations/analytics` route shows a placeholder "Analytics dashboard for operations performance and metrics."
+**Current state**: The live chat view uses `ChatReplyInput` (line 377 of `ProgressiveMessagesList.tsx`) which is a dedicated chat composer that **hardcodes `is_internal: false`** on every message insert. It has no internal note toggle or button.
 
-**Build a real dashboard** with data from existing tables.
+Meanwhile, the email view uses `LazyReplyArea` → `ReplyArea` which has full internal note support (toggle, yellow styling, mention support).
 
-**New component: `src/components/operations/OperationsAnalyticsDashboard.tsx`**:
-- Period selector (7d / 30d / 90d)
-- KPI cards row:
-  - Total messages received (from `messages` where `sender_type = 'customer'`)
-  - Total messages sent (agent replies)
-  - Total conversations
-  - Avg response time
-  - Total calls (from `calls` table if exists, or `call_records`)
-- Charts (using existing recharts):
-  - Message volume by day (line chart, split by channel: email/chat/widget)
-  - Conversations by status (pie/bar)
-  - Response time trend (line chart)
-  - Channel distribution (bar chart)
-- Content insights section — AI-generated:
-  - "Top themes this period" — call `generate-analytics-report` edge function enhanced with AI summary
-  - Common customer questions
-  - Sentiment breakdown
+**Fix**: Add an "Internal Note" button to `ChatReplyInput`, matching the email pattern:
 
-**New hook: `src/hooks/useOperationsAnalytics.ts`**:
-- Queries `conversations` (counts by status, channel, date)
-- Queries `messages` (counts by sender_type, date, channel)
-- Queries `call_records` or similar for call data
-- Computes trends vs previous period
+1. **`src/components/conversations/ChatReplyInput.tsx`**:
+   - Add `isInternalNote` state toggle
+   - Add a sticky note icon button next to Send that toggles note mode
+   - When in note mode: change textarea background to yellow tint, show "Internal note" badge, set `is_internal: true` on the message insert
+   - Internal notes skip the typing indicator (`handleTyping`) since they're not visible to the visitor
+   - Add keyboard shortcut: `N` key to toggle note mode when textarea is not focused
 
-**Update `src/pages/Index.tsx`** — Replace the placeholder with the new dashboard component.
-
-**Enhance `supabase/functions/generate-analytics-report/index.ts`**:
-- Add message volume metrics (total received/sent)
-- Add AI summary: fetch recent messages, pass to OpenAI for theme extraction
-- Return structured content insights alongside numeric data
-
----
+2. **`src/components/conversations/ChatMessagesList.tsx`** — Ensure internal notes render with the yellow note styling (they already flow through `MessageCard` which handles `isInternalNote` styling, but verify the chat message list passes the flag correctly).
 
 ### Files changed
 
 | File | Change |
 |---|---|
-| `supabase/functions/slack-daily-digest/index.ts` | Add AI summarization of messages, support daily/weekly mode |
-| `supabase/functions/send-slack-notification/index.ts` | Add AI context-aware critical triage alongside keyword matching |
-| `supabase/functions/generate-analytics-report/index.ts` | Add message volume metrics + AI theme extraction |
-| New: `src/components/operations/OperationsAnalyticsDashboard.tsx` | Full analytics dashboard with KPIs, charts, AI insights |
-| New: `src/hooks/useOperationsAnalytics.ts` | Hook to fetch conversation/message/call metrics |
-| `src/pages/Index.tsx` | Replace analytics placeholder with dashboard component |
-| `src/components/admin/SlackIntegrationSettings.tsx` | Add digest frequency selector (daily/weekly/both) |
+| New SQL migration | Thread-aware counting in `get_all_counts` and `get_inbox_counts` |
+| `src/components/conversations/ChatReplyInput.tsx` | Add internal note toggle, button, and yellow styling |
 
