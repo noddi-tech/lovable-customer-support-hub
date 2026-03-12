@@ -31,15 +31,23 @@ Deno.serve(async (req) => {
     const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Support manual invocation with digest_type parameter
+    // Support manual invocation with digest_type and force parameters
     let digestType = 'daily';
+    let force = false;
     try {
       const body = await req.json();
       if (body?.digest_type) digestType = body.digest_type;
+      if (body?.force) force = true;
     } catch { /* no body = cron invocation, default to daily */ }
 
     const periodDays = digestType === 'weekly' ? 7 : 1;
     const periodLabel = digestType === 'weekly' ? 'Weekly' : 'Daily';
+
+    // Get current Oslo time for time-gate check
+    const osloNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Oslo' }));
+    const currentHour = osloNow.getHours();
+    const currentDay = osloNow.getDay(); // 0=Sun, 1=Mon
+    console.log(`Digest invoked: type=${digestType}, force=${force}, Oslo hour=${currentHour}, day=${currentDay}`);
 
     // Get all active Slack integrations with digest enabled
     const { data: integrations, error: intError } = await supabase
@@ -67,6 +75,21 @@ Deno.serve(async (req) => {
       if (digestType === 'daily' && frequency === 'weekly') continue;
       if (digestType === 'weekly' && frequency === 'daily') continue;
       // 'both' always runs
+
+      // Time-gate: only send when current Oslo hour matches configured digest_time
+      if (!force) {
+        const digestTime = config.digest_time || '08:00';
+        const configuredHour = parseInt(digestTime.split(':')[0], 10);
+        if (currentHour !== configuredHour) {
+          console.log(`Skipping org ${integration.organization_id}: configured hour ${configuredHour}, current Oslo hour ${currentHour}`);
+          continue;
+        }
+        // Weekly digests only on Mondays
+        if (digestType === 'weekly' && currentDay !== 1) {
+          console.log(`Skipping weekly for org ${integration.organization_id}: not Monday (day=${currentDay})`);
+          continue;
+        }
+      }
 
       const orgId = integration.organization_id;
       const since = new Date(Date.now() - periodDays * 24 * 60 * 60 * 1000).toISOString();
