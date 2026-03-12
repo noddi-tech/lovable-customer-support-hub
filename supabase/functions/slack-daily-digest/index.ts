@@ -90,6 +90,8 @@ Deno.serve(async (req) => {
           continue;
         }
       }
+
+      const orgId = integration.organization_id;
       const since = new Date(Date.now() - periodDays * 24 * 60 * 60 * 1000).toISOString();
 
       // Fetch conversation stats for the period
