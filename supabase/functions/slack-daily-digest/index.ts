@@ -76,7 +76,20 @@ Deno.serve(async (req) => {
       if (digestType === 'weekly' && frequency === 'daily') continue;
       // 'both' always runs
 
-      const orgId = integration.organization_id;
+      // Time-gate: only send when current Oslo hour matches configured digest_time
+      if (!force) {
+        const digestTime = config.digest_time || '08:00';
+        const configuredHour = parseInt(digestTime.split(':')[0], 10);
+        if (currentHour !== configuredHour) {
+          console.log(`Skipping org ${integration.organization_id}: configured hour ${configuredHour}, current Oslo hour ${currentHour}`);
+          continue;
+        }
+        // Weekly digests only on Mondays
+        if (digestType === 'weekly' && currentDay !== 1) {
+          console.log(`Skipping weekly for org ${integration.organization_id}: not Monday (day=${currentDay})`);
+          continue;
+        }
+      }
       const since = new Date(Date.now() - periodDays * 24 * 60 * 60 * 1000).toISOString();
 
       // Fetch conversation stats for the period
