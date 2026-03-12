@@ -70,6 +70,7 @@ export const useSlackIntegration = () => {
           include_message_preview: config.include_message_preview !== false,
           digest_enabled: !!config.digest_enabled,
           digest_time: (config.digest_time as string) || '08:00',
+          digest_frequency: (config.digest_frequency as 'daily' | 'weekly' | 'both') || 'daily',
           critical_alerts_enabled: !!config.critical_alerts_enabled,
         },
         setup_completed: data.setup_completed || false,
