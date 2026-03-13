@@ -51,11 +51,12 @@ export const PresenceAvatarStack = memo<PresenceAvatarStackProps>(({
   // No viewers — show self-fallback if enabled
   if (sortedViewers.length === 0) {
     if (showSelfFallback && currentUserProfile) {
+      const selfTyping = typingUserIds.has(currentUserProfile.user_id);
       return (
         <div className={cn('flex items-center', className)}>
           <AgentActivityAvatar
             user={currentUserProfile}
-            isTyping={false}
+            isTyping={selfTyping}
             isCurrentUser={true}
             size={size}
           />

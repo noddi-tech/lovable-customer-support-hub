@@ -1,6 +1,7 @@
 import { useCallback, useRef, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/auth/AuthContext';
+import { emitLocalTypingEvent } from './useConversationTypingStatus';
 
 interface UseAgentTypingOptions {
   conversationId: string | null;
@@ -12,7 +13,6 @@ export function useAgentTyping({ conversationId, enabled = true }: UseAgentTypin
   const lastTypingRef = useRef(false);
   const { user } = useAuth();
   const userId = user?.id ?? null;
-  // Keep a ref for cleanup (can't use state in effect cleanup)
   const userIdRef = useRef(userId);
   useEffect(() => { userIdRef.current = userId; }, [userId]);
 
@@ -21,10 +21,12 @@ export function useAgentTyping({ conversationId, enabled = true }: UseAgentTypin
     
     // Only send if status actually changed
     if (lastTypingRef.current === isTyping) return;
-    lastTypingRef.current = isTyping;
+
+    // Emit local event IMMEDIATELY for instant UI feedback
+    emitLocalTypingEvent(conversationId, userId, isTyping);
 
     try {
-      await supabase
+      const { error } = await supabase
         .from('chat_typing_indicators')
         .upsert({
           conversation_id: conversationId,
@@ -36,8 +38,18 @@ export function useAgentTyping({ conversationId, enabled = true }: UseAgentTypin
           onConflict: 'conversation_id,user_id',
           ignoreDuplicates: false,
         });
+
+      if (error) {
+        console.error('[useAgentTyping] Upsert error:', error.message, { conversationId, userId });
+        // Don't commit state — allow retry on next keystroke
+        return;
+      }
+
+      // Only commit after successful write
+      lastTypingRef.current = isTyping;
     } catch (error) {
-      console.error('[useAgentTyping] Error updating typing status:', error);
+      console.error('[useAgentTyping] Exception:', error);
+      // Don't commit — allow retry
     }
   }, [conversationId, enabled, userId]);
 
@@ -69,12 +81,15 @@ export function useAgentTyping({ conversationId, enabled = true }: UseAgentTypin
       if (typingTimeoutRef.current) {
         clearTimeout(typingTimeoutRef.current);
       }
-      if (lastTypingRef.current && conversationId && userIdRef.current) {
+      const uid = userIdRef.current;
+      if (lastTypingRef.current && conversationId && uid) {
+        // Emit local event for immediate UI cleanup
+        emitLocalTypingEvent(conversationId, uid, false);
         void supabase
           .from('chat_typing_indicators')
           .upsert({
             conversation_id: conversationId,
-            user_id: userIdRef.current,
+            user_id: uid,
             visitor_id: null,
             is_typing: false,
             updated_at: new Date().toISOString(),
