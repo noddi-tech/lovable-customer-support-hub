@@ -128,10 +128,10 @@ export function useConversationPresence(organizationId?: string): UseConversatio
         updateViewersMap(state);
       })
       .on('presence', { event: 'join' }, ({ key, newPresences }) => {
-        logger.debug('Presence join event', { key, newPresences }, 'Presence');
+        console.log('[Presence] Join:', key, newPresences);
       })
       .on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
-        logger.debug('Presence leave event', { key, leftPresences }, 'Presence');
+        console.log('[Presence] Leave:', key, leftPresences);
       })
       .subscribe(async (status) => {
         console.log('[Presence] Channel subscription status:', status);
