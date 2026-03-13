@@ -211,7 +211,7 @@ const MessageCardComponent = ({
   }, [message.originalMessage?.attachments, message.id]);
 
   // Generate smart preview text
-  const previewText = getSmartPreview(message.visibleBody, 100);
+  const previewText = getSmartPreview(message.visibleBody, 300);
 
   // Use the real author label from normalization
   const display = message.authorLabel;
