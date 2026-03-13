@@ -26,6 +26,7 @@ import { useTranslation } from "react-i18next";
 import { useInteractionsNavigation } from "@/hooks/useInteractionsNavigation";
 import { useIsMobile } from "@/hooks/use-responsive";
 import { useMentionNotifications } from "@/hooks/useMentionNotifications";
+import { useAgentTyping } from "@/hooks/useAgentTyping";
 import { cn } from "@/lib/utils";
 import { 
   Select,
