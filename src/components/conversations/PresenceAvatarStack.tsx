@@ -37,20 +37,13 @@ export const PresenceAvatarStack = memo<PresenceAvatarStackProps>(({
   const typingUserIds = useConversationTypingStatus(conversationId);
   const typingUsersWithProfiles = useTypingUsersWithProfiles(conversationId);
 
-  // If no presence context (provider not mounted yet), return null
-  if (!presenceContext) return null;
-
-  const { viewersForConversation, currentUserProfile } = presenceContext;
-  const presenceViewers = viewersForConversation(conversationId);
+  const currentUserProfile = presenceContext?.currentUserProfile ?? null;
+  const presenceViewers = presenceContext?.viewersForConversation(conversationId) ?? [];
 
   // Merge: start with presence viewers, then add any typing users not already present
   const mergedViewers = useMemo(() => {
     const viewerMap = new Map<string, PresenceUser>();
-
-    // Add all presence viewers
     presenceViewers.forEach((v) => viewerMap.set(v.user_id, v));
-
-    // Add typing users that aren't in presence (DB-backed fallback)
     typingUsersWithProfiles.forEach((tp) => {
       if (!viewerMap.has(tp.user_id)) {
         viewerMap.set(tp.user_id, {
@@ -63,7 +56,6 @@ export const PresenceAvatarStack = memo<PresenceAvatarStackProps>(({
         });
       }
     });
-
     return Array.from(viewerMap.values());
   }, [presenceViewers, typingUsersWithProfiles, conversationId]);
 
@@ -75,6 +67,9 @@ export const PresenceAvatarStack = memo<PresenceAvatarStackProps>(({
       return 0;
     });
   }, [mergedViewers, currentUserProfile?.user_id]);
+
+  // No context = provider not mounted
+  if (!presenceContext) return null;
 
   // No viewers — show self-fallback if enabled
   if (sortedViewers.length === 0) {
@@ -136,5 +131,4 @@ export const PresenceAvatarStack = memo<PresenceAvatarStackProps>(({
 
 PresenceAvatarStack.displayName = 'PresenceAvatarStack';
 
-// Re-export the PresenceUser type for convenience
 export type { PresenceUser };
