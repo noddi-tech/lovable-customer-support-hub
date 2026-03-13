@@ -317,7 +317,7 @@ const MessageCardComponent = ({
           : "border-y border-r border-gray-200 dark:border-gray-800",
         !isInternalNote && "hover:border-gray-300 dark:hover:border-gray-700",
         disableAnimation && "disable-animation",
-        effectiveCollapsed ? "py-1 min-h-[72px]" : "py-2",
+        effectiveCollapsed ? "py-1 min-h-[108px]" : "py-2",
         isNewestMessage && "ring-2 ring-primary/30 ring-offset-1",
         isPinned && isInternalNote && "ring-2 ring-yellow-400/50 ring-offset-1"
       )}
@@ -330,7 +330,7 @@ const MessageCardComponent = ({
         )}>
           <div className={cn(
             "flex",
-            effectiveCollapsed ? "items-center gap-1.5" : "items-start gap-5",
+            effectiveCollapsed ? "items-center gap-3" : "items-start gap-5",
             !isInternalNote && isAgent && "md:flex-row-reverse"
           )}>
             {/* Avatar */}
@@ -352,7 +352,7 @@ const MessageCardComponent = ({
             <div className="min-w-0 flex-1">
               <div className={cn(
                 "flex items-center",
-                effectiveCollapsed ? "flex-nowrap gap-1.5" : "flex-wrap gap-3",
+                effectiveCollapsed ? "flex-nowrap gap-2.5" : "flex-wrap gap-3",
                 effectiveCollapsed ? "mb-0" : "mb-1.5",
                 !isInternalNote && isAgent && "md:justify-end"
               )}>
@@ -413,7 +413,7 @@ const MessageCardComponent = ({
               {/* Preview text below header when collapsed */}
               {effectiveCollapsed && previewText && (
                 <div className="pl-[26px] pb-1 pr-4">
-                  <span className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+                  <span className="text-xs text-muted-foreground line-clamp-3 leading-relaxed">
                     {previewText}
                   </span>
                 </div>
