@@ -522,7 +522,10 @@ export const ReplyArea = () => {
             <Textarea
               ref={replyRef}
               value={state.replyText}
-              onChange={(e) => dispatch({ type: 'SET_REPLY_TEXT', payload: e.target.value })}
+              onChange={(e) => {
+                dispatch({ type: 'SET_REPLY_TEXT', payload: e.target.value });
+                handleTyping();
+              }}
               onKeyDown={handleKeyPress}
               placeholder={t('conversation.replyPlaceholder')}
               className="min-h-[140px] resize-none transition-colors text-sm"
