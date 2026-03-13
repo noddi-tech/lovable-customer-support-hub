@@ -509,6 +509,7 @@ export const ReplyArea = () => {
               onChange={(value, mentions) => {
                 dispatch({ type: 'SET_REPLY_TEXT', payload: value });
                 setMentionedUserIds(mentions);
+                handleTyping();
               }}
               mentionedUserIds={mentionedUserIds}
               onKeyDown={handleKeyPress}
