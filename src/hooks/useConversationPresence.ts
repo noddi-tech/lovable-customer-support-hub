@@ -103,23 +103,15 @@ export function useConversationPresence(organizationId?: string): UseConversatio
 
   // Set up presence channel - only depends on organizationId and currentUserProfile
   useEffect(() => {
-    logger.debug('Channel setup effect triggered', { 
-      organizationId, 
-      hasProfile: !!currentUserProfile,
-      profileUserId: currentUserProfile?.user_id 
-    }, 'Presence');
+    console.log('[Presence] Channel setup effect triggered', { organizationId, hasProfile: !!currentUserProfile });
     
-    // Use currentUserProfile state (not ref) for reliable React dependency tracking
     if (!organizationId || !currentUserProfile) {
-      logger.debug('Skipping channel setup - missing dependencies', { 
-        hasOrgId: !!organizationId, 
-        hasProfile: !!currentUserProfile 
-      }, 'Presence');
+      console.log('[Presence] Skipping channel setup - missing deps', { hasOrgId: !!organizationId, hasProfile: !!currentUserProfile });
       return;
     }
 
     const channelName = `presence:org-${organizationId}`;
-    logger.debug('Setting up presence channel', { channelName }, 'Presence');
+    console.log('[Presence] Setting up channel:', channelName);
 
     const channel = supabase.channel(channelName, {
       config: {
