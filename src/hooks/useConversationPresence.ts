@@ -179,18 +179,12 @@ export function useConversationPresence(organizationId?: string): UseConversatio
       const profile = currentUserProfileRef.current;
       const channel = channelRef.current;
       
-      logger.debug('trackConversation called', { 
-        conversationId, 
-        hasChannel: !!channel, 
-        hasProfile: !!profile,
-        channelState: channel ? 'exists' : 'null'
-      }, 'Presence');
+      console.log('[Presence] trackConversation called:', conversationId, { hasChannel: !!channel, hasProfile: !!profile });
       
       if (!channel || !profile) {
-        logger.warn('trackConversation early return - missing dependencies', { 
-          hasChannel: !!channel, 
-          hasProfile: !!profile 
-        }, 'Presence');
+        console.warn('[Presence] trackConversation: channel/profile not ready, queueing:', conversationId);
+        pendingTrackRef.current = conversationId;
+        currentConversationRef.current = conversationId;
         return;
       }
 
