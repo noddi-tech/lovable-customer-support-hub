@@ -1,5 +1,6 @@
 import { useCallback, useRef, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/components/auth/AuthContext';
 
 interface UseAgentTypingOptions {
   conversationId: string | null;
@@ -9,19 +10,14 @@ interface UseAgentTypingOptions {
 export function useAgentTyping({ conversationId, enabled = true }: UseAgentTypingOptions) {
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastTypingRef = useRef(false);
-  const userIdRef = useRef<string | null>(null);
-
-  // Fetch user ID once
-  useEffect(() => {
-    const fetchUserId = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      userIdRef.current = user?.id || null;
-    };
-    fetchUserId();
-  }, []);
+  const { user } = useAuth();
+  const userId = user?.id ?? null;
+  // Keep a ref for cleanup (can't use state in effect cleanup)
+  const userIdRef = useRef(userId);
+  useEffect(() => { userIdRef.current = userId; }, [userId]);
 
   const sendTypingStatus = useCallback(async (isTyping: boolean) => {
-    if (!conversationId || !enabled || !userIdRef.current) return;
+    if (!conversationId || !enabled || !userId) return;
     
     // Only send if status actually changed
     if (lastTypingRef.current === isTyping) return;
@@ -32,7 +28,7 @@ export function useAgentTyping({ conversationId, enabled = true }: UseAgentTypin
         .from('chat_typing_indicators')
         .upsert({
           conversation_id: conversationId,
-          user_id: userIdRef.current,
+          user_id: userId,
           visitor_id: null,
           is_typing: isTyping,
           updated_at: new Date().toISOString(),
@@ -43,20 +39,17 @@ export function useAgentTyping({ conversationId, enabled = true }: UseAgentTypin
     } catch (error) {
       console.error('[useAgentTyping] Error updating typing status:', error);
     }
-  }, [conversationId, enabled]);
+  }, [conversationId, enabled, userId]);
 
   const handleTyping = useCallback(() => {
     if (!enabled) return;
 
-    // Clear existing timeout
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);
     }
 
-    // Set typing to true
     sendTypingStatus(true);
 
-    // Auto-clear after 3 seconds of no typing
     typingTimeoutRef.current = setTimeout(() => {
       sendTypingStatus(false);
     }, 3000);
@@ -76,9 +69,7 @@ export function useAgentTyping({ conversationId, enabled = true }: UseAgentTypin
       if (typingTimeoutRef.current) {
         clearTimeout(typingTimeoutRef.current);
       }
-      // Send stop typing on cleanup
       if (lastTypingRef.current && conversationId && userIdRef.current) {
-        // Fire and forget - no need to await or catch
         void supabase
           .from('chat_typing_indicators')
           .upsert({
