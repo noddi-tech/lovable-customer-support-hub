@@ -404,7 +404,7 @@ const MessageCardComponent = ({
                 
                 {/* Preview text inline when collapsed */}
                 {effectiveCollapsed && (
-                  <span className="text-xs text-muted-foreground truncate min-w-0 leading-none">
+                  <span className="text-xs text-muted-foreground line-clamp-2 min-w-0 leading-relaxed">
                     {previewText}
                   </span>
                 )}
