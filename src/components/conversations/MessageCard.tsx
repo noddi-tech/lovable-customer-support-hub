@@ -18,7 +18,8 @@ import {
   PinOff,
   Mail,
   AlertCircle,
-  RefreshCw
+  RefreshCw,
+  Calendar
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { type EmailAttachment } from "@/utils/emailFormatting";
@@ -367,10 +368,13 @@ const MessageCardComponent = ({
                 
                 {/* Timestamp */}
                 <span className={cn(
-                  "text-muted-foreground shrink-0",
+                  "text-muted-foreground shrink-0 flex items-center gap-1",
                   effectiveCollapsed ? "text-xs leading-none" : "text-sm"
                 )}>
-                  {dateTime(typeof message.createdAt === 'string' ? message.createdAt : new Date(message.createdAt).toISOString())}
+                  <Calendar className="w-3 h-3" />
+                  <span className="font-semibold">
+                    {dateTime(typeof message.createdAt === 'string' ? message.createdAt : new Date(message.createdAt).toISOString())}
+                  </span>
                 </span>
                 
                 {/* Author type badge with name inside - replaces separate name span */}
@@ -412,7 +416,7 @@ const MessageCardComponent = ({
 
               {/* Preview text below header when collapsed */}
               {effectiveCollapsed && previewText && (
-                <div className="pl-[26px] pb-1 pr-4">
+                <div className="pl-[26px] pt-1.5 pb-1 pr-4">
                   <span className="text-xs text-muted-foreground line-clamp-3 leading-relaxed">
                     {previewText}
                   </span>
