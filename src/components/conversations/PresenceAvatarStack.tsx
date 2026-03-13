@@ -1,7 +1,8 @@
-import React, { memo } from 'react';
+import React, { memo, useMemo } from 'react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useConversationPresenceSafe, PresenceUser } from '@/contexts/ConversationPresenceContext';
 import { useConversationTypingStatus } from '@/hooks/useConversationTypingStatus';
+import { useTypingUsersWithProfiles } from '@/hooks/useTypingUsersWithProfiles';
 import { AgentActivityAvatar } from './AgentActivityAvatar';
 import { cn } from '@/lib/utils';
 
@@ -34,19 +35,46 @@ export const PresenceAvatarStack = memo<PresenceAvatarStackProps>(({
 }) => {
   const presenceContext = useConversationPresenceSafe();
   const typingUserIds = useConversationTypingStatus(conversationId);
+  const typingUsersWithProfiles = useTypingUsersWithProfiles(conversationId);
 
   // If no presence context (provider not mounted yet), return null
   if (!presenceContext) return null;
 
   const { viewersForConversation, currentUserProfile } = presenceContext;
-  const allViewers = viewersForConversation(conversationId);
+  const presenceViewers = viewersForConversation(conversationId);
+
+  // Merge: start with presence viewers, then add any typing users not already present
+  const mergedViewers = useMemo(() => {
+    const viewerMap = new Map<string, PresenceUser>();
+
+    // Add all presence viewers
+    presenceViewers.forEach((v) => viewerMap.set(v.user_id, v));
+
+    // Add typing users that aren't in presence (DB-backed fallback)
+    typingUsersWithProfiles.forEach((tp) => {
+      if (!viewerMap.has(tp.user_id)) {
+        viewerMap.set(tp.user_id, {
+          user_id: tp.user_id,
+          full_name: tp.full_name,
+          avatar_url: tp.avatar_url,
+          email: tp.email,
+          conversation_id: conversationId,
+          entered_at: new Date().toISOString(),
+        });
+      }
+    });
+
+    return Array.from(viewerMap.values());
+  }, [presenceViewers, typingUsersWithProfiles, conversationId]);
 
   // Sort viewers: current user first, then others
-  const sortedViewers = [...allViewers].sort((a, b) => {
-    if (a.user_id === currentUserProfile?.user_id) return -1;
-    if (b.user_id === currentUserProfile?.user_id) return 1;
-    return 0;
-  });
+  const sortedViewers = useMemo(() => {
+    return [...mergedViewers].sort((a, b) => {
+      if (a.user_id === currentUserProfile?.user_id) return -1;
+      if (b.user_id === currentUserProfile?.user_id) return 1;
+      return 0;
+    });
+  }, [mergedViewers, currentUserProfile?.user_id]);
 
   // No viewers — show self-fallback if enabled
   if (sortedViewers.length === 0) {
