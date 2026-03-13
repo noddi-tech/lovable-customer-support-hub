@@ -34,16 +34,17 @@ export function useConversationPresence(organizationId?: string): UseConversatio
   const currentConversationRef = useRef<string | null>(null);
   const currentUserProfileRef = useRef<PresenceUser | null>(null);
   const isProfileReadyRef = useRef(false);
+  const pendingTrackRef = useRef<string | null>(null);
 
   // Fetch current user's profile for presence data
   useEffect(() => {
     if (!user?.id) {
-      logger.debug('No user ID, skipping profile fetch', undefined, 'Presence');
+      console.log('[Presence] No user ID, skipping profile fetch');
       return;
     }
 
     const fetchProfile = async () => {
-      logger.debug('Fetching profile for user', { userId: user.id }, 'Presence');
+      console.log('[Presence] Fetching profile for user:', user.id);
       const { data, error } = await supabase
         .from('profiles')
         .select('user_id, full_name, avatar_url, email')
@@ -51,7 +52,7 @@ export function useConversationPresence(organizationId?: string): UseConversatio
         .single();
 
       if (error) {
-        logger.error('Error fetching profile', error, 'Presence');
+        console.error('[Presence] Error fetching profile:', error);
         return;
       }
 
@@ -65,17 +66,14 @@ export function useConversationPresence(organizationId?: string): UseConversatio
           entered_at: new Date().toISOString(),
         };
         
-        logger.debug('Profile fetched successfully', { 
-          userId: newProfile.user_id, 
-          fullName: newProfile.full_name 
-        }, 'Presence');
+        console.log('[Presence] Profile fetched:', newProfile.user_id, newProfile.full_name);
         
         // Only update state if profile user_id changed (avoid reference changes)
         if (!currentUserProfileRef.current || currentUserProfileRef.current.user_id !== newProfile.user_id) {
           currentUserProfileRef.current = newProfile;
           isProfileReadyRef.current = true;
           setCurrentUserProfile(newProfile);
-          logger.debug('Profile state updated', undefined, 'Presence');
+          console.log('[Presence] Profile state updated');
         }
       }
     };
@@ -105,23 +103,15 @@ export function useConversationPresence(organizationId?: string): UseConversatio
 
   // Set up presence channel - only depends on organizationId and currentUserProfile
   useEffect(() => {
-    logger.debug('Channel setup effect triggered', { 
-      organizationId, 
-      hasProfile: !!currentUserProfile,
-      profileUserId: currentUserProfile?.user_id 
-    }, 'Presence');
+    console.log('[Presence] Channel setup effect triggered', { organizationId, hasProfile: !!currentUserProfile });
     
-    // Use currentUserProfile state (not ref) for reliable React dependency tracking
     if (!organizationId || !currentUserProfile) {
-      logger.debug('Skipping channel setup - missing dependencies', { 
-        hasOrgId: !!organizationId, 
-        hasProfile: !!currentUserProfile 
-      }, 'Presence');
+      console.log('[Presence] Skipping channel setup - missing deps', { hasOrgId: !!organizationId, hasProfile: !!currentUserProfile });
       return;
     }
 
     const channelName = `presence:org-${organizationId}`;
-    logger.debug('Setting up presence channel', { channelName }, 'Presence');
+    console.log('[Presence] Setting up channel:', channelName);
 
     const channel = supabase.channel(channelName, {
       config: {
@@ -138,10 +128,10 @@ export function useConversationPresence(organizationId?: string): UseConversatio
         updateViewersMap(state);
       })
       .on('presence', { event: 'join' }, ({ key, newPresences }) => {
-        logger.debug('Presence join event', { key, newPresences }, 'Presence');
+        console.log('[Presence] Join:', key, newPresences);
       })
       .on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
-        logger.debug('Presence leave event', { key, leftPresences }, 'Presence');
+        console.log('[Presence] Leave:', key, leftPresences);
       })
       .subscribe(async (status) => {
         console.log('[Presence] Channel subscription status:', status);
@@ -156,8 +146,19 @@ export function useConversationPresence(organizationId?: string): UseConversatio
             entered_at: new Date().toISOString(),
           });
           console.log('[Presence] Initial track result:', trackResult);
+          // Process any queued track call
+          if (pendingTrackRef.current) {
+            const pendingId = pendingTrackRef.current;
+            pendingTrackRef.current = null;
+            console.log('[Presence] Processing queued track for:', pendingId);
+            channel.track({
+              ...currentUserProfile,
+              conversation_id: pendingId,
+              entered_at: new Date().toISOString(),
+            });
+          }
         } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
-          logger.warn('Channel disconnected', { status }, 'Presence');
+          console.warn('[Presence] Channel disconnected:', status);
           setIsConnected(false);
         }
       });
@@ -165,7 +166,7 @@ export function useConversationPresence(organizationId?: string): UseConversatio
     channelRef.current = channel;
 
     return () => {
-      logger.debug('Cleaning up presence channel', { channelName }, 'Presence');
+      console.log('[Presence] Cleaning up channel:', channelName);
       channel.unsubscribe();
       channelRef.current = null;
       setIsConnected(false);
@@ -178,18 +179,12 @@ export function useConversationPresence(organizationId?: string): UseConversatio
       const profile = currentUserProfileRef.current;
       const channel = channelRef.current;
       
-      logger.debug('trackConversation called', { 
-        conversationId, 
-        hasChannel: !!channel, 
-        hasProfile: !!profile,
-        channelState: channel ? 'exists' : 'null'
-      }, 'Presence');
+      console.log('[Presence] trackConversation called:', conversationId, { hasChannel: !!channel, hasProfile: !!profile });
       
       if (!channel || !profile) {
-        logger.warn('trackConversation early return - missing dependencies', { 
-          hasChannel: !!channel, 
-          hasProfile: !!profile 
-        }, 'Presence');
+        console.warn('[Presence] trackConversation: channel/profile not ready, queueing:', conversationId);
+        pendingTrackRef.current = conversationId;
+        currentConversationRef.current = conversationId;
         return;
       }
 
@@ -213,13 +208,10 @@ export function useConversationPresence(organizationId?: string): UseConversatio
     const profile = currentUserProfileRef.current;
     const channel = channelRef.current;
     
-    logger.debug('untrackConversation called', { 
-      hasChannel: !!channel, 
-      hasProfile: !!profile 
-    }, 'Presence');
+    console.log('[Presence] untrackConversation called', { hasChannel: !!channel, hasProfile: !!profile });
     
     if (!channel || !profile) {
-      logger.debug('untrackConversation early return', undefined, 'Presence');
+      pendingTrackRef.current = null;
       return;
     }
 
@@ -231,9 +223,9 @@ export function useConversationPresence(organizationId?: string): UseConversatio
         conversation_id: null,
         entered_at: new Date().toISOString(),
       });
-      logger.debug('untrackConversation completed', undefined, 'Presence');
+      console.log('[Presence] untrackConversation completed');
     } catch (error) {
-      logger.error('untrackConversation failed', error, 'Presence');
+      console.error('[Presence] untrackConversation failed:', error);
     }
   }, []); // No dependencies - uses refs
 

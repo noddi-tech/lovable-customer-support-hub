@@ -264,6 +264,7 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
                 conversationId={conversationId} 
                 size="sm" 
                 maxAvatars={2}
+                showSelfFallback
               />
               {presenceContext && (
                 <span className={cn(
@@ -357,6 +358,7 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
                 size="sm"
                 maxAvatars={3}
                 className="mr-1"
+                showSelfFallback
               />
               <Button
                 variant="outline"
