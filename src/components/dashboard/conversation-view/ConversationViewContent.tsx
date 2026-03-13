@@ -264,6 +264,7 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
                 conversationId={conversationId} 
                 size="sm" 
                 maxAvatars={2}
+                showSelfFallback
               />
               {presenceContext && (
                 <span className={cn(
