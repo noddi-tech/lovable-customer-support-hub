@@ -358,6 +358,7 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
                 size="sm"
                 maxAvatars={3}
                 className="mr-1"
+                showSelfFallback
               />
               <Button
                 variant="outline"

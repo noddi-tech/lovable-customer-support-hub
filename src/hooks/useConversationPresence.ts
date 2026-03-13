@@ -223,9 +223,9 @@ export function useConversationPresence(organizationId?: string): UseConversatio
         conversation_id: null,
         entered_at: new Date().toISOString(),
       });
-      logger.debug('untrackConversation completed', undefined, 'Presence');
+      console.log('[Presence] untrackConversation completed');
     } catch (error) {
-      logger.error('untrackConversation failed', error, 'Presence');
+      console.error('[Presence] untrackConversation failed:', error);
     }
   }, []); // No dependencies - uses refs
 

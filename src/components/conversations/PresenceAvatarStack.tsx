@@ -48,8 +48,22 @@ export const PresenceAvatarStack = memo<PresenceAvatarStackProps>(({
     return 0;
   });
 
-  // No viewers at all
-  if (sortedViewers.length === 0) return null;
+  // No viewers — show self-fallback if enabled
+  if (sortedViewers.length === 0) {
+    if (showSelfFallback && currentUserProfile) {
+      return (
+        <div className={cn('flex items-center', className)}>
+          <AgentActivityAvatar
+            user={currentUserProfile}
+            isTyping={false}
+            isCurrentUser={true}
+            size={size}
+          />
+        </div>
+      );
+    }
+    return null;
+  }
 
   const visibleViewers = sortedViewers.slice(0, maxAvatars);
   const overflowCount = sortedViewers.length - maxAvatars;
