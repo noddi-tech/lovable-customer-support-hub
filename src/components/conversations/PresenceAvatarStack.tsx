@@ -10,6 +10,7 @@ interface PresenceAvatarStackProps {
   maxAvatars?: number;
   size?: 'sm' | 'md' | 'lg';
   className?: string;
+  showSelfFallback?: boolean;
 }
 
 const overlapClasses = {
