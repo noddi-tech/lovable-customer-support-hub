@@ -52,7 +52,7 @@ export function useConversationPresence(organizationId?: string): UseConversatio
         .single();
 
       if (error) {
-        logger.error('Error fetching profile', error, 'Presence');
+        console.error('[Presence] Error fetching profile:', error);
         return;
       }
 
@@ -66,17 +66,14 @@ export function useConversationPresence(organizationId?: string): UseConversatio
           entered_at: new Date().toISOString(),
         };
         
-        logger.debug('Profile fetched successfully', { 
-          userId: newProfile.user_id, 
-          fullName: newProfile.full_name 
-        }, 'Presence');
+        console.log('[Presence] Profile fetched:', newProfile.user_id, newProfile.full_name);
         
         // Only update state if profile user_id changed (avoid reference changes)
         if (!currentUserProfileRef.current || currentUserProfileRef.current.user_id !== newProfile.user_id) {
           currentUserProfileRef.current = newProfile;
           isProfileReadyRef.current = true;
           setCurrentUserProfile(newProfile);
-          logger.debug('Profile state updated', undefined, 'Presence');
+          console.log('[Presence] Profile state updated');
         }
       }
     };
