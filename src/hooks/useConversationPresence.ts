@@ -208,13 +208,10 @@ export function useConversationPresence(organizationId?: string): UseConversatio
     const profile = currentUserProfileRef.current;
     const channel = channelRef.current;
     
-    logger.debug('untrackConversation called', { 
-      hasChannel: !!channel, 
-      hasProfile: !!profile 
-    }, 'Presence');
+    console.log('[Presence] untrackConversation called', { hasChannel: !!channel, hasProfile: !!profile });
     
     if (!channel || !profile) {
-      logger.debug('untrackConversation early return', undefined, 'Presence');
+      pendingTrackRef.current = null;
       return;
     }
 
