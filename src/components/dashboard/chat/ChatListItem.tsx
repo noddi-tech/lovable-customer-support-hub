@@ -129,7 +129,7 @@ export const ChatListItem: React.FC<ChatListItemProps> = ({
         </div>
       </div>
 
-      {/* Time + unread indicator */}
+      {/* Time + presence + unread indicator */}
       <div className="flex flex-col items-end gap-1 shrink-0">
         <span className={cn(
           "text-[10px]",
@@ -137,6 +137,11 @@ export const ChatListItem: React.FC<ChatListItemProps> = ({
         )}>
           {formatDistanceToNow(new Date(conv.updated_at), { addSuffix: false })}
         </span>
+        <PresenceAvatarStack 
+          conversationId={conv.id} 
+          size="sm" 
+          maxAvatars={2}
+        />
         {!conv.is_read && (
           <span className="h-2 w-2 rounded-full bg-primary" />
         )}

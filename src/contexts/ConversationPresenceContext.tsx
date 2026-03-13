@@ -48,7 +48,7 @@ export const ConversationPresenceProvider: React.FC<{ children: React.ReactNode 
       console.log('[PresenceContext] Fetching organization ID for user:', user.id);
       const { data, error } = await supabase.rpc('get_user_organization_id');
       if (data && !error) {
-        console.log('[PresenceContext] Organization ID fetched:', data);
+        console.log('[PresenceContext] ✅ Organization ID fetched:', data);
         setOrganizationId(data);
       } else if (error) {
         console.error('[PresenceContext] Error fetching organization ID:', error);
