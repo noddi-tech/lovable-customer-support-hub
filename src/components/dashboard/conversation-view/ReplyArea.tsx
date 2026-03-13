@@ -134,6 +134,9 @@ export const ReplyArea = () => {
     const currentMentionedUserIds = [...mentionedUserIds];
     const conversationIdForMentions = conversation?.id;
     
+    // Stop typing indicator immediately
+    stopTyping();
+    
     // IMMEDIATELY clear UI, show toast, and navigate (optimistic UX)
     dispatch({ type: 'SET_REPLY_TEXT', payload: '' });
     dispatch({ type: 'SET_SHOW_REPLY_AREA', payload: false });
