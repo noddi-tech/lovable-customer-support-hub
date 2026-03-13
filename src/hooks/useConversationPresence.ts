@@ -146,8 +146,19 @@ export function useConversationPresence(organizationId?: string): UseConversatio
             entered_at: new Date().toISOString(),
           });
           console.log('[Presence] Initial track result:', trackResult);
+          // Process any queued track call
+          if (pendingTrackRef.current) {
+            const pendingId = pendingTrackRef.current;
+            pendingTrackRef.current = null;
+            console.log('[Presence] Processing queued track for:', pendingId);
+            channel.track({
+              ...currentUserProfile,
+              conversation_id: pendingId,
+              entered_at: new Date().toISOString(),
+            });
+          }
         } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
-          logger.warn('Channel disconnected', { status }, 'Presence');
+          console.warn('[Presence] Channel disconnected:', status);
           setIsConnected(false);
         }
       });
