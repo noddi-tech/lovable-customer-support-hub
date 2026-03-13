@@ -352,7 +352,7 @@ const MessageCardComponent = ({
             <div className="min-w-0 flex-1">
               <div className={cn(
                 "flex items-center",
-                effectiveCollapsed ? "flex-nowrap gap-1.5" : "flex-wrap gap-3",
+                effectiveCollapsed ? "flex-nowrap gap-2.5" : "flex-wrap gap-3",
                 effectiveCollapsed ? "mb-0" : "mb-1.5",
                 !isInternalNote && isAgent && "md:justify-end"
               )}>
