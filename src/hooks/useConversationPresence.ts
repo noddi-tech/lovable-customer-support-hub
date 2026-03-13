@@ -34,6 +34,7 @@ export function useConversationPresence(organizationId?: string): UseConversatio
   const currentConversationRef = useRef<string | null>(null);
   const currentUserProfileRef = useRef<PresenceUser | null>(null);
   const isProfileReadyRef = useRef(false);
+  const pendingTrackRef = useRef<string | null>(null);
 
   // Fetch current user's profile for presence data
   useEffect(() => {
