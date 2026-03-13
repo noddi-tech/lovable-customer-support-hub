@@ -259,20 +259,12 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
             </Button>
             
             {/* Team presence with connection indicator */}
-            <div className="flex items-center gap-1.5 shrink-0">
-              <PresenceAvatarStack 
-                conversationId={conversationId} 
-                size="sm" 
-                maxAvatars={2}
-                showSelfFallback
-              />
-              {presenceContext && (
-                <span className={cn(
-                  "h-1.5 w-1.5 rounded-full shrink-0",
-                  presenceContext.isConnected ? "bg-green-500" : "bg-muted-foreground animate-pulse"
-                )} title={presenceContext.isConnected ? "Presence connected" : "Reconnecting..."} />
-              )}
-            </div>
+            <PresenceAvatarStack 
+              conversationId={conversationId} 
+              size="sm" 
+              maxAvatars={2}
+              showSelfFallback
+            />
           </div>
           
           {/* Chat Messages Area - full height, compact mode skips duplicate header */}
