@@ -317,7 +317,7 @@ const MessageCardComponent = ({
           : "border-y border-r border-gray-200 dark:border-gray-800",
         !isInternalNote && "hover:border-gray-300 dark:hover:border-gray-700",
         disableAnimation && "disable-animation",
-        effectiveCollapsed ? "py-0 min-h-[36px]" : "py-2",
+        effectiveCollapsed ? "py-1 min-h-[72px]" : "py-2",
         isNewestMessage && "ring-2 ring-primary/30 ring-offset-1",
         isPinned && isInternalNote && "ring-2 ring-yellow-400/50 ring-offset-1"
       )}
@@ -404,7 +404,7 @@ const MessageCardComponent = ({
                 
                 {/* Preview text inline when collapsed */}
                 {effectiveCollapsed && (
-                  <span className="text-xs text-muted-foreground truncate min-w-0 leading-none">
+                  <span className="text-xs text-muted-foreground line-clamp-2 min-w-0 leading-relaxed">
                     {previewText}
                   </span>
                 )}
