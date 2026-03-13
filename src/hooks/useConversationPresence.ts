@@ -39,12 +39,12 @@ export function useConversationPresence(organizationId?: string): UseConversatio
   // Fetch current user's profile for presence data
   useEffect(() => {
     if (!user?.id) {
-      logger.debug('No user ID, skipping profile fetch', undefined, 'Presence');
+      console.log('[Presence] No user ID, skipping profile fetch');
       return;
     }
 
     const fetchProfile = async () => {
-      logger.debug('Fetching profile for user', { userId: user.id }, 'Presence');
+      console.log('[Presence] Fetching profile for user:', user.id);
       const { data, error } = await supabase
         .from('profiles')
         .select('user_id, full_name, avatar_url, email')
