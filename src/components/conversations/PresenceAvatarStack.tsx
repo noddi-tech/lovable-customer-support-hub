@@ -30,6 +30,7 @@ export const PresenceAvatarStack = memo<PresenceAvatarStackProps>(({
   maxAvatars = 3,
   size = 'sm',
   className,
+  showSelfFallback = false,
 }) => {
   const presenceContext = useConversationPresenceSafe();
   const typingUserIds = useConversationTypingStatus(conversationId);
