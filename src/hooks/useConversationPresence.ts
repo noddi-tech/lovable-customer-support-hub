@@ -166,7 +166,7 @@ export function useConversationPresence(organizationId?: string): UseConversatio
     channelRef.current = channel;
 
     return () => {
-      logger.debug('Cleaning up presence channel', { channelName }, 'Presence');
+      console.log('[Presence] Cleaning up channel:', channelName);
       channel.unsubscribe();
       channelRef.current = null;
       setIsConnected(false);
