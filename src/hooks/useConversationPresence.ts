@@ -134,10 +134,7 @@ export function useConversationPresence(organizationId?: string): UseConversatio
     channel
       .on('presence', { event: 'sync' }, () => {
         const state = channel.presenceState<PresenceUser>();
-        logger.debug('Presence sync event', { 
-          stateKeys: Object.keys(state),
-          userCount: Object.values(state).flat().length
-        }, 'Presence');
+        console.log('[Presence] Sync event — users:', Object.keys(state), 'total:', Object.values(state).flat().length);
         updateViewersMap(state);
       })
       .on('presence', { event: 'join' }, ({ key, newPresences }) => {
@@ -147,20 +144,18 @@ export function useConversationPresence(organizationId?: string): UseConversatio
         logger.debug('Presence leave event', { key, leftPresences }, 'Presence');
       })
       .subscribe(async (status) => {
-        logger.debug('Channel subscription status', { status }, 'Presence');
+        console.log('[Presence] Channel subscription status:', status);
         if (status === 'SUBSCRIBED') {
           setIsConnected(true);
-          logger.debug('Channel SUBSCRIBED, tracking initial state', { 
-            conversationId: currentConversationRef.current 
-          }, 'Presence');
+          console.log('[Presence] Channel SUBSCRIBED, tracking conversation:', currentConversationRef.current);
           
           // Track initial state
-          await channel.track({
+          const trackResult = await channel.track({
             ...currentUserProfile,
             conversation_id: currentConversationRef.current,
             entered_at: new Date().toISOString(),
           });
-          logger.debug('Initial track completed', undefined, 'Presence');
+          console.log('[Presence] Initial track result:', trackResult);
         } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
           logger.warn('Channel disconnected', { status }, 'Presence');
           setIsConnected(false);
@@ -201,14 +196,14 @@ export function useConversationPresence(organizationId?: string): UseConversatio
       currentConversationRef.current = conversationId;
 
       try {
-        await channel.track({
+        const result = await channel.track({
           ...profile,
           conversation_id: conversationId,
           entered_at: new Date().toISOString(),
         });
-        logger.debug('trackConversation completed successfully', { conversationId }, 'Presence');
+        console.log('[Presence] trackConversation result:', result, 'for:', conversationId);
       } catch (error) {
-        logger.error('trackConversation failed', error, 'Presence');
+        console.error('[Presence] trackConversation failed:', error);
       }
     },
     [] // No dependencies - uses refs
