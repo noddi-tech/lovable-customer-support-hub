@@ -80,23 +80,15 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
   const untrackConversation = presenceContext?.untrackConversation;
   const isPresenceConnected = presenceContext?.isConnected;
   
+  // Track conversation for presence — always call, hook queues if channel isn't ready yet
   useEffect(() => {
-    console.log('[ConversationView] Presence tracking effect:', { 
-      conversationId, 
-      hasTrackFn: !!trackConversation, 
-      isConnected: isPresenceConnected 
-    });
-    
-    // Only track when channel is connected AND we have a conversation ID
-    if (trackConversation && conversationId && isPresenceConnected) {
-      console.log('[ConversationView] Calling trackConversation for:', conversationId);
+    if (trackConversation && conversationId) {
       trackConversation(conversationId);
       return () => {
-        console.log('[ConversationView] Cleanup: untracking conversation');
         untrackConversation?.();
       };
     }
-  }, [conversationId, trackConversation, untrackConversation, isPresenceConnected]);
+  }, [conversationId, trackConversation, untrackConversation]);
 
   // Enable keyboard shortcuts for status changes
   useConversationShortcuts();

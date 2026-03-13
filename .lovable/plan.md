@@ -1,65 +1,79 @@
 
-Root cause found. This is a regression introduced in `useConversationPresence` during the last “stabilization” change.
 
-1) Why you only see yourself
-- In `src/hooks/useConversationPresence.ts`, the channel setup effect now depends only on `organizationId`.
-- But that effect has a guard requiring profile readiness (`isProfileReadyRef.current`).
-- If `organizationId` arrives before profile fetch completes, the effect exits early and never runs again (because profile readiness is in a ref, not effect deps).
-- Result: no presence channel subscription, no sync events, no remote viewers.
+## Plan: Fix Counter Mismatch + Add Internal Notes to Chat
 
-2) Why this feels inconsistent/hard
-- `ConversationViewContent` only calls `trackConversation` when `isPresenceConnected === true`.
-- That blocks the queueing path and delays/loses initial tracking during startup/reconnect windows.
-- So even when channel eventually connects, conversation tracking can be late or missed.
+### Bug 1: Open counter shows 9 but only 6 rows visible
 
-Implementation plan (fix now, no DB migration needed)
+**Root cause**: The SQL `get_inbox_counts` / `get_all_counts` functions count every individual conversation with `status='open'`. But the conversation list applies **client-side threading** (`groupConversationsByThread`) which groups conversations from the same customer+subject into a single row. If 3 pairs of conversations get threaded together, you see 6 rows but the counter shows 9.
 
-A. Make presence channel bootstrap deterministic
-- File: `src/hooks/useConversationPresence.ts`
-- Change setup trigger so it reruns when user/profile becomes available (not only org):
-  - Depend on stable primitives (`organizationId`, `user?.id`, `currentUserProfile?.user_id`) OR introduce a `profileReady` state.
-- Remove “ref-only readiness” as the sole gate for channel creation.
-- Keep one channel instance per org; cleanly unsubscribe on org/user change.
+The SQL knows nothing about threading. The counter and the list count different things.
 
-B. Remove startup race in conversation tracking
-- File: `src/components/dashboard/conversation-view/ConversationViewContent.tsx`
-- Call `trackConversation(conversationId)` whenever conversation changes, regardless of `isPresenceConnected`.
-- Keep cleanup `untrackConversation()` on effect cleanup.
-- Let hook queue pending track until channel subscribes.
+**Fix (Hybrid approach)**: After the `ConversationListContext` computes `filteredAndSortedConversations` (which includes threading), expose these counts so the sidebar can use them for the **active** filter. For non-active filters, continue using SQL counts (they're approximate but acceptable as indicators).
 
-C. Ensure profile enrichment doesn’t block presence
-- File: `src/hooks/useConversationPresence.ts`
-- Use auth user id immediately for channel key/initial tracking.
-- When profile fetch completes, update payload and re-track current conversation once (so name/avatar/email are correct).
-- This prevents “no channel until profile fetched”.
+**Changes:**
 
-D. Add explicit guardrails/logging for this exact failure mode
-- Add targeted logs:
-  - channel setup attempt with `org/user/profileReady`
-  - subscription status transitions
-  - queued track consumed after subscribe
-- This makes future regressions obvious in console within seconds.
+1. **`src/contexts/ConversationListContext.tsx`** — After `filteredAndSortedConversations` is computed, derive a `threadedOpenCount` (the actual number of visible rows for the current tab). Expose this via context as `visibleCount`.
 
-Technical details (exact failure path)
+2. **`src/components/layout/InboxList.tsx`** — Accept an optional `visibleCount` prop for the currently active filter. When provided, display it instead of the SQL count for that specific filter button. Other filters keep using SQL counts.
 
-```text
-Current broken path:
-orgId resolves -> setup effect runs -> profile not ready -> return
-(no dependency changes after profile ref update) -> no channel
-ConversationView waits for isConnected=true -> never tracks
-=> each agent only sees self fallback
+3. **`src/components/dashboard/EnhancedInteractionsLayout.tsx`** — Pass the `visibleCount` from the conversation list context down to `InboxList` for the active status tab.
 
-Fixed path:
-conversation opens -> trackConversation called immediately (queues if needed)
-org/user/profile readiness triggers channel setup deterministically
-SUBSCRIBED -> pending track consumed
-presence sync updates viewersMap for both agents
-=> both agents see each other (green), typing flips amber
+Alternatively (simpler, no cross-context wiring): **Do the threading-aware counting in SQL**. Add a `COUNT(DISTINCT ...)` with a thread key (lower(customer_email) || '::' || lower(regexp_replace(subject, ...))). This keeps the count logic centralized and always correct.
+
+**Recommended approach**: SQL-level fix. Add a thread-aware count column to `get_all_counts` and `get_inbox_counts` that groups by `(customer_email, normalized_subject)` before counting, matching the client-side threading logic:
+
+```sql
+-- Replace simple COUNT with thread-aware count
+-- Thread key = customer email + normalized subject (matching client logic)
+WITH threaded AS (
+  SELECT DISTINCT ON (
+    LOWER(COALESCE(cu.email, '')),
+    LOWER(REGEXP_REPLACE(c.subject, '^(re:|fwd?:|fw:|aw:|sv:|vs:)\s*', '', 'gi'))
+  )
+  c.id, c.status, c.is_archived, c.is_read, c.deleted_at, 
+  c.snooze_until, c.assigned_to_id, c.channel
+  FROM conversations c
+  LEFT JOIN customers cu ON c.customer_id = cu.id
+  WHERE c.organization_id = v_org_id
+  ORDER BY LOWER(COALESCE(cu.email, '')),
+    LOWER(REGEXP_REPLACE(c.subject, '^(re:|fwd?:|fw:|aw:|sv:|vs:)\s*', '', 'gi')),
+    COALESCE(c.received_at, c.updated_at) DESC
+)
+SELECT
+  COUNT(*) FILTER (WHERE status='open' AND deleted_at IS NULL 
+    AND NOT is_archived AND (snooze_until IS NULL OR snooze_until <= NOW()))
+  AS conversations_open,
+  -- ... other counts ...
+FROM threaded;
 ```
 
-Verification checklist (must pass before closing)
-1. Two agents open same conversation (no typing): both avatars visible (green) on both screens.
-2. Agent A types: Agent B sees A avatar amber/pulsing quickly.
-3. Agent A stops typing/send/cancel: Agent B sees A return to green.
-4. Refresh either tab: presence reappears automatically without reopening conversation.
-5. Console shows `[Presence] Channel subscription status: SUBSCRIBED` and at least one sync/join event.
+This applies the same deduplication the client does: for each (customer_email, normalized_subject) group, only the most recent conversation is counted. The counter will then match the visible rows exactly.
+
+**Migration**: New SQL migration updating both `get_all_counts()` and `get_inbox_counts(uuid)`.
+
+---
+
+### Feature 2: Add internal notes to live chat
+
+**Current state**: The live chat view uses `ChatReplyInput` (line 377 of `ProgressiveMessagesList.tsx`) which is a dedicated chat composer that **hardcodes `is_internal: false`** on every message insert. It has no internal note toggle or button.
+
+Meanwhile, the email view uses `LazyReplyArea` → `ReplyArea` which has full internal note support (toggle, yellow styling, mention support).
+
+**Fix**: Add an "Internal Note" button to `ChatReplyInput`, matching the email pattern:
+
+1. **`src/components/conversations/ChatReplyInput.tsx`**:
+   - Add `isInternalNote` state toggle
+   - Add a sticky note icon button next to Send that toggles note mode
+   - When in note mode: change textarea background to yellow tint, show "Internal note" badge, set `is_internal: true` on the message insert
+   - Internal notes skip the typing indicator (`handleTyping`) since they're not visible to the visitor
+   - Add keyboard shortcut: `N` key to toggle note mode when textarea is not focused
+
+2. **`src/components/conversations/ChatMessagesList.tsx`** — Ensure internal notes render with the yellow note styling (they already flow through `MessageCard` which handles `isInternalNote` styling, but verify the chat message list passes the flag correctly).
+
+### Files changed
+
+| File | Change |
+|---|---|
+| New SQL migration | Thread-aware counting in `get_all_counts` and `get_inbox_counts` |
+| `src/components/conversations/ChatReplyInput.tsx` | Add internal note toggle, button, and yellow styling |
+
