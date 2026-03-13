@@ -61,6 +61,7 @@ export const ReplyArea = () => {
   const isMobile = useIsMobile();
   const { clearConversation } = useInteractionsNavigation();
   const { processMentions } = useMentionNotifications();
+  const { handleTyping, stopTyping } = useAgentTyping({ conversationId: conversation?.id ?? null });
   const replyRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [replyStatus, setReplyStatus] = React.useState<string>('closed');
