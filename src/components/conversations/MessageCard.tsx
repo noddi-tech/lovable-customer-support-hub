@@ -368,10 +368,13 @@ const MessageCardComponent = ({
                 
                 {/* Timestamp */}
                 <span className={cn(
-                  "text-muted-foreground shrink-0",
+                  "text-muted-foreground shrink-0 flex items-center gap-1",
                   effectiveCollapsed ? "text-xs leading-none" : "text-sm"
                 )}>
-                  {dateTime(typeof message.createdAt === 'string' ? message.createdAt : new Date(message.createdAt).toISOString())}
+                  <Calendar className="w-3 h-3" />
+                  <span className="font-semibold">
+                    {dateTime(typeof message.createdAt === 'string' ? message.createdAt : new Date(message.createdAt).toISOString())}
+                  </span>
                 </span>
                 
                 {/* Author type badge with name inside - replaces separate name span */}
