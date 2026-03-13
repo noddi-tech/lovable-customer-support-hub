@@ -1,79 +1,39 @@
 
 
-## Plan: Fix Counter Mismatch + Add Internal Notes to Chat
+## Fix: Presence Avatars Not Rendering
 
-### Bug 1: Open counter shows 9 but only 6 rows visible
+### Root Cause Analysis
 
-**Root cause**: The SQL `get_inbox_counts` / `get_all_counts` functions count every individual conversation with `status='open'`. But the conversation list applies **client-side threading** (`groupConversationsByThread`) which groups conversations from the same customer+subject into a single row. If 3 pairs of conversations get threaded together, you see 6 rows but the counter shows 9.
+The presence system has two compounding issues:
 
-The SQL knows nothing about threading. The counter and the list count different things.
+1. **Silent failures hidden by `logger.debug`**: All critical presence lifecycle logs use `logger.debug` which is suppressed in production. Even though we added some `console.log` calls in the last edit, key failure paths (like `trackConversation` early return when channel/profile not ready) still use `logger.warn`/`logger.debug` which are invisible.
 
-**Fix (Hybrid approach)**: After the `ConversationListContext` computes `filteredAndSortedConversations` (which includes threading), expose these counts so the sidebar can use them for the **active** filter. For non-active filters, continue using SQL counts (they're approximate but acceptable as indicators).
+2. **Race condition**: `trackConversation` in `ConversationViewContent.tsx` (line 91) depends on `isPresenceConnected`. But `isPresenceConnected` comes from the context which re-renders the component, causing `trackConversation` to fire. However, `trackConversation` uses `channelRef.current` and `currentUserProfileRef.current` — these refs may not be set yet when the callback fires because the channel setup effect and the profile fetch are asynchronous.
 
-**Changes:**
+3. **PresenceAvatarStack returns null when no viewers**: Even if the current user IS tracked, `viewersForConversation` might return empty because the sync event hasn't fired yet or the track call failed. The component returns `null` — no fallback.
 
-1. **`src/contexts/ConversationListContext.tsx`** — After `filteredAndSortedConversations` is computed, derive a `threadedOpenCount` (the actual number of visible rows for the current tab). Expose this via context as `visibleCount`.
+### Changes
 
-2. **`src/components/layout/InboxList.tsx`** — Accept an optional `visibleCount` prop for the currently active filter. When provided, display it instead of the SQL count for that specific filter button. Other filters keep using SQL counts.
+**1. `src/hooks/useConversationPresence.ts`** — Fix race condition and add visible logging:
+- Replace ALL remaining `logger.debug`/`logger.warn` in critical paths with `console.log`/`console.warn` so failures are visible in production
+- The `trackConversation` callback already uses refs (good), but add retry logic: if channel isn't ready, queue the conversation ID and track it when the channel subscribes
 
-3. **`src/components/dashboard/EnhancedInteractionsLayout.tsx`** — Pass the `visibleCount` from the conversation list context down to `InboxList` for the active status tab.
+**2. `src/components/conversations/PresenceAvatarStack.tsx`** — Show current user as fallback:
+- Accept an optional `showSelfFallback` prop (default `false`)
+- When `showSelfFallback={true}` and `currentUserProfile` exists but `allViewers` is empty, show the current user's avatar anyway (they're viewing this conversation even if presence sync hasn't caught up)
+- Use this in `ConversationViewContent.tsx` where we know the user IS viewing
 
-Alternatively (simpler, no cross-context wiring): **Do the threading-aware counting in SQL**. Add a `COUNT(DISTINCT ...)` with a thread key (lower(customer_email) || '::' || lower(regexp_replace(subject, ...))). This keeps the count logic centralized and always correct.
+**3. `src/components/dashboard/conversation-view/ConversationViewContent.tsx`** — Pass `showSelfFallback` to both PresenceAvatarStack instances (chat header line 263 and email header line 355)
 
-**Recommended approach**: SQL-level fix. Add a thread-aware count column to `get_all_counts` and `get_inbox_counts` that groups by `(customer_email, normalized_subject)` before counting, matching the client-side threading logic:
+**4. `src/components/dashboard/conversation-list/ConversationListItem.tsx`** — Already has PresenceAvatarStack, no change needed (list items don't need self-fallback)
 
-```sql
--- Replace simple COUNT with thread-aware count
--- Thread key = customer email + normalized subject (matching client logic)
-WITH threaded AS (
-  SELECT DISTINCT ON (
-    LOWER(COALESCE(cu.email, '')),
-    LOWER(REGEXP_REPLACE(c.subject, '^(re:|fwd?:|fw:|aw:|sv:|vs:)\s*', '', 'gi'))
-  )
-  c.id, c.status, c.is_archived, c.is_read, c.deleted_at, 
-  c.snooze_until, c.assigned_to_id, c.channel
-  FROM conversations c
-  LEFT JOIN customers cu ON c.customer_id = cu.id
-  WHERE c.organization_id = v_org_id
-  ORDER BY LOWER(COALESCE(cu.email, '')),
-    LOWER(REGEXP_REPLACE(c.subject, '^(re:|fwd?:|fw:|aw:|sv:|vs:)\s*', '', 'gi')),
-    COALESCE(c.received_at, c.updated_at) DESC
-)
-SELECT
-  COUNT(*) FILTER (WHERE status='open' AND deleted_at IS NULL 
-    AND NOT is_archived AND (snooze_until IS NULL OR snooze_until <= NOW()))
-  AS conversations_open,
-  -- ... other counts ...
-FROM threaded;
-```
+**5. `src/components/dashboard/chat/ChatListItem.tsx`** — Already has PresenceAvatarStack, no change needed
 
-This applies the same deduplication the client does: for each (customer_email, normalized_subject) group, only the most recent conversation is counted. The counter will then match the visible rows exactly.
-
-**Migration**: New SQL migration updating both `get_all_counts()` and `get_inbox_counts(uuid)`.
-
----
-
-### Feature 2: Add internal notes to live chat
-
-**Current state**: The live chat view uses `ChatReplyInput` (line 377 of `ProgressiveMessagesList.tsx`) which is a dedicated chat composer that **hardcodes `is_internal: false`** on every message insert. It has no internal note toggle or button.
-
-Meanwhile, the email view uses `LazyReplyArea` → `ReplyArea` which has full internal note support (toggle, yellow styling, mention support).
-
-**Fix**: Add an "Internal Note" button to `ChatReplyInput`, matching the email pattern:
-
-1. **`src/components/conversations/ChatReplyInput.tsx`**:
-   - Add `isInternalNote` state toggle
-   - Add a sticky note icon button next to Send that toggles note mode
-   - When in note mode: change textarea background to yellow tint, show "Internal note" badge, set `is_internal: true` on the message insert
-   - Internal notes skip the typing indicator (`handleTyping`) since they're not visible to the visitor
-   - Add keyboard shortcut: `N` key to toggle note mode when textarea is not focused
-
-2. **`src/components/conversations/ChatMessagesList.tsx`** — Ensure internal notes render with the yellow note styling (they already flow through `MessageCard` which handles `isInternalNote` styling, but verify the chat message list passes the flag correctly).
-
-### Files changed
+### Files
 
 | File | Change |
 |---|---|
-| New SQL migration | Thread-aware counting in `get_all_counts` and `get_inbox_counts` |
-| `src/components/conversations/ChatReplyInput.tsx` | Add internal note toggle, button, and yellow styling |
+| `src/hooks/useConversationPresence.ts` | Replace logger.debug/warn with console.log at all critical points; add queued track retry on subscribe |
+| `src/components/conversations/PresenceAvatarStack.tsx` | Add `showSelfFallback` prop to render current user avatar when viewersMap is empty |
+| `src/components/dashboard/conversation-view/ConversationViewContent.tsx` | Pass `showSelfFallback={true}` to both PresenceAvatarStack instances |
 
