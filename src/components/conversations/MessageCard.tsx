@@ -402,13 +402,6 @@ const MessageCardComponent = ({
                   </Badge>
                 )}
                 
-                {/* Preview text inline when collapsed */}
-                {effectiveCollapsed && (
-                  <span className="text-xs text-muted-foreground line-clamp-2 min-w-0 leading-relaxed">
-                    {previewText}
-                  </span>
-                )}
-                
                  {attachments.length > 0 && (
                    <Badge variant="outline" className="text-xs shrink-0">
                      <Paperclip className="w-3 h-3 mr-1" />
@@ -416,6 +409,15 @@ const MessageCardComponent = ({
                    </Badge>
                  )}
               </div>
+
+              {/* Preview text below header when collapsed */}
+              {effectiveCollapsed && previewText && (
+                <div className="pl-[26px] pb-1 pr-4">
+                  <span className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+                    {previewText}
+                  </span>
+                </div>
+              )}
 
               {/* Recipients chips - only show when expanded AND not an internal note */}
               {!effectiveCollapsed && !isInternalNote && (
