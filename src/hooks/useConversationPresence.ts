@@ -101,12 +101,13 @@ export function useConversationPresence(organizationId?: string): UseConversatio
     setViewersMap(newMap);
   }, []);
 
-  // Set up presence channel - only depends on organizationId and currentUserProfile
+  // Set up presence channel - depends ONLY on organizationId (uses refs for profile)
   useEffect(() => {
-    console.log('[Presence] Channel setup effect triggered', { organizationId, hasProfile: !!currentUserProfile });
+    const profile = currentUserProfileRef.current;
+    console.log('[Presence] Channel setup effect triggered', { organizationId, hasProfile: !!profile, isProfileReady: isProfileReadyRef.current });
     
-    if (!organizationId || !currentUserProfile) {
-      console.log('[Presence] Skipping channel setup - missing deps', { hasOrgId: !!organizationId, hasProfile: !!currentUserProfile });
+    if (!organizationId || !isProfileReadyRef.current || !profile) {
+      console.log('[Presence] Skipping channel setup - missing deps', { hasOrgId: !!organizationId, isProfileReady: isProfileReadyRef.current });
       return;
     }
 
@@ -116,7 +117,7 @@ export function useConversationPresence(organizationId?: string): UseConversatio
     const channel = supabase.channel(channelName, {
       config: {
         presence: {
-          key: currentUserProfile.user_id,
+          key: profile.user_id,
         },
       },
     });
@@ -137,11 +138,14 @@ export function useConversationPresence(organizationId?: string): UseConversatio
         console.log('[Presence] Channel subscription status:', status);
         if (status === 'SUBSCRIBED') {
           setIsConnected(true);
+          const currentProfile = currentUserProfileRef.current;
+          if (!currentProfile) return;
+          
           console.log('[Presence] Channel SUBSCRIBED, tracking conversation:', currentConversationRef.current);
           
           // Track initial state
           const trackResult = await channel.track({
-            ...currentUserProfile,
+            ...currentProfile,
             conversation_id: currentConversationRef.current,
             entered_at: new Date().toISOString(),
           });
@@ -152,7 +156,7 @@ export function useConversationPresence(organizationId?: string): UseConversatio
             pendingTrackRef.current = null;
             console.log('[Presence] Processing queued track for:', pendingId);
             channel.track({
-              ...currentUserProfile,
+              ...currentProfile,
               conversation_id: pendingId,
               entered_at: new Date().toISOString(),
             });
@@ -171,7 +175,7 @@ export function useConversationPresence(organizationId?: string): UseConversatio
       channelRef.current = null;
       setIsConnected(false);
     };
-  }, [organizationId, currentUserProfile, updateViewersMap]);
+  }, [organizationId, updateViewersMap]);
 
   // Stable callbacks using refs - no dependencies that change
   const trackConversation = useCallback(
