@@ -196,14 +196,14 @@ export function useConversationPresence(organizationId?: string): UseConversatio
       currentConversationRef.current = conversationId;
 
       try {
-        await channel.track({
+        const result = await channel.track({
           ...profile,
           conversation_id: conversationId,
           entered_at: new Date().toISOString(),
         });
-        logger.debug('trackConversation completed successfully', { conversationId }, 'Presence');
+        console.log('[Presence] trackConversation result:', result, 'for:', conversationId);
       } catch (error) {
-        logger.error('trackConversation failed', error, 'Presence');
+        console.error('[Presence] trackConversation failed:', error);
       }
     },
     [] // No dependencies - uses refs
