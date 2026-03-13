@@ -416,7 +416,7 @@ const MessageCardComponent = ({
 
               {/* Preview text below header when collapsed */}
               {effectiveCollapsed && previewText && (
-                <div className="pl-[26px] pb-1 pr-4">
+                <div className="pl-[26px] pt-1.5 pb-1 pr-4">
                   <span className="text-xs text-muted-foreground line-clamp-3 leading-relaxed">
                     {previewText}
                   </span>
