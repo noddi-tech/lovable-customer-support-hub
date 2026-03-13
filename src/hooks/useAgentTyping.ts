@@ -1,5 +1,6 @@
 import { useCallback, useRef, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/components/auth/AuthContext';
 
 interface UseAgentTypingOptions {
   conversationId: string | null;
@@ -9,16 +10,8 @@ interface UseAgentTypingOptions {
 export function useAgentTyping({ conversationId, enabled = true }: UseAgentTypingOptions) {
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastTypingRef = useRef(false);
-  const userIdRef = useRef<string | null>(null);
-
-  // Fetch user ID once
-  useEffect(() => {
-    const fetchUserId = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      userIdRef.current = user?.id || null;
-    };
-    fetchUserId();
-  }, []);
+  const { user } = useAuth();
+  const userId = user?.id ?? null;
 
   const sendTypingStatus = useCallback(async (isTyping: boolean) => {
     if (!conversationId || !enabled || !userIdRef.current) return;
