@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { useNoddihKundeData } from '@/hooks/useNoddihKundeData';
 import { Check, CheckCheck } from 'lucide-react';
+import { PresenceAvatarStack } from '@/components/conversations/PresenceAvatarStack';
 
 interface ChatConversation {
   id: string;
