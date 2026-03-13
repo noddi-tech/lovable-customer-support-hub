@@ -564,6 +564,7 @@ export const ReplyArea = () => {
           <Button
             variant="ghost"
             onClick={() => {
+              stopTyping();
               dispatch({ type: 'SET_REPLY_TEXT', payload: '' });
               dispatch({ type: 'SET_IS_INTERNAL_NOTE', payload: false });
               dispatch({ type: 'SET_SHOW_REPLY_AREA', payload: false });
