@@ -134,10 +134,7 @@ export function useConversationPresence(organizationId?: string): UseConversatio
     channel
       .on('presence', { event: 'sync' }, () => {
         const state = channel.presenceState<PresenceUser>();
-        logger.debug('Presence sync event', { 
-          stateKeys: Object.keys(state),
-          userCount: Object.values(state).flat().length
-        }, 'Presence');
+        console.log('[Presence] Sync event — users:', Object.keys(state), 'total:', Object.values(state).flat().length);
         updateViewersMap(state);
       })
       .on('presence', { event: 'join' }, ({ key, newPresences }) => {
