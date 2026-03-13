@@ -18,7 +18,8 @@ import {
   PinOff,
   Mail,
   AlertCircle,
-  RefreshCw
+  RefreshCw,
+  Calendar
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { type EmailAttachment } from "@/utils/emailFormatting";
