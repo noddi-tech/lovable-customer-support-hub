@@ -317,7 +317,7 @@ const MessageCardComponent = ({
           : "border-y border-r border-gray-200 dark:border-gray-800",
         !isInternalNote && "hover:border-gray-300 dark:hover:border-gray-700",
         disableAnimation && "disable-animation",
-        effectiveCollapsed ? "py-1 min-h-[108px]" : "py-2",
+        effectiveCollapsed ? "py-1 min-h-[108px] flex items-center" : "py-2",
         isNewestMessage && "ring-2 ring-primary/30 ring-offset-1",
         isPinned && isInternalNote && "ring-2 ring-yellow-400/50 ring-offset-1"
       )}
@@ -326,7 +326,7 @@ const MessageCardComponent = ({
         {/* Card Header - improved spacing */}
         <div className={cn(
           "px-4",
-          effectiveCollapsed ? "py-0" : "py-4"
+          effectiveCollapsed ? "py-0 w-full" : "py-4"
         )}>
           <div className={cn(
             "flex",
