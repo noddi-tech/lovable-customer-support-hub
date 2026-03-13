@@ -1,79 +1,98 @@
 
+Root cause identified (with evidence):
 
-## Plan: Fix Counter Mismatch + Add Internal Notes to Chat
+1) Backend is now writing typing rows successfully.
+- `chat_typing_indicators` has a row for this exact conversation (`3b8c18b9-...`) and your user (`7e8f424e-...`), so `ReplyArea -> useAgentTyping -> upsert` is executing.
+- FK now points to `profiles(user_id)` and table is in `supabase_realtime` publication.
 
-### Bug 1: Open counter shows 9 but only 6 rows visible
+2) The UI has a hard fallback that forces green (never typing) when presence viewers are empty.
+- In `PresenceAvatarStack.tsx`, when `sortedViewers.length === 0` and `showSelfFallback` is true, it renders:
+  - `isTyping={false}` (hardcoded)
+- So if presence tracking is empty/disconnected/delayed, the avatar ring cannot turn amber even when typing rows exist.
 
-**Root cause**: The SQL `get_inbox_counts` / `get_all_counts` functions count every individual conversation with `status='open'`. But the conversation list applies **client-side threading** (`groupConversationsByThread`) which groups conversations from the same customer+subject into a single row. If 3 pairs of conversations get threaded together, you see 6 rows but the counter shows 9.
+3) Reliability gap in `useAgentTyping` makes failures silent and sticky.
+- It sets `lastTypingRef.current = isTyping` before verifying DB success.
+- It also uses try/catch without checking Supabase `{ error }`, so failed writes may not reset state correctly, causing suppressed retries.
 
-The SQL knows nothing about threading. The counter and the list count different things.
+This is why you can type and still never see color change.
 
-**Fix (Hybrid approach)**: After the `ConversationListContext` computes `filteredAndSortedConversations` (which includes threading), expose these counts so the sidebar can use them for the **active** filter. For non-active filters, continue using SQL counts (they're approximate but acceptable as indicators).
+Implementation plan for a bulletproof fix:
 
-**Changes:**
+A) Fix the immediate UI bug (self fallback must reflect typing)
+File: `src/components/conversations/PresenceAvatarStack.tsx`
+- In fallback block, compute `const selfTyping = currentUserProfile ? typingUserIds.has(currentUserProfile.user_id) : false`
+- Render fallback avatar with `isTyping={selfTyping}` instead of `false`.
+- Result: even if presence list is empty, your own avatar ring still changes based on typing status.
 
-1. **`src/contexts/ConversationListContext.tsx`** — After `filteredAndSortedConversations` is computed, derive a `threadedOpenCount` (the actual number of visible rows for the current tab). Expose this via context as `visibleCount`.
+B) Make typing state resilient even when realtime is delayed
+Files:
+- `src/hooks/useAgentTyping.ts`
+- `src/hooks/useConversationTypingStatus.ts`
+Plan:
+1. `useAgentTyping` emits a lightweight local typing event on every state change (true/false), keyed by conversationId + userId.
+2. `useConversationTypingStatus` listens to this local event and updates its `Set<string>` immediately.
+3. Keep DB+realtime as source of truth for other users, but local event gives instant self feedback.
+Result: ring changes immediately on keystroke, independent of websocket timing.
 
-2. **`src/components/layout/InboxList.tsx`** — Accept an optional `visibleCount` prop for the currently active filter. When provided, display it instead of the SQL count for that specific filter button. Other filters keep using SQL counts.
+C) Harden `useAgentTyping` write logic (no silent failures)
+File: `src/hooks/useAgentTyping.ts`
+- Change upsert handling to explicitly inspect `{ error }`.
+- Only commit `lastTypingRef.current` after successful write (or rollback on failure).
+- If write fails, allow subsequent keystrokes to retry instead of getting stuck.
+- Add guarded debug logs for failures with conversation/user context.
 
-3. **`src/components/dashboard/EnhancedInteractionsLayout.tsx`** — Pass the `visibleCount` from the conversation list context down to `InboxList` for the active status tab.
+D) Remove policy drift that can cause unpredictable behavior/security debt
+File: new migration under `supabase/migrations/*`
+- Drop legacy policy that remained:
+  - `"Authenticated users can manage typing indicators in their org"`
+- Keep only explicit policies:
+  - `typing_select_org_members`
+  - `typing_insert_own`
+  - `typing_update_own`
+  - `typing_delete_own`
+This ensures deterministic access rules and avoids policy OR-overlap confusion.
 
-Alternatively (simpler, no cross-context wiring): **Do the threading-aware counting in SQL**. Add a `COUNT(DISTINCT ...)` with a thread key (lower(customer_email) || '::' || lower(regexp_replace(subject, ...))). This keeps the count logic centralized and always correct.
+E) Optional stale-typing protection
+File: `src/hooks/useConversationTypingStatus.ts`
+- During initial fetch, ignore stale `is_typing=true` rows older than a short TTL (e.g. 10–15s via `updated_at`) to prevent “stuck amber” after crashes/disconnects.
 
-**Recommended approach**: SQL-level fix. Add a thread-aware count column to `get_all_counts` and `get_inbox_counts` that groups by `(customer_email, normalized_subject)` before counting, matching the client-side threading logic:
+Verification protocol (must pass before closing):
 
-```sql
--- Replace simple COUNT with thread-aware count
--- Thread key = customer email + normalized subject (matching client logic)
-WITH threaded AS (
-  SELECT DISTINCT ON (
-    LOWER(COALESCE(cu.email, '')),
-    LOWER(REGEXP_REPLACE(c.subject, '^(re:|fwd?:|fw:|aw:|sv:|vs:)\s*', '', 'gi'))
-  )
-  c.id, c.status, c.is_archived, c.is_read, c.deleted_at, 
-  c.snooze_until, c.assigned_to_id, c.channel
-  FROM conversations c
-  LEFT JOIN customers cu ON c.customer_id = cu.id
-  WHERE c.organization_id = v_org_id
-  ORDER BY LOWER(COALESCE(cu.email, '')),
-    LOWER(REGEXP_REPLACE(c.subject, '^(re:|fwd?:|fw:|aw:|sv:|vs:)\s*', '', 'gi')),
-    COALESCE(c.received_at, c.updated_at) DESC
-)
-SELECT
-  COUNT(*) FILTER (WHERE status='open' AND deleted_at IS NULL 
-    AND NOT is_archived AND (snooze_until IS NULL OR snooze_until <= NOW()))
-  AS conversations_open,
-  -- ... other counts ...
-FROM threaded;
+1) Single-tab immediate feedback
+- Open conversation, start typing in ReplyArea.
+- Avatar ring turns amber on first keystroke.
+- Stop typing; ring returns green after ~3s.
+- Send/Cancel returns to green immediately.
+
+2) Presence disconnected scenario
+- Temporarily force fallback state (or simulate no viewers).
+- Confirm self avatar still turns amber while typing (via local event + fallback fix).
+
+3) Two-tab realtime scenario
+- Tab A types; Tab B sees A amber nearly immediately.
+- A stops; B sees return to green after timeout.
+
+4) DB sanity
+- `chat_typing_indicators` row updates `is_typing true -> false` with fresh `updated_at`.
+- No RLS or FK errors in logs.
+
+Technical details:
+```text
+Before:
+ReplyArea onChange
+  -> useAgentTyping upsert
+  -> useConversationTypingStatus waits for db/realtime
+  -> PresenceAvatarStack fallback forces isTyping=false  (breaks self typing visual)
+
+After:
+ReplyArea onChange
+  -> useAgentTyping:
+      - emits local typing event immediately
+      - upserts with explicit error handling/retry-safe state
+  -> useConversationTypingStatus:
+      - merges local events + realtime/db
+  -> PresenceAvatarStack fallback uses computed selfTyping
+      (no dependence on presence viewers to show own typing color)
 ```
 
-This applies the same deduplication the client does: for each (customer_email, normalized_subject) group, only the most recent conversation is counted. The counter will then match the visible rows exactly.
-
-**Migration**: New SQL migration updating both `get_all_counts()` and `get_inbox_counts(uuid)`.
-
----
-
-### Feature 2: Add internal notes to live chat
-
-**Current state**: The live chat view uses `ChatReplyInput` (line 377 of `ProgressiveMessagesList.tsx`) which is a dedicated chat composer that **hardcodes `is_internal: false`** on every message insert. It has no internal note toggle or button.
-
-Meanwhile, the email view uses `LazyReplyArea` → `ReplyArea` which has full internal note support (toggle, yellow styling, mention support).
-
-**Fix**: Add an "Internal Note" button to `ChatReplyInput`, matching the email pattern:
-
-1. **`src/components/conversations/ChatReplyInput.tsx`**:
-   - Add `isInternalNote` state toggle
-   - Add a sticky note icon button next to Send that toggles note mode
-   - When in note mode: change textarea background to yellow tint, show "Internal note" badge, set `is_internal: true` on the message insert
-   - Internal notes skip the typing indicator (`handleTyping`) since they're not visible to the visitor
-   - Add keyboard shortcut: `N` key to toggle note mode when textarea is not focused
-
-2. **`src/components/conversations/ChatMessagesList.tsx`** — Ensure internal notes render with the yellow note styling (they already flow through `MessageCard` which handles `isInternalNote` styling, but verify the chat message list passes the flag correctly).
-
-### Files changed
-
-| File | Change |
-|---|---|
-| New SQL migration | Thread-aware counting in `get_all_counts` and `get_inbox_counts` |
-| `src/components/conversations/ChatReplyInput.tsx` | Add internal note toggle, button, and yellow styling |
-
+This plan addresses the confirmed root cause and closes the failure paths that make the indicator unreliable.
