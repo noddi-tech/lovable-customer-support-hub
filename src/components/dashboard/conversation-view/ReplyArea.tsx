@@ -26,6 +26,7 @@ import { useTranslation } from "react-i18next";
 import { useInteractionsNavigation } from "@/hooks/useInteractionsNavigation";
 import { useIsMobile } from "@/hooks/use-responsive";
 import { useMentionNotifications } from "@/hooks/useMentionNotifications";
+import { useAgentTyping } from "@/hooks/useAgentTyping";
 import { cn } from "@/lib/utils";
 import { 
   Select,
@@ -60,6 +61,7 @@ export const ReplyArea = () => {
   const isMobile = useIsMobile();
   const { clearConversation } = useInteractionsNavigation();
   const { processMentions } = useMentionNotifications();
+  const { handleTyping, stopTyping } = useAgentTyping({ conversationId: conversation?.id ?? null });
   const replyRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [replyStatus, setReplyStatus] = React.useState<string>('closed');
@@ -131,6 +133,9 @@ export const ReplyArea = () => {
     const isInternal = state.isInternalNote;
     const currentMentionedUserIds = [...mentionedUserIds];
     const conversationIdForMentions = conversation?.id;
+    
+    // Stop typing indicator immediately
+    stopTyping();
     
     // IMMEDIATELY clear UI, show toast, and navigate (optimistic UX)
     dispatch({ type: 'SET_REPLY_TEXT', payload: '' });
@@ -504,6 +509,7 @@ export const ReplyArea = () => {
               onChange={(value, mentions) => {
                 dispatch({ type: 'SET_REPLY_TEXT', payload: value });
                 setMentionedUserIds(mentions);
+                handleTyping();
               }}
               mentionedUserIds={mentionedUserIds}
               onKeyDown={handleKeyPress}
@@ -517,7 +523,10 @@ export const ReplyArea = () => {
             <Textarea
               ref={replyRef}
               value={state.replyText}
-              onChange={(e) => dispatch({ type: 'SET_REPLY_TEXT', payload: e.target.value })}
+              onChange={(e) => {
+                dispatch({ type: 'SET_REPLY_TEXT', payload: e.target.value });
+                handleTyping();
+              }}
               onKeyDown={handleKeyPress}
               placeholder={t('conversation.replyPlaceholder')}
               className="min-h-[140px] resize-none transition-colors text-sm"
@@ -555,6 +564,7 @@ export const ReplyArea = () => {
           <Button
             variant="ghost"
             onClick={() => {
+              stopTyping();
               dispatch({ type: 'SET_REPLY_TEXT', payload: '' });
               dispatch({ type: 'SET_IS_INTERNAL_NOTE', payload: false });
               dispatch({ type: 'SET_SHOW_REPLY_AREA', payload: false });
