@@ -330,7 +330,7 @@ const MessageCardComponent = ({
         )}>
           <div className={cn(
             "flex",
-            effectiveCollapsed ? "items-center gap-1.5" : "items-start gap-5",
+            effectiveCollapsed ? "items-center gap-3" : "items-start gap-5",
             !isInternalNote && isAgent && "md:flex-row-reverse"
           )}>
             {/* Avatar */}
