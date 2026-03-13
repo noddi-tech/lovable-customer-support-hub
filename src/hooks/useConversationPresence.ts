@@ -147,20 +147,18 @@ export function useConversationPresence(organizationId?: string): UseConversatio
         logger.debug('Presence leave event', { key, leftPresences }, 'Presence');
       })
       .subscribe(async (status) => {
-        logger.debug('Channel subscription status', { status }, 'Presence');
+        console.log('[Presence] Channel subscription status:', status);
         if (status === 'SUBSCRIBED') {
           setIsConnected(true);
-          logger.debug('Channel SUBSCRIBED, tracking initial state', { 
-            conversationId: currentConversationRef.current 
-          }, 'Presence');
+          console.log('[Presence] Channel SUBSCRIBED, tracking conversation:', currentConversationRef.current);
           
           // Track initial state
-          await channel.track({
+          const trackResult = await channel.track({
             ...currentUserProfile,
             conversation_id: currentConversationRef.current,
             entered_at: new Date().toISOString(),
           });
-          logger.debug('Initial track completed', undefined, 'Presence');
+          console.log('[Presence] Initial track result:', trackResult);
         } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
           logger.warn('Channel disconnected', { status }, 'Presence');
           setIsConnected(false);
