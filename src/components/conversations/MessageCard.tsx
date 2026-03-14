@@ -561,14 +561,19 @@ const MessageCardComponent = ({
                         Resend Email
                       </DropdownMenuItem>
                     )}
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem 
-                      onClick={handleDelete}
-                      className="text-destructive"
-                    >
-                      <Trash2 className="w-4 h-4 mr-2" />
-                      {t('conversation.deleteMessage')}
-                    </DropdownMenuItem>
+                    {/* Delete - only for unsent agent messages */}
+                    {isAgent && !isInternalNote && (message.emailStatus === 'failed' || message.emailStatus === 'pending' || message.emailStatus === 'retry') && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem 
+                          onClick={handleDelete}
+                          className="text-destructive"
+                        >
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          {t('conversation.deleteMessage')}
+                        </DropdownMenuItem>
+                      </>
+                    )}
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>

@@ -78,10 +78,21 @@ export const ChatMessagesList = ({
     toast.success('Message copied');
   }, []);
 
-  const handleDeleteMessage = useCallback((messageId: string) => {
-    // TODO: Implement delete functionality
-    toast.info('Delete functionality coming soon');
-  }, []);
+  const handleDeleteMessage = useCallback(async (messageId: string) => {
+    try {
+      const { error } = await supabase
+        .from('messages')
+        .delete()
+        .eq('id', messageId);
+      if (error) throw error;
+      toast.success('Message deleted');
+      queryClient.invalidateQueries({ queryKey: ['conversation-messages', conversationId] });
+      queryClient.invalidateQueries({ queryKey: ['thread-messages'] });
+    } catch (error) {
+      console.error('Failed to delete message:', error);
+      toast.error('Failed to delete message');
+    }
+  }, [conversationId, queryClient]);
 
   const handleResendEmail = useCallback(async (messageId: string) => {
     try {
@@ -224,13 +235,15 @@ export const ChatMessagesList = ({
                             Resend Email
                           </DropdownMenuItem>
                         )}
-                        <DropdownMenuItem 
-                          onClick={() => handleDeleteMessage(message.id)}
-                          className="text-destructive"
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Delete
-                        </DropdownMenuItem>
+                        {isAgent && (message.emailStatus === 'failed' || message.emailStatus === 'pending' || message.emailStatus === 'retry') && (
+                          <DropdownMenuItem 
+                            onClick={() => handleDeleteMessage(message.id)}
+                            className="text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete
+                          </DropdownMenuItem>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
