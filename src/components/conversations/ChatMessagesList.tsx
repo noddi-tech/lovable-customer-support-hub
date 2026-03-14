@@ -78,10 +78,21 @@ export const ChatMessagesList = ({
     toast.success('Message copied');
   }, []);
 
-  const handleDeleteMessage = useCallback((messageId: string) => {
-    // TODO: Implement delete functionality
-    toast.info('Delete functionality coming soon');
-  }, []);
+  const handleDeleteMessage = useCallback(async (messageId: string) => {
+    try {
+      const { error } = await supabase
+        .from('messages')
+        .delete()
+        .eq('id', messageId);
+      if (error) throw error;
+      toast.success('Message deleted');
+      queryClient.invalidateQueries({ queryKey: ['conversation-messages', conversationId] });
+      queryClient.invalidateQueries({ queryKey: ['thread-messages'] });
+    } catch (error) {
+      console.error('Failed to delete message:', error);
+      toast.error('Failed to delete message');
+    }
+  }, [conversationId, queryClient]);
 
   const handleResendEmail = useCallback(async (messageId: string) => {
     try {
