@@ -139,7 +139,7 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
 
       const messageContent = content || (uploadedAttachments.length > 0 ? '[Attachment]' : '');
       
-      const { error } = await supabase
+      const { data: insertedMsg, error } = await supabase
         .from('messages')
         .insert({
           conversation_id: conversationId,
@@ -148,20 +148,58 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
           sender_id: user.id,
           is_internal: isInternalNote,
           attachments: uploadedAttachments.length > 0 ? uploadedAttachments : null,
-        });
+        })
+        .select('id')
+        .single();
 
       if (error) throw error;
+
+      // For non-internal messages: close conversation + send email if not live
+      if (!isInternalNote) {
+        // Update conversation status to closed (matching email reply behavior)
+        await supabase
+          .from('conversations')
+          .update({ 
+            status: 'closed',
+            is_read: true,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', conversationId);
+
+        // Check if there's an active live chat session
+        const { data: activeSession } = await supabase
+          .from('widget_chat_sessions')
+          .select('id, last_seen_at, status')
+          .eq('conversation_id', conversationId)
+          .in('status', ['active', 'waiting'])
+          .maybeSingle();
+
+        const isLive = activeSession?.last_seen_at && 
+          new Date(activeSession.last_seen_at) > new Date(Date.now() - 60000) &&
+          activeSession.status === 'active';
+
+        // If not actively live, send via email
+        if (!isLive && insertedMsg?.id) {
+          try {
+            await supabase.functions.invoke('send-reply-email', {
+              body: { messageId: insertedMsg.id }
+            });
+          } catch (emailErr) {
+            console.error('[ChatReplyInput] Email send failed:', emailErr);
+          }
+        }
+      }
     },
     onSuccess: () => {
       setMessage('');
       setIsInternalNote(false);
       setAttachments([]);
-      queryClient.invalidateQueries({ 
-        queryKey: ['conversation-messages', conversationId] 
-      });
-      queryClient.invalidateQueries({ 
-        queryKey: ['thread-messages'] 
-      });
+      queryClient.invalidateQueries({ queryKey: ['conversation-messages', conversationId] });
+      queryClient.invalidateQueries({ queryKey: ['thread-messages'] });
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      queryClient.invalidateQueries({ queryKey: ['all-counts'] });
+      queryClient.invalidateQueries({ queryKey: ['inboxCounts'] });
+      queryClient.invalidateQueries({ queryKey: ['conversation', conversationId] });
       onSent?.();
     },
     onError: (error) => {
