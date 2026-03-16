@@ -235,7 +235,7 @@ export const ChatMessagesList = ({
                             Resend Email
                           </DropdownMenuItem>
                         )}
-                        {isAgent && (message.emailStatus === 'failed' || message.emailStatus === 'pending' || message.emailStatus === 'retry') && (
+                        {isAgent && (message.emailStatus === 'failed' || message.emailStatus === 'retry') && (
                           <DropdownMenuItem 
                             onClick={() => handleDeleteMessage(message.id)}
                             className="text-destructive"

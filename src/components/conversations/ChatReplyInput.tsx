@@ -531,34 +531,34 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
         {/* Transfer Chat Button */}
         {transferableAgents.length > 0 && (
           <Button 
-            size="icon" 
+            size="sm" 
             variant="outline"
-            className="rounded-full shrink-0 h-10 w-10"
+            className="shrink-0 h-9 gap-1.5"
             onClick={() => setTransferDialogOpen(true)}
             disabled={isTransferring}
-            title="Transfer chat"
           >
             {isTransferring ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
               <UserRoundPlus className="h-4 w-4" />
             )}
+            <span className="text-xs">Transfer</span>
           </Button>
         )}
         
         <Button 
-          size="icon" 
+          size="sm" 
           variant="outline"
-          className="rounded-full shrink-0 h-10 w-10 text-destructive hover:text-destructive hover:bg-destructive/10"
+          className="shrink-0 h-9 gap-1.5 text-destructive hover:text-destructive hover:bg-destructive/10"
           onClick={handleEndChat}
           disabled={endChatMutation.isPending}
-          title="End chat"
         >
           {endChatMutation.isPending ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
             <MessageSquareX className="h-4 w-4" />
           )}
+          <span className="text-xs">End Chat</span>
         </Button>
       </div>
 
