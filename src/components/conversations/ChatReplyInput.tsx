@@ -514,6 +514,20 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
           <Mic className="h-5 w-5" />
         </Button>
 
+        {/* Reply status selector - hidden for internal notes */}
+        {!isInternalNote && (
+          <Select value={replyStatus} onValueChange={(v) => setReplyStatus(v as 'closed' | 'open' | 'pending')}>
+            <SelectTrigger className="shrink-0 h-9 w-[140px] text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="closed">Send & Close</SelectItem>
+              <SelectItem value="open">Send & Keep Open</SelectItem>
+              <SelectItem value="pending">Send & Pending</SelectItem>
+            </SelectContent>
+          </Select>
+        )}
+
         {/* Send button */}
         <Button 
           size="icon" 
