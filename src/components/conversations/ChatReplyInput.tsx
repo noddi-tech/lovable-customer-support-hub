@@ -148,6 +148,7 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
           sender_id: user.id,
           is_internal: isInternalNote,
           attachments: uploadedAttachments.length > 0 ? uploadedAttachments : null,
+          email_status: isInternalNote ? null : 'sending',
         })
         .select('id')
         .single();
