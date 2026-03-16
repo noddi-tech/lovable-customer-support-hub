@@ -148,6 +148,7 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
           sender_id: user.id,
           is_internal: isInternalNote,
           attachments: uploadedAttachments.length > 0 ? uploadedAttachments : null,
+          email_status: isInternalNote ? null : 'sending',
         })
         .select('id')
         .single();
@@ -413,9 +414,9 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
         {/* Internal note toggle */}
         <Button 
           variant={isInternalNote ? "secondary" : "ghost"}
-          size="icon" 
+          size="sm" 
           className={cn(
-            "shrink-0 h-9 w-9",
+            "shrink-0 h-9 gap-1.5",
             isInternalNote 
               ? "text-warning bg-warning/15 hover:bg-warning/25" 
               : "text-muted-foreground hover:text-foreground"
@@ -423,7 +424,8 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
           onClick={() => setIsInternalNote(!isInternalNote)}
           title={isInternalNote ? "Switch to reply" : "Write internal note"}
         >
-          <StickyNote className="h-5 w-5" />
+          <StickyNote className="h-4 w-4" />
+          <span className="text-xs">Note</span>
         </Button>
 
         {/* Translate button */}
@@ -529,34 +531,34 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
         {/* Transfer Chat Button */}
         {transferableAgents.length > 0 && (
           <Button 
-            size="icon" 
+            size="sm" 
             variant="outline"
-            className="rounded-full shrink-0 h-10 w-10"
+            className="shrink-0 h-9 gap-1.5"
             onClick={() => setTransferDialogOpen(true)}
             disabled={isTransferring}
-            title="Transfer chat"
           >
             {isTransferring ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
               <UserRoundPlus className="h-4 w-4" />
             )}
+            <span className="text-xs">Transfer</span>
           </Button>
         )}
         
         <Button 
-          size="icon" 
+          size="sm" 
           variant="outline"
-          className="rounded-full shrink-0 h-10 w-10 text-destructive hover:text-destructive hover:bg-destructive/10"
+          className="shrink-0 h-9 gap-1.5 text-destructive hover:text-destructive hover:bg-destructive/10"
           onClick={handleEndChat}
           disabled={endChatMutation.isPending}
-          title="End chat"
         >
           {endChatMutation.isPending ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
             <MessageSquareX className="h-4 w-4" />
           )}
+          <span className="text-xs">End Chat</span>
         </Button>
       </div>
 
