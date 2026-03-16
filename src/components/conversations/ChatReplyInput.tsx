@@ -156,17 +156,19 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
 
       if (error) throw error;
 
-      // For non-internal messages: close conversation + send email if not live
+      // For non-internal messages: update status + send email if not live
       if (!isInternalNote) {
-        // Update conversation status to closed (matching email reply behavior)
-        await supabase
-          .from('conversations')
-          .update({ 
-            status: 'closed',
-            is_read: true,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', conversationId);
+        // Update conversation status (agent chooses: closed, open, pending)
+        if (replyStatus !== 'open') {
+          await supabase
+            .from('conversations')
+            .update({ 
+              status: replyStatus,
+              is_read: true,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', conversationId);
+        }
 
         // Check if there's an active live chat session
         const { data: activeSession } = await supabase
