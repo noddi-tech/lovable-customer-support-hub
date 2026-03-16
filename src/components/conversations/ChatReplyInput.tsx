@@ -56,6 +56,7 @@ interface AttachmentPreview {
 export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) => {
   const [message, setMessage] = useState('');
   const [isInternalNote, setIsInternalNote] = useState(false);
+  const [replyStatus, setReplyStatus] = useState<'closed' | 'open' | 'pending'>('closed');
   const [transferDialogOpen, setTransferDialogOpen] = useState(false);
   const [selectedAgentId, setSelectedAgentId] = useState<string>('');
   const [attachments, setAttachments] = useState<AttachmentPreview[]>([]);
@@ -155,17 +156,19 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
 
       if (error) throw error;
 
-      // For non-internal messages: close conversation + send email if not live
+      // For non-internal messages: update status + send email if not live
       if (!isInternalNote) {
-        // Update conversation status to closed (matching email reply behavior)
-        await supabase
-          .from('conversations')
-          .update({ 
-            status: 'closed',
-            is_read: true,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', conversationId);
+        // Update conversation status (agent chooses: closed, open, pending)
+        if (replyStatus !== 'open') {
+          await supabase
+            .from('conversations')
+            .update({ 
+              status: replyStatus,
+              is_read: true,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', conversationId);
+        }
 
         // Check if there's an active live chat session
         const { data: activeSession } = await supabase
@@ -510,6 +513,20 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
         >
           <Mic className="h-5 w-5" />
         </Button>
+
+        {/* Reply status selector - hidden for internal notes */}
+        {!isInternalNote && (
+          <Select value={replyStatus} onValueChange={(v) => setReplyStatus(v as 'closed' | 'open' | 'pending')}>
+            <SelectTrigger className="shrink-0 h-9 w-[140px] text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="closed">Send & Close</SelectItem>
+              <SelectItem value="open">Send & Keep Open</SelectItem>
+              <SelectItem value="pending">Send & Pending</SelectItem>
+            </SelectContent>
+          </Select>
+        )}
 
         {/* Send button */}
         <Button 
