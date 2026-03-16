@@ -269,8 +269,15 @@ export const ChatMessagesList = ({
                     <CheckCheck className="h-3 w-3 text-primary" />
                   )}
                 </div>
+                {/* Sending indicator */}
+                {isAgent && message.emailStatus === 'sending' && (
+                  <div className="flex items-center gap-1.5 mt-1 px-1">
+                    <Loader2 className="h-3 w-3 text-muted-foreground animate-spin" />
+                    <span className="text-xs text-muted-foreground">Sending email...</span>
+                  </div>
+                )}
                 {/* Inline resend for failed/pending emails */}
-                {isAgent && (message.emailStatus === 'failed' || message.emailStatus === 'pending' || message.emailStatus === 'retry') && (
+                {isAgent && (message.emailStatus === 'failed' || message.emailStatus === 'retry') && (
                   <div className="flex items-center gap-1.5 mt-1 px-1">
                     <AlertCircle className="h-3 w-3 text-destructive" />
                     <span className="text-xs text-destructive font-medium">Email not sent</span>
