@@ -414,9 +414,9 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
         {/* Internal note toggle */}
         <Button 
           variant={isInternalNote ? "secondary" : "ghost"}
-          size="icon" 
+          size="sm" 
           className={cn(
-            "shrink-0 h-9 w-9",
+            "shrink-0 h-9 gap-1.5",
             isInternalNote 
               ? "text-warning bg-warning/15 hover:bg-warning/25" 
               : "text-muted-foreground hover:text-foreground"
@@ -424,7 +424,8 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
           onClick={() => setIsInternalNote(!isInternalNote)}
           title={isInternalNote ? "Switch to reply" : "Write internal note"}
         >
-          <StickyNote className="h-5 w-5" />
+          <StickyNote className="h-4 w-4" />
+          <span className="text-xs">Note</span>
         </Button>
 
         {/* Translate button */}
