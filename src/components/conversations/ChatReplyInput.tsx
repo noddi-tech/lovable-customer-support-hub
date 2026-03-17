@@ -211,6 +211,7 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
       queryClient.invalidateQueries({ queryKey: ['all-counts'] });
       queryClient.invalidateQueries({ queryKey: ['inboxCounts'] });
       queryClient.invalidateQueries({ queryKey: ['conversation', conversationId] });
+      queryClient.invalidateQueries({ queryKey: ['conversation-meta', conversationId] });
       onSent?.();
     },
     onError: (error) => {
