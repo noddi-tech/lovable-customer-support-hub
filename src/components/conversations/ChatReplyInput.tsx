@@ -160,7 +160,8 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
       if (!isInternalNote) {
         // Update conversation status (agent chooses: closed, open, pending)
         if (replyStatus !== 'open') {
-          await supabase
+          console.log('[ChatReplyInput] Updating conversation status:', { conversationId, replyStatus });
+          const { error: statusError } = await supabase
             .from('conversations')
             .update({ 
               status: replyStatus,
@@ -168,6 +169,12 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
               updated_at: new Date().toISOString(),
             })
             .eq('id', conversationId);
+          
+          if (statusError) {
+            console.error('[ChatReplyInput] Failed to update conversation status:', statusError);
+            throw new Error(`Failed to update status: ${statusError.message}`);
+          }
+          console.log('[ChatReplyInput] Conversation status updated successfully to:', replyStatus);
         }
 
         // Check if there's an active live chat session
@@ -204,6 +211,7 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
       queryClient.invalidateQueries({ queryKey: ['all-counts'] });
       queryClient.invalidateQueries({ queryKey: ['inboxCounts'] });
       queryClient.invalidateQueries({ queryKey: ['conversation', conversationId] });
+      queryClient.invalidateQueries({ queryKey: ['conversation-meta', conversationId] });
       onSent?.();
     },
     onError: (error) => {

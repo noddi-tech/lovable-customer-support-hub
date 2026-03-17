@@ -1,50 +1,79 @@
 
 
-## Fix: Conversation not closing after reply
+## Plan: Fix Counter Mismatch + Add Internal Notes to Chat
 
-### Root Cause
-The conversation status update in `ChatReplyInput.tsx` (line 162-171) doesn't check for errors. The Supabase `.update()` call silently fails — the result is discarded without checking for an error response. This means if RLS blocks the update or any other issue occurs, the agent sees no feedback and the conversation stays `open`.
+### Bug 1: Open counter shows 9 but only 6 rows visible
 
-Verified in the database: the conversation `600f86eb...` is still `status: 'open'` despite the agent replying with "Send & Close" selected.
+**Root cause**: The SQL `get_inbox_counts` / `get_all_counts` functions count every individual conversation with `status='open'`. But the conversation list applies **client-side threading** (`groupConversationsByThread`) which groups conversations from the same customer+subject into a single row. If 3 pairs of conversations get threaded together, you see 6 rows but the counter shows 9.
 
-### Fix
+The SQL knows nothing about threading. The counter and the list count different things.
 
-**`src/components/conversations/ChatReplyInput.tsx`**:
+**Fix (Hybrid approach)**: After the `ConversationListContext` computes `filteredAndSortedConversations` (which includes threading), expose these counts so the sidebar can use them for the **active** filter. For non-active filters, continue using SQL counts (they're approximate but acceptable as indicators).
 
-1. **Add error handling** to the conversation update call — check the `error` response and throw if it fails, so `onError` can show a toast
-2. **Add console logging** before and after the update to trace exactly what's happening (`replyStatus` value, `conversationId`, result)
-3. **Also invalidate `conversation-meta`** in `onSuccess` so the conversation view header updates
+**Changes:**
 
-The change at lines 162-171:
-```typescript
-if (replyStatus !== 'open') {
-  console.log('[ChatReplyInput] Updating conversation status:', { conversationId, replyStatus });
-  const { error: statusError } = await supabase
-    .from('conversations')
-    .update({ 
-      status: replyStatus,
-      is_read: true,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', conversationId);
-  
-  if (statusError) {
-    console.error('[ChatReplyInput] Failed to update conversation status:', statusError);
-    throw new Error(`Failed to update status: ${statusError.message}`);
-  }
-  console.log('[ChatReplyInput] Conversation status updated successfully to:', replyStatus);
-}
+1. **`src/contexts/ConversationListContext.tsx`** — After `filteredAndSortedConversations` is computed, derive a `threadedOpenCount` (the actual number of visible rows for the current tab). Expose this via context as `visibleCount`.
+
+2. **`src/components/layout/InboxList.tsx`** — Accept an optional `visibleCount` prop for the currently active filter. When provided, display it instead of the SQL count for that specific filter button. Other filters keep using SQL counts.
+
+3. **`src/components/dashboard/EnhancedInteractionsLayout.tsx`** — Pass the `visibleCount` from the conversation list context down to `InboxList` for the active status tab.
+
+Alternatively (simpler, no cross-context wiring): **Do the threading-aware counting in SQL**. Add a `COUNT(DISTINCT ...)` with a thread key (lower(customer_email) || '::' || lower(regexp_replace(subject, ...))). This keeps the count logic centralized and always correct.
+
+**Recommended approach**: SQL-level fix. Add a thread-aware count column to `get_all_counts` and `get_inbox_counts` that groups by `(customer_email, normalized_subject)` before counting, matching the client-side threading logic:
+
+```sql
+-- Replace simple COUNT with thread-aware count
+-- Thread key = customer email + normalized subject (matching client logic)
+WITH threaded AS (
+  SELECT DISTINCT ON (
+    LOWER(COALESCE(cu.email, '')),
+    LOWER(REGEXP_REPLACE(c.subject, '^(re:|fwd?:|fw:|aw:|sv:|vs:)\s*', '', 'gi'))
+  )
+  c.id, c.status, c.is_archived, c.is_read, c.deleted_at, 
+  c.snooze_until, c.assigned_to_id, c.channel
+  FROM conversations c
+  LEFT JOIN customers cu ON c.customer_id = cu.id
+  WHERE c.organization_id = v_org_id
+  ORDER BY LOWER(COALESCE(cu.email, '')),
+    LOWER(REGEXP_REPLACE(c.subject, '^(re:|fwd?:|fw:|aw:|sv:|vs:)\s*', '', 'gi')),
+    COALESCE(c.received_at, c.updated_at) DESC
+)
+SELECT
+  COUNT(*) FILTER (WHERE status='open' AND deleted_at IS NULL 
+    AND NOT is_archived AND (snooze_until IS NULL OR snooze_until <= NOW()))
+  AS conversations_open,
+  -- ... other counts ...
+FROM threaded;
 ```
 
-And in `onSuccess`, add:
-```typescript
-queryClient.invalidateQueries({ queryKey: ['conversation-meta', conversationId] });
-queryClient.invalidateQueries({ queryKey: ['inbox-counts'] });
-```
+This applies the same deduplication the client does: for each (customer_email, normalized_subject) group, only the most recent conversation is counted. The counter will then match the visible rows exactly.
 
-### File changed
+**Migration**: New SQL migration updating both `get_all_counts()` and `get_inbox_counts(uuid)`.
+
+---
+
+### Feature 2: Add internal notes to live chat
+
+**Current state**: The live chat view uses `ChatReplyInput` (line 377 of `ProgressiveMessagesList.tsx`) which is a dedicated chat composer that **hardcodes `is_internal: false`** on every message insert. It has no internal note toggle or button.
+
+Meanwhile, the email view uses `LazyReplyArea` → `ReplyArea` which has full internal note support (toggle, yellow styling, mention support).
+
+**Fix**: Add an "Internal Note" button to `ChatReplyInput`, matching the email pattern:
+
+1. **`src/components/conversations/ChatReplyInput.tsx`**:
+   - Add `isInternalNote` state toggle
+   - Add a sticky note icon button next to Send that toggles note mode
+   - When in note mode: change textarea background to yellow tint, show "Internal note" badge, set `is_internal: true` on the message insert
+   - Internal notes skip the typing indicator (`handleTyping`) since they're not visible to the visitor
+   - Add keyboard shortcut: `N` key to toggle note mode when textarea is not focused
+
+2. **`src/components/conversations/ChatMessagesList.tsx`** — Ensure internal notes render with the yellow note styling (they already flow through `MessageCard` which handles `isInternalNote` styling, but verify the chat message list passes the flag correctly).
+
+### Files changed
 
 | File | Change |
 |---|---|
-| `src/components/conversations/ChatReplyInput.tsx` | Add error handling + logging to status update, invalidate conversation-meta |
+| New SQL migration | Thread-aware counting in `get_all_counts` and `get_inbox_counts` |
+| `src/components/conversations/ChatReplyInput.tsx` | Add internal note toggle, button, and yellow styling |
 
