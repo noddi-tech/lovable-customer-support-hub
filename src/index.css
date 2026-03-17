@@ -1494,6 +1494,28 @@ Optimized for accessibility with WCAG AA compliance.
   opacity: 0.7;
 }
 
+/* Chat bubble content - constrain email HTML styles */
+.chat-bubble-content .email-render__html-content,
+.chat-bubble-content .email-render__plain-content {
+  font-family: inherit !important;
+  font-size: inherit !important;
+  color: inherit !important;
+  line-height: inherit !important;
+}
+
+.chat-bubble-content .email-render__html-content *,
+.chat-bubble-content .email-render__plain-content * {
+  font-family: inherit !important;
+  color: inherit !important;
+}
+
+.chat-bubble-content .email-render__html-content a,
+.chat-bubble-content .email-render__plain-content a {
+  color: inherit !important;
+  text-decoration: underline;
+  opacity: 0.9;
+}
+
 /* Touch and accessibility - scoped to mobile form fields only */
 @media (max-width: 767px) {
   input, textarea, select {
