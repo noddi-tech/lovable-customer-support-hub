@@ -251,13 +251,17 @@ export const ChatMessagesList = ({
                   
                   {/* Message bubble */}
                   <div className={cn(
-                    "px-4 py-3 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap break-words",
+                    "px-4 py-3 rounded-2xl text-sm leading-relaxed break-words chat-bubble-content",
                     isAgent 
                       ? "bg-primary text-primary-foreground rounded-br-md" 
                       : "bg-muted text-foreground rounded-bl-md"
                   )}>
-                    {message.visibleBody}
-                    {renderAttachments(attachments)}
+                    <EmailRender
+                      content={message.visibleBody}
+                      contentType={message.originalMessage?.content_type || 'text/plain'}
+                      attachments={attachments}
+                      messageId={message.id}
+                    />
                   </div>
                 </div>
                 
