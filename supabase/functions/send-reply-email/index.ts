@@ -86,7 +86,7 @@ const handler = async (req: Request): Promise<Response> => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     );
 
-    const { messageId } = await req.json();
+    const { messageId, replyAll = true } = await req.json();
     console.log('Processing message ID:', messageId);
 
     if (!messageId) throw new Error('Message ID is required');
