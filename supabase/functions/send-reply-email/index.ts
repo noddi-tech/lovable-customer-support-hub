@@ -12,6 +12,65 @@ function createMessageId(fromEmail: string) {
   return `<msg-${id}@${domain}>`;
 }
 
+// Extract an email address from a "Name <email>" or bare "email" string
+function extractEmail(s: string): string | null {
+  const match = s.match(/<([^>]+)>/) || s.match(/([^\s,<>"]+@[^\s,<>"]+)/);
+  return match ? match[1].trim().toLowerCase() : null;
+}
+
+// Parse a header value from raw email headers string
+function parseHeaderValue(raw: string, headerName: string): string | null {
+  const regex = new RegExp(`^${headerName}:\\s*(.+?)$`, 'mi');
+  const match = raw.match(regex);
+  if (!match) return null;
+  // Handle folded headers (continuation lines starting with whitespace)
+  let value = match[1];
+  const lines = raw.split('\n');
+  const idx = lines.findIndex(l => l.match(new RegExp(`^${headerName}:`, 'i')));
+  if (idx >= 0) {
+    for (let i = idx + 1; i < lines.length; i++) {
+      if (lines[i].match(/^\s+/)) {
+        value += ' ' + lines[i].trim();
+      } else {
+        break;
+      }
+    }
+  }
+  return value.trim();
+}
+
+// Extract CC recipients from conversation messages, excluding specified emails
+function extractCcRecipients(messages: any[], excludeEmails: string[]): { email: string }[] {
+  const seen = new Set(excludeEmails.map(e => e.toLowerCase()));
+  const ccList: { email: string }[] = [];
+
+  for (const msg of messages) {
+    const headers = msg.email_headers;
+    if (!headers) continue;
+
+    let ccRaw = '';
+    if (typeof headers.raw === 'string') {
+      ccRaw = parseHeaderValue(headers.raw, 'Cc') || parseHeaderValue(headers.raw, 'CC') || '';
+    } else if (typeof headers.cc === 'string') {
+      ccRaw = headers.cc;
+    } else if (typeof headers.Cc === 'string') {
+      ccRaw = headers.Cc;
+    }
+
+    if (!ccRaw) continue;
+
+    for (const part of ccRaw.split(',')) {
+      const email = extractEmail(part.trim());
+      if (email && !seen.has(email)) {
+        seen.add(email);
+        ccList.push({ email });
+      }
+    }
+  }
+  return ccList;
+}
+
+
 const handler = async (req: Request): Promise<Response> => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
@@ -210,7 +269,7 @@ const handler = async (req: Request): Promise<Response> => {
     // Fetch ALL previous email_message_ids for the full References chain
     const { data: allPrevMessages } = await supabaseClient
       .from('messages')
-      .select('email_message_id')
+      .select('email_message_id, email_headers')
       .eq('conversation_id', message.conversation_id)
       .not('email_message_id', 'is', null)
       .neq('id', messageId)
@@ -336,10 +395,17 @@ const handler = async (req: Request): Promise<Response> => {
       headers['References'] = normalized;
     }
 
+    // Extract CC recipients from conversation history for Reply All
+    const ccRecipients = extractCcRecipients(allPrevMessages || [], [toEmail, fromEmailFinal]);
+    if (ccRecipients.length > 0) {
+      console.log('Reply All CC recipients:', ccRecipients.map(r => r.email).join(', '));
+    }
+
     const sendgridBody = {
       personalizations: [
         {
           to: [{ email: toEmail, name: customer.full_name || undefined }],
+          ...(ccRecipients.length > 0 ? { cc: ccRecipients } : {}),
         },
       ],
       from: { email: fromEmailFinal, name: senderDisplayName },
@@ -375,6 +441,7 @@ const handler = async (req: Request): Promise<Response> => {
       'From': `${senderDisplayName} <${fromEmailFinal}>`,
       'To': customer.full_name ? `${customer.full_name} <${toEmail}>` : toEmail,
       'Subject': subject,
+      ...(ccRecipients.length > 0 ? { 'Cc': ccRecipients.map(r => r.email).join(', ') } : {}),
     };
     if (inReplyToId) {
       const normalized = inReplyToId.startsWith('<') ? inReplyToId : `<${inReplyToId}>`;
