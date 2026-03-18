@@ -58,6 +58,7 @@ interface AttachmentPreview {
 export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) => {
   const [message, setMessage] = useState('');
   const [isInternalNote, setIsInternalNote] = useState(false);
+  const [mentionedUserIds, setMentionedUserIds] = useState<string[]>([]);
   const [replyStatus, setReplyStatus] = useState<'closed' | 'open' | 'pending'>('closed');
   const [transferDialogOpen, setTransferDialogOpen] = useState(false);
   const [selectedAgentId, setSelectedAgentId] = useState<string>('');
