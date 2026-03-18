@@ -72,6 +72,7 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { state } = useConversationView();
+  const { processMentions } = useMentionNotifications();
   
   // Fetch agents for transfer
   const { data: agents } = useAgents();
