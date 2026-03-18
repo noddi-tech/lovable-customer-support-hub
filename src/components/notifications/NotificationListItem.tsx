@@ -57,8 +57,10 @@ export const NotificationListItem: React.FC<NotificationListItemProps> = ({
       className={cn(
         "group relative flex items-start gap-4 p-4 border-b border-border transition-colors",
         !notification.is_read && "bg-muted/30",
-        "hover:bg-muted/50"
+        "hover:bg-muted/50",
+        hasLink && "cursor-pointer"
       )}
+      onClick={() => hasLink && onNavigate(notification)}
     >
       {/* Priority indicator line */}
       <div 

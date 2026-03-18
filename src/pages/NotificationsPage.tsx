@@ -58,8 +58,8 @@ const NotificationsPage = () => {
     }
 
     if (data.conversation_id) {
-      const messageParam = data.message_id ? `&m=${data.message_id}` : '';
-      navigate(`/interactions/text/open?c=${data.conversation_id}${messageParam}`);
+      const messagePath = data.message_id ? `/m/${data.message_id}` : '';
+      navigate(`/c/${data.conversation_id}${messagePath}`);
     } else if (data.ticket_id) {
       navigate(`/operations/tickets?ticket=${data.ticket_id}`);
     } else if (data.call_id) {
