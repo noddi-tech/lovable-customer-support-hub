@@ -155,7 +155,7 @@ interface ConversationViewContextType {
   isLoading: boolean;
   messagesLoading: boolean;
   conversationIds?: string | string[];
-  sendReply: (content: string, isInternal: boolean, status?: string, files?: File[], replyAll?: boolean) => Promise<void>;
+  sendReply: (content: string, isInternal: boolean, status?: string, files?: File[], replyAll?: boolean) => Promise<string | undefined>;
   assignConversation: (userId: string) => Promise<void>;
   moveConversation: (inboxId: string) => Promise<void>;
   updateStatus: (updates: { status?: string; isArchived?: boolean }) => Promise<void>;
