@@ -2,6 +2,8 @@ import { useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { MentionTextarea } from '@/components/ui/mention-textarea';
+import { useMentionNotifications } from '@/hooks/useMentionNotifications';
 import { Badge } from '@/components/ui/badge';
 import { Send, Loader2, MessageSquareX, UserRoundPlus, Smile, Paperclip, Mic, Image, X, Languages, StickyNote } from 'lucide-react';
 import { cn } from '@/lib/utils'; // utility
@@ -56,6 +58,7 @@ interface AttachmentPreview {
 export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) => {
   const [message, setMessage] = useState('');
   const [isInternalNote, setIsInternalNote] = useState(false);
+  const [mentionedUserIds, setMentionedUserIds] = useState<string[]>([]);
   const [replyStatus, setReplyStatus] = useState<'closed' | 'open' | 'pending'>('closed');
   const [transferDialogOpen, setTransferDialogOpen] = useState(false);
   const [selectedAgentId, setSelectedAgentId] = useState<string>('');
@@ -69,6 +72,7 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { state } = useConversationView();
+  const { processMentions } = useMentionNotifications();
   
   // Fetch agents for transfer
   const { data: agents } = useAgents();
@@ -202,8 +206,16 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
       }
     },
     onSuccess: () => {
+      // Process mentions if this was an internal note with mentions
+      if (isInternalNote && mentionedUserIds.length > 0) {
+        processMentions(message, mentionedUserIds, {
+          type: 'internal_note',
+          conversation_id: conversationId,
+        });
+      }
       setMessage('');
       setIsInternalNote(false);
+      setMentionedUserIds([]);
       setAttachments([]);
       queryClient.invalidateQueries({ queryKey: ['conversation-messages', conversationId] });
       queryClient.invalidateQueries({ queryKey: ['thread-messages'] });
@@ -497,19 +509,38 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
         </Popover>
 
         {/* Message input */}
-        <Textarea 
-          placeholder={isInternalNote ? "Write an internal note..." : "Type a message..."} 
-          className={cn(
-            "flex-1 min-h-[80px] resize-none rounded-2xl border-0 focus-visible:ring-2 focus-visible:ring-primary/20",
-            isInternalNote ? "bg-warning/10" : "bg-muted/50"
-          )}
-          value={message}
-          onChange={handleInputChange}
-          onKeyDown={handleKeyDown}
-          onBlur={stopTyping}
-          disabled={isPending}
-          emojiAutocomplete={false}
-        />
+        {isInternalNote ? (
+          <MentionTextarea
+            placeholder="Write an internal note... (Type @ to mention)"
+            className={cn(
+              "flex-1 min-h-[80px] resize-none rounded-2xl border-0 focus-visible:ring-2 focus-visible:ring-primary/20",
+              "bg-warning/10"
+            )}
+            value={message}
+            onChange={(value, mentions) => {
+              setMessage(value);
+              setMentionedUserIds(mentions);
+            }}
+            onKeyDown={handleKeyDown}
+            onBlur={stopTyping}
+            disabled={isPending}
+            mentionedUserIds={mentionedUserIds}
+          />
+        ) : (
+          <Textarea 
+            placeholder="Type a message..." 
+            className={cn(
+              "flex-1 min-h-[80px] resize-none rounded-2xl border-0 focus-visible:ring-2 focus-visible:ring-primary/20",
+              "bg-muted/50"
+            )}
+            value={message}
+            onChange={handleInputChange}
+            onKeyDown={handleKeyDown}
+            onBlur={stopTyping}
+            disabled={isPending}
+            emojiAutocomplete={false}
+          />
+        )}
         
         {/* Mic button (placeholder) */}
         <Button 
