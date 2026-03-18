@@ -19,8 +19,17 @@ import {
   StickyNote,
   Paperclip,
   X,
-  FileIcon
+  FileIcon,
+  Users,
+  User,
+  ChevronDown,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useConversationView } from "@/contexts/ConversationViewContext";
 import { useTranslation } from "react-i18next";
 import { useInteractionsNavigation } from "@/hooks/useInteractionsNavigation";
