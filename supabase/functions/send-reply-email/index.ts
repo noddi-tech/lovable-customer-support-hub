@@ -269,7 +269,7 @@ const handler = async (req: Request): Promise<Response> => {
     // Fetch ALL previous email_message_ids for the full References chain
     const { data: allPrevMessages } = await supabaseClient
       .from('messages')
-      .select('email_message_id')
+      .select('email_message_id, email_headers')
       .eq('conversation_id', message.conversation_id)
       .not('email_message_id', 'is', null)
       .neq('id', messageId)
