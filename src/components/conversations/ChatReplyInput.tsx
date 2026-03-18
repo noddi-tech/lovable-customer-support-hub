@@ -509,19 +509,38 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
         </Popover>
 
         {/* Message input */}
-        <Textarea 
-          placeholder={isInternalNote ? "Write an internal note..." : "Type a message..."} 
-          className={cn(
-            "flex-1 min-h-[80px] resize-none rounded-2xl border-0 focus-visible:ring-2 focus-visible:ring-primary/20",
-            isInternalNote ? "bg-warning/10" : "bg-muted/50"
-          )}
-          value={message}
-          onChange={handleInputChange}
-          onKeyDown={handleKeyDown}
-          onBlur={stopTyping}
-          disabled={isPending}
-          emojiAutocomplete={false}
-        />
+        {isInternalNote ? (
+          <MentionTextarea
+            placeholder="Write an internal note... (Type @ to mention)"
+            className={cn(
+              "flex-1 min-h-[80px] resize-none rounded-2xl border-0 focus-visible:ring-2 focus-visible:ring-primary/20",
+              "bg-warning/10"
+            )}
+            value={message}
+            onChange={(value, mentions) => {
+              setMessage(value);
+              setMentionedUserIds(mentions);
+            }}
+            onKeyDown={handleKeyDown}
+            onBlur={stopTyping}
+            disabled={isPending}
+            mentionedUserIds={mentionedUserIds}
+          />
+        ) : (
+          <Textarea 
+            placeholder="Type a message..." 
+            className={cn(
+              "flex-1 min-h-[80px] resize-none rounded-2xl border-0 focus-visible:ring-2 focus-visible:ring-primary/20",
+              "bg-muted/50"
+            )}
+            value={message}
+            onChange={handleInputChange}
+            onKeyDown={handleKeyDown}
+            onBlur={stopTyping}
+            disabled={isPending}
+            emojiAutocomplete={false}
+          />
+        )}
         
         {/* Mic button (placeholder) */}
         <Button 
