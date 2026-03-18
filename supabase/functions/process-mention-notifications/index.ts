@@ -12,6 +12,7 @@ interface MentionContext {
   ticket_id?: string;
   customer_id?: string;
   call_id?: string;
+  message_id?: string;
   organization_id?: string;
 }
 
@@ -339,6 +340,7 @@ const handler = async (req: Request): Promise<Response> => {
                   ticket_id: context.ticket_id,
                   customer_id: context.customer_id,
                   call_id: context.call_id,
+                  message_id: context.message_id,
                   original_content: content,
                 },
               });

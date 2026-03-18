@@ -155,7 +155,7 @@ interface ConversationViewContextType {
   isLoading: boolean;
   messagesLoading: boolean;
   conversationIds?: string | string[];
-  sendReply: (content: string, isInternal: boolean, status?: string, files?: File[], replyAll?: boolean) => Promise<void>;
+  sendReply: (content: string, isInternal: boolean, status?: string, files?: File[], replyAll?: boolean) => Promise<string | undefined>;
   assignConversation: (userId: string) => Promise<void>;
   moveConversation: (inboxId: string) => Promise<void>;
   updateStatus: (updates: { status?: string; isArchived?: boolean }) => Promise<void>;
@@ -723,10 +723,11 @@ export const ConversationViewProvider = ({ children, conversationId, conversatio
     },
   });
 
-  const sendReply = async (content: string, isInternal: boolean, status?: string, files?: File[], replyAll?: boolean) => {
+  const sendReply = async (content: string, isInternal: boolean, status?: string, files?: File[], replyAll?: boolean): Promise<string | undefined> => {
     dispatch({ type: 'SET_SEND_LOADING', payload: true });
     try {
-      await sendReplyMutation.mutateAsync({ content, isInternal, status, files, replyAll });
+      const message = await sendReplyMutation.mutateAsync({ content, isInternal, status, files, replyAll });
+      return message?.id;
     } finally {
       dispatch({ type: 'SET_SEND_LOADING', payload: false });
     }

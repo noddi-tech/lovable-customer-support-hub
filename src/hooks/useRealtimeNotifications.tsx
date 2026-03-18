@@ -50,7 +50,8 @@ export const useRealtimeNotifications = () => {
             } : notification.data?.conversation_id ? {
               label: 'View',
               onClick: () => {
-                window.location.href = `/?c=${notification.data.conversation_id}`;
+                const messageParam = notification.data?.message_id ? `&m=${notification.data.message_id}` : '';
+                window.location.href = `/?c=${notification.data.conversation_id}${messageParam}`;
               },
             } : undefined,
           });

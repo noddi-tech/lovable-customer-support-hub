@@ -164,12 +164,13 @@ export const ReplyArea = () => {
     
     // Fire mutation in background (non-blocking)
     sendReply(replyText, isInternal, replyStatus, currentAttachments.map(a => a.file), replyAll)
-      .then(() => {
+      .then((messageId) => {
         // Process mentions after successful send
         if (isInternal && currentMentionedUserIds.length > 0 && conversationIdForMentions) {
           processMentions(replyText, currentMentionedUserIds, {
             type: 'internal_note',
             conversation_id: conversationIdForMentions,
+            message_id: messageId,
           });
         }
       })
