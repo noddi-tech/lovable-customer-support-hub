@@ -175,7 +175,7 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
           )}
           
           {/* Compact Chat Header */}
-          <div className="flex-shrink-0 px-4 py-3 border-b flex items-center gap-3 bg-background shadow-sm">
+          <div className="flex-shrink-0 px-4 py-3 border-b flex items-center gap-3 bg-card shadow-sm">
             <Button 
               variant="ghost" 
               size="icon"
