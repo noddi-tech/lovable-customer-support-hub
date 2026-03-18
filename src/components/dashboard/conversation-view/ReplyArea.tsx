@@ -82,6 +82,37 @@ export const ReplyArea = () => {
 
   const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
+  // Extract CC recipients from message email_headers for preview
+  const ccRecipients = React.useMemo(() => {
+    if (!messages || messages.length === 0) return [];
+    
+    const ccEmails = new Set<string>();
+    const customerEmail = conversation?.customer?.email?.toLowerCase();
+    
+    for (const msg of messages) {
+      const headers = (msg as any).email_headers;
+      if (!Array.isArray(headers)) continue;
+      
+      for (const header of headers) {
+        if (header?.name?.toLowerCase() === 'cc' && header?.value) {
+          // Parse "Name <email>" or just "email" patterns
+          const emailPattern = /[\w.+-]+@[\w.-]+\.\w+/g;
+          const found = header.value.match(emailPattern);
+          if (found) {
+            for (const email of found) {
+              const lower = email.toLowerCase();
+              if (lower !== customerEmail) {
+                ccEmails.add(lower);
+              }
+            }
+          }
+        }
+      }
+    }
+    
+    return Array.from(ccEmails);
+  }, [messages, conversation?.customer?.email]);
+
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     const validFiles: { file: File; previewUrl: string }[] = [];
