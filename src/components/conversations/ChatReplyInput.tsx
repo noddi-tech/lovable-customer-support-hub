@@ -206,8 +206,16 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
       }
     },
     onSuccess: () => {
+      // Process mentions if this was an internal note with mentions
+      if (isInternalNote && mentionedUserIds.length > 0) {
+        processMentions(message, mentionedUserIds, {
+          type: 'internal_note',
+          conversation_id: conversationId,
+        });
+      }
       setMessage('');
       setIsInternalNote(false);
+      setMentionedUserIds([]);
       setAttachments([]);
       queryClient.invalidateQueries({ queryKey: ['conversation-messages', conversationId] });
       queryClient.invalidateQueries({ queryKey: ['thread-messages'] });
