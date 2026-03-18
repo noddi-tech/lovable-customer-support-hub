@@ -78,6 +78,7 @@ export const ReplyArea = () => {
   const [originalSuggestionText, setOriginalSuggestionText] = useState<string>('');
   const [mentionedUserIds, setMentionedUserIds] = useState<string[]>([]);
   const [attachments, setAttachments] = useState<{ file: File; previewUrl: string }[]>([]);
+  const [replyAll, setReplyAll] = useState(true);
 
   const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
