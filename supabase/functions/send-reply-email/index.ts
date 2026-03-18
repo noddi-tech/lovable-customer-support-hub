@@ -395,10 +395,17 @@ const handler = async (req: Request): Promise<Response> => {
       headers['References'] = normalized;
     }
 
+    // Extract CC recipients from conversation history for Reply All
+    const ccRecipients = extractCcRecipients(allPrevMessages || [], [toEmail, fromEmailFinal]);
+    if (ccRecipients.length > 0) {
+      console.log('Reply All CC recipients:', ccRecipients.map(r => r.email).join(', '));
+    }
+
     const sendgridBody = {
       personalizations: [
         {
           to: [{ email: toEmail, name: customer.full_name || undefined }],
+          ...(ccRecipients.length > 0 ? { cc: ccRecipients } : {}),
         },
       ],
       from: { email: fromEmailFinal, name: senderDisplayName },
