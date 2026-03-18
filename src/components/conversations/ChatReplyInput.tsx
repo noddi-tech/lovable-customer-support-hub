@@ -510,22 +510,24 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
 
         {/* Message input */}
         {isInternalNote ? (
-          <MentionTextarea
-            placeholder="Write an internal note... (Type @ to mention)"
-            className={cn(
-              "flex-1 min-h-[80px] resize-none rounded-2xl border-0 focus-visible:ring-2 focus-visible:ring-primary/20",
-              "bg-warning/10"
-            )}
-            value={message}
-            onChange={(value, mentions) => {
-              setMessage(value);
-              setMentionedUserIds(mentions);
-            }}
-            onKeyDown={handleKeyDown}
-            onBlur={stopTyping}
-            disabled={isPending}
-            mentionedUserIds={mentionedUserIds}
-          />
+          <div className="flex-1 min-w-0">
+            <MentionTextarea
+              placeholder="Write an internal note... (Type @ to mention)"
+              className={cn(
+                "min-h-[80px] w-full resize-none rounded-2xl border-0 focus-visible:ring-2 focus-visible:ring-primary/20",
+                "bg-warning/10"
+              )}
+              value={message}
+              onChange={(value, mentions) => {
+                setMessage(value);
+                setMentionedUserIds(mentions);
+              }}
+              onKeyDown={handleKeyDown}
+              onBlur={stopTyping}
+              disabled={isPending}
+              mentionedUserIds={mentionedUserIds}
+            />
+          </div>
         ) : (
           <Textarea 
             placeholder="Type a message..." 
