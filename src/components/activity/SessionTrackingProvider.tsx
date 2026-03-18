@@ -45,7 +45,7 @@ function parseUserAgent(ua: string): { deviceType: string; browser: string } {
 export function SessionTrackingProvider({ children }: SessionTrackingProviderProps) {
   const { user, profile } = useAuth();
   const sessionIdRef = useRef<string | null>(null);
-  const heartbeatRef = useRef<NodeJS.Timeout | null>(null);
+  const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     let isMounted = true;

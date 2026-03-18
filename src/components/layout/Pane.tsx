@@ -14,6 +14,7 @@ export interface PaneHeaderProps extends React.HTMLAttributes<HTMLDivElement> {
 
 export interface PaneScrollProps extends React.ComponentPropsWithoutRef<typeof ScrollArea> {
   children: React.ReactNode;
+  className?: string;
 }
 
 /**
