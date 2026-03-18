@@ -155,7 +155,7 @@ interface ConversationViewContextType {
   isLoading: boolean;
   messagesLoading: boolean;
   conversationIds?: string | string[];
-  sendReply: (content: string, isInternal: boolean, status?: string, files?: File[]) => Promise<void>;
+  sendReply: (content: string, isInternal: boolean, status?: string, files?: File[], replyAll?: boolean) => Promise<void>;
   assignConversation: (userId: string) => Promise<void>;
   moveConversation: (inboxId: string) => Promise<void>;
   updateStatus: (updates: { status?: string; isArchived?: boolean }) => Promise<void>;
@@ -294,7 +294,7 @@ export const ConversationViewProvider = ({ children, conversationId, conversatio
 
   // Send reply mutation
   const sendReplyMutation = useMutation({
-    mutationFn: async ({ content, isInternal, status, files }: { content: string; isInternal: boolean; status?: string; files?: File[] }) => {
+    mutationFn: async ({ content, isInternal, status, files, replyAll }: { content: string; isInternal: boolean; status?: string; files?: File[]; replyAll?: boolean }) => {
       if (!conversationId) throw new Error('No conversation ID');
 
       // Upload attachments to storage if any
@@ -464,7 +464,7 @@ export const ConversationViewProvider = ({ children, conversationId, conversatio
       
       if (shouldSendEmail) {
         const { error: emailError } = await supabase.functions.invoke('send-reply-email', {
-          body: { messageId: message.id }
+          body: { messageId: message.id, replyAll: replyAll ?? true }
         });
         
         if (emailError) {
@@ -723,10 +723,10 @@ export const ConversationViewProvider = ({ children, conversationId, conversatio
     },
   });
 
-  const sendReply = async (content: string, isInternal: boolean, status?: string, files?: File[]) => {
+  const sendReply = async (content: string, isInternal: boolean, status?: string, files?: File[], replyAll?: boolean) => {
     dispatch({ type: 'SET_SEND_LOADING', payload: true });
     try {
-      await sendReplyMutation.mutateAsync({ content, isInternal, status, files });
+      await sendReplyMutation.mutateAsync({ content, isInternal, status, files, replyAll });
     } finally {
       dispatch({ type: 'SET_SEND_LOADING', payload: false });
     }

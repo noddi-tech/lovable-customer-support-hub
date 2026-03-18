@@ -86,7 +86,7 @@ const handler = async (req: Request): Promise<Response> => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     );
 
-    const { messageId } = await req.json();
+    const { messageId, replyAll = true } = await req.json();
     console.log('Processing message ID:', messageId);
 
     if (!messageId) throw new Error('Message ID is required');
@@ -395,8 +395,10 @@ const handler = async (req: Request): Promise<Response> => {
       headers['References'] = normalized;
     }
 
-    // Extract CC recipients from conversation history for Reply All
-    const ccRecipients = extractCcRecipients(allPrevMessages || [], [toEmail, fromEmailFinal]);
+    // Extract CC recipients from conversation history for Reply All (only if replyAll is true)
+    const ccRecipients = replyAll
+      ? extractCcRecipients(allPrevMessages || [], [toEmail, fromEmailFinal])
+      : [];
     if (ccRecipients.length > 0) {
       console.log('Reply All CC recipients:', ccRecipients.map(r => r.email).join(', '));
     }
