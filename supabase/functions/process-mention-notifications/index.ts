@@ -12,6 +12,7 @@ interface MentionContext {
   ticket_id?: string;
   customer_id?: string;
   call_id?: string;
+  message_id?: string;
   organization_id?: string;
 }
 
