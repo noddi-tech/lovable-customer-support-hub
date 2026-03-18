@@ -723,10 +723,11 @@ export const ConversationViewProvider = ({ children, conversationId, conversatio
     },
   });
 
-  const sendReply = async (content: string, isInternal: boolean, status?: string, files?: File[], replyAll?: boolean) => {
+  const sendReply = async (content: string, isInternal: boolean, status?: string, files?: File[], replyAll?: boolean): Promise<string | undefined> => {
     dispatch({ type: 'SET_SEND_LOADING', payload: true });
     try {
-      await sendReplyMutation.mutateAsync({ content, isInternal, status, files, replyAll });
+      const message = await sendReplyMutation.mutateAsync({ content, isInternal, status, files, replyAll });
+      return message?.id;
     } finally {
       dispatch({ type: 'SET_SEND_LOADING', payload: false });
     }
