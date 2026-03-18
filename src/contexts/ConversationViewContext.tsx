@@ -294,7 +294,7 @@ export const ConversationViewProvider = ({ children, conversationId, conversatio
 
   // Send reply mutation
   const sendReplyMutation = useMutation({
-    mutationFn: async ({ content, isInternal, status, files }: { content: string; isInternal: boolean; status?: string; files?: File[] }) => {
+    mutationFn: async ({ content, isInternal, status, files, replyAll }: { content: string; isInternal: boolean; status?: string; files?: File[]; replyAll?: boolean }) => {
       if (!conversationId) throw new Error('No conversation ID');
 
       // Upload attachments to storage if any
