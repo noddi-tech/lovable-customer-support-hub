@@ -158,7 +158,7 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
   // ============ LIVE CHAT UI (WhatsApp-style) ============
   if (isLiveChat) {
     return (
-      <div className="flex h-full bg-background">
+      <div className="flex h-full bg-card">
         {/* Chat container */}
         <div className="flex flex-col flex-1 min-h-0">
           {/* Visitor left banner */}
