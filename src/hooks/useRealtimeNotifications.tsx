@@ -45,13 +45,13 @@ export const useRealtimeNotifications = () => {
             action: notification.data?.ticket_id ? {
               label: 'View Ticket',
               onClick: () => {
-                window.location.href = `/service-tickets?ticket=${notification.data.ticket_id}`;
+                window.location.href = `/operations/tickets?ticket=${notification.data.ticket_id}`;
               },
             } : notification.data?.conversation_id ? {
               label: 'View',
               onClick: () => {
-                const messageParam = notification.data?.message_id ? `&m=${notification.data.message_id}` : '';
-                window.location.href = `/?c=${notification.data.conversation_id}${messageParam}`;
+                const messagePath = notification.data?.message_id ? `/m/${notification.data.message_id}` : '';
+                window.location.href = `/c/${notification.data.conversation_id}${messagePath}`;
               },
             } : undefined,
           });
