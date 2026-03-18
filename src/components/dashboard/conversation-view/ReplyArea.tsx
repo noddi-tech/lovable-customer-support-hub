@@ -535,6 +535,16 @@ export const ReplyArea = () => {
           </div>
         </div>
 
+        {/* CC Recipients Preview */}
+        {!state.isInternalNote && replyAll && ccRecipients.length > 0 && (
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/50 border border-border rounded-md">
+            <Users className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+            <span className="text-xs text-muted-foreground">
+              <span className="font-medium">CC:</span> {ccRecipients.join(', ')}
+            </span>
+          </div>
+        )}
+
         {/* Text Input Area */}
         <div className="space-y-2">
           {state.trackingActive && (

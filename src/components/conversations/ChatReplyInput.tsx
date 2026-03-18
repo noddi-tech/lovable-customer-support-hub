@@ -2,6 +2,8 @@ import { useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { MentionTextarea } from '@/components/ui/mention-textarea';
+import { useMentionNotifications } from '@/hooks/useMentionNotifications';
 import { Badge } from '@/components/ui/badge';
 import { Send, Loader2, MessageSquareX, UserRoundPlus, Smile, Paperclip, Mic, Image, X, Languages, StickyNote } from 'lucide-react';
 import { cn } from '@/lib/utils'; // utility
