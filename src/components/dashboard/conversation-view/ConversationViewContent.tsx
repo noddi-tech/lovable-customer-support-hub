@@ -158,7 +158,7 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
   // ============ LIVE CHAT UI (WhatsApp-style) ============
   if (isLiveChat) {
     return (
-      <div className="flex h-full bg-background">
+      <div className="flex h-full bg-card">
         {/* Chat container */}
         <div className="flex flex-col flex-1 min-h-0">
           {/* Visitor left banner */}
@@ -175,7 +175,7 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
           )}
           
           {/* Compact Chat Header */}
-          <div className="flex-shrink-0 px-4 py-3 border-b flex items-center gap-3 bg-background shadow-sm">
+          <div className="flex-shrink-0 px-4 py-3 border-b flex items-center gap-3 bg-card shadow-sm">
             <Button 
               variant="ghost" 
               size="icon"
