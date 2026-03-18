@@ -48,7 +48,7 @@ export function UserActivityTimeline({ userId, userEmail, open, onOpenChange }: 
     acc[activity.action_type] = (acc[activity.action_type] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
-  const topAction = Object.entries(mostCommonAction).sort((a, b) => b[1] - a[1])[0];
+  const topAction = Object.entries(mostCommonAction).sort((a, b) => (b[1] as number) - (a[1] as number))[0];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
