@@ -441,6 +441,7 @@ const handler = async (req: Request): Promise<Response> => {
       'From': `${senderDisplayName} <${fromEmailFinal}>`,
       'To': customer.full_name ? `${customer.full_name} <${toEmail}>` : toEmail,
       'Subject': subject,
+      ...(ccRecipients.length > 0 ? { 'Cc': ccRecipients.map(r => r.email).join(', ') } : {}),
     };
     if (inReplyToId) {
       const normalized = inReplyToId.startsWith('<') ? inReplyToId : `<${inReplyToId}>`;
