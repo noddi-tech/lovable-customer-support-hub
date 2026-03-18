@@ -444,7 +444,7 @@ Deno.serve(async (req) => {
     // === Critical Triage Detection ===
     const criticalChannelId = integration.critical_channel_id;
     
-    if (config.critical_alerts_enabled && criticalChannelId && criticalChannelId !== channelId) {
+    if (config.critical_alerts_enabled && criticalChannelId && criticalChannelId !== channelId && event_type !== 'mention') {
       const CRITICAL_KEYWORDS = [
         // English
         'booking', "can't book", 'cannot book', 'payment failed', 'payment error',
