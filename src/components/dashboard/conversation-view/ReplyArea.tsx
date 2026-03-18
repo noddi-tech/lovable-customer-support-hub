@@ -586,15 +586,38 @@ export const ReplyArea = () => {
 
           <div className="flex items-center gap-2">
             {!state.isInternalNote && (
-              <Select value={replyStatus} onValueChange={setReplyStatus}>
-                <SelectTrigger className="w-[160px] h-11">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="pending">Send & Mark Pending</SelectItem>
-                  <SelectItem value="closed">Send & Close</SelectItem>
-                </SelectContent>
-              </Select>
+              <>
+                {/* Reply / Reply All toggle */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="default" className="gap-1.5 h-11">
+                      {replyAll ? <Users className="h-3.5 w-3.5" /> : <User className="h-3.5 w-3.5" />}
+                      {replyAll ? 'Reply All' : 'Reply'}
+                      <ChevronDown className="h-3 w-3 opacity-50" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => setReplyAll(false)} className="gap-2">
+                      <User className="h-3.5 w-3.5" />
+                      Reply
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setReplyAll(true)} className="gap-2">
+                      <Users className="h-3.5 w-3.5" />
+                      Reply All
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
+                <Select value={replyStatus} onValueChange={setReplyStatus}>
+                  <SelectTrigger className="w-[160px] h-11">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pending">Send & Mark Pending</SelectItem>
+                    <SelectItem value="closed">Send & Close</SelectItem>
+                  </SelectContent>
+                </Select>
+              </>
             )}
             
             <Button

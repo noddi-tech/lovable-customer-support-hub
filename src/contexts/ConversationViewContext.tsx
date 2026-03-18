@@ -464,7 +464,7 @@ export const ConversationViewProvider = ({ children, conversationId, conversatio
       
       if (shouldSendEmail) {
         const { error: emailError } = await supabase.functions.invoke('send-reply-email', {
-          body: { messageId: message.id }
+          body: { messageId: message.id, replyAll: replyAll ?? true }
         });
         
         if (emailError) {
