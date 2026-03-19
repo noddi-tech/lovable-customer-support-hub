@@ -1,43 +1,32 @@
 
 
-## Fix Email Default + Update Slack Scopes
+## Fix: White Background for the App
 
-Two small changes, then redeploy.
+### Problem
+The app shows a grey-blue tint (`#F8F9FB`) instead of pure white. This happens because:
+1. `src/index.css` line 41 sets `--background: 0 0% 100%` (pure white) — correct
+2. But `src/contexts/DesignSystemContext.tsx` line 144 has `background: '210 20% 98%'` (#F8F9FB — grey-blue)
+3. On mount, `applyToDocument()` overwrites the CSS variable with the design system default, turning the background grey
 
-### 1. Default email notifications to ON
+### Fix
 
-**File:** `supabase/functions/process-mention-notifications/index.ts` (line 323)
+**File: `src/contexts/DesignSystemContext.tsx`** (line 144)
 
 Change:
 ```typescript
-const emailEnabled = preferences?.email_on_mention ?? false;
+background: '210 20% 98%', // #F8F9FB in HSL
 ```
 to:
 ```typescript
-const emailEnabled = preferences?.email_on_mention ?? true;
+background: '0 0% 100%', // Pure white #FFFFFF
 ```
 
-This ensures all users get mention emails by default, even if they haven't explicitly saved preferences yet.
+This aligns the design system default with the CSS variable default, giving the app a clean white background everywhere `bg-background` is used.
 
-### 2. Update Slack setup wizard scopes
+### What stays the same
+- `--card: 0 0% 100%` — already pure white, no change needed
+- `--muted: 220 14% 96%` — keeps its subtle grey for sidebar/structural elements (per your theme token mapping)
+- The memory note about `bg-background` being "light grey for outer frame" will be updated to reflect it's now pure white
 
-**File:** `src/components/admin/SlackSetupWizard.tsx` (lines 35-40)
-
-Add `users:read.email` and `im:write` to `REQUIRED_SCOPES`:
-```typescript
-const REQUIRED_SCOPES = [
-  'channels:read',
-  'chat:write',
-  'users:read',
-  'users:read.email',
-  'groups:read',
-  'im:write',
-];
-```
-
-This ensures future setup flows reference the correct scopes. Since you've already added these scopes and reinstalled, Slack DMs should start working immediately after deployment.
-
-### 3. Deploy
-
-Redeploy `process-mention-notifications` so the email default fix takes effect.
+One-line change, no risk of side effects.
 
