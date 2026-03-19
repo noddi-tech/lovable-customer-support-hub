@@ -1,69 +1,44 @@
 
 
-## Current URL Structure
+## Notification System Audit — Findings and Fix Plan
 
-```text
-Full view:     /interactions/text/{status}?inbox={id}&c={conversationId}&m={messageId}
-Short links:   /c/{conversationId}
-               /c/{conversationId}/m/{messageId}
-Chat view:     /interactions/chat/{filter}  (no conversation deep-link)
-Slack button:  /?inbox={id}&c={conversationId}  ← BROKEN (hits root redirect)
+### What's Working
+- **In-app notifications**: The `process-mention-notifications` edge function correctly inserts into the `notifications` table when someone is @mentioned. The realtime listener (`useRealtimeNotifications`) picks these up and shows toast + browser notifications + plays sound.
+- **Slack notifications**: Both channel posts and personal DMs work when Slack integration is active.
+- **Notification preferences**: The `useNotificationPreferences` hook and settings UI exist and allow toggling `email_on_mention` and `app_on_mention`.
+- **@mention invocation**: `processMentions()` is called from ReplyArea (internal notes), ChatReplyInput, TicketCommentsList, and CustomerNotes.
+
+### What's Broken
+
+**1. Email notifications for mentions do not work**
+The `sendMentionEmail` function (line 177) calls `send-email` edge function — but **no `send-email` edge function exists**. There is no `supabase/functions/send-email/` directory. The function call silently fails (caught by try/catch, logged as "non-blocking").
+
+This means: even though users opt into `email_on_mention`, no email is ever actually sent.
+
+**2. No email domain configured**
+The project has no email domain set up in the workspace, which means even if we create a `send-email` function, there's no verified sender domain to send from.
+
+**3. Link URLs in notifications use old broken format**
+Line 265: `linkUrl = \`\${appUrl}/?c=\${context.conversation_id}\`` — this uses the old root-redirect format that was identified as broken. Should use the canonical `/c/{id}` short link format that was just implemented.
+
+### Fix Plan
+
+#### Step 1: Set up email domain
+Before emails can be sent, an email domain needs to be configured. This requires you to set up a sender domain through Cloud -> Emails. I'll present the setup dialog.
+
+#### Step 2: Create the `send-email` edge function
+Create a `supabase/functions/send-email/index.ts` that accepts `{ to, subject, html }` and sends the email using the project's email infrastructure (Resend/SendGrid or Lovable's built-in email queue if available). This is the missing piece that `process-mention-notifications` depends on.
+
+#### Step 3: Fix link URLs in `process-mention-notifications`
+Update line 265 to use the canonical short link format:
+```
+linkUrl = `${appUrl}/c/${context.conversation_id}`;
 ```
 
-**Problems identified:**
+#### Step 4: Deploy updated edge functions
+Deploy both `send-email` and `process-mention-notifications`.
 
-1. **No channel distinction** — email and widget/chat conversations both resolve to `/interactions/text/`, but chat conversations live under `/interactions/chat/`. The redirect doesn't know which layout to use.
-2. **Short links don't carry message type** — `/c/{id}` looks up the conversation but doesn't encode the channel, so it always redirects to `/interactions/text/`.
-3. **Slack "View Conversation" button is broken** — it generates `/?inbox=...&c=...` which hits the root redirect to `/interactions/text` and loses the query params entirely.
-4. **No message-level short link for Slack** — mentioning a specific message requires `/c/{id}/m/{msgId}` but Slack notifications don't use this.
+### Summary
 
-## Proposed New URL Structure
-
-```text
-Short links (shareable, used by Slack, emails, etc.):
-  /c/{conversationId}                    → auto-detect channel, redirect
-  /c/{conversationId}/m/{messageId}      → auto-detect + scroll to message
-
-Full view (internal, after redirect):
-  /interactions/text/{status}?inbox={id}&c={conversationId}&m={messageId}
-  /interactions/chat/{filter}?c={conversationId}&m={messageId}
-```
-
-The short link `/c/{id}` is the canonical shareable format. The redirect component already exists — it just needs to be smarter about routing chat vs email conversations.
-
-## Plan
-
-### 1. Upgrade ConversationRedirect to be channel-aware
-
-**File:** `src/components/routing/ConversationRedirect.tsx`
-
-- Already fetches `conversations.status` and `inbox_id`
-- Add `channel` to the select query
-- If `channel === 'widget' || channel === 'chat'` → redirect to `/interactions/chat/{status}?c={id}`
-- Otherwise → redirect to `/interactions/text/{status}?inbox={id}&c={id}` (current behavior)
-- Keep `/m/{messageId}` pass-through for both paths
-
-### 2. Fix Slack notification URLs
-
-**File:** `supabase/functions/send-slack-notification/index.ts`
-
-- Line 378-381: Change URL generation from `/?inbox=...&c=...` to use the canonical short link format: `{appUrl}/c/{conversationId}` (optionally with `/m/{messageId}`)
-- This is simpler, always works, and doesn't depend on knowing the current status/inbox
-
-### 3. Add `?c=` support to ChatLayout
-
-**File:** `src/components/dashboard/chat/ChatLayout.tsx`
-
-- Read `c` from search params to pre-select a conversation (same pattern as InteractionsLayout)
-- This enables deep-linking into chat conversations after redirect
-
-### 4. No new routes needed
-
-The existing `/c/:conversationId` and `/c/:conversationId/m/:messageId` routes already handle all short links. The fix is entirely in the redirect logic and URL generation.
-
-## Technical details
-
-- The `conversations` table already has a `channel` column — no schema changes needed
-- The Slack edge function already has `conversation_id` and `channel` in its request body — it just generates the wrong URL format
-- The `ConversationRedirect` query adds one column (`channel`) to an already-indexed primary key lookup — negligible performance impact
+The notification system architecture is sound — the only gap is a missing `send-email` edge function (the email delivery endpoint). Everything else (preferences, in-app notifications, Slack, sounds, browser notifications) is wired up and functional. Once the email domain is configured and the `send-email` function is created, mention emails will start flowing.
 
