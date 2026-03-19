@@ -320,7 +320,7 @@ const handler = async (req: Request): Promise<Response> => {
           const preferences = prefsResult.data;
           const profile = profileResult.data;
           const appEnabled = preferences?.app_on_mention ?? true;
-          const emailEnabled = preferences?.email_on_mention ?? false;
+          const emailEnabled = preferences?.email_on_mention ?? true;
 
           // 1. Create in-app notification
           if (appEnabled) {
