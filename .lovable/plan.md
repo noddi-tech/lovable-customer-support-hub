@@ -1,49 +1,38 @@
 
 
-## Fix: Mention Rendering Highlights Entire Sentence
+## Fix Slack Mention Notifications: Remove Channel Post, Fix DM with Context
 
-### Problem
-The `MentionRenderer` regex tries to guess where a name ends based on capitalization or spacing — this is inherently fragile. Any text after the name can get swept into the match.
+### Problems
+1. **Channel notification fires on mention** — you don't want this; mentions should only send DM + email
+2. **DM isn't working** — likely because Slack bots need `conversations.open` before DMing a user, and the current code skips that step
+3. **DM lacks context** — no subject or conversation details, just a generic "mentioned you in a note"
 
-### Scalable Fix: Use Delimiters
+### Plan
 
-Encode mention boundaries at **insert time** in the `MentionTextarea`, then parse the known delimiters at **render time** in `MentionRenderer`.
+#### 1. Remove Slack channel notification for mentions
+**File:** `supabase/functions/process-mention-notifications/index.ts`
 
-#### 1. `MentionTextarea` — Insert with markers
-**File:** `src/components/ui/mention-textarea.tsx` (line 103)
+Delete the entire `sendSlackChannelNotification` block (lines 353-368) inside the per-user loop, and remove the `slackChannelNotificationSent` variable and the helper function. Mentions should only trigger DM + email.
 
-Change the inserted text from:
-```
-@Tom Arne Danielsen 
-```
-to:
-```
-@[Tom Arne Danielsen] 
-```
+#### 2. Fix DM delivery — add `conversations.open` before posting
+**File:** `supabase/functions/process-mention-notifications/index.ts`
 
-This explicitly marks where the name starts and ends.
+Update `sendSlackDM` to first call `https://slack.com/api/conversations.open` with the user ID to get a DM channel ID, then post to that channel. This is required by Slack's API for bot-to-user DMs.
 
-#### 2. `MentionRenderer` — Parse markers
-**File:** `src/components/ui/mention-renderer.tsx` (line 16)
+#### 3. Add conversation context to DM
+**File:** `supabase/functions/process-mention-notifications/index.ts`
 
-Replace the greedy regex with:
-```typescript
-const mentionPattern = /@\[([A-Za-zÀ-ÖØ-öø-ÿ\s]+?)\]/g;
-```
+- After fetching `organizationId` from the conversation, also fetch `subject` and `customer_id`, then look up customer `name`/`email` from the `customers` table
+- Pass `subject` and `customer_name` to `sendSlackDM`
+- Update the DM blocks to include a context line like: `*Subject:* Re: Booking issue  |  *Customer:* John Doe`
 
-This only matches `@[Name Here]` — no ambiguity, no matter what text follows. The rendered output still displays as `@Tom Arne Danielsen` (the brackets are stripped during rendering).
-
-#### 3. Backward compatibility
-Also keep a fallback pattern for old messages that were stored without brackets — use the capitalized-words heuristic as a **secondary** match only:
-```typescript
-const legacyPattern = /@([A-ZÀ-ÖØ-Ý][a-zà-öø-ÿ]+(?:\s[A-ZÀ-ÖØ-Ý][a-zà-öø-ÿ]+)*)/g;
-```
-
-Run the bracket pattern first; if no matches, fall back to the legacy pattern. New messages will always use brackets.
+#### 4. Await the DM call
+The `sendSlackDM` call on line 375 is fire-and-forget (no `await`), so errors are silently lost. Add `await` so failures are logged properly.
 
 ### Files Changed
 | File | Change |
 |------|--------|
-| `mention-textarea.tsx` | Insert `@[Name]` instead of `@Name` |
-| `mention-renderer.tsx` | Parse `@[Name]` pattern, with legacy fallback |
+| `process-mention-notifications/index.ts` | Remove channel notification, fix DM with `conversations.open`, add subject/customer context, await DM call |
+
+Edge function will need redeployment (automatic).
 
