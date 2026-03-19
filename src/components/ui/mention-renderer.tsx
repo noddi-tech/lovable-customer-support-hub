@@ -38,7 +38,7 @@ export const MentionRenderer: React.FC<MentionRendererProps> = ({ content, class
     parts.push(
       <span
         key={`mention-${key++}`}
-        className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-primary/10 text-primary font-medium text-sm"
+        className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-primary/15 text-primary font-semibold text-sm ring-1 ring-primary/20"
       >
         {mentionText}
       </span>

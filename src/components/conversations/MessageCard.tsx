@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { EmailRender } from "@/components/ui/email-render";
+import { MentionRenderer } from "@/components/ui/mention-renderer";
 import { 
   Lock,
   Edit3,
@@ -589,13 +590,17 @@ const MessageCardComponent = ({
           effectiveCollapsed ? "is-collapsed" : "pl-16 pr-4 pb-4"
         )}>
           <div className="space-y-4">
-            {/* Email content */}
-            <EmailRender 
-              content={message.visibleBody || ''} 
-              contentType={message.originalMessage?.content_type || 'text/plain'}
-              attachments={attachments}
-              messageId={message.id}
-            />
+            {/* Email content or mention-aware note */}
+            {isInternalNote ? (
+              <MentionRenderer content={message.visibleBody || ''} className="text-sm" />
+            ) : (
+              <EmailRender 
+                content={message.visibleBody || ''} 
+                contentType={message.originalMessage?.content_type || 'text/plain'}
+                attachments={attachments}
+                messageId={message.id}
+              />
+            )}
 
             {/* Toggle quoted content */}
             {hasQuotedContent && (

@@ -15,6 +15,7 @@ import {
 import { MoreHorizontal, Copy, Trash2, Check, CheckCheck, Paperclip, Image, Mail, AlertCircle, RefreshCw, Loader2, Lock } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { EmailRender } from '@/components/ui/email-render';
+import { MentionRenderer } from '@/components/ui/mention-renderer';
 import { toast } from 'sonner';
 
 interface ChatMessagesListProps {
@@ -266,12 +267,16 @@ export const ChatMessagesList = ({
                         ? "bg-primary text-primary-foreground rounded-br-md" 
                         : "bg-muted text-foreground rounded-bl-md"
                   )}>
-                    <EmailRender
-                      content={message.visibleBody}
-                      contentType={message.originalMessage?.content_type || 'text/plain'}
-                      attachments={attachments}
-                      messageId={message.id}
-                    />
+                    {isInternal ? (
+                      <MentionRenderer content={message.visibleBody} className="text-sm" />
+                    ) : (
+                      <EmailRender
+                        content={message.visibleBody}
+                        contentType={message.originalMessage?.content_type || 'text/plain'}
+                        attachments={attachments}
+                        messageId={message.id}
+                      />
+                    )}
                   </div>
                 </div>
                 
