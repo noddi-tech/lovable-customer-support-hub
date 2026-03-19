@@ -100,7 +100,7 @@ const MentionTextarea = React.forwardRef<HTMLTextAreaElement, MentionTextareaPro
       const cursorPosition = textarea.selectionStart;
       const beforeMention = value.slice(0, triggerIndex);
       const afterMention = value.slice(cursorPosition);
-      const mentionText = `@${member.full_name} `;
+      const mentionText = `@[${member.full_name}] `;
       
       const newValue = beforeMention + mentionText + afterMention;
       
