@@ -1,45 +1,49 @@
 
 
-## Improve @Mention Styling Across the App
+## Fix: Mention Rendering Highlights Entire Sentence
 
-### Current State
-- **`MentionRenderer`** exists with light styling (`bg-primary/10 text-primary font-medium` in a rounded pill) — functional but subtle
-- Used in only **2 places**: `CustomerNotes.tsx` and `TicketCommentsList.tsx`
-- **Missing entirely** from chat messages (`ChatMessagesList.tsx`) and email thread view (`MessageCard.tsx`) — mentions render as plain text there
+### Problem
+The `MentionRenderer` regex tries to guess where a name ends based on capitalization or spacing — this is inherently fragile. Any text after the name can get swept into the match.
 
-### Best Practice
-Industry standard (Slack, Linear, Notion, GitHub) is a distinctly colored pill/chip: bold name, colored background, slightly rounded — immediately scannable. The current `MentionRenderer` is close but could be more prominent.
+### Scalable Fix: Use Delimiters
 
-### Plan
+Encode mention boundaries at **insert time** in the `MentionTextarea`, then parse the known delimiters at **render time** in `MentionRenderer`.
 
-#### 1. Enhance `MentionRenderer` styling
-**File:** `src/components/ui/mention-renderer.tsx`
+#### 1. `MentionTextarea` — Insert with markers
+**File:** `src/components/ui/mention-textarea.tsx` (line 103)
 
-Update the mention span styling to be more visually prominent:
-- Add a slightly stronger background: `bg-primary/15` → more visible
-- Add `font-semibold` instead of `font-medium`
-- Add a subtle border: `ring-1 ring-primary/20`
-- Keep the rounded pill shape
+Change the inserted text from:
+```
+@Tom Arne Danielsen 
+```
+to:
+```
+@[Tom Arne Danielsen] 
+```
 
-This is a single class change on line 41.
+This explicitly marks where the name starts and ends.
 
-#### 2. Add `MentionRenderer` to `ChatMessagesList.tsx`
-**File:** `src/components/conversations/ChatMessagesList.tsx`
+#### 2. `MentionRenderer` — Parse markers
+**File:** `src/components/ui/mention-renderer.tsx` (line 16)
 
-Wrap the message body content through `MentionRenderer` for internal notes (where mentions are most common). For internal notes, replace the raw `EmailRender` output with a `MentionRenderer` wrapper, or add a post-render pass. Since `EmailRender` handles HTML, the simplest approach: for `text/plain` internal notes, render via `MentionRenderer` instead of `EmailRender`.
+Replace the greedy regex with:
+```typescript
+const mentionPattern = /@\[([A-Za-zÀ-ÖØ-öø-ÿ\s]+?)\]/g;
+```
 
-#### 3. Add `MentionRenderer` to `MessageCard.tsx`
-**File:** `src/components/conversations/MessageCard.tsx`
+This only matches `@[Name Here]` — no ambiguity, no matter what text follows. The rendered output still displays as `@Tom Arne Danielsen` (the brackets are stripped during rendering).
 
-Same approach — for internal notes rendered in the email/thread view, wrap content through `MentionRenderer` to highlight tagged names.
+#### 3. Backward compatibility
+Also keep a fallback pattern for old messages that were stored without brackets — use the capitalized-words heuristic as a **secondary** match only:
+```typescript
+const legacyPattern = /@([A-ZÀ-ÖØ-Ý][a-zà-öø-ÿ]+(?:\s[A-ZÀ-ÖØ-Ý][a-zà-öø-ÿ]+)*)/g;
+```
 
-#### 4. Verify existing usages still look good
-The two existing consumers (`CustomerNotes.tsx`, `TicketCommentsList.tsx`) will automatically pick up the enhanced styling from Step 1.
+Run the bracket pattern first; if no matches, fall back to the legacy pattern. New messages will always use brackets.
 
-### Summary of Changes
+### Files Changed
 | File | Change |
 |------|--------|
-| `mention-renderer.tsx` | Stronger pill styling (bolder, more visible background) |
-| `ChatMessagesList.tsx` | Use `MentionRenderer` for internal note content |
-| `MessageCard.tsx` | Use `MentionRenderer` for internal note content |
+| `mention-textarea.tsx` | Insert `@[Name]` instead of `@Name` |
+| `mention-renderer.tsx` | Parse `@[Name]` pattern, with legacy fallback |
 
