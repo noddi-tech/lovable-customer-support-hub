@@ -401,7 +401,7 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
       )}
       
       <div className={cn(
-        "flex items-end gap-2 p-4 border-t border-border bg-background",
+        "p-4 border-t border-border bg-background space-y-2",
         isInternalNote && "bg-warning/5 border-t-warning/50"
       )}>
         {/* Hidden file input */}
@@ -413,104 +413,10 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
           onChange={handleFileSelect}
           className="hidden"
         />
-        
-        {/* Emoji picker */}
-        <EmojiPicker 
-          onEmojiSelect={handleEmojiSelect}
-          trigger={
-            <Button variant="ghost" size="icon" className="shrink-0 h-9 w-9 text-muted-foreground hover:text-foreground">
-              <Smile className="h-5 w-5" />
-            </Button>
-          }
-        />
-        
-        {/* Attachment button */}
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          className="shrink-0 h-9 w-9 text-muted-foreground hover:text-foreground"
-          onClick={() => fileInputRef.current?.click()}
-        >
-          <Paperclip className="h-5 w-5" />
-        </Button>
 
-        {/* Internal note toggle */}
-        <Button 
-          variant={isInternalNote ? "secondary" : "ghost"}
-          size="sm" 
-          className={cn(
-            "shrink-0 h-9 gap-1.5",
-            isInternalNote 
-              ? "text-warning bg-warning/15 hover:bg-warning/25" 
-              : "text-muted-foreground hover:text-foreground"
-          )}
-          onClick={() => setIsInternalNote(!isInternalNote)}
-          title={isInternalNote ? "Switch to reply" : "Write internal note"}
-        >
-          <StickyNote className="h-4 w-4" />
-          <span className="text-xs">Note</span>
-        </Button>
-
-        {/* Translate button */}
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="shrink-0 h-9 w-9 text-muted-foreground hover:text-foreground"
-              title="Translate message"
-            >
-              <Languages className="h-5 w-5" />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-72" side="top" align="start">
-            <div className="space-y-3">
-              <p className="font-medium text-sm">Translate</p>
-              <div className="space-y-1.5">
-                <Label className="text-xs">From</Label>
-                <Select value={sourceLanguage} onValueChange={setSourceLanguage}>
-                  <SelectTrigger className="h-8 text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {LANGUAGES.map(l => (
-                      <SelectItem key={l.code} value={l.code}>{l.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">To</Label>
-                <Select value={targetLanguage} onValueChange={setTargetLanguage}>
-                  <SelectTrigger className="h-8 text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {LANGUAGES.filter(l => l.code !== 'auto').map(l => (
-                      <SelectItem key={l.code} value={l.code}>{l.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <Button 
-                size="sm" 
-                className="w-full" 
-                onClick={handleTranslate}
-                disabled={!message.trim() || translateLoading}
-              >
-                {translateLoading ? (
-                  <><Loader2 className="h-3 w-3 animate-spin mr-1" /> Translating...</>
-                ) : (
-                  'Translate'
-                )}
-              </Button>
-            </div>
-          </PopoverContent>
-        </Popover>
-
-        {/* Message input */}
+        {/* Textarea: full width */}
         {isInternalNote ? (
-          <div className="flex-1 min-w-0">
+          <div className="min-w-0">
             <MentionTextarea
               placeholder="Write an internal note... (Type @ to mention)"
               className={cn(
@@ -532,7 +438,7 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
           <Textarea 
             placeholder="Type a message..." 
             className={cn(
-              "flex-1 min-h-[80px] resize-none rounded-2xl border-0 focus-visible:ring-2 focus-visible:ring-primary/20",
+              "min-h-[80px] w-full resize-none rounded-2xl border-0 focus-visible:ring-2 focus-visible:ring-primary/20",
               "bg-muted/50"
             )}
             value={message}
@@ -543,81 +449,181 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
             emojiAutocomplete={false}
           />
         )}
-        
-        {/* Mic button (placeholder) */}
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          className="shrink-0 h-9 w-9 text-muted-foreground"
-          disabled
-          title="Voice messages coming soon"
-        >
-          <Mic className="h-5 w-5" />
-        </Button>
 
-        {/* Reply status selector - hidden for internal notes */}
-        {!isInternalNote && (
-          <Select value={replyStatus} onValueChange={(v) => setReplyStatus(v as 'closed' | 'open' | 'pending')}>
-            <SelectTrigger className="shrink-0 h-9 w-[140px] text-xs">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="closed">Send & Close</SelectItem>
-              <SelectItem value="open">Send & Keep Open</SelectItem>
-              <SelectItem value="pending">Send & Pending</SelectItem>
-            </SelectContent>
-          </Select>
-        )}
+        {/* Toolbar row */}
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Emoji picker */}
+          <EmojiPicker 
+            onEmojiSelect={handleEmojiSelect}
+            trigger={
+              <Button variant="ghost" size="icon" className="shrink-0 h-9 w-9 text-muted-foreground hover:text-foreground">
+                <Smile className="h-5 w-5" />
+              </Button>
+            }
+          />
+          
+          {/* Attachment button */}
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="shrink-0 h-9 w-9 text-muted-foreground hover:text-foreground"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <Paperclip className="h-5 w-5" />
+          </Button>
 
-        {/* Send button */}
-        <Button 
-          size="icon" 
-          className={cn(
-            "rounded-full shrink-0 h-10 w-10",
-            isInternalNote && "bg-warning hover:bg-warning/90 text-warning-foreground"
+          {/* Internal note toggle */}
+          <Button 
+            variant={isInternalNote ? "secondary" : "ghost"}
+            size="sm" 
+            className={cn(
+              "shrink-0 h-9 gap-1.5",
+              isInternalNote 
+                ? "text-warning bg-warning/15 hover:bg-warning/25" 
+                : "text-muted-foreground hover:text-foreground"
+            )}
+            onClick={() => setIsInternalNote(!isInternalNote)}
+            title={isInternalNote ? "Switch to reply" : "Write internal note"}
+          >
+            <StickyNote className="h-4 w-4" />
+            <span className="text-xs">Note</span>
+          </Button>
+
+          {/* Translate button */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="shrink-0 h-9 w-9 text-muted-foreground hover:text-foreground"
+                title="Translate message"
+              >
+                <Languages className="h-5 w-5" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-72" side="top" align="start">
+              <div className="space-y-3">
+                <p className="font-medium text-sm">Translate</p>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">From</Label>
+                  <Select value={sourceLanguage} onValueChange={setSourceLanguage}>
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {LANGUAGES.map(l => (
+                        <SelectItem key={l.code} value={l.code}>{l.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">To</Label>
+                  <Select value={targetLanguage} onValueChange={setTargetLanguage}>
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {LANGUAGES.filter(l => l.code !== 'auto').map(l => (
+                        <SelectItem key={l.code} value={l.code}>{l.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button 
+                  size="sm" 
+                  className="w-full" 
+                  onClick={handleTranslate}
+                  disabled={!message.trim() || translateLoading}
+                >
+                  {translateLoading ? (
+                    <><Loader2 className="h-3 w-3 animate-spin mr-1" /> Translating...</>
+                  ) : (
+                    'Translate'
+                  )}
+                </Button>
+              </div>
+            </PopoverContent>
+          </Popover>
+
+          {/* Mic button (placeholder) */}
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="shrink-0 h-9 w-9 text-muted-foreground"
+            disabled
+            title="Voice messages coming soon"
+          >
+            <Mic className="h-5 w-5" />
+          </Button>
+
+          {/* Spacer */}
+          <div className="flex-1" />
+
+          {/* Reply status selector - hidden for internal notes */}
+          {!isInternalNote && (
+            <Select value={replyStatus} onValueChange={(v) => setReplyStatus(v as 'closed' | 'open' | 'pending')}>
+              <SelectTrigger className="shrink-0 h-9 w-[140px] text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="closed">Send & Close</SelectItem>
+                <SelectItem value="open">Send & Keep Open</SelectItem>
+                <SelectItem value="pending">Send & Pending</SelectItem>
+              </SelectContent>
+            </Select>
           )}
-          onClick={handleSend}
-          disabled={(!message.trim() && attachments.length === 0) || isPending}
-        >
-          {isPending ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Send className="h-4 w-4" />
+
+          {/* Send button */}
+          <Button 
+            size="icon" 
+            className={cn(
+              "rounded-full shrink-0 h-10 w-10",
+              isInternalNote && "bg-warning hover:bg-warning/90 text-warning-foreground"
+            )}
+            onClick={handleSend}
+            disabled={(!message.trim() && attachments.length === 0) || isPending}
+          >
+            {isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Send className="h-4 w-4" />
+            )}
+          </Button>
+          
+          {/* Transfer Chat Button */}
+          {transferableAgents.length > 0 && (
+            <Button 
+              size="sm" 
+              variant="outline"
+              className="shrink-0 h-9 gap-1.5"
+              onClick={() => setTransferDialogOpen(true)}
+              disabled={isTransferring}
+            >
+              {isTransferring ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <UserRoundPlus className="h-4 w-4" />
+              )}
+              <span className="text-xs">Transfer</span>
+            </Button>
           )}
-        </Button>
-        
-        {/* Transfer Chat Button */}
-        {transferableAgents.length > 0 && (
+          
           <Button 
             size="sm" 
             variant="outline"
-            className="shrink-0 h-9 gap-1.5"
-            onClick={() => setTransferDialogOpen(true)}
-            disabled={isTransferring}
+            className="shrink-0 h-9 gap-1.5 text-destructive hover:text-destructive hover:bg-destructive/10"
+            onClick={handleEndChat}
+            disabled={endChatMutation.isPending}
           >
-            {isTransferring ? (
+            {endChatMutation.isPending ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
-              <UserRoundPlus className="h-4 w-4" />
+              <MessageSquareX className="h-4 w-4" />
             )}
-            <span className="text-xs">Transfer</span>
+            <span className="text-xs">End Chat</span>
           </Button>
-        )}
-        
-        <Button 
-          size="sm" 
-          variant="outline"
-          className="shrink-0 h-9 gap-1.5 text-destructive hover:text-destructive hover:bg-destructive/10"
-          onClick={handleEndChat}
-          disabled={endChatMutation.isPending}
-        >
-          {endChatMutation.isPending ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <MessageSquareX className="h-4 w-4" />
-          )}
-          <span className="text-xs">End Chat</span>
-        </Button>
+        </div>
       </div>
 
       {/* Transfer Chat Dialog */}
