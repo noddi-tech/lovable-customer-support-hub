@@ -18,6 +18,7 @@ export const ChatLayout: React.FC = () => {
   const { filter: urlFilter } = useParams<{ filter?: string }>();
   const [searchParams] = useSearchParams();
   const selectedConversationId = searchParams.get('c');
+  const highlightMessageId = searchParams.get('m');
   const { profile } = useAuth();
   const organizationId = profile?.organization_id;
 
@@ -77,8 +78,11 @@ export const ChatLayout: React.FC = () => {
 
   const handleFilterChange = (filter: ChatFilterType) => {
     // Preserve the selected conversation when changing filters
-    const params = selectedConversationId ? `?c=${selectedConversationId}` : '';
-    navigate(`/interactions/chat/${filter}${params}`);
+    const params = new URLSearchParams();
+    if (selectedConversationId) params.set('c', selectedConversationId);
+    if (highlightMessageId) params.set('m', highlightMessageId);
+    const qs = params.toString();
+    navigate(`/interactions/chat/${filter}${qs ? `?${qs}` : ''}`);
   };
 
   const handleSelectChat = (conversationId: string) => {
