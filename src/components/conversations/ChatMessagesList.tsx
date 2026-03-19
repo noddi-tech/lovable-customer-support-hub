@@ -165,6 +165,7 @@ export const ChatMessagesList = ({
         {sortedMessages.map((message) => {
           const isAgent = message.authorType === 'agent';
           const isSystem = message.authorType === 'system';
+          const isInternal = message.isInternalNote;
           const senderName = message.from?.name || message.from?.email;
           const attachments = (message as any).attachments;
           
