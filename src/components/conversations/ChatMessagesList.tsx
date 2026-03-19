@@ -208,9 +208,17 @@ export const ChatMessagesList = ({
                 "flex flex-col relative",
                 isAgent ? "items-end" : "items-start"
               )}>
-                {/* Sender name */}
-                <span className="text-xs text-muted-foreground mb-1 px-1">
-                  {isAgent ? senderName || 'Agent' : customerName || customerEmail || 'Customer'}
+                {/* Sender name / internal note label */}
+                {isInternal ? (
+                  <span className="text-xs text-yellow-700 mb-1 px-1 flex items-center gap-1">
+                    <Lock className="h-3 w-3" />
+                    Internal note
+                  </span>
+                ) : (
+                  <span className="text-xs text-muted-foreground mb-1 px-1">
+                    {isAgent ? senderName || 'Agent' : customerName || customerEmail || 'Customer'}
+                  </span>
+                )}
                 </span>
                 
                 {/* Message bubble with action menu */}
