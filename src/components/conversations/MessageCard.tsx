@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { EmailRender } from "@/components/ui/email-render";
+import { MentionRenderer } from "@/components/ui/mention-renderer";
 import { 
   Lock,
   Edit3,
