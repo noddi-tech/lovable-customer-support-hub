@@ -15,6 +15,7 @@ import {
 import { MoreHorizontal, Copy, Trash2, Check, CheckCheck, Paperclip, Image, Mail, AlertCircle, RefreshCw, Loader2, Lock } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { EmailRender } from '@/components/ui/email-render';
+import { MentionRenderer } from '@/components/ui/mention-renderer';
 import { toast } from 'sonner';
 
 interface ChatMessagesListProps {
