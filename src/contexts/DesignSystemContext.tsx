@@ -351,6 +351,9 @@ export const DesignSystemProvider: React.FC<DesignSystemProviderProps> = ({ chil
               },
             },
           };
+          // Force pure white backgrounds regardless of DB values
+          merged.colors.background = '0 0% 100%';
+          merged.colors.card = '0 0% 100%';
           return merged;
         });
       }
