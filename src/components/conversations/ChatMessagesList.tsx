@@ -280,7 +280,7 @@ export const ChatMessagesList = ({
                   <span className="text-xs text-muted-foreground">
                     {formatRelative(new Date(message.createdAt))}
                   </span>
-                  {isAgent && (!message.emailStatus || message.emailStatus === 'sent') && (
+                  {isAgent && !isInternal && (!message.emailStatus || message.emailStatus === 'sent') && (
                     <CheckCheck className="h-3 w-3 text-primary" />
                   )}
                 </div>
