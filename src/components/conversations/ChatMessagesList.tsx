@@ -260,9 +260,11 @@ export const ChatMessagesList = ({
                   {/* Message bubble */}
                   <div className={cn(
                     "px-4 py-3 rounded-2xl text-sm leading-relaxed break-words chat-bubble-content",
-                    isAgent 
-                      ? "bg-primary text-primary-foreground rounded-br-md" 
-                      : "bg-muted text-foreground rounded-bl-md"
+                    isInternal
+                      ? "bg-yellow-50 text-foreground border border-yellow-200 rounded-br-md"
+                      : isAgent 
+                        ? "bg-primary text-primary-foreground rounded-br-md" 
+                        : "bg-muted text-foreground rounded-bl-md"
                   )}>
                     <EmailRender
                       content={message.visibleBody}
