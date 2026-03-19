@@ -1,28 +1,45 @@
 
 
-## Fix: Internal Notes Displayed as Customer-Facing Messages in Chat
+## Improve @Mention Styling Across the App
 
-### Problem
-Internal notes in the chat view look identical to regular agent messages (purple bubble). There's no visual distinction, making it appear the note was sent to the customer. **The note was NOT sent to the customer** — the backend correctly sets `is_internal: true` and skips email delivery. This is purely a display issue.
+### Current State
+- **`MentionRenderer`** exists with light styling (`bg-primary/10 text-primary font-medium` in a rounded pill) — functional but subtle
+- Used in only **2 places**: `CustomerNotes.tsx` and `TicketCommentsList.tsx`
+- **Missing entirely** from chat messages (`ChatMessagesList.tsx`) and email thread view (`MessageCard.tsx`) — mentions render as plain text there
 
-### Fix
+### Best Practice
+Industry standard (Slack, Linear, Notion, GitHub) is a distinctly colored pill/chip: bold name, colored background, slightly rounded — immediately scannable. The current `MentionRenderer` is close but could be more prominent.
 
-**File: `src/components/conversations/ChatMessagesList.tsx`**
+### Plan
 
-In the message rendering loop (around line 181-301), add internal note detection and styling:
+#### 1. Enhance `MentionRenderer` styling
+**File:** `src/components/ui/mention-renderer.tsx`
 
-1. **Detect internal notes**: Check `message.isInternalNote` (already available on `NormalizedMessage`)
+Update the mention span styling to be more visually prominent:
+- Add a slightly stronger background: `bg-primary/15` → more visible
+- Add `font-semibold` instead of `font-medium`
+- Add a subtle border: `ring-1 ring-primary/20`
+- Keep the rounded pill shape
 
-2. **Render internal notes differently**:
-   - Use a **yellow/amber background** instead of the purple agent bubble (matching the reply composer's note mode styling)
-   - Add a **"Internal note" label** with a lock/sticky-note icon above the bubble
-   - Keep right-aligned (agent side) but visually distinct
+This is a single class change on line 41.
 
-3. **Specific changes**:
-   - Add `const isInternal = message.isInternalNote;` alongside the existing `isAgent`/`isSystem` checks
-   - Change bubble classes: when `isInternal`, use `bg-yellow-50 text-foreground border border-yellow-200` instead of `bg-primary text-primary-foreground`
-   - Add a small badge/label: `🔒 Internal note` above the bubble text
-   - Hide the email delivery checkmarks for internal notes (they already have no `emailStatus`)
+#### 2. Add `MentionRenderer` to `ChatMessagesList.tsx`
+**File:** `src/components/conversations/ChatMessagesList.tsx`
 
-This aligns with the existing internal note styling used in the email/thread view (`MessageItem.tsx` line 89-93) and the composer's note mode yellow background.
+Wrap the message body content through `MentionRenderer` for internal notes (where mentions are most common). For internal notes, replace the raw `EmailRender` output with a `MentionRenderer` wrapper, or add a post-render pass. Since `EmailRender` handles HTML, the simplest approach: for `text/plain` internal notes, render via `MentionRenderer` instead of `EmailRender`.
+
+#### 3. Add `MentionRenderer` to `MessageCard.tsx`
+**File:** `src/components/conversations/MessageCard.tsx`
+
+Same approach — for internal notes rendered in the email/thread view, wrap content through `MentionRenderer` to highlight tagged names.
+
+#### 4. Verify existing usages still look good
+The two existing consumers (`CustomerNotes.tsx`, `TicketCommentsList.tsx`) will automatically pick up the enhanced styling from Step 1.
+
+### Summary of Changes
+| File | Change |
+|------|--------|
+| `mention-renderer.tsx` | Stronger pill styling (bolder, more visible background) |
+| `ChatMessagesList.tsx` | Use `MentionRenderer` for internal note content |
+| `MessageCard.tsx` | Use `MentionRenderer` for internal note content |
 
