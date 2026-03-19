@@ -34,7 +34,7 @@ export const ConversationRedirect = () => {
     return <Navigate to="/interactions/text/open" replace />;
   }
   
-  const isChat = conversation.channel === 'widget' || conversation.channel === 'chat';
+  const isChat = conversation.channel === 'widget';
   const status = conversation.status || 'open';
   const params = new URLSearchParams();
   
