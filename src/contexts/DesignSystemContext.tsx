@@ -141,7 +141,7 @@ const defaultDesignSystem: DesignSystem = {
     secondaryForeground: '215 25% 27%', // Dark gray in HSL
     accent: '252 75% 98%', // Very light purple in HSL
     accentForeground: '252 75% 60%', // Brand purple in HSL
-    background: '210 20% 98%', // #F8F9FB in HSL
+    background: '0 0% 100%', // Pure white #FFFFFF
     foreground: '224 71% 4%', // Keep existing HSL
     muted: '220 14% 96%', // #F1F3F7 in HSL
     mutedForeground: '215 16% 47%', // Medium gray in HSL
