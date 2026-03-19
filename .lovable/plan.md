@@ -1,27 +1,28 @@
 
 
-## Fix: Organization metadata overriding white background
+## Fix: Internal Notes Displayed as Customer-Facing Messages in Chat
 
-### Root cause
-
-The code defaults are correct (`0 0% 100%` = pure white), but the organization's database record (`organizations.metadata.designSystem.colors.background`) has `250 50% 98%` (a purple-tinted grey) stored from a previous save. On every page load, `DesignSystemProvider` fetches this from Supabase and overwrites the CSS variable.
+### Problem
+Internal notes in the chat view look identical to regular agent messages (purple bubble). There's no visual distinction, making it appear the note was sent to the customer. **The note was NOT sent to the customer** — the backend correctly sets `is_internal: true` and skips email delivery. This is purely a display issue.
 
 ### Fix
 
-**Two changes needed:**
+**File: `src/components/conversations/ChatMessagesList.tsx`**
 
-1. **Update the database** — Run a SQL update to set the organization's stored background color to pure white:
-   ```sql
-   UPDATE organizations 
-   SET metadata = jsonb_set(metadata::jsonb, '{designSystem,colors,background}', '"0 0% 100%"')
-   WHERE id = 'b9b4df82-2b89-4a64-b2a3-5e19c0e8d43b';
-   ```
+In the message rendering loop (around line 181-301), add internal note detection and styling:
 
-2. **Protect against future overrides** — In `src/contexts/DesignSystemContext.tsx`, add a safeguard in the `useEffect` that merges database values: always force `background` and `card` to pure white (`0 0% 100%`) after the merge, so even if stale metadata exists in the DB, the app stays white. This can be a simple two-line override after the merge block (~line 335):
-   ```typescript
-   merged.colors.background = '0 0% 100%';
-   merged.colors.card = '0 0% 100%';
-   ```
+1. **Detect internal notes**: Check `message.isInternalNote` (already available on `NormalizedMessage`)
 
-This ensures the white background is enforced regardless of what's stored in the database, while still allowing other design system customizations to load normally.
+2. **Render internal notes differently**:
+   - Use a **yellow/amber background** instead of the purple agent bubble (matching the reply composer's note mode styling)
+   - Add a **"Internal note" label** with a lock/sticky-note icon above the bubble
+   - Keep right-aligned (agent side) but visually distinct
+
+3. **Specific changes**:
+   - Add `const isInternal = message.isInternalNote;` alongside the existing `isAgent`/`isSystem` checks
+   - Change bubble classes: when `isInternal`, use `bg-yellow-50 text-foreground border border-yellow-200` instead of `bg-primary text-primary-foreground`
+   - Add a small badge/label: `🔒 Internal note` above the bubble text
+   - Hide the email delivery checkmarks for internal notes (they already have no `emailStatus`)
+
+This aligns with the existing internal note styling used in the email/thread view (`MessageItem.tsx` line 89-93) and the composer's note mode yellow background.
 
