@@ -12,7 +12,7 @@ import {
   DropdownMenuItem, 
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, Copy, Trash2, Check, CheckCheck, Paperclip, Image, Mail, AlertCircle, RefreshCw, Loader2 } from 'lucide-react';
+import { MoreHorizontal, Copy, Trash2, Check, CheckCheck, Paperclip, Image, Mail, AlertCircle, RefreshCw, Loader2, Lock } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { EmailRender } from '@/components/ui/email-render';
 import { toast } from 'sonner';
@@ -165,6 +165,7 @@ export const ChatMessagesList = ({
         {sortedMessages.map((message) => {
           const isAgent = message.authorType === 'agent';
           const isSystem = message.authorType === 'system';
+          const isInternal = message.isInternalNote;
           const senderName = message.from?.name || message.from?.email;
           const attachments = (message as any).attachments;
           
@@ -207,10 +208,17 @@ export const ChatMessagesList = ({
                 "flex flex-col relative",
                 isAgent ? "items-end" : "items-start"
               )}>
-                {/* Sender name */}
-                <span className="text-xs text-muted-foreground mb-1 px-1">
-                  {isAgent ? senderName || 'Agent' : customerName || customerEmail || 'Customer'}
-                </span>
+                {/* Sender name / internal note label */}
+                {isInternal ? (
+                  <span className="text-xs text-yellow-700 mb-1 px-1 flex items-center gap-1">
+                    <Lock className="h-3 w-3" />
+                    Internal note
+                  </span>
+                ) : (
+                  <span className="text-xs text-muted-foreground mb-1 px-1">
+                    {isAgent ? senderName || 'Agent' : customerName || customerEmail || 'Customer'}
+                  </span>
+                )}
                 
                 {/* Message bubble with action menu */}
                 <div className="relative">
@@ -252,9 +260,11 @@ export const ChatMessagesList = ({
                   {/* Message bubble */}
                   <div className={cn(
                     "px-4 py-3 rounded-2xl text-sm leading-relaxed break-words chat-bubble-content",
-                    isAgent 
-                      ? "bg-primary text-primary-foreground rounded-br-md" 
-                      : "bg-muted text-foreground rounded-bl-md"
+                    isInternal
+                      ? "bg-yellow-50 text-foreground border border-yellow-200 rounded-br-md"
+                      : isAgent 
+                        ? "bg-primary text-primary-foreground rounded-br-md" 
+                        : "bg-muted text-foreground rounded-bl-md"
                   )}>
                     <EmailRender
                       content={message.visibleBody}
@@ -270,7 +280,7 @@ export const ChatMessagesList = ({
                   <span className="text-xs text-muted-foreground">
                     {formatRelative(new Date(message.createdAt))}
                   </span>
-                  {isAgent && (!message.emailStatus || message.emailStatus === 'sent') && (
+                  {isAgent && !isInternal && (!message.emailStatus || message.emailStatus === 'sent') && (
                     <CheckCheck className="h-3 w-3 text-primary" />
                   )}
                 </div>
