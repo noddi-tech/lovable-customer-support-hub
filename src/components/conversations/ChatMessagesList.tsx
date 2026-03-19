@@ -267,12 +267,16 @@ export const ChatMessagesList = ({
                         ? "bg-primary text-primary-foreground rounded-br-md" 
                         : "bg-muted text-foreground rounded-bl-md"
                   )}>
-                    <EmailRender
-                      content={message.visibleBody}
-                      contentType={message.originalMessage?.content_type || 'text/plain'}
-                      attachments={attachments}
-                      messageId={message.id}
-                    />
+                    {isInternal ? (
+                      <MentionRenderer content={message.visibleBody} className="text-sm" />
+                    ) : (
+                      <EmailRender
+                        content={message.visibleBody}
+                        contentType={message.originalMessage?.content_type || 'text/plain'}
+                        attachments={attachments}
+                        messageId={message.id}
+                      />
+                    )}
                   </div>
                 </div>
                 
