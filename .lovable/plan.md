@@ -1,28 +1,69 @@
 
 
-## Diagnosis
+## Current URL Structure
 
-The root cause is simple: **`@tailwindcss/postcss` (a Tailwind v4 package) is still listed on line 51 of `package.json`**. When the build sandbox installs dependencies, it pulls in Tailwind v4 via this package, which conflicts with the v3 PostCSS plugin setup.
+```text
+Full view:     /interactions/text/{status}?inbox={id}&c={conversationId}&m={messageId}
+Short links:   /c/{conversationId}
+               /c/{conversationId}/m/{messageId}
+Chat view:     /interactions/chat/{filter}  (no conversation deep-link)
+Slack button:  /?inbox={id}&c={conversationId}  ← BROKEN (hits root redirect)
+```
 
-Previous removal attempts were either not applied or reverted. The fix is straightforward — no v4 upgrade needed.
+**Problems identified:**
 
-**Upgrading to Tailwind v4 is NOT recommended** for this production app because:
-- It would require rewriting `src/index.css` (1,634 lines of v3 syntax including `@tailwind` directives, `@apply` rules, and `@layer` blocks)
-- The `tailwind.config.ts` would need to be converted to CSS-based configuration
-- All `@tailwindcss/typography` and `tailwindcss-animate` plugin usage would need migration
-- High risk of regressions across the entire UI — unacceptable for a 99.9% uptime requirement
+1. **No channel distinction** — email and widget/chat conversations both resolve to `/interactions/text/`, but chat conversations live under `/interactions/chat/`. The redirect doesn't know which layout to use.
+2. **Short links don't carry message type** — `/c/{id}` looks up the conversation but doesn't encode the channel, so it always redirects to `/interactions/text/`.
+3. **Slack "View Conversation" button is broken** — it generates `/?inbox=...&c=...` which hits the root redirect to `/interactions/text` and loses the query params entirely.
+4. **No message-level short link for Slack** — mentioning a specific message requires `/c/{id}/m/{msgId}` but Slack notifications don't use this.
+
+## Proposed New URL Structure
+
+```text
+Short links (shareable, used by Slack, emails, etc.):
+  /c/{conversationId}                    → auto-detect channel, redirect
+  /c/{conversationId}/m/{messageId}      → auto-detect + scroll to message
+
+Full view (internal, after redirect):
+  /interactions/text/{status}?inbox={id}&c={conversationId}&m={messageId}
+  /interactions/chat/{filter}?c={conversationId}&m={messageId}
+```
+
+The short link `/c/{id}` is the canonical shareable format. The redirect component already exists — it just needs to be smarter about routing chat vs email conversations.
 
 ## Plan
 
-### Step 1: Remove `@tailwindcss/postcss` from `package.json`
+### 1. Upgrade ConversationRedirect to be channel-aware
 
-Delete line 51 (`"@tailwindcss/postcss": "^4.2.2"`) from the dependencies block. This is the single change that will fix the build.
+**File:** `src/components/routing/ConversationRedirect.tsx`
 
-### Step 2: Verify configuration files are correct
+- Already fetches `conversations.status` and `inbox_id`
+- Add `channel` to the select query
+- If `channel === 'widget' || channel === 'chat'` → redirect to `/interactions/chat/{status}?c={id}`
+- Otherwise → redirect to `/interactions/text/{status}?inbox={id}&c={id}` (current behavior)
+- Keep `/m/{messageId}` pass-through for both paths
 
-- `postcss.config.js` — already correct (uses `tailwindcss` v3 plugin)
-- `tailwind.config.ts` — already correct (v3 format)
-- `tailwindcss: "3.4.17"` in devDependencies — already correct
+### 2. Fix Slack notification URLs
 
-No other files need changes.
+**File:** `supabase/functions/send-slack-notification/index.ts`
+
+- Line 378-381: Change URL generation from `/?inbox=...&c=...` to use the canonical short link format: `{appUrl}/c/{conversationId}` (optionally with `/m/{messageId}`)
+- This is simpler, always works, and doesn't depend on knowing the current status/inbox
+
+### 3. Add `?c=` support to ChatLayout
+
+**File:** `src/components/dashboard/chat/ChatLayout.tsx`
+
+- Read `c` from search params to pre-select a conversation (same pattern as InteractionsLayout)
+- This enables deep-linking into chat conversations after redirect
+
+### 4. No new routes needed
+
+The existing `/c/:conversationId` and `/c/:conversationId/m/:messageId` routes already handle all short links. The fix is entirely in the redirect logic and URL generation.
+
+## Technical details
+
+- The `conversations` table already has a `channel` column — no schema changes needed
+- The Slack edge function already has `conversation_id` and `channel` in its request body — it just generates the wrong URL format
+- The `ConversationRedirect` query adds one column (`channel`) to an already-indexed primary key lookup — negligible performance impact
 
