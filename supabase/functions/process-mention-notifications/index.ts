@@ -262,7 +262,7 @@ const handler = async (req: Request): Promise<Response> => {
     const appUrl = Deno.env.get('APP_URL') || 'https://support.noddi.co';
     let linkUrl: string | undefined;
     if (context.conversation_id) {
-      linkUrl = `${appUrl}/?c=${context.conversation_id}`;
+      linkUrl = `${appUrl}/c/${context.conversation_id}`;
     } else if (context.ticket_id) {
       linkUrl = `${appUrl}/service-tickets?ticket=${context.ticket_id}`;
     }
