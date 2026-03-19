@@ -376,9 +376,8 @@ Deno.serve(async (req) => {
     // Action button
     if (conversation_id) {
       const appUrl = Deno.env.get('APP_URL') || 'https://support.noddi.co';
-      const conversationUrl = inbox_id 
-        ? `${appUrl}/?inbox=${inbox_id}&c=${conversation_id}`
-        : `${appUrl}/?c=${conversation_id}`;
+      // Use canonical short link format — auto-detects channel and redirects correctly
+      const conversationUrl = `${appUrl}/c/${conversation_id}`;
       
       attachmentBlocks.push({
         type: 'actions',

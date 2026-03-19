@@ -11,7 +11,7 @@ export const ConversationRedirect = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('conversations')
-        .select('id, status, inbox_id')
+        .select('id, status, inbox_id, channel')
         .eq('id', conversationId!)
         .maybeSingle();
       
@@ -34,11 +34,11 @@ export const ConversationRedirect = () => {
     return <Navigate to="/interactions/text/open" replace />;
   }
   
-  // Build the full path with all parameters
+  const isChat = conversation.channel === 'widget' || conversation.channel === 'chat';
   const status = conversation.status || 'open';
   const params = new URLSearchParams();
   
-  if (conversation.inbox_id) {
+  if (!isChat && conversation.inbox_id) {
     params.set('inbox', conversation.inbox_id);
   }
   params.set('c', conversationId!);
@@ -47,7 +47,12 @@ export const ConversationRedirect = () => {
     params.set('m', messageId);
   }
   
-  const targetPath = `/interactions/text/${status}?${params.toString()}`;
+  // Route chat/widget conversations to chat layout, everything else to text layout
+  const basePath = isChat
+    ? `/interactions/chat/${status === 'open' || status === 'pending' ? 'active' : status === 'closed' || status === 'resolved' ? 'ended' : 'active'}`
+    : `/interactions/text/${status}`;
+  
+  const targetPath = `${basePath}?${params.toString()}`;
   
   return <Navigate to={targetPath} replace />;
 };
