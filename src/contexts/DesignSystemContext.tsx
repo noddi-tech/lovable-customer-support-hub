@@ -488,6 +488,8 @@ export const DesignSystemProvider: React.FC<DesignSystemProviderProps> = ({ chil
               colors: {
                 ...prev.colors,
                 ...newData.metadata.designSystem.colors,
+                background: '0 0% 100%',
+                card: '0 0% 100%',
               },
               typography: {
                 ...prev.typography,
@@ -496,23 +498,14 @@ export const DesignSystemProvider: React.FC<DesignSystemProviderProps> = ({ chil
               components: {
                 ...prev.components,
                 ...newData.metadata.designSystem.components,
-                // Ensure typography component settings always exist with defaults
                 typography: {
                   ...prev.components.typography,
                   ...newData.metadata.designSystem.components?.typography,
                 },
-                // Ensure headings always exists with defaults
                 headings: {
                   ...prev.components.headings,
                   ...newData.metadata.designSystem.components?.headings,
                 },
-              },
-              // Force pure white backgrounds regardless of DB values
-              colors: {
-                ...prev.colors,
-                ...newData.metadata.designSystem.colors,
-                background: '0 0% 100%',
-                card: '0 0% 100%',
               },
             }));
           }
