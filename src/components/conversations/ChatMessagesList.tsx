@@ -219,7 +219,6 @@ export const ChatMessagesList = ({
                     {isAgent ? senderName || 'Agent' : customerName || customerEmail || 'Customer'}
                   </span>
                 )}
-                </span>
                 
                 {/* Message bubble with action menu */}
                 <div className="relative">
