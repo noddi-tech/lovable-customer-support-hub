@@ -29,7 +29,7 @@ export const Default: Story = {
 
 export const ResponsiveColumns: Story = {
   args: {
-    cols: { sm: 1, md: 2, lg: 3, xl: 4 },
+    cols: { sm: '1' as string, md: '2' as string, lg: '3' as string, xl: '4' as string },
     gap: '4',
     children: Array.from({ length: 8 }, (_, i) => (
       <GridItem key={i}>
