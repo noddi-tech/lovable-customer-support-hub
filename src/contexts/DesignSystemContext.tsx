@@ -507,6 +507,13 @@ export const DesignSystemProvider: React.FC<DesignSystemProviderProps> = ({ chil
                   ...newData.metadata.designSystem.components?.headings,
                 },
               },
+              // Force pure white backgrounds regardless of DB values
+              colors: {
+                ...prev.colors,
+                ...newData.metadata.designSystem.colors,
+                background: '0 0% 100%',
+                card: '0 0% 100%',
+              },
             }));
           }
         }
