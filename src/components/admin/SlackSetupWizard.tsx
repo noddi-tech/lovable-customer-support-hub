@@ -36,7 +36,9 @@ const REQUIRED_SCOPES = [
   'channels:read',
   'chat:write',
   'users:read',
+  'users:read.email',
   'groups:read',
+  'im:write',
 ];
 
 export function SlackSetupWizard({ onComplete }: SlackSetupWizardProps) {
