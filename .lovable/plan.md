@@ -1,27 +1,58 @@
 
+Fix three connected issues in the conversation view and reply flow.
 
-## Fix: "To" Line Wrapping & Show Email Address for Agent Messages
+1. Fix failed email sending
+- Update `supabase/functions/send-reply-email/index.ts` so SendGrid payload uses valid content types:
+  - `text/plain`
+  - `text/html`
+- Keep UTF-8 via the actual string content/meta, not `; charset=utf-8` in `content[].type`
+- Redeploy `send-reply-email`
 
-### Problem 1: "To" wraps to second line
-The `flex-wrap` class allows the "To:" label and the badge to break onto separate lines on narrow cards. Since this row is simple (label + 1-2 badges), we should use `flex-nowrap` with `overflow-hidden` and `text-ellipsis` on the badges instead.
+What I verified:
+- The latest attempted reply was sent to `amanueltekber@gmail.com`
+- It failed before delivery because SendGrid returned 400:
+  - `The content type cannot contain ';'`
+- So the addressing logic is now correct, but delivery is blocked by payload formatting
 
-### Problem 2: Shows "Dekkfix" instead of customer email
-The `display()` helper prefers `addr.name` over `addr.email`. For this message, the email header was `To: Dekkfix <hei@dekkfix.no>` — so "Dekkfix" is correct per the stored data. But it's misleading.
+2. Fix blank/incorrect “To:” row in message cards
+- Update `src/components/conversations/MessageCard.tsx`
+- Current issue: the “To:” row is `flex-nowrap`, but the badge itself uses `shrink-0`, so it can still force awkward overflow/wrapping behavior
+- Change the row to a proper truncation layout:
+  - outer row: `min-w-0 flex items-center gap-2 overflow-hidden`
+  - label: `shrink-0`
+  - recipient chip container: `min-w-0 flex-1 overflow-hidden`
+  - recipient badges: truncate instead of forcing full width
+- Add an explicit fallback when `message.to` is empty on pending/failed agent messages:
+  - show the conversation customer email if available
+  - if not, show an em dash / “Unknown recipient”
+- This prevents blank “To:” on unsent messages that do not yet have stored `email_headers`
 
-**Fix**: Change the `display()` function or the badge rendering to **show the email address** when the name matches the organization/inbox name, or simpler: always show email in a tooltip, and for agent-sent messages, prefer showing the email address (since agents care about *who* it was sent to).
+3. Fix wrong customer/inbox identity in the header
+- Update `src/components/dashboard/conversation-view/ConversationViewContent.tsx`
+- The DB conversation is already correct:
+  - customer = `Amanuel Tekber`
+  - email = `amanueltekber@gmail.com`
+- But the header/avatar area is still sourced through the current display helper and surrounding compact layout, while the screenshot also shows inbox branding nearby, which is making the top area misleading
+- Make the header render the customer identity explicitly from `conversation.customer`
+- Ensure the compact line always shows:
+  - `Amanuel Tekber`
+  - `· amanueltekber@gmail.com`
+- Keep the inbox/sender identity separate from customer identity
 
-### Problem 3: Reply was sent to wrong address
-The agent reply on March 19 was sent **before** the fix was deployed, so it went to `hei@dekkfix.no` (the inbox). This cannot be undone. Future replies to this conversation will correctly go to `amanueltekber@gmail.com` thanks to the Reply-To fallback we added.
+4. Ensure sent agent messages show the real recipient email
+- In `MessageCard.tsx`, keep preferring recipient email over display name for agent messages
+- Also improve the “show all recipients” expanded text so it uses email-first formatting for agent messages too
+- This avoids seeing `Dekkfix` when the important thing is the actual delivery target
 
-### Changes
+5. Validation after implementation
+- Confirm header shows `Amanuel Tekber · amanueltekber@gmail.com`
+- Confirm pending/failed agent message shows `To: amanueltekber@gmail.com`
+- Confirm no awkward line break in the “To:” row at the current desktop width
+- Confirm resending succeeds and message status changes from `pending` to `sent`
 
-**File: `src/components/conversations/MessageCard.tsx`**
-
-1. **Fix wrapping**: Change `flex-wrap` to `flex-nowrap` on the recipients row, add `min-w-0` for truncation
-2. **Show email for agent messages**: In the recipients section, for agent-sent messages, prefer showing `addr.email` over `addr.name` — agents need to verify the actual recipient address
-3. **Add tooltip**: Wrap each badge with a title/tooltip showing the full email address for all messages
-
-| File | Change |
-|------|--------|
-| `MessageCard.tsx` | Fix flex-wrap → flex-nowrap on "To" row; show email instead of name for agent messages |
-
+Technical notes
+- The March 19 message still shows `To: Dekkfix <hei@dekkfix.no>` because that historical message was actually sent before the routing fix
+- The new reply attempt today was targeting `amanueltekber@gmail.com`, but SendGrid rejected the request before sending
+- So this is now two separate problems:
+  1. delivery bug in edge function payload
+  2. UI fallback/layout bug for recipient rendering
