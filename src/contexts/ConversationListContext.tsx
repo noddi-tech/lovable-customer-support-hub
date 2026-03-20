@@ -360,49 +360,35 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
             const isSnoozedActive = !!conversation.snooze_until && new Date(conversation.snooze_until) > new Date();
             switch (selectedTab) {
               case "open":
-                // Open: status is 'open', not archived, not snoozed, not deleted
                 return conversation.status === 'open' 
-                  && !conversation.is_archived 
                   && !isSnoozedActive 
                   && !conversation.is_deleted;
               case "pending":
-                // Pending: status is 'pending', not archived, not snoozed, not deleted
                 return conversation.status === 'pending' 
-                  && !conversation.is_archived 
                   && !isSnoozedActive 
                   && !conversation.is_deleted;
               case "assigned":
-                // Assigned to Me: assigned to current user, not archived, not snoozed, not deleted
                 return !!conversation.assigned_to 
                   && conversation.assigned_to.id === profile?.id
-                  && !conversation.is_archived 
                   && !isSnoozedActive 
                   && !conversation.is_deleted;
               case "closed":
-                // Closed: status is 'closed', not archived, not snoozed, not deleted
                 return conversation.status === 'closed' 
-                  && !conversation.is_archived 
                   && !isSnoozedActive 
                   && !conversation.is_deleted;
               case "archived":
-                // Archived: is_archived flag is true, not deleted
                 return conversation.is_archived === true 
                   && !conversation.is_deleted;
               case "deleted":
-                // Deleted: is_deleted flag is true
                 return conversation.is_deleted === true;
               case "snoozed":
-                // Snoozed: has active snooze, not deleted
                 return isSnoozedActive 
                   && !conversation.is_deleted;
               case "all":
-                // All Messages: everything that's not archived and not deleted
-                return !conversation.is_archived 
-                  && !isSnoozedActive 
+                return !isSnoozedActive 
                   && !conversation.is_deleted;
               case "unread":
                 return !conversation.is_read 
-                  && !conversation.is_archived 
                   && !isSnoozedActive 
                   && !conversation.is_deleted;
               case "email":
