@@ -454,13 +454,14 @@ const MessageCardComponent = ({
                     {ccShown.length > 0 && (
                       <>
                         <span className="ml-2 text-muted-foreground">{t('mail.cc') || 'cc'}</span>
-                        {ccShown.map((name) => (
+                        {ccShown.map((item) => (
                           <Badge
-                            key={`cc-${name}`}
+                            key={`cc-${item.label}`}
                             variant="secondary"
-                            className="px-2 py-0.5"
+                            className="px-2 py-0.5 shrink-0"
+                            title={item.email || item.label}
                           >
-                            {name}
+                            {item.label}
                           </Badge>
                         ))}
                         {ccExtra > 0 && !showAllRecipients && (
