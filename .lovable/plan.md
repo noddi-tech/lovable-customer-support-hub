@@ -1,63 +1,27 @@
 
 
-## Fix: Contact Form Emails Create Wrong Customer & Replies Go to Inbox
+## Fix: "To" Line Wrapping & Show Email Address for Agent Messages
 
-### Problem
+### Problem 1: "To" wraps to second line
+The `flex-wrap` class allows the "To:" label and the badge to break onto separate lines on narrow cards. Since this row is simple (label + 1-2 badges), we should use `flex-nowrap` with `overflow-hidden` and `text-ellipsis` on the badges instead.
 
-When a contact form sends email via Resend as `From: hei@dekkfix.no` with `Reply-To: amanueltekber@gmail.com`:
+### Problem 2: Shows "Dekkfix" instead of customer email
+The `display()` helper prefers `addr.name` over `addr.email`. For this message, the email header was `To: Dekkfix <hei@dekkfix.no>` — so "Dekkfix" is correct per the stored data. But it's misleading.
 
-1. The inbound webhook doesn't detect this as a "forwarded" message because `hei@dekkfix.no` ≠ `hei@inbound.dekkfix.no` (the group detection comparison fails)
-2. Customer is created as `hei@dekkfix.no` (the inbox itself) instead of `amanueltekber@gmail.com`
-3. Agent replies go to `hei@dekkfix.no` — back to the inbox — instead of to Amanuel
+**Fix**: Change the `display()` function or the badge rendering to **show the email address** when the name matches the organization/inbox name, or simpler: always show email in a tooltip, and for agent-sent messages, prefer showing the email address (since agents care about *who* it was sent to).
 
-### Root Cause
+### Problem 3: Reply was sent to wrong address
+The agent reply on March 19 was sent **before** the fix was deployed, so it went to `hei@dekkfix.no` (the inbox). This cannot be undone. Future replies to this conversation will correctly go to `amanueltekber@gmail.com` thanks to the Reply-To fallback we added.
 
-Line 303 in `sendgrid-inbound/index.ts`:
-```
-const looksLikeGroup = (fromEmail === rcptEmail) || ...
-```
-This misses the case where `fromEmail` matches the route's **public** `group_email` (e.g., `hei@dekkfix.no`) but `rcptEmail` is the parse subdomain version (`hei@inbound.dekkfix.no`).
+### Changes
 
-### Fix (two parts)
+**File: `src/components/conversations/MessageCard.tsx`**
 
-**1. `supabase/functions/sendgrid-inbound/index.ts`** — Improve group detection
-
-Expand the `looksLikeGroup` check to also compare `fromEmail` against:
-- The route's `group_email` field (available from the route query on line 239)
-- A domain-based match: same local part, `fromEmail` domain is the base of `rcptEmail` domain (e.g., `dekkfix.no` vs `inbound.dekkfix.no`)
-
-When `looksLikeGroup` is true and `Reply-To` exists, use the Reply-To address as the customer — this already works (lines 305-308), it just never triggers.
-
-**2. `supabase/functions/send-reply-email/index.ts`** — Reply-To fallback for recipient
-
-Before sending, check if the conversation's original message has a `Reply-To` header. If the customer email matches the inbox/route address (i.e., it's clearly wrong), use the `Reply-To` from the first message as the actual recipient instead.
-
-**3. Database fix** — Update the existing conversation
-
-Update the customer record and conversation for Amanuel's message so the existing conversation points to the right person.
-
-### What changes
+1. **Fix wrapping**: Change `flex-wrap` to `flex-nowrap` on the recipients row, add `min-w-0` for truncation
+2. **Show email for agent messages**: In the recipients section, for agent-sent messages, prefer showing `addr.email` over `addr.name` — agents need to verify the actual recipient address
+3. **Add tooltip**: Wrap each badge with a title/tooltip showing the full email address for all messages
 
 | File | Change |
 |------|--------|
-| `sendgrid-inbound/index.ts` | Add `route?.group_email` and domain-match to `looksLikeGroup` check |
-| `send-reply-email/index.ts` | Add Reply-To fallback: if customer email matches inbox address, use Reply-To from original message |
-| Database migration | Fix the existing conversation's customer to `amanueltekber@gmail.com` |
-
-### Technical detail
-
-The `looksLikeGroup` line becomes:
-```typescript
-const routeGroupEmail = route?.group_email?.toLowerCase()?.trim();
-const fromMatchesRoute = routeGroupEmail && fromEmail.toLowerCase() === routeGroupEmail;
-const fromMatchesRcptBase = fromEmail.split('@')[0].toLowerCase() === rcptEmail.split('@')[0].toLowerCase();
-
-const looksLikeGroup = (fromEmail === rcptEmail) 
-  || fromMatchesRoute 
-  || fromMatchesRcptBase
-  || / via /i.test(fromRaw) 
-  || (senderHeaderEmail && senderHeaderEmail === rcptEmail);
-```
-
-This ensures contact form emails (sent as the business address with Reply-To) get the correct customer attribution.
+| `MessageCard.tsx` | Fix flex-wrap → flex-nowrap on "To" row; show email instead of name for agent messages |
 
