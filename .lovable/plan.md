@@ -1,58 +1,32 @@
 
-Fix three connected issues in the conversation view and reply flow.
 
-1. Fix failed email sending
-- Update `supabase/functions/send-reply-email/index.ts` so SendGrid payload uses valid content types:
-  - `text/plain`
-  - `text/html`
-- Keep UTF-8 via the actual string content/meta, not `; charset=utf-8` in `content[].type`
-- Redeploy `send-reply-email`
+## Fix: Header Identity & "To:" Line Placement
 
-What I verified:
-- The latest attempted reply was sent to `amanueltekber@gmail.com`
-- It failed before delivery because SendGrid returned 400:
-  - `The content type cannot contain ';'`
-- So the addressing logic is now correct, but delivery is blocked by payload formatting
+### Issue 1: Header still shows "Dekkfix · hei@dekkfix.no"
 
-2. Fix blank/incorrect “To:” row in message cards
-- Update `src/components/conversations/MessageCard.tsx`
-- Current issue: the “To:” row is `flex-nowrap`, but the badge itself uses `shrink-0`, so it can still force awkward overflow/wrapping behavior
-- Change the row to a proper truncation layout:
-  - outer row: `min-w-0 flex items-center gap-2 overflow-hidden`
-  - label: `shrink-0`
-  - recipient chip container: `min-w-0 flex-1 overflow-hidden`
-  - recipient badges: truncate instead of forcing full width
-- Add an explicit fallback when `message.to` is empty on pending/failed agent messages:
-  - show the conversation customer email if available
-  - if not, show an em dash / “Unknown recipient”
-- This prevents blank “To:” on unsent messages that do not yet have stored `email_headers`
+The database is already correct (`Amanuel Tekber · amanueltekber@gmail.com`). The header code at line 322 reads `conversation.customer?.full_name` directly. This is a **React Query cache** issue — the `staleTime` is 60 seconds, and since the customer_id was changed via migration, the old cached result persists until invalidated.
 
-3. Fix wrong customer/inbox identity in the header
-- Update `src/components/dashboard/conversation-view/ConversationViewContent.tsx`
-- The DB conversation is already correct:
-  - customer = `Amanuel Tekber`
-  - email = `amanueltekber@gmail.com`
-- But the header/avatar area is still sourced through the current display helper and surrounding compact layout, while the screenshot also shows inbox branding nearby, which is making the top area misleading
-- Make the header render the customer identity explicitly from `conversation.customer`
-- Ensure the compact line always shows:
-  - `Amanuel Tekber`
-  - `· amanueltekber@gmail.com`
-- Keep the inbox/sender identity separate from customer identity
+**Fix**: No code change needed for the logic itself — it's already correct. But to force immediate freshness, reduce `staleTime` for conversation-meta to 0 after a migration, or simply do a hard refresh. However, if the user is seeing this persistently, there may be a secondary issue: the `InteractionsLayout.tsx` parent also fetches conversation data independently and may be rendering the header from its own stale query.
 
-4. Ensure sent agent messages show the real recipient email
-- In `MessageCard.tsx`, keep preferring recipient email over display name for agent messages
-- Also improve the “show all recipients” expanded text so it uses email-first formatting for agent messages too
-- This avoids seeing `Dekkfix` when the important thing is the actual delivery target
+**Action**: Check `InteractionsLayout.tsx` for a duplicate conversation fetch that might be passing stale customer data. If found, ensure it also uses the `useConversationMeta` result.
 
-5. Validation after implementation
-- Confirm header shows `Amanuel Tekber · amanueltekber@gmail.com`
-- Confirm pending/failed agent message shows `To: amanueltekber@gmail.com`
-- Confirm no awkward line break in the “To:” row at the current desktop width
-- Confirm resending succeeds and message status changes from `pending` to `sent`
+### Issue 2: "To:" on its own line
 
-Technical notes
-- The March 19 message still shows `To: Dekkfix <hei@dekkfix.no>` because that historical message was actually sent before the routing fix
-- The new reply attempt today was targeting `amanueltekber@gmail.com`, but SendGrid rejected the request before sending
-- So this is now two separate problems:
-  1. delivery bug in edge function payload
-  2. UI fallback/layout bug for recipient rendering
+Currently, the "To:" row is a **separate div** (line 428) rendered below the header metadata row (lines 356-417). The user wants "To: hei@dekkfix.no" to appear **inline** on the same line as the date, agent badge, and avatar — not as a separate row.
+
+**Fix in `src/components/conversations/MessageCard.tsx`**:
+
+Move the "To:" recipients **inside** the existing header flex row (the `flex items-center` div at line 356). Place them after the author badge and before the "New" badge. This makes them part of the same flex line, appearing inline with the timestamp and author.
+
+- Remove the separate recipients `div` (lines 428-490)
+- Add a compact inline "To: email" inside the header flex row (after the author badge)
+- For expanded view: show as `To: email` text (not badges — too wide for inline)
+- For collapsed view: don't show recipients (already hidden)
+
+### Changes
+
+| File | Change |
+|------|--------|
+| `MessageCard.tsx` | Move "To:" inline into the header metadata row; remove separate recipients div |
+| `ConversationViewContent.tsx` or `InteractionsLayout.tsx` | Verify no stale duplicate query is overriding the customer identity |
+
