@@ -76,8 +76,8 @@ function shortName(fullName?: string): string {
   return `${first} ${rest}`;
 }
 
-function formatList(list: Addr[] = [], max = 3) {
-  const shown = list.slice(0, max).map(display).filter(Boolean);
+function formatList(list: Addr[] = [], max = 3, preferEmail = false) {
+  const shown = list.slice(0, max).map(a => ({ label: display(a, preferEmail), email: a.email })).filter(a => a.label);
   const extra = list.length - shown.length;
   return { shown, extra };
 }
