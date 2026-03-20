@@ -692,7 +692,7 @@ async function syncGmailMessages(account: any, supabaseClient: any, folder: 'inb
             email_status: folder === 'sent' ? 'sent' : 'pending'
           }, {
             onConflict: 'external_id',
-            ignoreDuplicates: true
+            ignoreDuplicates: false
           })
           .select('id')
           .single();
