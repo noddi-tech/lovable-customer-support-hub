@@ -79,12 +79,38 @@ function getDecodedEmailContent(message: any): { content: string; contentType: s
   };
 
   try {
+    // For charsets that are commonly mislabeled (us-ascii, iso-8859-1), try UTF-8 first
+    // since nearly all modern emails are actually UTF-8
+    const lowCharset = charset.replace(/[^a-z0-9]/g, '');
+    const isLikelyMislabeled = ['usascii', 'ascii', 'iso88591', 'latin1', 'windows1252'].includes(lowCharset);
+    
+    if (isLikelyMislabeled) {
+      console.log(`[gmail-sync] Charset '${charset}' is commonly mislabeled, trying UTF-8 first`);
+      const utf8Result = decodeAndFix('utf-8');
+      const declaredResult = decodeAndFix(charset);
+      
+      const utf8Replacements = (utf8Result.match(/\uFFFD/g) || []).length;
+      const declaredReplacements = (declaredResult.match(/\uFFFD/g) || []).length;
+      
+      // Use UTF-8 if it produces fewer or equal replacement characters
+      const decodedContent = utf8Replacements <= declaredReplacements ? utf8Result : declaredResult;
+      if (utf8Replacements <= declaredReplacements && utf8Replacements < declaredReplacements) {
+        console.log(`[gmail-sync] UTF-8 produced fewer replacement chars (${utf8Replacements} vs ${declaredReplacements}), using UTF-8`);
+      }
+      return { content: decodedContent, contentType: isHtml ? 'html' : 'text' };
+    }
+    
     let decodedContent = decodeAndFix(charset);
     
     // If result contains replacement characters and charset wasn't utf-8, retry as utf-8
     if (decodedContent.includes('\uFFFD') && charset !== 'utf-8') {
       console.log(`[gmail-sync] Detected replacement chars with charset '${charset}', retrying as utf-8`);
-      decodedContent = decodeAndFix('utf-8');
+      const utf8Result = decodeAndFix('utf-8');
+      const utf8Replacements = (utf8Result.match(/\uFFFD/g) || []).length;
+      const originalReplacements = (decodedContent.match(/\uFFFD/g) || []).length;
+      if (utf8Replacements < originalReplacements) {
+        decodedContent = utf8Result;
+      }
     }
     
     return { content: decodedContent, contentType: isHtml ? 'html' : 'text' };

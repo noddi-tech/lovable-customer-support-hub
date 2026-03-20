@@ -444,6 +444,23 @@ Deno.serve(async (req) => {
     const criticalChannelId = integration.critical_channel_id;
     
     if (config.critical_alerts_enabled && criticalChannelId && criticalChannelId !== channelId && event_type !== 'mention') {
+      // Dedup: skip critical alert if one was already sent for this conversation in the last 24h
+      let alreadyAlerted = false;
+      if (conversation_id) {
+        const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+        const { data: existingAlert } = await supabase
+          .from('notifications')
+          .select('id')
+          .eq('type', 'critical_alert_sent')
+          .contains('data', { conversation_id })
+          .gte('created_at', twentyFourHoursAgo)
+          .limit(1)
+          .maybeSingle();
+        if (existingAlert) {
+          console.log(`⏭️ Critical alert already sent for conversation ${conversation_id} in last 24h, skipping`);
+          alreadyAlerted = true;
+        }
+      }
       const CRITICAL_KEYWORDS = [
         // English
         'booking', "can't book", 'cannot book', 'payment failed', 'payment error',
@@ -476,7 +493,7 @@ Deno.serve(async (req) => {
         aiTriageResult = await aiCriticalTriage(supabase, conversation_id, openaiApiKey);
       }
 
-      const shouldAlert = matchedKeyword || (aiTriageResult?.critical && (aiTriageResult?.severity || 0) >= 3);
+      const shouldAlert = !alreadyAlerted && (matchedKeyword || (aiTriageResult?.critical && (aiTriageResult?.severity || 0) >= 3));
 
       if (shouldAlert) {
         const criticalBlocks: any[] = [
@@ -579,6 +596,19 @@ Deno.serve(async (req) => {
           } else {
             const triggerSource = matchedKeyword ? `keyword: ${matchedKeyword}` : `AI: ${aiTriageResult?.category}`;
             console.log(`Critical alert sent to ${criticalChannelId} (${triggerSource})`);
+            
+            // Track this alert to prevent duplicates for 24h
+            if (conversation_id) {
+              await supabase.from('notifications').insert({
+                user_id: '00000000-0000-0000-0000-000000000000',
+                title: 'Critical alert sent',
+                message: `Critical alert for conversation ${conversation_id}`,
+                type: 'critical_alert_sent',
+                data: { conversation_id, trigger: triggerSource },
+              }).then(({ error }) => {
+                if (error) console.error('Failed to track critical alert:', error);
+              });
+            }
           }
         } catch (critErr) {
           console.error('Failed to send critical alert:', critErr);
