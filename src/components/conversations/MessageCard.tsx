@@ -387,6 +387,18 @@ const MessageCardComponent = ({
                       : shortName(message.from.name) || message.from.email?.split('@')[0] || 'Agent'}
                   </Badge>
                 )}
+
+                {/* Inline "To:" recipient - shown for non-notes when expanded */}
+                {!isInternalNote && !effectiveCollapsed && (() => {
+                  const recipientEmail = toShown.length > 0 
+                    ? (toShown[0].email || toShown[0].label)
+                    : (conversation?.customer?.email || '—');
+                  return (
+                    <span className="text-xs text-muted-foreground shrink-0 truncate max-w-[220px]" title={recipientEmail}>
+                      → {recipientEmail}
+                    </span>
+                  );
+                })()}
                 
                 {/* Note author name next to note badge */}
                 {isInternalNote && (
