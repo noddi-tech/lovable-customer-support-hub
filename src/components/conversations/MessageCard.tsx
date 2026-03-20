@@ -39,8 +39,9 @@ import { supabase } from "@/integrations/supabase/client";
 // --- Helpers ---
 type Addr = { name?: string; email?: string };
 
-function display(addr?: Addr) {
+function display(addr?: Addr, preferEmail = false) {
   if (!addr) return '';
+  if (preferEmail && addr.email) return addr.email;
   return addr.name?.trim() || addr.email || '';
 }
 
@@ -75,8 +76,8 @@ function shortName(fullName?: string): string {
   return `${first} ${rest}`;
 }
 
-function formatList(list: Addr[] = [], max = 3) {
-  const shown = list.slice(0, max).map(display).filter(Boolean);
+function formatList(list: Addr[] = [], max = 3, preferEmail = false) {
+  const shown = list.slice(0, max).map(a => ({ label: display(a, preferEmail), email: a.email })).filter(a => a.label);
   const extra = list.length - shown.length;
   return { shown, extra };
 }
@@ -228,9 +229,9 @@ const MessageCardComponent = ({
     return `${names.join(', ')}${rest}`;
   }
 
-  // Recipients formatting
-  const { shown: toShown, extra: toExtra } = formatList(message.to, 3);
-  const { shown: ccShown, extra: ccExtra } = formatList(message.cc ?? [], 2);
+  const isAgentMessage = message.authorType === 'agent';
+  const { shown: toShown, extra: toExtra } = formatList(message.to, 3, isAgentMessage);
+  const { shown: ccShown, extra: ccExtra } = formatList(message.cc ?? [], 2, isAgentMessage);
 
   // Detect internal note and apply appropriate styling
   const isInternalNote = message.isInternalNote || message.originalMessage?.is_internal === true;
@@ -427,17 +428,18 @@ const MessageCardComponent = ({
               {/* Recipients chips - only show when expanded AND not an internal note */}
               {!effectiveCollapsed && !isInternalNote && (
                 <div className={cn(
-                  "mt-3 flex items-center gap-2 text-xs flex-wrap",
+                  "mt-3 flex items-center gap-2 text-xs flex-nowrap overflow-hidden",
                   isAgent && "md:justify-end"
                 )}>
                   <span className="text-muted-foreground font-medium shrink-0">{t('mail.to') || 'To:'}</span>
-                    {toShown.length > 0 && toShown.map((name) => (
+                    {toShown.length > 0 && toShown.map((item) => (
                       <Badge
-                        key={`to-${name}`}
+                        key={`to-${item.label}`}
                         variant="secondary"
-                        className="px-2 py-0.5"
+                        className="px-2 py-0.5 shrink-0"
+                        title={item.email || item.label}
                       >
-                        {name}
+                        {item.label}
                       </Badge>
                     ))}
                     {toExtra > 0 && !showAllRecipients && (
@@ -452,13 +454,14 @@ const MessageCardComponent = ({
                     {ccShown.length > 0 && (
                       <>
                         <span className="ml-2 text-muted-foreground">{t('mail.cc') || 'cc'}</span>
-                        {ccShown.map((name) => (
+                        {ccShown.map((item) => (
                           <Badge
-                            key={`cc-${name}`}
+                            key={`cc-${item.label}`}
                             variant="secondary"
-                            className="px-2 py-0.5"
+                            className="px-2 py-0.5 shrink-0"
+                            title={item.email || item.label}
                           >
-                            {name}
+                            {item.label}
                           </Badge>
                         ))}
                         {ccExtra > 0 && !showAllRecipients && (
