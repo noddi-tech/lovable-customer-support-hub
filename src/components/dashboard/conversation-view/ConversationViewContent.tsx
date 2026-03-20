@@ -319,11 +319,11 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5">
                   <span className="text-sm font-semibold truncate">
-                    {customerDisplay.displayName}
+                    {conversation.customer?.full_name || customerDisplay.displayName}
                   </span>
-                  {customerDisplay.showEmail && customerDisplay.email && (
+                  {conversation.customer?.email && (
                     <span className="text-xs text-muted-foreground truncate hidden sm:inline">
-                      · {customerDisplay.email}
+                      · {conversation.customer.email}
                     </span>
                   )}
                 </div>
