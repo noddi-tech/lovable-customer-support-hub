@@ -443,7 +443,24 @@ Deno.serve(async (req) => {
     // === Critical Triage Detection ===
     const criticalChannelId = integration.critical_channel_id;
     
-    if (config.critical_alerts_enabled && criticalChannelId && criticalChannelId !== channelId && event_type !== 'mention' && event_type !== 'customer_reply') {
+    if (config.critical_alerts_enabled && criticalChannelId && criticalChannelId !== channelId && event_type !== 'mention') {
+      // Dedup: skip critical alert if one was already sent for this conversation in the last 24h
+      let alreadyAlerted = false;
+      if (conversation_id) {
+        const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+        const { data: existingAlert } = await supabase
+          .from('notifications')
+          .select('id')
+          .eq('type', 'critical_alert_sent')
+          .contains('data', { conversation_id })
+          .gte('created_at', twentyFourHoursAgo)
+          .limit(1)
+          .maybeSingle();
+        if (existingAlert) {
+          console.log(`⏭️ Critical alert already sent for conversation ${conversation_id} in last 24h, skipping`);
+          alreadyAlerted = true;
+        }
+      }
       const CRITICAL_KEYWORDS = [
         // English
         'booking', "can't book", 'cannot book', 'payment failed', 'payment error',
