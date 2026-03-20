@@ -1,27 +1,30 @@
 
 
-## Show Archived Flag in UI + Fix Filter Visibility
+## Fix: `get_conversations` Still Excludes Archived from Status Filters
 
-### Overview
-Two changes: (1) show an "Archived" badge on conversations that have `is_archived = true` so users understand the state, and (2) include archived conversations in their status-based filters so they appear in both places.
+### Problem
 
-### Changes
+The count functions were updated to include archived conversations in status counts (Closed shows 8), but the `get_conversations` RPC still has this line:
 
-**1. `src/components/dashboard/conversation-list/ConversationListItem.tsx`**
-- Add an "Archived" badge (gray, with Archive icon) next to the status badge when `conversation.is_archived` is true
+```sql
+AND (p_status_filter = 'archived' OR c.is_archived = false)
+```
 
-**2. `src/components/dashboard/conversation-list/ConversationTableRow.tsx`**
-- Same: add "Archived" badge in the status cell when `conversation.is_archived` is true
+This means when filtering by "closed", archived conversations are excluded from the **results** even though they're included in the **count**. Hence: "Closed: 8" but "No conversations found".
 
-**3. SQL migration — Update `get_conversations`, `get_all_counts`, `get_inbox_counts`**
-- Remove `is_archived = false` exclusion from status-based filtering/counting
-- Archived conversations appear in both their status filter AND the Archived filter
+### Fix
 
-**4. `src/contexts/ConversationListContext.tsx`**
-- Remove `&& !conversation.is_archived` from `open`, `pending`, `assigned`, `closed`, `all` tab filters
+**SQL migration** — Remove the `is_archived` exclusion from `get_conversations`:
 
-### Result
-- A closed+archived conversation shows in "Closed" with badges: `Closed` + `Archived`
-- Same conversation also appears in "Archived" filter
-- Users immediately see why a conversation is in a particular state
+Find the latest version of `get_conversations` and remove the line:
+```sql
+AND (p_status_filter = 'archived' OR c.is_archived = false)
+```
+
+This makes the conversation list consistent with the counts — archived+closed conversations appear in both "Closed" and "Archived" views.
+
+| Action | Detail |
+|--------|--------|
+| Migration | Update `get_conversations` to remove `is_archived = false` exclusion for non-archived tabs |
+| Files changed | SQL migration only |
 
