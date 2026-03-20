@@ -387,6 +387,18 @@ const MessageCardComponent = ({
                       : shortName(message.from.name) || message.from.email?.split('@')[0] || 'Agent'}
                   </Badge>
                 )}
+
+                {/* Inline "To:" recipient - shown for non-notes when expanded */}
+                {!isInternalNote && !effectiveCollapsed && (() => {
+                  const recipientEmail = toShown.length > 0 
+                    ? (toShown[0].email || toShown[0].label)
+                    : (conversation?.customer?.email || '—');
+                  return (
+                    <span className="text-xs text-muted-foreground shrink-0 truncate max-w-[220px]" title={recipientEmail}>
+                      → {recipientEmail}
+                    </span>
+                  );
+                })()}
                 
                 {/* Note author name next to note badge */}
                 {isInternalNote && (
@@ -425,64 +437,7 @@ const MessageCardComponent = ({
                 </div>
               )}
 
-              {/* Recipients chips - only show when expanded AND not an internal note */}
-              {!effectiveCollapsed && !isInternalNote && (
-                <div className={cn(
-                  "mt-3 flex items-center gap-2 text-xs min-w-0",
-                  isAgent && "md:justify-end"
-                )}>
-                  <span className="text-muted-foreground font-medium shrink-0">{t('mail.to') || 'To:'}</span>
-                  <div className="flex items-center gap-1.5 min-w-0 flex-1 overflow-hidden">
-                    {toShown.length > 0 ? toShown.map((item) => (
-                      <Badge
-                        key={`to-${item.label}`}
-                        variant="secondary"
-                        className="px-2 py-0.5 truncate max-w-[200px]"
-                        title={item.email || item.label}
-                      >
-                        {item.label}
-                      </Badge>
-                    )) : (
-                      <Badge variant="secondary" className="px-2 py-0.5 truncate max-w-[200px]" title={conversation?.customer?.email || ''}>
-                        {conversation?.customer?.email || '—'}
-                      </Badge>
-                    )}
-                    {toExtra > 0 && !showAllRecipients && (
-                      <button
-                        type="button"
-                        onClick={() => setShowAllRecipients(true)}
-                        className="px-2 py-0.5 rounded-full ring-1 bg-muted text-foreground/80 hover:bg-muted/80 transition-colors shrink-0"
-                      >
-                        +{toExtra} {t('mail.more') || 'more'}
-                      </button>
-                    )}
-                  </div>
-                    {ccShown.length > 0 && (
-                      <>
-                        <span className="ml-2 text-muted-foreground">{t('mail.cc') || 'cc'}</span>
-                        {ccShown.map((item) => (
-                          <Badge
-                            key={`cc-${item.label}`}
-                            variant="secondary"
-                            className="px-2 py-0.5 shrink-0"
-                            title={item.email || item.label}
-                          >
-                            {item.label}
-                          </Badge>
-                        ))}
-                        {ccExtra > 0 && !showAllRecipients && (
-                          <button
-                            type="button"
-                            onClick={() => setShowAllRecipients(true)}
-                            className="px-2 py-0.5 rounded-full ring-1 bg-muted text-foreground/80 hover:bg-muted/80 transition-colors"
-                          >
-                            +{ccExtra} {t('mail.more') || 'more'}
-                          </button>
-                        )}
-                      </>
-                    )}
-                </div>
-              )}
+              {/* Recipients chips removed - now inline in header */}
 
               {/* Full recipients list when expanded */}
               {showAllRecipients && (

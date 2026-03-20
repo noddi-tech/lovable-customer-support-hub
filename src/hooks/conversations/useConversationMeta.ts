@@ -85,7 +85,8 @@ export function useConversationMeta(conversationId?: string) {
       };
     },
     enabled: !!conversationId && !!user,
-    staleTime: import.meta.env.DEV ? 5 * 1000 : 60 * 1000, // 5 seconds in dev, 1 minute in prod
+    staleTime: import.meta.env.DEV ? 5 * 1000 : 30 * 1000, // 30 seconds in prod
     gcTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnMount: 'always', // Always refetch on mount to avoid stale customer data
   });
 }
