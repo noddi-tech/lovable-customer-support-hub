@@ -396,21 +396,16 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
               case "instagram":
               case "whatsapp":
                 return conversation.channel === selectedTab 
-                  && !conversation.is_archived 
                   && !isSnoozedActive 
                   && !conversation.is_deleted;
               default:
-                // Inbox-specific filter
                 if (selectedTab.startsWith('inbox-')) {
                   const inboxId = selectedTab.replace('inbox-', '');
                   return conversation.inbox_id === inboxId 
-                    && !conversation.is_archived 
                     && !isSnoozedActive 
                     && !conversation.is_deleted;
                 }
-                // Fallback: show non-archived, non-snoozed, non-deleted
-                return !conversation.is_archived 
-                  && !isSnoozedActive 
+                return !isSnoozedActive 
                   && !conversation.is_deleted;
             }
           })();
