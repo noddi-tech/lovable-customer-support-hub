@@ -396,21 +396,16 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
               case "instagram":
               case "whatsapp":
                 return conversation.channel === selectedTab 
-                  && !conversation.is_archived 
                   && !isSnoozedActive 
                   && !conversation.is_deleted;
               default:
-                // Inbox-specific filter
                 if (selectedTab.startsWith('inbox-')) {
                   const inboxId = selectedTab.replace('inbox-', '');
                   return conversation.inbox_id === inboxId 
-                    && !conversation.is_archived 
                     && !isSnoozedActive 
                     && !conversation.is_deleted;
                 }
-                // Fallback: show non-archived, non-snoozed, non-deleted
-                return !conversation.is_archived 
-                  && !isSnoozedActive 
+                return !isSnoozedActive 
                   && !conversation.is_deleted;
             }
           })();
@@ -518,55 +513,35 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
         
         switch (selectedTab) {
           case "open":
-            // Open: status is 'open', not archived, not snoozed, not deleted
             return conversation.status === 'open' 
-              && !conversation.is_archived 
               && !isSnoozedActive 
               && !conversation.is_deleted;
           case "pending":
-            // Pending: status is 'pending', not archived, not snoozed, not deleted
             return conversation.status === 'pending' 
-              && !conversation.is_archived 
               && !isSnoozedActive 
               && !conversation.is_deleted;
           case "assigned":
-            // Assigned to Me: assigned to current user, not archived, not snoozed, not deleted
             return !!conversation.assigned_to 
               && conversation.assigned_to.id === profile?.id
-              && !conversation.is_archived 
               && !isSnoozedActive 
               && !conversation.is_deleted;
           case "closed":
-            // Closed: status is 'closed', not archived, not snoozed, not deleted
             return conversation.status === 'closed' 
-              && !conversation.is_archived 
               && !isSnoozedActive 
               && !conversation.is_deleted;
           case "archived":
-            // Archived: is_archived flag is true, not deleted
             return conversation.is_archived === true 
               && !conversation.is_deleted;
           case "deleted":
-            // Deleted: is_deleted flag is true
             return conversation.is_deleted === true;
           case "snoozed":
-            // Snoozed: has active snooze, not deleted
             return isSnoozedActive 
               && !conversation.is_deleted;
           case "all":
-            // All Messages: everything that's not archived and not deleted
-            // If viewing a specific inbox, show ALL conversations in that inbox
-            if (isViewingSpecificInbox) {
-              return !conversation.is_archived 
-                && !isSnoozedActive 
-                && !conversation.is_deleted;
-            }
-            return !conversation.is_archived 
-              && !isSnoozedActive 
+            return !isSnoozedActive 
               && !conversation.is_deleted;
           case "unread":
             return !conversation.is_read 
-              && !conversation.is_archived 
               && !isSnoozedActive 
               && !conversation.is_deleted;
           case "email":
@@ -574,21 +549,16 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
           case "instagram":
           case "whatsapp":
             return conversation.channel === selectedTab 
-              && !conversation.is_archived 
               && !isSnoozedActive 
               && !conversation.is_deleted;
           default:
-            // Inbox-specific filter
             if (selectedTab.startsWith('inbox-')) {
               const inboxId = selectedTab.replace('inbox-', '');
               return conversation.inbox_id === inboxId 
-                && !conversation.is_archived 
                 && !isSnoozedActive 
                 && !conversation.is_deleted;
             }
-            // Fallback: show non-archived, non-snoozed, non-deleted
-            return !conversation.is_archived 
-              && !isSnoozedActive 
+            return !isSnoozedActive 
               && !conversation.is_deleted;
         }
       })();
