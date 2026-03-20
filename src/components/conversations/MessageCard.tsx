@@ -229,9 +229,9 @@ const MessageCardComponent = ({
     return `${names.join(', ')}${rest}`;
   }
 
-  // Recipients formatting — for agent messages, show email so agents can verify recipient
-  const { shown: toShown, extra: toExtra } = formatList(message.to, 3, isAgent);
-  const { shown: ccShown, extra: ccExtra } = formatList(message.cc ?? [], 2, isAgent);
+  const isAgentMessage = message.authorType === 'agent';
+  const { shown: toShown, extra: toExtra } = formatList(message.to, 3, isAgentMessage);
+  const { shown: ccShown, extra: ccExtra } = formatList(message.cc ?? [], 2, isAgentMessage);
 
   // Detect internal note and apply appropriate styling
   const isInternalNote = message.isInternalNote || message.originalMessage?.is_internal === true;
