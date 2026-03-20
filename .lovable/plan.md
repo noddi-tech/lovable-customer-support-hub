@@ -1,39 +1,38 @@
 
 
-## Fix: Norwegian Characters (øæå) Broken in Synced-Back Sent Emails
+## Fix Two Issues: Email Encoding & Noisy Critical Alerts
 
-### Problem
-When an agent sends a reply containing Norwegian characters (å, ø, æ), the email is sent correctly via SendGrid, but when Gmail syncs it back into the conversation, those characters appear as `�` (replacement characters). The internal view of the same message renders fine — only the synced-back copy is broken.
+### Issue 1: Norwegian characters still broken (ø, æ, å → `�`)
 
-### Root Cause
-Two issues working together:
+**Root cause:** The `gmail-sync` encoding fix was added to the code but the edge function may not have been successfully redeployed, OR the message shown was synced before deployment. Additionally, existing messages already stored with `�` in the database will continue to show corruption — they need to be re-decoded.
 
-1. **`send-reply-email/index.ts`** — SendGrid content type doesn't explicitly specify charset, so the delivered email's MIME header may not declare `charset=utf-8`. Gmail may then store/return the email with a different charset label (e.g., `us-ascii`).
+**Fix:**
+- **Redeploy `gmail-sync`** to ensure the encoding fix is live
+- **Add a secondary UTF-8 re-decode attempt** in `gmail-sync`: when charset is `us-ascii` or `iso-8859-1`, always try UTF-8 first (since nearly all modern emails are UTF-8). Only fall back to the declared charset if UTF-8 produces more replacement characters
+- **Re-sync affected messages**: Trigger a re-sync for messages that contain `�` so they get re-fetched and properly decoded from Gmail's raw data
 
-2. **`gmail-sync/index.ts`** — The decoder trusts the charset from the Content-Type header blindly. If it says `us-ascii`, multi-byte UTF-8 characters (å, ø, æ) produce `�` replacement characters. The client-side `emailDecoder.ts` has Norwegian encoding fixes, but the edge function decoder doesn't.
+**File:** `supabase/functions/gmail-sync/index.ts`
+- In `getDecodedEmailContent`: When charset is NOT utf-8, decode as UTF-8 **first**. If the UTF-8 result has fewer `\uFFFD` chars than the declared-charset result, use UTF-8. This handles the common case where Gmail headers say `us-ascii` but the actual content is UTF-8.
 
-### Fix
+### Issue 2: Critical alerts fire on every customer reply (too noisy)
 
-**File 1: `supabase/functions/gmail-sync/index.ts`**
+**Root cause:** In `send-slack-notification/index.ts`, the critical triage block (line 446) runs on every `customer_reply` event with no dedup. If the conversation subject contains "feil" (a keyword), every new reply fires another critical alert to the `#tech` channel.
 
-Update the `getDecodedEmailContent` function to:
-- After decoding, check if the result contains `�` (U+FFFD replacement character) AND the charset wasn't UTF-8
-- If so, retry decoding the same bytes as UTF-8
-- Also add the `fixNorwegianEncoding` function (from `emailDecoder.ts`) as a final fallback for `Ã¸`/`Ã¥`/`Ã¦` patterns
+**Fix:** Add a dedup check — before posting a critical alert, query the Slack `conversations.history` or (simpler) track in the database. The simplest approach: check if a critical alert notification was already sent for this `conversation_id` in the last 24 hours by querying the `notifications` table or adding a lightweight tracking mechanism.
 
-**File 2: `supabase/functions/send-reply-email/index.ts`**
-
-Explicitly set charset in the SendGrid content type to prevent the issue at the source:
-```
-{ type: 'text/plain; charset=utf-8', value: plainText }
-{ type: 'text/html; charset=utf-8', value: emailHTML }
-```
+**File:** `supabase/functions/send-slack-notification/index.ts`
+- Before the `shouldAlert` block, query `notifications` for an existing critical alert for this `conversation_id` in the last 24 hours
+- If one exists, skip the critical alert entirely
+- After sending a critical alert successfully, insert a tracking record into `notifications` with `type: 'critical_alert_sent'` and `data.conversation_id`
+- This ensures each conversation only triggers one critical alert, regardless of how many replies match keywords
 
 ### Files Changed
+
 | File | Change |
 |------|--------|
-| `gmail-sync/index.ts` | Add UTF-8 retry when `�` detected, add Norwegian encoding fixes |
-| `send-reply-email/index.ts` | Add `charset=utf-8` to SendGrid content types |
+| `gmail-sync/index.ts` | Prefer UTF-8 decode when declared charset is ascii/latin1; redeploy |
+| `send-slack-notification/index.ts` | Add 24h dedup check per conversation_id before posting critical alerts; redeploy |
 
-Both edge functions will auto-deploy.
+### Deployment
+Both edge functions will be redeployed automatically.
 
