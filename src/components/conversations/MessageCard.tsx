@@ -428,29 +428,35 @@ const MessageCardComponent = ({
               {/* Recipients chips - only show when expanded AND not an internal note */}
               {!effectiveCollapsed && !isInternalNote && (
                 <div className={cn(
-                  "mt-3 flex items-center gap-2 text-xs flex-nowrap overflow-hidden",
+                  "mt-3 flex items-center gap-2 text-xs min-w-0",
                   isAgent && "md:justify-end"
                 )}>
                   <span className="text-muted-foreground font-medium shrink-0">{t('mail.to') || 'To:'}</span>
-                    {toShown.length > 0 && toShown.map((item) => (
+                  <div className="flex items-center gap-1.5 min-w-0 flex-1 overflow-hidden">
+                    {toShown.length > 0 ? toShown.map((item) => (
                       <Badge
                         key={`to-${item.label}`}
                         variant="secondary"
-                        className="px-2 py-0.5 shrink-0"
+                        className="px-2 py-0.5 truncate max-w-[200px]"
                         title={item.email || item.label}
                       >
                         {item.label}
                       </Badge>
-                    ))}
+                    )) : (
+                      <Badge variant="secondary" className="px-2 py-0.5 truncate max-w-[200px]" title={conversation?.customer?.email || ''}>
+                        {conversation?.customer?.email || '—'}
+                      </Badge>
+                    )}
                     {toExtra > 0 && !showAllRecipients && (
                       <button
                         type="button"
                         onClick={() => setShowAllRecipients(true)}
-                        className="px-2 py-0.5 rounded-full ring-1 bg-muted text-foreground/80 hover:bg-muted/80 transition-colors"
+                        className="px-2 py-0.5 rounded-full ring-1 bg-muted text-foreground/80 hover:bg-muted/80 transition-colors shrink-0"
                       >
                         +{toExtra} {t('mail.more') || 'more'}
                       </button>
                     )}
+                  </div>
                     {ccShown.length > 0 && (
                       <>
                         <span className="ml-2 text-muted-foreground">{t('mail.cc') || 'cc'}</span>
