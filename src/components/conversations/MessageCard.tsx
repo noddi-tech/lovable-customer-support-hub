@@ -428,17 +428,18 @@ const MessageCardComponent = ({
               {/* Recipients chips - only show when expanded AND not an internal note */}
               {!effectiveCollapsed && !isInternalNote && (
                 <div className={cn(
-                  "mt-3 flex items-center gap-2 text-xs flex-wrap",
+                  "mt-3 flex items-center gap-2 text-xs flex-nowrap overflow-hidden",
                   isAgent && "md:justify-end"
                 )}>
                   <span className="text-muted-foreground font-medium shrink-0">{t('mail.to') || 'To:'}</span>
-                    {toShown.length > 0 && toShown.map((name) => (
+                    {toShown.length > 0 && toShown.map((item) => (
                       <Badge
-                        key={`to-${name}`}
+                        key={`to-${item.label}`}
                         variant="secondary"
-                        className="px-2 py-0.5"
+                        className="px-2 py-0.5 shrink-0"
+                        title={item.email || item.label}
                       >
-                        {name}
+                        {item.label}
                       </Badge>
                     ))}
                     {toExtra > 0 && !showAllRecipients && (
