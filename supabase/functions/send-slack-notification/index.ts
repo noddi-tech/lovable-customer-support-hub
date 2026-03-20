@@ -493,7 +493,7 @@ Deno.serve(async (req) => {
         aiTriageResult = await aiCriticalTriage(supabase, conversation_id, openaiApiKey);
       }
 
-      const shouldAlert = matchedKeyword || (aiTriageResult?.critical && (aiTriageResult?.severity || 0) >= 3);
+      const shouldAlert = !alreadyAlerted && (matchedKeyword || (aiTriageResult?.critical && (aiTriageResult?.severity || 0) >= 3));
 
       if (shouldAlert) {
         const criticalBlocks: any[] = [
