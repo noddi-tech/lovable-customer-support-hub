@@ -1,32 +1,39 @@
 
 
-## Fix Existing Messages with Broken Norwegian Characters
+## Fix: Email Loop Detection in SendGrid Inbound
 
-### Problem
-The `gmail-sync` upsert uses `ignoreDuplicates: true`, so re-syncing skips messages that already exist in the database. The corrupted `å→�` content is already stored and won't be overwritten by a normal sync.
+### Root Cause
+The broken Norwegian characters you see are NOT from incoming customer emails — they're your own **agent replies bouncing back** through the Google Group forwarding.
 
-### Solution
-Change the upsert behavior so that when a message already exists (matched by `external_id`), it **updates the content** with the freshly decoded version. This way, triggering a sync will re-fetch the messages from Gmail and overwrite the broken content with properly decoded text.
+Here's what happens:
+1. Agent replies in the UI → message saved correctly (message `9b113c5f` with proper "Så kan jeg se på å få fikset")
+2. `send-reply-email` sends the email via SendGrid to the customer
+3. The Google Group or email forwarding sends a copy **back** to your inbound parse endpoint
+4. `sendgrid-inbound` processes it as a new customer message, creating a **duplicate** (message `f8315acf`) with corrupted encoding
+5. This duplicate overwrites the conversation status back to "open" and shows the broken `S�` `p�` characters
 
-### Changes
+### Fix
 
-**File: `supabase/functions/gmail-sync/index.ts`**
+**File: `supabase/functions/sendgrid-inbound/index.ts`**
 
-1. Change the upsert from `ignoreDuplicates: true` to `ignoreDuplicates: false` — this makes it update existing rows on conflict
-2. Limit the update to only content-related fields to avoid overwriting other metadata:
-   - `content` and `content_type` get updated
-   - Other fields (conversation_id, sender_type, etc.) are preserved
+Add loop detection before inserting the message:
 
-### What happens when you hit "Sync"
-1. Gmail sync fetches messages from Gmail API (read-only — no emails sent)
-2. For new messages: inserted as before
-3. For existing messages: `content` and `content_type` are updated with freshly decoded text (now using the UTF-8-priority decoder)
-4. Norwegian characters should render correctly after sync completes
+1. **Check Message-ID against sent messages**: Before inserting, query the `messages` table for any existing message with the same `email_message_id`. If it already exists (because `send-reply-email` stored it), skip the inbound message entirely.
 
-### Risk
-None — this is a read-only fetch from Gmail + database update. No emails are sent, no data is lost.
+2. **Check for own Message-ID pattern**: Detect messages sent from your own system by checking if the `Message-ID` header contains your sending domain (e.g., `@dekkfix.no`) AND already exists in the database — these are bounce-backs.
+
+3. **Return 200 OK** when skipping (so SendGrid doesn't retry).
+
+This single change fixes both problems:
+- No more duplicate messages with broken encoding
+- Conversations won't get incorrectly reopened by bounce-backs
+
+### What Changes
 
 | File | Change |
 |------|--------|
-| `gmail-sync/index.ts` | Change `ignoreDuplicates: true` → `false`, scope update to content fields |
+| `sendgrid-inbound/index.ts` | Add loop detection: skip messages whose `email_message_id` already exists in the `messages` table |
+
+### Cleanup
+After deploying, the existing duplicate messages (like `f8315acf`) with broken encoding should be deleted from the database, since the clean agent versions already exist.
 
