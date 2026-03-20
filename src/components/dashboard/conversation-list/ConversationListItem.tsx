@@ -222,6 +222,12 @@ export const ConversationListItem = memo<ConversationListItemProps>(({
           <Badge className={cn("px-1.5 py-0 text-xs", statusColors[conversation.status])}>
             {computedValues.statusLabel}
           </Badge>
+          {conversation.is_archived && (
+            <Badge className="px-1.5 py-0 text-xs bg-muted text-muted-foreground">
+              <Archive className="h-3 w-3 mr-0.5" />
+              Archived
+            </Badge>
+          )}
           <Badge className={cn("px-1.5 py-0 text-xs", priorityColors[conversation.priority])}>
             {computedValues.priorityLabel}
           </Badge>
