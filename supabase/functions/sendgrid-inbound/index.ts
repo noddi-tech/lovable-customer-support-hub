@@ -540,6 +540,54 @@ Deno.serve(async (req: Request) => {
     const headersObj = headersRaw ? { raw: headersRaw } : null;
     const emailMessageId = parseHeaderValue(headersRaw, "Message-ID") || parseHeaderValue(headersRaw, "Message-Id");
     
+    // --- LOOP DETECTION: skip bounce-backs of our own sent messages ---
+    if (emailMessageId) {
+      const cleanedMessageId = emailMessageId.replace(/[<>]/g, '').trim();
+      const { data: existingMsg } = await supabase
+        .from("messages")
+        .select("id")
+        .eq("email_message_id", cleanedMessageId)
+        .maybeSingle();
+
+      if (!existingMsg) {
+        // Also check with angle brackets in case stored differently
+        const { data: existingMsg2 } = await supabase
+          .from("messages")
+          .select("id")
+          .eq("email_message_id", emailMessageId)
+          .maybeSingle();
+        
+        if (existingMsg2) {
+          console.log(`[SendGrid-Inbound] LOOP DETECTED: Message-ID ${emailMessageId} already exists (msg ${existingMsg2.id}). Skipping bounce-back.`);
+          await logIngestion(supabase, {
+            source: "sendgrid",
+            status: "skipped_duplicate",
+            from_email: authorEmail,
+            to_email: rcptEmail,
+            subject,
+            external_id: emailMessageId,
+            conversation_id,
+            metadata: { requestId, reason: "bounce_back_loop_detected", existingMessageId: existingMsg2.id },
+          });
+          return new Response(JSON.stringify({ ok: true, skipped: "duplicate_message_id" }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }
+      } else {
+        console.log(`[SendGrid-Inbound] LOOP DETECTED: Message-ID ${emailMessageId} already exists (msg ${existingMsg.id}). Skipping bounce-back.`);
+        await logIngestion(supabase, {
+          source: "sendgrid",
+          status: "skipped_duplicate",
+          from_email: authorEmail,
+          to_email: rcptEmail,
+          subject,
+          external_id: emailMessageId,
+          conversation_id,
+          metadata: { requestId, reason: "bounce_back_loop_detected", existingMessageId: existingMsg.id },
+        });
+        return new Response(JSON.stringify({ ok: true, skipped: "duplicate_message_id" }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+    }
+    // --- END LOOP DETECTION ---
+
     console.log(`[SendGrid-Inbound] Inserting message - Content type: ${contentType}, Length: ${contentHtml.length}, Message-ID: ${emailMessageId}, Attachments: ${attachments.length}`);
     
     const { data: insertedMessage, error: msgErr } = await supabase
