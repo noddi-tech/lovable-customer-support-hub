@@ -1,38 +1,39 @@
 
 
-## Fix Slack Mention Notifications: Remove Channel Post, Fix DM with Context
+## Fix: Norwegian Characters (øæå) Broken in Synced-Back Sent Emails
 
-### Problems
-1. **Channel notification fires on mention** — you don't want this; mentions should only send DM + email
-2. **DM isn't working** — likely because Slack bots need `conversations.open` before DMing a user, and the current code skips that step
-3. **DM lacks context** — no subject or conversation details, just a generic "mentioned you in a note"
+### Problem
+When an agent sends a reply containing Norwegian characters (å, ø, æ), the email is sent correctly via SendGrid, but when Gmail syncs it back into the conversation, those characters appear as `�` (replacement characters). The internal view of the same message renders fine — only the synced-back copy is broken.
 
-### Plan
+### Root Cause
+Two issues working together:
 
-#### 1. Remove Slack channel notification for mentions
-**File:** `supabase/functions/process-mention-notifications/index.ts`
+1. **`send-reply-email/index.ts`** — SendGrid content type doesn't explicitly specify charset, so the delivered email's MIME header may not declare `charset=utf-8`. Gmail may then store/return the email with a different charset label (e.g., `us-ascii`).
 
-Delete the entire `sendSlackChannelNotification` block (lines 353-368) inside the per-user loop, and remove the `slackChannelNotificationSent` variable and the helper function. Mentions should only trigger DM + email.
+2. **`gmail-sync/index.ts`** — The decoder trusts the charset from the Content-Type header blindly. If it says `us-ascii`, multi-byte UTF-8 characters (å, ø, æ) produce `�` replacement characters. The client-side `emailDecoder.ts` has Norwegian encoding fixes, but the edge function decoder doesn't.
 
-#### 2. Fix DM delivery — add `conversations.open` before posting
-**File:** `supabase/functions/process-mention-notifications/index.ts`
+### Fix
 
-Update `sendSlackDM` to first call `https://slack.com/api/conversations.open` with the user ID to get a DM channel ID, then post to that channel. This is required by Slack's API for bot-to-user DMs.
+**File 1: `supabase/functions/gmail-sync/index.ts`**
 
-#### 3. Add conversation context to DM
-**File:** `supabase/functions/process-mention-notifications/index.ts`
+Update the `getDecodedEmailContent` function to:
+- After decoding, check if the result contains `�` (U+FFFD replacement character) AND the charset wasn't UTF-8
+- If so, retry decoding the same bytes as UTF-8
+- Also add the `fixNorwegianEncoding` function (from `emailDecoder.ts`) as a final fallback for `Ã¸`/`Ã¥`/`Ã¦` patterns
 
-- After fetching `organizationId` from the conversation, also fetch `subject` and `customer_id`, then look up customer `name`/`email` from the `customers` table
-- Pass `subject` and `customer_name` to `sendSlackDM`
-- Update the DM blocks to include a context line like: `*Subject:* Re: Booking issue  |  *Customer:* John Doe`
+**File 2: `supabase/functions/send-reply-email/index.ts`**
 
-#### 4. Await the DM call
-The `sendSlackDM` call on line 375 is fire-and-forget (no `await`), so errors are silently lost. Add `await` so failures are logged properly.
+Explicitly set charset in the SendGrid content type to prevent the issue at the source:
+```
+{ type: 'text/plain; charset=utf-8', value: plainText }
+{ type: 'text/html; charset=utf-8', value: emailHTML }
+```
 
 ### Files Changed
 | File | Change |
 |------|--------|
-| `process-mention-notifications/index.ts` | Remove channel notification, fix DM with `conversations.open`, add subject/customer context, await DM call |
+| `gmail-sync/index.ts` | Add UTF-8 retry when `�` detected, add Norwegian encoding fixes |
+| `send-reply-email/index.ts` | Add `charset=utf-8` to SendGrid content types |
 
-Edge function will need redeployment (automatic).
+Both edge functions will auto-deploy.
 
