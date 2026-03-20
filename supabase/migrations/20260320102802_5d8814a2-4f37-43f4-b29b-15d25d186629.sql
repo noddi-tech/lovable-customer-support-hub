@@ -1,0 +1,1 @@
+DELETE FROM messages WHERE id = 'f8315acf-31c0-473d-8608-0ad1a56da5d3';
