@@ -596,6 +596,19 @@ Deno.serve(async (req) => {
           } else {
             const triggerSource = matchedKeyword ? `keyword: ${matchedKeyword}` : `AI: ${aiTriageResult?.category}`;
             console.log(`Critical alert sent to ${criticalChannelId} (${triggerSource})`);
+            
+            // Track this alert to prevent duplicates for 24h
+            if (conversation_id) {
+              await supabase.from('notifications').insert({
+                user_id: '00000000-0000-0000-0000-000000000000',
+                title: 'Critical alert sent',
+                message: `Critical alert for conversation ${conversation_id}`,
+                type: 'critical_alert_sent',
+                data: { conversation_id, trigger: triggerSource },
+              }).then(({ error }) => {
+                if (error) console.error('Failed to track critical alert:', error);
+              });
+            }
           }
         } catch (critErr) {
           console.error('Failed to send critical alert:', critErr);
