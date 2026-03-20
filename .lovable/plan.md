@@ -1,39 +1,24 @@
 
 
-## Fix: Email Loop Detection in SendGrid Inbound
+## Delete Corrupted Bounce-Back Message
 
-### Root Cause
-The broken Norwegian characters you see are NOT from incoming customer emails — they're your own **agent replies bouncing back** through the Google Group forwarding.
+There's exactly one corrupted duplicate in the database: message `f8315acf` — a bounce-back of agent message `9b113c5f` that came through SendGrid inbound with broken Norwegian encoding.
 
-Here's what happens:
-1. Agent replies in the UI → message saved correctly (message `9b113c5f` with proper "Så kan jeg se på å få fikset")
-2. `send-reply-email` sends the email via SendGrid to the customer
-3. The Google Group or email forwarding sends a copy **back** to your inbound parse endpoint
-4. `sendgrid-inbound` processes it as a new customer message, creating a **duplicate** (message `f8315acf`) with corrupted encoding
-5. This duplicate overwrites the conversation status back to "open" and shows the broken `S�` `p�` characters
+### Plan
 
-### Fix
+**Database migration** — single DELETE statement:
 
-**File: `supabase/functions/sendgrid-inbound/index.ts`**
+```sql
+DELETE FROM messages 
+WHERE id = 'f8315acf-31c0-473d-8608-0ad1a56da5d3';
+```
 
-Add loop detection before inserting the message:
+This removes the corrupted duplicate. The clean agent version (`9b113c5f`) remains. No other duplicates exist in the system.
 
-1. **Check Message-ID against sent messages**: Before inserting, query the `messages` table for any existing message with the same `email_message_id`. If it already exists (because `send-reply-email` stored it), skip the inbound message entirely.
+The loop detection we deployed earlier will prevent this from happening again.
 
-2. **Check for own Message-ID pattern**: Detect messages sent from your own system by checking if the `Message-ID` header contains your sending domain (e.g., `@dekkfix.no`) AND already exists in the database — these are bounce-backs.
-
-3. **Return 200 OK** when skipping (so SendGrid doesn't retry).
-
-This single change fixes both problems:
-- No more duplicate messages with broken encoding
-- Conversations won't get incorrectly reopened by bounce-backs
-
-### What Changes
-
-| File | Change |
-|------|--------|
-| `sendgrid-inbound/index.ts` | Add loop detection: skip messages whose `email_message_id` already exists in the `messages` table |
-
-### Cleanup
-After deploying, the existing duplicate messages (like `f8315acf`) with broken encoding should be deleted from the database, since the clean agent versions already exist.
+| Action | Detail |
+|--------|--------|
+| Migration | Delete message `f8315acf` (corrupted bounce-back) |
+| Files changed | None — database only |
 
