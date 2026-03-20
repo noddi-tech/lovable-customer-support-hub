@@ -314,7 +314,33 @@ const handler = async (req: Request): Promise<Response> => {
       ? `Re: ${message.conversation.subject}`
       : message.conversation.subject;
     const fromEmailFinal = (fromEmail || (emailAccount?.email_address as string)) as string;
-    const toEmail = customer.email as string;
+    let toEmail = customer.email as string;
+
+    // Reply-To fallback: if customer email matches the inbox/route address (wrong attribution),
+    // use the Reply-To from the original inbound message instead
+    const normalizedTo = toEmail.toLowerCase().trim();
+    const normalizedFrom = fromEmailFinal.toLowerCase().trim();
+    if (normalizedTo === normalizedFrom || (fromEmail && normalizedTo === fromEmail.toLowerCase())) {
+      // Customer email matches our sending address — likely misattributed. Check first message for Reply-To
+      const { data: firstMsg } = await supabaseClient
+        .from('messages')
+        .select('email_headers')
+        .eq('conversation_id', message.conversation_id)
+        .eq('sender_type', 'customer')
+        .order('created_at', { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      
+      const rawHeaders = firstMsg?.email_headers?.raw || (typeof firstMsg?.email_headers === 'string' ? firstMsg?.email_headers : '');
+      if (rawHeaders) {
+        const replyToHeader = parseHeaderValue(rawHeaders, 'Reply-To');
+        const replyToAddr = replyToHeader ? extractEmail(replyToHeader) : null;
+        if (replyToAddr && replyToAddr.toLowerCase() !== normalizedTo) {
+          console.log(`📧 Reply-To fallback: customer email ${toEmail} matches inbox, using Reply-To: ${replyToAddr}`);
+          toEmail = replyToAddr;
+        }
+      }
+    }
 
     // Build HTML content with optimized structure
     const emailHTML = `<!DOCTYPE html>
