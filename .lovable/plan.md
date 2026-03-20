@@ -1,30 +1,57 @@
 
+Root cause is now clear: the SQL fix you approved updated `get_conversations`, but this screen does not use that RPC for the list.
 
-## Fix: `get_conversations` Still Excludes Archived from Status Filters
+What’s actually happening:
+- Sidebar count: comes from the count RPCs, which now include archived closed conversations
+- Conversation list: comes from `get_conversations_with_session_recovery(...)`
+- Then `ConversationListContext.tsx` filters the fetched rows again in the browser
+- In that client-side filter, the `closed` branch still has `&& !conversation.is_archived`, so all 8 closed+archived conversations are removed before rendering
 
-### Problem
+Why you see “8” + “No conversations found”
+- DB says there are 8 closed conversations in Dekkfix
+- All 8 are archived
+- The list fetch gets them
+- Frontend throws them away because `selectedTab === "closed"` still excludes archived rows
 
-The count functions were updated to include archived conversations in status counts (Closed shows 8), but the `get_conversations` RPC still has this line:
+Files to update
+1. `src/contexts/ConversationListContext.tsx`
+- Remove `!conversation.is_archived` from the client-side tab filters for:
+  - `open`
+  - `pending`
+  - `assigned`
+  - `closed`
+  - `all`
+  - `unread`
+- Keep `archived` as `conversation.is_archived === true`
+- Keep channel/inbox-specific behavior only if intentionally exclusive, otherwise align those too
 
-```sql
-AND (p_status_filter = 'archived' OR c.is_archived = false)
-```
+2. Same file, in both filtering blocks
+- There are two separate tab-filter implementations in this file:
+  - one inside `markAllAsReadMutation`
+  - one inside `filteredAndSortedConversations`
+- They currently disagree with the new archived behavior
+- Update both so behavior is consistent everywhere
 
-This means when filtering by "closed", archived conversations are excluded from the **results** even though they're included in the **count**. Hence: "Closed: 8" but "No conversations found".
+Recommended exact behavior
+- Closed tab: show all `status === 'closed'` and not deleted/snoozed, regardless of archived
+- Archived tab: show all `is_archived === true` and not deleted
+- Result: a closed+archived conversation appears in both tabs, with the Archived badge explaining why
 
-### Fix
+Why the last migration appeared to “do nothing”
+- It changed `public.get_conversations(...)`
+- But this view fetches with `public.get_conversations_with_session_recovery(...)`
+- So the visible bug is now 100% in frontend filtering, not the count query
 
-**SQL migration** — Remove the `is_archived` exclusion from `get_conversations`:
+Validation after implementation
+- Dekkfix > Closed should show the 8 rows
+- Each row should show both badges: `Closed` + `Archived`
+- Dekkfix > Archived should still show the same archived rows
+- “No conversations found” should disappear in Closed
 
-Find the latest version of `get_conversations` and remove the line:
-```sql
-AND (p_status_filter = 'archived' OR c.is_archived = false)
-```
+Technical detail
+Relevant lines already inspected:
+- `useInfiniteQuery(...)` fetches `get_conversations_with_session_recovery` in `ConversationListContext.tsx`
+- `filteredAndSortedConversations` still excludes archived for `closed` at the `case "closed"` branch
+- `markAllAsReadMutation` has a second filter block that should be updated too, otherwise bulk actions will still behave inconsistently
 
-This makes the conversation list consistent with the counts — archived+closed conversations appear in both "Closed" and "Archived" views.
-
-| Action | Detail |
-|--------|--------|
-| Migration | Update `get_conversations` to remove `is_archived = false` exclusion for non-archived tabs |
-| Files changed | SQL migration only |
-
+This is a smaller frontend follow-up fix, not another database issue.
