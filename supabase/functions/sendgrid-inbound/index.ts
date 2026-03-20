@@ -300,7 +300,17 @@ Deno.serve(async (req: Request) => {
     let authorRaw = fromRaw;
     let authorEmail = fromEmail;
 
-    const looksLikeGroup = (fromEmail === rcptEmail) || / via /i.test(fromRaw) || (senderHeaderEmail && senderHeaderEmail === rcptEmail);
+    // Detect group/forwarded emails: also match when From matches the route's public group_email
+    // or when From has the same local part as rcptEmail but on the base domain (e.g. dekkfix.no vs inbound.dekkfix.no)
+    const routeGroupEmail = route?.group_email?.toLowerCase()?.trim();
+    const fromMatchesRoute = !!(routeGroupEmail && fromEmail.toLowerCase() === routeGroupEmail);
+    const fromLocalPart = fromEmail.split('@')[0]?.toLowerCase();
+    const rcptLocalPart = rcptEmail.split('@')[0]?.toLowerCase();
+    const fromDomain = fromEmail.split('@')[1]?.toLowerCase();
+    const rcptDomain = rcptEmail.split('@')[1]?.toLowerCase();
+    const fromMatchesRcptBase = fromLocalPart === rcptLocalPart && rcptDomain?.endsWith(fromDomain);
+
+    const looksLikeGroup = (fromEmail === rcptEmail) || fromMatchesRoute || fromMatchesRcptBase || / via /i.test(fromRaw) || (senderHeaderEmail && senderHeaderEmail === rcptEmail);
 
     if (looksLikeGroup && (replyToEmail || xOriginalFromEmail)) {
       console.log(`[SendGrid-Inbound] Detected group forwarding - Original author: ${replyToEmail || xOriginalFromEmail}`);
