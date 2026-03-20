@@ -414,8 +414,8 @@ const handler = async (req: Request): Promise<Response> => {
       reply_to: { email: fromEmailFinal },
       subject,
       content: [
-        { type: 'text/plain', value: plainText },
-        { type: 'text/html', value: emailHTML },
+        { type: 'text/plain; charset=utf-8', value: plainText },
+        { type: 'text/html; charset=utf-8', value: emailHTML },
       ],
       headers,
       ...(sgAttachments.length > 0 ? { attachments: sgAttachments } : {}),

@@ -17,6 +17,23 @@ function findTextPart(part: any, preferredMime: string = 'text/html'): any {
 }
 
 /**
+ * Fix Norwegian character encoding issues (UTF-8 decoded as Latin-1)
+ */
+function fixNorwegianEncoding(text: string): string {
+  const norwegianFixes: Record<string, string> = {
+    'Ã¸': 'ø', 'Ã¥': 'å', 'Ã¦': 'æ',
+    'Ã˜': 'Ø', 'Ã…': 'Å', 'Ã†': 'Æ',
+    'â€™': "'", 'â€œ': '"', 'â€\u009d': '"',
+    'â€"': '–', 'â€•': '—', 'Â': ''
+  };
+  let fixed = text;
+  for (const [wrong, correct] of Object.entries(norwegianFixes)) {
+    fixed = fixed.replace(new RegExp(wrong, 'g'), correct);
+  }
+  return fixed;
+}
+
+/**
  * Decodes the email body from a Gmail API message object, handling base64url, charsets, and multipart.
  */
 function getDecodedEmailContent(message: any): { content: string; contentType: string } {
@@ -50,22 +67,31 @@ function getDecodedEmailContent(message: any): { content: string; contentType: s
     bytes[i] = binary.charCodeAt(i);
   }
 
-  // Decode bytes using the charset (handles æøå, emojis, Chinese, etc.)
+  // Decode bytes using the charset with Norwegian encoding fix
+  const decodeAndFix = (cs: string): string => {
+    const decoder = new TextDecoder(cs, { fatal: false, ignoreBOM: true });
+    let decoded = decoder.decode(bytes);
+    if (decoded.includes('Ã¸') || decoded.includes('Ã¥') || decoded.includes('Ã¦')) {
+      console.log('[gmail-sync] Detected Norwegian encoding issues, applying fixes');
+      decoded = fixNorwegianEncoding(decoded);
+    }
+    return decoded;
+  };
+
   try {
-    const decoder = new TextDecoder(charset);
-    const decodedContent = decoder.decode(bytes);
-    return { 
-      content: decodedContent, 
-      contentType: isHtml ? 'html' : 'text' 
-    };
+    let decodedContent = decodeAndFix(charset);
+    
+    // If result contains replacement characters and charset wasn't utf-8, retry as utf-8
+    if (decodedContent.includes('\uFFFD') && charset !== 'utf-8') {
+      console.log(`[gmail-sync] Detected replacement chars with charset '${charset}', retrying as utf-8`);
+      decodedContent = decodeAndFix('utf-8');
+    }
+    
+    return { content: decodedContent, contentType: isHtml ? 'html' : 'text' };
   } catch (e) {
     console.warn(`Decoding failed with charset '${charset}', falling back to utf-8:`, e);
-    const decoder = new TextDecoder('utf-8', { fatal: false, ignoreBOM: true });
-    const decodedContent = decoder.decode(bytes);
-    return { 
-      content: decodedContent, 
-      contentType: isHtml ? 'html' : 'text' 
-    };
+    const decodedContent = decodeAndFix('utf-8');
+    return { content: decodedContent, contentType: isHtml ? 'html' : 'text' };
   }
 }
 
