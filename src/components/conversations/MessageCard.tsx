@@ -39,8 +39,9 @@ import { supabase } from "@/integrations/supabase/client";
 // --- Helpers ---
 type Addr = { name?: string; email?: string };
 
-function display(addr?: Addr) {
+function display(addr?: Addr, preferEmail = false) {
   if (!addr) return '';
+  if (preferEmail && addr.email) return addr.email;
   return addr.name?.trim() || addr.email || '';
 }
 
