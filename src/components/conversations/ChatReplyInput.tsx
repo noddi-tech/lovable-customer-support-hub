@@ -163,23 +163,21 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
       // For non-internal messages: update status + send email if not live
       if (!isInternalNote) {
         // Update conversation status (agent chooses: closed, open, pending)
-        if (replyStatus !== 'open') {
-          console.log('[ChatReplyInput] Updating conversation status:', { conversationId, replyStatus });
-          const { error: statusError } = await supabase
-            .from('conversations')
-            .update({ 
-              status: replyStatus,
-              is_read: true,
-              updated_at: new Date().toISOString(),
-            })
-            .eq('id', conversationId);
-          
-          if (statusError) {
-            console.error('[ChatReplyInput] Failed to update conversation status:', statusError);
-            throw new Error(`Failed to update status: ${statusError.message}`);
-          }
-          console.log('[ChatReplyInput] Conversation status updated successfully to:', replyStatus);
+        console.log('[ChatReplyInput] Updating conversation status:', { conversationId, replyStatus });
+        const { error: statusError } = await supabase
+          .from('conversations')
+          .update({ 
+            status: replyStatus,
+            is_read: true,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', conversationId);
+        
+        if (statusError) {
+          console.error('[ChatReplyInput] Failed to update conversation status:', statusError);
+          throw new Error(`Failed to update status: ${statusError.message}`);
         }
+        console.log('[ChatReplyInput] Conversation status updated successfully to:', replyStatus);
 
         // Check if there's an active live chat session
         const { data: activeSession } = await supabase
