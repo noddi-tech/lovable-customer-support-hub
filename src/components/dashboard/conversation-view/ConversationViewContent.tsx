@@ -238,6 +238,36 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
                 )}
               </div>
             </div>
+
+            {/* Status dropdown */}
+            <Select 
+              value={conversation?.status || 'open'} 
+              onValueChange={(status) => updateStatus({ status })}
+            >
+              <SelectTrigger className="h-7 w-[110px] text-xs shrink-0">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="open">
+                  <div className="flex items-center gap-2">
+                    <CircleDot className="h-3 w-3" />
+                    Open
+                  </div>
+                </SelectItem>
+                <SelectItem value="pending">
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-3 w-3" />
+                    Pending
+                  </div>
+                </SelectItem>
+                <SelectItem value="closed">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="h-3 w-3" />
+                    Closed
+                  </div>
+                </SelectItem>
+              </SelectContent>
+            </Select>
             
             {/* Noddi info button - always show, component handles not-found state */}
             <Button 
