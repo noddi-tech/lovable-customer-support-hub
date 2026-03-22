@@ -17,7 +17,7 @@ import {
   Clock,
   CheckCircle2,
 } from 'lucide-react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
 import { getCustomerDisplayWithNoddi, getCustomerInitial } from '@/utils/customerDisplayName';
 import { useNoddihKundeData } from '@/hooks/useNoddihKundeData';
 import { NoddihKundeData } from '@/components/dashboard/NoddihKundeData';
