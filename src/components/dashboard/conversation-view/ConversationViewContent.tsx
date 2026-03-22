@@ -125,6 +125,7 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
     snoozeConversation,
     addTag,
     removeTag,
+    updateStatus,
   } = useConversationView();
 
   // Check if this is a live chat (widget channel)
