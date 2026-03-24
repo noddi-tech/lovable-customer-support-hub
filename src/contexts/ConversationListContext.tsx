@@ -463,7 +463,42 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
   });
 
   const archiveConversation = (id: string) => {
-    archiveConversationMutation.mutate(id);
+    const conv = conversations.find(c => c.id === id);
+    if (conv && conv.status !== 'closed') {
+      dispatch({
+        type: 'OPEN_ARCHIVE_DIALOG',
+        payload: { open: true, ids: [id], nonClosedCount: 1, totalCount: 1 },
+      });
+    } else {
+      archiveConversationMutation.mutate(id);
+    }
+  };
+
+  const confirmArchive = async (alsoClose: boolean) => {
+    const { ids } = state.archiveDialog;
+    if (ids.length === 0) return;
+    
+    const idChunks = chunkArray(ids, 20);
+    try {
+      for (const chunk of idChunks) {
+        const updatePayload: Record<string, any> = { is_archived: true };
+        if (alsoClose) updatePayload.status = 'closed';
+        
+        const { error } = await supabase
+          .from('conversations')
+          .update(updatePayload)
+          .in('id', chunk);
+        if (error) throw error;
+      }
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      queryClient.invalidateQueries({ queryKey: ['conversation-counts'] });
+      toast.success(`Archived ${ids.length} conversation${ids.length > 1 ? 's' : ''}`);
+      dispatch({ type: 'CLOSE_ARCHIVE_DIALOG' });
+      dispatch({ type: 'CLEAR_BULK_SELECTION' });
+    } catch (error) {
+      logger.error('Failed to archive conversations', error, 'confirmArchive');
+      toast.error('Failed to archive conversations');
+    }
   };
 
   const deleteConversation = (id: string) => {
