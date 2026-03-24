@@ -1,31 +1,45 @@
 
 
-## Fix: Add "Note" Badge to ConversationTableRow
+## Add Archive Confirmation Dialog with "Also Close?" Option
 
-### Problem
-The "Note" badge for `last_message_is_internal` was added to `ConversationListItem.tsx` (card view) and `ChatListItem.tsx`, but **not** to `ConversationTableRow.tsx` — which is the table view the user is actually looking at in the screenshot.
+### Current behavior
+All archive actions (single, bulk, header) force `status: 'closed'` alongside `is_archived: true` — no confirmation, no choice.
 
-### Fix
+### Desired behavior
+When archiving conversations that aren't already closed, show a modal asking: "Do you also want to close these conversations?" with options:
+- **Archive & Close** — sets `is_archived: true` + `status: 'closed'`
+- **Archive Only** — sets `is_archived: true`, keeps current status
+- **Cancel**
 
-**File: `src/components/dashboard/conversation-list/ConversationTableRow.tsx`**
+If all selected conversations are already closed, skip the modal and archive immediately.
 
-1. Add `Lock` to the lucide-react imports
-2. In the Subject cell (around line 214), after the "New" badge and before the hover reply button, add:
+### Changes
 
-```tsx
-{conversation.last_message_is_internal && (
-  <Badge className="px-1.5 py-0 text-[10px] shrink-0 bg-yellow-50 text-yellow-800 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-800">
-    <Lock className="h-3 w-3 mr-0.5" />
-    Note
-  </Badge>
-)}
-```
+**1. New component: `src/components/dashboard/conversation-list/ArchiveConfirmDialog.tsx`**
+- Alert dialog with title "Archive conversations"
+- Message: "X of Y selected conversations are not closed. Would you like to close them as well?"
+- Three buttons: Cancel, Archive Only, Archive & Close
+- Props: `open`, `onOpenChange`, `nonClosedCount`, `totalCount`, `onArchiveOnly`, `onArchiveAndClose`
 
-3. Same badge in the second render path (div-based row, around line 325) in the same position
+**2. `src/contexts/ConversationListContext.tsx`**
+- Add state for archive dialog: `archiveDialog: { open, ids, hasNonClosed }` 
+- Update `archiveConversation(id)`: check if conversation status !== 'closed' → open dialog; otherwise archive directly
+- Update `bulkArchive()`: check how many selected are not closed → if any, open dialog; otherwise archive directly
+- Add `confirmArchive(alsoClose: boolean)` that performs the actual archive with or without status change
+- Expose dialog state + confirm function in context
 
-This matches the styling already used in `ConversationListItem.tsx` and `ChatListItem.tsx`.
+**3. `src/components/dashboard/ConversationList.tsx`**
+- Render `<ArchiveConfirmDialog>` using context state
+- Wire up the three callbacks
+
+**4. `src/components/dashboard/conversation-view/ConversationHeader.tsx`**
+- Update `handleArchive` to check `conversation.status !== 'closed'` before archiving
+- If not closed, show same confirmation (can use a local state + the same dialog component)
 
 | File | Change |
 |------|--------|
-| `ConversationTableRow.tsx` | Add `Lock` import + "Note" badge in both render paths (table row and div row) |
+| `ArchiveConfirmDialog.tsx` | New dialog component |
+| `ConversationListContext.tsx` | Add archive dialog state, check status before archiving |
+| `ConversationList.tsx` | Render archive dialog |
+| `ConversationHeader.tsx` | Add confirmation before archive when not closed |
 
