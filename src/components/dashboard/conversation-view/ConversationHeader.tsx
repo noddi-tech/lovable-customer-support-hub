@@ -17,10 +17,11 @@ import {
   CircleDot,
   CheckCircle2
 } from "lucide-react";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useConversationView } from "@/contexts/ConversationViewContext";
-
+import { ArchiveConfirmDialog } from "@/components/dashboard/conversation-list/ArchiveConfirmDialog";
 export const ConversationHeader = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
