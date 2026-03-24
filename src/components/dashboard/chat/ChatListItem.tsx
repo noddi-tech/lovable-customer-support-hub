@@ -14,6 +14,7 @@ interface ChatConversation {
   status: string;
   updated_at: string;
   is_read: boolean;
+  last_message_is_internal?: boolean;
   customer: {
     id: string;
     full_name: string | null;
