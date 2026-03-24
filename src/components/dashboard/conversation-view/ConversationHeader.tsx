@@ -196,6 +196,14 @@ export const ConversationHeader = () => {
           </DropdownMenu>
         </div>
       </div>
+      <ArchiveConfirmDialog
+        open={showArchiveConfirm}
+        onOpenChange={setShowArchiveConfirm}
+        nonClosedCount={1}
+        totalCount={1}
+        onArchiveOnly={handleArchiveOnly}
+        onArchiveAndClose={handleArchiveAndClose}
+      />
     </div>
   );
 };
