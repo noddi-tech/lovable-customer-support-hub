@@ -1,45 +1,40 @@
 
 
-## Add Archive Confirmation Dialog with "Also Close?" Option
+## Fix: Add "Archived" Badge to Table Row (TableCell Path)
 
-### Current behavior
-All archive actions (single, bulk, header) force `status: 'closed'` alongside `is_archived: true` — no confirmation, no choice.
+### Problem
+The "Archived" badge is present in the **div-based** responsive row (line 245) but **missing** from the **TableCell-based** row (line 360). The user is viewing the table layout, so no archived indicator is visible in the conversation list.
 
-### Desired behavior
-When archiving conversations that aren't already closed, show a modal asking: "Do you also want to close these conversations?" with options:
-- **Archive & Close** — sets `is_archived: true` + `status: 'closed'`
-- **Archive Only** — sets `is_archived: true`, keeps current status
-- **Cancel**
+The conversation detail header already shows "Archived" correctly (line 130-132).
 
-If all selected conversations are already closed, skip the modal and archive immediately.
+### Fix
 
-### Changes
+**File: `src/components/dashboard/conversation-list/ConversationTableRow.tsx`**
 
-**1. New component: `src/components/dashboard/conversation-list/ArchiveConfirmDialog.tsx`**
-- Alert dialog with title "Archive conversations"
-- Message: "X of Y selected conversations are not closed. Would you like to close them as well?"
-- Three buttons: Cancel, Archive Only, Archive & Close
-- Props: `open`, `onOpenChange`, `nonClosedCount`, `totalCount`, `onArchiveOnly`, `onArchiveAndClose`
+Line 360 currently renders only the status badge:
+```tsx
+<TableCell className="p-2 w-24">{StatusBadge}</TableCell>
+```
 
-**2. `src/contexts/ConversationListContext.tsx`**
-- Add state for archive dialog: `archiveDialog: { open, ids, hasNonClosed }` 
-- Update `archiveConversation(id)`: check if conversation status !== 'closed' → open dialog; otherwise archive directly
-- Update `bulkArchive()`: check how many selected are not closed → if any, open dialog; otherwise archive directly
-- Add `confirmArchive(alsoClose: boolean)` that performs the actual archive with or without status change
-- Expose dialog state + confirm function in context
+Change to include the Archived badge (matching the div-based row at line 245):
+```tsx
+<TableCell className="p-2 w-32">
+  <div className="flex items-center gap-1">
+    {StatusBadge}
+    {conversation.is_archived && (
+      <Badge className="px-1.5 py-0 text-[10px] bg-muted text-muted-foreground">
+        <Archive className="h-3 w-3 mr-0.5" />
+        Archived
+      </Badge>
+    )}
+  </div>
+</TableCell>
+```
 
-**3. `src/components/dashboard/ConversationList.tsx`**
-- Render `<ArchiveConfirmDialog>` using context state
-- Wire up the three callbacks
-
-**4. `src/components/dashboard/conversation-view/ConversationHeader.tsx`**
-- Update `handleArchive` to check `conversation.status !== 'closed'` before archiving
-- If not closed, show same confirmation (can use a local state + the same dialog component)
+Also widen the Status column header in `ConversationTable.tsx` from `w-24` to `w-32` to accommodate the extra badge.
 
 | File | Change |
 |------|--------|
-| `ArchiveConfirmDialog.tsx` | New dialog component |
-| `ConversationListContext.tsx` | Add archive dialog state, check status before archiving |
-| `ConversationList.tsx` | Render archive dialog |
-| `ConversationHeader.tsx` | Add confirmation before archive when not closed |
+| `ConversationTableRow.tsx` | Add Archived badge next to StatusBadge in TableCell row (line 360) |
+| `ConversationTable.tsx` | Widen Status column header from `w-24` to `w-32` |
 
