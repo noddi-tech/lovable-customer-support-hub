@@ -945,6 +945,7 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
     totalCount,
     hasSessionError,
     archiveConversation,
+    confirmArchive,
     deleteConversation,
     markAllAsRead,
     isMarkingAllAsRead: markAllAsReadMutation.isPending,
