@@ -102,7 +102,8 @@ const initialState: ConversationListState = {
   showFilters: false,
   selectedConversations: new Set(),
   bulkSelectionMode: false,
-  tableSort: { key: 'waiting', direction: 'desc' }, // Default: sort by waiting time descending
+  tableSort: { key: 'waiting', direction: 'desc' },
+  archiveDialog: { open: false, ids: [], nonClosedCount: 0, totalCount: 0 },
 };
 
 function conversationListReducer(state: ConversationListState, action: ConversationListAction): ConversationListState {
