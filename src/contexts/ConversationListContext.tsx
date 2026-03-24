@@ -169,6 +169,7 @@ interface ConversationListContextType {
   totalCount: number;
   hasSessionError: boolean;
   archiveConversation: (id: string) => void;
+  confirmArchive: (alsoClose: boolean) => void;
   deleteConversation: (id: string) => void;
   markAllAsRead: () => void;
   isMarkingAllAsRead: boolean;
