@@ -811,26 +811,35 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
     const selectedIds = Array.from(state.selectedConversations);
     if (selectedIds.length === 0) return;
 
-    // Expand thread IDs to include all conversations in threads
     const ids = expandThreadIds(selectedIds);
-    const idChunks = chunkArray(ids, 20);
-    
-    try {
-      for (const chunk of idChunks) {
-        const { error } = await supabase
-          .from('conversations')
-          .update({ is_archived: true, status: 'closed' })
-          .in('id', chunk);
-        
-        if (error) throw error;
+    const nonClosedCount = ids.filter(id => {
+      const conv = conversations.find(c => c.id === id);
+      return conv && conv.status !== 'closed';
+    }).length;
+
+    if (nonClosedCount > 0) {
+      dispatch({
+        type: 'OPEN_ARCHIVE_DIALOG',
+        payload: { open: true, ids, nonClosedCount, totalCount: ids.length },
+      });
+    } else {
+      // All already closed, archive directly
+      const idChunks = chunkArray(ids, 20);
+      try {
+        for (const chunk of idChunks) {
+          const { error } = await supabase
+            .from('conversations')
+            .update({ is_archived: true })
+            .in('id', chunk);
+          if (error) throw error;
+        }
+        queryClient.invalidateQueries({ queryKey: ['conversations'] });
+        toast.success(`Archived ${ids.length} conversations`);
+        dispatch({ type: 'CLEAR_BULK_SELECTION' });
+      } catch (error) {
+        logger.error('Failed to archive conversations', error, 'bulkArchive');
+        toast.error('Failed to archive conversations');
       }
-      
-      queryClient.invalidateQueries({ queryKey: ['conversations'] });
-      toast.success(`Archived ${ids.length} conversations`);
-      dispatch({ type: 'CLEAR_BULK_SELECTION' });
-    } catch (error) {
-      logger.error('Failed to archive conversations', error, 'bulkArchive');
-      toast.error('Failed to archive conversations');
     }
   };
 
