@@ -88,7 +88,9 @@ type ConversationListAction =
   | { type: 'TOGGLE_BULK_SELECTION'; payload: { id: string; selected: boolean } }
   | { type: 'CLEAR_BULK_SELECTION' }
   | { type: 'TOGGLE_BULK_MODE' }
-  | { type: 'SET_SORT'; payload: string };
+  | { type: 'SET_SORT'; payload: string }
+  | { type: 'OPEN_ARCHIVE_DIALOG'; payload: ArchiveDialogState }
+  | { type: 'CLOSE_ARCHIVE_DIALOG' };
 
 const initialState: ConversationListState = {
   searchQuery: '',
