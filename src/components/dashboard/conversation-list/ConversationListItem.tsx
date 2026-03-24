@@ -193,6 +193,12 @@ export const ConversationListItem = memo<ConversationListItemProps>(({
               LIVE
             </Badge>
           )}
+          {conversation.last_message_is_internal && (
+            <Badge className="px-1.5 py-0 text-xs bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-800 shrink-0">
+              <Lock className="h-3 w-3 mr-0.5" />
+              Note
+            </Badge>
+          )}
         </div>
         
         <div className="flex items-center gap-1.5 shrink-0">
