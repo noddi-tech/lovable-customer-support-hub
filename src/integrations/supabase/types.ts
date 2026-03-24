@@ -359,6 +359,7 @@ export type Database = {
           inbox_id: string | null
           is_archived: boolean | null
           is_read: boolean | null
+          last_message_is_internal: boolean | null
           metadata: Json | null
           organization_id: string
           preview_text: string | null
@@ -387,6 +388,7 @@ export type Database = {
           inbox_id?: string | null
           is_archived?: boolean | null
           is_read?: boolean | null
+          last_message_is_internal?: boolean | null
           metadata?: Json | null
           organization_id: string
           preview_text?: string | null
@@ -415,6 +417,7 @@ export type Database = {
           inbox_id?: string | null
           is_archived?: boolean | null
           is_read?: boolean | null
+          last_message_is_internal?: boolean | null
           metadata?: Json | null
           organization_id?: string
           preview_text?: string | null
@@ -3897,6 +3900,7 @@ export type Database = {
               is_archived: boolean
               is_deleted: boolean
               is_read: boolean
+              last_message_is_internal: boolean
               metadata: Json
               organization_id: string
               preview_text: string

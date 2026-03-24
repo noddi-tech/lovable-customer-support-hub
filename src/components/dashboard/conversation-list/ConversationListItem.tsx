@@ -5,7 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { MoreVertical, Archive, Trash2, Clock, MessageCircle, User, Mail, MailOpen, Globe } from "lucide-react";
+import { MoreVertical, Archive, Trash2, Clock, MessageCircle, User, Mail, MailOpen, Globe, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useDateFormatting } from '@/hooks/useDateFormatting';
 import { useConversationList, type Conversation } from "@/contexts/ConversationListContext";
@@ -191,6 +191,12 @@ export const ConversationListItem = memo<ConversationListItemProps>(({
           {computedValues.isLiveChat && (
             <Badge className="bg-green-500 text-white px-1.5 py-0 text-xs shrink-0 animate-pulse">
               LIVE
+            </Badge>
+          )}
+          {conversation.last_message_is_internal && (
+            <Badge className="px-1.5 py-0 text-xs bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-800 shrink-0">
+              <Lock className="h-3 w-3 mr-0.5" />
+              Note
             </Badge>
           )}
         </div>

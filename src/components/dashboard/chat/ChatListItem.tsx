@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { useNoddihKundeData } from '@/hooks/useNoddihKundeData';
-import { Check, CheckCheck } from 'lucide-react';
+import { Check, CheckCheck, Lock } from 'lucide-react';
 import { PresenceAvatarStack } from '@/components/conversations/PresenceAvatarStack';
 
 interface ChatConversation {
@@ -14,6 +14,7 @@ interface ChatConversation {
   status: string;
   updated_at: string;
   is_read: boolean;
+  last_message_is_internal?: boolean;
   customer: {
     id: string;
     full_name: string | null;
@@ -108,6 +109,12 @@ export const ChatListItem: React.FC<ChatListItemProps> = ({
           {isActive && (
             <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-green-50 text-green-700 border-green-300 animate-pulse dark:bg-green-900/20 dark:text-green-400 dark:border-green-800">
               LIVE
+            </Badge>
+          )}
+          {conv.last_message_is_internal && (
+            <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-yellow-50 text-yellow-800 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-800">
+              <Lock className="h-3 w-3 mr-0.5" />
+              Note
             </Badge>
           )}
         </div>

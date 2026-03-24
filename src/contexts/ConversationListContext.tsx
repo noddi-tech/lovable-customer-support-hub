@@ -53,6 +53,7 @@ export interface Conversation {
   thread_ids?: string[]; // IDs of all conversations in thread
   is_thread_representative?: boolean; // True for the main/latest conversation in thread
   metadata?: Record<string, any>;
+  last_message_is_internal?: boolean;
 }
 
 interface ConversationListState {
