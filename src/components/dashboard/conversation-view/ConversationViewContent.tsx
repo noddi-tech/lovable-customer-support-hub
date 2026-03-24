@@ -16,6 +16,7 @@ import {
   CircleDot,
   Clock,
   CheckCircle2,
+  Archive,
 } from 'lucide-react';
 
 import { getCustomerDisplayWithNoddi, getCustomerInitial } from '@/utils/customerDisplayName';
@@ -225,6 +226,12 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
                 >
                   {onlineStatus?.hasLeft ? 'Left' : onlineStatus?.isOnline ? 'Online' : 'Offline'}
                 </Badge>
+                {conversation.is_archived && (
+                  <Badge variant="outline" className="text-xs shrink-0 bg-muted text-muted-foreground">
+                    <Archive className="h-3 w-3 mr-0.5" />
+                    Archived
+                  </Badge>
+                )}
               </div>
               <div className="flex items-center gap-2">
                 {customerDisplay.showEmail && customerDisplay.email && (
@@ -360,6 +367,12 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
                     <span className="text-xs text-muted-foreground truncate hidden sm:inline">
                       · {conversation.customer.email}
                     </span>
+                  )}
+                  {conversation.is_archived && (
+                    <Badge variant="outline" className="text-xs shrink-0 bg-muted text-muted-foreground">
+                      <Archive className="h-3 w-3 mr-0.5" />
+                      Archived
+                    </Badge>
                   )}
                 </div>
                 {conversation.subject && (
