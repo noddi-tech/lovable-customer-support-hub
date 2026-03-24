@@ -148,6 +148,10 @@ function conversationListReducer(state: ConversationListState, action: Conversat
         return { ...state, tableSort: { key: action.payload, direction: 'asc' } };
       }
     }
+    case 'OPEN_ARCHIVE_DIALOG':
+      return { ...state, archiveDialog: action.payload };
+    case 'CLOSE_ARCHIVE_DIALOG':
+      return { ...state, archiveDialog: { open: false, ids: [], nonClosedCount: 0, totalCount: 0 } };
     default:
       return state;
   }
