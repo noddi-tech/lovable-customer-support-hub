@@ -45,6 +45,7 @@ export function useConversationMeta(conversationId?: string) {
           status,
           priority,
           is_read,
+          is_archived,
           created_at,
           updated_at,
           channel,
