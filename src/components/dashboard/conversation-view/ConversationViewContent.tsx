@@ -16,6 +16,7 @@ import {
   CircleDot,
   Clock,
   CheckCircle2,
+  Archive,
 } from 'lucide-react';
 
 import { getCustomerDisplayWithNoddi, getCustomerInitial } from '@/utils/customerDisplayName';

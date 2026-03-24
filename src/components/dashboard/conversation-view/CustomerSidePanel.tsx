@@ -889,6 +889,16 @@ export const CustomerSidePanel = ({
                 </Badge>
               </div>
 
+              {conversation.is_archived && (
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">Archived:</span>
+                  <Badge variant="outline" className="text-[10px] h-4 px-1 bg-muted text-muted-foreground">
+                    <Archive className="h-3 w-3 mr-0.5" />
+                    Yes
+                  </Badge>
+                </div>
+              )}
+
               {conversation.assigned_to && (
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-muted-foreground">Assigned to:</span>
