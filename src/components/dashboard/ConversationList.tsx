@@ -5,6 +5,7 @@ import { ConversationListProvider, useConversationList, type Conversation } from
 import { ConversationListHeader } from "./conversation-list/ConversationListHeader";
 import { ConversationListDeleteDialog } from "./conversation-list/ConversationListDeleteDialog";
 import { ConversationTable } from "./conversation-list/ConversationTable";
+import { ArchiveConfirmDialog } from "./conversation-list/ArchiveConfirmDialog";
 import { VirtualizedConversationTable } from "./conversation-list/VirtualizedConversationTable";
 import { BulkActionsBar } from "./conversation-list/BulkActionsBar";
 import { SessionRecoveryBanner } from "@/components/conversations/SessionRecoveryBanner";
