@@ -5,6 +5,7 @@ import { ConversationListProvider, useConversationList, type Conversation } from
 import { ConversationListHeader } from "./conversation-list/ConversationListHeader";
 import { ConversationListDeleteDialog } from "./conversation-list/ConversationListDeleteDialog";
 import { ConversationTable } from "./conversation-list/ConversationTable";
+import { ArchiveConfirmDialog } from "./conversation-list/ArchiveConfirmDialog";
 import { VirtualizedConversationTable } from "./conversation-list/VirtualizedConversationTable";
 import { BulkActionsBar } from "./conversation-list/BulkActionsBar";
 import { SessionRecoveryBanner } from "@/components/conversations/SessionRecoveryBanner";
@@ -44,7 +45,8 @@ const ConversationListContent = ({ onSelectConversation, selectedConversation, o
     bulkArchive,
     bulkDelete,
     bulkAssign,
-    agents
+    agents,
+    confirmArchive
   } = useConversationList();
   const { user } = useAuth();
   const { t } = useTranslation();
@@ -196,6 +198,16 @@ const ConversationListContent = ({ onSelectConversation, selectedConversation, o
       </div>
 
       <ConversationListDeleteDialog />
+      <ArchiveConfirmDialog
+        open={state.archiveDialog.open}
+        onOpenChange={(open) => {
+          if (!open) dispatch({ type: 'CLOSE_ARCHIVE_DIALOG' });
+        }}
+        nonClosedCount={state.archiveDialog.nonClosedCount}
+        totalCount={state.archiveDialog.totalCount}
+        onArchiveOnly={() => confirmArchive(false)}
+        onArchiveAndClose={() => confirmArchive(true)}
+      />
     </div>
   );
 };

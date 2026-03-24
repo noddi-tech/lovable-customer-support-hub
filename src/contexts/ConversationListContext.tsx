@@ -56,6 +56,13 @@ export interface Conversation {
   last_message_is_internal?: boolean;
 }
 
+interface ArchiveDialogState {
+  open: boolean;
+  ids: string[];
+  nonClosedCount: number;
+  totalCount: number;
+}
+
 interface ConversationListState {
   searchQuery: string;
   statusFilter: string;
@@ -67,6 +74,7 @@ interface ConversationListState {
   selectedConversations: Set<string>;
   bulkSelectionMode: boolean;
   tableSort: { key: string; direction: 'asc' | 'desc' | null };
+  archiveDialog: ArchiveDialogState;
 }
 
 type ConversationListAction =
@@ -80,7 +88,9 @@ type ConversationListAction =
   | { type: 'TOGGLE_BULK_SELECTION'; payload: { id: string; selected: boolean } }
   | { type: 'CLEAR_BULK_SELECTION' }
   | { type: 'TOGGLE_BULK_MODE' }
-  | { type: 'SET_SORT'; payload: string };
+  | { type: 'SET_SORT'; payload: string }
+  | { type: 'OPEN_ARCHIVE_DIALOG'; payload: ArchiveDialogState }
+  | { type: 'CLOSE_ARCHIVE_DIALOG' };
 
 const initialState: ConversationListState = {
   searchQuery: '',
@@ -92,7 +102,8 @@ const initialState: ConversationListState = {
   showFilters: false,
   selectedConversations: new Set(),
   bulkSelectionMode: false,
-  tableSort: { key: 'waiting', direction: 'desc' }, // Default: sort by waiting time descending
+  tableSort: { key: 'waiting', direction: 'desc' },
+  archiveDialog: { open: false, ids: [], nonClosedCount: 0, totalCount: 0 },
 };
 
 function conversationListReducer(state: ConversationListState, action: ConversationListAction): ConversationListState {
@@ -137,6 +148,10 @@ function conversationListReducer(state: ConversationListState, action: Conversat
         return { ...state, tableSort: { key: action.payload, direction: 'asc' } };
       }
     }
+    case 'OPEN_ARCHIVE_DIALOG':
+      return { ...state, archiveDialog: action.payload };
+    case 'CLOSE_ARCHIVE_DIALOG':
+      return { ...state, archiveDialog: { open: false, ids: [], nonClosedCount: 0, totalCount: 0 } };
     default:
       return state;
   }
@@ -154,6 +169,7 @@ interface ConversationListContextType {
   totalCount: number;
   hasSessionError: boolean;
   archiveConversation: (id: string) => void;
+  confirmArchive: (alsoClose: boolean) => void;
   deleteConversation: (id: string) => void;
   markAllAsRead: () => void;
   isMarkingAllAsRead: boolean;
@@ -447,7 +463,42 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
   });
 
   const archiveConversation = (id: string) => {
-    archiveConversationMutation.mutate(id);
+    const conv = conversations.find(c => c.id === id);
+    if (conv && conv.status !== 'closed') {
+      dispatch({
+        type: 'OPEN_ARCHIVE_DIALOG',
+        payload: { open: true, ids: [id], nonClosedCount: 1, totalCount: 1 },
+      });
+    } else {
+      archiveConversationMutation.mutate(id);
+    }
+  };
+
+  const confirmArchive = async (alsoClose: boolean) => {
+    const { ids } = state.archiveDialog;
+    if (ids.length === 0) return;
+    
+    const idChunks = chunkArray(ids, 20);
+    try {
+      for (const chunk of idChunks) {
+        const updatePayload: Record<string, any> = { is_archived: true };
+        if (alsoClose) updatePayload.status = 'closed';
+        
+        const { error } = await supabase
+          .from('conversations')
+          .update(updatePayload)
+          .in('id', chunk);
+        if (error) throw error;
+      }
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      queryClient.invalidateQueries({ queryKey: ['conversation-counts'] });
+      toast.success(`Archived ${ids.length} conversation${ids.length > 1 ? 's' : ''}`);
+      dispatch({ type: 'CLOSE_ARCHIVE_DIALOG' });
+      dispatch({ type: 'CLEAR_BULK_SELECTION' });
+    } catch (error) {
+      logger.error('Failed to archive conversations', error, 'confirmArchive');
+      toast.error('Failed to archive conversations');
+    }
   };
 
   const deleteConversation = (id: string) => {
@@ -760,26 +811,35 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
     const selectedIds = Array.from(state.selectedConversations);
     if (selectedIds.length === 0) return;
 
-    // Expand thread IDs to include all conversations in threads
     const ids = expandThreadIds(selectedIds);
-    const idChunks = chunkArray(ids, 20);
-    
-    try {
-      for (const chunk of idChunks) {
-        const { error } = await supabase
-          .from('conversations')
-          .update({ is_archived: true, status: 'closed' })
-          .in('id', chunk);
-        
-        if (error) throw error;
+    const nonClosedCount = ids.filter(id => {
+      const conv = conversations.find(c => c.id === id);
+      return conv && conv.status !== 'closed';
+    }).length;
+
+    if (nonClosedCount > 0) {
+      dispatch({
+        type: 'OPEN_ARCHIVE_DIALOG',
+        payload: { open: true, ids, nonClosedCount, totalCount: ids.length },
+      });
+    } else {
+      // All already closed, archive directly
+      const idChunks = chunkArray(ids, 20);
+      try {
+        for (const chunk of idChunks) {
+          const { error } = await supabase
+            .from('conversations')
+            .update({ is_archived: true })
+            .in('id', chunk);
+          if (error) throw error;
+        }
+        queryClient.invalidateQueries({ queryKey: ['conversations'] });
+        toast.success(`Archived ${ids.length} conversations`);
+        dispatch({ type: 'CLEAR_BULK_SELECTION' });
+      } catch (error) {
+        logger.error('Failed to archive conversations', error, 'bulkArchive');
+        toast.error('Failed to archive conversations');
       }
-      
-      queryClient.invalidateQueries({ queryKey: ['conversations'] });
-      toast.success(`Archived ${ids.length} conversations`);
-      dispatch({ type: 'CLEAR_BULK_SELECTION' });
-    } catch (error) {
-      logger.error('Failed to archive conversations', error, 'bulkArchive');
-      toast.error('Failed to archive conversations');
     }
   };
 
@@ -885,6 +945,7 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
     totalCount,
     hasSessionError,
     archiveConversation,
+    confirmArchive,
     deleteConversation,
     markAllAsRead,
     isMarkingAllAsRead: markAllAsReadMutation.isPending,

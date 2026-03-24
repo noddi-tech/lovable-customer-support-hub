@@ -1,6 +1,6 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
@@ -17,18 +17,32 @@ import {
   CircleDot,
   CheckCircle2
 } from "lucide-react";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useConversationView } from "@/contexts/ConversationViewContext";
-
+import { ArchiveConfirmDialog } from "@/components/dashboard/conversation-list/ArchiveConfirmDialog";
 export const ConversationHeader = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { conversation, dispatch, updateStatus, refreshConversation } = useConversationView();
+  const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
 
   if (!conversation) return null;
 
   const handleArchive = async () => {
+    if (conversation.status !== 'closed') {
+      setShowArchiveConfirm(true);
+    } else {
+      await updateStatus({ isArchived: true });
+    }
+  };
+
+  const handleArchiveOnly = async () => {
+    await updateStatus({ isArchived: true });
+  };
+
+  const handleArchiveAndClose = async () => {
     await updateStatus({ status: 'closed', isArchived: true });
   };
 
@@ -182,6 +196,14 @@ export const ConversationHeader = () => {
           </DropdownMenu>
         </div>
       </div>
+      <ArchiveConfirmDialog
+        open={showArchiveConfirm}
+        onOpenChange={setShowArchiveConfirm}
+        nonClosedCount={1}
+        totalCount={1}
+        onArchiveOnly={handleArchiveOnly}
+        onArchiveAndClose={handleArchiveAndClose}
+      />
     </div>
   );
 };
