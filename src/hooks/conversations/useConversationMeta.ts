@@ -20,6 +20,8 @@ interface ConversationMeta {
   status: string;
   priority: string;
   isRead: boolean;
+  isArchived: boolean;
+  is_archived: boolean;
 }
 
 /**
