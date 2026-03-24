@@ -357,7 +357,17 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
       </TableCell>
 
       {/* Status */}
-      <TableCell className="p-2 w-24">{StatusBadge}</TableCell>
+      <TableCell className="p-2 w-32">
+        <div className="flex items-center gap-1">
+          {StatusBadge}
+          {conversation.is_archived && (
+            <Badge className="px-1.5 py-0 text-[10px] shrink-0 bg-muted text-muted-foreground">
+              <Archive className="h-3 w-3 mr-0.5" />
+              Archived
+            </Badge>
+          )}
+        </div>
+      </TableCell>
 
       {/* Priority */}
       <TableCell className="p-2 w-24">{PriorityBadge}</TableCell>
