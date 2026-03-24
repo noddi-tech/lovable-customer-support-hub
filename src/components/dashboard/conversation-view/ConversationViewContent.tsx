@@ -367,6 +367,12 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
                       · {conversation.customer.email}
                     </span>
                   )}
+                  {conversation.is_archived && (
+                    <Badge variant="outline" className="text-xs shrink-0 bg-muted text-muted-foreground">
+                      <Archive className="h-3 w-3 mr-0.5" />
+                      Archived
+                    </Badge>
+                  )}
                 </div>
                 {conversation.subject && (
                   <p className="text-xs text-muted-foreground truncate">
