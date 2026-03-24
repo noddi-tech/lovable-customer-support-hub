@@ -1,40 +1,36 @@
 
 
-## Fix: Add "Archived" Badge to Table Row (TableCell Path)
+## Show "Archived" Badge in Conversation Detail View
 
 ### Problem
-The "Archived" badge is present in the **div-based** responsive row (line 245) but **missing** from the **TableCell-based** row (line 360). The user is viewing the table layout, so no archived indicator is visible in the conversation list.
+The conversation detail view (both email and chat layouts) has no archived indicator. The list view shows an "Archived" badge, but once you open the conversation, there's no way to tell it's archived.
 
-The conversation detail header already shows "Archived" correctly (line 130-132).
+### Changes
 
-### Fix
+**1. `src/components/dashboard/conversation-view/ConversationViewContent.tsx`**
 
-**File: `src/components/dashboard/conversation-list/ConversationTableRow.tsx`**
+**Email header** (line ~355, after customer name/email):
+- Add an "Archived" badge next to the customer name when `conversation.is_archived` is true
 
-Line 360 currently renders only the status badge:
+**Chat header** (line ~215, after the online status badge):
+- Add the same "Archived" badge when `conversation.is_archived` is true
+
+Both use:
 ```tsx
-<TableCell className="p-2 w-24">{StatusBadge}</TableCell>
+{conversation.is_archived && (
+  <Badge variant="outline" className="text-xs shrink-0 bg-muted text-muted-foreground">
+    <Archive className="h-3 w-3 mr-0.5" />
+    Archived
+  </Badge>
+)}
 ```
 
-Change to include the Archived badge (matching the div-based row at line 245):
-```tsx
-<TableCell className="p-2 w-32">
-  <div className="flex items-center gap-1">
-    {StatusBadge}
-    {conversation.is_archived && (
-      <Badge className="px-1.5 py-0 text-[10px] bg-muted text-muted-foreground">
-        <Archive className="h-3 w-3 mr-0.5" />
-        Archived
-      </Badge>
-    )}
-  </div>
-</TableCell>
-```
+**2. `src/components/dashboard/conversation-view/CustomerSidePanel.tsx`**
 
-Also widen the Status column header in `ConversationTable.tsx` from `w-24` to `w-32` to accommodate the extra badge.
+In the "CONVERSATION" info section (where Status/Priority/Channel are shown), add an "Archived" row when `conversation.is_archived` is true, so it's also visible in the side panel details.
 
 | File | Change |
 |------|--------|
-| `ConversationTableRow.tsx` | Add Archived badge next to StatusBadge in TableCell row (line 360) |
-| `ConversationTable.tsx` | Widen Status column header from `w-24` to `w-32` |
+| `ConversationViewContent.tsx` | Add Archived badge in both email and chat headers |
+| `CustomerSidePanel.tsx` | Add Archived indicator in conversation details section |
 
