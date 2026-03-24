@@ -5,7 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { MoreVertical, Archive, Trash2, Clock, MessageCircle, User, Mail, MailOpen, Globe } from "lucide-react";
+import { MoreVertical, Archive, Trash2, Clock, MessageCircle, User, Mail, MailOpen, Globe, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useDateFormatting } from '@/hooks/useDateFormatting';
 import { useConversationList, type Conversation } from "@/contexts/ConversationListContext";
