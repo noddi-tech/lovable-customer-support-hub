@@ -1,36 +1,130 @@
 
+Fix the archived indicator at the data source, not just the JSX.
 
-## Show "Archived" Badge in Conversation Detail View
+### Root cause
+The archived badges are already present in the chat and email detail UI, but `ConversationView` renders data from `useConversationMeta`, and that hook does not fetch or return `is_archived`.
 
-### Problem
-The conversation detail view (both email and chat layouts) has no archived indicator. The list view shows an "Archived" badge, but once you open the conversation, there's no way to tell it's archived.
+So the UI is effectively doing:
+```ts
+if (conversation.is_archived) { ... }
+```
+but `conversation.is_archived` is `undefined` in the detail view payload.
 
-### Changes
+There is also a second bug: when archive status is changed from the detail view, `ConversationViewContext.updateStatus()` only updates the full `['conversation', ...]` cache, while the visible detail UI uses `['conversation-meta', ...]`. That means the archived badge can stay stale even after archiving/unarchiving.
 
-**1. `src/components/dashboard/conversation-view/ConversationViewContent.tsx`**
+### Bulletproof fix
 
-**Email header** (line ~355, after customer name/email):
-- Add an "Archived" badge next to the customer name when `conversation.is_archived` is true
+#### 1. Update `src/hooks/conversations/useConversationMeta.ts`
+Extend the `ConversationMeta` type and query so it includes archived state.
 
-**Chat header** (line ~215, after the online status badge):
-- Add the same "Archived" badge when `conversation.is_archived` is true
+- Add `isArchived: boolean`
+- Select `is_archived` from `conversations`
+- Map `conversation.is_archived` into the returned object
 
-Both use:
-```tsx
-{conversation.is_archived && (
-  <Badge variant="outline" className="text-xs shrink-0 bg-muted text-muted-foreground">
-    <Archive className="h-3 w-3 mr-0.5" />
-    Archived
-  </Badge>
-)}
+Implementation shape:
+```ts
+interface ConversationMeta {
+  ...
+  isArchived: boolean;
+}
 ```
 
-**2. `src/components/dashboard/conversation-view/CustomerSidePanel.tsx`**
+Query:
+```ts
+.select(`
+  id,
+  subject,
+  status,
+  priority,
+  is_read,
+  is_archived,
+  created_at,
+  updated_at,
+  channel,
+  customer:customers(...)
+`)
+```
 
-In the "CONVERSATION" info section (where Status/Priority/Channel are shown), add an "Archived" row when `conversation.is_archived` is true, so it's also visible in the side panel details.
+Return mapping:
+```ts
+isArchived: !!conversation.is_archived
+```
 
-| File | Change |
-|------|--------|
-| `ConversationViewContent.tsx` | Add Archived badge in both email and chat headers |
-| `CustomerSidePanel.tsx` | Add Archived indicator in conversation details section |
+#### 2. Normalize the prop shape used by detail components
+Right now the detail UI checks `conversation.is_archived`, while `useConversationMeta` returns camelCase fields like `isRead`, `createdAt`, `lastUpdated`.
 
+To avoid more silent mismatches, align this explicitly in one of two ways:
+
+Preferred:
+- In `ConversationView.tsx`, pass a normalized conversation object to `ConversationViewContent`:
+```ts
+{
+  ...conversation,
+  is_archived: conversation.isArchived
+}
+```
+
+Better long-term alternative:
+- Update `useConversationMeta` to expose both:
+```ts
+isArchived: boolean;
+is_archived: boolean;
+```
+This is slightly redundant, but safest for the current mixed codebase because many components still read snake_case.
+
+Given this codebase, the safest fix is to return both fields for now.
+
+#### 3. Update `src/contexts/ConversationViewContext.tsx`
+Make `updateStatus` keep the meta cache in sync too.
+
+Inside `updateStatusMutation.onSuccess`, after updating:
+```ts
+['conversation', conversationId, user?.id]
+```
+also update:
+```ts
+['conversation-meta', conversationId, user?.id]
+```
+
+Map correctly:
+- `status` → `status`
+- `isArchived` → both `is_archived` and `isArchived`
+
+This prevents the badge from disappearing or lagging after archive/unarchive actions in the detail view.
+
+#### 4. Keep the existing UI badges, but verify all render paths use the same field
+The JSX for archived is already present in:
+- `ConversationViewContent.tsx` chat header
+- `ConversationViewContent.tsx` email header
+- `CustomerSidePanel.tsx`
+
+Review those checks and make them resilient to the mixed shape:
+```ts
+const isArchived = conversation.is_archived ?? conversation.isArchived;
+```
+
+Then render from that local boolean in:
+- chat header
+- email header
+- side panel “Conversation” section
+
+This avoids future regressions if different fetch paths supply camelCase vs snake_case.
+
+### Files to update
+- `src/hooks/conversations/useConversationMeta.ts`
+- `src/components/dashboard/ConversationView.tsx`
+- `src/contexts/ConversationViewContext.tsx`
+- `src/components/dashboard/conversation-view/ConversationViewContent.tsx`
+- `src/components/dashboard/conversation-view/CustomerSidePanel.tsx`
+
+### Expected result
+After this fix:
+
+- Archived email conversations show an `Archived` badge in the detail header
+- Archived chat conversations show an `Archived` badge in the chat header
+- The side panel also shows archived state
+- Archive/unarchive updates appear immediately without needing a hard refresh
+- The detail view stays consistent with the list view
+
+### Why this fixes the screenshots
+Your screenshots show the list correctly knows the conversation is archived, while the open detail view does not. That means the problem is not styling or placement anymore — it is that the detail-view data payload is missing the archived flag. This plan fixes that exact data mismatch and the stale-cache path too.
