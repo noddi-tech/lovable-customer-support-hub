@@ -26,10 +26,23 @@ export const ConversationHeader = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { conversation, dispatch, updateStatus, refreshConversation } = useConversationView();
+  const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
 
   if (!conversation) return null;
 
   const handleArchive = async () => {
+    if (conversation.status !== 'closed') {
+      setShowArchiveConfirm(true);
+    } else {
+      await updateStatus({ isArchived: true });
+    }
+  };
+
+  const handleArchiveOnly = async () => {
+    await updateStatus({ isArchived: true });
+  };
+
+  const handleArchiveAndClose = async () => {
     await updateStatus({ status: 'closed', isArchived: true });
   };
 
