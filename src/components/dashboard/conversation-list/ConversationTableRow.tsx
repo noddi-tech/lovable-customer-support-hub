@@ -339,6 +339,12 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
           {!conversation.is_read && (
             <Badge className="bg-blue-500 text-white px-1.5 py-0 text-[10px] shrink-0">New</Badge>
           )}
+          {conversation.last_message_is_internal && (
+            <Badge className="px-1.5 py-0 text-[10px] shrink-0 bg-yellow-50 text-yellow-800 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-800">
+              <Lock className="h-3 w-3 mr-0.5" />
+              Note
+            </Badge>
+          )}
           <Button
             variant="ghost"
             size="sm"
