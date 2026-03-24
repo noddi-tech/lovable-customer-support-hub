@@ -45,7 +45,8 @@ const ConversationListContent = ({ onSelectConversation, selectedConversation, o
     bulkArchive,
     bulkDelete,
     bulkAssign,
-    agents
+    agents,
+    confirmArchive
   } = useConversationList();
   const { user } = useAuth();
   const { t } = useTranslation();
