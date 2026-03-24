@@ -97,7 +97,7 @@ export const ConversationTable = memo<ConversationTableProps>(({
               sortKey="status"
               currentSort={state.tableSort}
               onSort={handleSort}
-              className="w-24"
+              className="w-32"
             />
             <TableHeaderCell
               label={t('dashboard.conversationList.priority', 'Priority')}
