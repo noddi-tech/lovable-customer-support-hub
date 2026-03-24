@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Checkbox } from '@/components/ui/checkbox';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { MoreVertical, Archive, Trash2, MessageCircle, Mail, MailOpen, Globe, Clock, CheckCircle, XCircle, Reply } from 'lucide-react';
+import { MoreVertical, Archive, Trash2, MessageCircle, Mail, MailOpen, Globe, Clock, CheckCircle, XCircle, Reply, Lock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useDateFormatting } from '@/hooks/useDateFormatting';
 import { useConversationList, type Conversation } from '@/contexts/ConversationListContext';
