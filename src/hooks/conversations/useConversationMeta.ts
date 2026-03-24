@@ -20,6 +20,8 @@ interface ConversationMeta {
   status: string;
   priority: string;
   isRead: boolean;
+  isArchived: boolean;
+  is_archived: boolean;
 }
 
 /**
@@ -43,6 +45,7 @@ export function useConversationMeta(conversationId?: string) {
           status,
           priority,
           is_read,
+          is_archived,
           created_at,
           updated_at,
           channel,
@@ -81,7 +84,9 @@ export function useConversationMeta(conversationId?: string) {
         lastUpdated: conversation.updated_at,
         status: conversation.status,
         priority: conversation.priority,
-        isRead: conversation.is_read
+        isRead: conversation.is_read,
+        isArchived: !!conversation.is_archived,
+        is_archived: !!conversation.is_archived
       };
     },
     enabled: !!conversationId && !!user,

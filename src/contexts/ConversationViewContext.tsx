@@ -588,6 +588,20 @@ export const ConversationViewProvider = ({ children, conversationId, conversatio
         return old;
       });
       
+      // Also update the meta cache used by the detail view
+      queryClient.setQueryData(['conversation-meta', conversationId, user?.id], (old: any) => {
+        if (old) {
+          const updates: any = {};
+          if (result?.status !== undefined) updates.status = result.status;
+          if (result?.isArchived !== undefined) {
+            updates.isArchived = result.isArchived;
+            updates.is_archived = result.isArchived;
+          }
+          return { ...old, ...updates };
+        }
+        return old;
+      });
+      
       // Invalidate conversations list to move conversation between status filters
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
       queryClient.invalidateQueries({ queryKey: ['inboxCounts'] });
