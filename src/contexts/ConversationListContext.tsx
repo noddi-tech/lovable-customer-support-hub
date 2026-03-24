@@ -56,6 +56,13 @@ export interface Conversation {
   last_message_is_internal?: boolean;
 }
 
+interface ArchiveDialogState {
+  open: boolean;
+  ids: string[];
+  nonClosedCount: number;
+  totalCount: number;
+}
+
 interface ConversationListState {
   searchQuery: string;
   statusFilter: string;
@@ -67,6 +74,7 @@ interface ConversationListState {
   selectedConversations: Set<string>;
   bulkSelectionMode: boolean;
   tableSort: { key: string; direction: 'asc' | 'desc' | null };
+  archiveDialog: ArchiveDialogState;
 }
 
 type ConversationListAction =
