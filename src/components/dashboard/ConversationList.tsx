@@ -198,6 +198,16 @@ const ConversationListContent = ({ onSelectConversation, selectedConversation, o
       </div>
 
       <ConversationListDeleteDialog />
+      <ArchiveConfirmDialog
+        open={state.archiveDialog.open}
+        onOpenChange={(open) => {
+          if (!open) dispatch({ type: 'CLOSE_ARCHIVE_DIALOG' });
+        }}
+        nonClosedCount={state.archiveDialog.nonClosedCount}
+        totalCount={state.archiveDialog.totalCount}
+        onArchiveOnly={() => confirmArchive(false)}
+        onArchiveAndClose={() => confirmArchive(true)}
+      />
     </div>
   );
 };
