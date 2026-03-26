@@ -614,9 +614,10 @@ export const ReplyArea = () => {
             ))}
           </div>
         )}
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center justify-between gap-2 flex-wrap">
           <Button
             variant="ghost"
+            size={isMobile ? "sm" : "default"}
             onClick={() => {
               stopTyping();
               dispatch({ type: 'SET_REPLY_TEXT', payload: '' });
@@ -628,10 +629,10 @@ export const ReplyArea = () => {
             {t('conversation.cancel')}
           </Button>
 
-          <div className="flex items-center gap-2">
-            {!state.isInternalNote && (
+          <div className="flex items-center gap-2 flex-wrap">
+            {!state.isInternalNote && !isMobile && (
               <>
-                {/* Reply / Reply All toggle */}
+                {/* Reply / Reply All toggle - hidden on mobile */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline" size="default" className="gap-1.5 h-11">
@@ -667,9 +668,10 @@ export const ReplyArea = () => {
             <Button
               onClick={handleSendReply}
               disabled={!state.replyText.trim() || state.sendLoading}
-              size="lg"
+              size={isMobile ? "default" : "lg"}
               className={cn(
-                "gap-2 px-6",
+                "gap-2",
+                isMobile ? "px-4 flex-1" : "px-6",
                 state.isInternalNote && "bg-yellow-500 hover:bg-yellow-600 text-white"
               )}
             >
