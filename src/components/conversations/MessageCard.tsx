@@ -551,9 +551,9 @@ const MessageCardComponent = ({
         {/* Full content - simple CSS collapse */}
         <div className={cn(
           "message-content",
-          effectiveCollapsed ? "is-collapsed" : "pl-16 pr-4 pb-4"
+          effectiveCollapsed ? "is-collapsed" : "pl-4 md:pl-16 pr-4 pb-4"
         )}>
-          <div className="space-y-4">
+          <div className="space-y-4 max-h-[60vh] md:max-h-none overflow-y-auto">
             {/* Email content or mention-aware note */}
             {isInternalNote ? (
               <MentionRenderer content={message.visibleBody || ''} className="text-sm" />

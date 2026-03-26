@@ -213,38 +213,42 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
                       ? "bg-green-500 animate-pulse" 
                       : "bg-gray-400"
                 )} />
-                <Badge 
-                  variant="outline" 
-                  className={cn(
-                    "text-xs shrink-0",
-                    onlineStatus?.hasLeft
-                      ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800"
-                      : onlineStatus?.isOnline 
-                        ? "bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800"
-                        : "bg-gray-50 text-gray-600 border-gray-200 dark:bg-gray-800/50 dark:text-gray-400 dark:border-gray-700"
-                  )}
-                >
-                  {onlineStatus?.hasLeft ? 'Left' : onlineStatus?.isOnline ? 'Online' : 'Offline'}
-                </Badge>
-                {conversation.is_archived && (
+                {!isMobile && (
+                  <Badge 
+                    variant="outline" 
+                    className={cn(
+                      "text-xs shrink-0",
+                      onlineStatus?.hasLeft
+                        ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800"
+                        : onlineStatus?.isOnline 
+                          ? "bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800"
+                          : "bg-gray-50 text-gray-600 border-gray-200 dark:bg-gray-800/50 dark:text-gray-400 dark:border-gray-700"
+                    )}
+                  >
+                    {onlineStatus?.hasLeft ? 'Left' : onlineStatus?.isOnline ? 'Online' : 'Offline'}
+                  </Badge>
+                )}
+                {!isMobile && conversation.is_archived && (
                   <Badge variant="outline" className="text-xs shrink-0 bg-muted text-muted-foreground">
                     <Archive className="h-3 w-3 mr-0.5" />
                     Archived
                   </Badge>
                 )}
               </div>
-              <div className="flex items-center gap-2">
-                {customerDisplay.showEmail && customerDisplay.email && (
-                  <span className="text-xs text-muted-foreground truncate">
-                    {customerDisplay.email}
-                  </span>
-                )}
-                {!onlineStatus?.isOnline && onlineStatus?.lastSeenAt && (
-                  <span className="text-xs text-muted-foreground">
-                    · Last seen {formatDistanceToNow(new Date(onlineStatus.lastSeenAt), { addSuffix: true })}
-                  </span>
-                )}
-              </div>
+              {!isMobile && (
+                <div className="flex items-center gap-2">
+                  {customerDisplay.showEmail && customerDisplay.email && (
+                    <span className="text-xs text-muted-foreground truncate">
+                      {customerDisplay.email}
+                    </span>
+                  )}
+                  {!onlineStatus?.isOnline && onlineStatus?.lastSeenAt && (
+                    <span className="text-xs text-muted-foreground">
+                      · Last seen {formatDistanceToNow(new Date(onlineStatus.lastSeenAt), { addSuffix: true })}
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Status dropdown */}

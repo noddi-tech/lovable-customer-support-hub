@@ -304,7 +304,7 @@ export const ReplyArea = () => {
         </div>
       )}
       
-      <div className="p-6 space-y-4">
+      <div className="p-3 md:p-6 space-y-4">
         {/* Feedback Prompt */}
         <FeedbackPrompt />
 
@@ -567,7 +567,7 @@ export const ReplyArea = () => {
               onKeyDown={handleKeyPress}
               placeholder={t('conversation.internalNotePlaceholder') + ' (Type @ to mention team members)'}
               className={cn(
-                "min-h-[140px] resize-none transition-colors text-sm",
+                "min-h-[80px] md:min-h-[140px] resize-none transition-colors text-sm",
                 "bg-amber-50/50 border-amber-200 dark:bg-amber-950/20 dark:border-amber-900"
               )}
             />
@@ -581,13 +581,15 @@ export const ReplyArea = () => {
               }}
               onKeyDown={handleKeyPress}
               placeholder={t('conversation.replyPlaceholder')}
-              className="min-h-[140px] resize-none transition-colors text-sm"
+              className="min-h-[80px] md:min-h-[140px] resize-none transition-colors text-sm"
             />
           )}
-          <p className="text-xs text-muted-foreground">
-            Press <kbd className="px-2 py-1 bg-muted rounded border text-xs font-medium">Ctrl+Enter</kbd> to send
-            {state.isInternalNote && <span className="ml-2">• Type <kbd className="px-1.5 py-0.5 bg-muted rounded border text-xs">@</kbd> to mention team members</span>}
-          </p>
+          {!isMobile && (
+            <p className="text-xs text-muted-foreground">
+              Press <kbd className="px-2 py-1 bg-muted rounded border text-xs font-medium">Ctrl+Enter</kbd> to send
+              {state.isInternalNote && <span className="ml-2">• Type <kbd className="px-1.5 py-0.5 bg-muted rounded border text-xs">@</kbd> to mention team members</span>}
+            </p>
+          )}
         </div>
 
         {/* Attachment Previews */}
@@ -612,9 +614,10 @@ export const ReplyArea = () => {
             ))}
           </div>
         )}
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center justify-between gap-2 flex-wrap">
           <Button
             variant="ghost"
+            size={isMobile ? "sm" : "default"}
             onClick={() => {
               stopTyping();
               dispatch({ type: 'SET_REPLY_TEXT', payload: '' });
@@ -626,10 +629,10 @@ export const ReplyArea = () => {
             {t('conversation.cancel')}
           </Button>
 
-          <div className="flex items-center gap-2">
-            {!state.isInternalNote && (
+          <div className="flex items-center gap-2 flex-wrap">
+            {!state.isInternalNote && !isMobile && (
               <>
-                {/* Reply / Reply All toggle */}
+                {/* Reply / Reply All toggle - hidden on mobile */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline" size="default" className="gap-1.5 h-11">
@@ -665,9 +668,10 @@ export const ReplyArea = () => {
             <Button
               onClick={handleSendReply}
               disabled={!state.replyText.trim() || state.sendLoading}
-              size="lg"
+              size={isMobile ? "default" : "lg"}
               className={cn(
-                "gap-2 px-6",
+                "gap-2",
+                isMobile ? "px-4 flex-1" : "px-6",
                 state.isInternalNote && "bg-yellow-500 hover:bg-yellow-600 text-white"
               )}
             >
