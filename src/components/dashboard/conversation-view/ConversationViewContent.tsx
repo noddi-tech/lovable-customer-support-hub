@@ -166,6 +166,16 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
     setSearchParams(newParams);
   };
 
+  // ============ MOBILE: Dedicated mobile components ============
+  if (isMobile) {
+    const MobileComponent = isLiveChat ? MobileChatConversationView : MobileEmailConversationView;
+    return (
+      <Suspense fallback={<div className="flex-1 flex items-center justify-center"><MobileLoader className="h-6 w-6 animate-spin text-muted-foreground" /></div>}>
+        <MobileComponent conversationId={conversationId} conversation={conversation} />
+      </Suspense>
+    );
+  }
+
   // ============ LIVE CHAT UI (WhatsApp-style) ============
   if (isLiveChat) {
     return (
