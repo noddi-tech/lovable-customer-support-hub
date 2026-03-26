@@ -1,4 +1,4 @@
-import { Filter, CheckCheck, ChevronDown, Move, Settings, CheckSquare, X, Plus } from "lucide-react";
+import { Filter, CheckCheck, ChevronDown, Move, Settings, CheckSquare, X, Plus, MoreHorizontal } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
@@ -21,6 +21,7 @@ import { useConversationList } from "@/contexts/ConversationListContext";
 import { useTranslation } from "react-i18next";
 import type { SortBy } from "@/contexts/ConversationListContext";
 import { useState } from "react";
+import { useIsMobile } from "@/hooks/use-responsive";
 
 interface ConversationListHeaderProps {
   onToggleCollapse?: () => void;
