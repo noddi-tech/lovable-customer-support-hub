@@ -35,6 +35,7 @@ export const LazyReplyArea = ({ conversationId, onReply }: LazyReplyAreaProps) =
   const { t } = useTranslation();
   const { dispatch, state } = useConversationView();
   const [showReplyArea, setShowReplyArea] = useState(false);
+  const isMobile = useIsMobile();
 
   // Preload the ReplyArea chunk when conversation opens
   useEffect(() => {
