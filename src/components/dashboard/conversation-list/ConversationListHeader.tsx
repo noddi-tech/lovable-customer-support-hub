@@ -22,6 +22,7 @@ import { useTranslation } from "react-i18next";
 import type { SortBy } from "@/contexts/ConversationListContext";
 import { useState } from "react";
 import { useIsMobile } from "@/hooks/use-responsive";
+import { SidebarTrigger } from "@/components/ui/sidebar";
 
 interface ConversationListHeaderProps {
   onToggleCollapse?: () => void;
