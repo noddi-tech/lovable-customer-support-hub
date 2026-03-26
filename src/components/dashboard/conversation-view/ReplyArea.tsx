@@ -567,7 +567,7 @@ export const ReplyArea = () => {
               onKeyDown={handleKeyPress}
               placeholder={t('conversation.internalNotePlaceholder') + ' (Type @ to mention team members)'}
               className={cn(
-                "min-h-[140px] resize-none transition-colors text-sm",
+                "min-h-[80px] md:min-h-[140px] resize-none transition-colors text-sm",
                 "bg-amber-50/50 border-amber-200 dark:bg-amber-950/20 dark:border-amber-900"
               )}
             />
@@ -581,13 +581,15 @@ export const ReplyArea = () => {
               }}
               onKeyDown={handleKeyPress}
               placeholder={t('conversation.replyPlaceholder')}
-              className="min-h-[140px] resize-none transition-colors text-sm"
+              className="min-h-[80px] md:min-h-[140px] resize-none transition-colors text-sm"
             />
           )}
-          <p className="text-xs text-muted-foreground">
-            Press <kbd className="px-2 py-1 bg-muted rounded border text-xs font-medium">Ctrl+Enter</kbd> to send
-            {state.isInternalNote && <span className="ml-2">• Type <kbd className="px-1.5 py-0.5 bg-muted rounded border text-xs">@</kbd> to mention team members</span>}
-          </p>
+          {!isMobile && (
+            <p className="text-xs text-muted-foreground">
+              Press <kbd className="px-2 py-1 bg-muted rounded border text-xs font-medium">Ctrl+Enter</kbd> to send
+              {state.isInternalNote && <span className="ml-2">• Type <kbd className="px-1.5 py-0.5 bg-muted rounded border text-xs">@</kbd> to mention team members</span>}
+            </p>
+          )}
         </div>
 
         {/* Attachment Previews */}
