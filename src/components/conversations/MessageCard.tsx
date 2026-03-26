@@ -328,7 +328,7 @@ const MessageCardComponent = ({
     >
         {/* Card Header - improved spacing */}
         <div className={cn(
-          "px-4",
+          "px-2 md:px-4",
           effectiveCollapsed ? "py-0" : "py-4"
         )}>
           <div className={cn(
