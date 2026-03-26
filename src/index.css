@@ -1632,3 +1632,52 @@ Optimized for accessibility with WCAG AA compliance.
   }
 }
 
+/* ========== MOBILE EMAIL RENDER OVERRIDES ========== */
+@media (max-width: 767px) {
+  .mobile-email-body .email-render__html-content,
+  .mobile-email-body .email-render__plain-content {
+    font-size: 12px !important;
+    line-height: 1.45 !important;
+  }
+
+  .mobile-email-body .email-render__html-content p,
+  .mobile-email-body .email-render__plain-content p {
+    margin-bottom: 0.15em !important;
+  }
+
+  .mobile-email-body .email-render__html-content blockquote {
+    margin-left: 0.5em !important;
+    margin-right: 0 !important;
+    padding: 0.25em 0.5em !important;
+    font-size: 11px !important;
+  }
+
+  .mobile-email-body .email-render__html-content td,
+  .mobile-email-body .email-render__html-content th {
+    padding: 1px 2px !important;
+    font-size: 11px !important;
+  }
+
+  .mobile-email-body .email-render__html-content .email-signature,
+  .mobile-email-body .email-render__plain-content .email-signature {
+    font-size: 10px !important;
+    max-height: 60px;
+    overflow: hidden;
+  }
+
+  .mobile-email-body .email-render__html-content img {
+    max-width: 100% !important;
+    height: auto !important;
+  }
+
+  /* Clamp long prose sections */
+  .mobile-email-body .prose {
+    --tw-prose-body: 12px;
+  }
+  
+  .mobile-email-body .prose p,
+  .mobile-email-body .prose li {
+    font-size: 12px !important;
+    line-height: 1.45 !important;
+  }
+}

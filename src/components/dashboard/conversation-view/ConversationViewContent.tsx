@@ -1,4 +1,5 @@
-import React, { useRef, useEffect, useMemo, useState } from 'react';
+import React, { useRef, useEffect, useMemo, useState, lazy, Suspense } from 'react';
+import { Loader2 as MobileLoader } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -33,6 +34,9 @@ import { cn } from '@/lib/utils';
 import { useConversationView } from '@/contexts/ConversationViewContext';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { useConversationPresenceSafe } from '@/contexts/ConversationPresenceContext';
+// Lazy-load mobile components to avoid bloating desktop bundle
+const MobileChatConversationView = lazy(() => import('@/components/mobile/conversations/MobileChatConversationView').then(m => ({ default: m.MobileChatConversationView })));
+const MobileEmailConversationView = lazy(() => import('@/components/mobile/conversations/MobileEmailConversationView').then(m => ({ default: m.MobileEmailConversationView })));
 import { PresenceAvatarStack } from '@/components/conversations/PresenceAvatarStack';
 import { TagDialog } from './TagDialog';
 import { SnoozeDialog } from './SnoozeDialog';
@@ -161,6 +165,16 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
     newParams.delete('c');
     setSearchParams(newParams);
   };
+
+  // ============ MOBILE: Dedicated mobile components ============
+  if (isMobile) {
+    const MobileComponent = isLiveChat ? MobileChatConversationView : MobileEmailConversationView;
+    return (
+      <Suspense fallback={<div className="flex-1 flex items-center justify-center"><MobileLoader className="h-6 w-6 animate-spin text-muted-foreground" /></div>}>
+        <MobileComponent conversationId={conversationId} conversation={conversation} />
+      </Suspense>
+    );
+  }
 
   // ============ LIVE CHAT UI (WhatsApp-style) ============
   if (isLiveChat) {
