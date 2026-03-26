@@ -188,7 +188,7 @@ export const Auth: React.FC = () => {
     setError('');
     
     logger.info('Initiating Google OAuth', { 
-      redirectTo: `${window.location.origin}/`
+      redirectTo: `${window.location.origin}/auth`
     }, 'Auth');
     
     try {
