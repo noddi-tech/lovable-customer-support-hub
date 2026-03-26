@@ -385,7 +385,7 @@ export const ProgressiveMessagesList = forwardRef<ProgressiveMessagesListRef, Pr
 
       {/* Sticky "Jump to Latest" Button */}
       {showJumpToLatest && (
-        <div className="fixed bottom-8 right-8 z-20">
+        <div className="fixed bottom-20 right-4 md:bottom-8 md:right-8 z-20">
           <Button
             onClick={scrollToBottom}
             className="shadow-lg hover:shadow-xl transition-all duration-200 rounded-full h-12 px-6"
@@ -422,7 +422,7 @@ export const ProgressiveMessagesList = forwardRef<ProgressiveMessagesListRef, Pr
         {/* Outer centering wrapper */}
         <div className="w-full flex justify-center">
           {/* Content column with timeline */}
-          <div className="relative w-full max-w-full md:max-w-5xl px-1 md:px-2 py-4">
+          <div className="relative w-full max-w-full md:max-w-5xl px-0 md:px-2 py-4">
             {/* Timeline vertical rail - softer gradient, hidden on mobile */}
             <div 
               className="absolute left-[26px] top-2 bottom-2 w-[2px] bg-gradient-to-b from-muted/10 via-muted/50 to-muted/10 rounded-full pointer-events-none hidden md:block" 

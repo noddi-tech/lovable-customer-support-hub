@@ -441,7 +441,7 @@ const EmailRenderComponent: React.FC<EmailRenderProps> = ({
       return (
         <div 
           ref={htmlContentRef}
-          className="email-render__html-content prose prose-sm dark:prose-invert max-w-none [&_.email-signature]:text-xs [&_.email-signature]:text-muted-foreground [&_.email-signature]:mt-4 [&_.email-signature]:pt-3 [&_.email-signature]:border-t"
+          className="email-render__html-content prose prose-sm dark:prose-invert max-w-none overflow-x-auto [&_table]:max-w-full [&_img]:max-w-full [&_img]:h-auto [&_.email-signature]:text-xs [&_.email-signature]:text-muted-foreground [&_.email-signature]:mt-4 [&_.email-signature]:pt-3 [&_.email-signature]:border-t"
           dangerouslySetInnerHTML={{ __html: sanitizedContent }}
         />
       );
@@ -459,7 +459,7 @@ const EmailRenderComponent: React.FC<EmailRenderProps> = ({
       
       return (
         <div 
-          className="email-render__plain-content prose prose-sm dark:prose-invert max-w-none [&_.email-signature]:text-xs [&_.email-signature]:text-muted-foreground [&_.email-signature]:mt-4 [&_.email-signature]:pt-3 [&_.email-signature]:border-t"
+          className="email-render__plain-content prose prose-sm dark:prose-invert max-w-none overflow-x-auto [&_table]:max-w-full [&_img]:max-w-full [&_img]:h-auto [&_.email-signature]:text-xs [&_.email-signature]:text-muted-foreground [&_.email-signature]:mt-4 [&_.email-signature]:pt-3 [&_.email-signature]:border-t"
           dangerouslySetInnerHTML={{ __html: formattedHtml }}
         />
       );

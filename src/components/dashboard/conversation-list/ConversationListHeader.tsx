@@ -22,6 +22,7 @@ import { useTranslation } from "react-i18next";
 import type { SortBy } from "@/contexts/ConversationListContext";
 import { useState } from "react";
 import { useIsMobile } from "@/hooks/use-responsive";
+import { SidebarTrigger } from "@/components/ui/sidebar";
 
 interface ConversationListHeaderProps {
   onToggleCollapse?: () => void;
@@ -93,6 +94,8 @@ export const ConversationListHeader = ({
       <div className="flex items-center gap-1">
         {/* Left side: Action buttons */}
         <div className="flex items-center gap-1 flex-shrink-0">
+          {/* Sidebar trigger - mobile only */}
+          {isMobile && <SidebarTrigger className="shrink-0" />}
           {/* New - always visible */}
           <NewConversationDialog>
             <Button variant="default" size="xxs">

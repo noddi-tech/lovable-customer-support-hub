@@ -31,6 +31,7 @@ import { CustomerSidePanel } from './CustomerSidePanel';
 import { useConversationShortcuts } from '@/hooks/useConversationShortcuts';
 import { cn } from '@/lib/utils';
 import { useConversationView } from '@/contexts/ConversationViewContext';
+import { SidebarTrigger } from '@/components/ui/sidebar';
 import { useConversationPresenceSafe } from '@/contexts/ConversationPresenceContext';
 import { PresenceAvatarStack } from '@/components/conversations/PresenceAvatarStack';
 import { TagDialog } from './TagDialog';
@@ -182,6 +183,7 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
           
           {/* Compact Chat Header */}
           <div className="flex-shrink-0 px-4 py-3 border-b flex items-center gap-3 bg-card shadow-sm">
+            {isMobile && <SidebarTrigger className="shrink-0" />}
             <Button 
               variant="ghost" 
               size="icon"
@@ -349,6 +351,7 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
           <div className="flex items-center gap-3">
             {/* Left: Back + Customer Info + Subject */}
             <div className="flex items-center gap-3 min-w-0 flex-1">
+              {isMobile && <SidebarTrigger className="shrink-0" />}
               <Button 
                 variant="ghost" 
                 size="sm"
