@@ -51,15 +51,13 @@ interface InteractionsLayoutProps {
   selectedTab: string;
   onTabChange: (tab: string) => void;
   selectedInboxId: string;
-  onBack?: () => void;
 }
 
 export const InteractionsLayout: React.FC<InteractionsLayoutProps> = ({
   activeSubTab,
   selectedTab,
   onTabChange,
-  selectedInboxId,
-  onBack
+  selectedInboxId
 }) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
