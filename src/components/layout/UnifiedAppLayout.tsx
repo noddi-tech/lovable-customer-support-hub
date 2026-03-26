@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { SidebarProvider } from '@/components/ui/sidebar';
+import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { AppMainNav } from './AppMainNav';
 import { SearchCommandPalette } from '@/components/search/SearchCommandPalette';
 import { UIProbe } from '@/dev/UIProbe';
+import { useIsMobile } from '@/hooks/use-responsive';
 
 interface UnifiedAppLayoutProps {
   children: React.ReactNode;
