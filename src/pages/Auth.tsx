@@ -110,7 +110,7 @@ export const Auth: React.FC = () => {
       const { data, error } = await supabase.functions.invoke('dev-login', {
         body: { 
           email: 'joachim@noddi.no',
-          redirectTo: window.location.origin + '/'
+          redirectTo: window.location.origin + '/auth'
         }
       });
 
@@ -188,7 +188,7 @@ export const Auth: React.FC = () => {
     setError('');
     
     logger.info('Initiating Google OAuth', { 
-      redirectTo: `${window.location.origin}/`
+      redirectTo: `${window.location.origin}/auth`
     }, 'Auth');
     
     try {
@@ -197,7 +197,7 @@ export const Auth: React.FC = () => {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/`,
+          redirectTo: `${window.location.origin}/auth`,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
@@ -308,7 +308,7 @@ export const Auth: React.FC = () => {
       const { error } = await supabase.auth.signInWithOtp({
         email,
         options: {
-          emailRedirectTo: `${window.location.origin}/`,
+          emailRedirectTo: `${window.location.origin}/auth`,
         }
       });
       
@@ -360,7 +360,7 @@ export const Auth: React.FC = () => {
         email: emailValidation.data,
         password: passwordValidation.data,
         options: {
-          emailRedirectTo: `${window.location.origin}/`,
+          emailRedirectTo: `${window.location.origin}/auth`,
           data: {
             full_name: nameValidation.data,
           }
