@@ -80,102 +80,140 @@ export const ConversationListHeader = ({
 
   return (
     <div className="flex-shrink-0 px-1.5 pt-1 pb-3 bg-card">
-      <div className="flex items-center justify-between mb-0.5 px-0.5">
-        <span className="text-[9px] text-muted-foreground uppercase tracking-wide font-medium">
-          {t('dashboard.conversationList.quickActions', 'Quick actions')}
-        </span>
-        <span className="text-[9px] text-muted-foreground uppercase tracking-wide font-medium">
-          {t('dashboard.conversationList.sortFiltering', 'Sort / Filtering')}
-        </span>
-      </div>
+      {!isMobile && (
+        <div className="flex items-center justify-between mb-0.5 px-0.5">
+          <span className="text-[9px] text-muted-foreground uppercase tracking-wide font-medium">
+            {t('dashboard.conversationList.quickActions', 'Quick actions')}
+          </span>
+          <span className="text-[9px] text-muted-foreground uppercase tracking-wide font-medium">
+            {t('dashboard.conversationList.sortFiltering', 'Sort / Filtering')}
+          </span>
+        </div>
+      )}
       <div className="flex items-center gap-1">
         {/* Left side: Action buttons */}
         <div className="flex items-center gap-1 flex-shrink-0">
-          {/* Select */}
-          {onToggleBulkMode && (
-            <Button
-              variant={bulkSelectionMode ? "default" : "outline"}
-              size="xxs"
-              onClick={() => onToggleBulkMode?.()}
-            >
-              <CheckSquare className="!w-2.5 !h-2.5" />
-              {bulkSelectionMode 
-                ? t('dashboard.conversationList.exitSelection', 'Exit') 
-                : t('dashboard.conversationList.select', 'Select')}
-            </Button>
-          )}
-
-          {/* New */}
+          {/* New - always visible */}
           <NewConversationDialog>
             <Button variant="default" size="xxs">
               <Plus className="!w-2.5 !h-2.5" />
-              {t('dashboard.conversationList.new', 'New')}
+              {!isMobile && t('dashboard.conversationList.new', 'New')}
             </Button>
           </NewConversationDialog>
 
-          {/* Merge */}
-          <Dialog open={showThreadMerger} onOpenChange={setShowThreadMerger}>
-            <DialogTrigger asChild>
-              <Button variant="outline" size="xxs">
-                <Settings className="!w-2.5 !h-2.5" />
-                {t('dashboard.conversationList.merge', 'Merge')}
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
-                <DialogTitle>{t('dashboard.threadMerger', 'Thread Merger')}</DialogTitle>
-              </DialogHeader>
-              <ThreadMerger 
-                inboxId={selectedInboxId !== 'all' ? selectedInboxId : undefined}
-                onMergeComplete={() => setShowThreadMerger(false)}
-              />
-            </DialogContent>
-          </Dialog>
+          {/* Desktop: show all buttons inline */}
+          {!isMobile && (
+            <>
+              {/* Select */}
+              {onToggleBulkMode && (
+                <Button
+                  variant={bulkSelectionMode ? "default" : "outline"}
+                  size="xxs"
+                  onClick={() => onToggleBulkMode?.()}
+                >
+                  <CheckSquare className="!w-2.5 !h-2.5" />
+                  {bulkSelectionMode 
+                    ? t('dashboard.conversationList.exitSelection', 'Exit') 
+                    : t('dashboard.conversationList.select', 'Select')}
+                </Button>
+              )}
 
-          {/* Migrate */}
-          <Dialog open={showMigrator} onOpenChange={setShowMigrator}>
-            <DialogTrigger asChild>
-              <Button variant="outline" size="xxs">
-                <Move className="!w-2.5 !h-2.5" />
-                {t('dashboard.conversationList.migrate', 'Migrate')}
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-md">
-              <DialogHeader>
-                <DialogTitle>{t('dashboard.migrateConversations', 'Migrate Conversations')}</DialogTitle>
-              </DialogHeader>
-              <ConversationMigrator 
-                sourceInboxId={selectedInboxId !== 'all' ? selectedInboxId : undefined}
-                onMigrationComplete={() => setShowMigrator(false)}
-              />
-            </DialogContent>
-          </Dialog>
+              {/* Merge */}
+              <Dialog open={showThreadMerger} onOpenChange={setShowThreadMerger}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="xxs">
+                    <Settings className="!w-2.5 !h-2.5" />
+                    {t('dashboard.conversationList.merge', 'Merge')}
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl">
+                  <DialogHeader>
+                    <DialogTitle>{t('dashboard.threadMerger', 'Thread Merger')}</DialogTitle>
+                  </DialogHeader>
+                  <ThreadMerger 
+                    inboxId={selectedInboxId !== 'all' ? selectedInboxId : undefined}
+                    onMergeComplete={() => setShowThreadMerger(false)}
+                  />
+                </DialogContent>
+              </Dialog>
 
-          {/* Mark All Read */}
-          <Button
-            variant="outline"
-            size="xxs"
-            onClick={markAllAsRead}
-            disabled={isMarkingAllAsRead || unreadCount === 0}
-          >
-            <CheckCheck className="!w-2.5 !h-2.5" />
-            {t('dashboard.conversationList.markAllRead', 'Read')}
-            {unreadCount > 0 && (
-              <Badge variant="destructive" className="h-3.5 px-1 text-[9px] ml-0.5">
-                {unreadCount}
-              </Badge>
-            )}
-          </Button>
+              {/* Migrate */}
+              <Dialog open={showMigrator} onOpenChange={setShowMigrator}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="xxs">
+                    <Move className="!w-2.5 !h-2.5" />
+                    {t('dashboard.conversationList.migrate', 'Migrate')}
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>{t('dashboard.migrateConversations', 'Migrate Conversations')}</DialogTitle>
+                  </DialogHeader>
+                  <ConversationMigrator 
+                    sourceInboxId={selectedInboxId !== 'all' ? selectedInboxId : undefined}
+                    onMigrationComplete={() => setShowMigrator(false)}
+                  />
+                </DialogContent>
+              </Dialog>
+
+              {/* Mark All Read */}
+              <Button
+                variant="outline"
+                size="xxs"
+                onClick={markAllAsRead}
+                disabled={isMarkingAllAsRead || unreadCount === 0}
+              >
+                <CheckCheck className="!w-2.5 !h-2.5" />
+                {t('dashboard.conversationList.markAllRead', 'Read')}
+                {unreadCount > 0 && (
+                  <Badge variant="destructive" className="h-3.5 px-1 text-[9px] ml-0.5">
+                    {unreadCount}
+                  </Badge>
+                )}
+              </Button>
+            </>
+          )}
+
+          {/* Mobile: overflow menu for secondary actions */}
+          {isMobile && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="xxs">
+                  <MoreHorizontal className="!w-3 !h-3" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-48">
+                {onToggleBulkMode && (
+                  <DropdownMenuItem onClick={() => onToggleBulkMode?.()}>
+                    <CheckSquare className="w-4 h-4 mr-2" />
+                    {bulkSelectionMode ? 'Exit Selection' : 'Select'}
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuItem onClick={() => setShowThreadMerger(true)}>
+                  <Settings className="w-4 h-4 mr-2" />
+                  Merge Threads
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setShowMigrator(true)}>
+                  <Move className="w-4 h-4 mr-2" />
+                  Migrate
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={markAllAsRead} disabled={isMarkingAllAsRead || unreadCount === 0}>
+                  <CheckCheck className="w-4 h-4 mr-2" />
+                  Mark All Read {unreadCount > 0 && `(${unreadCount})`}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
 
         {/* Right side: Filters + Sort */}
         <div className="flex items-center gap-1 ml-auto flex-shrink-0">
-          {/* Filters as DropdownMenu styled like Select */}
+          {/* Filters */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="flex h-7 items-center justify-between gap-1.5 rounded-md border border-input bg-background px-3 text-[10px] ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-50 whitespace-nowrap">
+              <button className="flex h-7 items-center justify-between gap-1 rounded-md border border-input bg-background px-2 text-[10px] ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-50 whitespace-nowrap">
                 <Filter className="!w-2.5 !h-2.5 shrink-0" />
-                <span className="truncate max-w-[70px] text-[10px]">{getFilterLabel()}</span>
+                {!isMobile && <span className="truncate max-w-[70px] text-[10px]">{getFilterLabel()}</span>}
                 {activeFilterCount > 0 && (
                   <Badge className="h-3.5 w-3.5 p-0 flex items-center justify-center text-[8px] bg-primary text-primary-foreground rounded-full">
                     {activeFilterCount}
@@ -224,7 +262,7 @@ export const ConversationListHeader = ({
             value={state.sortBy} 
             onValueChange={(value: SortBy) => dispatch({ type: 'SET_SORT_BY', payload: value })}
           >
-            <SelectTrigger className="w-auto h-7 text-[10px] gap-1.5 px-3">
+            <SelectTrigger className="w-auto h-7 text-[10px] gap-1 px-2">
               <SelectValue>{getSortLabel(state.sortBy)}</SelectValue>
             </SelectTrigger>
             <SelectContent align="end">
@@ -236,6 +274,34 @@ export const ConversationListHeader = ({
           </Select>
         </div>
       </div>
+
+      {/* Mobile dialogs (rendered outside the overflow menu) */}
+      {isMobile && (
+        <>
+          <Dialog open={showThreadMerger} onOpenChange={setShowThreadMerger}>
+            <DialogContent className="max-w-[95vw]">
+              <DialogHeader>
+                <DialogTitle>{t('dashboard.threadMerger', 'Thread Merger')}</DialogTitle>
+              </DialogHeader>
+              <ThreadMerger 
+                inboxId={selectedInboxId !== 'all' ? selectedInboxId : undefined}
+                onMergeComplete={() => setShowThreadMerger(false)}
+              />
+            </DialogContent>
+          </Dialog>
+          <Dialog open={showMigrator} onOpenChange={setShowMigrator}>
+            <DialogContent className="max-w-[95vw]">
+              <DialogHeader>
+                <DialogTitle>{t('dashboard.migrateConversations', 'Migrate Conversations')}</DialogTitle>
+              </DialogHeader>
+              <ConversationMigrator 
+                sourceInboxId={selectedInboxId !== 'all' ? selectedInboxId : undefined}
+                onMigrationComplete={() => setShowMigrator(false)}
+              />
+            </DialogContent>
+          </Dialog>
+        </>
+      )}
 
       {/* Active Filter Badges */}
       {hasActiveFilters && (

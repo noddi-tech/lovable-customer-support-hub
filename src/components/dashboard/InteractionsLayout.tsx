@@ -58,7 +58,8 @@ export const InteractionsLayout: React.FC<InteractionsLayoutProps> = ({
   activeSubTab,
   selectedTab,
   onTabChange,
-  selectedInboxId
+  selectedInboxId,
+  onBack
 }) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
