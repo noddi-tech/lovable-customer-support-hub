@@ -221,7 +221,6 @@ export const InteractionsLayout: React.FC<InteractionsLayoutProps> = ({
                 <ConversationView 
                   conversationId={selectedConversation.id}
                   conversationIds={selectedConversation._fetchIds}
-                  onBack={handleMobileBack}
                 />
               </div>
             ) : (
