@@ -388,47 +388,82 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
             </div>
             
             {/* Right: Actions */}
-            <div className="flex items-center gap-2 shrink-0">
-              <PresenceAvatarStack 
-                conversationId={conversationId} 
-                size="sm"
-                maxAvatars={3}
-                className="mr-1"
-                showSelfFallback
-              />
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  queryClient.invalidateQueries({ queryKey: ['conversation-messages', conversationId] });
-                  queryClient.invalidateQueries({ queryKey: ['conversation-meta', conversationId] });
-                  toast.success('Conversation refreshed');
-                }}
-                className="gap-1 h-7"
-                title="Refresh (Ctrl+R)"
-              >
-                <RefreshCw className="h-3.5 w-3.5" />
-                {!isMobile && <span className="text-xs">Refresh</span>}
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleToggleAll}
-                className="gap-1 h-7"
-                title={allExpanded ? "Collapse all messages" : "Expand all messages"}
-              >
-                {allExpanded ? (
-                  <>
-                    <ChevronsUp className="h-3.5 w-3.5" />
-                    {!isMobile && <span className="text-xs">Collapse</span>}
-                  </>
-                ) : (
-                  <>
-                    <ChevronsDown className="h-3.5 w-3.5" />
-                    {!isMobile && <span className="text-xs">Expand</span>}
-                  </>
-                )}
-              </Button>
+            <div className="flex items-center gap-1.5 shrink-0">
+              {!isMobile && (
+                <>
+                  <PresenceAvatarStack 
+                    conversationId={conversationId} 
+                    size="sm"
+                    maxAvatars={3}
+                    className="mr-1"
+                    showSelfFallback
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      queryClient.invalidateQueries({ queryKey: ['conversation-messages', conversationId] });
+                      queryClient.invalidateQueries({ queryKey: ['conversation-meta', conversationId] });
+                      toast.success('Conversation refreshed');
+                    }}
+                    className="gap-1 h-7"
+                    title="Refresh (Ctrl+R)"
+                  >
+                    <RefreshCw className="h-3.5 w-3.5" />
+                    <span className="text-xs">Refresh</span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleToggleAll}
+                    className="gap-1 h-7"
+                    title={allExpanded ? "Collapse all messages" : "Expand all messages"}
+                  >
+                    {allExpanded ? (
+                      <>
+                        <ChevronsUp className="h-3.5 w-3.5" />
+                        <span className="text-xs">Collapse</span>
+                      </>
+                    ) : (
+                      <>
+                        <ChevronsDown className="h-3.5 w-3.5" />
+                        <span className="text-xs">Expand</span>
+                      </>
+                    )}
+                  </Button>
+                </>
+              )}
+              {/* Mobile: Status dropdown inline */}
+              {isMobile && (
+                <Select 
+                  value={conversation?.status || 'open'} 
+                  onValueChange={(status) => updateStatus({ status })}
+                >
+                  <SelectTrigger className="h-7 w-[90px] text-xs shrink-0">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="open">
+                      <div className="flex items-center gap-1.5">
+                        <CircleDot className="h-3 w-3" />
+                        Open
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="pending">
+                      <div className="flex items-center gap-1.5">
+                        <Clock className="h-3 w-3" />
+                        Pending
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="closed">
+                      <div className="flex items-center gap-1.5">
+                        <CheckCircle2 className="h-3 w-3" />
+                        Closed
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
             </div>
           </div>
         </div>
