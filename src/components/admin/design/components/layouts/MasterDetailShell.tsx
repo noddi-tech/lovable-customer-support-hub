@@ -78,8 +78,8 @@ export const MasterDetailShell: React.FC<MasterDetailShellProps> = ({
             <div className="h-full flex flex-col min-h-0">
               {/* Detail content takes most space */}
               <div className="flex-1 min-h-0">
-                <ScrollArea className="h-full" aria-label={detailLeftLabel}>
-                  <div className="p-4">
+              <ScrollArea className="h-full" aria-label={detailLeftLabel}>
+                  <div className="p-0">
                     {detailLeft}
                   </div>
                 </ScrollArea>
