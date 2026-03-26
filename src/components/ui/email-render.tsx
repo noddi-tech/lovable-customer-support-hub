@@ -598,7 +598,7 @@ const EmailRenderComponent: React.FC<EmailRenderProps> = ({
       )}
 
       {/* Email Content */}
-      <div className="email-render__content" role="main">
+      <div className="email-render__content overflow-x-auto max-w-full" role="main">
         {renderContent()}
       </div>
       
