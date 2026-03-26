@@ -45,7 +45,7 @@ export const AppMainNav = () => {
   const { notifications: unreadNotifications } = useOptimizedCounts();
   const { dateTime, timezone } = useDateFormatting();
   
-  const isCollapsed = state === 'collapsed';
+  const isCollapsed = state === 'collapsed' && !isMobile;
   const isAdmin = checkIsAdmin();
   const groupedItems = getGroupedNavItems(isAdmin, isSuperAdmin);
   
