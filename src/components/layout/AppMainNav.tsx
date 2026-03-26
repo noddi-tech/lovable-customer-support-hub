@@ -39,13 +39,13 @@ export const AppMainNav = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const { state, toggleSidebar } = useSidebar();
+  const { state, toggleSidebar, isMobile } = useSidebar();
   const { isAdmin: checkIsAdmin, isLoading: permissionsLoading } = usePermissions();
   const { user, profile, signOut, isSuperAdmin } = useAuth();
   const { notifications: unreadNotifications } = useOptimizedCounts();
   const { dateTime, timezone } = useDateFormatting();
   
-  const isCollapsed = state === 'collapsed';
+  const isCollapsed = state === 'collapsed' && !isMobile;
   const isAdmin = checkIsAdmin();
   const groupedItems = getGroupedNavItems(isAdmin, isSuperAdmin);
   
