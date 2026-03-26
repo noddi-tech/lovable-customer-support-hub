@@ -1,34 +1,41 @@
 
 
-## Fix: Backfill Migration Was Overwritten by `updated_at` Trigger
+## Fix: Google OAuth Login Race Condition on support.noddi.co
 
-### What went wrong
-The `conversations` table has a BEFORE UPDATE trigger (`update_conversations_updated_at`) that runs `update_updated_at_column()`. This function sets `NEW.updated_at = now()` on every update — so the backfill migration's carefully computed timestamps were all overwritten with the current time.
+### Root Cause
 
-### Fix
-Run a new migration that **disables the trigger**, performs the backfill, then **re-enables it**.
+After Google OAuth completes, Supabase redirects to `https://support.noddi.co/#access_token=...` (the `redirectTo` is set to `window.location.origin + '/'`).
 
-```sql
--- Temporarily disable the auto-update trigger
-ALTER TABLE public.conversations DISABLE TRIGGER update_conversations_updated_at;
+The problem is on the `/` route in `App.tsx`:
 
--- Backfill updated_at from the latest message
-UPDATE public.conversations c
-SET updated_at = sub.latest_msg
-FROM (
-  SELECT conversation_id, MAX(created_at) AS latest_msg
-  FROM public.messages
-  GROUP BY conversation_id
-) sub
-WHERE c.id = sub.conversation_id
-  AND sub.latest_msg IS NOT NULL;
-
--- Re-enable the trigger
-ALTER TABLE public.conversations ENABLE TRIGGER update_conversations_updated_at;
+```
+<Route path="/" element={<Navigate to="/interactions/text" replace />} />
 ```
 
-| Action | Detail |
-|--------|--------|
-| SQL migration | Disable trigger → backfill → re-enable trigger |
-| Files changed | 1 new migration file |
+This `<Navigate>` fires during the first render -- **before** the AuthContext's `useEffect` can read and process the hash tokens. The hash gets stripped from the URL. Then:
+
+1. AuthContext's `handleOAuthCallback()` checks `window.location.hash` → no tokens found
+2. `getSession()` returns null because `_initialize()` hasn't completed the async exchange yet
+3. `loading` becomes `false`, `user` is `null`
+4. `ProtectedRoute` redirects to `/auth`
+5. Meanwhile, Supabase's internal `_initialize()` finishes and fires `SIGNED_IN`
+6. User may briefly see the login page, or end up in a redirect loop
+
+This matches the console log showing `SIGNED_IN` with `isProcessingOAuth: false` -- the AuthContext never detected the OAuth callback because the hash was already gone.
+
+### Fix
+
+Change `redirectTo` in `handleGoogleSignIn` (and magic link) to point to `/auth` instead of `/`. The Auth page has explicit hash-detection code that waits for AuthContext to process tokens before redirecting.
+
+| File | Change |
+|------|--------|
+| `src/pages/Auth.tsx` | Change `redirectTo` from `window.location.origin + '/'` to `window.location.origin + '/auth'` in `handleGoogleSignIn` and `handleMagicLink` |
+
+### What this fixes
+
+- After Google auth, user lands on `https://support.noddi.co/auth#access_token=...`
+- Auth page's `useEffect` sees hash tokens and skips the user-redirect check (line 93-96)
+- AuthContext's `handleOAuthCallback` detects the hash and processes tokens
+- Once `user` is set, Auth page's redirect kicks in and navigates to `/`
+- Clean, sequential flow with no race condition
 
