@@ -135,6 +135,14 @@ export const InteractionsLayout: React.FC<InteractionsLayoutProps> = ({
     }
   }, [urlConversation, conversationIdFromUrl, selectedConversation]);
 
+  // On mobile: detect when conversation is deselected via URL (back button in ConversationView)
+  useEffect(() => {
+    if (isMobile && !conversationIdFromUrl && selectedConversation) {
+      setSelectedConversation(null);
+      setShowConversationList(true);
+    }
+  }, [conversationIdFromUrl, isMobile, selectedConversation]);
+
   // Handle conversation selection
   const handleSelectConversation = useCallback((conversation: Conversation) => {
     // If this is a grouped thread, prepare to fetch from all thread IDs
@@ -190,11 +198,20 @@ export const InteractionsLayout: React.FC<InteractionsLayoutProps> = ({
   const enableResizing = isDesktop || isTablet;
 
   if (isMobile) {
+    const handleMobileBack = () => {
+      setSelectedConversation(null);
+      setShowConversationList(true);
+      // Clear conversation from URL
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete('c');
+      setSearchParams(newParams, { replace: true });
+    };
+
     // Mobile: Stack layout without resizing
     return (
       <div className="flex flex-col flex-1 min-h-0">
         {shouldShowConversationList ? (
-          <div className="flex flex-col bg-background border-b border-border min-h-0 flex-1">
+          <div className="flex flex-col bg-background min-h-0 flex-1">
             <ConversationList 
               selectedConversation={selectedConversation}
               onSelectConversation={handleSelectConversation}
