@@ -96,7 +96,7 @@ export const MobileEmailMessageCard = ({ message, conversation, isNewest = false
       
       {/* Expanded body */}
       {expanded && (
-        <div className="px-3 pb-3">
+        <div className="px-2 pb-2">
           <div className="mobile-email-body overflow-hidden">
             {isInternal ? (
               <MentionRenderer content={message.visibleBody} className="text-xs" />

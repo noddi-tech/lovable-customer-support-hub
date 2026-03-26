@@ -1668,6 +1668,14 @@ Optimized for accessibility with WCAG AA compliance.
   .mobile-email-body .email-render__html-content img {
     max-width: 100% !important;
     height: auto !important;
+    max-height: 80px;
+    object-fit: contain;
+  }
+
+  /* Allow explicitly large content images to remain full-size */
+  .mobile-email-body .email-render__html-content img[style*="width: 100%"],
+  .mobile-email-body .email-render__html-content img.content-image {
+    max-height: none;
   }
 
   /* Clamp long prose sections */
