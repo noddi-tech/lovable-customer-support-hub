@@ -351,6 +351,7 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
           <div className="flex items-center gap-3">
             {/* Left: Back + Customer Info + Subject */}
             <div className="flex items-center gap-3 min-w-0 flex-1">
+              {isMobile && <SidebarTrigger className="shrink-0" />}
               <Button 
                 variant="ghost" 
                 size="sm"

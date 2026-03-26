@@ -394,7 +394,7 @@ export const ReplyArea = () => {
             )}
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 md:gap-2 flex-wrap">
             {/* Note Template Selector - show in note mode */}
             {state.isInternalNote && (
               <NoteTemplateSelector 

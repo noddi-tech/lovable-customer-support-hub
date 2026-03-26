@@ -94,6 +94,8 @@ export const ConversationListHeader = ({
       <div className="flex items-center gap-1">
         {/* Left side: Action buttons */}
         <div className="flex items-center gap-1 flex-shrink-0">
+          {/* Sidebar trigger - mobile only */}
+          {isMobile && <SidebarTrigger className="shrink-0" />}
           {/* New - always visible */}
           <NewConversationDialog>
             <Button variant="default" size="xxs">

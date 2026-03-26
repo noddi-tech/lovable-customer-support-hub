@@ -260,7 +260,7 @@ export const ChatMessagesList = ({
                   
                   {/* Message bubble */}
                   <div className={cn(
-                    "px-4 py-3 rounded-2xl text-sm leading-relaxed break-words chat-bubble-content",
+                    "px-4 py-3 rounded-2xl text-sm leading-relaxed break-words chat-bubble-content overflow-hidden max-w-[280px] md:max-w-md [&_img]:max-w-full [&_img]:h-auto [&_table]:max-w-full",
                     isInternal
                       ? "bg-yellow-50 text-foreground border border-yellow-200 rounded-br-md"
                       : isAgent 
