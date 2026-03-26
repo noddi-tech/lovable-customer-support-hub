@@ -12,7 +12,6 @@ export const UnifiedAppLayout: React.FC<UnifiedAppLayoutProps> = ({
   children
 }) => {
   const [searchOpen, setSearchOpen] = useState(false);
-  const isMobile = useIsMobile();
 
   // Global Cmd+K / Ctrl+K shortcut
   useEffect(() => {
