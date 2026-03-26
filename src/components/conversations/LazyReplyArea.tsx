@@ -5,6 +5,7 @@ import { Reply, StickyNote } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useConversationView } from "@/contexts/ConversationViewContext";
 import { useIsMobile } from "@/hooks/use-responsive";
+import { cn } from "@/lib/utils";
 
 // Preload function - starts downloading the chunk without waiting
 const preloadReplyArea = () => import('@/components/dashboard/conversation-view/ReplyArea');
