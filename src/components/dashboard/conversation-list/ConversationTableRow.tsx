@@ -13,6 +13,7 @@ import { useOptimizedCounts } from '@/hooks/useOptimizedCounts';
 import { useTranslation } from 'react-i18next';
 import { SLABadge } from './SLABadge';
 import { getCustomerDisplay, getCustomerInitial } from '@/utils/customerDisplayName';
+import { useIsMobile } from '@/hooks/use-responsive';
 
 // --- Visual config maps ---
 
