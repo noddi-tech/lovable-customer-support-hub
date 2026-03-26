@@ -1,63 +1,43 @@
 
 
-## Fix Mobile Email: Customer API Data, Signature Images, Full Width
+## Fix: Email/Chat Width + Mobile Customer API Parity
 
-### 3 Issues to Fix
+### Problem 1: Excessive padding eating screen width
 
-**1. Customer API (Noddi) data not showing**
-`MobileCustomerSummaryCard` reads `noddiData?.data?.bookings` -- this field does not exist in the `NoddiLookupResponse` type. The actual data structure uses:
-- `noddiData.data.ui_meta.display_name` for name
-- `noddiData.data.ui_meta.service_title` for service
-- `noddiData.data.ui_meta.booking_date_iso` for date
-- `noddiData.data.ui_meta.vehicle_label` for vehicle
-- `noddiData.data.ui_meta.status_label` for status
-- `noddiData.data.ui_meta.money` for payment info
-- `noddiData.data.all_user_groups` for booking groups
-- `noddiData.data.priority_booking` for the main booking
-- `noddiData.data.unpaid_count` for unpaid alerts
+**Root cause chain** (confirmed via dev tools breadcrumb `div.p-4 > div.border.p-6.h-full`):
 
-**2. Signature images too large**
-The CSS already has `max-width: 100%` on images in `.mobile-email-body`, but signature images are not inside an `.email-signature` class -- they're just regular `<img>` tags in the email HTML. Need to add a max-height constraint on all images inside mobile email body (e.g., `max-height: 120px` for images that are smaller than full-width).
+1. `EnhancedInteractionsLayout.tsx` line 334-335: `renderMessageThread()` wraps `ConversationView` in `<Card className="h-full"><CardContent className="p-6">` -- adds 1.5rem padding on all sides, plus card border/shadow
+2. `MasterDetailShell.tsx` line 82: mobile detail mode wraps `detailLeft` in `<div className="p-4">` -- adds another 1rem padding
 
-**3. Content not using full card width**
-`MobileEmailMessageCard` uses `px-3` padding on the body. The parent `MobileEmailConversationView` also has no extra padding. The issue from the screenshot shows the desktop `ConversationViewContent` is still rendering its own wrapper with padding around the mobile component. Need to check the outer container.
+Combined = 2.5rem (40px) padding per side. On a 390px screen that's 80px wasted.
 
-### Changes
+**Fix**: On mobile, skip the Card wrapper and remove shell padding.
 
-#### File 1: `src/components/mobile/conversations/MobileCustomerSummaryCard.tsx`
-Rewrite to use the actual `NoddiLookupResponse` data structure:
-- Import the `NoddiLookupResponse` type
-- Read from `noddiData.data.ui_meta` for display name, service title, vehicle, status, booking date, money/payment
-- Show `all_user_groups` with booking counts
-- Show unpaid alert when `unpaid_count > 0`
-- Default expanded when Noddi data is found
-- Show phone from `noddiData.data.user?.phone_number`
+| File | Line | Change |
+|------|------|--------|
+| `EnhancedInteractionsLayout.tsx` | 333-356 | Detect `isMobile` and render `<ConversationView>` directly without `<Card>/<CardContent>` wrapper |
+| `MasterDetailShell.tsx` | 82 | Change `p-4` to `p-0` for the detail content wrapper on mobile |
 
-#### File 2: `src/components/mobile/conversations/MobileEmailMessageCard.tsx`
-- Reduce body padding from `px-3` to `px-2` to use more width
+### Problem 2: Mobile customer summary missing desktop features
 
-#### File 3: `src/index.css`
-Add to the mobile-email-body media query:
-```css
-/* Constrain signature-like images (logos, headshots) */
-.mobile-email-body .email-render__html-content img[width],
-.mobile-email-body .email-render__html-content img {
-  max-height: 80px;
-  object-fit: contain;
-}
-/* But allow full-width content images */
-.mobile-email-body .email-render__html-content img[style*="width: 100%"],
-.mobile-email-body .email-render__html-content img.content-image {
-  max-height: none;
-}
-```
+The desktop `NoddihKundeData.tsx` shows rich info that `MobileCustomerSummaryCard.tsx` lacks:
 
-### Summary
+- **Partner URLs**: "Open Customer" / "Open Booking #123" clickable links
+- **Service tags**: Colored badges (Dekkhotell=blue, Dekkskift=green, Hjemlevering=purple, etc.)
+- **Order summary**: Line items, quantities, VAT, total, outstanding amount
+- **Paid state chip**: Paid (green) / Unpaid (red) / Partially paid (yellow)
+- **Match mode**: "Matched by Email" / "Matched by Phone" badge
+- **Unable to complete** status with strikethrough pricing
+
+**Fix**: Add these to `MobileCustomerSummaryCard.tsx` using the same version-gating logic (`verNum >= 1.3`, etc.) and compact mobile layout.
+
+### Files to modify
+
 | File | Change |
 |------|--------|
-| `MobileCustomerSummaryCard.tsx` | Rewrite to use actual NoddiLookupResponse fields (ui_meta, all_user_groups, etc.) |
-| `MobileEmailMessageCard.tsx` | Reduce padding to `px-2` |
-| `src/index.css` | Add `max-height: 80px` on email images to shrink signature logos |
+| `src/components/dashboard/EnhancedInteractionsLayout.tsx` | Mobile-only: skip Card/CardContent wrapper around ConversationView |
+| `src/components/admin/design/components/layouts/MasterDetailShell.tsx` | Mobile detail: change `p-4` to `p-0` |
+| `src/components/mobile/conversations/MobileCustomerSummaryCard.tsx` | Add partner URLs, service tags, order summary, paid state, match mode |
 
-3 files. No new dependencies. Desktop unchanged.
+3 files. No new files. Desktop layout unchanged.
 
