@@ -34,6 +34,9 @@ import { cn } from '@/lib/utils';
 import { useConversationView } from '@/contexts/ConversationViewContext';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { useConversationPresenceSafe } from '@/contexts/ConversationPresenceContext';
+// Lazy-load mobile components to avoid bloating desktop bundle
+const MobileChatConversationView = lazy(() => import('@/components/mobile/conversations/MobileChatConversationView').then(m => ({ default: m.MobileChatConversationView })));
+const MobileEmailConversationView = lazy(() => import('@/components/mobile/conversations/MobileEmailConversationView').then(m => ({ default: m.MobileEmailConversationView })));
 import { PresenceAvatarStack } from '@/components/conversations/PresenceAvatarStack';
 import { TagDialog } from './TagDialog';
 import { SnoozeDialog } from './SnoozeDialog';
