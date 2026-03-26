@@ -86,27 +86,29 @@ export const LazyReplyArea = ({ conversationId, onReply }: LazyReplyAreaProps) =
 
   if (!showReplyArea) {
     return (
-      <div className="p-4 border-t border-border">
+      <div className={cn("p-3 border-t border-border", isMobile && "sticky bottom-0 bg-background z-10 p-2")}>
         <div className="flex gap-2">
           <Button
             onClick={handleShowReply}
             onMouseEnter={preloadReplyArea}
             className="flex-1"
             variant="default"
+            size={isMobile ? "sm" : "default"}
           >
             <Reply className="w-4 h-4 mr-2" />
             {t('conversation.reply')}
-            <kbd className="ml-2 px-1.5 py-0.5 text-[10px] bg-primary-foreground/20 rounded hidden sm:inline">R</kbd>
+            {!isMobile && <kbd className="ml-2 px-1.5 py-0.5 text-[10px] bg-primary-foreground/20 rounded hidden sm:inline">R</kbd>}
           </Button>
           <Button
             onClick={handleShowNote}
             onMouseEnter={preloadReplyArea}
             className="flex-1 bg-yellow-500 hover:bg-yellow-600 text-white"
             variant="default"
+            size={isMobile ? "sm" : "default"}
           >
             <StickyNote className="w-4 h-4 mr-2" />
             {t('conversation.internalNote')}
-            <kbd className="ml-2 px-1.5 py-0.5 text-[10px] bg-yellow-600/30 rounded hidden sm:inline">N</kbd>
+            {!isMobile && <kbd className="ml-2 px-1.5 py-0.5 text-[10px] bg-yellow-600/30 rounded hidden sm:inline">N</kbd>}
           </Button>
         </div>
       </div>
