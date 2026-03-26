@@ -137,6 +137,14 @@ export const InteractionsLayout: React.FC<InteractionsLayoutProps> = ({
     }
   }, [urlConversation, conversationIdFromUrl, selectedConversation]);
 
+  // On mobile: detect when conversation is deselected via URL (back button in ConversationView)
+  useEffect(() => {
+    if (isMobile && !conversationIdFromUrl && selectedConversation) {
+      setSelectedConversation(null);
+      setShowConversationList(true);
+    }
+  }, [conversationIdFromUrl, isMobile, selectedConversation]);
+
   // Handle conversation selection
   const handleSelectConversation = useCallback((conversation: Conversation) => {
     // If this is a grouped thread, prepare to fetch from all thread IDs
