@@ -1,68 +1,57 @@
 
 
-## Make Conversation List, Emails, and Chats Mobile-Friendly
+## Make Mobile Experience Usable: Scrolling, Overflow, and Sidebar Access
 
-### Current Problems
+### Problems Identified
 
-1. **Conversation list table is desktop-only**: The `ConversationTableRow` uses fixed-width columns (`w-48`, `w-32`, `w-24`, `w-28`, `w-20`) that overflow on mobile. No mobile-specific card layout exists.
+1. **No way to open sidebar on mobile**: The `Sidebar` component already renders as a Sheet on mobile (built into shadcn), but there's no `SidebarTrigger` button visible anywhere in the mobile layout. The sidebar is completely inaccessible.
 
-2. **No back button visible on mobile**: When viewing a conversation on mobile, the `InteractionsLayout` hides the list and shows the conversation view, but there's no obvious way to navigate back (the back button exists in `ConversationViewContent` but the sidebar is hidden).
+2. **Conversation list not scrollable on mobile**: The `ConversationList` container uses `overflow-hidden` but the virtualized table has a hardcoded `height: calc(100vh - 200px)` which doesn't account for the mobile layout. The `VirtualizedConversationTable` also has fixed column widths that cause horizontal overflow.
 
-3. **Header toolbar overflows**: `ConversationListHeader` renders 5+ action buttons and 2 dropdowns in a single row — unusable on small screens.
+3. **Email/chat view has horizontal overflow**: The `ProgressiveMessagesList` content column uses `max-w-5xl` (~1024px) which overflows on mobile. The `EmailRender` component has no overflow constraints, so wide HTML emails break the layout. The conversation view header (`ConversationViewContent`) has elements that overflow on narrow screens.
 
-4. **Side panel still renders on mobile**: The `CustomerSidePanel` is hidden (`!isMobile`), but the conversation view header still has too many controls crammed in one row.
+4. **"Back to Inbox" header takes space but sidebar trigger is missing**: On mobile conversation view, there's a back button but no hamburger menu to access main navigation.
 
-5. **Reply area takes too much space**: The reply area with its toolbar can consume most of the mobile viewport.
+### Changes
 
-6. **Sidebar navigation**: The `AppMainNav` sidebar works as a collapsible sidebar but on mobile the conversation list + sidebar compete for space.
+#### 1. Add SidebarTrigger to mobile layout
+**File: `src/components/layout/UnifiedAppLayout.tsx`**
+- Import `SidebarTrigger` from sidebar component
+- Add a fixed/sticky trigger button visible only on mobile (`md:hidden`) at the top-left or as a floating button
+- This lets users open the main nav drawer on mobile
 
-### Plan
-
-#### 1. Mobile conversation list card layout
-**File: `src/components/dashboard/conversation-list/ConversationTableRow.tsx`**
-
-Add a mobile-specific card layout that renders when `useIsMobile()` is true:
-- Show avatar + customer name + subject on first line
-- Show status badge + channel icon + waiting time on second line  
-- Compact single-tap card instead of wide table row
-- Apply to both the virtualized (`style` prop) and standard table row variants
-
-#### 2. Mobile-friendly conversation list header
+#### 2. Add SidebarTrigger to conversation list header on mobile
 **File: `src/components/dashboard/conversation-list/ConversationListHeader.tsx`**
+- Add a hamburger/menu `SidebarTrigger` as the first element on mobile, before the "New" button
+- This gives sidebar access from the inbox view
 
-- On mobile: show only essential actions (New, Filters, Sort) in a compact row
-- Hide Merge, Migrate, Select, Mark Read behind a "more" menu
-- Reduce padding and use icon-only buttons where possible
+#### 3. Fix conversation view overflow on mobile
+**File: `src/components/conversations/ProgressiveMessagesList.tsx`**
+- Change the content column from `max-w-5xl` to responsive: `max-w-full md:max-w-5xl`
+- Reduce horizontal padding on mobile: `px-1 md:px-2`
 
-#### 3. Mobile conversation view header
+#### 4. Add overflow containment to email rendering
+**File: `src/components/ui/email-render.tsx`**
+- Add `overflow-x-auto` and `max-w-full` to the email content wrapper so wide HTML emails scroll horizontally within their card rather than breaking the page layout
+
+#### 5. Fix conversation view header overflow on mobile
 **File: `src/components/dashboard/conversation-view/ConversationViewContent.tsx`**
+- Add `overflow-hidden` to the main flex container for both email and chat headers to prevent horizontal bleed
+- Ensure the email header row wraps properly with `min-w-0` on flex children
 
-- Simplify the email header on mobile: back button + customer name + status dropdown only
-- Move Refresh, Expand/Collapse, Presence indicators behind overflow menu or remove on mobile
-- For live chat header: same treatment — essential info only
-
-#### 4. Mobile back navigation improvement  
-**File: `src/components/dashboard/InteractionsLayout.tsx`**
-
-- When a conversation is selected on mobile and the user presses browser back or taps a back button, return to the conversation list
-- Ensure the back button in `ConversationViewContent` properly triggers `setShowConversationList(true)`
-
-#### 5. Reply area mobile optimization
-**File: `src/components/conversations/LazyReplyArea.tsx`**
-
-- On mobile, make the reply trigger buttons sticky at the bottom
-- When reply area is open, it should not push content off-screen — use a bottom sheet pattern or limit height
+#### 6. Add SidebarTrigger to conversation view on mobile
+**File: `src/components/dashboard/conversation-view/ConversationViewContent.tsx`**
+- Add a sidebar trigger (hamburger icon) next to the back button on mobile, so users can access navigation from the conversation detail view
 
 ### Technical Details
 
 | File | Change |
 |------|--------|
-| `ConversationTableRow.tsx` | Add mobile card layout branch using `useIsMobile()`, render compact 2-line card instead of wide table row |
-| `ConversationListHeader.tsx` | Wrap secondary actions in overflow menu on mobile, icon-only primary actions |
-| `ConversationViewContent.tsx` | Simplify header for mobile in both email and live chat branches |
-| `InteractionsLayout.tsx` | Wire back navigation so mobile users can return to list; pass `onBack` callback |
-| `LazyReplyArea.tsx` | Constrain reply area height on mobile |
+| `UnifiedAppLayout.tsx` | Add mobile-only `SidebarTrigger` in a sticky header bar |
+| `ConversationListHeader.tsx` | Add `SidebarTrigger` before "New" button on mobile |
+| `ProgressiveMessagesList.tsx` | Responsive `max-w-full md:max-w-5xl`, reduce mobile padding |
+| `email-render.tsx` | Add `overflow-x-auto max-w-full` to email content wrapper |
+| `ConversationViewContent.tsx` | Add `overflow-hidden` to containers, add sidebar trigger on mobile |
 
-### Scope
-5 files modified. No new dependencies. No database changes.
+No new dependencies. No database changes. 6 files modified.
 
