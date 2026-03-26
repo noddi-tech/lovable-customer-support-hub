@@ -248,7 +248,7 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
                     </span>
                   )}
                 </div>
-              )
+              )}
             </div>
 
             {/* Status dropdown */}
