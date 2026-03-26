@@ -51,6 +51,7 @@ interface InteractionsLayoutProps {
   selectedTab: string;
   onTabChange: (tab: string) => void;
   selectedInboxId: string;
+  onBack?: () => void;
 }
 
 export const InteractionsLayout: React.FC<InteractionsLayoutProps> = ({
