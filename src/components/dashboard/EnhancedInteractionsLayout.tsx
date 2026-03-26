@@ -17,6 +17,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { getCustomerDisplay } from '@/utils/customerDisplayName';
+import { useIsMobile } from '@/hooks/use-responsive';
 
 // Define conversation types
 type ConversationStatus = "open" | "pending" | "resolved" | "closed";
