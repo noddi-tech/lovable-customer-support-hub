@@ -1,41 +1,68 @@
 
 
-## Fix: Google OAuth Login Race Condition on support.noddi.co
+## Make Conversation List, Emails, and Chats Mobile-Friendly
 
-### Root Cause
+### Current Problems
 
-After Google OAuth completes, Supabase redirects to `https://support.noddi.co/#access_token=...` (the `redirectTo` is set to `window.location.origin + '/'`).
+1. **Conversation list table is desktop-only**: The `ConversationTableRow` uses fixed-width columns (`w-48`, `w-32`, `w-24`, `w-28`, `w-20`) that overflow on mobile. No mobile-specific card layout exists.
 
-The problem is on the `/` route in `App.tsx`:
+2. **No back button visible on mobile**: When viewing a conversation on mobile, the `InteractionsLayout` hides the list and shows the conversation view, but there's no obvious way to navigate back (the back button exists in `ConversationViewContent` but the sidebar is hidden).
 
-```
-<Route path="/" element={<Navigate to="/interactions/text" replace />} />
-```
+3. **Header toolbar overflows**: `ConversationListHeader` renders 5+ action buttons and 2 dropdowns in a single row — unusable on small screens.
 
-This `<Navigate>` fires during the first render -- **before** the AuthContext's `useEffect` can read and process the hash tokens. The hash gets stripped from the URL. Then:
+4. **Side panel still renders on mobile**: The `CustomerSidePanel` is hidden (`!isMobile`), but the conversation view header still has too many controls crammed in one row.
 
-1. AuthContext's `handleOAuthCallback()` checks `window.location.hash` → no tokens found
-2. `getSession()` returns null because `_initialize()` hasn't completed the async exchange yet
-3. `loading` becomes `false`, `user` is `null`
-4. `ProtectedRoute` redirects to `/auth`
-5. Meanwhile, Supabase's internal `_initialize()` finishes and fires `SIGNED_IN`
-6. User may briefly see the login page, or end up in a redirect loop
+5. **Reply area takes too much space**: The reply area with its toolbar can consume most of the mobile viewport.
 
-This matches the console log showing `SIGNED_IN` with `isProcessingOAuth: false` -- the AuthContext never detected the OAuth callback because the hash was already gone.
+6. **Sidebar navigation**: The `AppMainNav` sidebar works as a collapsible sidebar but on mobile the conversation list + sidebar compete for space.
 
-### Fix
+### Plan
 
-Change `redirectTo` in `handleGoogleSignIn` (and magic link) to point to `/auth` instead of `/`. The Auth page has explicit hash-detection code that waits for AuthContext to process tokens before redirecting.
+#### 1. Mobile conversation list card layout
+**File: `src/components/dashboard/conversation-list/ConversationTableRow.tsx`**
+
+Add a mobile-specific card layout that renders when `useIsMobile()` is true:
+- Show avatar + customer name + subject on first line
+- Show status badge + channel icon + waiting time on second line  
+- Compact single-tap card instead of wide table row
+- Apply to both the virtualized (`style` prop) and standard table row variants
+
+#### 2. Mobile-friendly conversation list header
+**File: `src/components/dashboard/conversation-list/ConversationListHeader.tsx`**
+
+- On mobile: show only essential actions (New, Filters, Sort) in a compact row
+- Hide Merge, Migrate, Select, Mark Read behind a "more" menu
+- Reduce padding and use icon-only buttons where possible
+
+#### 3. Mobile conversation view header
+**File: `src/components/dashboard/conversation-view/ConversationViewContent.tsx`**
+
+- Simplify the email header on mobile: back button + customer name + status dropdown only
+- Move Refresh, Expand/Collapse, Presence indicators behind overflow menu or remove on mobile
+- For live chat header: same treatment — essential info only
+
+#### 4. Mobile back navigation improvement  
+**File: `src/components/dashboard/InteractionsLayout.tsx`**
+
+- When a conversation is selected on mobile and the user presses browser back or taps a back button, return to the conversation list
+- Ensure the back button in `ConversationViewContent` properly triggers `setShowConversationList(true)`
+
+#### 5. Reply area mobile optimization
+**File: `src/components/conversations/LazyReplyArea.tsx`**
+
+- On mobile, make the reply trigger buttons sticky at the bottom
+- When reply area is open, it should not push content off-screen — use a bottom sheet pattern or limit height
+
+### Technical Details
 
 | File | Change |
 |------|--------|
-| `src/pages/Auth.tsx` | Change `redirectTo` from `window.location.origin + '/'` to `window.location.origin + '/auth'` in `handleGoogleSignIn` and `handleMagicLink` |
+| `ConversationTableRow.tsx` | Add mobile card layout branch using `useIsMobile()`, render compact 2-line card instead of wide table row |
+| `ConversationListHeader.tsx` | Wrap secondary actions in overflow menu on mobile, icon-only primary actions |
+| `ConversationViewContent.tsx` | Simplify header for mobile in both email and live chat branches |
+| `InteractionsLayout.tsx` | Wire back navigation so mobile users can return to list; pass `onBack` callback |
+| `LazyReplyArea.tsx` | Constrain reply area height on mobile |
 
-### What this fixes
-
-- After Google auth, user lands on `https://support.noddi.co/auth#access_token=...`
-- Auth page's `useEffect` sees hash tokens and skips the user-redirect check (line 93-96)
-- AuthContext's `handleOAuthCallback` detects the hash and processes tokens
-- Once `user` is set, Auth page's redirect kicks in and navigates to `/`
-- Clean, sequential flow with no race condition
+### Scope
+5 files modified. No new dependencies. No database changes.
 
