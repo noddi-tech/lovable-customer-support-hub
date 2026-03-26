@@ -92,6 +92,7 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
   const { conversation: formatConversationTime } = useDateFormatting();
   const { inboxes } = useOptimizedCounts();
   const { t } = useTranslation();
+  const isMobile = useIsMobile();
 
   const computedValues = useMemo(() => {
     const ChannelIcon = channelIcons[conversation.channel] || MessageCircle;
