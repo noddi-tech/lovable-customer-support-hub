@@ -256,7 +256,7 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
               value={conversation?.status || 'open'} 
               onValueChange={(status) => updateStatus({ status })}
             >
-              <SelectTrigger className="h-7 w-[110px] text-xs shrink-0">
+              <SelectTrigger className={cn("h-7 text-xs shrink-0", isMobile ? "w-[90px]" : "w-[110px]")}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -281,28 +281,31 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
               </SelectContent>
             </Select>
             
-            {/* Noddi info button - always show, component handles not-found state */}
-            <Button 
-              variant={showNoddiPanel ? "secondary" : "ghost"}
-              size="icon"
-              onClick={() => setShowNoddiPanel(!showNoddiPanel)}
-              title="View Noddi customer info"
-              className="shrink-0 relative"
-            >
-              <Info className="h-4 w-4" />
-              {/* Show indicator dot if customer found in Noddi */}
-              {noddiData?.data?.found && (
-                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-green-500 rounded-full" />
-              )}
-            </Button>
+            {/* Noddi info button - hide on mobile */}
+            {!isMobile && (
+              <Button 
+                variant={showNoddiPanel ? "secondary" : "ghost"}
+                size="icon"
+                onClick={() => setShowNoddiPanel(!showNoddiPanel)}
+                title="View Noddi customer info"
+                className="shrink-0 relative"
+              >
+                <Info className="h-4 w-4" />
+                {noddiData?.data?.found && (
+                  <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-green-500 rounded-full" />
+                )}
+              </Button>
+            )}
             
-            {/* Team presence with connection indicator */}
-            <PresenceAvatarStack 
-              conversationId={conversationId} 
-              size="sm" 
-              maxAvatars={2}
-              showSelfFallback
-            />
+            {/* Team presence - hide on mobile */}
+            {!isMobile && (
+              <PresenceAvatarStack 
+                conversationId={conversationId} 
+                size="sm" 
+                maxAvatars={2}
+                showSelfFallback
+              />
+            )}
           </div>
           
           {/* Chat Messages Area - full height, compact mode skips duplicate header */}
