@@ -31,6 +31,7 @@ import { CustomerSidePanel } from './CustomerSidePanel';
 import { useConversationShortcuts } from '@/hooks/useConversationShortcuts';
 import { cn } from '@/lib/utils';
 import { useConversationView } from '@/contexts/ConversationViewContext';
+import { SidebarTrigger } from '@/components/ui/sidebar';
 import { useConversationPresenceSafe } from '@/contexts/ConversationPresenceContext';
 import { PresenceAvatarStack } from '@/components/conversations/PresenceAvatarStack';
 import { TagDialog } from './TagDialog';
