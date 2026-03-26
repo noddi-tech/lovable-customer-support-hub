@@ -186,6 +186,83 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
     !conversation.is_read && "font-semibold"
   );
 
+  // --- Mobile card layout ---
+  if (isMobile) {
+    return (
+      <div 
+        style={style} 
+        className={cn(
+          "px-3 py-3 border-b border-border cursor-pointer active:bg-muted/70 transition-colors",
+          isSelected && "bg-primary/8",
+          !conversation.is_read && "bg-primary/5"
+        )} 
+        onClick={handleRowClick}
+      >
+        <div className="flex items-start gap-3">
+          {showBulkCheckbox && (
+            <div className="pt-1 shrink-0">
+              <Checkbox checked={isBulkSelected} onCheckedChange={handleCheckboxChange} onClick={(e) => e.stopPropagation()} />
+            </div>
+          )}
+          <Avatar className="h-9 w-9 ring-1 ring-border shrink-0 mt-0.5">
+            <AvatarFallback className="text-xs font-medium">{computedValues.customerInitial}</AvatarFallback>
+          </Avatar>
+          <div className="flex-1 min-w-0">
+            {/* Line 1: Customer name + time */}
+            <div className="flex items-center justify-between gap-2 mb-0.5">
+              <span className={cn("text-sm truncate", !conversation.is_read && "font-semibold")}>
+                {computedValues.customerName}
+              </span>
+              <span className="text-[11px] text-muted-foreground shrink-0">
+                {computedValues.waitingTime}
+              </span>
+            </div>
+            {/* Line 2: Subject */}
+            <div className="flex items-center gap-1.5 mb-1">
+              <span className={cn("text-xs truncate text-muted-foreground", !conversation.is_read && "text-foreground")}>
+                {computedValues.subjectText}
+              </span>
+              {conversation.thread_count && conversation.thread_count > 1 && (
+                <Badge variant="outline" className="px-1 py-0 text-[9px] shrink-0 border-primary/30 text-primary">
+                  {conversation.thread_count}
+                </Badge>
+              )}
+            </div>
+            {/* Line 3: Status + Channel + badges */}
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {StatusBadge}
+              <div className="flex items-center gap-1 text-muted-foreground">
+                <computedValues.ChannelIcon className="h-3 w-3" />
+                <span className="text-[10px] capitalize">
+                  {conversation.channel === 'widget' ? 'Chat' : conversation.channel}
+                </span>
+              </div>
+              {!conversation.is_read && (
+                <Badge className="bg-primary text-primary-foreground px-1.5 py-0 text-[9px]">New</Badge>
+              )}
+              {conversation.last_message_is_internal && (
+                <Badge className="px-1 py-0 text-[9px] bg-yellow-50 text-yellow-800 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-800">
+                  <Lock className="h-2.5 w-2.5 mr-0.5" />
+                  Note
+                </Badge>
+              )}
+              {conversation.is_archived && (
+                <Badge className="px-1 py-0 text-[9px] bg-muted text-muted-foreground">
+                  <Archive className="h-2.5 w-2.5 mr-0.5" />
+                </Badge>
+              )}
+              {conversation.channel === 'widget' && (conversation.metadata as any)?.chatSessionStatus === 'active' && (
+                <Badge variant="outline" className="text-[9px] px-1 py-0 bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-700 animate-pulse">
+                  LIVE
+                </Badge>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // --- Virtualized row (div-based) ---
   if (style) {
     return (

@@ -42,6 +42,7 @@ export const ConversationListHeader = ({
   const { t } = useTranslation();
   const [showMigrator, setShowMigrator] = useState(false);
   const [showThreadMerger, setShowThreadMerger] = useState(false);
+  const isMobile = useIsMobile();
 
   const unreadCount = filteredConversations.filter(c => !c.is_read).length;
 
