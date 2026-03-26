@@ -110,7 +110,7 @@ export const Auth: React.FC = () => {
       const { data, error } = await supabase.functions.invoke('dev-login', {
         body: { 
           email: 'joachim@noddi.no',
-          redirectTo: window.location.origin + '/'
+          redirectTo: window.location.origin + '/auth'
         }
       });
 
