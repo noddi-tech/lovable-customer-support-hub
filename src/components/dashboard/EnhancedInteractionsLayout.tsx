@@ -305,10 +305,20 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
     );
   };
 
-  // Render message thread
+  const isMobile = useIsMobile();
+
   const renderMessageThread = () => {
     if (!conversationId || !thread) {
       if (threadLoading) {
+        if (isMobile) {
+          return (
+            <div className="space-y-4 p-4">
+              <Skeleton className="h-6 w-3/4" />
+              <Skeleton className="h-4 w-1/2" />
+              <Skeleton className="h-16 w-full" />
+            </div>
+          );
+        }
         return (
           <Card className="h-full">
             <CardContent className="p-6">
@@ -330,6 +340,13 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
 
     // Smart customer display to prevent duplicate email
     const customerDisplay = getCustomerDisplay(thread.customer?.full_name, thread.customer?.email);
+
+    // Mobile: render without Card wrapper for full width
+    if (isMobile) {
+      return (
+        <ConversationView conversationId={conversationId} conversationIds={conversationIds} showSidePanel={true} />
+      );
+    }
 
     return (
       <Card className="h-full">
