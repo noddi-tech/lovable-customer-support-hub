@@ -385,7 +385,7 @@ export const ProgressiveMessagesList = forwardRef<ProgressiveMessagesListRef, Pr
 
       {/* Sticky "Jump to Latest" Button */}
       {showJumpToLatest && (
-        <div className="fixed bottom-8 right-8 z-20">
+        <div className="fixed bottom-20 right-4 md:bottom-8 md:right-8 z-20">
           <Button
             onClick={scrollToBottom}
             className="shadow-lg hover:shadow-xl transition-all duration-200 rounded-full h-12 px-6"
