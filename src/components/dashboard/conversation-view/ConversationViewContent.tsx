@@ -159,10 +159,6 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
     const newParams = new URLSearchParams(searchParams);
     newParams.delete('c');
     setSearchParams(newParams);
-    // If onBack callback exists (mobile), use it
-    if ((conversation as any)?._onBack) {
-      (conversation as any)._onBack();
-    }
   };
 
   // ============ LIVE CHAT UI (WhatsApp-style) ============
