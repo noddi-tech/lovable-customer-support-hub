@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { SidebarProvider } from '@/components/ui/sidebar';
+import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { AppMainNav } from './AppMainNav';
 import { SearchCommandPalette } from '@/components/search/SearchCommandPalette';
 import { UIProbe } from '@/dev/UIProbe';
+import { useIsMobile } from '@/hooks/use-responsive';
 
 interface UnifiedAppLayoutProps {
   children: React.ReactNode;
@@ -12,6 +13,7 @@ export const UnifiedAppLayout: React.FC<UnifiedAppLayoutProps> = ({
   children
 }) => {
   const [searchOpen, setSearchOpen] = useState(false);
+  const isMobile = useIsMobile();
 
   // Global Cmd+K / Ctrl+K shortcut
   useEffect(() => {
@@ -33,8 +35,14 @@ export const UnifiedAppLayout: React.FC<UnifiedAppLayoutProps> = ({
         {/* Sidebar Navigation */}
         <AppMainNav />
 
-        {/* Main Content Area — no header row */}
+        {/* Main Content Area */}
         <main className="flex-1 min-h-0 w-full max-w-none overflow-auto bg-background">
+          {isMobile && (
+            <div className="sticky top-0 z-30 flex items-center h-10 px-2 border-b border-border bg-card/95 backdrop-blur-sm md:hidden">
+              <SidebarTrigger />
+              <span className="ml-2 text-sm font-medium text-foreground">Menu</span>
+            </div>
+          )}
           {children}
         </main>
       </div>

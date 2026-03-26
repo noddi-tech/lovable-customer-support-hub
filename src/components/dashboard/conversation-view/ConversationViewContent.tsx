@@ -164,9 +164,9 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
   // ============ LIVE CHAT UI (WhatsApp-style) ============
   if (isLiveChat) {
     return (
-      <div className="flex h-full bg-card">
+    <div className="flex h-full bg-card overflow-hidden">
         {/* Chat container */}
-        <div className="flex flex-col flex-1 min-h-0">
+        <div className="flex flex-col flex-1 min-h-0 min-w-0 overflow-hidden">
           {/* Visitor left banner */}
           {onlineStatus?.hasLeft && (
             <div className="flex items-center gap-2 px-4 py-2 bg-amber-50 dark:bg-amber-950/30 border-b border-amber-200 dark:border-amber-800">
@@ -337,9 +337,9 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
 
   // ============ EMAIL UI (Original layout) ============
   return (
-    <div className="flex h-full">
+    <div className="flex h-full overflow-hidden">
       {/* Main conversation area */}
-      <div className="flex flex-col min-h-0 flex-1 bg-white">
+      <div className="flex flex-col min-h-0 flex-1 min-w-0 overflow-hidden bg-white">
         {/* Compact Conversation Header */}
         <div className="flex-shrink-0 px-3 py-2 border-b border-border bg-card/80 backdrop-blur-sm shadow-sm">
           <div className="flex items-center gap-3">
