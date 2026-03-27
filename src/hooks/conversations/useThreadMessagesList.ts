@@ -97,10 +97,13 @@ export function useThreadMessagesList(conversationIds?: string | string[], conte
       return true;
     });
 
+    // Filter Google Groups forwarding echoes (inbound copies of outbound replies)
+    const echoFiltered = filterForwardingEchoes(dedupedMessages);
+
     // Optionally expand quoted messages into separate cards for thread view
     const expandedMessages = ENABLE_QUOTED_EXTRACTION && context
-      ? expandQuotedMessagesToCards(dedupedMessages, context)
-      : dedupedMessages;
+      ? expandQuotedMessagesToCards(echoFiltered, context)
+      : echoFiltered;
 
     logger.debug('Thread expansion stats', {
       enabled: ENABLE_QUOTED_EXTRACTION,
