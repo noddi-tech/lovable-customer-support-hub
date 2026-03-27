@@ -353,6 +353,10 @@ export const sanitizeEmailHTML = (
         const inlineClass = assetInfo.attachment.isInline ? ' email-inline-image' : '';
         if (!assetInfo.attachment.storageKey) {
           console.warn(`[EmailFormatting] Content-Location attachment has no binary data: "${assetInfo.attachment.filename}"`);
+          // For inline/signature images, hide instead of showing placeholder
+          if (assetInfo.attachment.isInline) {
+            return `src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" style="display:none" data-cid-miss="true"`;
+          }
           return `src="${createPlaceholder('data-missing')}" data-attachment="true" class="email-attachment-image${inlineClass}"`;
         }
         
