@@ -369,6 +369,13 @@ export const sanitizeEmailHTML = (
     }
   );
 
+  // Strip empty spacer paragraphs (Outlook generates these)
+  processedContent = processedContent
+    .replace(/<p[^>]*>\s*(?:&nbsp;|\s|<br\s*\/?>)*\s*<\/p>/gi, '');
+
+  // Detect and wrap HTML signature blocks
+  processedContent = wrapHtmlSignature(processedContent);
+
   // Fix common email HTML issues
   processedContent = processedContent
     // Fix unquoted attributes common in email HTML
