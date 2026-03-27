@@ -315,6 +315,10 @@ export const sanitizeEmailHTML = (
         const inlineClass = assetInfo.attachment.isInline ? ' email-inline-image' : '';
         if (!assetInfo.attachment.storageKey) {
           console.warn(`[EmailFormatting] Attachment has no binary data stored: "${assetInfo.attachment.filename}"`);
+          // For inline/signature images, hide instead of showing placeholder
+          if (assetInfo.attachment.isInline) {
+            return `src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" style="display:none" data-cid-miss="true"`;
+          }
           return `src="${createPlaceholder('data-missing')}" data-attachment="true" class="email-attachment-image${inlineClass}"`;
         }
         
@@ -324,8 +328,9 @@ export const sanitizeEmailHTML = (
         return `src="${attachmentUrl}" data-attachment="true" class="email-attachment-image${inlineClass}"`;
       }
       
+      // CID miss - hide for likely inline/signature images
       console.log(`[EmailFormatting] CID miss for: "${normalizedCid}"`);
-      return `src="${createPlaceholder('cid-miss')}" data-attachment="true" class="email-attachment-image"`;
+      return `src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" style="display:none" data-cid-miss="true"`;
     }
   );
   
