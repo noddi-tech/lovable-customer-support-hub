@@ -52,7 +52,7 @@ describe('normalizeMessage - Google Groups forwarding detection', () => {
       is_internal: false,
       created_at: '2026-03-27T10:00:00Z',
       email_headers: {
-        raw: 'From: group@googlegroups.com\nX-Original-From: "Agent Name" <agent@noddi.no>\nTo: customer@example.com',
+        raw: 'From: group@googlegroups.com\nX-Original-From: agent@noddi.no\nTo: customer@example.com',
       },
     };
 
