@@ -490,8 +490,8 @@ export const Auth: React.FC = () => {
     <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-gradient-to-br from-background via-background to-muted">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/10 via-transparent to-transparent" />
       
-      <Card className="w-full max-w-sm relative z-10 shadow-2xl border-border/50 bg-card/95 backdrop-blur-sm max-h-[90vh] flex flex-col">
-        <CardHeader className="space-y-3 text-center pb-4 shrink-0">
+      <Card className="w-full max-w-sm relative z-10 shadow-2xl border-border/50 bg-card/95 backdrop-blur-sm max-h-[95vh] flex flex-col">
+        <CardHeader className="space-y-2 text-center pb-3 shrink-0">
           <div className="mx-auto w-16 h-16 mb-1">
             <img 
               src="/images/logo-support-hub.png" 
