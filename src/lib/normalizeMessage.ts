@@ -243,14 +243,15 @@ export function createNormalizationContext(options: {
 }
 
 /**
- * Determine if an email belongs to an agent
+ * Determine if an email belongs to an agent.
+ * Only uses explicit agent emails and current user email — NOT broad domain matching.
  */
 function isAgentEmail(email: string | undefined, ctx: NormalizationContext): boolean {
   if (!email) return false;
   
   const normalizedEmail = email.toLowerCase().trim();
   
-  // Check against known agent emails
+  // Check against known agent emails (explicitly provided)
   if (ctx.agentEmailSet.has(normalizedEmail)) {
     return true;
   }
@@ -260,14 +261,8 @@ function isAgentEmail(email: string | undefined, ctx: NormalizationContext): boo
     return true;
   }
   
-  // Check against org domains (if available)
-  if (ctx.orgDomains?.length) {
-    for (const domain of ctx.orgDomains) {
-      if (normalizedEmail.endsWith(`@${domain.toLowerCase()}`)) {
-        return true;
-      }
-    }
-  }
+  // Do NOT use broad org-domain matching — it misclassifies customer emails
+  // from the same domain as agent emails.
   
   return false;
 }
