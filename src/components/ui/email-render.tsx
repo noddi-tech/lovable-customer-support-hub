@@ -388,10 +388,9 @@ const EmailRenderComponent: React.FC<EmailRenderProps> = ({
       messageId
     }, 'EmailRender');
 
-    // If processed content is empty or too short, fall back to original
-    const contentToRender = processedContent.trim().length > 10 
-      ? processedContent 
-      : content;
+    // Always use processed (sanitized) content — parseQuotedEmail now has a safety check
+    // to restore original content if quote stripping would leave it empty
+    const contentToRender = processedContent;
     
     if (isHTML) {
       // Parse the HTML and render with React components for collapsible sections
