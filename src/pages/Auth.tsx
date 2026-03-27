@@ -510,7 +510,7 @@ export const Auth: React.FC = () => {
           </CardDescription>
         </CardHeader>
 
-        <CardContent className="space-y-3 overflow-y-auto px-6 pb-6">
+        <CardContent className="space-y-2 overflow-y-auto px-6 pb-5">
           {inviteBanner}
           
           <Tabs value={authMethod} onValueChange={(value) => setAuthMethod(value as 'google' | 'email' | 'magic')} className="w-full">
