@@ -1,72 +1,64 @@
 
 
-## Fix: Raw HTML Tags Showing as Visible Text + Style Sanitizer Conflicts
+## Fix: Empty Email Body When All Content Is Quoted/Forwarded
 
 ### Problem
 
-The screenshot shows `<div dir="auto"></div><br>` and `<p></p>` rendered as literal text. The email body is unreadable.
+The first message in the thread (a `Fwd: Re: Fwd:` email) renders with a completely empty body. Only "Show quoted text" appears. The user correctly asks: "How can we have answered an empty email?"
 
-### Root Cause Analysis
+### Root Cause
 
-**Bug 1: Empty-content fallback dumps raw HTML as plain text (critical)**
+This is caused by our quote-stripping logic, NOT by the recent CSS changes.
 
-In `src/components/ui/email-render.tsx` lines 413-431, when DOMPurify sanitization produces content with very little visible text (< 10 chars), the component falls back to rendering the **raw unsanitized `content`** inside a `<pre>` tag:
+**Flow:**
+1. `normalizeMessage()` calls `parseQuotedEmail()` which runs `extractFromHtml()`
+2. `extractFromHtml()` detects Gmail/Outlook quoted containers and `blockquote` elements, stripping them all
+3. For forwarded emails (`Fwd:`), the **entire body IS the forwarded content** — there's no "new" text above it
+4. After stripping, `visibleContent` is empty
+5. `normalizeMessage` sets `visibleBody = parsedContent.visibleContent` (empty string)
+6. `MessageItem` renders `message.visibleBody` → nothing visible
 
-```tsx
-if (!sanitizedContent || visibleText.trim().length < 10) {
-  return (
-    <div className="email-render__plain-content">
-      <pre>{content}</pre>  // RAW HTML shown as literal text!
-    </div>
-  );
-}
-```
-
-This email is a forwarded thread (`Fwd: Re: Fwd:`) where the "new" visible content is nearly empty — just empty `<div>` and `<p>` tags. The quote parser strips the forwarded body. The visible text check finds < 10 chars, triggers the fallback, and the raw HTML source (with all its tags) is rendered as plain text.
-
-**Bug 2: Style sanitizer strips `height` and `display` from images**
-
-The DOMPurify hook sets `style="max-width: 100%; height: auto; display: block;"` on images (line 223), but the style sanitizer (line 250-288) only allows `height` and `display` for table elements. For `<IMG>` elements, `height: auto` and `display: block` are stripped, leaving only `max-width: 100%`.
+**Then in `email-render.tsx`:**
+- Line 392: `processedContent.trim().length > 10` is false (empty), so it falls back to raw `content`
+- But `sanitizeEmailHTML` also calls `parseQuotedEmail` again, which strips everything again
+- Result: empty content rendered
 
 ### Fix
 
-**File: `src/components/ui/email-render.tsx`**
-
-1. Change the empty-content fallback to render the sanitized HTML instead of raw content. If sanitized content exists but has short visible text, still render it as HTML — the email may legitimately be very short. Only fall back to plain text if `sanitizedContent` is truly empty string.
-
-```tsx
-// Before (broken):
-if (!sanitizedContent || visibleText.trim().length < 10) {
-  return <pre>{content}</pre>;
-}
-
-// After (fixed):
-if (!sanitizedContent) {
-  // Truly empty after sanitization — show original as plain text
-  return <div className="email-render__plain-content">
-    <pre>{stripHtmlTags(content)}</pre>
-  </div>;
-}
-// Otherwise render the sanitized HTML normally, even if short
-```
-
-**File: `src/utils/emailFormatting.ts`**
-
-2. Add `height`, `display`, `max-height` to `baseProperties` in the style sanitizer so they aren't stripped from images:
+**File: `src/lib/parseQuotedEmail.ts`** — Add a safety check at the end of `extractFromHtml()`: if the visible content after stripping is empty or trivially short (< 20 chars of text), restore the original content and clear the quoted blocks. The email should show the full content rather than nothing.
 
 ```ts
-const baseProperties = [
-  'color', 'background-color', 'background', 'font-family', 'font-size', 'font-weight',
-  'text-decoration', 'text-align', 'margin', 'padding', 'border',
-  // ... existing ...
-  'max-width', 'height', 'max-height', 'display'  // Added
-];
+// After STEP 5, before return:
+const textOnly = (body.textContent || body.innerText || '').trim();
+if (textOnly.length < 20 && quoted.length > 0) {
+  // All content was classified as quoted — restore it as visible
+  // This happens with forwarded emails where the entire body is the forward
+  return {
+    visibleHTML: html, // Return original HTML
+    quoted: [],        // Don't strip anything
+    quotedMessages: []
+  };
+}
+```
+
+**File: `src/components/ui/email-render.tsx`** — Remove the line 392-394 fallback that substitutes raw unsanitized `content` when `processedContent` is short. This is dangerous (renders unsanitized HTML) and now unnecessary since `parseQuotedEmail` will no longer produce empty output.
+
+```tsx
+// Before (line 392-394):
+const contentToRender = processedContent.trim().length > 10 
+  ? processedContent 
+  : content;
+
+// After:
+const contentToRender = processedContent;
 ```
 
 ### Summary
 
 | # | File | Change |
 |---|------|--------|
-| 1 | `src/components/ui/email-render.tsx` | Fix empty-content fallback to not dump raw HTML as text |
-| 2 | `src/utils/emailFormatting.ts` | Add `height`, `display`, `max-height` to allowed base style properties |
+| 1 | `src/lib/parseQuotedEmail.ts` | If visible content is empty after quote stripping, restore original |
+| 2 | `src/components/ui/email-render.tsx` | Remove unsafe raw-content fallback |
+
+This ensures forwarded emails always show their content. The "Show quoted text" feature still works for emails that have genuine new content above the quoted section. No CSS or formatting changes needed.
 
