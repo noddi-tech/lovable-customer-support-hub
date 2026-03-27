@@ -2,15 +2,9 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 // Mock logger before imports
 vi.mock('@/utils/logger', () => ({
-  logger: {
-    debug: vi.fn(),
-    time: vi.fn(),
-    timeEnd: vi.fn(),
-    trackParseCache: vi.fn(),
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-  },
+  logger: new Proxy({}, {
+    get: () => vi.fn(),
+  }),
 }));
 
 import { normalizeMessage, createNormalizationContext, type NormalizationContext } from '../normalizeMessage';
