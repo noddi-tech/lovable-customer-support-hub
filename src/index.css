@@ -374,7 +374,7 @@ Optimized for accessibility with WCAG AA compliance.
   /* Global: constrain signature images across all devices */
   .email-render__html-content .email-signature img,
   .email-render__plain-content .email-signature img {
-    max-height: 80px !important;
+    max-height: 40px !important;
     width: auto !important;
     object-fit: contain;
   }
