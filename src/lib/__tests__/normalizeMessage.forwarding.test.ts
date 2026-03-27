@@ -1,10 +1,19 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { normalizeMessage, createNormalizationContext, type NormalizationContext } from '../normalizeMessage';
 
-// Mock document.createElement for extractNameEmail's HTML stripping
-beforeEach(() => {
-  if (typeof document === 'undefined') return;
-});
+// Mock logger before imports
+vi.mock('@/utils/logger', () => ({
+  logger: {
+    debug: vi.fn(),
+    time: vi.fn(),
+    timeEnd: vi.fn(),
+    trackParseCache: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+  },
+}));
+
+import { normalizeMessage, createNormalizationContext, type NormalizationContext } from '../normalizeMessage';
 
 describe('normalizeMessage - Google Groups forwarding detection', () => {
   let ctx: NormalizationContext;
