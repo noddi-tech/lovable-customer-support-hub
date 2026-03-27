@@ -1,65 +1,72 @@
 
 
-## Fix: Compress Entire Email Rendering — Root Cause Analysis
+## Fix: Raw HTML Tags Showing as Visible Text + Style Sanitizer Conflicts
 
-### Root Causes (3 bugs causing 70%+ wasted vertical space)
+### Problem
 
-**Bug 1: `white-space: pre-wrap` on HTML emails (biggest impact)**
+The screenshot shows `<div dir="auto"></div><br>` and `<p></p>` rendered as literal text. The email body is unreadable.
 
-`src/index.css` line 261 sets `white-space: pre-wrap !important` on `.email-render__html-content`. This preserves ALL whitespace from the HTML source — every newline, every indentation between tags becomes visible vertical space. Outlook HTML source is heavily indented with newlines between every element.
+### Root Cause Analysis
 
-This should be `normal` for HTML emails. Only plain text needs `pre-wrap`.
+**Bug 1: Empty-content fallback dumps raw HTML as plain text (critical)**
 
-**Bug 2: DOMPurify hooks are dead code — inline styles survive untouched**
+In `src/components/ui/email-render.tsx` lines 413-431, when DOMPurify sanitization produces content with very little visible text (< 10 chars), the component falls back to rendering the **raw unsanitized `content`** inside a `<pre>` tag:
 
-`src/utils/emailFormatting.ts` lines 187-295 place hooks inside a `HOOKS` config key. DOMPurify does NOT support this — hooks must be registered via `DOMPurify.addHook()`. This means:
-- Line 223 (`node.setAttribute('style', 'max-width: 100%; ...')`) on images **never runs**
-- Lines 252-292 (style sanitizer) **never runs**
-- Original Outlook inline styles like `width: 0.8541in; height: 0.8541in`, `padding: 0cm 6pt 3.75pt 0cm` all survive
-- While CSS `!important` overrides some, others (like image `width`/`height` in `in` units) are not covered
-
-**Bug 3: Overly generous base typography**
-
-Line 262: `line-height: 1.5` and line 265: `font-size: 14px` are generous. Combined with `prose prose-sm` Tailwind class adding its own margins, everything stacks.
-
-### Fix Plan
-
-#### 1. Split white-space by content type (`src/index.css`)
-
-```css
-.email-render__html-content {
-  white-space: normal !important;  /* was pre-wrap */
-}
-.email-render__plain-content {
-  white-space: pre-wrap !important; /* keep for plain text */
+```tsx
+if (!sanitizedContent || visibleText.trim().length < 10) {
+  return (
+    <div className="email-render__plain-content">
+      <pre>{content}</pre>  // RAW HTML shown as literal text!
+    </div>
+  );
 }
 ```
 
-#### 2. Register DOMPurify hooks properly (`src/utils/emailFormatting.ts`)
+This email is a forwarded thread (`Fwd: Re: Fwd:`) where the "new" visible content is nearly empty — just empty `<div>` and `<p>` tags. The quote parser strips the forwarded body. The visible text check finds < 10 chars, triggers the fallback, and the raw HTML source (with all its tags) is rendered as plain text.
 
-Move the hook logic OUT of the config object. Before calling `DOMPurify.sanitize()`:
+**Bug 2: Style sanitizer strips `height` and `display` from images**
+
+The DOMPurify hook sets `style="max-width: 100%; height: auto; display: block;"` on images (line 223), but the style sanitizer (line 250-288) only allows `height` and `display` for table elements. For `<IMG>` elements, `height: auto` and `display: block` are stripped, leaving only `max-width: 100%`.
+
+### Fix
+
+**File: `src/components/ui/email-render.tsx`**
+
+1. Change the empty-content fallback to render the sanitized HTML instead of raw content. If sanitized content exists but has short visible text, still render it as HTML — the email may legitimately be very short. Only fall back to plain text if `sanitizedContent` is truly empty string.
+
+```tsx
+// Before (broken):
+if (!sanitizedContent || visibleText.trim().length < 10) {
+  return <pre>{content}</pre>;
+}
+
+// After (fixed):
+if (!sanitizedContent) {
+  // Truly empty after sanitization — show original as plain text
+  return <div className="email-render__plain-content">
+    <pre>{stripHtmlTags(content)}</pre>
+  </div>;
+}
+// Otherwise render the sanitized HTML normally, even if short
+```
+
+**File: `src/utils/emailFormatting.ts`**
+
+2. Add `height`, `display`, `max-height` to `baseProperties` in the style sanitizer so they aren't stripped from images:
+
 ```ts
-DOMPurify.addHook('afterSanitizeAttributes', function(node) {
-  // ... existing hook logic from lines 188-294
-});
-const sanitized = DOMPurify.sanitize(processedContent, config);
-DOMPurify.removeHook('afterSanitizeAttributes'); // cleanup
+const baseProperties = [
+  'color', 'background-color', 'background', 'font-family', 'font-size', 'font-weight',
+  'text-decoration', 'text-align', 'margin', 'padding', 'border',
+  // ... existing ...
+  'max-width', 'height', 'max-height', 'display'  // Added
+];
 ```
-Remove the `HOOKS` key from the config object entirely.
-
-#### 3. Tighten base typography (`src/index.css`)
-
-- `line-height: 1.3` (from 1.5)
-- `font-size: 13px` (from 14px)
-- Paragraph margin-bottom: `0.15em` (from 0.25em)
-- `br` height: `0.3em` (from 0.5em)
 
 ### Summary
 
 | # | File | Change |
 |---|------|--------|
-| 1 | `src/index.css` | Split white-space by content type, tighten typography |
-| 2 | `src/utils/emailFormatting.ts` | Register DOMPurify hooks via proper API |
-
-The `white-space: normal` fix alone should cut rendered height by ~40%. Combined with working hooks (stripping inline Outlook styles) and tighter typography, total reduction should hit the 60-70% target.
+| 1 | `src/components/ui/email-render.tsx` | Fix empty-content fallback to not dump raw HTML as text |
+| 2 | `src/utils/emailFormatting.ts` | Add `height`, `display`, `max-height` to allowed base style properties |
 
