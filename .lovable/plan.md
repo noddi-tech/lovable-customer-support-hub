@@ -1,47 +1,34 @@
 
 
-## Fix: Constrain Signature Images Across All Devices
+## Fix: Signature Logo Image Still 200x200
 
-### Problem
-Signature images (like the Lomundal logo) render at full size on desktop/tablet, making emails look much taller than needed. Constraints only exist for mobile (`.mobile-email-body img { max-height: 80px }`).
+### Root Cause
 
-### Solution
-Add global CSS rules in `src/index.css` that cap signature images on **all** viewports. Since most email signatures don't have an `.email-signature` class wrapper, we also need a heuristic: images that appear after the last paragraph of actual content tend to be signature images. The most reliable CSS-only approach is to:
-
-1. Cap images inside `.email-signature` blocks to `max-height: 80px` globally
-2. Add a general rule on all email-render images to cap them at a reasonable height (e.g., `200px`) unless they're explicitly full-width content images -- this prevents any single image from dominating the card while still allowing meaningful content images
-
-### Changes
-
-**File: `src/index.css`** — Add global (non-mobile) rules:
+The signature logo (Lomundal teardrop) is a CID-referenced inline attachment. During email formatting, `emailFormatting.ts` rewrites all CID images with `class="email-attachment-image" data-attachment="true"`. This causes the CSS rule at line 565 to apply:
 
 ```css
-/* Global: constrain signature images across all devices */
-.email-render__html-content .email-signature img,
-.email-render__plain-content .email-signature img {
-  max-height: 80px !important;
-  width: auto !important;
-  object-fit: contain;
-}
-
-/* Global: prevent any single inline image from being excessively tall */
-.email-render__html-content img,
-.email-render__plain-content img {
-  max-height: 200px;
-  object-fit: contain;
-}
-
-/* Allow explicitly full-width content images to remain large */
-.email-render__html-content img[style*="width: 100%"],
-.email-render__html-content img.content-image {
-  max-height: none;
+.email-render__html-content img.email-attachment-image {
+  max-height: 300px !important;   /* overrides our 200px rule */
+  min-height: 100px !important;   /* forces minimum size */
 }
 ```
 
-This means:
-- **Desktop/tablet**: Signature images ≤ 80px tall, other images ≤ 200px tall
-- **Mobile**: All images ≤ 80px tall (existing rule stays)
-- Full-width content images are exempted everywhere
+Our global `max-height: 200px` rule (line 383) has no `!important` so it loses. The `.email-signature` rule never matches because the image isn't inside an `.email-signature` wrapper.
 
-1 file changed. No functional changes. Works across all breakpoints.
+### Fix
+
+**CSS-only approach** — add a size cap for inline attachment images that are small (signature logos). The attachment metadata has `isInline` info, but it's not propagated to the HTML class. Two changes:
+
+1. **`src/utils/emailFormatting.ts`**: When rewriting CID/Content-Location images, check `assetInfo.attachment.isInline`. If true, add an extra class `email-inline-image` alongside `email-attachment-image`.
+
+2. **`src/index.css`**: Add a rule that caps `.email-inline-image` to `max-height: 80px` — inline images are almost always signature logos, not content images. This overrides the attachment rule.
+
+### Changes
+
+| File | Change |
+|------|--------|
+| `src/utils/emailFormatting.ts` | Add `email-inline-image` class when `assetInfo.attachment.isInline === true` on all CID/Content-Location rewrites |
+| `src/index.css` | Add global + mobile rule: `.email-inline-image { max-height: 80px !important; min-height: 0 !important; width: auto !important; }` |
+
+2 files. No new dependencies. Non-inline attachment images unchanged.
 
