@@ -312,15 +312,16 @@ export const sanitizeEmailHTML = (
       
       if (assetInfo) {
         // Check if attachment has no binary data stored (no storageKey = data was never uploaded)
+        const inlineClass = assetInfo.attachment.isInline ? ' email-inline-image' : '';
         if (!assetInfo.attachment.storageKey) {
           console.warn(`[EmailFormatting] Attachment has no binary data stored: "${assetInfo.attachment.filename}"`);
-          return `src="${createPlaceholder('data-missing')}" data-attachment="true" class="email-attachment-image"`;
+          return `src="${createPlaceholder('data-missing')}" data-attachment="true" class="email-attachment-image${inlineClass}"`;
         }
         
         // Use storageKey for Supabase Storage - must use actual Supabase URL, not app origin
         const attachmentUrl = `https://qgfaycwsangsqzpveoup.supabase.co/functions/v1/get-attachment?key=${encodeURIComponent(assetInfo.attachment.storageKey)}`;
         console.log(`[EmailFormatting] Found CID match, using URL: ${attachmentUrl}`);
-        return `src="${attachmentUrl}" data-attachment="true" class="email-attachment-image"`;
+        return `src="${attachmentUrl}" data-attachment="true" class="email-attachment-image${inlineClass}"`;
       }
       
       console.log(`[EmailFormatting] CID miss for: "${normalizedCid}"`);
@@ -344,15 +345,16 @@ export const sanitizeEmailHTML = (
       
       if (assetInfo) {
         // Check if attachment has no binary data stored
+        const inlineClass = assetInfo.attachment.isInline ? ' email-inline-image' : '';
         if (!assetInfo.attachment.storageKey) {
           console.warn(`[EmailFormatting] Content-Location attachment has no binary data: "${assetInfo.attachment.filename}"`);
-          return `src="${createPlaceholder('data-missing')}" data-attachment="true" class="email-attachment-image"`;
+          return `src="${createPlaceholder('data-missing')}" data-attachment="true" class="email-attachment-image${inlineClass}"`;
         }
         
         // Use storageKey for Supabase Storage - must use actual Supabase URL, not app origin
         const attachmentUrl = `https://qgfaycwsangsqzpveoup.supabase.co/functions/v1/get-attachment?key=${encodeURIComponent(assetInfo.attachment.storageKey)}`;
         console.log(`[EmailFormatting] Found Content-Location match, using URL: ${attachmentUrl}`);
-        return `src="${attachmentUrl}" data-attachment="true" class="email-attachment-image"`;
+        return `src="${attachmentUrl}" data-attachment="true" class="email-attachment-image${inlineClass}"`;
       }
       
       console.log(`[EmailFormatting] Content-Location miss for: "${normalizedLocation}"`);
