@@ -590,8 +590,8 @@ Optimized for accessibility with WCAG AA compliance.
     min-height: 80px !important;
   }
 
-  .email-render__html-content img[data-attachment]:hover,
-  .email-render__html-content img.email-attachment-image:hover {
+  .email-render__html-content img[data-attachment]:not(.email-inline-image):hover,
+  .email-render__html-content img.email-attachment-image:not(.email-inline-image):hover {
     opacity: 0.85;
   }
 
