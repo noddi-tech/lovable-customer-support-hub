@@ -439,8 +439,8 @@ export function normalizeMessage(rawMessage: any, ctx: NormalizationContext): No
   const avatarParts = (cleanedAvatarName || from.email?.split('@')[0] || 'A').split(/[\s._-]+/).filter(Boolean);
   const initial = avatarParts.map(p => p[0]).join('').toUpperCase().slice(0, 3) || 'A';
   
-  // Determine direction
-  const direction: 'inbound' | 'outbound' = isAgent ? 'outbound' : 'inbound';
+  // Determine direction — use authorType (which includes DB sender_type) not just isAgent
+  const direction: 'inbound' | 'outbound' = (isAgent || authorType === 'agent') ? 'outbound' : 'inbound';
   
   // Extract quoted blocks
   const quotedBlocks = parsedContent.quotedBlocks;
