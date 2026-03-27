@@ -25,34 +25,38 @@ function stripToText(body: string): string | null {
  * message appear inside an inbound message, it's an echo.
  */
 function filterForwardingEchoes(messages: NormalizedMessage[]): NormalizedMessage[] {
-  // Collect ALL message texts with timestamps (both inbound and outbound)
-  // so we can detect echoes of any earlier message, not just outbound
-  const allTexts: { text: string; time: number; id: string }[] = [];
+  // Collect ONLY agent/outbound message texts — we only filter inbound messages
+  // that are echoes of earlier AGENT replies (not customer messages).
+  // This prevents hiding legitimate customer follow-ups that quote earlier emails.
+  const agentTexts: { text: string; time: number; id: string }[] = [];
   for (const m of messages) {
     if (m.isInternalNote) continue;
+    if (m.direction !== 'outbound' && m.authorType !== 'agent') continue;
     const text = stripToText(m.visibleBody);
     if (text) {
-      allTexts.push({ text, time: new Date(m.createdAt).getTime(), id: m.id });
+      agentTexts.push({ text, time: new Date(m.createdAt).getTime(), id: m.id });
     }
   }
 
-  if (allTexts.length === 0) return messages;
+  if (agentTexts.length === 0) return messages;
 
   return messages.filter(m => {
+    // Only filter inbound/customer messages
     if (m.direction !== 'inbound') return true;
+    if (m.authorType !== 'customer') return true;
     const inboundText = stripToText(m.visibleBody);
     if (!inboundText) return true;
     const inboundTime = new Date(m.createdAt).getTime();
 
-    for (const earlier of allTexts) {
-      // Only match against messages that came BEFORE this one
-      if (earlier.time >= inboundTime) continue;
-      if (earlier.id === m.id) continue;
-      const searchKey = earlier.text.substring(0, 80);
+    // Only compare against earlier AGENT messages
+    for (const agentMsg of agentTexts) {
+      if (agentMsg.time >= inboundTime) continue;
+      if (agentMsg.id === m.id) continue;
+      const searchKey = agentMsg.text.substring(0, 80);
       if (inboundText.includes(searchKey)) {
-        logger.debug('Filtering forwarding echo (substring match against earlier message)', {
+        logger.debug('Filtering forwarding echo (inbound contains earlier agent reply)', {
           messageId: m.id,
-          matchedAgainst: earlier.id,
+          matchedAgainst: agentMsg.id,
         }, 'EchoFilter');
         return false;
       }

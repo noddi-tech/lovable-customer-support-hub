@@ -73,10 +73,8 @@ export function useConversationMessages(conversationId?: string, normalizationCo
   const defaultContext = createNormalizationContext({
     currentUserEmail: user?.email || undefined,
     inboxEmail: inboxData || undefined,
-    // TODO: Add agent emails from organization data when available
     agentEmails: [],
     agentPhones: [],
-    agentDomains: ['noddi.no'], // Seed with known agent domains
   });
   
   const ctx = normalizationContext || defaultContext;

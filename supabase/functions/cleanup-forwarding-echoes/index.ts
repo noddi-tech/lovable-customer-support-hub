@@ -21,7 +21,7 @@ Deno.serve(async (req) => {
   try {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     const body = await req.json().catch(() => ({}));
-    const dryRun = body.dryRun !== false; // default true
+    const dryRun = body.dryRun !== false; // default true — ALWAYS dry-run unless explicitly false
 
     const startTime = Date.now();
     const MAX_EXECUTION_TIME = 45000;
@@ -71,23 +71,24 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        // Collect ALL non-internal message texts with timestamps
-        // so we can detect echoes of any earlier message (agent or customer)
-        const allTexts: { text: string; time: number; id: string }[] = [];
+        // Collect ONLY agent/outbound message texts (the originals we're looking for echoes of)
+        const agentTexts: { text: string; time: number; id: string }[] = [];
         for (const m of messages) {
           if (m.is_internal) continue;
+          if (m.sender_type !== 'agent') continue;
           const text = stripToText(m.content);
           if (text) {
-            allTexts.push({ text, time: new Date(m.created_at).getTime(), id: m.id });
+            agentTexts.push({ text, time: new Date(m.created_at).getTime(), id: m.id });
           }
         }
 
-        if (allTexts.length === 0) {
+        if (agentTexts.length === 0) {
           conversationsScanned++;
           continue;
         }
 
-        // Find echoes: non-agent, non-internal messages whose content matches an earlier message
+        // Find echoes: non-agent, non-internal messages whose content contains
+        // a substantial portion of an earlier AGENT message
         const echoIds: string[] = [];
         for (const m of messages) {
           if (m.sender_type === 'agent' || m.is_internal) continue;
@@ -95,13 +96,13 @@ Deno.serve(async (req) => {
           if (!inboundText) continue;
           const inboundTime = new Date(m.created_at).getTime();
 
-          for (const earlier of allTexts) {
-            if (earlier.time >= inboundTime) continue;
-            if (earlier.id === m.id) continue;
-            const searchKey = earlier.text.substring(0, 80);
+          for (const agentMsg of agentTexts) {
+            if (agentMsg.time >= inboundTime) continue;
+            if (agentMsg.id === m.id) continue;
+            const searchKey = agentMsg.text.substring(0, 80);
             if (inboundText.includes(searchKey)) {
               echoIds.push(m.id);
-              console.log(`[cleanup-forwarding-echoes] Echo found: message ${m.id} echoes earlier ${earlier.id} in conversation ${conv.id}`);
+              console.log(`[cleanup-forwarding-echoes] Echo found: message ${m.id} echoes agent message ${agentMsg.id} in conversation ${conv.id}`);
               break;
             }
           }

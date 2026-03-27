@@ -197,7 +197,6 @@ export function useThreadMessages(conversationIds?: string | string[]) {
         inboxEmail: inboxEmail,
         agentEmails: [], 
         agentPhones: [],
-        agentDomains: ['noddi.no'], // helps classify agents
         conversationCustomerEmail: customerData?.email,
         conversationCustomerName: customerData?.full_name,
       });
