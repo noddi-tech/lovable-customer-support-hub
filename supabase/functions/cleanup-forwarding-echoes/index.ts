@@ -4,13 +4,13 @@ import { corsHeaders } from '../_shared/cors.ts';
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
-function normalizeForEcho(body: string): string | null {
+function stripToText(body: string): string | null {
   const text = body
     .replace(/<[^>]+>/g, '')
     .replace(/\s+/g, ' ')
     .trim()
     .toLowerCase();
-  return text.length > 20 ? text.substring(0, 200) : null;
+  return text.length > 30 ? text : null;
 }
 
 Deno.serve(async (req) => {
@@ -25,7 +25,6 @@ Deno.serve(async (req) => {
 
     const startTime = Date.now();
     const MAX_EXECUTION_TIME = 45000;
-    const ECHO_WINDOW_MS = 15 * 60 * 1000;
 
     console.log(`[cleanup-forwarding-echoes] Starting. dryRun=${dryRun}`);
 
@@ -72,41 +71,42 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        // Build agent content hashes
-        const agentHashes = new Map<string, number>();
+        // Collect agent outbound texts (substring keys)
+        const agentTexts: string[] = [];
         for (const m of messages) {
           if (m.sender_type === 'agent' && !m.is_internal) {
-            const hash = normalizeForEcho(m.content);
-            if (hash) {
-              agentHashes.set(hash, new Date(m.created_at).getTime());
+            const text = stripToText(m.content);
+            if (text) {
+              agentTexts.push(text);
             }
           }
         }
 
-        if (agentHashes.size === 0) {
+        if (agentTexts.length === 0) {
           conversationsScanned++;
           continue;
         }
 
-        // Find echoes
+        // Find echoes using substring match
         const echoIds: string[] = [];
         for (const m of messages) {
           if (m.sender_type === 'agent' || m.is_internal) continue;
-          const hash = normalizeForEcho(m.content);
-          if (!hash) continue;
-          const agentTime = agentHashes.get(hash);
-          if (agentTime === undefined) continue;
-          const inboundTime = new Date(m.created_at).getTime();
-          if (inboundTime >= agentTime && (inboundTime - agentTime) < ECHO_WINDOW_MS) {
-            echoIds.push(m.id);
-            console.log(`[cleanup-forwarding-echoes] Echo found: message ${m.id} in conversation ${conv.id}`);
+          const inboundText = stripToText(m.content);
+          if (!inboundText) continue;
+
+          for (const agentText of agentTexts) {
+            const searchKey = agentText.substring(0, 80);
+            if (inboundText.includes(searchKey)) {
+              echoIds.push(m.id);
+              console.log(`[cleanup-forwarding-echoes] Echo found: message ${m.id} in conversation ${conv.id}`);
+              break;
+            }
           }
         }
 
         echoesFound += echoIds.length;
 
         if (!dryRun && echoIds.length > 0) {
-          // Delete in batches of 50
           for (let i = 0; i < echoIds.length; i += 50) {
             const batch = echoIds.slice(i, i + 50);
             const { error: deleteError } = await supabase

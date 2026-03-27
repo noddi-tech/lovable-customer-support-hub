@@ -5,53 +5,51 @@ import { ENABLE_QUOTED_EXTRACTION } from "@/lib/parseQuotedEmail";
 import { logger } from "@/utils/logger";
 
 /**
- * Normalize message body for echo comparison:
- * strip HTML, collapse whitespace, lowercase, take first 200 chars.
+ * Strip HTML tags, collapse whitespace, lowercase for content comparison.
  */
-function normalizeForEcho(body: string): string | null {
+function stripToText(body: string): string | null {
   const text = body
     .replace(/<[^>]+>/g, '')
     .replace(/\s+/g, ' ')
     .trim()
     .toLowerCase();
-  return text.length > 20 ? text.substring(0, 200) : null;
+  return text.length > 30 ? text : null;
 }
 
 /**
  * Filter Google Groups forwarding echoes:
  * When an agent reply is forwarded back through Google Groups,
- * it appears as a new inbound message with identical content.
- * Detect and remove these by comparing inbound content against
- * recent outbound messages within a short time window.
+ * it appears as a new inbound message containing the agent's text
+ * (often with forwarding headers prepended).
+ * Uses substring matching — if the first 80 chars of an outbound
+ * message appear inside an inbound message, it's an echo.
  */
 function filterForwardingEchoes(messages: NormalizedMessage[]): NormalizedMessage[] {
-  const ECHO_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
-
-  const outboundHashes = new Map<string, number>();
+  const outboundTexts: string[] = [];
   for (const m of messages) {
     if (m.direction === 'outbound' && !m.isInternalNote) {
-      const hash = normalizeForEcho(m.visibleBody);
-      if (hash) {
-        outboundHashes.set(hash, new Date(m.createdAt).getTime());
+      const text = stripToText(m.visibleBody);
+      if (text) {
+        outboundTexts.push(text);
       }
     }
   }
 
-  if (outboundHashes.size === 0) return messages;
+  if (outboundTexts.length === 0) return messages;
 
   return messages.filter(m => {
     if (m.direction !== 'inbound') return true;
-    const hash = normalizeForEcho(m.visibleBody);
-    if (!hash) return true;
-    const outboundTime = outboundHashes.get(hash);
-    if (outboundTime === undefined) return true;
-    const inboundTime = new Date(m.createdAt).getTime();
-    if (inboundTime >= outboundTime && (inboundTime - outboundTime) < ECHO_WINDOW_MS) {
-      logger.debug('Filtering forwarding echo', {
-        messageId: m.id,
-        timeDiffMs: inboundTime - outboundTime
-      }, 'EchoFilter');
-      return false;
+    const inboundText = stripToText(m.visibleBody);
+    if (!inboundText) return true;
+
+    for (const outText of outboundTexts) {
+      const searchKey = outText.substring(0, 80);
+      if (inboundText.includes(searchKey)) {
+        logger.debug('Filtering forwarding echo (substring match)', {
+          messageId: m.id,
+        }, 'EchoFilter');
+        return false;
+      }
     }
     return true;
   });
