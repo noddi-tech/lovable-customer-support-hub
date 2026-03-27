@@ -1,0 +1,21 @@
+{
+  "name": "Support Hub",
+  "short_name": "Support Hub",
+  "description": "One app to rule them all!",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#1a1a2e",
+  "icons": [
+    {
+      "src": "/images/logo-support-hub.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/images/logo-support-hub.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

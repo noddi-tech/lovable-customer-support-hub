@@ -490,8 +490,8 @@ export const Auth: React.FC = () => {
     <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-gradient-to-br from-background via-background to-muted">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/10 via-transparent to-transparent" />
       
-      <Card className="w-full max-w-sm relative z-10 shadow-2xl border-border/50 bg-card/95 backdrop-blur-sm max-h-[90vh] flex flex-col">
-        <CardHeader className="space-y-3 text-center pb-4 shrink-0">
+      <Card className="w-full max-w-sm relative z-10 shadow-2xl border-border/50 bg-card/95 backdrop-blur-sm max-h-[95vh] flex flex-col">
+        <CardHeader className="space-y-2 text-center pb-3 shrink-0">
           <div className="mx-auto w-16 h-16 mb-1">
             <img 
               src="/images/logo-support-hub.png" 
@@ -510,17 +510,17 @@ export const Auth: React.FC = () => {
           </CardDescription>
         </CardHeader>
 
-        <CardContent className="space-y-3 overflow-y-auto px-6 pb-6">
+        <CardContent className="space-y-2 overflow-y-auto px-6 pb-5">
           {inviteBanner}
           
           <Tabs value={authMethod} onValueChange={(value) => setAuthMethod(value as 'google' | 'email' | 'magic')} className="w-full">
-            <TabsList className="grid w-full grid-cols-3 mb-3 h-9">
+            <TabsList className="grid w-full grid-cols-3 mb-2 h-9">
               <TabsTrigger value="google" className="text-xs">Quick</TabsTrigger>
               <TabsTrigger value="email" className="text-xs">Email</TabsTrigger>
               <TabsTrigger value="magic" className="text-xs">Magic Link</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="google" className="space-y-3 mt-3">
+            <TabsContent value="google" className="space-y-2 mt-2">
               <div className="text-center space-y-3">
                 <p className="text-sm text-muted-foreground">Sign in quickly with your Google account</p>
                 <Button

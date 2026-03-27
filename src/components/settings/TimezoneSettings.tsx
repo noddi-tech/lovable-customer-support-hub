@@ -85,9 +85,16 @@ export function TimezoneSettings() {
         } else {
           // If no timezone is set, auto-save the detected one
           setCurrentTimezone(browserTimezone);
+          // Detect browser's preferred time format
+          let detectedFormat = '12h';
+          try {
+            const resolved = new Intl.DateTimeFormat(navigator.language, { hour: 'numeric' }).resolvedOptions() as any;
+            detectedFormat = resolved.hourCycle === 'h23' || resolved.hourCycle === 'h24' ? '24h' : '12h';
+          } catch {}
+          setCurrentTimeFormat(detectedFormat);
           await supabase
             .from('profiles')
-            .update({ timezone: browserTimezone, time_format: '12h' })
+            .update({ timezone: browserTimezone, time_format: detectedFormat })
             .eq('user_id', user.id);
         }
       } catch (error) {

@@ -55,7 +55,7 @@ image_transformation = true
 enabled = true
 site_url = "https://support.noddi.co"
 additional_redirect_urls = ["http://127.0.0.1:3000", "https://127.0.0.1:3000", "https://85bad663-82f6-4abe-b065-809b79462500.sandbox.lovable.dev", "https://support.noddi.co", "https://lovable-customer-support-hub.lovable.app"]
-jwt_expiry = 3600
+jwt_expiry = 604800
 enable_signup = true
 enable_anonymous_sign_ins = false
 

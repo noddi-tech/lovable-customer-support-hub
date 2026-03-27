@@ -3,6 +3,17 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 
+/** Detect whether the user's browser locale prefers 24h or 12h time */
+function detectBrowserTimeFormat(): '12h' | '24h' {
+  try {
+    const resolved = new Intl.DateTimeFormat(navigator.language, { hour: 'numeric' }).resolvedOptions() as any;
+    const hourCycle = resolved.hourCycle;
+    return hourCycle === 'h23' || hourCycle === 'h24' ? '24h' : '12h';
+  } catch {
+    return '12h';
+  }
+}
+
 export function useUserTimezone() {
   const { user } = useAuth();
   
@@ -10,6 +21,8 @@ export function useUserTimezone() {
   const browserTimezone = useMemo(() => {
     return Intl.DateTimeFormat().resolvedOptions().timeZone;
   }, []);
+
+  const browserTimeFormat = useMemo(() => detectBrowserTimeFormat(), []);
 
   // Use React Query for optimized caching and deduplication
   const { data: profile, isLoading, error } = useQuery({
@@ -50,7 +63,7 @@ export function useUserTimezone() {
             .from('profiles')
             .update({ 
               timezone: browserTimezone, 
-              time_format: '12h' 
+              time_format: browserTimeFormat 
             })
             .eq('user_id', user.id);
         } catch (error) {
@@ -65,7 +78,7 @@ export function useUserTimezone() {
   // Memoized return values to prevent unnecessary re-renders
   return useMemo(() => ({
     timezone: profile?.timezone || browserTimezone,
-    timeFormat: profile?.time_format || '12h',
+    timeFormat: profile?.time_format || browserTimeFormat,
     isLoading: isLoading && !!user
-  }), [profile, browserTimezone, isLoading, user]);
+  }), [profile, browserTimezone, browserTimeFormat, isLoading, user]);
 }
