@@ -183,117 +183,111 @@ export const sanitizeEmailHTML = (
     KEEP_CONTENT: true, // Preserve text content even if tags/attributes are removed
     ADD_ATTR: ['target', 'rel'],
     ALLOW_DATA_ATTR: true,
-    // Custom hook to add security attributes to links
-    HOOKS: {
-      afterSanitizeAttributes: function (node: Element) {
-        // Enhanced link security validation
-        if (node.tagName === 'A') {
-          const href = node.getAttribute('href');
-          if (href) {
-            // Validate href against safe URL patterns
-            const safeUrlPattern = /^(https?:\/\/|mailto:|tel:|#)/i;
-            if (!safeUrlPattern.test(href)) {
-              node.removeAttribute('href');
-            } else {
-              node.setAttribute('target', '_blank');
-              node.setAttribute('rel', 'noopener noreferrer nofollow');
-            }
-          }
-        }
-        
-        // Enhanced image security and performance
-        if (node.tagName === 'IMG') {
-          const src = node.getAttribute('src');
-          
-          // Handle data URLs with strict filtering and size limit
-          if (src?.startsWith('data:')) {
-            const safeDataPattern = /^data:image\/(jpeg|jpg|png|gif|webp|svg\+xml);base64,/i;
-            const dataSizeInBytes = src.length * 0.75; // Approximate base64 to bytes conversion
-            const maxSizeInBytes = 1024 * 1024; // 1MB limit
-            
-            if (!safeDataPattern.test(src) || dataSizeInBytes > maxSizeInBytes) {
-              node.setAttribute('src', createPlaceholder('data-rejected'));
-              node.setAttribute('alt', node.getAttribute('alt') || 'Data image rejected');
-              node.setAttribute('data-error', 'data-rejected');
-            }
-          }
-          
-          // Set performance and security attributes
-          node.setAttribute('loading', 'lazy');
-          node.setAttribute('style', 'max-width: 100%; height: auto; display: block;');
-          node.setAttribute('referrerpolicy', 'no-referrer');
-          
-          // Block external HTTP images to prevent mixed content warnings
-          if (src && src.startsWith('http:')) {
-            node.setAttribute('data-original-src', src);
-            node.setAttribute('src', createPlaceholder('mixed-content'));
-            node.setAttribute('alt', (node.getAttribute('alt') || 'Image') + ' (HTTP image blocked for security)');
-            node.setAttribute('data-blocked', 'http-blocked');
-            node.setAttribute('title', 'HTTP image blocked to prevent mixed content warnings');
-          }
-          // Block external images by default for privacy (HTTPS only)
-          // BUT allow our own get-attachment URLs for inline images
-          else if (src && 
-                   !src.startsWith('cid:') && 
-                   !src.startsWith('/') && 
-                   !src.startsWith('data:') && 
-                   !src.startsWith('blob:') &&
-                   !src.includes('/supabase/functions/v1/get-attachment') &&
-                   !src.includes('/functions/v1/get-attachment')) {
-            node.setAttribute('data-original-src', src);
-            node.setAttribute('src', '');
-            node.setAttribute('alt', node.getAttribute('alt') || 'Image blocked for privacy');
-            node.setAttribute('data-blocked', 'true');
-          }
-        }
-        
-        // Sanitize style attributes to only allow safe properties
-        // Be more permissive with table elements to preserve email layouts
-        if (node.hasAttribute('style')) {
-          const style = node.getAttribute('style') || '';
-          const isTableElement = ['TABLE', 'TR', 'TD', 'TH', 'THEAD', 'TBODY', 'TFOOT'].includes(node.tagName);
-          
-          const safeStyles = style
-            .split(';')
-            .filter(rule => {
-              const property = rule.split(':')[0]?.trim().toLowerCase();
-              // Base safe properties
-              const baseProperties = [
-                'color', 'background-color', 'background', 'font-family', 'font-size', 'font-weight',
-                'text-decoration', 'text-align', 'margin', 'padding', 'border',
-                'border-color', 'border-width', 'border-style', 'line-height', 'max-width',
-                'margin-top', 'margin-bottom', 'margin-left', 'margin-right',
-                'padding-top', 'padding-bottom', 'padding-left', 'padding-right',
-                'border-top', 'border-bottom', 'border-left', 'border-right'
-              ];
-              
-              // Additional properties for table elements to preserve email layouts
-              const tableProperties = [
-                'width', 'height', 'min-width', 'min-height', 'max-height',
-                'vertical-align', 'text-indent', 'letter-spacing', 'word-spacing',
-                'border-collapse', 'border-spacing', 'table-layout',
-                'background-image', 'background-repeat', 'background-position', 'background-size',
-                'display', 'white-space', 'overflow', 'visibility',
-                'cellpadding', 'cellspacing'
-              ];
-              
-              const allowedProperties = isTableElement 
-                ? [...baseProperties, ...tableProperties]
-                : baseProperties;
-              
-              return allowedProperties.includes(property);
-            })
-            .join(';');
-          
-          if (safeStyles) {
-            node.setAttribute('style', safeStyles);
-          } else {
-            node.removeAttribute('style');
-          }
+  };
+
+  // Register DOMPurify hooks properly via addHook API (not config.HOOKS which is ignored)
+  DOMPurify.addHook('afterSanitizeAttributes', function (node: Element) {
+    // Enhanced link security validation
+    if (node.tagName === 'A') {
+      const href = node.getAttribute('href');
+      if (href) {
+        const safeUrlPattern = /^(https?:\/\/|mailto:|tel:|#)/i;
+        if (!safeUrlPattern.test(href)) {
+          node.removeAttribute('href');
+        } else {
+          node.setAttribute('target', '_blank');
+          node.setAttribute('rel', 'noopener noreferrer nofollow');
         }
       }
     }
-  };
+    
+    // Enhanced image security and performance
+    if (node.tagName === 'IMG') {
+      const src = node.getAttribute('src');
+      
+      // Handle data URLs with strict filtering and size limit
+      if (src?.startsWith('data:')) {
+        const safeDataPattern = /^data:image\/(jpeg|jpg|png|gif|webp|svg\+xml);base64,/i;
+        const dataSizeInBytes = src.length * 0.75;
+        const maxSizeInBytes = 1024 * 1024;
+        
+        if (!safeDataPattern.test(src) || dataSizeInBytes > maxSizeInBytes) {
+          node.setAttribute('src', createPlaceholder('data-rejected'));
+          node.setAttribute('alt', node.getAttribute('alt') || 'Data image rejected');
+          node.setAttribute('data-error', 'data-rejected');
+        }
+      }
+      
+      // Set performance and security attributes
+      node.setAttribute('loading', 'lazy');
+      node.setAttribute('style', 'max-width: 100%; height: auto; display: block;');
+      node.setAttribute('referrerpolicy', 'no-referrer');
+      
+      // Block external HTTP images
+      if (src && src.startsWith('http:')) {
+        node.setAttribute('data-original-src', src);
+        node.setAttribute('src', createPlaceholder('mixed-content'));
+        node.setAttribute('alt', (node.getAttribute('alt') || 'Image') + ' (HTTP image blocked for security)');
+        node.setAttribute('data-blocked', 'http-blocked');
+        node.setAttribute('title', 'HTTP image blocked to prevent mixed content warnings');
+      }
+      // Block external images by default for privacy
+      else if (src && 
+               !src.startsWith('cid:') && 
+               !src.startsWith('/') && 
+               !src.startsWith('data:') && 
+               !src.startsWith('blob:') &&
+               !src.includes('/supabase/functions/v1/get-attachment') &&
+               !src.includes('/functions/v1/get-attachment')) {
+        node.setAttribute('data-original-src', src);
+        node.setAttribute('src', '');
+        node.setAttribute('alt', node.getAttribute('alt') || 'Image blocked for privacy');
+        node.setAttribute('data-blocked', 'true');
+      }
+    }
+    
+    // Sanitize style attributes to only allow safe properties
+    if (node.hasAttribute('style')) {
+      const style = node.getAttribute('style') || '';
+      const isTableElement = ['TABLE', 'TR', 'TD', 'TH', 'THEAD', 'TBODY', 'TFOOT'].includes(node.tagName);
+      
+      const safeStyles = style
+        .split(';')
+        .filter(rule => {
+          const property = rule.split(':')[0]?.trim().toLowerCase();
+          const baseProperties = [
+            'color', 'background-color', 'background', 'font-family', 'font-size', 'font-weight',
+            'text-decoration', 'text-align', 'margin', 'padding', 'border',
+            'border-color', 'border-width', 'border-style', 'line-height', 'max-width',
+            'margin-top', 'margin-bottom', 'margin-left', 'margin-right',
+            'padding-top', 'padding-bottom', 'padding-left', 'padding-right',
+            'border-top', 'border-bottom', 'border-left', 'border-right'
+          ];
+          
+          const tableProperties = [
+            'width', 'height', 'min-width', 'min-height', 'max-height',
+            'vertical-align', 'text-indent', 'letter-spacing', 'word-spacing',
+            'border-collapse', 'border-spacing', 'table-layout',
+            'background-image', 'background-repeat', 'background-position', 'background-size',
+            'display', 'white-space', 'overflow', 'visibility',
+            'cellpadding', 'cellspacing'
+          ];
+          
+          const allowedProperties = isTableElement 
+            ? [...baseProperties, ...tableProperties]
+            : baseProperties;
+          
+          return allowedProperties.includes(property);
+        })
+        .join(';');
+      
+      if (safeStyles) {
+        node.setAttribute('style', safeStyles);
+      } else {
+        node.removeAttribute('style');
+      }
+    }
+  });
 
   // Build asset indexes for efficient lookups
   const { byContentId, byContentLocation } = buildAssetIndexes(attachments);
@@ -448,6 +442,8 @@ export const sanitizeEmailHTML = (
 
   // Sanitize the HTML
   const sanitized = DOMPurify.sanitize(processedContent, config);
+  // Clean up hooks to avoid leaking across calls
+  DOMPurify.removeAllHooks();
 
   // Return sanitized content directly - styling handled by CSS
   return sanitized;
