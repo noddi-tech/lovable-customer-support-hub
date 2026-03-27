@@ -562,7 +562,7 @@ Optimized for accessibility with WCAG AA compliance.
 
   /* Inline signature images - cap at 80px (logos, headshots) */
   .email-render__html-content img.email-inline-image {
-    max-height: 80px !important;
+    max-height: 40px !important;
     min-height: 0 !important;
     width: auto !important;
     height: auto !important;
