@@ -520,7 +520,7 @@ export const Auth: React.FC = () => {
               <TabsTrigger value="magic" className="text-xs">Magic Link</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="google" className="space-y-3 mt-3">
+            <TabsContent value="google" className="space-y-2 mt-2">
               <div className="text-center space-y-3">
                 <p className="text-sm text-muted-foreground">Sign in quickly with your Google account</p>
                 <Button

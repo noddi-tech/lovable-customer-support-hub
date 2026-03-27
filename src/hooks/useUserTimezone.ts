@@ -79,5 +79,5 @@ export function useUserTimezone() {
     timezone: profile?.timezone || browserTimezone,
     timeFormat: profile?.time_format || browserTimeFormat,
     isLoading: isLoading && !!user
-  }), [profile, browserTimezone, isLoading, user]);
+  }), [profile, browserTimezone, browserTimeFormat, isLoading, user]);
 }
