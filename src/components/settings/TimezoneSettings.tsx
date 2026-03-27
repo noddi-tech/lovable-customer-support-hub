@@ -90,7 +90,6 @@ export function TimezoneSettings() {
           try {
             const resolved = new Intl.DateTimeFormat(navigator.language, { hour: 'numeric' }).resolvedOptions() as any;
             detectedFormat = resolved.hourCycle === 'h23' || resolved.hourCycle === 'h24' ? '24h' : '12h';
-            detectedFormat = hourCycle === 'h23' || hourCycle === 'h24' ? '24h' : '12h';
           } catch {}
           setCurrentTimeFormat(detectedFormat);
           await supabase
