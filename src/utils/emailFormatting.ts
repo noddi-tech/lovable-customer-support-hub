@@ -442,6 +442,8 @@ export const sanitizeEmailHTML = (
 
   // Sanitize the HTML
   const sanitized = DOMPurify.sanitize(processedContent, config);
+  // Clean up hooks to avoid leaking across calls
+  DOMPurify.removeAllHooks();
 
   // Return sanitized content directly - styling handled by CSS
   return sanitized;
