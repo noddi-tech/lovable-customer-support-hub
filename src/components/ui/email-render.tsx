@@ -410,11 +410,9 @@ const EmailRenderComponent: React.FC<EmailRenderProps> = ({
       tempDiv2.innerHTML = sanitizedContent;
       const visibleText = tempDiv2.textContent || tempDiv2.innerText || '';
       
-      if (!sanitizedContent || visibleText.trim().length < 10) {
-        console.warn('[EmailRender] HTML parsing resulted in empty content, falling back to plain text', {
-          sanitizedLength: sanitizedContent.length,
-          visibleTextLength: visibleText.trim().length
-        });
+      if (!sanitizedContent) {
+        console.warn('[EmailRender] HTML sanitization produced empty content, falling back to plain text');
+        const strippedText = (tempDiv2.textContent || tempDiv2.innerText || content).trim();
         return (
           <div className="email-render__plain-content">
             <pre className="email-render__text-line" style={{
@@ -425,7 +423,7 @@ const EmailRenderComponent: React.FC<EmailRenderProps> = ({
               margin: 0,
               padding: 0,
               lineHeight: '1.6'
-            }}>{content}</pre>
+            }}>{strippedText || content}</pre>
           </div>
         );
       }
