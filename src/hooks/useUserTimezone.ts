@@ -77,7 +77,7 @@ export function useUserTimezone() {
   // Memoized return values to prevent unnecessary re-renders
   return useMemo(() => ({
     timezone: profile?.timezone || browserTimezone,
-    timeFormat: profile?.time_format || '12h',
+    timeFormat: profile?.time_format || browserTimeFormat,
     isLoading: isLoading && !!user
   }), [profile, browserTimezone, isLoading, user]);
 }
