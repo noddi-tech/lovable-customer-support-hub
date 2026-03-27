@@ -88,7 +88,8 @@ export function TimezoneSettings() {
           // Detect browser's preferred time format
           let detectedFormat = '12h';
           try {
-            const { hourCycle } = new Intl.DateTimeFormat(navigator.language, { hour: 'numeric' }).resolvedOptions();
+            const resolved = new Intl.DateTimeFormat(navigator.language, { hour: 'numeric' }).resolvedOptions() as any;
+            detectedFormat = resolved.hourCycle === 'h23' || resolved.hourCycle === 'h24' ? '24h' : '12h';
             detectedFormat = hourCycle === 'h23' || hourCycle === 'h24' ? '24h' : '12h';
           } catch {}
           setCurrentTimeFormat(detectedFormat);

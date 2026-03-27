@@ -6,7 +6,8 @@ import { useQuery } from '@tanstack/react-query';
 /** Detect whether the user's browser locale prefers 24h or 12h time */
 function detectBrowserTimeFormat(): '12h' | '24h' {
   try {
-    const { hourCycle } = new Intl.DateTimeFormat(navigator.language, { hour: 'numeric' }).resolvedOptions();
+    const resolved = new Intl.DateTimeFormat(navigator.language, { hour: 'numeric' }).resolvedOptions() as any;
+    const hourCycle = resolved.hourCycle;
     return hourCycle === 'h23' || hourCycle === 'h24' ? '24h' : '12h';
   } catch {
     return '12h';
