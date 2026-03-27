@@ -560,9 +560,19 @@ Optimized for accessibility with WCAG AA compliance.
     max-height: 40px !important;
   }
 
-  /* Inline attachment images - display at readable size with click-to-enlarge */
-  .email-render__html-content img[data-attachment],
-  .email-render__html-content img.email-attachment-image {
+  /* Inline signature images - cap at 80px (logos, headshots) */
+  .email-render__html-content img.email-inline-image {
+    max-height: 80px !important;
+    min-height: 0 !important;
+    width: auto !important;
+    height: auto !important;
+    border: none !important;
+    cursor: default;
+  }
+
+  /* Non-inline attachment images - display at readable size with click-to-enlarge */
+  .email-render__html-content img[data-attachment]:not(.email-inline-image),
+  .email-render__html-content img.email-attachment-image:not(.email-inline-image) {
     max-height: 300px !important;
     min-height: 100px !important;
     max-width: 100% !important;
