@@ -540,7 +540,7 @@ async function syncGmailMessages(account: any, supabaseClient: any, folder: 'inb
               // Fetch binary from Gmail API
               const attResponse = await fetch(
                 `https://gmail.googleapis.com/gmail/v1/users/me/messages/${message.id}/attachments/${att.attachmentId}`,
-                { headers: { 'Authorization': `Bearer ${accessToken}` } }
+                { headers: { 'Authorization': `Bearer ${account.access_token}` } }
               );
               if (!attResponse.ok) {
                 console.warn(`[Gmail-Sync] Failed to download attachment ${att.filename}: ${attResponse.status}`);
