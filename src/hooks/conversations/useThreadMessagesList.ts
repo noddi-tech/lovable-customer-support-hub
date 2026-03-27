@@ -25,28 +25,34 @@ function stripToText(body: string): string | null {
  * message appear inside an inbound message, it's an echo.
  */
 function filterForwardingEchoes(messages: NormalizedMessage[]): NormalizedMessage[] {
-  const outboundTexts: string[] = [];
+  // Collect ALL message texts with timestamps (both inbound and outbound)
+  // so we can detect echoes of any earlier message, not just outbound
+  const allTexts: { text: string; time: number; id: string }[] = [];
   for (const m of messages) {
-    if (m.direction === 'outbound' && !m.isInternalNote) {
-      const text = stripToText(m.visibleBody);
-      if (text) {
-        outboundTexts.push(text);
-      }
+    if (m.isInternalNote) continue;
+    const text = stripToText(m.visibleBody);
+    if (text) {
+      allTexts.push({ text, time: new Date(m.createdAt).getTime(), id: m.id });
     }
   }
 
-  if (outboundTexts.length === 0) return messages;
+  if (allTexts.length === 0) return messages;
 
   return messages.filter(m => {
     if (m.direction !== 'inbound') return true;
     const inboundText = stripToText(m.visibleBody);
     if (!inboundText) return true;
+    const inboundTime = new Date(m.createdAt).getTime();
 
-    for (const outText of outboundTexts) {
-      const searchKey = outText.substring(0, 80);
+    for (const earlier of allTexts) {
+      // Only match against messages that came BEFORE this one
+      if (earlier.time >= inboundTime) continue;
+      if (earlier.id === m.id) continue;
+      const searchKey = earlier.text.substring(0, 80);
       if (inboundText.includes(searchKey)) {
-        logger.debug('Filtering forwarding echo (substring match)', {
+        logger.debug('Filtering forwarding echo (substring match against earlier message)', {
           messageId: m.id,
+          matchedAgainst: earlier.id,
         }, 'EchoFilter');
         return false;
       }
