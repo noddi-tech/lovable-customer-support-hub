@@ -3,6 +3,16 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 
+/** Detect whether the user's browser locale prefers 24h or 12h time */
+function detectBrowserTimeFormat(): '12h' | '24h' {
+  try {
+    const { hourCycle } = new Intl.DateTimeFormat(navigator.language, { hour: 'numeric' }).resolvedOptions();
+    return hourCycle === 'h23' || hourCycle === 'h24' ? '24h' : '12h';
+  } catch {
+    return '12h';
+  }
+}
+
 export function useUserTimezone() {
   const { user } = useAuth();
   
@@ -10,6 +20,8 @@ export function useUserTimezone() {
   const browserTimezone = useMemo(() => {
     return Intl.DateTimeFormat().resolvedOptions().timeZone;
   }, []);
+
+  const browserTimeFormat = useMemo(() => detectBrowserTimeFormat(), []);
 
   // Use React Query for optimized caching and deduplication
   const { data: profile, isLoading, error } = useQuery({
