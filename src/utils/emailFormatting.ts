@@ -261,7 +261,8 @@ export const sanitizeEmailHTML = (
             'border-color', 'border-width', 'border-style', 'line-height', 'max-width',
             'margin-top', 'margin-bottom', 'margin-left', 'margin-right',
             'padding-top', 'padding-bottom', 'padding-left', 'padding-right',
-            'border-top', 'border-bottom', 'border-left', 'border-right'
+            'border-top', 'border-bottom', 'border-left', 'border-right',
+            'height', 'max-height', 'display'
           ];
           
           const tableProperties = [
