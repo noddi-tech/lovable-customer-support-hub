@@ -531,6 +531,57 @@ async function syncGmailMessages(account: any, supabaseClient: any, folder: 'inb
           attachments = extractAttachments(fullMessage.payload.parts);
         }
 
+        // Download attachment binaries from Gmail API and upload to Supabase Storage
+        if (attachments.length > 0) {
+          console.log(`[Gmail-Sync] Downloading ${attachments.length} attachment binaries...`);
+          for (const att of attachments) {
+            if (!att.attachmentId) continue;
+            try {
+              // Fetch binary from Gmail API
+              const attResponse = await fetch(
+                `https://gmail.googleapis.com/gmail/v1/users/me/messages/${message.id}/attachments/${att.attachmentId}`,
+                { headers: { 'Authorization': `Bearer ${accessToken}` } }
+              );
+              if (!attResponse.ok) {
+                console.warn(`[Gmail-Sync] Failed to download attachment ${att.filename}: ${attResponse.status}`);
+                continue;
+              }
+              const attData = await attResponse.json();
+              if (!attData.data) {
+                console.warn(`[Gmail-Sync] No data in attachment response for ${att.filename}`);
+                continue;
+              }
+
+              // Convert URL-safe base64 to standard base64, then to binary
+              const base64 = attData.data.replace(/-/g, '+').replace(/_/g, '/');
+              const binaryStr = atob(base64);
+              const bytes = new Uint8Array(binaryStr.length);
+              for (let i = 0; i < binaryStr.length; i++) {
+                bytes[i] = binaryStr.charCodeAt(i);
+              }
+
+              // Upload to Supabase Storage with same pattern as SendGrid inbound
+              const storageKey = `${account.organization_id}/gmail/${message.id}/${crypto.randomUUID()}_${att.filename}`;
+              const { error: uploadError } = await supabaseClient.storage
+                .from('message-attachments')
+                .upload(storageKey, bytes, {
+                  contentType: att.mimeType || 'application/octet-stream',
+                  upsert: true,
+                });
+
+              if (uploadError) {
+                console.warn(`[Gmail-Sync] Failed to upload attachment ${att.filename}:`, uploadError);
+                continue;
+              }
+
+              att.storageKey = storageKey;
+              console.log(`[Gmail-Sync] Uploaded attachment ${att.filename} -> ${storageKey}`);
+            } catch (attErr) {
+              console.error(`[Gmail-Sync] Error processing attachment ${att.filename}:`, attErr);
+            }
+          }
+        }
+
         // Determine sender type and extract relevant email
         // Determine true author, handling Google Groups/list rewrites ("via ...")
         const extractAddr = (v: string) => {
