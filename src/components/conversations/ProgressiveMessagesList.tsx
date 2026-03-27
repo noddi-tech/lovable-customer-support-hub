@@ -56,8 +56,7 @@ export const ProgressiveMessagesList = forwardRef<ProgressiveMessagesListRef, Pr
   // Create conversation-specific normalization context
   const normalizationCtx = useMemo(() => createNormalizationContext({
     currentUserEmail: user?.email,
-    agentDomains: ['noddi.no'],        // quick win so agents resolve
-    agentEmails: [],                   // keep empty or fill from org if available
+    agentEmails: [],
     conversationCustomerEmail: conversation?.customer?.email,
     conversationCustomerName: conversation?.customer?.full_name,
   }), [user?.email, conversation?.customer?.email, conversation?.customer?.full_name]);

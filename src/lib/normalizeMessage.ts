@@ -243,14 +243,15 @@ export function createNormalizationContext(options: {
 }
 
 /**
- * Determine if an email belongs to an agent
+ * Determine if an email belongs to an agent.
+ * Only uses explicit agent emails and current user email — NOT broad domain matching.
  */
 function isAgentEmail(email: string | undefined, ctx: NormalizationContext): boolean {
   if (!email) return false;
   
   const normalizedEmail = email.toLowerCase().trim();
   
-  // Check against known agent emails
+  // Check against known agent emails (explicitly provided)
   if (ctx.agentEmailSet.has(normalizedEmail)) {
     return true;
   }
@@ -260,14 +261,8 @@ function isAgentEmail(email: string | undefined, ctx: NormalizationContext): boo
     return true;
   }
   
-  // Check against org domains (if available)
-  if (ctx.orgDomains?.length) {
-    for (const domain of ctx.orgDomains) {
-      if (normalizedEmail.endsWith(`@${domain.toLowerCase()}`)) {
-        return true;
-      }
-    }
-  }
+  // Do NOT use broad org-domain matching — it misclassifies customer emails
+  // from the same domain as agent emails.
   
   return false;
 }
@@ -373,56 +368,31 @@ export function normalizeMessage(rawMessage: any, ctx: NormalizationContext): No
       : (cleanFromEmail || cleanFromName || undefined);
   }
 
-  // Detect agent/customer using context — check multiple header sources
+  // Detect agent/customer using context — check explicit agent emails only
   let isAgent =
-    (fromEmail && ctx.agentEmailSet?.has(fromEmail)) ||
-    (fromEmail && ctx.agentDomainsSet?.has(fromEmail.split('@')[1]?.toLowerCase() ?? ''));
+    (fromEmail && ctx.agentEmailSet?.has(fromEmail));
 
-  // For Google Groups forwarded messages: check Reply-To, X-Original-From, X-Google-Original-From, Sender
-  // These headers reveal the real author even when From shows the group address
+  // For Google Groups forwarded messages: check X-Original-From, X-Google-Original-From
+  // These headers are explicit proof of original authorship.
+  // Only flip sender_type='customer' when these explicit headers prove it.
+  // Do NOT use Reply-To alone (customers can have Reply-To set), and
+  // do NOT use broad domain matching or "via" text alone.
   if (!isAgent && rawMessage.sender_type === 'customer' && channel === 'email') {
-    const replyTo = getHeader(headers, 'Reply-To');
     const xOrigFrom = getHeader(headers, 'X-Original-From') || getHeader(headers, 'X-Google-Original-From');
-    const senderHeader = getHeader(headers, 'Sender');
     
-    // Check each alternative header for agent identity
-    for (const altHeader of [replyTo, xOrigFrom, senderHeader]) {
-      if (!altHeader) continue;
-      const { email: altEmail, name: altName } = extractNameEmail(altHeader);
-      if (altEmail && isAgentEmail(altEmail, ctx)) {
+    // X-Original-From / X-Google-Original-From is explicit proof of the real author
+    if (xOrigFrom) {
+      const { email: origEmail, name: origName } = extractNameEmail(xOrigFrom);
+      if (origEmail && isAgentEmail(origEmail, ctx)) {
         isAgent = true;
-        // Override from fields to show the real agent author
-        fromEmail = altEmail;
-        fromName = altName || fromName;
-        const cleanAltName = sanitizeName(altName);
-        authorLabel = (cleanAltName && altEmail) ? `${cleanAltName} <${altEmail}>` : (altEmail || cleanAltName || authorLabel);
-        logger.debug('Detected forwarded agent copy via header override', {
+        fromEmail = origEmail;
+        fromName = origName || fromName;
+        const cleanOrigName = sanitizeName(origName);
+        authorLabel = (cleanOrigName && origEmail) ? `${cleanOrigName} <${origEmail}>` : (origEmail || cleanOrigName || authorLabel);
+        logger.debug('Detected forwarded agent copy via X-Original-From', {
           messageId: rawMessage.id,
-          header: altHeader,
-          resolvedEmail: altEmail,
+          resolvedEmail: origEmail,
         }, 'ForwardingDetection');
-        break;
-      }
-    }
-    
-    // Also detect Google Groups forwarding pattern: "Name via GroupName" in From
-    if (!isAgent && fromLine && /\svia\s/i.test(fromLine)) {
-      // Check if Reply-To or X-Original-From has a real sender
-      const realSenderHeader = replyTo || xOrigFrom;
-      if (realSenderHeader) {
-        const { email: realEmail, name: realName } = extractNameEmail(realSenderHeader);
-        if (realEmail && isAgentEmail(realEmail, ctx)) {
-          isAgent = true;
-          fromEmail = realEmail;
-          fromName = realName || fromName;
-          const cleanRealName = sanitizeName(realName);
-          authorLabel = (cleanRealName && realEmail) ? `${cleanRealName} <${realEmail}>` : (realEmail || cleanRealName || authorLabel);
-          logger.debug('Detected Google Groups "via" forwarded agent copy', {
-            messageId: rawMessage.id,
-            fromLine,
-            resolvedEmail: realEmail,
-          }, 'ForwardingDetection');
-        }
       }
     }
   }
@@ -469,8 +439,8 @@ export function normalizeMessage(rawMessage: any, ctx: NormalizationContext): No
   const avatarParts = (cleanedAvatarName || from.email?.split('@')[0] || 'A').split(/[\s._-]+/).filter(Boolean);
   const initial = avatarParts.map(p => p[0]).join('').toUpperCase().slice(0, 3) || 'A';
   
-  // Determine direction
-  const direction: 'inbound' | 'outbound' = isAgent ? 'outbound' : 'inbound';
+  // Determine direction — use authorType (which includes DB sender_type) not just isAgent
+  const direction: 'inbound' | 'outbound' = (isAgent || authorType === 'agent') ? 'outbound' : 'inbound';
   
   // Extract quoted blocks
   const quotedBlocks = parsedContent.quotedBlocks;
