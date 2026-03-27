@@ -71,34 +71,37 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        // Collect agent outbound texts (substring keys)
-        const agentTexts: string[] = [];
+        // Collect ALL non-internal message texts with timestamps
+        // so we can detect echoes of any earlier message (agent or customer)
+        const allTexts: { text: string; time: number; id: string }[] = [];
         for (const m of messages) {
-          if (m.sender_type === 'agent' && !m.is_internal) {
-            const text = stripToText(m.content);
-            if (text) {
-              agentTexts.push(text);
-            }
+          if (m.is_internal) continue;
+          const text = stripToText(m.content);
+          if (text) {
+            allTexts.push({ text, time: new Date(m.created_at).getTime(), id: m.id });
           }
         }
 
-        if (agentTexts.length === 0) {
+        if (allTexts.length === 0) {
           conversationsScanned++;
           continue;
         }
 
-        // Find echoes using substring match
+        // Find echoes: non-agent, non-internal messages whose content matches an earlier message
         const echoIds: string[] = [];
         for (const m of messages) {
           if (m.sender_type === 'agent' || m.is_internal) continue;
           const inboundText = stripToText(m.content);
           if (!inboundText) continue;
+          const inboundTime = new Date(m.created_at).getTime();
 
-          for (const agentText of agentTexts) {
-            const searchKey = agentText.substring(0, 80);
+          for (const earlier of allTexts) {
+            if (earlier.time >= inboundTime) continue;
+            if (earlier.id === m.id) continue;
+            const searchKey = earlier.text.substring(0, 80);
             if (inboundText.includes(searchKey)) {
               echoIds.push(m.id);
-              console.log(`[cleanup-forwarding-echoes] Echo found: message ${m.id} in conversation ${conv.id}`);
+              console.log(`[cleanup-forwarding-echoes] Echo found: message ${m.id} echoes earlier ${earlier.id} in conversation ${conv.id}`);
               break;
             }
           }

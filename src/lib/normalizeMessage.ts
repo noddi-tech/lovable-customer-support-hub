@@ -373,14 +373,62 @@ export function normalizeMessage(rawMessage: any, ctx: NormalizationContext): No
       : (cleanFromEmail || cleanFromName || undefined);
   }
 
-  // Detect agent/customer using context
-  const isAgent =
+  // Detect agent/customer using context — check multiple header sources
+  let isAgent =
     (fromEmail && ctx.agentEmailSet?.has(fromEmail)) ||
     (fromEmail && ctx.agentDomainsSet?.has(fromEmail.split('@')[1]?.toLowerCase() ?? ''));
 
+  // For Google Groups forwarded messages: check Reply-To, X-Original-From, X-Google-Original-From, Sender
+  // These headers reveal the real author even when From shows the group address
+  if (!isAgent && rawMessage.sender_type === 'customer' && channel === 'email') {
+    const replyTo = getHeader(headers, 'Reply-To');
+    const xOrigFrom = getHeader(headers, 'X-Original-From') || getHeader(headers, 'X-Google-Original-From');
+    const senderHeader = getHeader(headers, 'Sender');
+    
+    // Check each alternative header for agent identity
+    for (const altHeader of [replyTo, xOrigFrom, senderHeader]) {
+      if (!altHeader) continue;
+      const { email: altEmail, name: altName } = extractNameEmail(altHeader);
+      if (altEmail && isAgentEmail(altEmail, ctx)) {
+        isAgent = true;
+        // Override from fields to show the real agent author
+        fromEmail = altEmail;
+        fromName = altName || fromName;
+        const cleanAltName = sanitizeName(altName);
+        authorLabel = (cleanAltName && altEmail) ? `${cleanAltName} <${altEmail}>` : (altEmail || cleanAltName || authorLabel);
+        logger.debug('Detected forwarded agent copy via header override', {
+          messageId: rawMessage.id,
+          header: altHeader,
+          resolvedEmail: altEmail,
+        }, 'ForwardingDetection');
+        break;
+      }
+    }
+    
+    // Also detect Google Groups forwarding pattern: "Name via GroupName" in From
+    if (!isAgent && fromLine && /\svia\s/i.test(fromLine)) {
+      // Check if Reply-To or X-Original-From has a real sender
+      const realSenderHeader = replyTo || xOrigFrom;
+      if (realSenderHeader) {
+        const { email: realEmail, name: realName } = extractNameEmail(realSenderHeader);
+        if (realEmail && isAgentEmail(realEmail, ctx)) {
+          isAgent = true;
+          fromEmail = realEmail;
+          fromName = realName || fromName;
+          const cleanRealName = sanitizeName(realName);
+          authorLabel = (cleanRealName && realEmail) ? `${cleanRealName} <${realEmail}>` : (realEmail || cleanRealName || authorLabel);
+          logger.debug('Detected Google Groups "via" forwarded agent copy', {
+            messageId: rawMessage.id,
+            fromLine,
+            resolvedEmail: realEmail,
+          }, 'ForwardingDetection');
+        }
+      }
+    }
+  }
+
   const authorType: 'agent' | 'customer' | 'system' =
     isAgent ? 'agent' : ((rawMessage.sender_type as any) ?? 'customer');
-
   // Use conversation fallbacks only if still missing
   // For agents: ALWAYS prefer profile data regardless of any header-derived values
   if (authorType === 'agent' && senderProfile) {
