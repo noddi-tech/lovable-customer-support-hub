@@ -24,6 +24,7 @@ describe('normalizeMessage - Google Groups forwarding detection', () => {
   });
 
   it('detects forwarded agent copy via Reply-To header in raw format', () => {
+    // From is an external group address, Reply-To reveals agent
     const raw = {
       id: 'msg-1',
       content: '<p>Hello from agent</p>',
@@ -32,7 +33,7 @@ describe('normalizeMessage - Google Groups forwarding detection', () => {
       is_internal: false,
       created_at: '2026-03-27T10:00:00Z',
       email_headers: {
-        raw: 'From: hei@noddi.no\nReply-To: agent@noddi.no\nTo: customer@example.com\nSubject: Re: Test',
+        raw: 'From: group@googlegroups.com\nReply-To: agent@noddi.no\nTo: customer@example.com\nSubject: Re: Test',
       },
     };
 
