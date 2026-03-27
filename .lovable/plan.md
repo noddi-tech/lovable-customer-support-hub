@@ -1,66 +1,47 @@
 
 
-## Address Feedback: 5 Issues from Anders
+## Fix: Constrain Signature Images Across All Devices
 
-### 1. Add PWA manifest for home screen bookmark icon
+### Problem
+Signature images (like the Lomundal logo) render at full size on desktop/tablet, making emails look much taller than needed. Constraints only exist for mobile (`.mobile-email-body img { max-height: 80px }`).
 
-**Problem**: When bookmarking the app on a phone home screen, it shows a gray default icon instead of the Support Hub logo.
+### Solution
+Add global CSS rules in `src/index.css` that cap signature images on **all** viewports. Since most email signatures don't have an `.email-signature` class wrapper, we also need a heuristic: images that appear after the last paragraph of actual content tend to be signature images. The most reliable CSS-only approach is to:
 
-**Fix**: Add a `manifest.json` in `public/` with the app name, icons, and `display: "standalone"`. Reference it in `index.html`. Use the existing logo at `public/images/logo-support-hub.png` and also create sized icon references. No service worker needed -- just the manifest for installability.
+1. Cap images inside `.email-signature` blocks to `max-height: 80px` globally
+2. Add a general rule on all email-render images to cap them at a reasonable height (e.g., `200px`) unless they're explicitly full-width content images -- this prevents any single image from dominating the card while still allowing meaningful content images
 
-**Files**:
-- Create `public/manifest.json` with app name "Support Hub", icons pointing to the existing logo, theme color, `display: "standalone"`
-- Update `index.html`: add `<link rel="manifest" href="/manifest.json">`, add `<meta name="apple-mobile-web-app-capable">`, add `<link rel="apple-touch-icon" href="/images/logo-support-hub.png">`
+### Changes
 
-### 2. Fix login box scroll on magic link tab
+**File: `src/index.css`** — Add global (non-mobile) rules:
 
-**Problem**: The login card overflows on smaller screens, requiring scroll inside the card.
+```css
+/* Global: constrain signature images across all devices */
+.email-render__html-content .email-signature img,
+.email-render__plain-content .email-signature img {
+  max-height: 80px !important;
+  width: auto !important;
+  object-fit: contain;
+}
 
-**Fix**: The card uses `max-h-[90vh]` and `overflow-y-auto` on CardContent. The magic link tab has excessive spacing. Reduce spacing and padding to fit without scrolling on most devices.
+/* Global: prevent any single inline image from being excessively tall */
+.email-render__html-content img,
+.email-render__plain-content img {
+  max-height: 200px;
+  object-fit: contain;
+}
 
-**File**: `src/pages/Auth.tsx`
-- Reduce `space-y-3` to `space-y-2` in several places
-- Reduce CardHeader padding
-- Make the card `max-h-[95vh]` instead of `90vh`
-
-### 3. Remember login for longer (days instead of hours)
-
-**Problem**: `jwt_expiry = 3600` (1 hour) in `supabase/config.toml`. Sessions expire quickly.
-
-**Fix**: This is a **Supabase dashboard setting**, not a local config change. The `config.toml` only applies to local dev. For production, the JWT expiry must be changed in the Supabase dashboard under Authentication > Settings. I'll note this for the user.
-
-However, the refresh token handling is already in place via `AuthContext.refreshSession()`. The real issue may be that sessions aren't being refreshed proactively. We can ensure `supabase.auth.startAutoRefresh()` is called (Supabase JS v2 does this by default).
-
-**Action**: Inform user to change JWT expiry in Supabase dashboard (Authentication > URL Configuration > JWT Expiry). Recommend setting to `604800` (7 days). Also update `config.toml` for local dev consistency.
-
-### 4 & 5. Default timezone to browser settings (not UTC/AM-PM)
-
-**Problem**: New users default to UTC and 12h (AM/PM) format. Should detect browser timezone and use appropriate format.
-
-**Current code**: `useUserTimezone.ts` already auto-detects browser timezone and defaults `time_format` to `'12h'`. `TimezoneSettings.tsx` also auto-saves browser timezone on first load. The issue is that the **time format** defaults to `12h` regardless of locale. Norwegian users expect 24h format.
-
-**Fix**: Detect the user's locale-preferred time format from the browser. If the browser locale uses 24h (like `nb-NO`, `de`, `fr`, etc.), default to `24h` instead of `12h`.
-
-**Files**:
-- `src/hooks/useUserTimezone.ts`: Change the auto-update fallback to detect 24h preference from browser locale
-- `src/components/settings/TimezoneSettings.tsx`: Same logic when auto-saving for first-time users
-
-Detection logic:
-```ts
-function detectTimeFormat(): '12h' | '24h' {
-  const formatted = new Intl.DateTimeFormat(navigator.language, { hour: 'numeric' }).resolvedOptions();
-  return formatted.hourCycle === 'h23' || formatted.hourCycle === 'h24' ? '24h' : '12h';
+/* Allow explicitly full-width content images to remain large */
+.email-render__html-content img[style*="width: 100%"],
+.email-render__html-content img.content-image {
+  max-height: none;
 }
 ```
 
-### Summary
+This means:
+- **Desktop/tablet**: Signature images ≤ 80px tall, other images ≤ 200px tall
+- **Mobile**: All images ≤ 80px tall (existing rule stays)
+- Full-width content images are exempted everywhere
 
-| # | Issue | Fix | Files |
-|---|-------|-----|-------|
-| 1 | Home screen icon | Add `manifest.json` + apple-touch-icon meta tags | `public/manifest.json` (new), `index.html` |
-| 2 | Login box scroll | Reduce spacing/padding in auth card | `src/pages/Auth.tsx` |
-| 3 | Session expiry | Update `config.toml` for local dev + instruct user to change in Supabase dashboard | `supabase/config.toml` + user action |
-| 4-5 | Timezone defaults | Auto-detect 24h format from browser locale | `src/hooks/useUserTimezone.ts`, `src/components/settings/TimezoneSettings.tsx` |
-
-5 files modified/created. No new dependencies. No desktop behavior changes.
+1 file changed. No functional changes. Works across all breakpoints.
 
