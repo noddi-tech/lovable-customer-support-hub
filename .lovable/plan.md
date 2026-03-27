@@ -1,44 +1,24 @@
 
 
-## Two-Part Fix: Hide CID-Miss Placeholders + Upload Gmail Attachment Binaries
+## Fix: CID Images Always Treated as Inline
 
-### Problem
+### Root Cause
 
-1. **CID-miss placeholders** show ugly gray boxes for signature images that have no binary data
-2. **Root cause**: `gmail-sync` only stores attachment metadata (filename, attachmentId, contentId) but never downloads the actual binary from Gmail API or uploads it to Supabase Storage — so `storageKey` is always `null`
+The `email-inline-image` class depends on `assetInfo.attachment.isInline` being `true`. But attachments synced **before** we added the `isInline` field have it as `undefined` (falsy), so the class is never applied. The image gets the standard attachment rules: `min-height: 100px; max-height: 300px` — making it render at 200x200 instead of respecting the original ~82px dimensions.
 
-The SendGrid inbound pipeline correctly uploads binaries to storage and sets `storageKey`. Gmail-sync does not.
+### Key Insight
 
-### Part 1: Hide Failed Inline Image Placeholders (Frontend)
+Any image referenced via `cid:` is **by definition** an inline image. We don't need to check `isInline` inside the CID replacement block — we can always add the `email-inline-image` class there.
+
+### Fix
 
 **File: `src/utils/emailFormatting.ts`**
 
-For CID-miss and data-missing cases where the image is inline (signature), instead of rendering a visible placeholder SVG, render a 1x1 transparent pixel with `style="display:none"`. This collapses the image to zero height.
+1. **Line 315**: Change `const inlineClass = assetInfo.attachment.isInline ? ' email-inline-image' : '';` to `const inlineClass = ' email-inline-image';` — all CID-referenced images are inline by definition.
 
-Changes at 3 locations:
-- **Line 318** (data-missing for CID): Replace placeholder with hidden 1x1 transparent GIF + `style="display:none"`
-- **Line 328** (cid-miss): Same — hidden image instead of placeholder
-- **Line 351** (data-missing for Content-Location): Same
+2. **Lines 319-321**: The `if (assetInfo.attachment.isInline)` guard for hiding missing CID images should also be removed — all CID misses should be hidden (this is already the behavior at line 333 for full misses).
 
-Non-inline attachments (regular file attachments) keep their current placeholder behavior so users know something failed.
+This means CID images will always get the `email-inline-image` class → 40px max-height, no min-height. Historical attachments without `isInline` are fixed without a re-sync.
 
-### Part 2: Download + Upload Gmail Attachment Binaries (Backend)
-
-**File: `supabase/functions/gmail-sync/index.ts`**
-
-After extracting attachment metadata (line ~511), add a step that:
-1. Calls the Gmail API `users.messages.attachments.get` to download each attachment's binary data using `attachmentId`
-2. Uploads the binary to Supabase Storage (`message-attachments` bucket) with the same path pattern as SendGrid: `{org_id}/{conversation_id}/{uuid}_{filename}`
-3. Sets `storageKey` on the attachment object
-
-This mirrors exactly what `sendgrid-inbound` does at lines 479-523. The Gmail access token is already available in the sync function.
-
-### Summary
-
-| # | File | Change |
-|---|------|--------|
-| 1 | `src/utils/emailFormatting.ts` | Hide placeholders for inline images (display:none instead of SVG) |
-| 2 | `supabase/functions/gmail-sync/index.ts` | Download attachment binaries from Gmail API + upload to Supabase Storage |
-
-After deploying part 2, a re-sync of existing conversations will fix historical CID-miss images. Part 1 provides an immediate visual fix.
+1 file, ~3 lines changed.
 
