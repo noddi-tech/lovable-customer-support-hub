@@ -1,43 +1,69 @@
 
 
-## Cleanup Google Groups Forwarding Echoes — Edge Function Script
+## Fix: Forwarding Echo Detection — Two Bugs
 
-### What it does
+### Problem
 
-Creates a new Edge Function `cleanup-forwarding-echoes` that scans all conversations and deletes inbound messages that are content-identical echoes of agent replies (caused by Google Groups forwarding).
+The echo filter isn't catching duplicates because:
 
-### Detection logic
+1. **Time window too narrow**: Echoes can arrive 20 minutes to days later (not just 15 min)
+2. **Content doesn't match**: The echo message contains forwarding headers like `"Fra: Noddi Support Sendt: fredag 13. mars 2026 09:10 Til: Robert Bue Emne: Re: Felgreparasjon Hei, vi har svart på chatten..."` — the actual agent text is buried after these headers, so `normalizeForEcho` comparing the first 200 chars will never match
 
-For each conversation:
-1. Fetch all messages ordered by `created_at`
-2. For each agent message (`sender_type = 'agent'`), compute a content hash: strip HTML tags, collapse whitespace, lowercase, take first 200 chars
-3. For each non-agent message, compute the same hash
-4. If a non-agent message has the same hash as an agent message AND was created within 15 minutes AFTER the agent message → it's an echo → delete it
+### Fix — Two changes
 
-### Technical details
+**1. Client-side: Smarter echo detection** (`src/hooks/conversations/useThreadMessagesList.ts`)
 
-**New file: `supabase/functions/cleanup-forwarding-echoes/index.ts`**
+Instead of comparing first-200-char hashes, check if an inbound message **contains** the outbound message's normalized text (substring match). Also remove the time window — any inbound message that contains a recent outbound message's full text is an echo regardless of timing.
 
-- Uses service role client
-- Paginates through all conversations (1000 at a time)
-- For each conversation, fetches messages with `id, content, sender_type, created_at`
-- Applies the same `normalizeForEcho()` logic used client-side
-- Deletes echo messages in batches of 50
-- Tracks execution time with 45s timeout safety (same pattern as `cleanup-duplicate-messages`)
-- Returns summary: `{ conversationsScanned, echoesFound, echoesDeleted }`
+```ts
+function filterForwardingEchoes(messages: NormalizedMessage[]): NormalizedMessage[] {
+  // Collect outbound message text (strip HTML, collapse whitespace, lowercase)
+  const outboundTexts: string[] = [];
+  for (const m of messages) {
+    if (m.direction === 'outbound' && !m.isInternalNote) {
+      const text = stripToText(m.visibleBody);
+      if (text && text.length > 30) {
+        outboundTexts.push(text);
+      }
+    }
+  }
+  if (outboundTexts.length === 0) return messages;
 
-**Key differences from client-side filtering:**
-- Server-side uses `sender_type` column directly (client-side uses normalized `direction`)
-- Agent messages: `sender_type = 'agent'`
-- Echo candidates: `sender_type != 'agent'` AND `is_internal != true`
+  return messages.filter(m => {
+    if (m.direction !== 'inbound') return true;
+    const inboundText = stripToText(m.visibleBody);
+    if (!inboundText || inboundText.length < 30) return true;
+    
+    // Check if inbound contains any outbound text (substring)
+    for (const outText of outboundTexts) {
+      // Use a significant portion (first 80 chars) of the outbound as search key
+      const searchKey = outText.substring(0, 80);
+      if (inboundText.includes(searchKey)) {
+        return false; // It's an echo
+      }
+    }
+    return true;
+  });
+}
 
-### Safety
+function stripToText(body: string): string | null {
+  const text = body
+    .replace(/<[^>]+>/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+  return text.length > 30 ? text : null;
+}
+```
 
-- Only deletes non-agent, non-internal messages that exactly match agent content within 15 min
-- Dry-run mode by default (pass `{ dryRun: false }` to actually delete)
-- Logs every echo found for audit
+**2. Edge function: Same fix + deploy** (`supabase/functions/cleanup-forwarding-echoes/index.ts`)
 
-### Invocation
+Apply the same substring-match logic (using first 80 chars of agent content as search key within inbound content). Remove the time window constraint. Then deploy so it can actually run.
 
-Can be triggered from the admin UI or manually via Supabase dashboard. Single run, no scheduling needed.
+### Summary
+
+| # | File | Change |
+|---|------|--------|
+| 1 | `src/hooks/conversations/useThreadMessagesList.ts` | Substring match instead of hash comparison; remove time window |
+| 2 | `supabase/functions/cleanup-forwarding-echoes/index.ts` | Same substring logic; deploy for cleanup |
 
