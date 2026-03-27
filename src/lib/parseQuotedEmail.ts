@@ -80,7 +80,7 @@ class ParseCache {
 const parseCache = new ParseCache();
 
 // Feature flag: Enable thread extraction - expand quoted messages into separate cards
-export const ENABLE_QUOTED_EXTRACTION = true; // Thread view enabled - splits replies into separate cards // Set to true to enable thread view
+export const ENABLE_QUOTED_EXTRACTION = false; // Disabled - synthetic cards created duplicates. Quoted content still accessible via expand toggle.
 
 // Never promote quoted blocks into cards (deprecated, use ENABLE_QUOTED_EXTRACTION)
 export const ENABLE_QUOTED_SEGMENTATION = false;
