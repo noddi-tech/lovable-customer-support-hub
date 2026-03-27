@@ -644,6 +644,18 @@ function extractFromHtml(html: string): { visibleHTML: string; quoted: QuotedBlo
   // Return the ORIGINAL HTML structure with quotes removed
   const visibleHTML = body.innerHTML;
   
+  // SAFETY CHECK: If all content was classified as quoted and visible content is empty/trivial,
+  // restore the original content. This happens with forwarded emails where the entire body IS the forward.
+  const textOnly = (body.textContent || body.innerText || '').trim();
+  if (textOnly.length < 20 && quoted.length > 0) {
+    console.log('[parseQuotedEmail] All content was quoted — restoring original to prevent empty render');
+    return {
+      visibleHTML: html,
+      quoted: [],
+      quotedMessages: []
+    };
+  }
+  
   console.log('[parseQuotedEmail] Extraction complete (preserving HTML):', {
     visibleHTMLLength: visibleHTML.length,
     bodyTextLength: bodyText.length,
