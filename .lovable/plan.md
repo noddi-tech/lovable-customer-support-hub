@@ -1,65 +1,65 @@
 
 
-## Fix: Compress Email Signatures in HTML Emails
+## Fix: Compress Entire Email Rendering — Root Cause Analysis
 
-### Problem
+### Root Causes (3 bugs causing 70%+ wasted vertical space)
 
-Outlook-style HTML email signatures use `MsoNormalTable` tables with generous inline padding, heights, and spacing. These are never wrapped in `.email-signature`, so none of our signature-compressing CSS applies. The result: a short email like "Hei, EV59957" takes 3x more vertical space than needed because the signature block dominates.
+**Bug 1: `white-space: pre-wrap` on HTML emails (biggest impact)**
 
-### Root Cause
+`src/index.css` line 261 sets `white-space: pre-wrap !important` on `.email-render__html-content`. This preserves ALL whitespace from the HTML source — every newline, every indentation between tags becomes visible vertical space. Outlook HTML source is heavily indented with newlines between every element.
 
-1. **No HTML signature detection** — only `plainTextEmailFormatter.ts` wraps signatures in `.email-signature`. HTML emails pass through `emailFormatting.ts` without any signature detection.
-2. **Empty paragraphs** between body and signature create large gaps (consecutive `<p>&nbsp;</p>` or `<p><br></p>` blocks).
-3. **Inline Outlook styles** on signature table cells (`padding`, `height`) override our CSS.
+This should be `normal` for HTML emails. Only plain text needs `pre-wrap`.
 
-### Solution — Two-pronged approach
+**Bug 2: DOMPurify hooks are dead code — inline styles survive untouched**
 
-#### 1. Detect and wrap HTML signature blocks (`src/utils/emailFormatting.ts`)
+`src/utils/emailFormatting.ts` lines 187-295 place hooks inside a `HOOKS` config key. DOMPurify does NOT support this — hooks must be registered via `DOMPurify.addHook()`. This means:
+- Line 223 (`node.setAttribute('style', 'max-width: 100%; ...')`) on images **never runs**
+- Lines 252-292 (style sanitizer) **never runs**
+- Original Outlook inline styles like `width: 0.8541in; height: 0.8541in`, `padding: 0cm 6pt 3.75pt 0cm` all survive
+- While CSS `!important` overrides some, others (like image `width`/`height` in `in` units) are not covered
 
-After HTML processing but before sanitization, use a DOM-based heuristic to find signature-like content and wrap it in `<div class="email-signature">`:
+**Bug 3: Overly generous base typography**
 
-**Heuristics** (applied to the last table/block in the email):
-- Table with class `MsoNormalTable` that contains an inline image (CID or attachment) + contact info (phone link, email, website)
-- Elements after an `<hr>` near the bottom of the email
-- Any block matching common signature patterns (name + title + phone/url in a small table)
+Line 262: `line-height: 1.5` and line 265: `font-size: 14px` are generous. Combined with `prose prose-sm` Tailwind class adding its own margins, everything stacks.
 
-Implementation: parse HTML into a temp DOM element, walk backwards from the last child, and wrap detected signature blocks.
+### Fix Plan
 
-#### 2. Collapse empty spacing elements (`src/utils/emailFormatting.ts`)
-
-Add regex passes to strip empty `<p>` tags containing only `&nbsp;`, `<br>`, or whitespace — these are Outlook's spacer paragraphs:
-
-```
-.replace(/<p[^>]*>\s*(&nbsp;|\s|<br\s*\/?>)*\s*<\/p>/gi, '')
-```
-
-#### 3. CSS: Compact signature rendering (`src/index.css`)
-
-Add rules for `.email-signature` in HTML context:
-- Tighten line-height and font-size (already partially there via Tailwind classes on the container)
-- Override Outlook inline padding on signature `td` elements
-- Cap signature block max-height with overflow hidden + "show more" potential
+#### 1. Split white-space by content type (`src/index.css`)
 
 ```css
-.email-render__html-content .email-signature table {
-  width: auto !important;
+.email-render__html-content {
+  white-space: normal !important;  /* was pre-wrap */
 }
-.email-render__html-content .email-signature td {
-  padding: 0 4px 2px 0 !important;
-  height: auto !important;
-}
-.email-render__html-content .email-signature p {
-  margin: 0 !important;
-  line-height: 1.2 !important;
+.email-render__plain-content {
+  white-space: pre-wrap !important; /* keep for plain text */
 }
 ```
+
+#### 2. Register DOMPurify hooks properly (`src/utils/emailFormatting.ts`)
+
+Move the hook logic OUT of the config object. Before calling `DOMPurify.sanitize()`:
+```ts
+DOMPurify.addHook('afterSanitizeAttributes', function(node) {
+  // ... existing hook logic from lines 188-294
+});
+const sanitized = DOMPurify.sanitize(processedContent, config);
+DOMPurify.removeHook('afterSanitizeAttributes'); // cleanup
+```
+Remove the `HOOKS` key from the config object entirely.
+
+#### 3. Tighten base typography (`src/index.css`)
+
+- `line-height: 1.3` (from 1.5)
+- `font-size: 13px` (from 14px)
+- Paragraph margin-bottom: `0.15em` (from 0.25em)
+- `br` height: `0.3em` (from 0.5em)
 
 ### Summary
 
 | # | File | Change |
 |---|------|--------|
-| 1 | `src/utils/emailFormatting.ts` | Add HTML signature detection + empty paragraph stripping |
-| 2 | `src/index.css` | Add compact CSS for `.email-signature` in HTML emails |
+| 1 | `src/index.css` | Split white-space by content type, tighten typography |
+| 2 | `src/utils/emailFormatting.ts` | Register DOMPurify hooks via proper API |
 
-No new dependencies. Non-signature content unaffected. Plain text signature handling unchanged.
+The `white-space: normal` fix alone should cut rendered height by ~40%. Combined with working hooks (stripping inline Outlook styles) and tighter typography, total reduction should hit the 60-70% target.
 
