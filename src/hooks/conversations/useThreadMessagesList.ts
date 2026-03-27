@@ -1,8 +1,61 @@
 import { useMemo } from "react";
 import { useThreadMessages } from "./useThreadMessages";
-import { NormalizationContext, expandQuotedMessagesToCards } from "@/lib/normalizeMessage";
+import { NormalizationContext, NormalizedMessage, expandQuotedMessagesToCards } from "@/lib/normalizeMessage";
 import { ENABLE_QUOTED_EXTRACTION } from "@/lib/parseQuotedEmail";
 import { logger } from "@/utils/logger";
+
+/**
+ * Normalize message body for echo comparison:
+ * strip HTML, collapse whitespace, lowercase, take first 200 chars.
+ */
+function normalizeForEcho(body: string): string | null {
+  const text = body
+    .replace(/<[^>]+>/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+  return text.length > 20 ? text.substring(0, 200) : null;
+}
+
+/**
+ * Filter Google Groups forwarding echoes:
+ * When an agent reply is forwarded back through Google Groups,
+ * it appears as a new inbound message with identical content.
+ * Detect and remove these by comparing inbound content against
+ * recent outbound messages within a short time window.
+ */
+function filterForwardingEchoes(messages: NormalizedMessage[]): NormalizedMessage[] {
+  const ECHO_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+
+  const outboundHashes = new Map<string, number>();
+  for (const m of messages) {
+    if (m.direction === 'outbound' && !m.isInternalNote) {
+      const hash = normalizeForEcho(m.visibleBody);
+      if (hash) {
+        outboundHashes.set(hash, new Date(m.createdAt).getTime());
+      }
+    }
+  }
+
+  if (outboundHashes.size === 0) return messages;
+
+  return messages.filter(m => {
+    if (m.direction !== 'inbound') return true;
+    const hash = normalizeForEcho(m.visibleBody);
+    if (!hash) return true;
+    const outboundTime = outboundHashes.get(hash);
+    if (outboundTime === undefined) return true;
+    const inboundTime = new Date(m.createdAt).getTime();
+    if (inboundTime >= outboundTime && (inboundTime - outboundTime) < ECHO_WINDOW_MS) {
+      logger.debug('Filtering forwarding echo', {
+        messageId: m.id,
+        timeDiffMs: inboundTime - outboundTime
+      }, 'EchoFilter');
+      return false;
+    }
+    return true;
+  });
+}
 
 export function useThreadMessagesList(conversationIds?: string | string[], context?: NormalizationContext) {
   const q = useThreadMessages(conversationIds);
@@ -44,10 +97,13 @@ export function useThreadMessagesList(conversationIds?: string | string[], conte
       return true;
     });
 
+    // Filter Google Groups forwarding echoes (inbound copies of outbound replies)
+    const echoFiltered = filterForwardingEchoes(dedupedMessages);
+
     // Optionally expand quoted messages into separate cards for thread view
     const expandedMessages = ENABLE_QUOTED_EXTRACTION && context
-      ? expandQuotedMessagesToCards(dedupedMessages, context)
-      : dedupedMessages;
+      ? expandQuotedMessagesToCards(echoFiltered, context)
+      : echoFiltered;
 
     logger.debug('Thread expansion stats', {
       enabled: ENABLE_QUOTED_EXTRACTION,
