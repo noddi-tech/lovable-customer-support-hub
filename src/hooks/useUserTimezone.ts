@@ -62,7 +62,7 @@ export function useUserTimezone() {
             .from('profiles')
             .update({ 
               timezone: browserTimezone, 
-              time_format: '12h' 
+              time_format: browserTimeFormat 
             })
             .eq('user_id', user.id);
         } catch (error) {
