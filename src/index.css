@@ -379,6 +379,23 @@ Optimized for accessibility with WCAG AA compliance.
     object-fit: contain;
   }
 
+  /* Compact HTML signature blocks */
+  .email-render__html-content .email-signature {
+    margin-top: 4px !important;
+  }
+  .email-render__html-content .email-signature table {
+    width: auto !important;
+  }
+  .email-render__html-content .email-signature td {
+    padding: 0 4px 2px 0 !important;
+    height: auto !important;
+  }
+  .email-render__html-content .email-signature p {
+    margin: 0 !important;
+    line-height: 1.2 !important;
+  }
+
+
   /* Global: prevent any single inline image from being excessively tall */
   .email-render__html-content img,
   .email-render__plain-content img {

@@ -7,6 +7,44 @@ import { createPlaceholder, rewriteImageSources } from './imageAssetHandler';
 import { parseQuotedEmail } from '@/lib/parseQuotedEmail';
 import { logger } from '@/utils/logger';
 
+/**
+ * Detect signature-like blocks at the end of HTML emails and wrap in .email-signature.
+ */
+function wrapHtmlSignature(html: string): string {
+  const temp = document.createElement('div');
+  temp.innerHTML = html;
+  const children = Array.from(temp.children);
+  if (children.length === 0) return html;
+  let signatureStartIndex = -1;
+  for (let i = children.length - 1; i >= 0; i--) {
+    const el = children[i] as HTMLElement;
+    if (!el.tagName) continue;
+    const tag = el.tagName.toLowerCase();
+    const elHtml = el.innerHTML || '';
+    if (!elHtml.trim()) continue;
+    const isTable = tag === 'table' || el.querySelector?.('table') !== null;
+    const hasImage = el.querySelector?.('img') !== null;
+    const hasContactLink = el.querySelector?.('a[href^="tel:"], a[href^="mailto:"]') !== null;
+    const hasWebLink = /\b\w+\.\w{2,}\b/.test(el.textContent || '');
+    if (isTable && (hasImage || hasContactLink) && (hasContactLink || hasWebLink)) {
+      signatureStartIndex = i;
+      continue;
+    }
+    if (tag === 'hr') {
+      signatureStartIndex = i;
+      continue;
+    }
+    if (signatureStartIndex !== -1) break;
+  }
+  if (signatureStartIndex === -1) return html;
+  const sigDiv = document.createElement('div');
+  sigDiv.className = 'email-signature';
+  const elemsToWrap = children.slice(signatureStartIndex);
+  elemsToWrap.forEach(el => sigDiv.appendChild(el));
+  temp.appendChild(sigDiv);
+  return temp.innerHTML;
+}
+
 export interface EmailAttachment {
   filename: string;
   mimeType: string;
@@ -368,6 +406,13 @@ export const sanitizeEmailHTML = (
       return match; // Keep original if no match found
     }
   );
+
+  // Strip empty spacer paragraphs (Outlook generates these)
+  processedContent = processedContent
+    .replace(/<p[^>]*>\s*(?:&nbsp;|\s|<br\s*\/?>)*\s*<\/p>/gi, '');
+
+  // Detect and wrap HTML signature blocks
+  processedContent = wrapHtmlSignature(processedContent);
 
   // Fix common email HTML issues
   processedContent = processedContent
