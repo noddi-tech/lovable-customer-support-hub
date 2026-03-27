@@ -371,6 +371,27 @@ Optimized for accessibility with WCAG AA compliance.
     margin: 0;
   }
 
+  /* Global: constrain signature images across all devices */
+  .email-render__html-content .email-signature img,
+  .email-render__plain-content .email-signature img {
+    max-height: 80px !important;
+    width: auto !important;
+    object-fit: contain;
+  }
+
+  /* Global: prevent any single inline image from being excessively tall */
+  .email-render__html-content img,
+  .email-render__plain-content img {
+    max-height: 200px;
+    object-fit: contain;
+  }
+
+  /* Allow explicitly full-width content images to remain large */
+  .email-render__html-content img[style*="width: 100%"],
+  .email-render__html-content img.content-image {
+    max-height: none;
+  }
+
   /* Email table rendering - Force ALL tables to full width */
   .email-render__html-content table,
   .email-render__plain-content table {
