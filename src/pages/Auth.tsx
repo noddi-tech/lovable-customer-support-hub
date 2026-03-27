@@ -514,7 +514,7 @@ export const Auth: React.FC = () => {
           {inviteBanner}
           
           <Tabs value={authMethod} onValueChange={(value) => setAuthMethod(value as 'google' | 'email' | 'magic')} className="w-full">
-            <TabsList className="grid w-full grid-cols-3 mb-3 h-9">
+            <TabsList className="grid w-full grid-cols-3 mb-2 h-9">
               <TabsTrigger value="google" className="text-xs">Quick</TabsTrigger>
               <TabsTrigger value="email" className="text-xs">Email</TabsTrigger>
               <TabsTrigger value="magic" className="text-xs">Magic Link</TabsTrigger>
