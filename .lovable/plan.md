@@ -1,32 +1,48 @@
 
 
-## Fix: Disable Quoted Content Expansion Creating Fake Duplicates
+## Fix: Critical Alerts Not Sending After Channel Change
 
 ### Root Cause
 
-`ENABLE_QUOTED_EXTRACTION` is set to `true` in `src/lib/parseQuotedEmail.ts` (line 83). This causes `expandQuotedMessagesToCards` to create synthetic message cards from quoted email content (e.g., when a customer's reply includes the previous agent message via Outlook's "Fra:/Sendt:/Til:/Emne:" quoting). These synthetic cards appear as separate "Customer" messages, looking exactly like duplicates.
+The critical alert logic in `send-slack-notification/index.ts` has a structural flaw: **critical triage runs only after the main notification succeeds** (line 443). If the main Slack post to the default channel fails for any reason (e.g., bot not in channel, token issue), the function returns a 500 on line 435 and the critical alert code is never reached.
 
-The database has only 7 real messages for this conversation — zero are forwarding echoes. All the "duplicates" are fabricated by the UI.
-
-### Fix
-
-**Single line change** in `src/lib/parseQuotedEmail.ts`:
-
-```ts
-// Line 83: Change from true to false
-export const ENABLE_QUOTED_EXTRACTION = false;
+Additionally, on line 446:
 ```
+criticalChannelId !== channelId
+```
+If the new critical channel happens to be the same as the default channel, critical alerts are silently skipped.
 
-This stops the system from expanding quoted email blocks into separate cards. The quoted content will still be accessible via the existing "Show quoted text" toggle on each message card.
+### Plan
 
-### Why this is safe
-- The quoted content is already viewable through the expand/collapse toggle on each card
-- The echo filter and dedup logic remain intact for real duplicates
-- No database changes needed
-- No other files need changes
+**Single file change**: `supabase/functions/send-slack-notification/index.ts`
+
+1. **Decouple critical alerts from main notification success**
+   - Move the critical triage block (lines 443-630) so it runs regardless of whether the main notification succeeded or failed.
+   - The main notification result should still be returned, but critical triage should execute independently in a try/catch so it never blocks or is blocked by the main flow.
+
+2. **Remove the `criticalChannelId !== channelId` guard**
+   - This condition silently skips critical alerts when both channels are the same. Critical alerts should still be sent even to the same channel — they have different formatting (red attachment, CRITICAL prefix) and serve a different purpose.
+
+3. **Add logging for critical triage skip reasons**
+   - Log when critical alerts are skipped and why (disabled, no channel, deduped, no keyword/AI match) so future debugging is easier.
+
+4. **Deploy the updated function**.
+
+### Technical Detail
+
+```text
+Before (broken):
+  send main notification → fails? → return 500 (critical never runs)
+  send main notification → succeeds → check critical → channel same? → skip
+
+After (fixed):
+  send main notification → record result
+  run critical triage independently (always)
+  return main result
+```
 
 ### Files
 | # | File | Change |
 |---|------|--------|
-| 1 | `src/lib/parseQuotedEmail.ts` | Set `ENABLE_QUOTED_EXTRACTION = false` |
+| 1 | `supabase/functions/send-slack-notification/index.ts` | Decouple critical from main; remove same-channel guard; add skip logging; deploy |
 
