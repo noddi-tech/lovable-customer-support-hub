@@ -430,20 +430,26 @@ Deno.serve(async (req) => {
 
     const slackResult = await slackResponse.json();
 
+    let mainNotificationSuccess = true;
     if (!slackResult.ok) {
       console.error('Slack API error:', slackResult.error);
-      return new Response(
-        JSON.stringify({ error: slackResult.error }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      mainNotificationSuccess = false;
+    } else {
+      console.log(`Slack notification sent for ${event_type} to channel ${channelId}`);
     }
 
-    console.log(`Slack notification sent for ${event_type} to channel ${channelId}`);
-
-    // === Critical Triage Detection ===
+    // === Critical Triage Detection (runs independently of main notification) ===
     const criticalChannelId = integration.critical_channel_id;
     
-    if (config.critical_alerts_enabled && criticalChannelId && criticalChannelId !== channelId && event_type !== 'mention') {
+    if (!config.critical_alerts_enabled) {
+      console.log('🔇 Critical alerts disabled in config');
+    } else if (!criticalChannelId) {
+      console.log('🔇 No critical channel configured');
+    } else if (event_type === 'mention') {
+      console.log('🔇 Skipping critical triage for mention event (handled separately)');
+    }
+
+    if (config.critical_alerts_enabled && criticalChannelId && event_type !== 'mention') {
       // Dedup: skip critical alert if one was already sent for this conversation in the last 24h
       let alreadyAlerted = false;
       if (conversation_id) {
