@@ -1,48 +1,35 @@
 
 
-## Fix: Critical Alerts Not Sending After Channel Change
+## Batch Critical Alert Review for Open Conversations
 
-### Root Cause
+### What we'll build
 
-The critical alert logic in `send-slack-notification/index.ts` has a structural flaw: **critical triage runs only after the main notification succeeds** (line 443). If the main Slack post to the default channel fails for any reason (e.g., bot not in channel, token issue), the function returns a 500 on line 435 and the critical alert code is never reached.
+A new edge function `review-open-critical` that:
+1. Fetches all open/pending conversations with their latest customer message
+2. Runs each through the same keyword + AI critical triage logic used by `send-slack-notification`
+3. Respects the existing 24h dedup (won't re-alert conversations already alerted)
+4. Posts critical alerts to the configured critical channel for any matches
+5. Returns a summary of what was found and alerted
 
-Additionally, on line 446:
-```
-criticalChannelId !== channelId
-```
-If the new critical channel happens to be the same as the default channel, critical alerts are silently skipped.
+### Implementation
 
-### Plan
+**New file**: `supabase/functions/review-open-critical/index.ts`
 
-**Single file change**: `supabase/functions/send-slack-notification/index.ts`
+- Query `conversations` where `status in ('open', 'pending')` joined with `customers` and `inboxes`
+- For each conversation, fetch latest customer message as preview text
+- Load `slack_integrations` config for the org
+- Run keyword matching (same `CRITICAL_KEYWORDS` list) and optionally AI triage
+- Check 24h dedup via `notifications` table (`type = 'critical_alert_sent'`)
+- Post critical alert to Slack for matches (same red-attachment format)
+- Track each alert in `notifications` to prevent future duplicates
+- Return JSON summary: `{ reviewed, alerted, skipped_dedup, details[] }`
 
-1. **Decouple critical alerts from main notification success**
-   - Move the critical triage block (lines 443-630) so it runs regardless of whether the main notification succeeded or failed.
-   - The main notification result should still be returned, but critical triage should execute independently in a try/catch so it never blocks or is blocked by the main flow.
+### Invocation
 
-2. **Remove the `criticalChannelId !== channelId` guard**
-   - This condition silently skips critical alerts when both channels are the same. Critical alerts should still be sent even to the same channel — they have different formatting (red attachment, CRITICAL prefix) and serve a different purpose.
-
-3. **Add logging for critical triage skip reasons**
-   - Log when critical alerts are skipped and why (disabled, no channel, deduped, no keyword/AI match) so future debugging is easier.
-
-4. **Deploy the updated function**.
-
-### Technical Detail
-
-```text
-Before (broken):
-  send main notification → fails? → return 500 (critical never runs)
-  send main notification → succeeds → check critical → channel same? → skip
-
-After (fixed):
-  send main notification → record result
-  run critical triage independently (always)
-  return main result
-```
+After deploying, I'll invoke it once via `supabase--curl_edge_functions` to trigger the review immediately.
 
 ### Files
 | # | File | Change |
 |---|------|--------|
-| 1 | `supabase/functions/send-slack-notification/index.ts` | Decouple critical from main; remove same-channel guard; add skip logging; deploy |
+| 1 | `supabase/functions/review-open-critical/index.ts` | New edge function |
 
