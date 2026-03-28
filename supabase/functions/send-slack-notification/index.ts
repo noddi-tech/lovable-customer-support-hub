@@ -622,6 +622,13 @@ Deno.serve(async (req) => {
       }
     }
 
+    if (!mainNotificationSuccess) {
+      return new Response(
+        JSON.stringify({ error: slackResult.error }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     return new Response(
       JSON.stringify({ success: true, ts: slackResult.ts }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
