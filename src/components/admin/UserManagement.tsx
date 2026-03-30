@@ -1,38 +1,19 @@
 import { useState } from "react";
 import { Heading } from '@/components/ui/heading';
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Users, UserPlus, Edit, Trash2, Shield, Mail, Building, Crown } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useTranslation } from 'react-i18next';
 import { useAuditLog } from '@/hooks/useAuditLog';
-
-interface UserProfile {
-  id: string;
-  user_id: string;
-  full_name: string;
-  email: string;
-  department_id: string | null;
-  primary_role: 'admin' | 'user';
-  is_active: boolean;
-  created_at: string;
-  department?: {
-    id: string;
-    name: string;
-  };
-  roles?: {
-    role: 'admin' | 'user';
-  }[];
-}
+import { DataTable } from "./DataTable";
+import { userColumns, UserRow } from "./users/UserColumns";
 
 interface Department {
   id: string;
@@ -49,7 +30,6 @@ interface CreateUserData {
 
 export function UserManagement() {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
-  const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
   const [createUserData, setCreateUserData] = useState<CreateUserData>({
     email: '',
     full_name: '',
@@ -62,7 +42,7 @@ export function UserManagement() {
   const { user } = useAuth();
   const { logAction } = useAuditLog();
 
-  // Fetch users with their roles and departments
+  // Fetch users with their departments
   const { data: users = [], isLoading } = useQuery({
     queryKey: ["users"],
     queryFn: async () => {
@@ -82,7 +62,7 @@ export function UserManagement() {
         .order("created_at", { ascending: false });
       
       if (error) throw error;
-      return data as UserProfile[];
+      return data as UserRow[];
     },
   });
 
@@ -100,12 +80,11 @@ export function UserManagement() {
     },
   });
 
-  // Create user mutation - uses edge function for secure user creation
+  // Create user mutation
   const createUserMutation = useMutation({
     mutationFn: async (userData: CreateUserData) => {
       if (!user) throw new Error("User not authenticated");
 
-      // Call edge function instead of direct admin API
       const { data, error } = await supabase.functions.invoke('admin-create-user', {
         body: {
           email: userData.email,
@@ -121,7 +100,6 @@ export function UserManagement() {
       return { user: data.user };
     },
     onSuccess: async (data, variables) => {
-      // Log audit action
       try {
         await logAction(
           'user.create',
@@ -140,77 +118,18 @@ export function UserManagement() {
       }
 
       queryClient.invalidateQueries({ queryKey: ["users"] });
+      queryClient.invalidateQueries({ queryKey: ["all-users"] });
       toast({
         title: "Invite sent",
         description: "The user will receive an email to set up their password.",
       });
       setShowCreateDialog(false);
-      setCreateUserData({
-        email: '',
-        full_name: '',
-        department_id: null,
-        primary_role: 'user'
-      });
+      setCreateUserData({ email: '', full_name: '', department_id: null, primary_role: 'user' });
     },
-    onError: (error) => {
+    onError: () => {
       toast({
         title: "Error",
         description: "Failed to create user. Please try again.",
-        variant: "destructive",
-      });
-    },
-  });
-
-  // Update user mutation
-  const updateUserMutation = useMutation({
-    mutationFn: async ({ userId, updates }: { userId: string; updates: Partial<UserProfile> }) => {
-      // Update profile only - the primary_role field is sufficient for role management
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .update({
-          full_name: updates.full_name,
-          department_id: updates.department_id,
-          primary_role: updates.primary_role,
-          is_active: updates.is_active
-        })
-        .eq("user_id", userId);
-
-      if (profileError) throw profileError;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["users"] });
-      toast({
-        title: "User updated",
-        description: "The user has been updated successfully.",
-      });
-      setEditingUser(null);
-    },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: "Failed to update user. Please try again.",
-        variant: "destructive",
-      });
-    },
-  });
-
-  // Delete user mutation
-  const deleteUserMutation = useMutation({
-    mutationFn: async (userId: string) => {
-      const { error } = await supabase.auth.admin.deleteUser(userId);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["users"] });
-      toast({
-        title: "User deleted",
-        description: "The user has been deleted successfully.",
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: "Failed to delete user. Please try again.",
         variant: "destructive",
       });
     },
@@ -227,41 +146,6 @@ export function UserManagement() {
       return;
     }
     createUserMutation.mutate(createUserData);
-  };
-
-  const handleUpdateUser = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editingUser || !editingUser.full_name.trim()) {
-      toast({
-        title: "Validation Error",
-        description: "Full name is required.",
-        variant: "destructive",
-      });
-      return;
-    }
-    updateUserMutation.mutate({ userId: editingUser.user_id, updates: editingUser });
-  };
-
-  const startEdit = (user: UserProfile) => {
-    setEditingUser({ ...user });
-  };
-
-  const cancelEdit = () => {
-    setEditingUser(null);
-  };
-
-  const getDepartmentName = (departmentId: string | null) => {
-    if (!departmentId) return 'No Department';
-    const department = departments?.find(d => d.id === departmentId);
-    return department?.name || 'Unknown Department';
-  };
-
-  const getRoleBadgeVariant = (role: 'admin' | 'user') => {
-    return role === 'admin' ? 'destructive' : 'secondary';
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString();
   };
 
   if (isLoading) {
@@ -359,17 +243,10 @@ export function UserManagement() {
                 </Select>
               </div>
               <div className="flex gap-2 justify-end">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setShowCreateDialog(false)}
-                >
+                <Button type="button" variant="outline" onClick={() => setShowCreateDialog(false)}>
                   Cancel
                 </Button>
-                <Button
-                  type="submit"
-                  disabled={createUserMutation.isPending}
-                >
+                <Button type="submit" disabled={createUserMutation.isPending}>
                   {createUserMutation.isPending ? t('admin.creating') : t('admin.createUser')}
                 </Button>
               </div>
@@ -378,193 +255,12 @@ export function UserManagement() {
         </Dialog>
       </div>
 
-      {users.length === 0 ? (
-        <Card className="bg-gradient-surface border-border/50 shadow-surface">
-          <CardContent className="text-center py-8">
-            <Users className="h-12 w-12 mx-auto mb-4 opacity-50 text-muted-foreground" />
-            <h3 className="font-medium mb-2 text-primary">No users yet</h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              Create your first user to start building your team.
-            </p>
-            <Button onClick={() => setShowCreateDialog(true)} className="bg-gradient-primary hover:bg-primary-hover text-primary-foreground shadow-glow">
-              <UserPlus className="h-4 w-4 mr-2" />
-              Create First User
-            </Button>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid gap-4">
-          {users.map((userProfile) => (
-            <Card key={userProfile.id} className="bg-gradient-surface border-border/50 shadow-surface hover:shadow-glow transition-shadow">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center shadow-glow">
-                      <Users className="h-5 w-5 text-primary" />
-                    </div>
-                    <div>
-                      <CardTitle className="flex items-center gap-2">
-                        {userProfile.full_name}
-                        {userProfile.primary_role === 'admin' && (
-                          <Crown className="h-4 w-4 text-warning" />
-                        )}
-                      </CardTitle>
-                      <div className="flex items-center gap-2 mt-1">
-                        <Mail className="h-3 w-3 text-muted-foreground" />
-                        <span className="text-sm text-muted-foreground">{userProfile.email}</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => startEdit(userProfile)}
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    {userProfile.user_id !== user?.id && (
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="outline" size="sm">
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Delete User</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Are you sure you want to delete "{userProfile.full_name}"? This action cannot be undone.
-                              All data associated with this user will be permanently removed.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => deleteUserMutation.mutate(userProfile.user_id)}
-                              disabled={deleteUserMutation.isPending}
-                            >
-                              {deleteUserMutation.isPending ? "Deleting..." : "Delete"}
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    )}
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                  <div>
-                    <span className="flex items-center gap-2 text-muted-foreground mb-1">
-                      <Shield className="h-3 w-3" />
-                      Role
-                    </span>
-                    <Badge variant={getRoleBadgeVariant(userProfile.primary_role)}>
-                      {userProfile.primary_role === 'admin' ? 'Administrator' : 'User'}
-                    </Badge>
-                  </div>
-                  <div>
-                    <span className="flex items-center gap-2 text-muted-foreground mb-1">
-                      <Building className="h-3 w-3" />
-                      Department
-                    </span>
-                    <span>{getDepartmentName(userProfile.department_id)}</span>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground mb-1 block">Status</span>
-                    <Badge variant={userProfile.is_active ? "default" : "secondary"}>
-                      {userProfile.is_active ? 'Active' : 'Inactive'}
-                    </Badge>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground mb-1 block">Created</span>
-                    <span>{formatDate(userProfile.created_at)}</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
-
-      {/* Edit Dialog */}
-      <Dialog open={!!editingUser} onOpenChange={() => cancelEdit()}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit User</DialogTitle>
-            <DialogDescription>
-              Update user details, role, and department assignment.
-            </DialogDescription>
-          </DialogHeader>
-          {editingUser && (
-            <form onSubmit={handleUpdateUser} className="space-y-4">
-              <div>
-                <Label htmlFor="edit-full_name">Full Name</Label>
-                <Input
-                  id="edit-full_name"
-                  value={editingUser.full_name}
-                  onChange={(e) => setEditingUser(prev => prev ? ({ ...prev, full_name: e.target.value }) : null)}
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="edit-department">Department</Label>
-                <Select 
-                  value={editingUser.department_id || 'no-department'} 
-                  onValueChange={(value) => setEditingUser(prev => prev ? ({ 
-                    ...prev, 
-                    department_id: value === 'no-department' ? null : value 
-                  }) : null)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select department (optional)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="no-department">No Department</SelectItem>
-                    {departments?.map(dept => (
-                      <SelectItem key={dept.id} value={dept.id}>{dept.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="edit-role">Role</Label>
-                <Select 
-                  value={editingUser.primary_role} 
-                  onValueChange={(value: 'admin' | 'user') => setEditingUser(prev => prev ? ({ 
-                    ...prev, 
-                    primary_role: value 
-                  }) : null)}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="user">User</SelectItem>
-                    <SelectItem value="admin">Admin</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex gap-2 justify-end">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={cancelEdit}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={updateUserMutation.isPending}
-                >
-                  {updateUserMutation.isPending ? "Updating..." : "Update User"}
-                </Button>
-              </div>
-            </form>
-          )}
-        </DialogContent>
-      </Dialog>
+      <DataTable
+        columns={userColumns}
+        data={users}
+        searchPlaceholder="Search by name or email..."
+        globalFilter
+      />
     </div>
   );
 }
