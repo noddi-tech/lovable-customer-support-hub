@@ -11,10 +11,7 @@ import {
 import { useNoddihKundeData } from '@/hooks/useNoddihKundeData';
 import { displayName } from '@/utils/noddiHelpers';
 import { format } from 'date-fns';
-import { useQueryClient } from '@tanstack/react-query';
-import { getCustomerCacheKey } from '@/utils/customerCacheKey';
 import { logger } from '@/utils/logger';
-import { useAuth } from '@/hooks/useAuth';
 
 interface NoddiCustomerDetailsProps {
   customerId?: string;
@@ -53,7 +50,7 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
   
   // Only fetch if no external data provided
   // CRITICAL: Pass customerId so edge function can fetch alternative_emails from DB
-  const { data: fetchedData, isLoading } = useNoddihKundeData(
+  const { data: fetchedData, isLoading, refresh, isRefreshing } = useNoddihKundeData(
     externalNoddiData ? null : {
       id: customerId || '',
       email: lookupEmail,
@@ -65,35 +62,7 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
 
   // Use external data if provided, otherwise use fetched data
   const noddiData = externalNoddiData || fetchedData;
-  const isLoadingData = !externalNoddiData && isLoading;
-  const queryClient = useQueryClient();
-  const { profile } = useAuth();
-
-  // Force refresh handler
-  const handleForceRefresh = async () => {
-    if (!profile?.organization_id) {
-      console.warn('[NoddiCustomerDetails] Cannot refresh - no organization ID');
-      return;
-    }
-    
-    console.log('[NoddiCustomerDetails] 🔄 Force refreshing Noddi data...');
-    
-    // Build specific query key for THIS customer only
-    const customerKey = getCustomerCacheKey({
-      email: customerEmail,
-      phone: customerPhone
-    });
-    
-    const specificQueryKey = ['noddi-customer-lookup', customerKey, profile.organization_id];
-    
-    console.log('[NoddiCustomerDetails] Refreshing query:', specificQueryKey);
-    
-    // Clear cache and refetch for THIS customer only
-    await queryClient.invalidateQueries({ queryKey: specificQueryKey });
-    await queryClient.refetchQueries({ queryKey: specificQueryKey });
-    
-    console.log('[NoddiCustomerDetails] ✅ Force refresh completed');
-  };
+  const isLoadingData = !externalNoddiData && (isLoading || isRefreshing);
 
   // Compute displayed data based on selected group
   const displayedData = React.useMemo(() => {
@@ -306,10 +275,10 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
           variant="ghost"
           size="sm"
           className="h-6 px-1.5"
-          onClick={handleForceRefresh}
-          disabled={isLoadingData}
-        >
-          <RefreshCw className={`h-3 w-3 ${isLoadingData ? 'animate-spin' : ''}`} />
+           onClick={() => refresh()}
+           disabled={isLoadingData}
+         >
+           <RefreshCw className={`h-3 w-3 ${isLoadingData ? 'animate-spin' : ''}`} />
         </Button>
       </div>
         {/* Show email alias indicator if using different email for lookups */}
