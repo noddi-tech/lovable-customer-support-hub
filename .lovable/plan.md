@@ -1,38 +1,25 @@
 
 
-## Display Membership Programs & Coupons from Customer Lookup
+## Fix: Membership Programs & Coupons Not Showing After Refresh
 
-### What's new
-The Noddi `customer-lookup-support` API now returns `membership_programs` and `coupons` arrays on each user group. We need to pass these through the edge function and display them in the support UI.
+### Root Cause
+The refresh button in `NoddiCustomerDetails` only invalidates the **React Query client-side cache** and refetches — but the refetch goes through the normal `queryFn` which does NOT pass `forceRefresh: true` to the edge function. So the edge function returns its **server-side cached** response (v1.7, which predates the membership/coupons update).
 
-### Plan
+The `useNoddihKundeData` hook already has a `refreshMutation` that correctly passes `forceRefresh: true`, but `NoddiCustomerDetails` doesn't use it.
+
+Your screenshot confirms this: it shows `vnoddi-edge-1.7` — the old cached version — instead of `1.8`.
+
+### Fix
 
 | # | File | Change |
 |---|------|--------|
-| 1 | `supabase/functions/noddi-customer-lookup/index.ts` | Pass through `membership_programs` and `coupons` in both `allUserGroupsFormatted` blocks (lines ~1528-1540 for live, ~1300-1313 for legacy fallback). Also add to the top-level `data` response for the selected group |
-| 2 | `src/hooks/useNoddihKundeData.ts` | Add `membership_programs` and `coupons` to the `NoddiLookupResponse` type under `data` and/or `all_user_groups` |
-| 3 | `src/components/dashboard/voice/NoddiCustomerDetails.tsx` | Add two new UI sections after booking data: **Membership Programs** (badge-style list showing program name/status) and **Coupons** (compact list with code, description, expiry/status) |
-| 4 | `src/components/mobile/conversations/MobileCustomerSummaryCard.tsx` | Add membership/coupon indicators to the mobile card view |
+| 1 | `src/components/dashboard/voice/NoddiCustomerDetails.tsx` | Replace the custom `handleForceRefresh` with calling the `refresh` function from `useNoddihKundeData` (which passes `forceRefresh: true`), so the edge function bypasses its server-side cache and returns fresh v1.8 data with membership programs and coupons |
 
-### Edge function changes
-In both the live path (line ~1528) and legacy fallback (line ~1300), add to the user group mapping:
-```ts
-membership_programs: g.membership_programs || [],
-coupons: g.coupons || [],
-```
+### What happens after the fix
+1. User clicks the refresh button
+2. `useNoddihKundeData.refresh()` is called → sends `forceRefresh: true` to the edge function
+3. Edge function bypasses its server-side cache → calls Noddi API live → returns v1.8 response with `membership_programs` and `coupons`
+4. React Query cache is updated → UI re-renders with the new sections
 
-Also add selected group's programs/coupons to the top-level response `data`:
-```ts
-membership_programs: selectedGroup.membership_programs || [],
-coupons: selectedGroup.coupons || [],
-```
-
-### UI display
-- **Membership Programs**: Section with `Crown` icon header, each program as a badge showing name and status
-- **Coupons**: Section with `Ticket` icon header, each coupon showing code, description, and validity/status in a compact card format
-- Both sections only render when the arrays have items
-- Integrated into the `displayedData` memo so they update when switching user groups
-
-### Version bump
-Update version string from `noddi-edge-1.7` to `noddi-edge-1.8`
+This is a one-line behavioral fix. Once refreshed, the membership programs ("Tire hotel customer") and coupons will appear.
 
