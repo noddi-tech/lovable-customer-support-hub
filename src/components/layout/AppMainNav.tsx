@@ -39,7 +39,7 @@ export const AppMainNav = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const { state, toggleSidebar, isMobile } = useSidebar();
+  const { state, toggleSidebar, isMobile, setOpenMobile } = useSidebar();
   const { isAdmin: checkIsAdmin, isLoading: permissionsLoading } = usePermissions();
   const { user, profile, signOut, isSuperAdmin } = useAuth();
   const { notifications: unreadNotifications } = useOptimizedCounts();
@@ -66,6 +66,12 @@ export const AppMainNav = () => {
 
   const getNavClassName = (isItemActive: boolean) => 
     cn(isItemActive ? "bg-muted text-primary font-medium" : "hover:bg-muted/50");
+
+  const handleNavClick = () => {
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+  };
 
   const groupLabels: Record<string, string> = {
     notifications: t('navigation.notifications', 'Notifications'),
@@ -146,6 +152,7 @@ export const AppMainNav = () => {
                           <NavLink 
                             to={item.to} 
                             end={item.to === '/'}
+                            onClick={handleNavClick}
                             className={cn(
                               getNavClassName(itemIsActive),
                               groupKey === 'super_admin' && itemIsActive && "bg-yellow-500/10 text-yellow-600 dark:text-yellow-500 font-medium"

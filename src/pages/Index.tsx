@@ -12,6 +12,8 @@ import DoormanInterface from '@/components/dashboard/DoormanInterface';
 import RecruitmentInterface from '@/components/dashboard/RecruitmentInterface';
 import VoiceAnalyticsPage from '@/pages/VoiceAnalyticsPage';
 import VoiceSettingsPage from '@/pages/VoiceSettingsPage';
+import { VoiceDashboard } from '@/components/dashboard/voice/VoiceDashboard';
+import { ResponsiveContainer } from '@/components/admin/design/components/layouts/ResponsiveContainer';
 import { ChatLayout } from '@/components/dashboard/chat';
 
 
@@ -66,6 +68,19 @@ const Index = () => {
         }
         if (subSection === 'voice-settings') {
           return <VoiceSettingsPage />;
+        }
+        // Handle Voice - dedicated layout
+        if (subSection === 'voice') {
+          return (
+            <ResponsiveContainer 
+              padding={{ sm: '4', md: '6', lg: '8' }}
+              maxWidth="7xl"
+              center={true}
+              className="py-6"
+            >
+              <VoiceDashboard />
+            </ResponsiveContainer>
+          );
         }
         // Handle Chat - dedicated layout
         if (subSection === 'chat') {

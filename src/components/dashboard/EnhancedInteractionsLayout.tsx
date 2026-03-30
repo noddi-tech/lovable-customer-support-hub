@@ -246,25 +246,7 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
     await replyMutation.mutateAsync(text);
   }, [conversationId, replyMutation]);
 
-  // Render VoiceDashboard if active sub-tab is 'voice'
-  if (activeSubTab === 'voice') {
-    return (
-      <ResponsiveContainer 
-        padding={{ sm: '4', md: '6', lg: '8' }}
-        maxWidth="7xl"
-        center={true}
-        className="py-6"
-      >
-        <VoiceDashboard />
-      </ResponsiveContainer>
-    );
-  }
-  
-  // Render specific voice pages
-  if (activeSubTab === 'voice-analytics' || activeSubTab === 'voice-settings') {
-    // These are handled at the Index.tsx level
-    return null;
-  }
+  // Voice sub-tabs are now handled at the Index.tsx level
 
   // Render inbox list with search
   const renderInboxList = () => (
