@@ -123,10 +123,20 @@ export default function AllUsersManagement() {
     return userLogs[0]; // Most recent
   };
 
-  const filteredUsers = users.filter((user: any) =>
-    (user.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.full_name?.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  const filteredUsers: AllUserRow[] = users
+    .filter((user: any) =>
+      (user.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        user.full_name?.toLowerCase().includes(searchQuery.toLowerCase()))
+    )
+    .map((user: any) => ({
+      ...user,
+      _inviteStatus: getInviteStatus(user.email),
+      _onActivity: (userId: string, email: string) => {
+        setSelectedUserId(userId);
+        setSelectedUserEmail(email);
+        setShowActivityTimeline(true);
+      },
+    }));
 
   // Create user mutation for super-admin
   const createUserMutation = useMutation({
