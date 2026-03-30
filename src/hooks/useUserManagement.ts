@@ -400,12 +400,14 @@ export function useUserManagement() {
     updateUser: updateUser.mutate,
     deleteUser: deleteUser.mutate,
     updateMembershipRole: updateMembershipRole.mutate,
+    changeEmail: changeEmail.mutate,
     resendInvite: resendInvite.mutate,
     isAssigningRole: assignRole.isPending,
     isRemovingRole: removeRole.isPending,
     isUpdatingUser: updateUser.isPending,
     isDeletingUser: deleteUser.isPending,
     isUpdatingMembership: updateMembershipRole.isPending,
+    isChangingEmail: changeEmail.isPending,
     isResendingInvite: resendInvite.isPending,
   };
 }

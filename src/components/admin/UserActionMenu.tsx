@@ -172,6 +172,18 @@ export function UserActionMenu({ user }: UserActionMenuProps) {
         open={inviteHistoryOpen}
         onOpenChange={setInviteHistoryOpen}
       />
+
+      <ChangeEmailDialog
+        open={changeEmailOpen}
+        onOpenChange={setChangeEmailOpen}
+        userId={user.user_id}
+        currentEmail={user.email}
+        onConfirm={(userId, newEmail) => {
+          changeEmail({ userId, newEmail });
+          setChangeEmailOpen(false);
+        }}
+        isLoading={isChangingEmail}
+      />
     </>
   );
 }
