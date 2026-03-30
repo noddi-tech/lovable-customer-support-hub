@@ -278,10 +278,10 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
           variant="ghost"
           size="sm"
           className="h-6 px-1.5"
-          onClick={handleForceRefresh}
-          disabled={isLoadingData}
-        >
-          <RefreshCw className={`h-3 w-3 ${isLoadingData ? 'animate-spin' : ''}`} />
+           onClick={() => refresh()}
+           disabled={isLoadingData}
+         >
+           <RefreshCw className={`h-3 w-3 ${isLoadingData ? 'animate-spin' : ''}`} />
         </Button>
       </div>
         {/* Show email alias indicator if using different email for lookups */}
