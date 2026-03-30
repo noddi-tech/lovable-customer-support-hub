@@ -70,6 +70,19 @@ const Index = () => {
         if (subSection === 'voice-settings') {
           return <VoiceSettingsPage />;
         }
+        // Handle Voice - dedicated layout
+        if (subSection === 'voice') {
+          return (
+            <ResponsiveContainer 
+              padding={{ sm: '4', md: '6', lg: '8' }}
+              maxWidth="7xl"
+              center={true}
+              className="py-6"
+            >
+              <VoiceDashboard />
+            </ResponsiveContainer>
+          );
+        }
         // Handle Chat - dedicated layout
         if (subSection === 'chat') {
           return <ChatLayout />;
