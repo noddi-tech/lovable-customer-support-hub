@@ -1,30 +1,35 @@
 
 
-## Fix: Consistent fade-in animation for all sidebar navigation
+## Replace Notification List with TanStack DataTable
 
-### Root Cause
+### What changes
 
-The `key` in `UnifiedAppLayout.tsx` is based on the top-level route segment (`interactions`, `marketing`, `operations`). When navigating between items within the same section (e.g., Text Messages → Voice Calls → Chat — all under `/interactions`), the key doesn't change, so no animation replays. Cross-section navigation (e.g., Text Messages → Newsletters) does change the key, producing a visible fade-in.
+Replace the current custom notification list (grouped cards with hover actions) with the existing `DataTable` component powered by TanStack Table — matching the pattern used in admin pages. This gives sorting, pagination, global search, and a clean tabular layout.
 
-### Fix
-
-Use a more granular key that changes on every sub-route navigation, not just top-level section changes.
+### Files
 
 | # | File | Change |
 |---|------|--------|
-| 1 | `src/components/layout/UnifiedAppLayout.tsx` | Change key from `section` (top-level segment only) to the full second-level path segment, e.g. `location.pathname.split('/').slice(0, 3).join('/')`. This ensures Text→Voice→Chat all get different keys and replay the fade-in. |
+| 1 | `src/components/notifications/NotificationColumns.tsx` | **New file.** Define `ColumnDef<EnhancedNotification>[]` with columns: Status (read/unread dot), Type (category icon), Title+Message (combined cell with priority badge), Time (relative timestamp with sortable accessor), and Actions (Mark read, View, Delete buttons). Row click navigates to source. |
+| 2 | `src/pages/NotificationsPage.tsx` | Replace the entire notification list section (grouped rendering, search input, `NotificationListItem` usage) with `<DataTable>` using the new columns. Pass `filteredNotifications` as data, use `globalFilter` mode, and remove the separate search input (DataTable has its own). Keep the header, tabs, refresh, and mark-all-as-read buttons unchanged. |
+| 3 | `src/components/notifications/NotificationListItem.tsx` | No changes — kept for potential reuse in dropdown, but no longer used by the page. |
 
-The key derivation changes from:
-```
-/interactions/text  → "interactions"
-/interactions/voice → "interactions"  (same — no animation)
-```
-To:
-```
-/interactions/text  → "/interactions/text"
-/interactions/voice → "/interactions/voice"  (different — animation plays)
-/marketing/campaigns → "/marketing/campaigns"
-```
+### Column layout
 
-Single line change. No new dependencies. No behavior change beyond consistent animation.
+| Column | Width | Content |
+|--------|-------|---------|
+| Status | 40px | Unread dot (blue circle) or empty |
+| Type | 50px | Category icon (Phone, Mail, etc.) |
+| Notification | flex | Title (bold if unread) + message preview (line-clamp-1) + priority/assigned badges |
+| Time | 120px | Relative time, sortable by `created_at` |
+| Actions | 100px | Mark read / View / Delete icon buttons |
+
+### Key details
+
+- Reuses existing `DataTable` component with `globalFilter={true}` for search
+- Row styling: unread rows get `bg-muted/30` via a custom row className
+- Priority indicator: colored left border on the notification cell (urgent=red, high=warning)
+- Clicking a row navigates to the source (conversation/ticket/call) — same `handleNavigate` logic
+- Pagination built-in from DataTable (10 rows per page by default)
+- All existing mutations (markAsRead, markAllAsRead, delete) injected into column actions via row data callbacks
 
