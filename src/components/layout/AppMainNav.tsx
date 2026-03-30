@@ -152,6 +152,7 @@ export const AppMainNav = () => {
                           <NavLink 
                             to={item.to} 
                             end={item.to === '/'}
+                            onClick={handleNavClick}
                             className={cn(
                               getNavClassName(itemIsActive),
                               groupKey === 'super_admin' && itemIsActive && "bg-yellow-500/10 text-yellow-600 dark:text-yellow-500 font-medium"
