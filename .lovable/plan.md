@@ -1,35 +1,28 @@
 
 
-## Replace Notification List with TanStack DataTable
+## Switch Notifications to Custom Shadcn Table (Conversation List Pattern)
 
-### What changes
+### What the user wants
 
-Replace the current custom notification list (grouped cards with hover actions) with the existing `DataTable` component powered by TanStack Table — matching the pattern used in admin pages. This gives sorting, pagination, global search, and a clean tabular layout.
+Replace the generic `DataTable` wrapper with a purpose-built table using raw Shadcn `<Table>` primitives + custom `TableHeaderCell` — the same pattern used in the conversation list. This gives more control over layout, row styling, and interaction without the overhead of the DataTable abstraction.
 
-### Files
+### Changes
 
 | # | File | Change |
 |---|------|--------|
-| 1 | `src/components/notifications/NotificationColumns.tsx` | **New file.** Define `ColumnDef<EnhancedNotification>[]` with columns: Status (read/unread dot), Type (category icon), Title+Message (combined cell with priority badge), Time (relative timestamp with sortable accessor), and Actions (Mark read, View, Delete buttons). Row click navigates to source. |
-| 2 | `src/pages/NotificationsPage.tsx` | Replace the entire notification list section (grouped rendering, search input, `NotificationListItem` usage) with `<DataTable>` using the new columns. Pass `filteredNotifications` as data, use `globalFilter` mode, and remove the separate search input (DataTable has its own). Keep the header, tabs, refresh, and mark-all-as-read buttons unchanged. |
-| 3 | `src/components/notifications/NotificationListItem.tsx` | No changes — kept for potential reuse in dropdown, but no longer used by the page. |
+| 1 | `src/pages/NotificationsPage.tsx` | Remove `DataTable` import. Build a custom table using `Table`, `TableBody`, `TableHeader`, `TableRow`, `TableCell` from Shadcn + `TableHeaderCell` for sortable columns. Add local sort state (`useState` for sort key/direction), a search input with `Search` icon, and manual filtering/sorting logic. Keep existing header, tabs, refresh, mark-all-read buttons unchanged. |
 
-### Column layout
+### Implementation detail
 
-| Column | Width | Content |
-|--------|-------|---------|
-| Status | 40px | Unread dot (blue circle) or empty |
-| Type | 50px | Category icon (Phone, Mail, etc.) |
-| Notification | flex | Title (bold if unread) + message preview (line-clamp-1) + priority/assigned badges |
-| Time | 120px | Relative time, sortable by `created_at` |
-| Actions | 100px | Mark read / View / Delete icon buttons |
+- **Sort state**: `useState<{ key: string; direction: 'asc' | 'desc' | null }>` with `handleSort` toggling through asc → desc → null
+- **Search**: Local `searchQuery` state filtering notifications by title/message (case-insensitive)
+- **Sorting**: `useMemo` sorting `filteredNotifications` by the active sort key (time, title, type)
+- **Columns**: Same layout as current NotificationColumns but rendered inline — Status dot, Type icon, Notification (title + message + priority badges, clickable), Time (relative), Actions (mark read / view / delete)
+- **Row styling**: Unread rows get subtle `bg-muted/30`, priority left borders kept
+- **No pagination** — scrollable list (matches conversation list pattern)
+- **Reuses** existing `TableHeaderCell` component from `src/components/dashboard/conversation-list/TableHeaderCell.tsx`
 
-### Key details
-
-- Reuses existing `DataTable` component with `globalFilter={true}` for search
-- Row styling: unread rows get `bg-muted/30` via a custom row className
-- Priority indicator: colored left border on the notification cell (urgent=red, high=warning)
-- Clicking a row navigates to the source (conversation/ticket/call) — same `handleNavigate` logic
-- Pagination built-in from DataTable (10 rows per page by default)
-- All existing mutations (markAsRead, markAllAsRead, delete) injected into column actions via row data callbacks
+### Removes dependency on
+- `src/components/admin/DataTable.tsx` (no longer imported)
+- `src/components/notifications/NotificationColumns.tsx` (columns defined inline in the page)
 
