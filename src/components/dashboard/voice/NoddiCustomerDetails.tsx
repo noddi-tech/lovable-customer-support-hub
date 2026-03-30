@@ -66,34 +66,6 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
   // Use external data if provided, otherwise use fetched data
   const noddiData = externalNoddiData || fetchedData;
   const isLoadingData = !externalNoddiData && isLoading;
-  const queryClient = useQueryClient();
-  const { profile } = useAuth();
-
-  // Force refresh handler
-  const handleForceRefresh = async () => {
-    if (!profile?.organization_id) {
-      console.warn('[NoddiCustomerDetails] Cannot refresh - no organization ID');
-      return;
-    }
-    
-    console.log('[NoddiCustomerDetails] 🔄 Force refreshing Noddi data...');
-    
-    // Build specific query key for THIS customer only
-    const customerKey = getCustomerCacheKey({
-      email: customerEmail,
-      phone: customerPhone
-    });
-    
-    const specificQueryKey = ['noddi-customer-lookup', customerKey, profile.organization_id];
-    
-    console.log('[NoddiCustomerDetails] Refreshing query:', specificQueryKey);
-    
-    // Clear cache and refetch for THIS customer only
-    await queryClient.invalidateQueries({ queryKey: specificQueryKey });
-    await queryClient.refetchQueries({ queryKey: specificQueryKey });
-    
-    console.log('[NoddiCustomerDetails] ✅ Force refresh completed');
-  };
 
   // Compute displayed data based on selected group
   const displayedData = React.useMemo(() => {
