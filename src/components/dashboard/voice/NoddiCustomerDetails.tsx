@@ -120,6 +120,8 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
             priority_booking_type: selectedGroupData.booking_type,
             unpaid_count: selectedGroupData.bookings_summary?.unpaid_count || 0,
             unpaid_bookings: groupUnpaidBookings,
+            membership_programs: selectedGroupData.membership_programs || [],
+            coupons: selectedGroupData.coupons || [],
             ui_meta: {
               ...noddiData.data.ui_meta,
               user_group_badge: selectedGroupData.id,

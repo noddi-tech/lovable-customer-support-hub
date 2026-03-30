@@ -287,6 +287,37 @@ export const MobileCustomerSummaryCard = ({ customer, noddiData }: MobileCustome
             </div>
           )}
 
+          {/* Membership Programs */}
+          {(() => {
+            const selectedGroup = allGroups?.find(g => g.id === noddiData?.data?.user_group_id) || allGroups?.[0];
+            const programs = selectedGroup?.membership_programs;
+            const coupons = selectedGroup?.coupons;
+            return (
+              <>
+                {programs && programs.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {programs.map((p: any, i: number) => (
+                      <span key={p.id || i} className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[9px] rounded-full bg-amber-100 text-amber-900">
+                        <Crown className="w-2.5 h-2.5" />
+                        {p.name}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {coupons && coupons.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {coupons.map((c: any, i: number) => (
+                      <span key={c.id || i} className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[9px] rounded-full bg-purple-100 text-purple-900">
+                        <Ticket className="w-2.5 h-2.5" />
+                        {c.code || c.description || 'Coupon'}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </>
+            );
+          })()}
+
           {/* User groups */}
           {allGroups && allGroups.length > 1 && (
             <div className="flex flex-wrap gap-1 mt-1">

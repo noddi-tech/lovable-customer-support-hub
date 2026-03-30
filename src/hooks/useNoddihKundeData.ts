@@ -48,6 +48,21 @@ export type NoddiLookupResponse = {
       booking?: any;
       booking_type?: "upcoming" | "completed" | null;
       total_bookings: number;
+      membership_programs?: Array<{
+        id: number;
+        name: string;
+        status?: string;
+        [key: string]: any;
+      }>;
+      coupons?: Array<{
+        id: number;
+        code?: string;
+        description?: string;
+        is_active?: boolean;
+        valid_from?: string;
+        valid_to?: string;
+        [key: string]: any;
+      }>;
     }>;
     most_recent_group_id?: number | null;
     user: any;

@@ -1609,7 +1609,7 @@ Deno.serve(async (req) => {
           unable_to_complete: isUnableToComplete(bookingForCache || priorityBooking),
           unable_label: unableLabel(bookingForCache || priorityBooking),
           partner_urls: buildPartnerUrls(selectedGroup.id, bookingForCache || priorityBooking),
-          version: "noddi-edge-1.7",
+          version: "noddi-edge-1.8",
           source: "live" as const
         }
       }
