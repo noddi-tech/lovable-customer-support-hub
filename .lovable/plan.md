@@ -1,35 +1,30 @@
 
 
-## Batch Critical Alert Review for Open Conversations
+## Add "Change Email" to Admin User Management
 
-### What we'll build
+### What it does
+Adds a "Change Email" option to the user action menu in Admin > Users. Opens a dialog where a super admin enters the new email, and the system updates both `auth.users` and `profiles` in one operation.
 
-A new edge function `review-open-critical` that:
-1. Fetches all open/pending conversations with their latest customer message
-2. Runs each through the same keyword + AI critical triage logic used by `send-slack-notification`
-3. Respects the existing 24h dedup (won't re-alert conversations already alerted)
-4. Posts critical alerts to the configured critical channel for any matches
-5. Returns a summary of what was found and alerted
+### Why an edge function is needed
+The Supabase client-side SDK cannot update `auth.users` email for other users. We need `supabase.auth.admin.updateUserById()` which requires the service role key, so this must run server-side.
 
-### Implementation
+### Plan
 
-**New file**: `supabase/functions/review-open-critical/index.ts`
-
-- Query `conversations` where `status in ('open', 'pending')` joined with `customers` and `inboxes`
-- For each conversation, fetch latest customer message as preview text
-- Load `slack_integrations` config for the org
-- Run keyword matching (same `CRITICAL_KEYWORDS` list) and optionally AI triage
-- Check 24h dedup via `notifications` table (`type = 'critical_alert_sent'`)
-- Post critical alert to Slack for matches (same red-attachment format)
-- Track each alert in `notifications` to prevent future duplicates
-- Return JSON summary: `{ reviewed, alerted, skipped_dedup, details[] }`
-
-### Invocation
-
-After deploying, I'll invoke it once via `supabase--curl_edge_functions` to trigger the review immediately.
-
-### Files
 | # | File | Change |
 |---|------|--------|
-| 1 | `supabase/functions/review-open-critical/index.ts` | New edge function |
+| 1 | `supabase/functions/admin-update-user-email/index.ts` | New edge function: validates caller is super_admin, calls `auth.admin.updateUserById({ email })`, updates `profiles.email`, logs audit action |
+| 2 | `src/components/admin/ChangeEmailDialog.tsx` | New dialog component: input for new email, confirm button, shows current email |
+| 3 | `src/hooks/useUserManagement.ts` | Add `changeEmail` mutation that invokes the edge function |
+| 4 | `src/components/admin/UserActionMenu.tsx` | Add "Change Email" menu item and wire up the new dialog |
+
+### Edge function details
+- Auth: extract caller from `Authorization` header, verify `super_admin` role via `user_roles` table
+- Action: `adminClient.auth.admin.updateUserById(userId, { email: newEmail })` then `UPDATE profiles SET email = newEmail WHERE user_id = userId`
+- Audit: log `user.email.change` with old and new email
+- Validation: basic email format check, prevent changing own email
+
+### UI
+- New dropdown item with `AtSign` icon between "Manage Organizations" and the delete separator
+- Dialog shows current email (read-only), input for new email, Save/Cancel buttons
+- Loading state while mutation runs
 
