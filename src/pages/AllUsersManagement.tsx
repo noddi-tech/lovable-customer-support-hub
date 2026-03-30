@@ -11,6 +11,8 @@ import { Heading } from '@/components/ui/heading';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Crown, Users, Search, Building2, RefreshCw, Activity, UserPlus, X, UserCog, Shield, UserCheck, User, Mail, AlertCircle, Clock, Send, CheckCircle } from 'lucide-react';
+import { DataTable } from '@/components/admin/DataTable';
+import { allUserColumns, AllUserRow } from '@/components/admin/users/AllUserColumns';
 import { UserActionMenu } from '@/components/admin/UserActionMenu';
 import { UserActivityTimeline } from '@/components/admin/UserActivityTimeline';
 import { OrphanedUsersCleanup } from '@/components/admin/OrphanedUsersCleanup';
