@@ -275,7 +275,7 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
           size="sm"
           className="h-6 px-1.5"
            onClick={() => refresh()}
-           disabled={isLoadingData}
+           disabled={isLoadingData || !canRefresh}
          >
            <RefreshCw className={`h-3 w-3 ${isLoadingData ? 'animate-spin' : ''}`} />
         </Button>
