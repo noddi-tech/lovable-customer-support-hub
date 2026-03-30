@@ -39,7 +39,7 @@ export const AppMainNav = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const { state, toggleSidebar, isMobile, setOpenMobile } = useSidebar();
+  const { state, toggleSidebar, isMobile, setOpenMobile, setOpen } = useSidebar();
   const { isAdmin: checkIsAdmin, isLoading: permissionsLoading } = usePermissions();
   const { user, profile, signOut, isSuperAdmin } = useAuth();
   const { notifications: unreadNotifications } = useOptimizedCounts();
@@ -70,6 +70,8 @@ export const AppMainNav = () => {
   const handleNavClick = () => {
     if (isMobile) {
       setOpenMobile(false);
+    } else {
+      setOpen(false);
     }
   };
 
