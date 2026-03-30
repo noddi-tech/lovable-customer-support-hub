@@ -1538,7 +1538,9 @@ Deno.serve(async (req) => {
         completed_count: g.bookings_summary?.completed_count || 0,
         unpaid_count: g.bookings_summary?.unpaid_count || 0
       },
-      priority_booking: g.bookings_summary?.priority_booking || null
+      priority_booking: g.bookings_summary?.priority_booking || null,
+      membership_programs: g.membership_programs || [],
+      coupons: g.coupons || [],
     }));
 
     // Step 8: Enrich tags if empty (optional, the new API might already include them)
