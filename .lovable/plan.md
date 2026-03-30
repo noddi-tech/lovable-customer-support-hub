@@ -1,29 +1,38 @@
 
 
-## Replace Card-Based User List with DataTable in Super Admin All Users
+## Display Membership Programs & Coupons from Customer Lookup
 
-### What changes
-Replace the card-based user list (lines 617-770 in `AllUsersManagement.tsx`) with the existing `DataTable` component, and create new column definitions tailored to the super admin view which has richer data (system roles, org memberships, auth status, invite status).
+### What's new
+The Noddi `customer-lookup-support` API now returns `membership_programs` and `coupons` arrays on each user group. We need to pass these through the edge function and display them in the support UI.
 
-### Files
+### Plan
 
 | # | File | Change |
 |---|------|--------|
-| 1 | `src/components/admin/users/AllUserColumns.tsx` | New column definitions for super admin users table: Name (with system role badges), Email, System Roles, Organizations (membership badges), Login Status (last seen / never logged in + invite status), Created date, Actions (Activity button + `UserActionMenu`) |
-| 2 | `src/pages/AllUsersManagement.tsx` | Replace the card-based `<Card>` user list section (lines 617-770) with `<DataTable columns={allUserColumns} data={filteredUsers} .../>`. Keep all existing functionality: header, filters card, orphaned users cleanup, create/add-existing dialogs, activity timeline modal |
+| 1 | `supabase/functions/noddi-customer-lookup/index.ts` | Pass through `membership_programs` and `coupons` in both `allUserGroupsFormatted` blocks (lines ~1528-1540 for live, ~1300-1313 for legacy fallback). Also add to the top-level `data` response for the selected group |
+| 2 | `src/hooks/useNoddihKundeData.ts` | Add `membership_programs` and `coupons` to the `NoddiLookupResponse` type under `data` and/or `all_user_groups` |
+| 3 | `src/components/dashboard/voice/NoddiCustomerDetails.tsx` | Add two new UI sections after booking data: **Membership Programs** (badge-style list showing program name/status) and **Coupons** (compact list with code, description, expiry/status) |
+| 4 | `src/components/mobile/conversations/MobileCustomerSummaryCard.tsx` | Add membership/coupon indicators to the mobile card view |
 
-### Column design for AllUserColumns
+### Edge function changes
+In both the live path (line ~1528) and legacy fallback (line ~1300), add to the user group mapping:
+```ts
+membership_programs: g.membership_programs || [],
+coupons: g.coupons || [],
+```
 
-- **Name**: `full_name` with system role badges (Super Admin crown, Admin shield, etc.) inline
-- **Email**: sortable
-- **Organizations**: renders org membership badges with role tags (same as current card view)
-- **Status**: login status — "Last seen X ago" or "Never logged in" + invite delivery status badge
-- **Created**: formatted date, sortable
-- **Actions**: Activity button + `UserActionMenu` component
+Also add selected group's programs/coupons to the top-level response `data`:
+```ts
+membership_programs: selectedGroup.membership_programs || [],
+coupons: selectedGroup.coupons || [],
+```
 
-### Key details
-- Reuses the existing generic `DataTable` component from `src/components/admin/DataTable.tsx` with `globalFilter` enabled
-- The search input in the filters card can be removed since `DataTable` has its own built-in search — or we keep the org filter in the card and let `DataTable` handle text search
-- Activity timeline modal stays unchanged, triggered from the actions column
-- `UserActionMenu` is wired into actions column same as the admin users table
+### UI display
+- **Membership Programs**: Section with `Crown` icon header, each program as a badge showing name and status
+- **Coupons**: Section with `Ticket` icon header, each coupon showing code, description, and validity/status in a compact card format
+- Both sections only render when the arrays have items
+- Integrated into the `displayedData` memo so they update when switching user groups
+
+### Version bump
+Update version string from `noddi-edge-1.7` to `noddi-edge-1.8`
 
