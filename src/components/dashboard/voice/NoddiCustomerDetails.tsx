@@ -11,10 +11,7 @@ import {
 import { useNoddihKundeData } from '@/hooks/useNoddihKundeData';
 import { displayName } from '@/utils/noddiHelpers';
 import { format } from 'date-fns';
-import { useQueryClient } from '@tanstack/react-query';
-import { getCustomerCacheKey } from '@/utils/customerCacheKey';
 import { logger } from '@/utils/logger';
-import { useAuth } from '@/hooks/useAuth';
 
 interface NoddiCustomerDetailsProps {
   customerId?: string;
