@@ -127,6 +127,12 @@ export function UserActionMenu({ user }: UserActionMenuProps) {
             <Building2 className="h-4 w-4 mr-2" />
             Manage Organizations
           </DropdownMenuItem>
+          {!isSelf && (
+            <DropdownMenuItem onClick={() => openDialogSafely(setChangeEmailOpen)}>
+              <AtSign className="h-4 w-4 mr-2" />
+              Change Email
+            </DropdownMenuItem>
+          )}
           <DropdownMenuSeparator />
           <DropdownMenuItem
             onClick={() => openDialogSafely(setDeleteDialogOpen)}
