@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Heading } from '@/components/ui/heading';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Crown, Building2, RefreshCw, UserPlus, X, UserCog, Mail } from 'lucide-react';
+import { Crown, Search, Building2, RefreshCw, UserPlus, X, UserCog, Mail } from 'lucide-react';
 import { DataTable } from '@/components/admin/DataTable';
 import { allUserColumns, AllUserRow } from '@/components/admin/users/AllUserColumns';
 import { UserActivityTimeline } from '@/components/admin/UserActivityTimeline';
