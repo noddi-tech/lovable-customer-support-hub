@@ -7,11 +7,12 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import { MoreVertical, Shield, Building2, Trash2, Mail, History } from 'lucide-react';
+import { MoreVertical, Shield, Building2, Trash2, Mail, History, AtSign } from 'lucide-react';
 import { ManageUserRolesDialog } from './ManageUserRolesDialog';
 import { ManageUserOrganizationsDialog } from './ManageUserOrganizationsDialog';
 import { ConfirmDeleteDialog } from './ConfirmDeleteDialog';
 import { InviteHistoryDialog } from './InviteHistoryDialog';
+import { ChangeEmailDialog } from './ChangeEmailDialog';
 import { useUserManagement } from '@/hooks/useUserManagement';
 import { useAuth } from '@/hooks/useAuth';
 
