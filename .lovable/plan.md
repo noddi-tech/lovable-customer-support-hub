@@ -1,36 +1,29 @@
 
 
-## Rebuild User & Department Management with TanStack Data Tables
+## Replace Card-Based User List with DataTable in Super Admin All Users
 
-### Problem
-1. The "Change Email" option lives in `UserActionMenu` but `UserManagement.tsx` uses its own inline edit/delete buttons -- it never renders `UserActionMenu`, so "Change Email" is missing
-2. The card-based layout doesn't scale well for many users/departments
-3. No sorting, filtering, or pagination
-
-### Solution
-Replace both the Users and Departments tabs with TanStack Table data tables featuring sorting, filtering, pagination, and row actions via `UserActionMenu`.
+### What changes
+Replace the card-based user list (lines 617-770 in `AllUsersManagement.tsx`) with the existing `DataTable` component, and create new column definitions tailored to the super admin view which has richer data (system roles, org memberships, auth status, invite status).
 
 ### Files
 
 | # | File | Change |
 |---|------|--------|
-| 1 | `package.json` | Add `@tanstack/react-table` dependency |
-| 2 | `src/components/admin/users/UserColumns.tsx` | New -- column definitions for users table (name, email, role badge, department, status badge, created date, actions via `UserActionMenu`) |
-| 3 | `src/components/admin/users/UsersDataTable.tsx` | New -- generic DataTable component with sorting, filtering (search by name/email), pagination, column visibility |
-| 4 | `src/components/admin/UserManagement.tsx` | Rewrite to use `UsersDataTable` + `UserColumns`. Keep create/edit user dialogs. Remove card-based rendering |
-| 5 | `src/components/admin/departments/DepartmentColumns.tsx` | New -- column definitions for departments table (name, description, member count, created date, actions) |
-| 6 | `src/components/admin/DepartmentManagement.tsx` | Rewrite to use `UsersDataTable` + `DepartmentColumns`. Keep create/edit dialogs |
+| 1 | `src/components/admin/users/AllUserColumns.tsx` | New column definitions for super admin users table: Name (with system role badges), Email, System Roles, Organizations (membership badges), Login Status (last seen / never logged in + invite status), Created date, Actions (Activity button + `UserActionMenu`) |
+| 2 | `src/pages/AllUsersManagement.tsx` | Replace the card-based `<Card>` user list section (lines 617-770) with `<DataTable columns={allUserColumns} data={filteredUsers} .../>`. Keep all existing functionality: header, filters card, orphaned users cleanup, create/add-existing dialogs, activity timeline modal |
 
-### Data Table Features
-- **Sorting**: Click column headers to sort asc/desc
-- **Filtering**: Search input filtering by name/email (users) or name (departments)
-- **Pagination**: Previous/Next with row count display
-- **Row Actions**: Users table uses existing `UserActionMenu` (which already has Change Email, Manage Roles, Manage Organizations, Delete). Departments table gets an inline actions column with edit/delete buttons
-- **Responsive**: Table scrolls horizontally on small screens
+### Column design for AllUserColumns
 
-### Key Detail
-The `UserActionMenu` component already has all the actions (Change Email, Manage Roles, Manage Orgs, Resend Invite, Delete). By wiring it into the users data table actions column, the "Change Email" option becomes available without any changes to `UserActionMenu` itself.
+- **Name**: `full_name` with system role badges (Super Admin crown, Admin shield, etc.) inline
+- **Email**: sortable
+- **Organizations**: renders org membership badges with role tags (same as current card view)
+- **Status**: login status — "Last seen X ago" or "Never logged in" + invite delivery status badge
+- **Created**: formatted date, sortable
+- **Actions**: Activity button + `UserActionMenu` component
 
-### Reusable DataTable
-A single generic `DataTable` component will be created and used by both Users and Departments tabs. It accepts `columns` and `data` props following the TanStack Table pattern from the shadcn docs.
+### Key details
+- Reuses the existing generic `DataTable` component from `src/components/admin/DataTable.tsx` with `globalFilter` enabled
+- The search input in the filters card can be removed since `DataTable` has its own built-in search — or we keep the org filter in the card and let `DataTable` handle text search
+- Activity timeline modal stays unchanged, triggered from the actions column
+- `UserActionMenu` is wired into actions column same as the admin users table
 
