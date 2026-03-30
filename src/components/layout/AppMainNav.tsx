@@ -67,6 +67,12 @@ export const AppMainNav = () => {
   const getNavClassName = (isItemActive: boolean) => 
     cn(isItemActive ? "bg-muted text-primary font-medium" : "hover:bg-muted/50");
 
+  const handleNavClick = () => {
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+  };
+
   const groupLabels: Record<string, string> = {
     notifications: t('navigation.notifications', 'Notifications'),
     interactions: t('navigation.interactions', 'Interactions'),
