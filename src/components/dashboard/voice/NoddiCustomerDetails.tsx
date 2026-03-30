@@ -727,6 +727,73 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
           </div>
         )}
 
+        {/* Membership Programs */}
+        {userGroup?.membership_programs && userGroup.membership_programs.length > 0 && (
+          <div>
+            <div className="flex items-center gap-1 mb-1">
+              <Crown className="h-3 w-3 text-amber-500" />
+              <p className="text-xs font-medium text-muted-foreground">Membership Programs</p>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {userGroup.membership_programs.map((program: any, idx: number) => (
+                <Badge
+                  key={program.id || idx}
+                  variant="outline"
+                  className="text-xs bg-amber-50 text-amber-800 border-amber-200"
+                >
+                  <Crown className="h-2.5 w-2.5 mr-1" />
+                  {program.name}
+                  {program.status && (
+                    <span className={`ml-1 text-[10px] ${
+                      program.status === 'active' ? 'text-green-600' : 'text-muted-foreground'
+                    }`}>
+                      • {program.status}
+                    </span>
+                  )}
+                </Badge>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Coupons */}
+        {userGroup?.coupons && userGroup.coupons.length > 0 && (
+          <div>
+            <div className="flex items-center gap-1 mb-1">
+              <Ticket className="h-3 w-3 text-purple-500" />
+              <p className="text-xs font-medium text-muted-foreground">Coupons</p>
+            </div>
+            <div className="space-y-1">
+              {userGroup.coupons.map((coupon: any, idx: number) => (
+                <div
+                  key={coupon.id || idx}
+                  className="flex items-center justify-between p-1.5 rounded border bg-purple-50/50 border-purple-200"
+                >
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <Ticket className="h-3 w-3 text-purple-500 shrink-0" />
+                    <div className="min-w-0">
+                      {coupon.code && (
+                        <span className="text-xs font-mono font-medium text-purple-800">{coupon.code}</span>
+                      )}
+                      {coupon.description && (
+                        <p className="text-[10px] text-muted-foreground truncate">{coupon.description}</p>
+                      )}
+                    </div>
+                  </div>
+                  <Badge
+                    variant="outline"
+                    className={`text-[10px] shrink-0 ${
+                      coupon.is_active !== false ? 'bg-green-50 text-green-700 border-green-200' : 'bg-muted text-muted-foreground'
+                    }`}
+                  >
+                    {coupon.is_active !== false ? 'Active' : 'Expired'}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Service Tags with Icons */}
         {data.ui_meta?.order_tags && data.ui_meta.order_tags.length > 0 && (
           <div>
