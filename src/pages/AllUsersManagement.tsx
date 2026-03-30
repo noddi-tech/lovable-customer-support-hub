@@ -10,8 +10,9 @@ import { Badge } from '@/components/ui/badge';
 import { Heading } from '@/components/ui/heading';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Crown, Users, Search, Building2, RefreshCw, Activity, UserPlus, X, UserCog, Shield, UserCheck, User, Mail, AlertCircle, Clock, Send, CheckCircle } from 'lucide-react';
-import { UserActionMenu } from '@/components/admin/UserActionMenu';
+import { Crown, Search, Building2, RefreshCw, UserPlus, X, UserCog, Mail } from 'lucide-react';
+import { DataTable } from '@/components/admin/DataTable';
+import { allUserColumns, AllUserRow } from '@/components/admin/users/AllUserColumns';
 import { UserActivityTimeline } from '@/components/admin/UserActivityTimeline';
 import { OrphanedUsersCleanup } from '@/components/admin/OrphanedUsersCleanup';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -121,10 +122,20 @@ export default function AllUsersManagement() {
     return userLogs[0]; // Most recent
   };
 
-  const filteredUsers = users.filter((user: any) =>
-    (user.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.full_name?.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  const filteredUsers: AllUserRow[] = users
+    .filter((user: any) =>
+      (user.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        user.full_name?.toLowerCase().includes(searchQuery.toLowerCase()))
+    )
+    .map((user: any) => ({
+      ...user,
+      _inviteStatus: getInviteStatus(user.email),
+      _onActivity: (userId: string, email: string) => {
+        setSelectedUserId(userId);
+        setSelectedUserEmail(email);
+        setShowActivityTimeline(true);
+      },
+    }));
 
   // Create user mutation for super-admin
   const createUserMutation = useMutation({
@@ -613,159 +624,29 @@ export default function AllUsersManagement() {
         {/* Orphaned Users Cleanup (Super Admin only) */}
         <OrphanedUsersCleanup />
 
-        {/* Users List */}
+        {/* Users Table */}
         <Card className="border-yellow-200 dark:border-yellow-900/50">
           <CardHeader>
             <CardTitle>All Users ({filteredUsers.length})</CardTitle>
             <CardDescription>System-wide user directory</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {isLoading ? (
-                Array.from({ length: 5 }).map((_, i) => (
+            {isLoading ? (
+              <div className="space-y-3">
+                {Array.from({ length: 5 }).map((_, i) => (
                   <div key={i} className="p-3 rounded-lg border">
-                    <Skeleton className="h-16 w-full" />
+                    <Skeleton className="h-10 w-full" />
                   </div>
-                ))
-              ) : filteredUsers.length === 0 ? (
-                <p className="text-center text-muted-foreground py-8">No users found</p>
-              ) : (
-                filteredUsers.map((user: any) => (
-                  <div
-                    key={user.id}
-                    className="flex items-center justify-between p-4 rounded-lg border border-border hover:bg-accent/50 transition-colors"
-                  >
-                    <div className="flex items-center gap-4 flex-1">
-                      <div className="h-12 w-12 rounded-full bg-gradient-to-br from-yellow-400 to-amber-500 flex items-center justify-center">
-                        <Users className="h-6 w-6 text-white" />
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <p className="font-medium">{user.full_name || user.email}</p>
-                          {/* System roles from user_roles table */}
-                          {(user.system_roles ?? []).map((role: string) => {
-                            const roleConfig: Record<string, { icon: any; className: string; label: string }> = {
-                              super_admin: { 
-                                icon: Crown, 
-                                className: 'bg-yellow-500/20 text-yellow-700 dark:text-yellow-400 border-yellow-500/30',
-                                label: 'Super Admin'
-                              },
-                              admin: { 
-                                icon: Shield, 
-                                className: 'bg-blue-500/20 text-blue-700 dark:text-blue-400 border-blue-500/30',
-                                label: 'Admin'
-                              },
-                              agent: { 
-                                icon: UserCheck, 
-                                className: 'bg-green-500/20 text-green-700 dark:text-green-400 border-green-500/30',
-                                label: 'Agent'
-                              },
-                              user: { 
-                                icon: User, 
-                                className: 'bg-gray-500/20 text-gray-700 dark:text-gray-400 border-gray-500/30',
-                                label: 'User'
-                              },
-                            };
-                            
-                            const config = roleConfig[role];
-                            if (!config) return null;
-                            
-                            const Icon = config.icon;
-                            return (
-                              <Badge key={role} className={`text-xs ${config.className}`}>
-                                <Icon className="h-3 w-3 mr-1" />
-                                {config.label}
-                              </Badge>
-                            );
-                          })}
-                          {/* Login status indicator */}
-                          {user.auth_data?.last_sign_in_at ? (
-                            <span className="text-xs text-muted-foreground flex items-center gap-1">
-                              <Clock className="h-3 w-3" />
-                              Last seen {formatDistanceToNow(new Date(user.auth_data.last_sign_in_at))} ago
-                            </span>
-                          ) : (
-                            <>
-                              <Badge variant="outline" className="text-xs text-amber-600 dark:text-amber-400 border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/30">
-                                <AlertCircle className="h-3 w-3 mr-1" />
-                                Never logged in
-                              </Badge>
-                              {/* Invite status */}
-                              {(() => {
-                                const inviteStatus = getInviteStatus(user.email);
-                                if (!inviteStatus) return null;
-                                if (inviteStatus.status === 'sent') {
-                                  return (
-                                    <Badge variant="secondary" className="text-xs">
-                                      <Send className="h-3 w-3 mr-1" />
-                                      Invite sent {formatDistanceToNow(new Date(inviteStatus.created_at))} ago
-                                    </Badge>
-                                  );
-                                }
-                                if (inviteStatus.status === 'bounced' || inviteStatus.status === 'failed') {
-                                  return (
-                                    <Badge variant="destructive" className="text-xs">
-                                      <AlertCircle className="h-3 w-3 mr-1" />
-                                      Email {inviteStatus.status}
-                                    </Badge>
-                                  );
-                                }
-                                if (inviteStatus.status === 'delivered') {
-                                  return (
-                                    <Badge className="text-xs bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-400">
-                                      <CheckCircle className="h-3 w-3 mr-1" />
-                                      Delivered
-                                    </Badge>
-                                  );
-                                }
-                                return null;
-                              })()}
-                            </>
-                          )}
-                        </div>
-                        <p className="text-sm text-muted-foreground">{user.email}</p>
-                        <div className="flex flex-wrap gap-2 mt-2">
-                          {user.organization_memberships?.map((membership: any) => (
-                            <div key={membership.id} className="flex items-center gap-1">
-                              <Badge variant="outline" className="text-xs">
-                                <Building2 className="h-3 w-3 mr-1" />
-                                {membership.organization?.name}
-                              </Badge>
-                              <Badge variant="secondary" className="text-xs">
-                                {membership.role}
-                              </Badge>
-                            </div>
-                          ))}
-                          {(!user.organization_memberships || user.organization_memberships.length === 0) && (
-                            <Badge variant="outline" className="text-xs text-muted-foreground">
-                              No organizations
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="text-sm text-muted-foreground hidden sm:block">
-                        Joined {new Date(user.created_at).toLocaleDateString()}
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setSelectedUserId(user.user_id);
-                          setSelectedUserEmail(user.email);
-                          setShowActivityTimeline(true);
-                        }}
-                      >
-                        <Activity className="h-4 w-4 mr-2" />
-                        Activity
-                      </Button>
-                      <UserActionMenu user={user} />
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <DataTable
+                columns={allUserColumns}
+                data={filteredUsers}
+                searchPlaceholder="Filter by name or email..."
+                globalFilter
+              />
+            )}
           </CardContent>
         </Card>
 
