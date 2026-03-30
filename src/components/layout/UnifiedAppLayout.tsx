@@ -13,6 +13,8 @@ export const UnifiedAppLayout: React.FC<UnifiedAppLayoutProps> = ({
   children
 }) => {
   const [searchOpen, setSearchOpen] = useState(false);
+  const location = useLocation();
+  const section = location.pathname.split('/')[1] || 'home';
 
   // Global Cmd+K / Ctrl+K shortcut
   useEffect(() => {
