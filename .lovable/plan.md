@@ -1,25 +1,58 @@
 
+## Fix plan for “refresh failed” + membership/coupon visibility
 
-## Fix: Membership Programs & Coupons Not Showing After Refresh
+### What I found
+1. **Refresh failure root cause is real and reproducible in code**  
+   In `NoddiCustomerDetails`, when `noddiData` is passed from parent, the hook is called with `null` customer (`externalNoddiData ? null : {...}`), so `refresh()` has no email/phone context and throws:  
+   **“Customer email/phone and organization ID are required.”**
 
-### Root Cause
-The refresh button in `NoddiCustomerDetails` only invalidates the **React Query client-side cache** and refetches — but the refetch goes through the normal `queryFn` which does NOT pass `forceRefresh: true` to the edge function. So the edge function returns its **server-side cached** response (v1.7, which predates the membership/coupons update).
+2. **Even after refresh, UI can still show stale/parent data**  
+   `noddiData` currently prefers external parent state over fetched state, so newly fetched data can be hidden by older `externalNoddiData`.
 
-The `useNoddihKundeData` hook already has a `refreshMutation` that correctly passes `forceRefresh: true`, but `NoddiCustomerDetails` doesn't use it.
+3. **Backend is returning empty arrays for this specific lookup**  
+   A direct forced lookup on this customer returns `noddi-edge-1.8` and:
+   - `membership_programs: []`
+   - `coupons: []`  
+   So for this exact user/group, nothing is rendered (by current conditional UI).
 
-Your screenshot confirms this: it shows `vnoddi-edge-1.7` — the old cached version — instead of `1.8`.
+---
 
-### Fix
+### Implementation changes
 
-| # | File | Change |
-|---|------|--------|
-| 1 | `src/components/dashboard/voice/NoddiCustomerDetails.tsx` | Replace the custom `handleForceRefresh` with calling the `refresh` function from `useNoddihKundeData` (which passes `forceRefresh: true`), so the edge function bypasses its server-side cache and returns fresh v1.8 data with membership programs and coupons |
+#### 1) `src/components/dashboard/voice/NoddiCustomerDetails.tsx`
+- **Always pass lookup identifiers** to `useNoddihKundeData` (do not pass `null` customer when external data exists).
+- Change data precedence to:
+  - `fetchedData` first (latest truth)
+  - fallback to `externalNoddiData` only when query has not returned yet.
+- Keep refresh wired to hook `refresh()`, but now it will have valid identifiers.
+- Disable/harden refresh button if identifiers are missing (prevent false error toast).
 
-### What happens after the fix
-1. User clicks the refresh button
-2. `useNoddihKundeData.refresh()` is called → sends `forceRefresh: true` to the edge function
-3. Edge function bypasses its server-side cache → calls Noddi API live → returns v1.8 response with `membership_programs` and `coupons`
-4. React Query cache is updated → UI re-renders with the new sections
+#### 2) `src/hooks/useNoddihKundeData.ts`
+- Keep force refresh path (`forceRefresh: true`) as-is.
+- Add a small guard/metadata return (e.g. `canRefresh`) so UI can disable refresh when lookup identity is incomplete.
+- Improve error message clarity to distinguish:
+  - missing contact identifiers
+  - missing organization context
 
-This is a one-line behavioral fix. Once refreshed, the membership programs ("Tire hotel customer") and coupons will appear.
+#### 3) Parent panels using `<NoddiCustomerDetails />`
+- Keep existing `onDataLoaded` behavior, but ensure parent-provided `noddiData` is treated as temporary fallback, not authoritative override.
+- This preserves alternative-email/manual-search UX while allowing real refreshed data to appear immediately.
 
+---
+
+### Verification checklist
+1. Open customer details where this issue appears.
+2. Click refresh icon:
+   - No “email/phone and organization ID are required” toast.
+   - Network request should include `forceRefresh: true`.
+3. Confirm UI shows latest returned payload (not stale parent copy).
+4. Confirm memberships/coupons behavior:
+   - If API returns arrays with items → sections render.
+   - If API returns empty arrays (as in current lookup) → no section shown (expected).
+5. Validate same behavior in both conversation side panel and chat customer panel.
+
+---
+
+### Technical notes
+- This is primarily a **state ownership bug** (external prop overriding local query lifecycle), not an edge-function regression.
+- Current backend response for the tested customer is valid `1.8` but empty memberships/coupons; that part is data-dependent, not rendering failure.
