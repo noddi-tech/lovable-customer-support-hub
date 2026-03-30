@@ -12,7 +12,6 @@ import DoormanInterface from '@/components/dashboard/DoormanInterface';
 import RecruitmentInterface from '@/components/dashboard/RecruitmentInterface';
 import VoiceAnalyticsPage from '@/pages/VoiceAnalyticsPage';
 import VoiceSettingsPage from '@/pages/VoiceSettingsPage';
-import { VoiceDashboard } from '@/components/dashboard/VoiceDashboard';
 import { VoiceDashboard } from '@/components/dashboard/voice/VoiceDashboard';
 import { ResponsiveContainer } from '@/components/admin/design/components/layouts/ResponsiveContainer';
 import { ChatLayout } from '@/components/dashboard/chat';
