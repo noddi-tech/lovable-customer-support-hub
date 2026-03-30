@@ -291,6 +291,48 @@ export function useUserManagement() {
     },
   });
 
+  // Change user email via edge function
+  const changeEmail = useMutation({
+    mutationFn: async ({ userId, newEmail }: { userId: string; newEmail: string }) => {
+      if (!isSuperAdmin) {
+        throw new Error('Only super admins can change user emails');
+      }
+
+      const { data, error } = await supabase.functions.invoke('admin-update-user-email', {
+        body: { userId, newEmail },
+      });
+
+      if (error) {
+        let errorMessage = 'Failed to update email';
+        try {
+          if (error.context && typeof (error.context as any).json === 'function') {
+            const errorBody = await (error.context as any).json();
+            errorMessage = errorBody?.error || error.message || errorMessage;
+          } else {
+            errorMessage = error.message || errorMessage;
+          }
+        } catch {
+          errorMessage = error.message || errorMessage;
+        }
+        throw new Error(errorMessage);
+      }
+
+      if (!data?.success) {
+        throw new Error(data?.error || 'Failed to update email');
+      }
+
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['all-users'] });
+      toast.success('Email updated successfully');
+    },
+    onError: (error: any) => {
+      console.error('Error changing email:', error);
+      toast.error(error.message || 'Failed to change email');
+    },
+  });
+
   // Resend invite email to user who hasn't logged in
   const resendInvite = useMutation({
     mutationFn: async (email: string) => {
@@ -358,12 +400,14 @@ export function useUserManagement() {
     updateUser: updateUser.mutate,
     deleteUser: deleteUser.mutate,
     updateMembershipRole: updateMembershipRole.mutate,
+    changeEmail: changeEmail.mutate,
     resendInvite: resendInvite.mutate,
     isAssigningRole: assignRole.isPending,
     isRemovingRole: removeRole.isPending,
     isUpdatingUser: updateUser.isPending,
     isDeletingUser: deleteUser.isPending,
     isUpdatingMembership: updateMembershipRole.isPending,
+    isChangingEmail: changeEmail.isPending,
     isResendingInvite: resendInvite.isPending,
   };
 }

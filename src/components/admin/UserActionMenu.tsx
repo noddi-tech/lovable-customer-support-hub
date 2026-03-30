@@ -7,11 +7,12 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import { MoreVertical, Shield, Building2, Trash2, Mail, History } from 'lucide-react';
+import { MoreVertical, Shield, Building2, Trash2, Mail, History, AtSign } from 'lucide-react';
 import { ManageUserRolesDialog } from './ManageUserRolesDialog';
 import { ManageUserOrganizationsDialog } from './ManageUserOrganizationsDialog';
 import { ConfirmDeleteDialog } from './ConfirmDeleteDialog';
 import { InviteHistoryDialog } from './InviteHistoryDialog';
+import { ChangeEmailDialog } from './ChangeEmailDialog';
 import { useUserManagement } from '@/hooks/useUserManagement';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -40,6 +41,7 @@ export function UserActionMenu({ user }: UserActionMenuProps) {
   const [orgsDialogOpen, setOrgsDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [inviteHistoryOpen, setInviteHistoryOpen] = useState(false);
+  const [changeEmailOpen, setChangeEmailOpen] = useState(false);
 
   // Helper to safely open a dialog - closes dropdown first to avoid focus conflict
   const openDialogSafely = (setDialogOpen: (open: boolean) => void) => {
@@ -51,7 +53,7 @@ export function UserActionMenu({ user }: UserActionMenuProps) {
   const [cooldownUntil, setCooldownUntil] = useState<number | null>(null);
   const [nowMs, setNowMs] = useState(() => Date.now());
 
-  const { deleteUser, isDeletingUser, resendInvite, isResendingInvite } = useUserManagement();
+  const { deleteUser, isDeletingUser, resendInvite, isResendingInvite, changeEmail, isChangingEmail } = useUserManagement();
   const { user: currentUser } = useAuth();
 
   useEffect(() => {
@@ -125,6 +127,12 @@ export function UserActionMenu({ user }: UserActionMenuProps) {
             <Building2 className="h-4 w-4 mr-2" />
             Manage Organizations
           </DropdownMenuItem>
+          {!isSelf && (
+            <DropdownMenuItem onClick={() => openDialogSafely(setChangeEmailOpen)}>
+              <AtSign className="h-4 w-4 mr-2" />
+              Change Email
+            </DropdownMenuItem>
+          )}
           <DropdownMenuSeparator />
           <DropdownMenuItem
             onClick={() => openDialogSafely(setDeleteDialogOpen)}
@@ -163,6 +171,18 @@ export function UserActionMenu({ user }: UserActionMenuProps) {
         email={user.email}
         open={inviteHistoryOpen}
         onOpenChange={setInviteHistoryOpen}
+      />
+
+      <ChangeEmailDialog
+        open={changeEmailOpen}
+        onOpenChange={setChangeEmailOpen}
+        userId={user.user_id}
+        currentEmail={user.email}
+        onConfirm={(userId, newEmail) => {
+          changeEmail({ userId, newEmail });
+          setChangeEmailOpen(false);
+        }}
+        isLoading={isChangingEmail}
       />
     </>
   );
