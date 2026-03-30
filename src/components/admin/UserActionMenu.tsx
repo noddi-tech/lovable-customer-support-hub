@@ -41,6 +41,7 @@ export function UserActionMenu({ user }: UserActionMenuProps) {
   const [orgsDialogOpen, setOrgsDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [inviteHistoryOpen, setInviteHistoryOpen] = useState(false);
+  const [changeEmailOpen, setChangeEmailOpen] = useState(false);
 
   // Helper to safely open a dialog - closes dropdown first to avoid focus conflict
   const openDialogSafely = (setDialogOpen: (open: boolean) => void) => {
