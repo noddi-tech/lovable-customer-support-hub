@@ -48,10 +48,9 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
     hasMetadata: !!noddiEmail
   });
   
-  // Only fetch if no external data provided
-  // CRITICAL: Pass customerId so edge function can fetch alternative_emails from DB
-  const { data: fetchedData, isLoading, refresh, isRefreshing } = useNoddihKundeData(
-    externalNoddiData ? null : {
+  // Always pass identifiers so refresh() has context
+  const { data: fetchedData, isLoading, refresh, isRefreshing, canRefresh } = useNoddihKundeData(
+    {
       id: customerId || '',
       email: lookupEmail,
       phone: customerPhone,
@@ -60,9 +59,9 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
     customerId // Pass customerId explicitly for edge function to use
   );
 
-  // Use external data if provided, otherwise use fetched data
-  const noddiData = externalNoddiData || fetchedData;
-  const isLoadingData = !externalNoddiData && (isLoading || isRefreshing);
+  // Prefer fetched data (latest truth) over external data (stale parent state)
+  const noddiData = fetchedData || externalNoddiData;
+  const isLoadingData = isLoading || isRefreshing;
 
   // Compute displayed data based on selected group
   const displayedData = React.useMemo(() => {

@@ -372,6 +372,8 @@ export const useNoddihKundeData = (customer: Customer | null, callId?: string) =
   const hasPhoneOnly = !!customer?.phone && !customer?.email;
   const isAuthenticated = !!profile?.organization_id;
   
+  const canRefresh = (!!customer?.email || !!customer?.phone) && !!profile?.organization_id;
+
   return {
     data: lookupQuery.data,
     isLoading: lookupQuery.isLoading,
@@ -380,6 +382,7 @@ export const useNoddihKundeData = (customer: Customer | null, callId?: string) =
     hasEmail,
     hasPhoneOnly,
     isAuthenticated,
+    canRefresh,
     refresh: refreshMutation.mutate,
     isRefreshing: refreshMutation.isPending,
     customer
