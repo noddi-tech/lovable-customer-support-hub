@@ -38,7 +38,9 @@ export const UnifiedAppLayout: React.FC<UnifiedAppLayoutProps> = ({
 
         {/* Main Content Area */}
         <main className="flex-1 min-h-0 w-full max-w-none overflow-auto bg-background">
-          {children}
+          <div key={section} className="h-full animate-fade-in">
+            {children}
+          </div>
         </main>
       </div>
     </SidebarProvider>
