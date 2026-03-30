@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { 
   ChevronDown, Phone, Mail, Car, Calendar, AlertTriangle, CreditCard,
   ExternalLink, Archive, RotateCcw, Truck, Package, Users, Droplets, 
-  Target, Gauge, Zap
+  Target, Gauge, Zap, Crown, Ticket
 } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
