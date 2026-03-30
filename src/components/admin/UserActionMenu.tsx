@@ -53,7 +53,7 @@ export function UserActionMenu({ user }: UserActionMenuProps) {
   const [cooldownUntil, setCooldownUntil] = useState<number | null>(null);
   const [nowMs, setNowMs] = useState(() => Date.now());
 
-  const { deleteUser, isDeletingUser, resendInvite, isResendingInvite } = useUserManagement();
+  const { deleteUser, isDeletingUser, resendInvite, isResendingInvite, changeEmail, isChangingEmail } = useUserManagement();
   const { user: currentUser } = useAuth();
 
   useEffect(() => {
