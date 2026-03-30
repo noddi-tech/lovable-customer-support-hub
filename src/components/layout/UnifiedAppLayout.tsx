@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { AppMainNav } from './AppMainNav';
 import { SearchCommandPalette } from '@/components/search/SearchCommandPalette';
@@ -12,6 +13,8 @@ export const UnifiedAppLayout: React.FC<UnifiedAppLayoutProps> = ({
   children
 }) => {
   const [searchOpen, setSearchOpen] = useState(false);
+  const location = useLocation();
+  const section = location.pathname.split('/')[1] || 'home';
 
   // Global Cmd+K / Ctrl+K shortcut
   useEffect(() => {
@@ -35,7 +38,9 @@ export const UnifiedAppLayout: React.FC<UnifiedAppLayoutProps> = ({
 
         {/* Main Content Area */}
         <main className="flex-1 min-h-0 w-full max-w-none overflow-auto bg-background">
-          {children}
+          <div key={section} className="h-full animate-fade-in">
+            {children}
+          </div>
         </main>
       </div>
     </SidebarProvider>
