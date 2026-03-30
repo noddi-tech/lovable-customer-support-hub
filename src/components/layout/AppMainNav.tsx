@@ -70,6 +70,8 @@ export const AppMainNav = () => {
   const handleNavClick = () => {
     if (isMobile) {
       setOpenMobile(false);
+    } else {
+      setOpen(false);
     }
   };
 
