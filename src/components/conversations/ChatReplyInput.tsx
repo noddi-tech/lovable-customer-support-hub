@@ -193,12 +193,13 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
 
         // If not actively live, send via email
         if (!isLive && insertedMsg?.id) {
-          try {
-            await supabase.functions.invoke('send-reply-email', {
-              body: { messageId: insertedMsg.id }
-            });
-          } catch (emailErr) {
-            console.error('[ChatReplyInput] Email send failed:', emailErr);
+          const { error: emailError } = await supabase.functions.invoke('send-reply-email', {
+            body: { messageId: insertedMsg.id }
+          });
+          if (emailError) {
+            console.error('[ChatReplyInput] Email send failed:', emailError);
+            await supabase.from('messages').update({ email_status: 'failed' }).eq('id', insertedMsg.id);
+            toast.warning('Reply saved but email sending failed');
           }
         }
       }

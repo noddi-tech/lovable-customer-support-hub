@@ -516,6 +516,14 @@ const handler = async (req: Request): Promise<Response> => {
     );
   } catch (error: any) {
     console.error('Error in send-reply-email function:', error);
+    // Mark message as failed so UI shows actionable "Resend" instead of stuck "pending"
+    if (messageId) {
+      try {
+        await supabaseClient.from('messages').update({ email_status: 'failed' }).eq('id', messageId);
+      } catch (updateErr) {
+        console.error('Failed to update email_status to failed:', updateErr);
+      }
+    }
     return new Response(
       JSON.stringify({ error: error.message, details: error.stack }),
       { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }

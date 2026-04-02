@@ -470,6 +470,7 @@ export const ConversationViewProvider = ({ children, conversationId, conversatio
         
         if (emailError) {
           logger.warn('Email sending failed', emailError, 'ConversationViewProvider');
+          await supabase.from('messages').update({ email_status: 'failed' }).eq('id', message.id);
           toast.warning('Reply saved but email sending failed');
         }
       }
