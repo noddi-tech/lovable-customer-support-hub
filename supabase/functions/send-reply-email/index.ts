@@ -77,16 +77,20 @@ const handler = async (req: Request): Promise<Response> => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Initialize Supabase client outside try so catch can use it
+  const supabaseClient = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+  );
+
+  let messageId: string | undefined;
+
   try {
     console.log('send-reply-email (SendGrid) called');
 
-    // Initialize Supabase client
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-    );
-
-    const { messageId, replyAll = true } = await req.json();
+    const body = await req.json();
+    messageId = body.messageId;
+    const replyAll = body.replyAll ?? true;
     console.log('Processing message ID:', messageId);
 
     if (!messageId) throw new Error('Message ID is required');
@@ -113,9 +117,10 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error('Message not found');
     }
 
-    // Skip internal notes
+    // Skip internal notes and clear their email_status
     if (message.is_internal) {
       console.log('Message is internal, skipping email send');
+      await supabaseClient.from('messages').update({ email_status: null }).eq('id', messageId);
       return new Response(JSON.stringify({ success: true, skipped: 'internal_note' }), {
         status: 200,
         headers: { "Content-Type": "application/json", ...corsHeaders },
@@ -515,6 +520,14 @@ const handler = async (req: Request): Promise<Response> => {
     );
   } catch (error: any) {
     console.error('Error in send-reply-email function:', error);
+    // Mark message as failed so UI shows actionable "Resend" instead of stuck "pending"
+    if (messageId) {
+      try {
+        await supabaseClient.from('messages').update({ email_status: 'failed' }).eq('id', messageId);
+      } catch (updateErr) {
+        console.error('Failed to update email_status to failed:', updateErr);
+      }
+    }
     return new Response(
       JSON.stringify({ error: error.message, details: error.stack }),
       { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }

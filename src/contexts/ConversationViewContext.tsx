@@ -338,6 +338,7 @@ export const ConversationViewProvider = ({ children, conversationId, conversatio
           sender_id: user.id,
           is_internal: isInternal,
           content_type: 'text/plain',
+          email_status: isInternal ? null : 'pending',
           ...(attachmentsMeta ? { attachments: attachmentsMeta } : {}),
         })
         .select()
@@ -469,6 +470,7 @@ export const ConversationViewProvider = ({ children, conversationId, conversatio
         
         if (emailError) {
           logger.warn('Email sending failed', emailError, 'ConversationViewProvider');
+          await supabase.from('messages').update({ email_status: 'failed' }).eq('id', message.id);
           toast.warning('Reply saved but email sending failed');
         }
       }
