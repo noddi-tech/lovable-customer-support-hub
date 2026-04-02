@@ -338,6 +338,7 @@ export const ConversationViewProvider = ({ children, conversationId, conversatio
           sender_id: user.id,
           is_internal: isInternal,
           content_type: 'text/plain',
+          email_status: isInternal ? null : 'pending',
           ...(attachmentsMeta ? { attachments: attachmentsMeta } : {}),
         })
         .select()
