@@ -113,9 +113,10 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error('Message not found');
     }
 
-    // Skip internal notes
+    // Skip internal notes and clear their email_status
     if (message.is_internal) {
       console.log('Message is internal, skipping email send');
+      await supabaseClient.from('messages').update({ email_status: null }).eq('id', messageId);
       return new Response(JSON.stringify({ success: true, skipped: 'internal_note' }), {
         status: 200,
         headers: { "Content-Type": "application/json", ...corsHeaders },
