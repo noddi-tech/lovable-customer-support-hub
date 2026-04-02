@@ -1,28 +1,66 @@
 
 
-## Switch Notifications to Custom Shadcn Table (Conversation List Pattern)
+## Fix: Emails Stuck as "Not Delivered" + Internal Notes False Warnings
 
-### What the user wants
+### Problem
 
-Replace the generic `DataTable` wrapper with a purpose-built table using raw Shadcn `<Table>` primitives + custom `TableHeaderCell` — the same pattern used in the conversation list. This gives more control over layout, row styling, and interaction without the overhead of the DataTable abstraction.
+Two related bugs cause "Email not delivered" warnings:
+
+1. **Reply emails fail silently and stay "pending" forever**: When `send-reply-email` fails (SendGrid timeout, network error), neither the client nor the edge function updates `email_status` to `'failed'`. The message stays `pending` permanently. Users must manually press Resend.
+
+2. **Internal notes show "Email not delivered"**: Internal notes (e.g. @mentions) are inserted without explicit `email_status`, inheriting the DB default `'pending'`. The send function correctly skips them but never clears the status.
+
+3. **ChatReplyInput swallows errors**: The widget reply component uses try/catch on `supabase.functions.invoke`, which returns `{ error }` instead of throwing — so errors are never caught.
 
 ### Changes
 
 | # | File | Change |
 |---|------|--------|
-| 1 | `src/pages/NotificationsPage.tsx` | Remove `DataTable` import. Build a custom table using `Table`, `TableBody`, `TableHeader`, `TableRow`, `TableCell` from Shadcn + `TableHeaderCell` for sortable columns. Add local sort state (`useState` for sort key/direction), a search input with `Search` icon, and manual filtering/sorting logic. Keep existing header, tabs, refresh, mark-all-read buttons unchanged. |
+| 1 | `src/contexts/ConversationViewContext.tsx` | Set `email_status: isInternal ? null : 'pending'` on message insert. On edge function error, update the message's `email_status` to `'failed'` in the DB. |
+| 2 | `src/components/conversations/ChatReplyInput.tsx` | Fix error handling: destructure `{ error }` from invoke instead of try/catch. On error, update `email_status` to `'failed'` and show toast. |
+| 3 | `supabase/functions/send-reply-email/index.ts` | In the catch block, update `email_status` to `'failed'` before returning 500. When skipping internal notes, set `email_status` to `null`. |
+| 4 | Data cleanup (SQL via insert tool) | `UPDATE messages SET email_status = NULL WHERE is_internal = true AND email_status = 'pending'` and `UPDATE messages SET email_status = 'failed' WHERE sender_type = 'agent' AND is_internal = false AND email_status = 'pending' AND created_at < NOW() - INTERVAL '5 minutes'` |
 
-### Implementation detail
+### Technical detail
 
-- **Sort state**: `useState<{ key: string; direction: 'asc' | 'desc' | null }>` with `handleSort` toggling through asc → desc → null
-- **Search**: Local `searchQuery` state filtering notifications by title/message (case-insensitive)
-- **Sorting**: `useMemo` sorting `filteredNotifications` by the active sort key (time, title, type)
-- **Columns**: Same layout as current NotificationColumns but rendered inline — Status dot, Type icon, Notification (title + message + priority badges, clickable), Time (relative), Actions (mark read / view / delete)
-- **Row styling**: Unread rows get subtle `bg-muted/30`, priority left borders kept
-- **No pagination** — scrollable list (matches conversation list pattern)
-- **Reuses** existing `TableHeaderCell` component from `src/components/dashboard/conversation-list/TableHeaderCell.tsx`
+**ConversationViewContext — insert fix:**
+```typescript
+// Set email_status explicitly on insert
+email_status: isInternal ? null : 'pending',
+```
 
-### Removes dependency on
-- `src/components/admin/DataTable.tsx` (no longer imported)
-- `src/components/notifications/NotificationColumns.tsx` (columns defined inline in the page)
+**ConversationViewContext — error handler fix:**
+```typescript
+if (emailError) {
+  await supabase.from('messages').update({ email_status: 'failed' }).eq('id', message.id);
+  toast.warning('Reply saved but email sending failed');
+}
+```
+
+**ChatReplyInput — error handling fix:**
+```typescript
+// Before (broken — invoke doesn't throw):
+try {
+  await supabase.functions.invoke('send-reply-email', { body: { messageId } });
+} catch (emailErr) { /* never fires */ }
+
+// After:
+const { error: emailError } = await supabase.functions.invoke('send-reply-email', {
+  body: { messageId: insertedMsg.id }
+});
+if (emailError) {
+  await supabase.from('messages').update({ email_status: 'failed' }).eq('id', insertedMsg.id);
+  toast.warning('Reply saved but email sending failed');
+}
+```
+
+**Edge function — catch block fix:**
+```typescript
+} catch (error: any) {
+  if (messageId) {
+    await supabaseClient.from('messages').update({ email_status: 'failed' }).eq('id', messageId);
+  }
+  return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+}
+```
 
