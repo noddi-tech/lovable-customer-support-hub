@@ -77,16 +77,20 @@ const handler = async (req: Request): Promise<Response> => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Initialize Supabase client outside try so catch can use it
+  const supabaseClient = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+  );
+
+  let messageId: string | undefined;
+
   try {
     console.log('send-reply-email (SendGrid) called');
 
-    // Initialize Supabase client
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-    );
-
-    const { messageId, replyAll = true } = await req.json();
+    const body = await req.json();
+    messageId = body.messageId;
+    const replyAll = body.replyAll ?? true;
     console.log('Processing message ID:', messageId);
 
     if (!messageId) throw new Error('Message ID is required');
