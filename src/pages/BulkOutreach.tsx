@@ -61,7 +61,7 @@ export default function BulkOutreach() {
     setIsLookingUp(true);
     try {
       const { data, error } = await supabase.functions.invoke("bulk-outreach", {
-        body: { action: "list_route_bookings", date, organization_id: profile?.organization_id },
+        body: { action: "list_route_bookings", date, organization_id: organizationId },
       });
       if (error) throw error;
 
