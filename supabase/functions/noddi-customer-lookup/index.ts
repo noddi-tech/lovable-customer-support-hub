@@ -96,6 +96,7 @@ interface NoddihCustomerLookupRequest {
   organizationId?: string;
   forceRefresh?: boolean;
   userGroupId?: number;
+  alternative_emails?: string[];
 }
 
 // Helper function to fetch individual bookings for a user group
