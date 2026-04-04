@@ -55,7 +55,7 @@ export default function BulkOutreach() {
     } finally {
       setIsLookingUp(false);
     }
-  }, []);
+  }, [organizationId]);
 
   const handleFetchBookings = useCallback(async (date: string) => {
     setIsLookingUp(true);

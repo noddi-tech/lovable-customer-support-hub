@@ -37,7 +37,7 @@ async function resolvePlate(plate: string, supabase: any, organizationId: string
     return cacheResult;
   }
 
-  // === Strategy 2: Noddi API chain (car → bookings → user_group) ===
+  // === Strategy 2: Noddi API — car → user/user_group → contact info ===
   try {
     // Step 1: Look up car by license plate
     const carUrl = `${API_BASE}/v1/cars/from-license-plate-number/?brand_domains=noddi&country_code=NO&number=${encodeURIComponent(cleanPlate)}`;
@@ -50,107 +50,31 @@ async function resolvePlate(plate: string, supabase: any, organizationId: string
 
     const carData = await carRes.json();
     const carId = carData?.id;
+    console.log(`[bulk-outreach] 🚗 Car found for ${cleanPlate}: id=${carId}, keys=${Object.keys(carData || {}).join(",")}`);
 
-    if (!carId) {
-      console.log(`[bulk-outreach] ❌ Car response has no id for plate ${cleanPlate}`);
-      return { plate: cleanPlate, name: null, email: null, phone: null, matched: false, reason: "no_car_id" };
+    // Step 2: Extract user/user_group directly from car response
+    // The car object may contain user, user_group, user_groups, or owner fields
+    const directUser = carData?.user || carData?.owner;
+    if (directUser?.email) {
+      const name = [directUser.first_name, directUser.last_name].filter(Boolean).join(" ") || directUser.name || null;
+      console.log(`[bulk-outreach] ✅ Direct user on car for ${cleanPlate}: ${directUser.email}`);
+      return { plate: cleanPlate, name, email: directUser.email, phone: directUser.phone_number || directUser.phone || null, matched: true };
     }
 
-    console.log(`[bulk-outreach] 🚗 Car found for ${cleanPlate}: id=${carId}`);
-
-    // Step 2: Search recent bookings broadly and scan for matching plate/car
-    const now = new Date();
-    const startDate = new Date(now);
-    startDate.setDate(startDate.getDate() - 90);
-    const endDate = new Date(now);
-    endDate.setDate(endDate.getDate() + 30);
-    const startStr = startDate.toISOString().split("T")[0];
-    const endStr = endDate.toISOString().split("T")[0];
-
-    const bookingsUrl = `${API_BASE}/v1/bookings/?start_date=${startStr}&end_date=${endStr}&brand_domains=noddi&page_size=200`;
-    const bookingsRes = await fetch(bookingsUrl, { headers: noddiHeaders() });
-
-    if (!bookingsRes.ok) {
-      console.log(`[bulk-outreach] ❌ Bookings broad search failed: HTTP ${bookingsRes.status}`);
-      return { plate: cleanPlate, name: null, email: null, phone: null, matched: false, reason: "bookings_fetch_failed" };
-    }
-
-    const bookingsData = await bookingsRes.json();
-    const results = bookingsData?.results || (Array.isArray(bookingsData) ? bookingsData : []);
-    console.log(`[bulk-outreach] 📋 Searching ${results.length} bookings for plate ${cleanPlate} (car_id=${carId})`);
-
-    // Scan bookings for matching car_id or plate in booking items
-    const matchingBookings: any[] = [];
-    for (const booking of results) {
-      // Match by top-level car
-      if (booking?.car?.id === carId || (booking?.car?.license_plate_number || "").replace(/[\s-]/g, "").toUpperCase() === cleanPlate) {
-        matchingBookings.push(booking);
-        continue;
-      }
-      // Match by booking_items_car array
-      const biCars = booking?.booking_items_car || [];
-      for (const bic of biCars) {
-        const bicPlate = (bic?.license_plate?.number || bic?.license_plate_number || "").replace(/[\s-]/g, "").toUpperCase();
-        if (bic?.car_id === carId || bic?.id === carId || bicPlate === cleanPlate) {
-          matchingBookings.push(booking);
-          break;
-        }
-      }
-      // Match by booking_items[].car
-      const items = booking?.booking_items || [];
-      for (const item of items) {
-        const itemCar = item?.car;
-        if (itemCar) {
-          const itemPlate = (itemCar?.license_plate?.number || itemCar?.license_plate_number || "").replace(/[\s-]/g, "").toUpperCase();
-          if (itemCar?.id === carId || itemPlate === cleanPlate) {
-            matchingBookings.push(booking);
-            break;
-          }
-        }
+    // Step 3: If car has user_group_id or user_groups, fetch contact info from user_group
+    const ugIds: number[] = [];
+    if (carData?.user_group_id) ugIds.push(carData.user_group_id);
+    if (carData?.user_group?.id) ugIds.push(carData.user_group.id);
+    if (Array.isArray(carData?.user_groups)) {
+      for (const ug of carData.user_groups) {
+        if (ug?.id) ugIds.push(ug.id);
       }
     }
 
-    console.log(`[bulk-outreach] 🔍 Found ${matchingBookings.length} matching bookings for plate ${cleanPlate}`);
+    // Deduplicate
+    const uniqueUgIds = [...new Set(ugIds)];
 
-    if (matchingBookings.length === 0) {
-      return { plate: cleanPlate, name: null, email: null, phone: null, matched: false, reason: "no_matching_bookings" };
-    }
-
-    // Extract user info from matching bookings
-    for (const booking of matchingBookings) {
-      const bookingUser = booking?.user;
-      if (bookingUser?.email) {
-        console.log(`[bulk-outreach] ✅ Found user on booking ${booking.id}: ${bookingUser.email}`);
-        return {
-          plate: cleanPlate,
-          name: [bookingUser.first_name, bookingUser.last_name].filter(Boolean).join(" ") || bookingUser.name || null,
-          email: bookingUser.email,
-          phone: bookingUser.phone_number || null,
-          matched: true,
-        };
-      }
-
-      const members = booking?.user_group?.members;
-      if (Array.isArray(members) && members.length > 0) {
-        const member = members[0];
-        if (member?.email) {
-          console.log(`[bulk-outreach] ✅ Found member on booking ${booking.id}: ${member.email}`);
-          return {
-            plate: cleanPlate,
-            name: member.name || booking.user_group?.name || null,
-            email: member.email,
-            phone: member.phone_number || null,
-            matched: true,
-          };
-        }
-      }
-    }
-
-    // Step 3: Try fetching user_group details for the first booking with a user_group reference
-    for (const booking of results) {
-      const ugId = booking?.user_group?.id || booking?.user_group_id;
-      if (!ugId) continue;
-
+    for (const ugId of uniqueUgIds) {
       console.log(`[bulk-outreach] 👥 Fetching user group ${ugId} for plate ${cleanPlate}`);
       const ugUrl = `${API_BASE}/v1/user-groups/${ugId}/`;
       const ugRes = await fetch(ugUrl, { headers: noddiHeaders() });
@@ -163,9 +87,9 @@ async function resolvePlate(plate: string, supabase: any, organizationId: string
       const ugData = await ugRes.json();
       const ugMembers = ugData?.members || [];
       const primaryMember = ugMembers[0];
-      const name = primaryMember?.name || ugData?.name || null;
+      const name = primaryMember?.name || [primaryMember?.first_name, primaryMember?.last_name].filter(Boolean).join(" ") || ugData?.name || null;
       const email = primaryMember?.email || null;
-      const phone = primaryMember?.phone_number || null;
+      const phone = primaryMember?.phone_number || primaryMember?.phone || null;
 
       if (email) {
         console.log(`[bulk-outreach] ✅ Found email via user group ${ugId}: ${email}`);
@@ -173,8 +97,42 @@ async function resolvePlate(plate: string, supabase: any, organizationId: string
       }
     }
 
-    console.log(`[bulk-outreach] ❌ Bookings found but no email for plate ${cleanPlate}`);
-    return { plate: cleanPlate, name: null, email: null, phone: null, matched: false, reason: "no_email_in_bookings" };
+    // Step 4: Try customer-lookup-support if car has user_id
+    const userId = carData?.user_id || directUser?.id;
+    if (userId) {
+      console.log(`[bulk-outreach] 🔍 Trying customer-lookup-support for user_id from car ${cleanPlate}`);
+      // We don't have phone/email yet, but we could try via user_id if the API supports it
+    }
+
+    // Step 5: Search local customers table for metadata matching car_id
+    if (carId) {
+      const { data: localCustomers } = await supabase
+        .from("customers")
+        .select("id, full_name, email, phone, metadata")
+        .eq("organization_id", organizationId)
+        .not("metadata", "is", null);
+
+      if (localCustomers) {
+        for (const c of localCustomers) {
+          const meta = c.metadata || {};
+          const metaCars = meta.cars || meta.stored_cars || [];
+          if (Array.isArray(metaCars)) {
+            for (const mc of metaCars) {
+              const mcPlate = (mc?.license_plate || mc?.plate || "").replace(/[\s-]/g, "").toUpperCase();
+              if (mc?.id === carId || mcPlate === cleanPlate) {
+                if (c.email) {
+                  console.log(`[bulk-outreach] ✅ Local customer match for ${cleanPlate}: ${c.email}`);
+                  return { plate: cleanPlate, name: c.full_name, email: c.email, phone: c.phone, matched: true };
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    console.log(`[bulk-outreach] ❌ Car found but no user/email resolved for plate ${cleanPlate}`);
+    return { plate: cleanPlate, name: null, email: null, phone: null, matched: false, reason: "no_user_on_car" };
   } catch (err) {
     console.error(`[bulk-outreach] Error resolving plate ${cleanPlate}:`, err);
     return { plate: cleanPlate, name: null, email: null, phone: null, matched: false, reason: "api_error" };
