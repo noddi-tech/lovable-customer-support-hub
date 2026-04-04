@@ -13,7 +13,8 @@ import {
   User,
   Bell,
   Shield,
-  Search
+  Search,
+  Send
 } from "lucide-react";
 
 export type NavItem = {
