@@ -239,6 +239,7 @@ async function resolveFromBookingSearch(plate: string, params: Record<string, st
 function extractContactFromBooking(booking: any, plate: string): {
   plate: string; name: string | null; email: string | null; phone: string | null; matched: boolean;
 } | null {
+  // Path 1: booking.user (direct user on booking)
   const user = booking?.user;
   if (user?.email) {
     return {
@@ -249,16 +250,33 @@ function extractContactFromBooking(booking: any, plate: string): {
       matched: true,
     };
   }
-  // Try user_group on booking
-  const ugUser = booking?.user_group?.members?.[0];
-  if (ugUser?.email) {
-    return {
-      plate,
-      name: [ugUser.first_name, ugUser.last_name].filter(Boolean).join(" ") || ugUser.name || null,
-      email: ugUser.email,
-      phone: ugUser.phone_number || ugUser.phone || null,
-      matched: true,
-    };
+  // Path 2: booking.user_group.users[] (OpenAPI: UserGroupRecordList shape)
+  const ugUsers = booking?.user_group?.users || [];
+  for (const u of ugUsers) {
+    const uObj = u?.user || u;
+    if (uObj?.email) {
+      return {
+        plate,
+        name: [uObj.first_name, uObj.last_name].filter(Boolean).join(" ") || uObj.name || null,
+        email: uObj.email,
+        phone: uObj.phone_number || uObj.phone || null,
+        matched: true,
+      };
+    }
+  }
+  // Path 3: booking.user_group.members[] (alternative shape)
+  const ugMembers = booking?.user_group?.members || [];
+  for (const m of ugMembers) {
+    const mUser = m?.user || m;
+    if (mUser?.email) {
+      return {
+        plate,
+        name: [mUser.first_name, mUser.last_name].filter(Boolean).join(" ") || mUser.name || null,
+        email: mUser.email,
+        phone: mUser.phone_number || mUser.phone || null,
+        matched: true,
+      };
+    }
   }
   return null;
 }
