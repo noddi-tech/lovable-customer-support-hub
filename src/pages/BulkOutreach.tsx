@@ -14,6 +14,15 @@ import { ArrowLeft, ArrowRight, Send } from "lucide-react";
 
 const STEPS = ["Add Customers", "Review Recipients", "Compose Message", "Confirm & Send"];
 
+/** Upsert incoming results into existing recipients by plate */
+function mergeRecipients(prev: Recipient[], incoming: Recipient[]): Recipient[] {
+  const map = new Map(prev.map((r) => [r.plate, r]));
+  for (const r of incoming) {
+    map.set(r.plate, { ...r, selected: r.matched });
+  }
+  return Array.from(map.values());
+}
+
 export default function BulkOutreach() {
   const { profile } = useAuth();
   const [step, setStep] = useState(0);
@@ -39,18 +48,14 @@ export default function BulkOutreach() {
       });
       if (error) throw error;
 
-      const results = (data.results || []).map((r: any) => ({
+      const results: Recipient[] = (data.results || []).map((r: any) => ({
         ...r,
         selected: r.matched,
         reason: r.reason || undefined,
         source: r.source || undefined,
       }));
-      setRecipients((prev) => {
-        const existingPlates = new Set(prev.map((p) => p.plate));
-        const newOnes = results.filter((r: Recipient) => !existingPlates.has(r.plate));
-        return [...prev, ...newOnes];
-      });
-      toast.success(`Looked up ${plates.length} plates, found ${results.filter((r: any) => r.matched).length} matches`);
+      setRecipients((prev) => mergeRecipients(prev, results));
+      toast.success(`Looked up ${plates.length} plates, found ${results.filter((r) => r.matched).length} matches`);
     } catch (err) {
       console.error("Plate lookup error:", err);
       toast.error("Failed to look up plates");
