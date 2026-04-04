@@ -357,18 +357,32 @@ async function lookupFromCache(
 }
 
 function plateMatchesBooking(booking: any, plate: string): boolean {
+  // Check booking_items_car (cache shape)
   const cars = booking?.booking_items_car || [];
   for (const car of cars) {
-    const plateNum = (car?.license_plate?.number || "").replace(/[\s-]/g, "").toUpperCase();
+    const plateNum = (car?.license_plate?.number || car?.license_plate_number || "").replace(/[\s-]/g, "").toUpperCase();
     if (plateNum === plate) return true;
   }
+  // Check booking_items[].car (OpenAPI: BookingItemRecordList → car → license_plate_number)
   const items = booking?.booking_items || [];
   for (const item of items) {
     const car = item?.car;
     if (car) {
-      const plateNum = (car?.license_plate?.number || car?.license_plate_number || "").replace(/[\s-]/g, "").toUpperCase();
+      const plateNum = (car?.license_plate_number || car?.license_plate?.number || "").replace(/[\s-]/g, "").toUpperCase();
       if (plateNum === plate) return true;
     }
+  }
+  // Check direct car on booking
+  const directCar = booking?.car;
+  if (directCar) {
+    const plateNum = (directCar?.license_plate_number || directCar?.license_plate?.number || "").replace(/[\s-]/g, "").toUpperCase();
+    if (plateNum === plate) return true;
+  }
+  // Check cars[] array
+  const carsArr = booking?.cars || [];
+  for (const c of carsArr) {
+    const plateNum = (c?.license_plate_number || c?.license_plate?.number || "").replace(/[\s-]/g, "").toUpperCase();
+    if (plateNum === plate) return true;
   }
   return false;
 }
