@@ -113,7 +113,7 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error('Error listing Slack channels:', error);
     return new Response(
-      JSON.stringify({ error: error.message, channels: [] }),
+      JSON.stringify({ error: error instanceof Error ? error.message : String(error), channels: [] }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

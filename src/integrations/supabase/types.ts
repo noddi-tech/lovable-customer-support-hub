@@ -1494,6 +1494,9 @@ export type Database = {
           ai_quality_score: number | null
           created_at: string
           customer_context: string
+          evaluated_at: string | null
+          evaluation_notes: Json | null
+          evaluation_score: number | null
           extraction_job_id: string | null
           id: string
           organization_id: string
@@ -1512,6 +1515,9 @@ export type Database = {
           ai_quality_score?: number | null
           created_at?: string
           customer_context: string
+          evaluated_at?: string | null
+          evaluation_notes?: Json | null
+          evaluation_score?: number | null
           extraction_job_id?: string | null
           id?: string
           organization_id: string
@@ -1530,6 +1536,9 @@ export type Database = {
           ai_quality_score?: number | null
           created_at?: string
           customer_context?: string
+          evaluated_at?: string | null
+          evaluation_notes?: Json | null
+          evaluation_score?: number | null
           extraction_job_id?: string | null
           id?: string
           organization_id?: string
