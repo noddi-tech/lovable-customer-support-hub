@@ -399,7 +399,7 @@ Deno.serve(async (req) => {
             return 0;
           } catch { return 0; }
         });
-        const avg = sentiments.reduce((a, b) => a + b, 0) / sentiments.length;
+        const avg = (sentiments as number[]).reduce((a: number, b: number) => a + b, 0) / sentiments.length;
         // Most recent vs oldest in window
         const trend = sentiments[0] - sentiments[sentiments.length - 1];
         if (trend > 0) sentimentTrend = 'improving';
