@@ -116,6 +116,13 @@ export const NAV_ITEMS: NavItem[] = [
     group: "operations" 
   },
   { 
+    id: "bulk-outreach", 
+    label: "Bulk Outreach", 
+    to: "/bulk-outreach", 
+    icon: Send, 
+    group: "operations" 
+  },
+  { 
     id: "ops-settings", 
     label: "Operations Settings", 
     to: "/operations/settings", 

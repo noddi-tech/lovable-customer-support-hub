@@ -8,7 +8,7 @@ import { RecipientReview, Recipient } from "@/components/bulk-outreach/Recipient
 import { MessageComposer } from "@/components/bulk-outreach/MessageComposer";
 import { SendConfirmation } from "@/components/bulk-outreach/SendConfirmation";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/components/auth/AuthContext";
+import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { ArrowLeft, ArrowRight, Send } from "lucide-react";
 
