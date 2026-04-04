@@ -125,6 +125,66 @@ export type Database = {
           },
         ]
       }
+      bulk_outreach_jobs: {
+        Row: {
+          created_at: string
+          created_by: string
+          failed_count: number
+          id: string
+          inbox_id: string | null
+          message_template: string
+          organization_id: string
+          recipient_count: number
+          recipients: Json
+          sent_count: number
+          status: string
+          subject: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          failed_count?: number
+          id?: string
+          inbox_id?: string | null
+          message_template: string
+          organization_id: string
+          recipient_count?: number
+          recipients?: Json
+          sent_count?: number
+          status?: string
+          subject: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          failed_count?: number
+          id?: string
+          inbox_id?: string | null
+          message_template?: string
+          organization_id?: string
+          recipient_count?: number
+          recipients?: Json
+          sent_count?: number
+          status?: string
+          subject?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bulk_outreach_jobs_inbox_id_fkey"
+            columns: ["inbox_id"]
+            isOneToOne: false
+            referencedRelation: "inboxes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bulk_outreach_jobs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       call_events: {
         Row: {
           call_id: string

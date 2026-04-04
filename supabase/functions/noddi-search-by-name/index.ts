@@ -154,6 +154,6 @@ Deno.serve(async (req) => {
 
   } catch (error) {
     console.error('[noddi-search-by-name] Error:', error);
-    return json({ error: error.message }, 500);
+    return json({ error: error instanceof Error ? error.message : String(error) }, 500);
   }
 });

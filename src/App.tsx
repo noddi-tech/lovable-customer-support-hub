@@ -46,6 +46,7 @@ import Terms from "./pages/Terms";
 import NotFound from "./pages/NotFound";
 import SuperAdminImport from "./pages/SuperAdminImport";
 import SearchPage from "./pages/SearchPage";
+import BulkOutreach from "./pages/BulkOutreach";
 import "@/lib/i18n";
 import "@/styles/controls.css";
 
@@ -146,6 +147,7 @@ const AppContent = () => {
       <Route path="/operations/doorman" element={<ProtectedRoute><Index /></ProtectedRoute>} />
       <Route path="/operations/recruitment" element={<ProtectedRoute><Index /></ProtectedRoute>} />
       <Route path="/operations/analytics" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+      <Route path="/bulk-outreach" element={<ProtectedRoute><BulkOutreach /></ProtectedRoute>} />
       <Route path="/operations/settings" element={<ProtectedRoute><Index /></ProtectedRoute>} />
       
       {/* Legacy operations redirects */}

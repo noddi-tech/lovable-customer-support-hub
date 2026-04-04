@@ -13,7 +13,8 @@ import {
   User,
   Bell,
   Shield,
-  Search
+  Search,
+  Send
 } from "lucide-react";
 
 export type NavItem = {
@@ -112,6 +113,13 @@ export const NAV_ITEMS: NavItem[] = [
     label: "Operations Analytics", 
     to: "/operations/analytics", 
     icon: BarChart3, 
+    group: "operations" 
+  },
+  { 
+    id: "bulk-outreach", 
+    label: "Bulk Outreach", 
+    to: "/bulk-outreach", 
+    icon: Send, 
     group: "operations" 
   },
   { 
