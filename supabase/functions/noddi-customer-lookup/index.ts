@@ -1566,7 +1566,7 @@ Deno.serve(async (req) => {
       ttl_seconds: CACHE_TTL_SECONDS,
       data: {
         found: true,
-        email: successfulEmail,
+        email: successfulEmail || "",
         noddi_user_id: noddihUser.id,
         user_group_id: selectedGroup.id,
         all_user_groups: allUserGroupsFormatted,
