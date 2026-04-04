@@ -1,69 +1,47 @@
 
-Why this is happening
 
-1. The plate lookup is failing for two code reasons:
-   - In `src/pages/BulkOutreach.tsx`, `resolve_plates` is called without `organization_id`, so the edge function cannot use any org-scoped local fallback.
-   - In `supabase/functions/bulk-outreach/index.ts`, the fallback is effectively broken anyway: it searches `customers.metadata->>license_plate` / `plate`, but this codebase mainly stores Noddi IDs in customer metadata, not plate values. The current `.or(...,phone.not.is.null)` can also produce bad fallback candidates.
+# Fix Bulk Outreach: Bookings API Returns 400
 
-2. The Noddi lookup chain is too optimistic:
-   - `resolvePlate()` assumes `/v1/bookings/?car_ids=...` will reliably return a booking shape with `user_group` / `user_group_id`.
-   - Your logs show the function repeatedly reaching `No user group found via bookings`, so that query is either returning no usable rows or the response shape is different than expected.
+## Root Cause
 
-3. Most console errors are noise, not the cause of “found 0 matches”:
-   - `RS SDK - TikTok Ads` / `Google Ads` warnings: analytics/instrumentation noise.
-   - WebSocket `wss://...lovableproject.com` / `localhost:8080` failures: preview/HMR websocket issues.
-   - `manifest.json 401`: preview asset issue.
-   - `Function components cannot be given refs`: a separate React warning around `TableHeaderCell`, not the bulk-outreach root cause.
+The edge function logs reveal the exact failure point:
 
-Plan
+```
+Car found for EN31654: id=14484
+Bookings fetch failed for car 14484: HTTP 400
+```
 
-1. Fix the frontend request payload
-   - Update `BulkOutreach.tsx` to use `organizationId` from `useAuth()` and pass it in `resolve_plates`, `list_route_bookings`, and `send_bulk`.
-   - Add a guard so lookup cannot run before organization context is available.
+**Every car is found successfully**, but the next step fails because `/v1/bookings/?car_ids=X` is not a valid Noddi API endpoint. It returns HTTP 400 for every request. This parameter does not exist in the Noddi API.
 
-2. Replace the broken local fallback
-   - Remove the current `customers.metadata->>license_plate / plate` fallback logic.
-   - Rebuild fallback to use data that actually exists in this project:
-     - `noddi_customer_cache.cached_priority_booking`
-     - `noddi_customer_cache.cached_pending_bookings`
-     - `noddi_customer_cache.cached_customer_data`
-   - Reuse the existing booking/car field patterns already handled elsewhere in the codebase (`car`, `cars`, `booking_items_car`, `booking_items`) to match a plate against cached bookings.
+The local cache fallback also fails because the `noddi_customer_cache` table only has **4 entries total** (2 with bookings), and none of them contain the plates being searched. The `customers` table also has no plate data in metadata.
 
-3. Make the Noddi booking lookup more robust
-   - Keep the initial car lookup by plate.
-   - After that, improve booking resolution so it does not rely on only `booking.user_group?.id || booking.user_group_id`.
-   - Inspect alternate booking shapes and, if needed, fetch booking detail for candidate bookings before concluding “not found”.
-   - Add clearer logs for:
-     - no car found
-     - no bookings returned
-     - bookings returned but no user group
-     - user group found but no email
+## Correct API Flow
 
-4. Tighten match rules
-   - Only mark a recipient as matched when there is a real contact path for outreach.
-   - Remove the broad `phone.not.is.null` fallback behavior to avoid false positives.
+Per the Noddi API docs, the way to get from a car to a customer is:
+1. Car lookup by plate returns `car_id` (this works)
+2. But there is **no bookings-by-car endpoint** -- bookings are fetched via `/v1/user-groups/{user_group_id}/bookings-for-customer/`
 
-5. Clean up the unrelated console warning
-   - Refactor `TableHeaderCell` to a `forwardRef`-compatible pattern or wrap the sortable button inside `TableHead`.
-   - This should reduce the repeated `Function components cannot be given refs` warning in conversation tables.
+The missing link: we need to go from plate to customer identity. The correct approach is to use the **customer-lookup-support** endpoint or search bookings broadly.
 
-Technical details
+## Solution
 
-- Files to update:
-  - `src/pages/BulkOutreach.tsx`
-  - `supabase/functions/bulk-outreach/index.ts`
-  - likely `src/components/dashboard/conversation-list/TableHeaderCell.tsx`
+Rewrite the Noddi API chain in `resolvePlate()` to use this strategy:
 
-- No schema change is required for the lookup fix if we use `noddi_customer_cache`.
-- No new secrets should be needed.
-- Expected result after implementation:
-  - plate lookups use the current organization
-  - cached Noddi booking data can rescue matches when the direct booking query is incomplete
-  - “found 0 matches” should only happen when there truly are no mappable customer records
+1. **Keep car lookup** -- get car_id from plate (already works)
+2. **Replace the broken bookings-by-car call** with a broad bookings search using date range: `GET /v1/bookings/?start_date=...&end_date=...&brand_domains=noddi&page_size=100` -- scan results for matching `car_id` or `license_plate_number` in booking items/cars
+3. When a matching booking is found, extract user info from `booking.user` or `booking.user_group`
+4. **Add MCP fallback**: Use the Navio MCP server's `car_lookup` tool which may return richer data linking car to customer
 
-Verification
+### Alternative simpler approach
+Since the `/v1/bookings/` list endpoint does work (used successfully in `list_route_bookings`), search recent bookings and match by plate in the response data.
 
-1. Test plate lookup again with the same 11 plates.
-2. Confirm at least some rows move from `Not found` to `Matched`.
-3. Check bulk-outreach logs for the new structured reason codes.
-4. Confirm the `TableHeaderCell` ref warning is reduced or removed.
+## File Changes
+
+| File | Change |
+|---|---|
+| `supabase/functions/bulk-outreach/index.ts` | Replace `?car_ids=X` call with a date-range bookings search that scans results for the plate, or use the car's `license_plate_number` to match against booking car data |
+
+## Technical Detail
+
+The bookings list endpoint **does** work -- the `list_route_bookings` action in the same file successfully calls `/v1/bookings/?start_date=...&end_date=...`. The fix is to query recent bookings (e.g. last 90 days + next 30 days) and scan results for the matching plate/car_id. Each booking contains `car`, `user`, and `user_group` data from which we can extract contact info.
+
