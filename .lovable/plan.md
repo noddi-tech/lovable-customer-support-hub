@@ -1,54 +1,140 @@
 
 
-# Fix Edge Function TypeScript Errors
+# Fix Remaining Build Errors + Bulk Customer Outreach Plan
 
-## Problem
-Build checker reports ~30+ TypeScript errors across edge functions, falling into three categories:
-1. **`'error' is of type 'unknown'`** (~15 files) — catch blocks access `.message` without type narrowing
-2. **`Cannot find name 'EdgeRuntime'`** (3 files) — Deno/Supabase runtime global not declared
-3. **Type mismatches in `noddi-customer-lookup`** — `alternative_emails` not on interface, `string | null` assigned to `string`
-4. **`Object is possibly undefined`** in `generate-analytics-report` — missing null guard on `.reduce()`
+This plan covers two things: first fixing the remaining TypeScript build errors from the previous round, then implementing the bulk outreach feature.
 
-## Changes
+---
 
-### 1. Add `EdgeRuntime` type declaration (shared file)
-Create `supabase/functions/_shared/edge-runtime.d.ts` declaring the global:
+## Part A: Fix Remaining Build Errors
+
+The previous fix round missed several files and introduced a parameter mismatch in `noddi-customer-lookup`. Here are all remaining errors:
+
+### A1. `noddi-customer-lookup/index.ts` — parameter name mismatch + null types
+
+The `buildResponse` call at line 1331 uses camelCase names (`noddihUserId`, `userGroupId`, `unpaidCount`, `orderTags`, `matchMode`, `conflict`) that don't exist on the function signature (which uses `noddi_user_id`, `user_group_id`, `unpaid_count`, `enriched_order_tags`). Fix by mapping to the correct snake_case names and dropping unknown keys.
+
+**Line 1331-1344**: Rewrite the `buildResponse({...})` call to use correct parameter names:
 ```typescript
-declare const EdgeRuntime: { waitUntil(promise: Promise<any>): void };
-```
-This fixes errors in `database-recovery`, `helpscout-import` (3 occurrences).
-
-### 2. Fix `'error' is of type 'unknown'` — all affected files
-Replace `error.message` with `error instanceof Error ? error.message : String(error)` in catch blocks across these files:
-
-| File | Lines |
-|------|-------|
-| `admin-cleanup-users/index.ts` | ~183 |
-| `admin-get-all-users/index.ts` | ~166 |
-| `bulk-close-old-conversations/index.ts` | ~102 |
-| `cleanup-duplicate-messages/index.ts` | ~174 |
-| `cleanup-forwarding-echoes/index.ts` | ~156 |
-| `create-service-ticket/index.ts` | ~204 |
-| `deduplicate-customers/index.ts` | ~164, ~181 |
-| `helpscout-import/index.ts` | ~259, ~305, ~762, ~768, ~785 |
-| `manage-import-job/index.ts` | ~86 |
-| `monitor-database-health/index.ts` | ~110 |
-
-### 3. Fix `noddi-customer-lookup/index.ts` type issues
-- **Add `alternative_emails` to the `NoddihCustomerLookupRequest` interface** (line ~99): `alternative_emails?: string[];`
-- **Change `buildResponse` param `email` type** from `email: string` to `email: string | null` (line 553), and update the destructured default to `email = ""` 
-- **Fix `liveResponse.data.email`** (line 1567): use `successfulEmail || ""` instead of bare `successfulEmail`
-
-### 4. Fix `generate-analytics-report/index.ts` null guard
-Line ~202: wrap the `.reduce()` in parentheses with a null check:
-```typescript
-const avgQualityScore = totalKnowledgeEntries > 0
-  ? (knowledgeStats?.reduce((sum, e) => sum + e.quality_score, 0) ?? 0) / totalKnowledgeEntries
-  : 0;
+const response = buildResponse({
+  source: "live",
+  ttl_seconds: CACHE_TTL_SECONDS,
+  found: true,
+  email: successfulEmail || "",
+  noddi_user_id: noddihUser.id,
+  user_group_id: selectedGroup.id,
+  user: noddihUser,
+  userGroup: selectedGroup,
+  all_user_groups: allUserGroupsFormatted,
+  priority_booking: bookingForCache,
+  priority_booking_type: priorityBookingType,
+  unpaid_count: pendingBookings.length,
+  unpaid_bookings: pendingBookings,
+  enriched_order_tags: enrichedTags,
+});
 ```
 
-## Technical detail
-- The `EdgeRuntime` global is provided by Supabase's Deno edge runtime but has no type declarations. A `.d.ts` file in `_shared/` makes it visible to the TypeScript checker without any runtime import.
-- All `error` catch blocks use the same pattern: `error instanceof Error ? error.message : String(error)` which is the idiomatic TypeScript approach for unknown errors.
-- No behavioral changes — these are purely type-level fixes.
+**Line 594 & 1580**: `resolveDisplayName` expects `email?: string` but receives `string | null`. Fix by coercing: `email: successfulEmail || undefined` (line 594: `email: email ?? undefined`).
+
+**Line 623**: `NoddiLookupResponse.data.email` is typed `string` but `buildResponse` receives `string | null`. Change the response type's `email` field to `string` and ensure `email` is coerced to `""` when null in the return object: `email: email ?? ""`.
+
+**Line 1568**: Same issue — `email: successfulEmail` where `successfulEmail` is `string | null`. Fix: `email: successfulEmail || ""`.
+
+### A2. `error.message` on `unknown` — 4 missed files
+
+| File | Line | Fix |
+|------|------|-----|
+| `noddi-search-by-name/index.ts` | 157 | `error instanceof Error ? error.message : String(error)` |
+| `resend-user-invite/index.ts` | 188 | Same pattern |
+| `review-open-critical/index.ts` | 237 | Same pattern |
+| `send-chat-transcript/index.ts` | 254 | Same pattern |
+| `send-slack-notification/index.ts` | 640 | Same pattern |
+
+### A3. `send-organization-invite/index.ts` — `.name` on array type (line 119)
+
+The Supabase query `.select("role, organization_id, organizations(name)")` returns `organizations` as `{ name: any }[]` (array), not a single object. Fix: `(membership.organizations as any)?.name || "the organization"` or access `membership.organizations?.[0]?.name`.
+
+### A4. `send-ticket-notification/index.ts` — `body` variable conflict (lines 44 + 118)
+
+`const body: NotificationRequest` at line 44 conflicts with `let body = ''` at line 118. Rename the email body variable to `emailBody`:
+- Line 118: `let emailBody = '';`
+- Lines 123, 128, 133, 138, 143: change all `body =` assignments to `emailBody =`
+- Line 162: `message: emailBody.substring(0, 200)`
+
+---
+
+## Part B: Bulk Customer Outreach Feature
+
+### Overview
+
+A 4-step wizard page at `/bulk-outreach` that lets agents look up customers by license plate or Noddi route/date, compose a message, and send individual email conversations to each customer.
+
+### Database
+
+New table `bulk_outreach_jobs` with RLS scoped to the agent's organization:
+
+| Column | Type |
+|--------|------|
+| id | uuid PK |
+| organization_id | uuid FK → organizations |
+| created_by | uuid (auth.uid) |
+| subject | text |
+| message_template | text |
+| inbox_id | uuid FK → inboxes |
+| recipient_count | int default 0 |
+| sent_count | int default 0 |
+| failed_count | int default 0 |
+| status | text default 'pending' |
+| recipients | jsonb |
+| created_at | timestamptz default now() |
+
+RLS: select/insert for authenticated users where `organization_id` matches their membership.
+
+### Edge Function: `bulk-outreach/index.ts`
+
+Three actions routed by `action` field in request body:
+
+1. **`resolve_plates`** — For each plate, calls Noddi `GET /v1/cars/from-license-plate-number/?license_plate_number={plate}` to get car data, then uses phone/email from the car's user group to look up the customer via the existing customer-lookup pattern. Returns `{ plate, name, email, phone, matched: boolean }[]`.
+
+2. **`list_route_bookings`** — Calls Noddi bookings API filtered by date. Returns booking list with customer name, email, phone, and car plate for each.
+
+3. **`send_bulk`** — Receives `{ recipients, subject, message_template, inbox_id, organization_id }`. For each recipient:
+   - Upsert customer by email + organization_id
+   - Create conversation (channel: `email`, status: `open`)
+   - Insert message with `{name}` replaced by customer name
+   - Invoke `send-reply-email` to deliver
+   - Track per-recipient status in `bulk_outreach_jobs.recipients` jsonb
+
+### Frontend Components
+
+| Component | Purpose |
+|-----------|---------|
+| `src/pages/BulkOutreach.tsx` | Main wizard page with 4 steps |
+| `src/components/bulk-outreach/PlateInput.tsx` | Textarea for pasting plates (comma/newline separated) with "Look Up" button |
+| `src/components/bulk-outreach/RouteDatePicker.tsx` | Date picker that loads bookings from Noddi for that date |
+| `src/components/bulk-outreach/RecipientReview.tsx` | Table with checkboxes showing matched customers, highlights failures |
+| `src/components/bulk-outreach/MessageComposer.tsx` | Subject + body textarea with `{name}` variable, inbox selector dropdown |
+| `src/components/bulk-outreach/SendConfirmation.tsx` | Summary count, single email preview, send button with progress |
+
+### Navigation
+
+- Add to operations group in `src/navigation/nav-config.ts` with `requiredRole: 'agent'`
+- Route added to `App.tsx` inside the protected route section
+- Icon: `Send` from lucide-react
+
+### Files to create/modify
+
+| File | Action |
+|------|--------|
+| `supabase/functions/bulk-outreach/index.ts` | Create |
+| Migration SQL | Create `bulk_outreach_jobs` table + RLS |
+| `src/pages/BulkOutreach.tsx` | Create |
+| `src/components/bulk-outreach/PlateInput.tsx` | Create |
+| `src/components/bulk-outreach/RouteDatePicker.tsx` | Create |
+| `src/components/bulk-outreach/RecipientReview.tsx` | Create |
+| `src/components/bulk-outreach/MessageComposer.tsx` | Create |
+| `src/components/bulk-outreach/SendConfirmation.tsx` | Create |
+| `src/navigation/nav-config.ts` | Add bulk outreach nav item |
+| `src/App.tsx` | Add `/bulk-outreach` route |
+| 10 edge function files (Part A) | Fix TypeScript errors |
 
