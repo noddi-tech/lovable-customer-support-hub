@@ -591,7 +591,7 @@ function buildResponse(params: {
 
   const finalDisplayName = display_name || resolveDisplayName({
     user,
-    email,
+    email: email ?? undefined,
     userGroup,
     priorityBooking: priority_booking
   });
