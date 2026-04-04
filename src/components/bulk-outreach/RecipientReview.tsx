@@ -52,7 +52,7 @@ interface RecipientReviewProps {
 export function RecipientReview({ recipients, onToggle, onToggleAll }: RecipientReviewProps) {
   const matchedCount = recipients.filter((r) => r.matched).length;
   const selectedCount = recipients.filter((r) => r.selected).length;
-  const allSelected = recipients.filter((r) => r.matched).every((r) => r.selected);
+  const allSelected = matchedCount > 0 && recipients.filter((r) => r.matched).every((r) => r.selected);
 
   return (
     <div className="space-y-3">
@@ -88,7 +88,7 @@ export function RecipientReview({ recipients, onToggle, onToggleAll }: Recipient
             </TableHeader>
             <TableBody>
               {recipients.map((r, i) => (
-                <TableRow key={i} className={!r.matched ? "opacity-50" : ""}>
+                <TableRow key={r.plate} className={!r.matched ? "opacity-50" : ""}>
                   <TableCell>
                     <Checkbox
                       checked={r.selected}
