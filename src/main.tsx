@@ -63,4 +63,9 @@ if (!__REDIRECTING__) {
       <App />
     )
   );
+
+  // Hide the static bootstrap screen now that React has mounted
+  const bootstrap = document.getElementById('app-bootstrap');
+  if (bootstrap) bootstrap.style.display = 'none';
+  if ((window as any).__bootstrapTimer) clearTimeout((window as any).__bootstrapTimer);
 }
