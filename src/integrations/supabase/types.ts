@@ -3959,6 +3959,19 @@ export type Database = {
           subject: string
         }[]
       }
+      find_similar_memory: {
+        Args: {
+          query_embedding: string
+          similarity_threshold?: number
+          target_identifier: string
+          target_org_id: string
+        }
+        Returns: {
+          confidence: number
+          id: string
+          similarity: number
+        }[]
+      }
       find_similar_responses: {
         Args: {
           match_count?: number
