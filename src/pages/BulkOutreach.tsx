@@ -186,7 +186,7 @@ export default function BulkOutreach() {
               </TabsContent>
               {recipients.length > 0 && (
                 <p className="mt-4 text-sm text-muted-foreground">
-                  {recipients.length} customers loaded. Click Next to review.
+                  {recipients.length} plates loaded ({recipients.filter(r => r.matched).length} matched). Click Next to review.
                 </p>
               )}
             </Tabs>

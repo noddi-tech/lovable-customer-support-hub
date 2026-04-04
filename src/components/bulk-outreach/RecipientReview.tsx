@@ -88,7 +88,7 @@ export function RecipientReview({ recipients, onToggle, onToggleAll }: Recipient
             </TableHeader>
             <TableBody>
               {recipients.map((r, i) => (
-                <TableRow key={i} className={!r.matched ? "opacity-50" : ""}>
+                <TableRow key={r.plate} className={!r.matched ? "opacity-50" : ""}>
                   <TableCell>
                     <Checkbox
                       checked={r.selected}
