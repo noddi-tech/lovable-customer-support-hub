@@ -304,8 +304,8 @@ Deno.serve(async (req) => {
           }
         } else {
           isDuplicate = true;
-          duplicateId = similar.id;
-          duplicateConfidence = similar.confidence;
+          duplicateId = (similar as any).id;
+          duplicateConfidence = (similar as any).confidence;
         }
       }
 
