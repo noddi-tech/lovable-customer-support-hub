@@ -58,29 +58,69 @@ async function resolvePlate(plate: string, supabase: any, organizationId: string
 
     console.log(`[bulk-outreach] 🚗 Car found for ${cleanPlate}: id=${carId}`);
 
-    // Step 2: Search bookings by car_id
-    const bookingsUrl = `${API_BASE}/v1/bookings/?car_ids=${carId}&brand_domains=noddi&page_size=10&ordering=-created_at`;
+    // Step 2: Search recent bookings broadly and scan for matching plate/car
+    const now = new Date();
+    const startDate = new Date(now);
+    startDate.setDate(startDate.getDate() - 90);
+    const endDate = new Date(now);
+    endDate.setDate(endDate.getDate() + 30);
+    const startStr = startDate.toISOString().split("T")[0];
+    const endStr = endDate.toISOString().split("T")[0];
+
+    const bookingsUrl = `${API_BASE}/v1/bookings/?start_date=${startStr}&end_date=${endStr}&brand_domains=noddi&page_size=200`;
     const bookingsRes = await fetch(bookingsUrl, { headers: noddiHeaders() });
 
     if (!bookingsRes.ok) {
-      console.log(`[bulk-outreach] ❌ Bookings fetch failed for car ${carId}: HTTP ${bookingsRes.status}`);
+      console.log(`[bulk-outreach] ❌ Bookings broad search failed: HTTP ${bookingsRes.status}`);
       return { plate: cleanPlate, name: null, email: null, phone: null, matched: false, reason: "bookings_fetch_failed" };
     }
 
     const bookingsData = await bookingsRes.json();
     const results = bookingsData?.results || (Array.isArray(bookingsData) ? bookingsData : []);
-    console.log(`[bulk-outreach] 📋 Found ${results.length} bookings for car ${carId}`);
+    console.log(`[bulk-outreach] 📋 Searching ${results.length} bookings for plate ${cleanPlate} (car_id=${carId})`);
 
-    if (results.length === 0) {
-      return { plate: cleanPlate, name: null, email: null, phone: null, matched: false, reason: "no_bookings" };
+    // Scan bookings for matching car_id or plate in booking items
+    const matchingBookings: any[] = [];
+    for (const booking of results) {
+      // Match by top-level car
+      if (booking?.car?.id === carId || (booking?.car?.license_plate_number || "").replace(/[\s-]/g, "").toUpperCase() === cleanPlate) {
+        matchingBookings.push(booking);
+        continue;
+      }
+      // Match by booking_items_car array
+      const biCars = booking?.booking_items_car || [];
+      for (const bic of biCars) {
+        const bicPlate = (bic?.license_plate?.number || bic?.license_plate_number || "").replace(/[\s-]/g, "").toUpperCase();
+        if (bic?.car_id === carId || bic?.id === carId || bicPlate === cleanPlate) {
+          matchingBookings.push(booking);
+          break;
+        }
+      }
+      // Match by booking_items[].car
+      const items = booking?.booking_items || [];
+      for (const item of items) {
+        const itemCar = item?.car;
+        if (itemCar) {
+          const itemPlate = (itemCar?.license_plate?.number || itemCar?.license_plate_number || "").replace(/[\s-]/g, "").toUpperCase();
+          if (itemCar?.id === carId || itemPlate === cleanPlate) {
+            matchingBookings.push(booking);
+            break;
+          }
+        }
+      }
     }
 
-    // Try to extract user info directly from booking data first
-    for (const booking of results) {
-      // Check booking.user field (contains email, name, phone directly)
+    console.log(`[bulk-outreach] 🔍 Found ${matchingBookings.length} matching bookings for plate ${cleanPlate}`);
+
+    if (matchingBookings.length === 0) {
+      return { plate: cleanPlate, name: null, email: null, phone: null, matched: false, reason: "no_matching_bookings" };
+    }
+
+    // Extract user info from matching bookings
+    for (const booking of matchingBookings) {
       const bookingUser = booking?.user;
       if (bookingUser?.email) {
-        console.log(`[bulk-outreach] ✅ Found user directly on booking ${booking.id}: ${bookingUser.email}`);
+        console.log(`[bulk-outreach] ✅ Found user on booking ${booking.id}: ${bookingUser.email}`);
         return {
           plate: cleanPlate,
           name: [bookingUser.first_name, bookingUser.last_name].filter(Boolean).join(" ") || bookingUser.name || null,
@@ -90,7 +130,6 @@ async function resolvePlate(plate: string, supabase: any, organizationId: string
         };
       }
 
-      // Check booking.user_group.members
       const members = booking?.user_group?.members;
       if (Array.isArray(members) && members.length > 0) {
         const member = members[0];
