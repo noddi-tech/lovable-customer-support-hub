@@ -132,6 +132,14 @@ const Index = () => {
             </React.Suspense>
           );
         }
+        if (subSection === 'bulk-outreach') {
+          const BulkOutreach = React.lazy(() => import('@/pages/BulkOutreach'));
+          return (
+            <React.Suspense fallback={<div className="flex items-center justify-center h-full"><div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full" /></div>}>
+              <BulkOutreach />
+            </React.Suspense>
+          );
+        }
         if (subSection === 'operations-settings') {
           return (
             <div className="flex items-center justify-center h-full p-8 text-center">

@@ -52,6 +52,11 @@ export const OperationsSidebar: React.FC = () => {
       icon: BarChart3
     },
     {
+      title: 'Bulk Outreach',
+      path: '/operations/bulk-outreach',
+      icon: Send
+    },
+    {
       title: 'Settings',
       path: '/operations/settings',
       icon: Settings

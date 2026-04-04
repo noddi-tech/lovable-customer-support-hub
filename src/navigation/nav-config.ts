@@ -118,7 +118,7 @@ export const NAV_ITEMS: NavItem[] = [
   { 
     id: "bulk-outreach", 
     label: "Bulk Outreach", 
-    to: "/bulk-outreach", 
+    to: "/operations/bulk-outreach", 
     icon: Send, 
     group: "operations" 
   },
