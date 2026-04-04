@@ -52,8 +52,10 @@ async function resolvePlate(plate: string, supabase: any, organizationId: string
     const carId = carData?.id;
     console.log(`[bulk-outreach] 🚗 Car found for ${cleanPlate}: id=${carId}, keys=${Object.keys(carData || {}).join(",")}`);
 
-    // Step 2: Extract user/user_group directly from car response
-    // The car object may contain user, user_group, user_groups, or owner fields
+    // Step 2: Diagnostic log for key car fields
+    console.log(`[bulk-outreach] 🚗 Car ${cleanPlate}: user_group=${JSON.stringify(carData?.user_group)}, car_managers=${JSON.stringify(carData?.car_managers?.length)}, owners_current=${JSON.stringify(carData?.owners_current?.length)}`);
+
+    // Step 3: Extract user/user_group directly from car response
     const directUser = carData?.user || carData?.owner;
     if (directUser?.email) {
       const name = [directUser.first_name, directUser.last_name].filter(Boolean).join(" ") || directUser.name || null;
@@ -61,13 +63,25 @@ async function resolvePlate(plate: string, supabase: any, organizationId: string
       return { plate: cleanPlate, name, email: directUser.email, phone: directUser.phone_number || directUser.phone || null, matched: true };
     }
 
-    // Step 3: If car has user_group_id or user_groups, fetch contact info from user_group
+    // Step 4: If car has user_group (can be plain integer or object), fetch contact info
     const ugIds: number[] = [];
-    if (carData?.user_group_id) ugIds.push(carData.user_group_id);
-    if (carData?.user_group?.id) ugIds.push(carData.user_group.id);
+
+    // user_group can be a plain integer ID or an object with .id
+    const ug = carData?.user_group;
+    if (typeof ug === "number" && ug > 0) {
+      ugIds.push(ug);
+    } else if (typeof ug === "object" && ug?.id) {
+      ugIds.push(ug.id);
+    }
+
+    // Also check alternate shapes
+    if (carData?.user_group_id && !ugIds.includes(carData.user_group_id)) {
+      ugIds.push(carData.user_group_id);
+    }
     if (Array.isArray(carData?.user_groups)) {
-      for (const ug of carData.user_groups) {
-        if (ug?.id) ugIds.push(ug.id);
+      for (const g of carData.user_groups) {
+        const gid = typeof g === "number" ? g : g?.id;
+        if (gid && !ugIds.includes(gid)) ugIds.push(gid);
       }
     }
 
