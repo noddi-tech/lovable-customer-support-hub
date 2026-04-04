@@ -759,7 +759,7 @@ serve(async (req) => {
           .from('import_jobs')
           .update({
             status: 'error',
-            errors: [...progress.errors, { message: error.message, timestamp: new Date().toISOString() }],
+            errors: [...progress.errors, { message: error instanceof Error ? error.message : String(error), timestamp: new Date().toISOString() }],
             completed_at: new Date().toISOString()
           })
           .eq('id', jobId);
