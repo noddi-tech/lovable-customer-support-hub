@@ -46,6 +46,7 @@ import Terms from "./pages/Terms";
 import NotFound from "./pages/NotFound";
 import SuperAdminImport from "./pages/SuperAdminImport";
 import SearchPage from "./pages/SearchPage";
+import BulkOutreach from "./pages/BulkOutreach";
 import "@/lib/i18n";
 import "@/styles/controls.css";
 
