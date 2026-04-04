@@ -15,6 +15,7 @@ import {
   DoorOpen, 
   Users,
   BarChart3,
+  Send,
   Settings,
   ArrowLeft
 } from 'lucide-react';
