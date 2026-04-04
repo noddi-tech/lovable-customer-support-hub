@@ -22,7 +22,7 @@ import {
   patchTimeSlotConfirmToEdit,
   patchBookingEdit,
 } from '../_shared/post-processors.ts';
-import { buildSystemPrompt, type ActionFlow, type GeneralConfig } from '../_shared/prompt-builder.ts';
+import { buildSystemPrompt, buildCustomerMemoryPrompt, type ActionFlow, type GeneralConfig, type CustomerMemory } from '../_shared/prompt-builder.ts';
 
 // ========== Tool definitions for OpenAI ==========
 
@@ -606,8 +606,49 @@ Deno.serve(async (req) => {
       await saveMessage(supabase, dbConversationId, 'user', lastUserMsg.content);
     }
 
+    // Fetch customer memory profile if identifier available
+    let customerMemoryPrompt = '';
+    const memoryIdentifier = visitorPhone || visitorEmail;
+    if (memoryIdentifier) {
+      try {
+        const identifierType = visitorPhone ? 'phone' : 'email';
+        const normalizedId = visitorPhone
+          ? visitorPhone.replace(/[^\d+]/g, '')
+          : visitorEmail!.trim().toLowerCase();
+
+        const { data: summary } = await supabase
+          .from('customer_summaries')
+          .select('summary_text')
+          .eq('organization_id', organizationId)
+          .eq('customer_identifier', normalizedId)
+          .eq('identifier_type', identifierType)
+          .single();
+
+        if (summary?.summary_text) {
+          const { data: memories } = await supabase
+            .from('customer_memories')
+            .select('memory_type, memory_text, confidence')
+            .eq('organization_id', organizationId)
+            .eq('customer_identifier', normalizedId)
+            .eq('is_active', true)
+            .order('confidence', { ascending: false })
+            .order('updated_at', { ascending: false })
+            .limit(10);
+
+          customerMemoryPrompt = buildCustomerMemoryPrompt(
+            summary.summary_text,
+            (memories || []) as CustomerMemory[],
+          );
+          console.log(`[widget-ai-chat] Injected customer memory profile for ${identifierType}=${normalizedId} (${(memories || []).length} memories)`);
+        }
+      } catch (e) {
+        console.warn('[widget-ai-chat] Customer memory lookup failed:', e);
+      }
+    }
+
     // Build conversation with system prompt
-    const systemPrompt = buildSystemPrompt(language, isVerified, actionFlows, generalConfig);
+    const systemPrompt = buildSystemPrompt(language, isVerified, actionFlows, generalConfig)
+      + (customerMemoryPrompt ? '\n\n' + customerMemoryPrompt : '');
     const conversationMessages: any[] = [
       { role: 'system', content: systemPrompt },
     ];

@@ -309,3 +309,29 @@ SMART ESCALATION:
 
 ${generalRules}`;
 }
+
+// ── Customer memory prompt ──────────────────────────────────
+
+export interface CustomerMemory {
+  memory_type: string;
+  memory_text: string;
+  confidence: number;
+}
+
+export function buildCustomerMemoryPrompt(
+  summaryText: string,
+  memories: CustomerMemory[],
+): string {
+  const lines: string[] = ['=== CUSTOMER PROFILE ==='];
+  lines.push(summaryText);
+  lines.push('');
+  lines.push('Key details:');
+  for (const m of memories) {
+    lines.push(`- ${m.memory_text}`);
+  }
+  lines.push('');
+  lines.push('Use this context naturally. Don\'t explicitly say "according to our records" — just use the knowledge for more personalized responses.');
+  lines.push('If a memory contradicts what the customer says now, trust the customer.');
+  lines.push('=== END CUSTOMER PROFILE ===');
+  return lines.join('\n');
+}
