@@ -89,25 +89,36 @@ async function resolvePlate(plate: string, supabase: any, organizationId: string
     const uniqueUgIds = [...new Set(ugIds)];
 
     for (const ugId of uniqueUgIds) {
-      console.log(`[bulk-outreach] 👥 Fetching user group ${ugId} for plate ${cleanPlate}`);
-      const ugUrl = `${API_BASE}/v1/user-groups/${ugId}/`;
+      console.log(`[bulk-outreach] 👥 Fetching bookings for user group ${ugId} (plate ${cleanPlate})`);
+      const ugUrl = `${API_BASE}/v1/user-groups/${ugId}/bookings-for-customer/?page_size=5`;
       const ugRes = await fetch(ugUrl, { headers: noddiHeaders() });
 
       if (!ugRes.ok) {
-        console.log(`[bulk-outreach] ⚠️ User group ${ugId} fetch failed: HTTP ${ugRes.status}`);
+        console.log(`[bulk-outreach] ⚠️ Bookings for group ${ugId} failed: HTTP ${ugRes.status}`);
         continue;
       }
 
       const ugData = await ugRes.json();
-      const ugMembers = ugData?.members || [];
-      const primaryMember = ugMembers[0];
-      const name = primaryMember?.name || [primaryMember?.first_name, primaryMember?.last_name].filter(Boolean).join(" ") || ugData?.name || null;
-      const email = primaryMember?.email || null;
-      const phone = primaryMember?.phone_number || primaryMember?.phone || null;
+      const bookings = ugData?.results || (Array.isArray(ugData) ? ugData : []);
+      console.log(`[bulk-outreach] 📦 Got ${bookings.length} bookings for group ${ugId}`);
 
-      if (email) {
-        console.log(`[bulk-outreach] ✅ Found email via user group ${ugId}: ${email}`);
-        return { plate: cleanPlate, name, email, phone, matched: true };
+      // Extract user contact from booking data (proven pattern from noddi-customer-lookup)
+      for (const booking of bookings) {
+        const bookingUser = booking?.user;
+        if (bookingUser?.email) {
+          const name = [bookingUser.first_name, bookingUser.last_name].filter(Boolean).join(" ") || null;
+          console.log(`[bulk-outreach] ✅ Found email via group ${ugId} booking: ${bookingUser.email}`);
+          return { plate: cleanPlate, name, email: bookingUser.email, phone: bookingUser.phone_number || bookingUser.phone || null, matched: true };
+        }
+      }
+
+      // Fallback: check user_group-level members data
+      const ugMembers = ugData?.members || [];
+      if (ugMembers[0]?.email) {
+        const m = ugMembers[0];
+        const name = [m.first_name, m.last_name].filter(Boolean).join(" ") || m.name || null;
+        console.log(`[bulk-outreach] ✅ Found email via group ${ugId} member: ${m.email}`);
+        return { plate: cleanPlate, name, email: m.email, phone: m.phone_number || m.phone || null, matched: true };
       }
     }
 
