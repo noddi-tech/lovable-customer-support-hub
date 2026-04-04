@@ -291,7 +291,12 @@ export function patchBookingInfo(reply: string, messages: any[]): string {
   
   if (!bookingData) return reply;
   console.log('[patchBookingInfo] CONTEXT-BASED trigger: found booking data in tool results, injecting [BOOKING_INFO]');
-  
+  console.log('[patchBookingInfo] bookingData keys:', Object.keys(bookingData),
+    'has car:', !!bookingData.car, 'has cars:', !!bookingData.cars,
+    'has vehicle:', !!bookingData.vehicle, 'has services:', !!bookingData.services,
+    'has order_lines:', !!bookingData.order_lines, 'has items:', !!bookingData.items,
+    'has sales_items:', !!bookingData.sales_items);
+
   const info: any = {};
   if (bookingData.id) info.booking_id = bookingData.id;
   if (bookingData.address) {
