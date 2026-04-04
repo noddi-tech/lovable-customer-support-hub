@@ -59,7 +59,38 @@ async function resolvePlate(plate: string, supabase: any, organizationId: string
         return { plate: cleanPlate, name, email: directUser.email, phone: directUser.phone_number || directUser.phone || null, matched: true, source: "car_user" };
       }
 
-      // Try user_group from car
+      // Try user_group.users[] directly from car response (OpenAPI: CarFromLicensePlateRecord → user_group → UserGroupRecordList → users[])
+      const ugOnCar = carData?.user_group;
+      if (ugOnCar && typeof ugOnCar === "object") {
+        const ugUsers = ugOnCar.users || ugOnCar.members || [];
+        for (const u of ugUsers) {
+          const uObj = u?.user || u; // members[] may have { user: {...} } shape
+          if (uObj?.email) {
+            const name = [uObj.first_name, uObj.last_name].filter(Boolean).join(" ") || uObj.name || null;
+            console.log(`[bulk-outreach] ✅ Car user_group.users[] match for ${cleanPlate}: ${uObj.email}`);
+            return { plate: cleanPlate, name, email: uObj.email, phone: uObj.phone_number || uObj.phone || null, matched: true, source: "car_user_group" };
+          }
+        }
+      }
+
+      // Try owners_current[].user_group.users[] (OpenAPI: CarFromLicensePlateRecord → owners_current[] → CarOwnerRecord → user_group → users[])
+      const ownersCurrent = carData?.owners_current || [];
+      for (const owner of ownersCurrent) {
+        const ownerUg = owner?.user_group;
+        if (ownerUg && typeof ownerUg === "object") {
+          const ownerUsers = ownerUg.users || ownerUg.members || [];
+          for (const u of ownerUsers) {
+            const uObj = u?.user || u;
+            if (uObj?.email) {
+              const name = [uObj.first_name, uObj.last_name].filter(Boolean).join(" ") || uObj.name || null;
+              console.log(`[bulk-outreach] ✅ Car owners_current user match for ${cleanPlate}: ${uObj.email}`);
+              return { plate: cleanPlate, name, email: uObj.email, phone: uObj.phone_number || uObj.phone || null, matched: true, source: "car_user_group" };
+            }
+          }
+        }
+      }
+
+      // Try user_group ID-based lookup (fetch full user group for members)
       const ugIds = extractUserGroupIds(carData);
       for (const ugId of ugIds) {
         const contact = await resolveFromUserGroup(ugId, cleanPlate);
@@ -162,10 +193,39 @@ async function resolveFromBookingSearch(plate: string, params: Record<string, st
     console.log(`[bulk-outreach] 📦 Booking search returned ${bookings.length} results for plate ${plate}`);
 
     for (const booking of bookings) {
+      // Try direct extraction first
       const contact = extractContactFromBooking(booking, plate);
       if (contact) {
         console.log(`[bulk-outreach] ✅ Found contact via booking search: ${contact.email}`);
         return contact;
+      }
+
+      // Second-hop: /v1/bookings/ returns UserGroupRecordListMinimal (no contacts).
+      // Extract user_group.id and fetch full user group for member contacts.
+      const ugId = booking?.user_group?.id || booking?.user_group_id;
+      if (ugId) {
+        console.log(`[bulk-outreach] 🔗 Second-hop: fetching user group ${ugId} from booking ${booking.id}`);
+        try {
+          const ugUrl = `${API_BASE}/v1/user-groups/${ugId}/`;
+          const ugRes = await fetch(ugUrl, { headers: noddiHeaders() });
+          if (ugRes.ok) {
+            const ugData = await ugRes.json();
+            const members = ugData?.members || ugData?.users || [];
+            for (const m of members) {
+              const mUser = m?.user || m;
+              if (mUser?.email) {
+                const name = [mUser.first_name, mUser.last_name].filter(Boolean).join(" ") || mUser.name || null;
+                console.log(`[bulk-outreach] ✅ Second-hop user group ${ugId} resolved: ${mUser.email}`);
+                return { plate, name, email: mUser.email, phone: mUser.phone_number || mUser.phone || null, matched: true };
+              }
+            }
+          } else {
+            console.log(`[bulk-outreach] ⚠️ Second-hop UG ${ugId} fetch failed: HTTP ${ugRes.status}`);
+            await ugRes.text();
+          }
+        } catch (e2) {
+          console.error(`[bulk-outreach] Second-hop UG ${ugId} error:`, e2);
+        }
       }
     }
     return null;
@@ -179,6 +239,7 @@ async function resolveFromBookingSearch(plate: string, params: Record<string, st
 function extractContactFromBooking(booking: any, plate: string): {
   plate: string; name: string | null; email: string | null; phone: string | null; matched: boolean;
 } | null {
+  // Path 1: booking.user (direct user on booking)
   const user = booking?.user;
   if (user?.email) {
     return {
@@ -189,16 +250,33 @@ function extractContactFromBooking(booking: any, plate: string): {
       matched: true,
     };
   }
-  // Try user_group on booking
-  const ugUser = booking?.user_group?.members?.[0];
-  if (ugUser?.email) {
-    return {
-      plate,
-      name: [ugUser.first_name, ugUser.last_name].filter(Boolean).join(" ") || ugUser.name || null,
-      email: ugUser.email,
-      phone: ugUser.phone_number || ugUser.phone || null,
-      matched: true,
-    };
+  // Path 2: booking.user_group.users[] (OpenAPI: UserGroupRecordList shape)
+  const ugUsers = booking?.user_group?.users || [];
+  for (const u of ugUsers) {
+    const uObj = u?.user || u;
+    if (uObj?.email) {
+      return {
+        plate,
+        name: [uObj.first_name, uObj.last_name].filter(Boolean).join(" ") || uObj.name || null,
+        email: uObj.email,
+        phone: uObj.phone_number || uObj.phone || null,
+        matched: true,
+      };
+    }
+  }
+  // Path 3: booking.user_group.members[] (alternative shape)
+  const ugMembers = booking?.user_group?.members || [];
+  for (const m of ugMembers) {
+    const mUser = m?.user || m;
+    if (mUser?.email) {
+      return {
+        plate,
+        name: [mUser.first_name, mUser.last_name].filter(Boolean).join(" ") || mUser.name || null,
+        email: mUser.email,
+        phone: mUser.phone_number || mUser.phone || null,
+        matched: true,
+      };
+    }
   }
   return null;
 }
@@ -279,18 +357,32 @@ async function lookupFromCache(
 }
 
 function plateMatchesBooking(booking: any, plate: string): boolean {
+  // Check booking_items_car (cache shape)
   const cars = booking?.booking_items_car || [];
   for (const car of cars) {
-    const plateNum = (car?.license_plate?.number || "").replace(/[\s-]/g, "").toUpperCase();
+    const plateNum = (car?.license_plate?.number || car?.license_plate_number || "").replace(/[\s-]/g, "").toUpperCase();
     if (plateNum === plate) return true;
   }
+  // Check booking_items[].car (OpenAPI: BookingItemRecordList → car → license_plate_number)
   const items = booking?.booking_items || [];
   for (const item of items) {
     const car = item?.car;
     if (car) {
-      const plateNum = (car?.license_plate?.number || car?.license_plate_number || "").replace(/[\s-]/g, "").toUpperCase();
+      const plateNum = (car?.license_plate_number || car?.license_plate?.number || "").replace(/[\s-]/g, "").toUpperCase();
       if (plateNum === plate) return true;
     }
+  }
+  // Check direct car on booking
+  const directCar = booking?.car;
+  if (directCar) {
+    const plateNum = (directCar?.license_plate_number || directCar?.license_plate?.number || "").replace(/[\s-]/g, "").toUpperCase();
+    if (plateNum === plate) return true;
+  }
+  // Check cars[] array
+  const carsArr = booking?.cars || [];
+  for (const c of carsArr) {
+    const plateNum = (c?.license_plate_number || c?.license_plate?.number || "").replace(/[\s-]/g, "").toUpperCase();
+    if (plateNum === plate) return true;
   }
   return false;
 }
