@@ -59,7 +59,38 @@ async function resolvePlate(plate: string, supabase: any, organizationId: string
         return { plate: cleanPlate, name, email: directUser.email, phone: directUser.phone_number || directUser.phone || null, matched: true, source: "car_user" };
       }
 
-      // Try user_group from car
+      // Try user_group.users[] directly from car response (OpenAPI: CarFromLicensePlateRecord → user_group → UserGroupRecordList → users[])
+      const ugOnCar = carData?.user_group;
+      if (ugOnCar && typeof ugOnCar === "object") {
+        const ugUsers = ugOnCar.users || ugOnCar.members || [];
+        for (const u of ugUsers) {
+          const uObj = u?.user || u; // members[] may have { user: {...} } shape
+          if (uObj?.email) {
+            const name = [uObj.first_name, uObj.last_name].filter(Boolean).join(" ") || uObj.name || null;
+            console.log(`[bulk-outreach] ✅ Car user_group.users[] match for ${cleanPlate}: ${uObj.email}`);
+            return { plate: cleanPlate, name, email: uObj.email, phone: uObj.phone_number || uObj.phone || null, matched: true, source: "car_user_group" };
+          }
+        }
+      }
+
+      // Try owners_current[].user_group.users[] (OpenAPI: CarFromLicensePlateRecord → owners_current[] → CarOwnerRecord → user_group → users[])
+      const ownersCurrent = carData?.owners_current || [];
+      for (const owner of ownersCurrent) {
+        const ownerUg = owner?.user_group;
+        if (ownerUg && typeof ownerUg === "object") {
+          const ownerUsers = ownerUg.users || ownerUg.members || [];
+          for (const u of ownerUsers) {
+            const uObj = u?.user || u;
+            if (uObj?.email) {
+              const name = [uObj.first_name, uObj.last_name].filter(Boolean).join(" ") || uObj.name || null;
+              console.log(`[bulk-outreach] ✅ Car owners_current user match for ${cleanPlate}: ${uObj.email}`);
+              return { plate: cleanPlate, name, email: uObj.email, phone: uObj.phone_number || uObj.phone || null, matched: true, source: "car_user_group" };
+            }
+          }
+        }
+      }
+
+      // Try user_group ID-based lookup (fetch full user group for members)
       const ugIds = extractUserGroupIds(carData);
       for (const ugId of ugIds) {
         const contact = await resolveFromUserGroup(ugId, cleanPlate);
