@@ -30,13 +30,13 @@ export function SendConfirmation({
       <div className="space-y-4">
         <div className="rounded-md border bg-muted/50 p-6 text-center space-y-3">
           {sendResult.failed_count === 0 ? (
-            <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto" />
+            <CheckCircle2 className="h-12 w-12 text-primary mx-auto" />
           ) : (
-            <AlertCircle className="h-12 w-12 text-yellow-500 mx-auto" />
+            <AlertCircle className="h-12 w-12 text-accent mx-auto" />
           )}
           <h3 className="text-lg font-semibold">Bulk Send Complete</h3>
           <div className="flex justify-center gap-6 text-sm">
-            <span className="text-green-600 font-medium">
+            <span className="text-primary font-medium">
               ✓ {sendResult.sent_count} sent
             </span>
             {sendResult.failed_count > 0 && (
