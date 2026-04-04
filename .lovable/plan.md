@@ -1,42 +1,21 @@
 
 
-# Two Issues to Fix
+# Blank Preview -- Diagnosis and Fix
 
-## Issue 1: Blank Preview Screen (503 errors)
+## What's happening
 
-The blank screen happens when the Lovable preview proxy temporarily loses its connection to the dev server. The dev server itself is running fine (returns HTTP 200 locally). This occurs specifically after Git-based changes sync into the project.
+The dev server is running correctly (HTTP 200, no errors in logs, serves valid HTML). The blank screen is caused by the **Lovable preview proxy** failing to relay requests to the dev server. The only console errors are WebSocket HMR connection failures -- no 503s on source files this time, which means the proxy is completely unresponsive rather than partially failing.
 
-**This is a Lovable platform issue, not a code bug.** The 503 errors in the console (`SuggestionPerformance.tsx`, `tabs.tsx`, `i18n.ts`, etc.) are all source file requests being rejected by the proxy -- not your app code failing.
+This has been happening repeatedly after Git syncs and edge function deployments. It is **not a code bug**.
 
-**Workaround:** Refresh the preview after a Git sync completes. No code change will fix this. If the published URL at `lovable-customer-support-hub.lovable.app` works fine, the app code is correct.
+## Immediate fix
 
----
+**Refresh the preview** using the reload button in the preview toolbar (the circular arrow icon next to the URL bar). If that doesn't work, navigate away and back, or open the published URL directly:
+`https://lovable-customer-support-hub.lovable.app`
 
-## Issue 2: Bulk Outreach -- 0 Matches
+If the published URL works, the app code is confirmed correct and the issue is purely the preview proxy connection.
 
-**The definitive root cause:** The current code fetches `/v1/user-groups/{ugId}/` (line 93) and reads `ugData.members[0].email`. The Noddi user-groups endpoint does **not** return member contact details in its response -- the `members` array is either absent or empty.
+## No code changes needed
 
-**The proven fix exists in the same codebase.** The `noddi-customer-lookup` function (line 106) successfully uses a different endpoint:
-```
-/v1/user-groups/{ugId}/bookings-for-customer/?page_size=5
-```
-This returns bookings with embedded `user` objects containing `email`, `first_name`, `last_name`, and `phone_number`.
-
-### Changes
-
-**File: `supabase/functions/bulk-outreach/index.ts`** (lines 91-112)
-
-Replace the user-group fetch block with the `bookings-for-customer` endpoint:
-
-1. Change the URL from `/v1/user-groups/${ugId}/` to `/v1/user-groups/${ugId}/bookings-for-customer/?page_size=5`
-2. Parse the response as `data.results || data` (same as `noddi-customer-lookup`)  
-3. Iterate through returned bookings to find the first one with a `user.email`
-4. Extract `first_name`, `last_name`, `email`, `phone_number` from the booking's `user` object
-5. Keep the existing `ugData.members` fallback as a secondary check
-
-Then redeploy the `bulk-outreach` edge function.
-
-### Expected Result
-
-The user_group ID is correctly extracted (we fixed that in the last change). Now with the correct endpoint, the API will return actual booking data with user contact info, and plates will resolve to real contacts.
+There is no code change that will fix this. The dev server (`localhost:8080`) responds with 200 and serves the correct HTML. The proxy layer between the preview iframe and the dev server is what's failing.
 
