@@ -96,6 +96,7 @@ interface NoddihCustomerLookupRequest {
   organizationId?: string;
   forceRefresh?: boolean;
   userGroupId?: number;
+  alternative_emails?: string[];
 }
 
 // Helper function to fetch individual bookings for a user group
@@ -550,7 +551,7 @@ function buildResponse(params: {
   source: "cache" | "live";
   ttl_seconds: number;
   found: boolean;
-  email: string;
+  email: string | null;
   noddi_user_id?: number | null;
   user_group_id?: number | null;
   all_user_groups?: any[];
@@ -1340,7 +1341,7 @@ Deno.serve(async (req) => {
             orderTags: enrichedTags,
             matchMode: lookupMode,
             conflict,
-            email: successfulEmail
+            email: successfulEmail || ""
           });
           
           // Update cache with fresh data

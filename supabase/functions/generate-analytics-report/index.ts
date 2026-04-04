@@ -199,7 +199,7 @@ Return ONLY valid JSON, no markdown.`,
 
     // Calculate existing aggregated metrics
     const totalKnowledgeEntries = knowledgeStats?.length || 0;
-    const avgQualityScore = knowledgeStats?.reduce((sum, e) => sum + e.quality_score, 0) / totalKnowledgeEntries || 0;
+    const avgQualityScore = totalKnowledgeEntries > 0 ? (knowledgeStats?.reduce((sum, e) => sum + e.quality_score, 0) ?? 0) / totalKnowledgeEntries : 0;
     const totalUsage = knowledgeStats?.reduce((sum, e) => sum + e.usage_count, 0) || 0;
     const totalAcceptance = knowledgeStats?.reduce((sum, e) => sum + e.acceptance_count, 0) || 0;
 

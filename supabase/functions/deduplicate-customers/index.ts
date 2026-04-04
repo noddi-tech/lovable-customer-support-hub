@@ -161,7 +161,7 @@ serve(async (req) => {
 
       } catch (error) {
         console.error(`[Deduplicate] Error processing ${email}:`, error);
-        result.errors.push(`Error processing ${email}: ${error.message}`);
+        result.errors.push(`Error processing ${email}: ${error instanceof Error ? error.message : String(error)}`);
       }
     }
 
@@ -178,7 +178,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('[Deduplicate] Error:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error instanceof Error ? error.message : String(error) }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
