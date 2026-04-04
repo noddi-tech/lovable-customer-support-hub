@@ -193,10 +193,39 @@ async function resolveFromBookingSearch(plate: string, params: Record<string, st
     console.log(`[bulk-outreach] 📦 Booking search returned ${bookings.length} results for plate ${plate}`);
 
     for (const booking of bookings) {
+      // Try direct extraction first
       const contact = extractContactFromBooking(booking, plate);
       if (contact) {
         console.log(`[bulk-outreach] ✅ Found contact via booking search: ${contact.email}`);
         return contact;
+      }
+
+      // Second-hop: /v1/bookings/ returns UserGroupRecordListMinimal (no contacts).
+      // Extract user_group.id and fetch full user group for member contacts.
+      const ugId = booking?.user_group?.id || booking?.user_group_id;
+      if (ugId) {
+        console.log(`[bulk-outreach] 🔗 Second-hop: fetching user group ${ugId} from booking ${booking.id}`);
+        try {
+          const ugUrl = `${API_BASE}/v1/user-groups/${ugId}/`;
+          const ugRes = await fetch(ugUrl, { headers: noddiHeaders() });
+          if (ugRes.ok) {
+            const ugData = await ugRes.json();
+            const members = ugData?.members || ugData?.users || [];
+            for (const m of members) {
+              const mUser = m?.user || m;
+              if (mUser?.email) {
+                const name = [mUser.first_name, mUser.last_name].filter(Boolean).join(" ") || mUser.name || null;
+                console.log(`[bulk-outreach] ✅ Second-hop user group ${ugId} resolved: ${mUser.email}`);
+                return { plate, name, email: mUser.email, phone: mUser.phone_number || mUser.phone || null, matched: true };
+              }
+            }
+          } else {
+            console.log(`[bulk-outreach] ⚠️ Second-hop UG ${ugId} fetch failed: HTTP ${ugRes.status}`);
+            await ugRes.text();
+          }
+        } catch (e2) {
+          console.error(`[bulk-outreach] Second-hop UG ${ugId} error:`, e2);
+        }
       }
     }
     return null;
