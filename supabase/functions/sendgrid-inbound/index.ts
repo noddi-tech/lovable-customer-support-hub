@@ -672,6 +672,15 @@ Deno.serve(async (req: Request) => {
       }
     }
 
+    // Fire-and-forget: generate AI draft reply
+    supabase.functions.invoke('generate-email-draft', {
+      body: {
+        conversationId: conversation_id,
+        messageId: insertedMessage?.id,
+        organizationId: organization_id,
+      },
+    }).catch((err: any) => console.warn('[SendGrid-Inbound] Draft generation failed:', err));
+
     console.log(`[SendGrid-Inbound] Successfully processed email - Conversation: ${conversation_id}, Customer: ${customer_id}`);
     return new Response(JSON.stringify({ ok: true }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (error) {
