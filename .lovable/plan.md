@@ -1,58 +1,42 @@
 
 
-# Fix: Handle `user_group` as a plain integer
+# Two Issues to Fix
 
-## Root Cause
+## Issue 1: Blank Preview Screen (503 errors)
 
-Line 65-72 builds the `ugIds` array from:
-- `carData.user_group_id` — this key doesn't exist on the car response
-- `carData.user_group.id` — fails when `user_group` is a plain number like `1234`
-- `carData.user_groups[]` — this key doesn't exist on the car response
+The blank screen happens when the Lovable preview proxy temporarily loses its connection to the dev server. The dev server itself is running fine (returns HTTP 200 locally). This occurs specifically after Git-based changes sync into the project.
 
-So `uniqueUgIds` is always empty, the user_group fetch loop never runs, and every plate falls through to "no user/email resolved".
+**This is a Lovable platform issue, not a code bug.** The 503 errors in the console (`SuggestionPerformance.tsx`, `tabs.tsx`, `i18n.ts`, etc.) are all source file requests being rejected by the proxy -- not your app code failing.
 
-## Fix
+**Workaround:** Refresh the preview after a Git sync completes. No code change will fix this. If the published URL at `lovable-customer-support-hub.lovable.app` works fine, the app code is correct.
 
-In `supabase/functions/bulk-outreach/index.ts`, replace the `ugIds` extraction block (lines 64-72) with logic that handles `user_group` as either a number or an object:
+---
 
-```typescript
-const ugIds: number[] = [];
+## Issue 2: Bulk Outreach -- 0 Matches
 
-// user_group can be a plain integer ID or an object with .id
-const ug = carData?.user_group;
-if (typeof ug === "number" && ug > 0) {
-  ugIds.push(ug);
-} else if (typeof ug === "object" && ug?.id) {
-  ugIds.push(ug.id);
-}
+**The definitive root cause:** The current code fetches `/v1/user-groups/{ugId}/` (line 93) and reads `ugData.members[0].email`. The Noddi user-groups endpoint does **not** return member contact details in its response -- the `members` array is either absent or empty.
 
-// Also check these alternate shapes just in case
-if (carData?.user_group_id && !ugIds.includes(carData.user_group_id)) {
-  ugIds.push(carData.user_group_id);
-}
-if (Array.isArray(carData?.user_groups)) {
-  for (const g of carData.user_groups) {
-    const gid = typeof g === "number" ? g : g?.id;
-    if (gid && !ugIds.includes(gid)) ugIds.push(gid);
-  }
-}
+**The proven fix exists in the same codebase.** The `noddi-customer-lookup` function (line 106) successfully uses a different endpoint:
 ```
-
-Also add a diagnostic log right after the car response to show the actual `user_group` value:
-
-```typescript
-console.log(`[bulk-outreach] 🚗 Car ${cleanPlate}: user_group=${JSON.stringify(carData?.user_group)}, car_managers=${JSON.stringify(carData?.car_managers?.length)}`);
+/v1/user-groups/{ugId}/bookings-for-customer/?page_size=5
 ```
+This returns bookings with embedded `user` objects containing `email`, `first_name`, `last_name`, and `phone_number`.
 
-## File Changes
+### Changes
 
-| File | Change |
-|---|---|
-| `supabase/functions/bulk-outreach/index.ts` | Fix `user_group` extraction to handle plain integer; add diagnostic log |
+**File: `supabase/functions/bulk-outreach/index.ts`** (lines 91-112)
 
-Then redeploy `bulk-outreach`.
+Replace the user-group fetch block with the `bookings-for-customer` endpoint:
 
-## Expected Result
+1. Change the URL from `/v1/user-groups/${ugId}/` to `/v1/user-groups/${ugId}/bookings-for-customer/?page_size=5`
+2. Parse the response as `data.results || data` (same as `noddi-customer-lookup`)  
+3. Iterate through returned bookings to find the first one with a `user.email`
+4. Extract `first_name`, `last_name`, `email`, `phone_number` from the booking's `user` object
+5. Keep the existing `ugData.members` fallback as a secondary check
 
-Once `user_group` is correctly read as a number, the existing fetch at line 79 (`/v1/user-groups/{ugId}/`) will retrieve the group's members with email/phone, and plates will start resolving to real contacts.
+Then redeploy the `bulk-outreach` edge function.
+
+### Expected Result
+
+The user_group ID is correctly extracted (we fixed that in the last change). Now with the correct endpoint, the API will return actual booking data with user contact info, and plates will resolve to real contacts.
 
