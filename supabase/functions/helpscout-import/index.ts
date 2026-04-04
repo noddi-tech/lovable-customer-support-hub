@@ -765,7 +765,7 @@ serve(async (req) => {
           .eq('id', jobId);
         
         progress.status = 'error';
-        progress.errors.push(error.message);
+        progress.errors.push(error instanceof Error ? error.message : String(error));
         console.error('Import failed:', error);
       }
     })());
