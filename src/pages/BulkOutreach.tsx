@@ -25,11 +25,17 @@ export default function BulkOutreach() {
   const [isSending, setIsSending] = useState(false);
   const [sendResult, setSendResult] = useState<{ sent_count: number; failed_count: number } | null>(null);
 
+  const organizationId = profile?.organization_id;
+
   const handlePlateLookup = useCallback(async (plates: string[]) => {
+    if (!organizationId) {
+      toast.error("No organization context available");
+      return;
+    }
     setIsLookingUp(true);
     try {
       const { data, error } = await supabase.functions.invoke("bulk-outreach", {
-        body: { action: "resolve_plates", plates },
+        body: { action: "resolve_plates", plates, organization_id: organizationId },
       });
       if (error) throw error;
 
@@ -55,7 +61,7 @@ export default function BulkOutreach() {
     setIsLookingUp(true);
     try {
       const { data, error } = await supabase.functions.invoke("bulk-outreach", {
-        body: { action: "list_route_bookings", date, organization_id: profile?.organization_id },
+        body: { action: "list_route_bookings", date, organization_id: organizationId },
       });
       if (error) throw error;
 

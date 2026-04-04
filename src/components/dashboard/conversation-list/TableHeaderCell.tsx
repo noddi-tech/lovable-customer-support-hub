@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { forwardRef } from 'react';
 import { ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -12,14 +12,14 @@ interface TableHeaderCellProps {
   align?: 'left' | 'center' | 'right';
 }
 
-export const TableHeaderCell = memo<TableHeaderCellProps>(({
+export const TableHeaderCell = forwardRef<HTMLTableCellElement, TableHeaderCellProps>(({
   label,
   sortKey,
   currentSort,
   onSort,
   className,
   align = 'left'
-}) => {
+}, ref) => {
   const isActive = currentSort.key === sortKey;
   const direction = isActive ? currentSort.direction : null;
 
@@ -38,7 +38,7 @@ export const TableHeaderCell = memo<TableHeaderCellProps>(({
   };
 
   return (
-    <th className={cn("h-10 px-2", className)}>
+    <th ref={ref} className={cn("h-10 px-2", className)}>
       <Button
         variant="ghost"
         size="sm"

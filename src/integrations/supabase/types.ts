@@ -542,6 +542,125 @@ export type Database = {
           },
         ]
       }
+      customer_memories: {
+        Row: {
+          confidence: number
+          created_at: string
+          customer_identifier: string
+          embedding: string | null
+          expires_at: string | null
+          id: string
+          identifier_type: string
+          is_active: boolean | null
+          language: string | null
+          memory_text: string
+          memory_type: string
+          organization_id: string
+          source_conversation_id: string | null
+          structured_data: Json | null
+          updated_at: string
+        }
+        Insert: {
+          confidence?: number
+          created_at?: string
+          customer_identifier: string
+          embedding?: string | null
+          expires_at?: string | null
+          id?: string
+          identifier_type: string
+          is_active?: boolean | null
+          language?: string | null
+          memory_text: string
+          memory_type: string
+          organization_id: string
+          source_conversation_id?: string | null
+          structured_data?: Json | null
+          updated_at?: string
+        }
+        Update: {
+          confidence?: number
+          created_at?: string
+          customer_identifier?: string
+          embedding?: string | null
+          expires_at?: string | null
+          id?: string
+          identifier_type?: string
+          is_active?: boolean | null
+          language?: string | null
+          memory_text?: string
+          memory_type?: string
+          organization_id?: string
+          source_conversation_id?: string | null
+          structured_data?: Json | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_memories_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_memories_source_conversation_id_fkey"
+            columns: ["source_conversation_id"]
+            isOneToOne: false
+            referencedRelation: "widget_ai_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_summaries: {
+        Row: {
+          created_at: string
+          customer_identifier: string
+          first_seen_at: string | null
+          id: string
+          identifier_type: string
+          last_seen_at: string | null
+          organization_id: string
+          sentiment_trend: string | null
+          summary_text: string
+          total_conversations: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          customer_identifier: string
+          first_seen_at?: string | null
+          id?: string
+          identifier_type: string
+          last_seen_at?: string | null
+          organization_id: string
+          sentiment_trend?: string | null
+          summary_text: string
+          total_conversations?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          customer_identifier?: string
+          first_seen_at?: string | null
+          id?: string
+          identifier_type?: string
+          last_seen_at?: string | null
+          organization_id?: string
+          sentiment_trend?: string | null
+          summary_text?: string
+          total_conversations?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_summaries_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customers: {
         Row: {
           created_at: string
