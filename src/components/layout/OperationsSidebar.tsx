@@ -15,6 +15,7 @@ import {
   DoorOpen, 
   Users,
   BarChart3,
+  Send,
   Settings,
   ArrowLeft
 } from 'lucide-react';
@@ -49,6 +50,11 @@ export const OperationsSidebar: React.FC = () => {
       title: 'Analytics',
       path: '/operations/analytics',
       icon: BarChart3
+    },
+    {
+      title: 'Bulk Outreach',
+      path: '/operations/bulk-outreach',
+      icon: Send
     },
     {
       title: 'Settings',

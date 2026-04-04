@@ -51,6 +51,7 @@ const Index = () => {
     if (path.includes('/operations/doorman')) return 'doorman';
     if (path.includes('/operations/recruitment')) return 'recruitment';
     if (path.includes('/operations/analytics')) return 'analytics';
+    if (path.includes('/operations/bulk-outreach')) return 'bulk-outreach';
     if (path.includes('/operations/settings')) return 'operations-settings';
     
     return 'text'; // default
@@ -128,6 +129,14 @@ const Index = () => {
           return (
             <React.Suspense fallback={<div className="flex items-center justify-center h-full"><div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full" /></div>}>
               <OperationsAnalyticsDashboard />
+            </React.Suspense>
+          );
+        }
+        if (subSection === 'bulk-outreach') {
+          const BulkOutreach = React.lazy(() => import('@/pages/BulkOutreach'));
+          return (
+            <React.Suspense fallback={<div className="flex items-center justify-center h-full"><div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full" /></div>}>
+              <BulkOutreach />
             </React.Suspense>
           );
         }
