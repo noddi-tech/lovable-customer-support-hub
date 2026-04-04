@@ -256,7 +256,7 @@ async function importConversation(
 
     console.log(`Imported conversation ${conversation.id} with ${threads.length} messages`);
   } catch (error) {
-    progress.errors.push(`Error importing conversation ${conversation.id}: ${error.message}`);
+    progress.errors.push(`Error importing conversation ${conversation.id}: ${error instanceof Error ? error.message : String(error)}`);
     console.error(`Error importing conversation ${conversation.id}:`, error);
   }
 }
