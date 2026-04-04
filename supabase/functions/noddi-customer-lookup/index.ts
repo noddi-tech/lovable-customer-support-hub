@@ -1329,19 +1329,20 @@ Deno.serve(async (req) => {
           
           // Build final response using buildResponse helper
           const response = buildResponse({
-            noddihUserId: noddihUser.id,
-            userGroupId: selectedGroup.id,
+            source: "live",
+            ttl_seconds: CACHE_TTL_SECONDS,
+            found: true,
+            email: successfulEmail || "",
+            noddi_user_id: noddihUser.id,
+            user_group_id: selectedGroup.id,
             user: noddihUser,
             userGroup: selectedGroup,
-            allUserGroups: allUserGroupsFormatted,
-            priorityBooking: bookingForCache,
-            priorityBookingType,
-            pendingBookings,
-            unpaidCount: pendingBookings.length,
-            orderTags: enrichedTags,
-            matchMode: lookupMode,
-            conflict,
-            email: successfulEmail || ""
+            all_user_groups: allUserGroupsFormatted,
+            priority_booking: bookingForCache,
+            priority_booking_type: priorityBookingType,
+            unpaid_count: pendingBookings.length,
+            unpaid_bookings: pendingBookings,
+            enriched_order_tags: enrichedTags,
           });
           
           // Update cache with fresh data
