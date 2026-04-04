@@ -115,32 +115,32 @@ Deno.serve(async (req) => {
 
     // Build email content based on event type
     let subject = '';
-    let body = '';
+    let emailBody = '';
 
     switch (eventType) {
       case 'created':
         subject = `New Service Ticket: ${ticket.ticket_number}`;
-        body = `A new service ticket has been created:\n\nTitle: ${ticket.title}\nPriority: ${ticket.priority}\nStatus: ${ticket.status}\n\nDescription:\n${ticket.description}`;
+        emailBody = `A new service ticket has been created:\n\nTitle: ${ticket.title}\nPriority: ${ticket.priority}\nStatus: ${ticket.status}\n\nDescription:\n${ticket.description}`;
         break;
       
       case 'status_changed':
         subject = `Ticket Status Updated: ${ticket.ticket_number}`;
-        body = `Ticket ${ticket.ticket_number} status has changed to: ${ticket.status}\n\nTitle: ${ticket.title}`;
+        emailBody = `Ticket ${ticket.ticket_number} status has changed to: ${ticket.status}\n\nTitle: ${ticket.title}`;
         break;
       
       case 'assigned':
         subject = `Ticket Assigned to You: ${ticket.ticket_number}`;
-        body = `You have been assigned to ticket ${ticket.ticket_number}\n\nTitle: ${ticket.title}\nPriority: ${ticket.priority}\n\nDescription:\n${ticket.description}`;
+        emailBody = `You have been assigned to ticket ${ticket.ticket_number}\n\nTitle: ${ticket.title}\nPriority: ${ticket.priority}\n\nDescription:\n${ticket.description}`;
         break;
       
       case 'commented':
         subject = `New Comment on Ticket: ${ticket.ticket_number}`;
-        body = `A new comment was added to ticket ${ticket.ticket_number}\n\nTitle: ${ticket.title}`;
+        emailBody = `A new comment was added to ticket ${ticket.ticket_number}\n\nTitle: ${ticket.title}`;
         break;
       
       case 'overdue':
         subject = `⚠️ Ticket Overdue: ${ticket.ticket_number}`;
-        body = `Ticket ${ticket.ticket_number} is now overdue!\n\nTitle: ${ticket.title}\nDue Date: ${ticket.due_date}\nPriority: ${ticket.priority}`;
+        emailBody = `Ticket ${ticket.ticket_number} is now overdue!\n\nTitle: ${ticket.title}\nDue Date: ${ticket.due_date}\nPriority: ${ticket.priority}`;
         break;
     }
 
@@ -148,7 +148,7 @@ Deno.serve(async (req) => {
     console.log('Would send email notification:', {
       to: recipientData.email,
       subject,
-      body,
+      emailBody,
       ticketId,
       eventType,
     });
@@ -159,7 +159,7 @@ Deno.serve(async (req) => {
         user_id: recipientData.userId,
         type: 'service_ticket',
         title: subject,
-        message: body.substring(0, 200),
+        message: emailBody.substring(0, 200),
         data: {
           ticketId,
           eventType,

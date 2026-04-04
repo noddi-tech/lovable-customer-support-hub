@@ -116,7 +116,7 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    const organizationName = membership.organizations?.name || "the organization";
+    const organizationName = (membership.organizations as any)?.[0]?.name || (membership.organizations as any)?.name || "the organization";
 
     // Sanitize email for safe query use
     const safeEmail = sanitizeEmailForQuery(email);

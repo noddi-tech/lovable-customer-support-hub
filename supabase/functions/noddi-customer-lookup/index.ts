@@ -1578,8 +1578,8 @@ Deno.serve(async (req) => {
         ui_meta: {
           display_name: resolveDisplayName({ 
             user: noddihUser, 
-            email: successfulEmail, 
-            userGroup: selectedGroup, 
+            email: successfulEmail ?? undefined, 
+            userGroup: selectedGroup,
             priorityBooking: bookingForCache || priorityBooking 
           }),
           user_group_badge: selectedGroup.id,
