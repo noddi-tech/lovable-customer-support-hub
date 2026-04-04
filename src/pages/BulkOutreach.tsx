@@ -72,7 +72,7 @@ export default function BulkOutreach() {
       });
       if (error) throw error;
 
-      const bookings = (data.bookings || []).map((b: any) => ({
+      const bookings: Recipient[] = (data.bookings || []).map((b: any) => ({
         plate: b.plate,
         name: b.name,
         email: b.email,
@@ -80,11 +80,7 @@ export default function BulkOutreach() {
         matched: b.matched,
         selected: b.matched,
       }));
-      setRecipients((prev) => {
-        const existingPlates = new Set(prev.map((p) => p.plate));
-        const newOnes = bookings.filter((r: Recipient) => !existingPlates.has(r.plate));
-        return [...prev, ...newOnes];
-      });
+      setRecipients((prev) => mergeRecipients(prev, bookings));
       toast.success(`Found ${bookings.length} bookings for ${date}`);
     } catch (err) {
       console.error("Booking fetch error:", err);
@@ -92,7 +88,7 @@ export default function BulkOutreach() {
     } finally {
       setIsLookingUp(false);
     }
-  }, [profile?.organization_id]);
+  }, [organizationId]);
 
   const handleToggle = (index: number) => {
     setRecipients((prev) =>
