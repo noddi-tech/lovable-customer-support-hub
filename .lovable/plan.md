@@ -1,58 +1,67 @@
 
+Goal
 
-# Fix Bulk Outreach Plate Resolution
+Fix the mismatch where the lookup toast says matches were found, but the Review step still shows every row as “Not found”.
 
-## Problem
+Do I know what the issue is? Yes.
 
-The `resolvePlate()` function finds cars via the API but fails to extract contact info because:
+What is actually broken
 
-1. **Car response contacts are ignored** -- `/v1/cars/from-license-plate-number/` returns `user_group.users[]` with `email`, `phone_number`, `first_name`, `last_name`. The code only checks `carData.user` and `carData.owner` (lines 55-59), completely missing `carData.user_group.users[0]`.
+- The current screenshots point to a frontend state bug, not primarily an API lookup bug.
+- In `src/pages/BulkOutreach.tsx`, both `handlePlateLookup` and `handleFetchBookings` only append brand-new plates:
+  - they build `existingPlates`
+  - then filter out any incoming result whose plate already exists
+- That means if a plate was previously loaded as unmatched, a later successful re-lookup for the same plate is ignored.
+- Result:
+  - toast uses the fresh edge-function response and says “found 10 matches”
+  - Review step uses stale `recipients` state and still shows the old unmatched rows
+- Secondary UI bug: in `src/components/bulk-outreach/RecipientReview.tsx`, `allSelected` becomes `true` when there are zero matched rows because `.every()` on an empty array returns `true`.
 
-2. **Booking search is a dead end** -- `/v1/bookings/` returns `UserGroupRecordListMinimal` which only has `id`, `name`, `slug`. No `members[]`, no `users[]`, no email. So `extractContactFromBooking()` always returns null.
+Plan
 
-3. **Missing second-hop enrichment** -- When booking search finds a `user_group.id`, the code never calls `/v1/user-groups/{id}/` to get full member records with contact info.
+1. Replace append-only merging with upsert-by-plate
+   - In `src/pages/BulkOutreach.tsx`, create one shared merge helper that updates existing recipients by `plate` instead of skipping them.
+   - Overwrite `name`, `email`, `phone`, `matched`, `reason`, and `source` with the newest lookup result.
+   - Recompute `selected` so newly matched rows become selected, while unmatched rows are unselected.
 
-## Plan
+2. Use the same merge logic for both lookup flows
+   - Apply the helper in:
+     - `handlePlateLookup`
+     - `handleFetchBookings`
+   - This prevents stale data whether users search by plate or by route/date.
 
-### 1. Read contacts directly from car lookup response
+3. Fix the Review-step selection summary
+   - In `src/components/bulk-outreach/RecipientReview.tsx`, change `allSelected` to only be true when `matchedCount > 0` and every matched row is selected.
+   - Use `plate` as the table row key instead of the array index so row updates render reliably.
 
-In `resolvePlate()`, after lines 54-60, add extraction from:
-- `carData.user_group.users[0]` -- the primary path per OpenAPI spec
-- `carData.owners_current[0].user_group.users[0]` -- ownership fallback
+4. Improve the copy so it matches reality
+   - Change “11 customers loaded” to wording that does not imply all were resolved, e.g. “11 plates loaded”.
+   - Optionally show both total and matched counts before the user clicks Next.
 
-This alone should fix most plates since car lookup already succeeds.
+5. Verify the stale-state scenario
+   - Re-run the same 11 plates that previously showed `Not found`.
+   - Expected:
+     - toast count and Review count match
+     - updated rows now show names/emails
+     - only truly unresolved plates remain `Not found`
 
-### 2. Add second-hop enrichment to booking search
+Files to update
 
-In `resolveFromBookingSearch()`, when a booking is found but `extractContactFromBooking()` returns null:
-- Extract `user_group_id` from `booking.user_group.id`
-- Call `GET /v1/user-groups/{user_group_id}/` to get the full record with `members[].user.email`
-- Extract contact from the enriched response
+- `src/pages/BulkOutreach.tsx`
+- `src/components/bulk-outreach/RecipientReview.tsx`
 
-### 3. Fix `extractContactFromBooking` to match real schema
-
-Update to also check:
-- `booking.user_group.users[0].email` (in addition to existing `members[0]`)
-
-### 4. Fix `plateMatchesBooking` for cache lookups
-
-Add checks for `booking.booking_items[].car.license_plate_number` (confirmed schema field).
-
-## Files to change
-
-- `supabase/functions/bulk-outreach/index.ts` -- all fixes above
-- Redeploy the edge function
-
-## Technical detail
+Technical detail
 
 ```text
-Current (broken):
-  car lookup → check carData.user (missing) → check carData.owner (missing) → skip user_group.users
-  booking search → extractContactFromBooking looks for booking.user.email (not in minimal response) → fail
+Current:
+edge function returns fresh matches
+toast reads fresh response
+state merge drops duplicate plates
+review table reads old recipient objects
 
 Fixed:
-  car lookup → check carData.user_group.users[0].email ← NEW, primary fix
-            → check carData.owners_current[0].user_group.users[0].email ← NEW
-  booking search → extract user_group.id → GET /v1/user-groups/{id}/ → members[0].user.email ← NEW second hop
+edge function returns fresh matches
+client upserts rows by plate
+review table reads updated recipient objects
+toast + review stay in sync
 ```
-
