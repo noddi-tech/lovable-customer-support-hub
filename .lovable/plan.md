@@ -1,66 +1,54 @@
 
 
-## Fix: Emails Stuck as "Not Delivered" + Internal Notes False Warnings
+# Fix Edge Function TypeScript Errors
 
-### Problem
+## Problem
+Build checker reports ~30+ TypeScript errors across edge functions, falling into three categories:
+1. **`'error' is of type 'unknown'`** (~15 files) — catch blocks access `.message` without type narrowing
+2. **`Cannot find name 'EdgeRuntime'`** (3 files) — Deno/Supabase runtime global not declared
+3. **Type mismatches in `noddi-customer-lookup`** — `alternative_emails` not on interface, `string | null` assigned to `string`
+4. **`Object is possibly undefined`** in `generate-analytics-report` — missing null guard on `.reduce()`
 
-Two related bugs cause "Email not delivered" warnings:
+## Changes
 
-1. **Reply emails fail silently and stay "pending" forever**: When `send-reply-email` fails (SendGrid timeout, network error), neither the client nor the edge function updates `email_status` to `'failed'`. The message stays `pending` permanently. Users must manually press Resend.
-
-2. **Internal notes show "Email not delivered"**: Internal notes (e.g. @mentions) are inserted without explicit `email_status`, inheriting the DB default `'pending'`. The send function correctly skips them but never clears the status.
-
-3. **ChatReplyInput swallows errors**: The widget reply component uses try/catch on `supabase.functions.invoke`, which returns `{ error }` instead of throwing — so errors are never caught.
-
-### Changes
-
-| # | File | Change |
-|---|------|--------|
-| 1 | `src/contexts/ConversationViewContext.tsx` | Set `email_status: isInternal ? null : 'pending'` on message insert. On edge function error, update the message's `email_status` to `'failed'` in the DB. |
-| 2 | `src/components/conversations/ChatReplyInput.tsx` | Fix error handling: destructure `{ error }` from invoke instead of try/catch. On error, update `email_status` to `'failed'` and show toast. |
-| 3 | `supabase/functions/send-reply-email/index.ts` | In the catch block, update `email_status` to `'failed'` before returning 500. When skipping internal notes, set `email_status` to `null`. |
-| 4 | Data cleanup (SQL via insert tool) | `UPDATE messages SET email_status = NULL WHERE is_internal = true AND email_status = 'pending'` and `UPDATE messages SET email_status = 'failed' WHERE sender_type = 'agent' AND is_internal = false AND email_status = 'pending' AND created_at < NOW() - INTERVAL '5 minutes'` |
-
-### Technical detail
-
-**ConversationViewContext — insert fix:**
+### 1. Add `EdgeRuntime` type declaration (shared file)
+Create `supabase/functions/_shared/edge-runtime.d.ts` declaring the global:
 ```typescript
-// Set email_status explicitly on insert
-email_status: isInternal ? null : 'pending',
+declare const EdgeRuntime: { waitUntil(promise: Promise<any>): void };
+```
+This fixes errors in `database-recovery`, `helpscout-import` (3 occurrences).
+
+### 2. Fix `'error' is of type 'unknown'` — all affected files
+Replace `error.message` with `error instanceof Error ? error.message : String(error)` in catch blocks across these files:
+
+| File | Lines |
+|------|-------|
+| `admin-cleanup-users/index.ts` | ~183 |
+| `admin-get-all-users/index.ts` | ~166 |
+| `bulk-close-old-conversations/index.ts` | ~102 |
+| `cleanup-duplicate-messages/index.ts` | ~174 |
+| `cleanup-forwarding-echoes/index.ts` | ~156 |
+| `create-service-ticket/index.ts` | ~204 |
+| `deduplicate-customers/index.ts` | ~164, ~181 |
+| `helpscout-import/index.ts` | ~259, ~305, ~762, ~768, ~785 |
+| `manage-import-job/index.ts` | ~86 |
+| `monitor-database-health/index.ts` | ~110 |
+
+### 3. Fix `noddi-customer-lookup/index.ts` type issues
+- **Add `alternative_emails` to the `NoddihCustomerLookupRequest` interface** (line ~99): `alternative_emails?: string[];`
+- **Change `buildResponse` param `email` type** from `email: string` to `email: string | null` (line 553), and update the destructured default to `email = ""` 
+- **Fix `liveResponse.data.email`** (line 1567): use `successfulEmail || ""` instead of bare `successfulEmail`
+
+### 4. Fix `generate-analytics-report/index.ts` null guard
+Line ~202: wrap the `.reduce()` in parentheses with a null check:
+```typescript
+const avgQualityScore = totalKnowledgeEntries > 0
+  ? (knowledgeStats?.reduce((sum, e) => sum + e.quality_score, 0) ?? 0) / totalKnowledgeEntries
+  : 0;
 ```
 
-**ConversationViewContext — error handler fix:**
-```typescript
-if (emailError) {
-  await supabase.from('messages').update({ email_status: 'failed' }).eq('id', message.id);
-  toast.warning('Reply saved but email sending failed');
-}
-```
-
-**ChatReplyInput — error handling fix:**
-```typescript
-// Before (broken — invoke doesn't throw):
-try {
-  await supabase.functions.invoke('send-reply-email', { body: { messageId } });
-} catch (emailErr) { /* never fires */ }
-
-// After:
-const { error: emailError } = await supabase.functions.invoke('send-reply-email', {
-  body: { messageId: insertedMsg.id }
-});
-if (emailError) {
-  await supabase.from('messages').update({ email_status: 'failed' }).eq('id', insertedMsg.id);
-  toast.warning('Reply saved but email sending failed');
-}
-```
-
-**Edge function — catch block fix:**
-```typescript
-} catch (error: any) {
-  if (messageId) {
-    await supabaseClient.from('messages').update({ email_status: 'failed' }).eq('id', messageId);
-  }
-  return new Response(JSON.stringify({ error: error.message }), { status: 500 });
-}
-```
+## Technical detail
+- The `EdgeRuntime` global is provided by Supabase's Deno edge runtime but has no type declarations. A `.d.ts` file in `_shared/` makes it visible to the TypeScript checker without any runtime import.
+- All `error` catch blocks use the same pattern: `error instanceof Error ? error.message : String(error)` which is the idiomatic TypeScript approach for unknown errors.
+- No behavioral changes — these are purely type-level fixes.
 
