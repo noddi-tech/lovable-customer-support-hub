@@ -42,6 +42,8 @@ export default function BulkOutreach() {
       const results = (data.results || []).map((r: any) => ({
         ...r,
         selected: r.matched,
+        reason: r.reason || undefined,
+        source: r.source || undefined,
       }));
       setRecipients((prev) => {
         const existingPlates = new Set(prev.map((p) => p.plate));
