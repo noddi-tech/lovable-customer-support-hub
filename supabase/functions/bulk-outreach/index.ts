@@ -20,62 +20,123 @@ function jsonResponse(data: unknown, status = 200) {
 }
 
 // Resolve a single license plate to customer info via Noddi APIs
-async function resolvePlate(plate: string): Promise<{
+async function resolvePlate(plate: string, supabase?: any, organizationId?: string): Promise<{
   plate: string;
   name: string | null;
   email: string | null;
   phone: string | null;
   matched: boolean;
 }> {
+  const cleanPlate = plate.replace(/[\s-]/g, "").toUpperCase();
   try {
-    const cleanPlate = plate.replace(/[\s-]/g, "").toUpperCase();
-    
-    // Step 1: Look up car by license plate
+    // Step 1: Look up car by license plate to get car_id
     const carUrl = `${API_BASE}/v1/cars/from-license-plate-number/?brand_domains=noddi&country_code=NO&number=${encodeURIComponent(cleanPlate)}`;
     const carRes = await fetch(carUrl, { headers: noddiHeaders() });
-    
+
     if (!carRes.ok) {
       console.log(`[bulk-outreach] Car not found for plate ${cleanPlate}: ${carRes.status}`);
-      return { plate: cleanPlate, name: null, email: null, phone: null, matched: false };
+      return fallbackLocalLookup(supabase, organizationId, cleanPlate);
     }
-    
+
     const carData = await carRes.json();
-    
-    // Step 2: Try to get user group from car data
-    const userGroupId = carData?.user_group?.id || carData?.user_group_id;
-    if (!userGroupId) {
-      console.log(`[bulk-outreach] No user group for plate ${cleanPlate}`);
-      return { plate: cleanPlate, name: null, email: null, phone: null, matched: false };
+    const carId = carData?.id;
+
+    if (!carId) {
+      console.log(`[bulk-outreach] No car id returned for plate ${cleanPlate}`);
+      return fallbackLocalLookup(supabase, organizationId, cleanPlate);
     }
-    
-    // Step 3: Look up user group details to get contact info
+
+    // Step 2: Search bookings by car_id to find the user_group_id
+    const bookingsUrl = `${API_BASE}/v1/bookings/?car_ids=${carId}&brand_domains=noddi&page_size=5&ordering=-created_at`;
+    const bookingsRes = await fetch(bookingsUrl, { headers: noddiHeaders() });
+
+    let userGroupId: number | null = null;
+
+    if (bookingsRes.ok) {
+      const bookingsData = await bookingsRes.json();
+      const results = bookingsData?.results || bookingsData || [];
+      for (const booking of results) {
+        const ugId = booking?.user_group?.id || booking?.user_group_id;
+        if (ugId) {
+          userGroupId = ugId;
+          break;
+        }
+      }
+    }
+
+    if (!userGroupId) {
+      // Also try user_group directly from car data as a fallback
+      userGroupId = carData?.user_group?.id || carData?.user_group_id || null;
+    }
+
+    if (!userGroupId) {
+      console.log(`[bulk-outreach] No user group found via bookings for plate ${cleanPlate}`);
+      return fallbackLocalLookup(supabase, organizationId, cleanPlate);
+    }
+
+    // Step 3: Fetch user group details to get contact info
     const ugUrl = `${API_BASE}/v1/user-groups/${userGroupId}/`;
     const ugRes = await fetch(ugUrl, { headers: noddiHeaders() });
-    
+
     if (!ugRes.ok) {
       console.log(`[bulk-outreach] User group fetch failed for ${userGroupId}: ${ugRes.status}`);
-      return { plate: cleanPlate, name: null, email: null, phone: null, matched: false };
+      return fallbackLocalLookup(supabase, organizationId, cleanPlate);
     }
-    
+
     const ugData = await ugRes.json();
-    
+
     // Extract contact info from user group members
     const members = ugData?.members || [];
     const primaryMember = members[0];
     const name = primaryMember?.name || ugData?.name || null;
     const email = primaryMember?.email || null;
     const phone = primaryMember?.phone_number || null;
-    
+
     if (!email) {
-      console.log(`[bulk-outreach] No email found for plate ${cleanPlate}`);
-      return { plate: cleanPlate, name, email: null, phone, matched: false };
+      console.log(`[bulk-outreach] No email found for plate ${cleanPlate}, trying local fallback`);
+      return fallbackLocalLookup(supabase, organizationId, cleanPlate, name, phone);
     }
-    
+
     return { plate: cleanPlate, name, email, phone, matched: true };
   } catch (err) {
     console.error(`[bulk-outreach] Error resolving plate ${plate}:`, err);
-    return { plate: plate.toUpperCase(), name: null, email: null, phone: null, matched: false };
+    return fallbackLocalLookup(supabase, organizationId, cleanPlate);
   }
+}
+
+// Fallback: search the local customers table for a plate match
+async function fallbackLocalLookup(
+  supabase: any | undefined,
+  organizationId: string | undefined,
+  plate: string,
+  nameHint?: string | null,
+  phoneHint?: string | null,
+): Promise<{ plate: string; name: string | null; email: string | null; phone: string | null; matched: boolean }> {
+  if (!supabase || !organizationId) {
+    return { plate, name: nameHint || null, email: null, phone: phoneHint || null, matched: false };
+  }
+  try {
+    // Search customers whose metadata contains this plate
+    const { data: customers } = await supabase
+      .from("customers")
+      .select("id, full_name, email, phone, metadata")
+      .eq("organization_id", organizationId)
+      .or(`metadata->>license_plate.eq.${plate},metadata->>plate.eq.${plate},phone.not.is.null`)
+      .limit(5);
+
+    if (customers && customers.length > 0) {
+      // Try exact plate match in metadata first
+      const plateMatch = customers.find(
+        (c: any) => c.metadata?.license_plate === plate || c.metadata?.plate === plate,
+      );
+      if (plateMatch && plateMatch.email) {
+        return { plate, name: plateMatch.full_name, email: plateMatch.email, phone: plateMatch.phone, matched: true };
+      }
+    }
+  } catch (e) {
+    console.error("[bulk-outreach] Local fallback error:", e);
+  }
+  return { plate, name: nameHint || null, email: null, phone: phoneHint || null, matched: false };
 }
 
 Deno.serve(async (req) => {
