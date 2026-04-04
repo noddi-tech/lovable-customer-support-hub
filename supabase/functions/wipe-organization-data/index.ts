@@ -342,7 +342,7 @@ Deno.serve(async (req) => {
     console.error('[WipeOrgData] Error:', error);
     return new Response(
       JSON.stringify({ 
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
         success: false 
       }),
       {

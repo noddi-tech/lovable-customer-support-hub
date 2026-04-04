@@ -264,7 +264,7 @@ Deno.serve(async (req) => {
     console.error('[sync-unlinked-calls] ❌ Fatal error:', error);
     return new Response(
       JSON.stringify({ 
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
         total: 0,
         synced: 0,
         failed: 0,

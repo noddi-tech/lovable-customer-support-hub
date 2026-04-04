@@ -177,7 +177,8 @@ Deno.serve(async (req) => {
           return jsonResponse({ error: "Maximum 50 plates per request" }, 400);
         }
 
-        const results = await Promise.all(plates.map((p: string) => resolvePlate(p)));
+        const orgId = body.organization_id;
+        const results = await Promise.all(plates.map((p: string) => resolvePlate(p, supabase, orgId)));
         return jsonResponse({ results });
       }
 

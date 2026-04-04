@@ -82,9 +82,12 @@ Deno.serve(async (req) => {
     const agentsOnline = (onlineCount ?? 0) > 0;
 
     // Return public configuration (no sensitive data)
+    const org = Array.isArray(config.organizations) ? config.organizations[0] : config.organizations;
+    const inbox = Array.isArray(config.inboxes) ? config.inboxes[0] : config.inboxes;
+
     const publicConfig = {
       widgetKey: config.widget_key,
-      primaryColor: config.primary_color || config.organizations?.primary_color || '#7c3aed',
+      primaryColor: config.primary_color || org?.primary_color || '#7c3aed',
       position: config.position,
       greetingText: config.greeting_text,
       responseTimeText: config.response_time_text,
@@ -95,9 +98,9 @@ Deno.serve(async (req) => {
       enableChat: config.enable_chat,
       enableContactForm: config.enable_contact_form,
       enableKnowledgeSearch: config.enable_knowledge_search,
-      logoUrl: config.logo_url || config.organizations?.logo_url,
-      companyName: config.company_name || config.organizations?.name,
-      inboxName: config.inboxes?.name,
+      logoUrl: config.logo_url || org?.logo_url,
+      companyName: config.company_name || org?.name,
+      inboxName: inbox?.name,
       agentsOnline,
       language: config.language || 'no',
     };
