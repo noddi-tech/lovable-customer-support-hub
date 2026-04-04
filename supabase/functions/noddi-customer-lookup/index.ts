@@ -551,7 +551,7 @@ function buildResponse(params: {
   source: "cache" | "live";
   ttl_seconds: number;
   found: boolean;
-  email: string;
+  email: string | null;
   noddi_user_id?: number | null;
   user_group_id?: number | null;
   all_user_groups?: any[];
