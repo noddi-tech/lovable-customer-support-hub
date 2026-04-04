@@ -620,7 +620,7 @@ function buildResponse(params: {
     ttl_seconds,
     data: {
       found,
-      email,
+      email: email ?? "",
       noddi_user_id,
       user_group_id: safeUserGroupId,
       all_user_groups,
