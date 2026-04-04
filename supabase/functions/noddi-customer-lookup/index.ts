@@ -1341,7 +1341,7 @@ Deno.serve(async (req) => {
             orderTags: enrichedTags,
             matchMode: lookupMode,
             conflict,
-            email: successfulEmail
+            email: successfulEmail || ""
           });
           
           // Update cache with fresh data
