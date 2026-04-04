@@ -31,8 +31,7 @@ max_client_conn = 100
 
 [realtime]
 enabled = true
-ip_version = "ipv4"
-port = 54324
+ip_version = "IPv4"
 max_header_length = 4096
 
 [studio]
@@ -49,7 +48,9 @@ pop3_port = 54326
 [storage]
 enabled = true
 file_size_limit = "50MiB"
-image_transformation = true
+
+[storage.image_transformation]
+enabled = true
 
 [auth]
 enabled = true
@@ -63,9 +64,6 @@ enable_anonymous_sign_ins = false
 enable_signup = true
 double_confirm_changes = true
 enable_confirmations = false
-
-[edge_functions]
-enabled = true
 
 [functions.call-events-webhook]
 verify_jwt = false
