@@ -795,9 +795,10 @@ export const ConversationViewProvider = ({ children, conversationId, conversatio
       }, 'ConversationViewProvider');
 
       const { data, error } = await supabase.functions.invoke('suggest-replies', {
-        body: { 
+        body: {
           customerMessage: lastCustomerMessage.content,
-          organizationId: profile.organization_id
+          organizationId: profile.organization_id,
+          conversationId,
         }
       });
 
