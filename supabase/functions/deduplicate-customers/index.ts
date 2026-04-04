@@ -161,7 +161,7 @@ serve(async (req) => {
 
       } catch (error) {
         console.error(`[Deduplicate] Error processing ${email}:`, error);
-        result.errors.push(`Error processing ${email}: ${error.message}`);
+        result.errors.push(`Error processing ${email}: ${error instanceof Error ? error.message : String(error)}`);
       }
     }
 
