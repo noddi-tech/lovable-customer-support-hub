@@ -87,7 +87,7 @@ function formatList(list: Addr[] = [], max = 3, preferEmail = false) {
 }
 
 // Message styling based on author type - HelpScout inspired
-function getMessageStyle(authorType: 'agent' | 'customer' | 'system' = 'customer') {
+function getMessageStyle(authorType: 'agent' | 'customer' | 'system' | 'ai_draft' = 'customer') {
   if (authorType === 'agent') {
     return {
       border: 'border-l-4 border-blue-500 dark:border-blue-600',
@@ -95,6 +95,15 @@ function getMessageStyle(authorType: 'agent' | 'customer' | 'system' = 'customer
       avatarRing: 'ring-2 ring-blue-200 dark:ring-blue-800',
       label: 'You',
       labelBadge: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+    };
+  }
+  if (authorType === 'ai_draft') {
+    return {
+      border: 'border-l-4 border-dashed border-emerald-400 dark:border-emerald-500',
+      bg: 'bg-emerald-50/30 dark:bg-emerald-950/20 hover:bg-emerald-50/40',
+      avatarRing: 'ring-2 ring-emerald-300 dark:ring-emerald-700',
+      label: 'AI Draft',
+      labelBadge: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200',
     };
   }
   if (authorType === 'customer') {
