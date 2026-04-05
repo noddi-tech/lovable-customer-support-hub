@@ -938,6 +938,85 @@ export const ConversationViewProvider = ({ children, conversationId, conversatio
     toast.success('Tag removed');
   };
 
+  // --- AI Draft actions ---
+  const sendDraft = async (messageId: string) => {
+    const draftMsg = messages.find((m: any) => m.id === messageId);
+    if (!draftMsg) {
+      toast.error('Draft not found');
+      return;
+    }
+    
+    try {
+      // Use the existing sendReply flow — identical to agent manually sending
+      await sendReply(draftMsg.content, false, 'pending');
+      
+      // Delete the draft message from DB
+      await supabase.from('messages').delete().eq('id', messageId);
+      
+      // Track in response_tracking
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('organization_id')
+        .eq('user_id', user!.id)
+        .maybeSingle();
+      
+      if (profile?.organization_id) {
+        const customerMessage = messages.find((m: any) => m.sender_type === 'customer');
+        await supabase.from('response_tracking').insert({
+          organization_id: profile.organization_id,
+          conversation_id: conversationId!,
+          message_id: messageId,
+          agent_id: user!.id,
+          response_source: 'ai_draft',
+          customer_message: customerMessage?.content || null,
+          agent_response: draftMsg.content,
+        }).then(({ error }) => {
+          if (error) logger.warn('Failed to track draft send', error, 'ConversationViewProvider');
+        });
+      }
+      
+      // Refresh messages to remove the draft
+      queryClient.invalidateQueries({ queryKey: ['thread-messages'] });
+      queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
+      toast.success('Draft sent as reply');
+    } catch (error: any) {
+      logger.error('Failed to send draft', error, 'ConversationViewProvider');
+      toast.error('Failed to send draft: ' + error.message);
+    }
+  };
+
+  const editDraft = (messageId: string) => {
+    const draftMsg = messages.find((m: any) => m.id === messageId);
+    if (!draftMsg) {
+      toast.error('Draft not found');
+      return;
+    }
+    
+    // Pre-fill reply composer with draft content
+    dispatch({ type: 'SET_REPLY_TEXT', payload: draftMsg.content });
+    dispatch({ type: 'SET_SHOW_REPLY_AREA', payload: true });
+    
+    // Delete the draft from DB (fire-and-forget)
+    supabase.from('messages').delete().eq('id', messageId).then(() => {
+      queryClient.invalidateQueries({ queryKey: ['thread-messages'] });
+      queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
+    });
+    
+    toast.info('Draft loaded into composer — edit and send when ready');
+  };
+
+  const dismissDraft = async (messageId: string) => {
+    try {
+      await supabase.from('messages').delete().eq('id', messageId);
+      queryClient.invalidateQueries({ queryKey: ['thread-messages'] });
+      queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
+      toast.success('Draft dismissed');
+    } catch (error: any) {
+      logger.error('Failed to dismiss draft', error, 'ConversationViewProvider');
+      toast.error('Failed to dismiss draft');
+    }
+  };
+
   const value = {
     state,
     dispatch,
@@ -959,6 +1038,9 @@ export const ConversationViewProvider = ({ children, conversationId, conversatio
     refreshConversation,
     addTag,
     removeTag,
+    sendDraft,
+    editDraft,
+    dismissDraft,
   };
 
   return (
