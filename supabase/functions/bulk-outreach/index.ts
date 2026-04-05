@@ -170,8 +170,7 @@ async function resolvePlate(plate: string, supabase: any, organizationId: string
       if (directUser?.email) {
         const name = [directUser.first_name, directUser.last_name].filter(Boolean).join(" ") || directUser.name || null;
         console.log(`[bulk-outreach] ✅ Direct user on car for ${cleanPlate}: ${directUser.email}`);
-        const bookingInfo = carId ? await fetchNearestBookingForCar(carId) : extractBookingInfo(null);
-        return { plate: cleanPlate, name, email: directUser.email, phone: directUser.phone_number || directUser.phone || null, matched: true, source: "car_user", ...bookingInfo };
+        return { plate: cleanPlate, name, email: directUser.email, phone: directUser.phone_number || directUser.phone || null, matched: true, source: "car_user" };
       }
 
       // Try user_group.users[] directly from car response
