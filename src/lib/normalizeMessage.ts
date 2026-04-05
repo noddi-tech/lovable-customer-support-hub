@@ -441,7 +441,7 @@ export function normalizeMessage(rawMessage: any, ctx: NormalizationContext): No
   const initial = avatarParts.map(p => p[0]).join('').toUpperCase().slice(0, 3) || 'A';
   
   // Determine direction — use authorType (which includes DB sender_type) not just isAgent
-  const direction: 'inbound' | 'outbound' = (isAgent || authorType === 'agent') ? 'outbound' : 'inbound';
+  const direction: 'inbound' | 'outbound' = (isAgent || authorType === 'agent' || authorType === 'ai_draft') ? 'outbound' : 'inbound';
   
   // Extract quoted blocks
   const quotedBlocks = parsedContent.quotedBlocks;
