@@ -252,13 +252,15 @@ const MessageCardComponent = ({
   const { shown: toShown, extra: toExtra } = formatList(message.to, 3, isAgentMessage);
   const { shown: ccShown, extra: ccExtra } = formatList(message.cc ?? [], 2, isAgentMessage);
 
-  // Detect internal note and apply appropriate styling
-  const isInternalNote = message.isInternalNote || message.originalMessage?.is_internal === true;
+  // Detect internal note and AI draft
+  const isAiDraft = message.authorType === 'ai_draft';
+  const isInternalNote = !isAiDraft && (message.isInternalNote || message.originalMessage?.is_internal === true);
   const noteStyle = isInternalNote ? getNoteStyle() : null;
   
   // Get message styling based on author type (only used if not a note)
+  // AI drafts use getMessageStyle('ai_draft') — NOT noteStyle
   const messageStyle = noteStyle ? null : getMessageStyle(message.authorType);
-  const isAgent = message.authorType === 'agent';
+  const isAgent = message.authorType === 'agent' || isAiDraft;
 
   const handleEdit = () => {
     if (onEdit) {
