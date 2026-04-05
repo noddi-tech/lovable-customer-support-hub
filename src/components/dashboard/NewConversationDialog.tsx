@@ -53,6 +53,13 @@ interface Customer {
   };
 }
 
+function parseEmails(raw: string): string[] {
+  return raw.split(/[\n,;]+/)
+    .map(e => e.trim().toLowerCase())
+    .filter(e => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e))
+    .filter((e, i, a) => a.indexOf(e) === i);
+}
+
 export const NewConversationDialog: React.FC<NewConversationDialogProps> = ({ children }) => {
   const [open, setOpen] = useState(false);
   const [customerEmail, setCustomerEmail] = useState('');
@@ -66,6 +73,13 @@ export const NewConversationDialog: React.FC<NewConversationDialogProps> = ({ ch
   const { profile } = useAuth();
   const { t } = useTranslation();
   const sendingTimeouts = useRef<Map<string, NodeJS.Timeout>>(new Map());
+
+  // Bulk mode state
+  const [isBulkMode, setIsBulkMode] = useState(false);
+  const [bulkEmails, setBulkEmails] = useState('');
+  const [bulkSendProgress, setBulkSendProgress] = useState<{ current: number; total: number; failed: number } | null>(null);
+
+  const parsedEmails = isBulkMode ? parseEmails(bulkEmails) : [];
 
   // AI and Translation features
   const [aiSuggestions, setAiSuggestions] = useState<string[]>([]);
