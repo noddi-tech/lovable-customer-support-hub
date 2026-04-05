@@ -306,17 +306,22 @@ export const MobileCustomerSummaryCard = ({ customer, noddiData }: MobileCustome
                 )}
                 {coupons && coupons.length > 0 && (
                   <div className="flex flex-wrap gap-1">
-                    {coupons.map((c: any, i: number) => (
+                    {coupons.map((c: any, i: number) => {
+                      const label = c.description_public || c.description || c.code || c.name || c.coupon_code || `Coupon #${c.id || i + 1}`;
+                      const val = c.value ?? c.discount_value ?? c.amount ?? c.coupon?.value ?? null;
+                      const discType = c.discount_type || c.type || c.coupon?.discount_type || null;
+                      return (
                       <span key={c.id || i} className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[9px] rounded-full bg-purple-100 text-purple-900">
                         <Ticket className="w-2.5 h-2.5" />
-                        {c.code || c.description || `Coupon #${c.id || i + 1}`}
-                        {c.value != null && (
+                        {label}
+                        {val != null && (
                           <span className="font-medium ml-0.5">
-                            {c.discount_type === 'percentage' ? `${c.value}%` : `${c.value} kr`}
+                            {discType === 'percentage' ? `${val}%` : `${val} kr`}
                           </span>
                         )}
                       </span>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </>

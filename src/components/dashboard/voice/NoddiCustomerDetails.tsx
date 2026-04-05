@@ -727,14 +727,20 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
         )}
 
         {/* Coupons */}
-        {userGroup?.coupons && userGroup.coupons.length > 0 && (
+        {userGroup?.coupons && userGroup.coupons.length > 0 && (() => {
+          console.log('[NoddiCoupons] Raw coupon data:', userGroup.coupons);
+          return (
           <div>
             <div className="flex items-center gap-1 mb-1">
               <Ticket className="h-3 w-3 text-purple-500" />
               <p className="text-xs font-medium text-muted-foreground">Coupons</p>
             </div>
             <div className="space-y-1">
-              {userGroup.coupons.map((coupon: any, idx: number) => (
+              {userGroup.coupons.map((coupon: any, idx: number) => {
+                const label = coupon.description_public || coupon.description || coupon.code || coupon.name || coupon.coupon_code || `Coupon #${coupon.id || idx + 1}`;
+                const val = coupon.value ?? coupon.discount_value ?? coupon.amount ?? coupon.coupon?.value ?? null;
+                const discType = coupon.discount_type || coupon.type || coupon.coupon?.discount_type || null;
+                return (
                 <div
                   key={coupon.id || idx}
                   className="flex items-center justify-between p-1.5 rounded border bg-purple-50/50 border-purple-200"
@@ -742,15 +748,12 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
                   <div className="flex items-center gap-1.5 min-w-0">
                     <Ticket className="h-3 w-3 text-purple-500 shrink-0" />
                     <div className="min-w-0">
-                      <span className="text-xs font-mono font-medium text-purple-800">
-                        {coupon.code || coupon.description || `Coupon #${coupon.id || idx + 1}`}
+                      <span className="text-xs font-medium text-purple-800">
+                        {label}
                       </span>
-                      {coupon.code && coupon.description && coupon.description !== coupon.code && (
-                        <p className="text-[10px] text-muted-foreground truncate">{coupon.description}</p>
-                      )}
-                      {coupon.value != null && (
+                      {val != null && (
                         <p className="text-[10px] font-medium text-purple-700">
-                          {coupon.discount_type === 'percentage' ? `${coupon.value}%` : `${coupon.value} kr`}
+                          {discType === 'percentage' ? `${val}%` : `${val} kr`}
                         </p>
                       )}
                     </div>
@@ -764,10 +767,12 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
                     {coupon.is_active !== false ? 'Active' : 'Expired'}
                   </Badge>
                 </div>
-              ))}
+                );
+              })}
             </div>
           </div>
-        )}
+          );
+        })()}
 
         {/* Service Tags with Icons */}
         {data.ui_meta?.order_tags && data.ui_meta.order_tags.length > 0 && (
