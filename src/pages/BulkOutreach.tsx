@@ -55,6 +55,8 @@ export default function BulkOutreach() {
         source: r.source || undefined,
         booking_date: r.booking_date || null,
         booking_time: r.booking_time || null,
+        booking_time_start: r.booking_time_start || null,
+        booking_time_end: r.booking_time_end || null,
         booking_service: r.booking_service || null,
       }));
       setRecipients((prev) => mergeRecipients(prev, results));

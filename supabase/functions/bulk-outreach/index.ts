@@ -97,19 +97,20 @@ async function enrichWithBookingData(
     // Extract service title
     const bookingService = uiMeta?.service_title || null;
     // Extract time window from the booking's delivery_window
+    // Pass raw UTC timestamps for frontend timezone conversion
+    let bookingTimeStart: string | null = null;
+    let bookingTimeEnd: string | null = null;
     let bookingTime: string | null = null;
     if (booking) {
       const startAt = booking.delivery_window?.starts_at || booking.delivery_window_starts_at || null;
       const endAt = booking.delivery_window?.ends_at || booking.delivery_window_ends_at || null;
+      bookingTimeStart = startAt || null;
+      bookingTimeEnd = endAt || null;
+      // Format a fallback for message templates in Europe/Oslo timezone
       if (startAt) {
         try {
-          const startTime = new Date(startAt).toTimeString().slice(0, 5);
-          if (endAt) {
-            const endTime = new Date(endAt).toTimeString().slice(0, 5);
-            bookingTime = `${startTime}-${endTime}`;
-          } else {
-            bookingTime = startTime;
-          }
+          const fmt = (iso: string) => new Date(iso).toLocaleTimeString("nb-NO", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Europe/Oslo" });
+          bookingTime = endAt ? `${fmt(startAt)}-${fmt(endAt)}` : fmt(startAt);
         } catch (_) { /* ignore */ }
       }
     }
@@ -119,6 +120,8 @@ async function enrichWithBookingData(
       booking_id: booking?.id || null,
       booking_date: bookingDate,
       booking_time: bookingTime,
+      booking_time_start: bookingTimeStart,
+      booking_time_end: bookingTimeEnd,
       booking_service: bookingService,
     };
   } catch (e) {
@@ -138,6 +141,8 @@ interface ResolveResult {
   booking_id?: number | null;
   booking_date?: string | null;
   booking_time?: string | null;
+  booking_time_start?: string | null;
+  booking_time_end?: string | null;
   booking_service?: string | null;
 }
 

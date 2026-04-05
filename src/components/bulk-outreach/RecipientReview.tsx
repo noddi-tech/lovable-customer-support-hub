@@ -1,5 +1,6 @@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
+import { useUserTimezone } from "@/hooks/useUserTimezone";
 import {
   Table,
   TableBody,
@@ -26,6 +27,8 @@ export interface Recipient {
   source?: string;
   booking_date?: string | null;
   booking_time?: string | null;
+  booking_time_start?: string | null;
+  booking_time_end?: string | null;
   booking_service?: string | null;
 }
 
@@ -52,7 +55,25 @@ interface RecipientReviewProps {
   onToggleAll: (checked: boolean) => void;
 }
 
+function formatBookingDate(isoDate: string, timezone: string): string {
+  try {
+    const d = new Date(isoDate);
+    return d.toLocaleDateString("nb-NO", { day: "2-digit", month: "2-digit", year: "2-digit", timeZone: timezone });
+  } catch {
+    return isoDate;
+  }
+}
+
+function formatTimeInTz(isoTime: string, timezone: string): string {
+  try {
+    return new Date(isoTime).toLocaleTimeString("nb-NO", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: timezone });
+  } catch {
+    return isoTime;
+  }
+}
+
 export function RecipientReview({ recipients, onToggle, onToggleAll }: RecipientReviewProps) {
+  const { timezone } = useUserTimezone();
   const matchedCount = recipients.filter((r) => r.matched).length;
   const selectedCount = recipients.filter((r) => r.selected).length;
   const allSelected = matchedCount > 0 && recipients.filter((r) => r.matched).every((r) => r.selected);
@@ -106,9 +127,12 @@ export function RecipientReview({ recipients, onToggle, onToggleAll }: Recipient
                   <TableCell className="text-sm">
                     {r.booking_date ? (
                       <div className="space-y-0.5">
-                        <p className="font-medium">{r.booking_date}</p>
-                        {r.booking_time && (
-                          <p className="text-xs text-muted-foreground">{r.booking_time}</p>
+                        <p className="font-medium">{formatBookingDate(r.booking_date, timezone)}</p>
+                        {r.booking_time_start && (
+                          <p className="text-xs text-muted-foreground">
+                            {formatTimeInTz(r.booking_time_start, timezone)}
+                            {r.booking_time_end && `–${formatTimeInTz(r.booking_time_end, timezone)}`}
+                          </p>
                         )}
                         {r.booking_service && (
                           <p className="text-xs text-muted-foreground">{r.booking_service}</p>
