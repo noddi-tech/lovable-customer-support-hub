@@ -46,6 +46,7 @@ export const ProgressiveMessagesList = forwardRef<ProgressiveMessagesListRef, Pr
   const { t } = useTranslation();
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { sendDraft, editDraft, dismissDraft } = useConversationView();
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const [shouldScrollToBottom, setShouldScrollToBottom] = useState(true);
   const [isNearTop, setIsNearTop] = useState(false);
