@@ -555,7 +555,11 @@ Deno.serve(async (req) => {
           return jsonResponse({ error: "organization_id required" }, 400);
         }
 
-        const results = await Promise.all(plates.map((p: string) => resolvePlate(p, supabase, organization_id)));
+        const rawResults = await Promise.all(plates.map((p: string) => resolvePlate(p, supabase, organization_id)));
+        // Enrich matched results with booking data via customer-lookup
+        const results = await Promise.all(
+          rawResults.map((r) => enrichWithBookingData(r, supabase, organization_id))
+        );
         return jsonResponse({ results });
       }
 
