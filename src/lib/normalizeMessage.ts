@@ -397,7 +397,8 @@ export function normalizeMessage(rawMessage: any, ctx: NormalizationContext): No
     }
   }
 
-  const authorType: 'agent' | 'customer' | 'system' =
+  const authorType: 'agent' | 'customer' | 'system' | 'ai_draft' =
+    rawMessage.sender_type === 'ai_draft' ? 'ai_draft' :
     isAgent ? 'agent' : ((rawMessage.sender_type as any) ?? 'customer');
   // Use conversation fallbacks only if still missing
   // For agents: ALWAYS prefer profile data regardless of any header-derived values
