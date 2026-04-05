@@ -54,6 +54,23 @@ interface RecipientReviewProps {
   onToggleAll: (checked: boolean) => void;
 }
 
+function formatBookingDate(isoDate: string, timezone: string): string {
+  try {
+    const d = new Date(isoDate);
+    return d.toLocaleDateString("nb-NO", { day: "2-digit", month: "2-digit", year: "2-digit", timeZone: timezone });
+  } catch {
+    return isoDate;
+  }
+}
+
+function formatTimeInTz(isoTime: string, timezone: string): string {
+  try {
+    return new Date(isoTime).toLocaleTimeString("nb-NO", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: timezone });
+  } catch {
+    return isoTime;
+  }
+}
+
 export function RecipientReview({ recipients, onToggle, onToggleAll }: RecipientReviewProps) {
   const matchedCount = recipients.filter((r) => r.matched).length;
   const selectedCount = recipients.filter((r) => r.selected).length;
