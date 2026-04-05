@@ -70,24 +70,61 @@ function extractBookingInfo(booking: any): {
   return { booking_id: bookingId, booking_date: bookingDate, booking_time: bookingTime, booking_service: bookingService };
 }
 
-/** Fetch nearest booking for a carId and return booking info */
-async function fetchNearestBookingForCar(carId: number): Promise<ReturnType<typeof extractBookingInfo>> {
+/** Enrich a resolved contact with booking data via noddi-customer-lookup */
+async function enrichWithBookingData(
+  result: ResolveResult,
+  supabase: any,
+  organizationId: string,
+): Promise<ResolveResult> {
+  if (!result.matched || (!result.email && !result.phone)) return result;
   try {
-    const url = `${API_BASE}/v1/bookings/?car_ids=${carId}&page_size=1&ordering=-created_at`;
-    const res = await fetch(url, { headers: noddiHeaders() });
-    if (!res.ok) {
-      await res.text();
-      return extractBookingInfo(null);
+    console.log(`[bulk-outreach] 📅 Enriching booking data for ${result.plate} via customer-lookup (email=${result.email}, phone=${result.phone})`);
+    const { data, error } = await supabase.functions.invoke("noddi-customer-lookup", {
+      body: {
+        email: result.email || undefined,
+        phone: result.phone || undefined,
+        organizationId,
+      },
+    });
+    if (error || !data?.data) {
+      console.log(`[bulk-outreach] ⚠️ Customer lookup enrichment failed for ${result.plate}:`, error?.message || "no data");
+      return result;
     }
-    const data = await res.json();
-    const bookings = data?.results || (Array.isArray(data) ? data : []);
-    if (bookings.length > 0) {
-      return extractBookingInfo(bookings[0]);
+    const uiMeta = data.data.ui_meta;
+    const booking = data.data.priority_booking;
+    // Extract booking date from ui_meta (already computed correctly by customer-lookup)
+    const bookingDate = uiMeta?.booking_date_iso || null;
+    // Extract service title
+    const bookingService = uiMeta?.service_title || null;
+    // Extract time window from the booking's delivery_window
+    let bookingTime: string | null = null;
+    if (booking) {
+      const startAt = booking.delivery_window?.starts_at || booking.delivery_window_starts_at || null;
+      const endAt = booking.delivery_window?.ends_at || booking.delivery_window_ends_at || null;
+      if (startAt) {
+        try {
+          const startTime = new Date(startAt).toTimeString().slice(0, 5);
+          if (endAt) {
+            const endTime = new Date(endAt).toTimeString().slice(0, 5);
+            bookingTime = `${startTime}-${endTime}`;
+          } else {
+            bookingTime = startTime;
+          }
+        } catch (_) { /* ignore */ }
+      }
     }
+    console.log(`[bulk-outreach] 📅 Enriched ${result.plate}: date=${bookingDate}, time=${bookingTime}, service=${bookingService}`);
+    return {
+      ...result,
+      booking_id: booking?.id || null,
+      booking_date: bookingDate,
+      booking_time: bookingTime,
+      booking_service: bookingService,
+    };
   } catch (e) {
-    console.error(`[bulk-outreach] Nearest booking fetch error for car ${carId}:`, e);
+    console.error(`[bulk-outreach] Enrichment error for ${result.plate}:`, e);
+    return result;
   }
-  return extractBookingInfo(null);
 }
 
 interface ResolveResult {
