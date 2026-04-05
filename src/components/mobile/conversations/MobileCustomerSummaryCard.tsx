@@ -309,7 +309,12 @@ export const MobileCustomerSummaryCard = ({ customer, noddiData }: MobileCustome
                     {coupons.map((c: any, i: number) => (
                       <span key={c.id || i} className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[9px] rounded-full bg-purple-100 text-purple-900">
                         <Ticket className="w-2.5 h-2.5" />
-                        {c.code || c.description || 'Coupon'}
+                        {c.code || c.description || `Coupon #${c.id || i + 1}`}
+                        {c.value != null && (
+                          <span className="font-medium ml-0.5">
+                            {c.discount_type === 'percentage' ? `${c.value}%` : `${c.value} kr`}
+                          </span>
+                        )}
                       </span>
                     ))}
                   </div>
