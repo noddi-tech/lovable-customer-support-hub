@@ -420,6 +420,7 @@ export type Database = {
           is_archived: boolean | null
           is_read: boolean | null
           last_message_is_internal: boolean | null
+          memories_extracted_at: string | null
           metadata: Json | null
           organization_id: string
           preview_text: string | null
@@ -449,6 +450,7 @@ export type Database = {
           is_archived?: boolean | null
           is_read?: boolean | null
           last_message_is_internal?: boolean | null
+          memories_extracted_at?: string | null
           metadata?: Json | null
           organization_id: string
           preview_text?: string | null
@@ -478,6 +480,7 @@ export type Database = {
           is_archived?: boolean | null
           is_read?: boolean | null
           last_message_is_internal?: boolean | null
+          memories_extracted_at?: string | null
           metadata?: Json | null
           organization_id?: string
           preview_text?: string | null
@@ -600,13 +603,6 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "customer_memories_source_conversation_id_fkey"
-            columns: ["source_conversation_id"]
-            isOneToOne: false
-            referencedRelation: "widget_ai_conversations"
             referencedColumns: ["id"]
           },
         ]
@@ -3442,6 +3438,7 @@ export type Database = {
           error_details: string | null
           escalated_at: string | null
           id: string
+          memories_extracted_at: string | null
           message_count: number
           metadata: Json | null
           organization_id: string
@@ -3464,6 +3461,7 @@ export type Database = {
           error_details?: string | null
           escalated_at?: string | null
           id?: string
+          memories_extracted_at?: string | null
           message_count?: number
           metadata?: Json | null
           organization_id: string
@@ -3486,6 +3484,7 @@ export type Database = {
           error_details?: string | null
           escalated_at?: string | null
           id?: string
+          memories_extracted_at?: string | null
           message_count?: number
           metadata?: Json | null
           organization_id?: string
