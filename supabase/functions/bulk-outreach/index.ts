@@ -236,8 +236,7 @@ async function resolvePlate(plate: string, supabase: any, organizationId: string
   if (carId) {
     const localContact = await resolveFromLocalCustomers(supabase, organizationId, cleanPlate, carId);
     if (localContact) {
-      const bookingInfo = await fetchNearestBookingForCar(carId);
-      return { ...localContact, source: "local_customers", ...bookingInfo };
+      return { ...localContact, source: "local_customers" };
     }
   }
 
