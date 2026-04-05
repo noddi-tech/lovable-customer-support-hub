@@ -166,6 +166,9 @@ interface ConversationViewContextType {
   refreshConversation: () => Promise<void>;
   addTag: (tag: string) => Promise<void>;
   removeTag: (tag: string) => Promise<void>;
+  sendDraft: (messageId: string) => Promise<void>;
+  editDraft: (messageId: string) => void;
+  dismissDraft: (messageId: string) => Promise<void>;
 }
 
 const ConversationViewContext = createContext<ConversationViewContextType | undefined>(undefined);
