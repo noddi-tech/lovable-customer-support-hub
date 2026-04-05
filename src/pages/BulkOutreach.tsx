@@ -82,6 +82,9 @@ export default function BulkOutreach() {
         phone: b.phone,
         matched: b.matched,
         selected: b.matched,
+        booking_date: b.booking_date || null,
+        booking_time: b.booking_time || null,
+        booking_service: b.booking_service || null,
       }));
       setRecipients((prev) => mergeRecipients(prev, bookings));
       toast.success(`Found ${bookings.length} bookings for ${date}`);
