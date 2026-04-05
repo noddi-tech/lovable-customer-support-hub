@@ -1,64 +1,50 @@
 
 
-# Fix Booking Date/Time Formatting in Review Table
+# Show Time Slot + Service in Booking Column & Widen Card
 
 ## Problem
 
-The booking column shows raw ISO timestamps (`2026-04-06T05:00:00Z`) and UTC times (`05:00-10:00`) instead of user-friendly, timezone-aware values (`06.04.26` and `07:00-12:00` in Oslo time).
+The booking column in the review table is not displaying the time slot or service name, even though the edge function returns this data. Additionally, the card uses `max-w-3xl` (768px) which is too narrow for a 6-column table.
 
-Two issues:
-1. **Edge function** returns raw ISO date and UTC-based times (uses `toTimeString()` which depends on server timezone, not user's)
-2. **Frontend** displays these raw values without any formatting or timezone conversion
+## Root Cause
+
+Based on the edge function logs, booking data IS being returned correctly (e.g., `time=05:00-15:00, service=Fornyelse dekkhotell med hjemlevert dekkskift`). The frontend code in RecipientReview.tsx already has rendering logic for time and service. Two likely causes:
+
+1. **Edge function may need redeployment** — the latest code with `booking_time_start`/`booking_time_end` fields might not be deployed yet
+2. **Fallback display needed** — if `booking_time_start` is null but `booking_time` (the formatted string) exists, nothing renders. The component should fall back to displaying `booking_time` directly.
 
 ## Changes
 
-### 1. Frontend: format booking date/time with user's timezone
+### 1. Redeploy edge function
+Ensure the latest `enrichWithBookingData` code (with `booking_time_start`, `booking_time_end`, and `booking_service` fields) is deployed.
+
+### 2. Add fallback time display in RecipientReview.tsx
 
 **File:** `src/components/bulk-outreach/RecipientReview.tsx`
 
-- Import `useDateFormatting` hook (already used elsewhere in the app)
-- Keep `booking_date` as raw ISO from the API (it's the data source)
-- Format display using the user's timezone:
-  - Date: format as `dd.MM.yy` (e.g., "06.04.26") using `formatInTimeZone`
-  - Time: convert UTC start/end timestamps to user's local timezone, display as `HH:mm-HH:mm`
+In the booking cell, if `booking_time_start` is not available, fall back to displaying `booking_time` (the pre-formatted Oslo-time string). This handles cases where the edge function returns the formatted time but not the raw timestamps:
 
-To support timezone conversion of the time window, the edge function should pass the raw UTC timestamps instead of pre-formatted strings.
+```
+{r.booking_time_start ? (
+  <p>formatted start-end in user tz</p>
+) : r.booking_time ? (
+  <p>{r.booking_time}</p>
+) : null}
+```
 
-### 2. Edge function: pass raw UTC timestamps for time window
-
-**File:** `supabase/functions/bulk-outreach/index.ts`
-
-In `enrichWithBookingData`, instead of formatting `bookingTime` as `HH:mm-HH:mm` using server's `toTimeString()`, pass the raw ISO start/end timestamps:
-- `booking_time_start`: raw ISO string (e.g., `2026-04-06T05:00:00Z`)
-- `booking_time_end`: raw ISO string (e.g., `2026-04-06T10:00:00Z`)
-- Keep `booking_time` as a formatted fallback for the message template (formatted in Oslo time since that's the business timezone)
-
-### 3. Frontend type update
-
-**File:** `src/components/bulk-outreach/RecipientReview.tsx`
-
-Add to `Recipient` interface:
-- `booking_time_start?: string | null`
-- `booking_time_end?: string | null`
-
-### 4. Frontend: format in review table
-
-**File:** `src/components/bulk-outreach/RecipientReview.tsx`
-
-In the booking cell:
-- Date: `format(new Date(r.booking_date), 'dd.MM.yy')` using `date-fns-tz` `formatInTimeZone` with user's timezone
-- Time: convert `booking_time_start`/`booking_time_end` to user timezone and display as `HH:mm-HH:mm`
-- Service: display as-is (already human-readable)
-
-### 5. Pass new fields through state
+### 3. Widen the container
 
 **File:** `src/pages/BulkOutreach.tsx`
 
-Map `booking_time_start` and `booking_time_end` from edge function response into recipient state.
+Change `max-w-3xl` to `max-w-5xl` (1024px) to give the table more breathing room for 6 columns.
+
+### 4. Ensure service always shows
+
+Currently `booking_service` only renders inside the `r.booking_date ?` block. If somehow date is missing but service exists, it won't show. Keep this as-is since service without a date is unlikely, but ensure the service line renders when present.
 
 ## Files to change
 
-- `supabase/functions/bulk-outreach/index.ts` — pass raw UTC timestamps + Oslo-formatted fallback
-- `src/components/bulk-outreach/RecipientReview.tsx` — timezone-aware formatting using `useDateFormatting`
-- `src/pages/BulkOutreach.tsx` — pass new timestamp fields through state
+- `supabase/functions/bulk-outreach/index.ts` — redeploy (no code changes needed, just deploy)
+- `src/components/bulk-outreach/RecipientReview.tsx` — add fallback for `booking_time`
+- `src/pages/BulkOutreach.tsx` — widen container from `max-w-3xl` to `max-w-5xl`
 
