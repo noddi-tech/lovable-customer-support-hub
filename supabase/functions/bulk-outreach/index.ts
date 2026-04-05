@@ -209,8 +209,7 @@ async function resolvePlate(plate: string, supabase: any, organizationId: string
       for (const ugId of ugIds) {
         const contact = await resolveFromUserGroup(ugId, cleanPlate);
         if (contact) {
-          const bookingInfo = carId ? await fetchNearestBookingForCar(carId) : extractBookingInfo(null);
-          return { ...contact, source: "car_user_group", ...bookingInfo };
+          return { ...contact, source: "car_user_group" };
         }
       }
     } else {
