@@ -646,6 +646,38 @@ const MessageCardComponent = ({
               </div>
             )}
 
+            {/* AI Draft action buttons */}
+            {isAiDraft && (
+              <div className="flex items-center gap-2 mt-4 pt-3 border-t border-emerald-200 dark:border-emerald-800">
+                <Button 
+                  size="sm"
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5"
+                  onClick={() => onSendDraft?.(message.id)}
+                >
+                  <Send className="h-3.5 w-3.5" />
+                  Send
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className="gap-1.5"
+                  onClick={() => onEditDraft?.(message.id, message.originalMessage?.content || message.visibleBody)}
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                  Edit
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  className="gap-1.5 text-destructive hover:text-destructive hover:bg-destructive/10 ml-auto"
+                  onClick={() => onDismissDraft?.(message.id)}
+                >
+                  <X className="h-3.5 w-3.5" />
+                  Dismiss
+                </Button>
+              </div>
+            )}
+
             {/* Debug probe */}
             {import.meta.env.VITE_UI_PROBE === '1' && <MessageDebugProbe message={message} />}
           </div>
