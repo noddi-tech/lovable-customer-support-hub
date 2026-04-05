@@ -1,84 +1,55 @@
 
 
-# Add Upcoming Booking Info to Bulk Outreach
+# Enrich Bulk Outreach Recipients via Customer Lookup
 
-## Goal
+## Problem
 
-Enrich each resolved recipient with their nearest upcoming (or most recent) booking details so the message template can reference booking-specific variables like `{booking_date}`, `{booking_time}`, `{booking_service}`.
+The current `extractBookingInfo()` in `bulk-outreach` fails because `/v1/bookings/` returns minimal booking objects missing the fields it checks. Meanwhile, `noddi-customer-lookup` already has battle-tested extraction logic and fetches bookings from richer endpoints (`/v1/user-groups/{id}/bookings-for-customer/`).
 
-## What changes
+## Approach
 
-### 1. Edge function: enrich resolved plates with booking data
+After resolving a plate to a contact (email/phone), call `noddi-customer-lookup` internally to fetch their booking data. This reuses all existing extraction logic without duplication.
+
+## Changes
+
+### 1. Edge function: add customer-lookup enrichment step
 
 **File:** `supabase/functions/bulk-outreach/index.ts`
 
-After resolving a plate to a contact, fetch the nearest booking for that customer. The car lookup already provides `carId`, and the booking search already runs -- we just need to capture and return booking fields from those results instead of discarding them.
+- After `resolvePlate()` returns a matched contact with email or phone, invoke `noddi-customer-lookup` via the Supabase client to get the customer's priority booking.
+- Extract from the response:
+  - `data.booking_date_iso` → `booking_date`
+  - `data.service_title` → `booking_service`
+  - `data.priority_booking.delivery_window_starts_at` + `delivery_window_ends_at` → `booking_time` (formatted as "HH:MM-HH:MM")
+- Apply this in the `resolve_plates` action loop, after each successful resolution.
+- Remove `fetchNearestBookingForCar()` calls from each resolution path (they never worked correctly anyway).
 
-Add to each resolved result:
-- `booking_id` (number or null)
-- `booking_date` (string or null, e.g. "2026-04-10")
-- `booking_time` (string or null, e.g. "08:00-12:00")
-- `booking_service` (string or null, e.g. "Dekkskift")
-- `booking_status` (string or null)
+### 2. Clean up dead code
 
-Sources (in priority order):
-1. Already-fetched bookings from `resolveFromBookingSearch` -- extract date/service from the booking that matched
-2. If contact was resolved from car user_group directly (no booking searched yet), do one quick `GET /v1/bookings/?car_ids={carId}&page_size=1&ordering=-created_at` to grab the nearest booking
-3. Cache hits: extract from `cached_priority_booking`
+**File:** `supabase/functions/bulk-outreach/index.ts`
 
-### 2. Frontend: extend Recipient type with booking fields
+- Remove `extractBookingInfo()` function (lines 22-71)
+- Remove `fetchNearestBookingForCar()` function (lines 73-91)
+- Remove all `extractBookingInfo()` and `fetchNearestBookingForCar()` calls scattered through resolution strategies
+- Keep `extractBookingInfo` only in `list_route_bookings` if still needed there, or replace it with the same customer-lookup approach
 
-**File:** `src/components/bulk-outreach/RecipientReview.tsx`
+### 3. No frontend changes needed
 
-Add optional fields to `Recipient` interface:
-- `booking_date?: string`
-- `booking_time?: string`  
-- `booking_service?: string`
+The `Recipient` type, review table, message composer, and send payload already support `booking_date`, `booking_time`, `booking_service`. Only the data source changes.
 
-Show booking info in the review table as a new column or as a subtitle under the name.
+### 4. Redeploy edge function
 
-### 3. Frontend: pass booking data through state
-
-**File:** `src/pages/BulkOutreach.tsx`
-
-Map the new fields from the edge function response into the `Recipient` objects so they flow through to the review and send steps.
-
-### 4. Message composer: add booking template variables
-
-**File:** `src/components/bulk-outreach/MessageComposer.tsx`
-
-- Add badges for `{booking_date}`, `{booking_time}`, `{booking_service}` alongside the existing `{name}` hint
-- Update the preview to replace these variables with sample values
-
-### 5. Edge function: replace booking variables on send
-
-**File:** `supabase/functions/bulk-outreach/index.ts` (in `send_bulk` action)
-
-Extend the personalization at line 546 to also replace `{booking_date}`, `{booking_time}`, `{booking_service}` from the recipient data passed by the frontend. The `send_bulk` recipients array will now include these fields.
-
-### 6. Frontend: pass booking fields in send payload
-
-**File:** `src/pages/BulkOutreach.tsx`
-
-In `handleSend`, include `booking_date`, `booking_time`, `booking_service` in each recipient object sent to the edge function.
-
-## Technical detail
+## Technical flow
 
 ```text
-Current flow:
-  resolve plate → return { plate, name, email, phone, matched }
-  send_bulk → replace {name} only
+Current (broken):
+  resolvePlate → matched → fetchNearestBookingForCar → extractBookingInfo (wrong field paths) → nulls
 
-New flow:
-  resolve plate → also capture nearest booking → return { ..., booking_date, booking_time, booking_service }
-  send_bulk → replace {name}, {booking_date}, {booking_time}, {booking_service}
+Fixed:
+  resolvePlate → matched (email/phone) → invoke noddi-customer-lookup → get priority_booking with booking_date_iso, service_title → populate booking fields
 ```
 
 ## Files to change
 
-- `supabase/functions/bulk-outreach/index.ts` -- enrich resolve + expand send personalization
-- `src/components/bulk-outreach/RecipientReview.tsx` -- extend Recipient type, show booking column
-- `src/pages/BulkOutreach.tsx` -- pass booking fields through state and send payload
-- `src/components/bulk-outreach/MessageComposer.tsx` -- add variable hints and preview
-- Redeploy edge function
+- `supabase/functions/bulk-outreach/index.ts`
 
