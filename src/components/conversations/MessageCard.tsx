@@ -566,7 +566,8 @@ const MessageCardComponent = ({
                     )}
                   </DropdownMenuContent>
                 </DropdownMenu>
-              </div>
+              </div>}
+
             </div>
           </div>
         </div>
