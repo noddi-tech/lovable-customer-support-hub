@@ -515,8 +515,8 @@ const MessageCardComponent = ({
                 )}
               </Button>
               
-              {/* Message Actions */}
-              <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+              {/* Message Actions - hidden for AI drafts */}
+              {!isAiDraft && <div className="opacity-0 group-hover:opacity-100 transition-opacity">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
