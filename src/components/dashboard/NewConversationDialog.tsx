@@ -78,6 +78,8 @@ export const NewConversationDialog: React.FC<NewConversationDialogProps> = ({ ch
   const [isBulkMode, setIsBulkMode] = useState(false);
   const [bulkEmails, setBulkEmails] = useState('');
   const [bulkSendProgress, setBulkSendProgress] = useState<{ current: number; total: number; failed: number } | null>(null);
+  const bulkSendProgressRef = useRef(bulkSendProgress);
+  useEffect(() => { bulkSendProgressRef.current = bulkSendProgress; }, [bulkSendProgress]);
 
   const parsedEmails = isBulkMode ? parseEmails(bulkEmails) : [];
 
