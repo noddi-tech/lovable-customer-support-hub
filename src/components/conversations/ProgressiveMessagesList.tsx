@@ -18,6 +18,7 @@ import { useChatMessageNotifications } from "@/hooks/useChatMessageNotifications
 import { logger } from "@/utils/logger";
 import { useQueryClient } from "@tanstack/react-query";
 import { formatDistanceToNow } from 'date-fns';
+import { useConversationView } from "@/contexts/ConversationViewContext";
 
 interface ProgressiveMessagesListProps {
   conversationId: string;
@@ -45,6 +46,7 @@ export const ProgressiveMessagesList = forwardRef<ProgressiveMessagesListRef, Pr
   const { t } = useTranslation();
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { sendDraft, editDraft, dismissDraft } = useConversationView();
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const [shouldScrollToBottom, setShouldScrollToBottom] = useState(true);
   const [isNearTop, setIsNearTop] = useState(false);
@@ -483,6 +485,9 @@ export const ProgressiveMessagesList = forwardRef<ProgressiveMessagesListRef, Pr
                     disableAnimation={isBulkToggling}
                     onEdit={onEditMessage}
                     onDelete={onDeleteMessage}
+                    onSendDraft={sendDraft}
+                    onEditDraft={(id, content) => editDraft(id)}
+                    onDismissDraft={dismissDraft}
                   />
                 );
               })

@@ -20,7 +20,11 @@ import {
   Mail,
   AlertCircle,
   RefreshCw,
-  Calendar
+  Calendar,
+  Bot,
+  Send,
+  Pencil,
+  X
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { type EmailAttachment } from "@/utils/emailFormatting";
@@ -83,7 +87,7 @@ function formatList(list: Addr[] = [], max = 3, preferEmail = false) {
 }
 
 // Message styling based on author type - HelpScout inspired
-function getMessageStyle(authorType: 'agent' | 'customer' | 'system' = 'customer') {
+function getMessageStyle(authorType: 'agent' | 'customer' | 'system' | 'ai_draft' = 'customer') {
   if (authorType === 'agent') {
     return {
       border: 'border-l-4 border-blue-500 dark:border-blue-600',
@@ -91,6 +95,15 @@ function getMessageStyle(authorType: 'agent' | 'customer' | 'system' = 'customer
       avatarRing: 'ring-2 ring-blue-200 dark:ring-blue-800',
       label: 'You',
       labelBadge: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+    };
+  }
+  if (authorType === 'ai_draft') {
+    return {
+      border: 'border-l-4 border-dashed border-emerald-400 dark:border-emerald-500',
+      bg: 'bg-emerald-50/30 dark:bg-emerald-950/20 hover:bg-emerald-50/40',
+      avatarRing: 'ring-2 ring-emerald-300 dark:ring-emerald-700',
+      label: 'AI Draft',
+      labelBadge: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200',
     };
   }
   if (authorType === 'customer') {
@@ -140,6 +153,9 @@ interface MessageCardProps {
   onEdit?: (messageId: string, content: string) => void;
   onDelete?: (messageId: string) => void;
   onPin?: (messageId: string, pinned: boolean) => void;
+  onSendDraft?: (messageId: string) => void;
+  onEditDraft?: (messageId: string, content: string) => void;
+  onDismissDraft?: (messageId: string) => void;
 }
 
 const MessageCardComponent = ({ 
@@ -152,7 +168,10 @@ const MessageCardComponent = ({
   isPinned: propIsPinned,
   onEdit, 
   onDelete,
-  onPin
+  onPin,
+  onSendDraft,
+  onEditDraft,
+  onDismissDraft
 }: MessageCardProps) => {
   const { dateTime } = useDateFormatting();
   const { t } = useTranslation();
@@ -233,13 +252,15 @@ const MessageCardComponent = ({
   const { shown: toShown, extra: toExtra } = formatList(message.to, 3, isAgentMessage);
   const { shown: ccShown, extra: ccExtra } = formatList(message.cc ?? [], 2, isAgentMessage);
 
-  // Detect internal note and apply appropriate styling
-  const isInternalNote = message.isInternalNote || message.originalMessage?.is_internal === true;
+  // Detect internal note and AI draft
+  const isAiDraft = message.authorType === 'ai_draft';
+  const isInternalNote = !isAiDraft && (message.isInternalNote || message.originalMessage?.is_internal === true);
   const noteStyle = isInternalNote ? getNoteStyle() : null;
   
   // Get message styling based on author type (only used if not a note)
+  // AI drafts use getMessageStyle('ai_draft') — NOT noteStyle
   const messageStyle = noteStyle ? null : getMessageStyle(message.authorType);
-  const isAgent = message.authorType === 'agent';
+  const isAgent = message.authorType === 'agent' || isAiDraft;
 
   const handleEdit = () => {
     if (onEdit) {
@@ -297,7 +318,8 @@ const MessageCardComponent = ({
   };
 
   // Use defaultCollapsed during bulk operations to prevent double-render
-  const effectiveCollapsed = disableAnimation ? defaultCollapsed : isCollapsed;
+  // AI drafts are always expanded
+  const effectiveCollapsed = isAiDraft ? false : (disableAnimation ? defaultCollapsed : isCollapsed);
   
   const handleToggle = () => {
     if (!disableAnimation) {
@@ -381,10 +403,13 @@ const MessageCardComponent = ({
                 
                 {/* Author type badge with name inside - replaces separate name span */}
                 {!isInternalNote && messageStyle && (
-                  <Badge className={cn("text-xs shrink-0", messageStyle.labelBadge)}>
-                    {message.authorType === 'customer' 
-                      ? shortName(message.from.name) || message.from.email?.split('@')[0] || 'Customer'
-                      : shortName(message.from.name) || message.from.email?.split('@')[0] || 'Agent'}
+                  <Badge className={cn("text-xs shrink-0 gap-1", messageStyle.labelBadge)}>
+                    {isAiDraft && <Bot className="w-3 h-3" />}
+                    {isAiDraft 
+                      ? 'AI Draft'
+                      : message.authorType === 'customer' 
+                        ? shortName(message.from.name) || message.from.email?.split('@')[0] || 'Customer'
+                        : shortName(message.from.name) || message.from.email?.split('@')[0] || 'Agent'}
                   </Badge>
                 )}
 
@@ -490,8 +515,8 @@ const MessageCardComponent = ({
                 )}
               </Button>
               
-              {/* Message Actions */}
-              <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+              {/* Message Actions - hidden for AI drafts */}
+              {!isAiDraft && <div className="opacity-0 group-hover:opacity-100 transition-opacity">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
@@ -541,7 +566,8 @@ const MessageCardComponent = ({
                     )}
                   </DropdownMenuContent>
                 </DropdownMenu>
-              </div>
+              </div>}
+
             </div>
           </div>
         </div>
@@ -616,6 +642,38 @@ const MessageCardComponent = ({
                 >
                   <RefreshCw className="h-3 w-3" />
                   Resend Email
+                </Button>
+              </div>
+            )}
+
+            {/* AI Draft action buttons */}
+            {isAiDraft && (
+              <div className="flex items-center gap-2 mt-4 pt-3 border-t border-emerald-200 dark:border-emerald-800">
+                <Button 
+                  size="sm"
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5"
+                  onClick={() => onSendDraft?.(message.id)}
+                >
+                  <Send className="h-3.5 w-3.5" />
+                  Send
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className="gap-1.5"
+                  onClick={() => onEditDraft?.(message.id, message.originalMessage?.content || message.visibleBody)}
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                  Edit
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  className="gap-1.5 text-destructive hover:text-destructive hover:bg-destructive/10 ml-auto"
+                  onClick={() => onDismissDraft?.(message.id)}
+                >
+                  <X className="h-3.5 w-3.5" />
+                  Dismiss
                 </Button>
               </div>
             )}

@@ -157,7 +157,7 @@ export interface NormalizedMessage {
 
   // Derived fields
   direction: 'inbound' | 'outbound';
-  authorType: 'agent' | 'customer' | 'system';
+  authorType: 'agent' | 'customer' | 'system' | 'ai_draft';
   authorLabel: string; // e.g., "Agent (tom@noddi.no)" or "torstein@hyre.no"
   avatarInitial: string; // Initial for avatar display
   isInternalNote: boolean; // Whether this is an internal note (only visible to team)
@@ -397,7 +397,8 @@ export function normalizeMessage(rawMessage: any, ctx: NormalizationContext): No
     }
   }
 
-  const authorType: 'agent' | 'customer' | 'system' =
+  const authorType: 'agent' | 'customer' | 'system' | 'ai_draft' =
+    rawMessage.sender_type === 'ai_draft' ? 'ai_draft' :
     isAgent ? 'agent' : ((rawMessage.sender_type as any) ?? 'customer');
   // Use conversation fallbacks only if still missing
   // For agents: ALWAYS prefer profile data regardless of any header-derived values
@@ -440,7 +441,7 @@ export function normalizeMessage(rawMessage: any, ctx: NormalizationContext): No
   const initial = avatarParts.map(p => p[0]).join('').toUpperCase().slice(0, 3) || 'A';
   
   // Determine direction — use authorType (which includes DB sender_type) not just isAgent
-  const direction: 'inbound' | 'outbound' = (isAgent || authorType === 'agent') ? 'outbound' : 'inbound';
+  const direction: 'inbound' | 'outbound' = (isAgent || authorType === 'agent' || authorType === 'ai_draft') ? 'outbound' : 'inbound';
   
   // Extract quoted blocks
   const quotedBlocks = parsedContent.quotedBlocks;
