@@ -24,6 +24,9 @@ export interface Recipient {
   selected: boolean;
   reason?: string;
   source?: string;
+  booking_date?: string | null;
+  booking_time?: string | null;
+  booking_service?: string | null;
 }
 
 const REASON_LABELS: Record<string, string> = {
@@ -83,6 +86,7 @@ export function RecipientReview({ recipients, onToggle, onToggleAll }: Recipient
                 <TableHead>Reg. Nr.</TableHead>
                 <TableHead>Name</TableHead>
                 <TableHead>Email</TableHead>
+                <TableHead>Booking</TableHead>
                 <TableHead>Status</TableHead>
               </TableRow>
             </TableHeader>
@@ -99,6 +103,21 @@ export function RecipientReview({ recipients, onToggle, onToggleAll }: Recipient
                   <TableCell className="font-mono text-sm">{r.plate}</TableCell>
                   <TableCell>{r.name || "—"}</TableCell>
                   <TableCell className="text-sm">{r.email || "—"}</TableCell>
+                  <TableCell className="text-sm">
+                    {r.booking_date ? (
+                      <div className="space-y-0.5">
+                        <p className="font-medium">{r.booking_date}</p>
+                        {r.booking_time && (
+                          <p className="text-xs text-muted-foreground">{r.booking_time}</p>
+                        )}
+                        {r.booking_service && (
+                          <p className="text-xs text-muted-foreground">{r.booking_service}</p>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </TableCell>
                   <TableCell>
                     {r.matched ? (
                       <Tooltip>

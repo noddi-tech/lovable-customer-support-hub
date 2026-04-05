@@ -19,8 +19,78 @@ function jsonResponse(data: unknown, status = 200) {
   });
 }
 
-// Resolve a single license plate to customer info
-async function resolvePlate(plate: string, supabase: any, organizationId: string): Promise<{
+/** Extract booking details (date, time, service) from a booking object */
+function extractBookingInfo(booking: any): {
+  booking_id: number | null;
+  booking_date: string | null;
+  booking_time: string | null;
+  booking_service: string | null;
+} {
+  if (!booking) return { booking_id: null, booking_date: null, booking_time: null, booking_service: null };
+
+  const bookingId = booking.id || null;
+
+  // Extract date and time from delivery window
+  let bookingDate: string | null = null;
+  let bookingTime: string | null = null;
+
+  const startAt = booking.delivery_window_starts_at || booking.starts_at || booking.start_time || null;
+  const endAt = booking.delivery_window_ends_at || booking.ends_at || booking.end_time || null;
+
+  if (startAt) {
+    try {
+      const d = new Date(startAt);
+      bookingDate = d.toISOString().split("T")[0]; // "2026-04-10"
+      const startTime = d.toTimeString().slice(0, 5); // "08:00"
+      if (endAt) {
+        const endTime = new Date(endAt).toTimeString().slice(0, 5);
+        bookingTime = `${startTime}-${endTime}`;
+      } else {
+        bookingTime = startTime;
+      }
+    } catch (_) { /* ignore parse errors */ }
+  }
+
+  // Extract service name
+  let bookingService: string | null = null;
+  // From booking_items or service_categories
+  const items = booking.booking_items || booking.booking_items_car || [];
+  if (items.length > 0) {
+    const serviceNames: string[] = [];
+    for (const item of items) {
+      const name = item.service_category?.name || item.service?.name || item.name || item.service_name || null;
+      if (name && !serviceNames.includes(name)) serviceNames.push(name);
+    }
+    if (serviceNames.length > 0) bookingService = serviceNames.join(", ");
+  }
+  if (!bookingService) {
+    bookingService = booking.service_type || booking.service_name || null;
+  }
+
+  return { booking_id: bookingId, booking_date: bookingDate, booking_time: bookingTime, booking_service: bookingService };
+}
+
+/** Fetch nearest booking for a carId and return booking info */
+async function fetchNearestBookingForCar(carId: number): Promise<ReturnType<typeof extractBookingInfo>> {
+  try {
+    const url = `${API_BASE}/v1/bookings/?car_ids=${carId}&page_size=1&ordering=-created_at`;
+    const res = await fetch(url, { headers: noddiHeaders() });
+    if (!res.ok) {
+      await res.text();
+      return extractBookingInfo(null);
+    }
+    const data = await res.json();
+    const bookings = data?.results || (Array.isArray(data) ? data : []);
+    if (bookings.length > 0) {
+      return extractBookingInfo(bookings[0]);
+    }
+  } catch (e) {
+    console.error(`[bulk-outreach] Nearest booking fetch error for car ${carId}:`, e);
+  }
+  return extractBookingInfo(null);
+}
+
+interface ResolveResult {
   plate: string;
   name: string | null;
   email: string | null;
@@ -28,7 +98,14 @@ async function resolvePlate(plate: string, supabase: any, organizationId: string
   matched: boolean;
   reason?: string;
   source?: string;
-}> {
+  booking_id?: number | null;
+  booking_date?: string | null;
+  booking_time?: string | null;
+  booking_service?: string | null;
+}
+
+// Resolve a single license plate to customer info
+async function resolvePlate(plate: string, supabase: any, organizationId: string): Promise<ResolveResult> {
   const cleanPlate = plate.replace(/[\s-]/g, "").toUpperCase();
 
   // === Strategy 1: Local cache lookup (fast, no API calls) ===
@@ -56,24 +133,26 @@ async function resolvePlate(plate: string, supabase: any, organizationId: string
       if (directUser?.email) {
         const name = [directUser.first_name, directUser.last_name].filter(Boolean).join(" ") || directUser.name || null;
         console.log(`[bulk-outreach] ✅ Direct user on car for ${cleanPlate}: ${directUser.email}`);
-        return { plate: cleanPlate, name, email: directUser.email, phone: directUser.phone_number || directUser.phone || null, matched: true, source: "car_user" };
+        const bookingInfo = carId ? await fetchNearestBookingForCar(carId) : extractBookingInfo(null);
+        return { plate: cleanPlate, name, email: directUser.email, phone: directUser.phone_number || directUser.phone || null, matched: true, source: "car_user", ...bookingInfo };
       }
 
-      // Try user_group.users[] directly from car response (OpenAPI: CarFromLicensePlateRecord → user_group → UserGroupRecordList → users[])
+      // Try user_group.users[] directly from car response
       const ugOnCar = carData?.user_group;
       if (ugOnCar && typeof ugOnCar === "object") {
         const ugUsers = ugOnCar.users || ugOnCar.members || [];
         for (const u of ugUsers) {
-          const uObj = u?.user || u; // members[] may have { user: {...} } shape
+          const uObj = u?.user || u;
           if (uObj?.email) {
             const name = [uObj.first_name, uObj.last_name].filter(Boolean).join(" ") || uObj.name || null;
             console.log(`[bulk-outreach] ✅ Car user_group.users[] match for ${cleanPlate}: ${uObj.email}`);
-            return { plate: cleanPlate, name, email: uObj.email, phone: uObj.phone_number || uObj.phone || null, matched: true, source: "car_user_group" };
+            const bookingInfo = carId ? await fetchNearestBookingForCar(carId) : extractBookingInfo(null);
+            return { plate: cleanPlate, name, email: uObj.email, phone: uObj.phone_number || uObj.phone || null, matched: true, source: "car_user_group", ...bookingInfo };
           }
         }
       }
 
-      // Try owners_current[].user_group.users[] (OpenAPI: CarFromLicensePlateRecord → owners_current[] → CarOwnerRecord → user_group → users[])
+      // Try owners_current[].user_group.users[]
       const ownersCurrent = carData?.owners_current || [];
       for (const owner of ownersCurrent) {
         const ownerUg = owner?.user_group;
@@ -84,7 +163,8 @@ async function resolvePlate(plate: string, supabase: any, organizationId: string
             if (uObj?.email) {
               const name = [uObj.first_name, uObj.last_name].filter(Boolean).join(" ") || uObj.name || null;
               console.log(`[bulk-outreach] ✅ Car owners_current user match for ${cleanPlate}: ${uObj.email}`);
-              return { plate: cleanPlate, name, email: uObj.email, phone: uObj.phone_number || uObj.phone || null, matched: true, source: "car_user_group" };
+              const bookingInfo = carId ? await fetchNearestBookingForCar(carId) : extractBookingInfo(null);
+              return { plate: cleanPlate, name, email: uObj.email, phone: uObj.phone_number || uObj.phone || null, matched: true, source: "car_user_group", ...bookingInfo };
             }
           }
         }
@@ -94,11 +174,14 @@ async function resolvePlate(plate: string, supabase: any, organizationId: string
       const ugIds = extractUserGroupIds(carData);
       for (const ugId of ugIds) {
         const contact = await resolveFromUserGroup(ugId, cleanPlate);
-        if (contact) return { ...contact, source: "car_user_group" };
+        if (contact) {
+          const bookingInfo = carId ? await fetchNearestBookingForCar(carId) : extractBookingInfo(null);
+          return { ...contact, source: "car_user_group", ...bookingInfo };
+        }
       }
     } else {
       console.log(`[bulk-outreach] ⚠️ Car lookup failed for ${cleanPlate}: HTTP ${carRes.status}`);
-      await carRes.text(); // consume body
+      await carRes.text();
     }
   } catch (err) {
     console.error(`[bulk-outreach] Car lookup error for ${cleanPlate}:`, err);
@@ -119,7 +202,10 @@ async function resolvePlate(plate: string, supabase: any, organizationId: string
   // === Strategy 5: Local customers table metadata ===
   if (carId) {
     const localContact = await resolveFromLocalCustomers(supabase, organizationId, cleanPlate, carId);
-    if (localContact) return { ...localContact, source: "local_customers" };
+    if (localContact) {
+      const bookingInfo = await fetchNearestBookingForCar(carId);
+      return { ...localContact, source: "local_customers", ...bookingInfo };
+    }
   }
 
   console.log(`[bulk-outreach] ❌ All strategies exhausted for plate ${cleanPlate}`);
@@ -162,7 +248,6 @@ async function resolveFromUserGroup(ugId: number, plate: string): Promise<{
       const contact = extractContactFromBooking(booking, plate);
       if (contact) return contact;
     }
-    // Check members
     const members = ugData?.members || [];
     if (members[0]?.email) {
       const m = members[0];
@@ -176,9 +261,8 @@ async function resolveFromUserGroup(ugId: number, plate: string): Promise<{
 }
 
 // Search bookings via GET /v1/bookings/ with given query params
-async function resolveFromBookingSearch(plate: string, params: Record<string, string>): Promise<{
-  plate: string; name: string | null; email: string | null; phone: string | null; matched: boolean;
-} | null> {
+// Now also returns booking info when found
+async function resolveFromBookingSearch(plate: string, params: Record<string, string>): Promise<ResolveResult | null> {
   try {
     const qs = new URLSearchParams({ ...params, page_size: "10", ordering: "-created_at" });
     const url = `${API_BASE}/v1/bookings/?${qs.toString()}`;
@@ -197,11 +281,11 @@ async function resolveFromBookingSearch(plate: string, params: Record<string, st
       const contact = extractContactFromBooking(booking, plate);
       if (contact) {
         console.log(`[bulk-outreach] ✅ Found contact via booking search: ${contact.email}`);
-        return contact;
+        const bookingInfo = extractBookingInfo(booking);
+        return { ...contact, ...bookingInfo };
       }
 
       // Second-hop: /v1/bookings/ returns UserGroupRecordListMinimal (no contacts).
-      // Extract user_group.id and fetch full user group for member contacts.
       const ugId = booking?.user_group?.id || booking?.user_group_id;
       if (ugId) {
         console.log(`[bulk-outreach] 🔗 Second-hop: fetching user group ${ugId} from booking ${booking.id}`);
@@ -216,7 +300,8 @@ async function resolveFromBookingSearch(plate: string, params: Record<string, st
               if (mUser?.email) {
                 const name = [mUser.first_name, mUser.last_name].filter(Boolean).join(" ") || mUser.name || null;
                 console.log(`[bulk-outreach] ✅ Second-hop user group ${ugId} resolved: ${mUser.email}`);
-                return { plate, name, email: mUser.email, phone: mUser.phone_number || mUser.phone || null, matched: true };
+                const bookingInfo = extractBookingInfo(booking);
+                return { plate, name, email: mUser.email, phone: mUser.phone_number || mUser.phone || null, matched: true, ...bookingInfo };
               }
             }
           } else {
@@ -239,7 +324,6 @@ async function resolveFromBookingSearch(plate: string, params: Record<string, st
 function extractContactFromBooking(booking: any, plate: string): {
   plate: string; name: string | null; email: string | null; phone: string | null; matched: boolean;
 } | null {
-  // Path 1: booking.user (direct user on booking)
   const user = booking?.user;
   if (user?.email) {
     return {
@@ -250,7 +334,6 @@ function extractContactFromBooking(booking: any, plate: string): {
       matched: true,
     };
   }
-  // Path 2: booking.user_group.users[] (OpenAPI: UserGroupRecordList shape)
   const ugUsers = booking?.user_group?.users || [];
   for (const u of ugUsers) {
     const uObj = u?.user || u;
@@ -264,7 +347,6 @@ function extractContactFromBooking(booking: any, plate: string): {
       };
     }
   }
-  // Path 3: booking.user_group.members[] (alternative shape)
   const ugMembers = booking?.user_group?.members || [];
   for (const m of ugMembers) {
     const mUser = m?.user || m;
@@ -321,7 +403,7 @@ async function lookupFromCache(
   supabase: any,
   organizationId: string,
   plate: string,
-): Promise<{ plate: string; name: string | null; email: string | null; phone: string | null; matched: boolean } | null> {
+): Promise<ResolveResult | null> {
   try {
     const { data: cacheRows, error } = await supabase
       .from("noddi_customer_cache")
@@ -336,7 +418,10 @@ async function lookupFromCache(
       if (priorityBooking && plateMatchesBooking(priorityBooking, plate)) {
         const name = extractNameFromBooking(priorityBooking);
         const email = row.email || extractEmailFromBooking(priorityBooking);
-        if (email) return { plate, name, email, phone: row.phone || null, matched: true };
+        if (email) {
+          const bookingInfo = extractBookingInfo(priorityBooking);
+          return { plate, name, email, phone: row.phone || null, matched: true, ...bookingInfo };
+        }
       }
       const pendingBookings = row.cached_pending_bookings;
       if (Array.isArray(pendingBookings)) {
@@ -344,7 +429,10 @@ async function lookupFromCache(
           if (plateMatchesBooking(booking, plate)) {
             const name = extractNameFromBooking(booking);
             const email = row.email || extractEmailFromBooking(booking);
-            if (email) return { plate, name, email, phone: row.phone || null, matched: true };
+            if (email) {
+              const bookingInfo = extractBookingInfo(booking);
+              return { plate, name, email, phone: row.phone || null, matched: true, ...bookingInfo };
+            }
           }
         }
       }
@@ -357,13 +445,11 @@ async function lookupFromCache(
 }
 
 function plateMatchesBooking(booking: any, plate: string): boolean {
-  // Check booking_items_car (cache shape)
   const cars = booking?.booking_items_car || [];
   for (const car of cars) {
     const plateNum = (car?.license_plate?.number || car?.license_plate_number || "").replace(/[\s-]/g, "").toUpperCase();
     if (plateNum === plate) return true;
   }
-  // Check booking_items[].car (OpenAPI: BookingItemRecordList → car → license_plate_number)
   const items = booking?.booking_items || [];
   for (const item of items) {
     const car = item?.car;
@@ -372,13 +458,11 @@ function plateMatchesBooking(booking: any, plate: string): boolean {
       if (plateNum === plate) return true;
     }
   }
-  // Check direct car on booking
   const directCar = booking?.car;
   if (directCar) {
     const plateNum = (directCar?.license_plate_number || directCar?.license_plate?.number || "").replace(/[\s-]/g, "").toUpperCase();
     if (plateNum === plate) return true;
   }
-  // Check cars[] array
   const carsArr = booking?.cars || [];
   for (const c of carsArr) {
     const plateNum = (c?.license_plate_number || c?.license_plate?.number || "").replace(/[\s-]/g, "").toUpperCase();
@@ -449,7 +533,6 @@ Deno.serve(async (req) => {
           return jsonResponse({ error: "date required (YYYY-MM-DD)" }, 400);
         }
 
-        // Use documented API params: delivery_window_starts_at_gte/lte
         const fromDate = `${date}T00:00:00Z`;
         const toDate = `${date}T23:59:59Z`;
         const bookingsUrl = `${API_BASE}/v1/bookings/?delivery_window_starts_at_gte=${encodeURIComponent(fromDate)}&delivery_window_starts_at_lte=${encodeURIComponent(toDate)}&page_size=100&ordering=-created_at`;
@@ -472,18 +555,22 @@ Deno.serve(async (req) => {
           const members = userGroup.members || [];
           const primary = members[0] || {};
           
-          // Extract plate from various shapes
           const plateValue = car.license_plate_number || car.license_plate?.number || car.number || "Unknown";
           const email = bookingUser.email || primary.email || null;
           const name = [bookingUser.first_name, bookingUser.last_name].filter(Boolean).join(" ") || primary.name || userGroup.name || "Unknown";
           const phone = bookingUser.phone_number || primary.phone_number || null;
+
+          const bookingInfo = extractBookingInfo(booking);
 
           customers.push({
             plate: plateValue,
             name,
             email,
             phone,
-            booking_id: booking.id,
+            booking_id: bookingInfo.booking_id,
+            booking_date: bookingInfo.booking_date,
+            booking_time: bookingInfo.booking_time,
+            booking_service: bookingInfo.booking_service,
             service_type: booking.service_type || null,
             address: booking.address?.street_address || null,
             matched: !!email,
@@ -543,7 +630,12 @@ Deno.serve(async (req) => {
               continue;
             }
 
-            const personalizedMessage = message_template.replace(/\{name\}/gi, name || "Customer");
+            // Replace all template variables
+            let personalizedMessage = message_template
+              .replace(/\{name\}/gi, name || "Customer")
+              .replace(/\{booking_date\}/gi, recipient.booking_date || "")
+              .replace(/\{booking_time\}/gi, recipient.booking_time || "")
+              .replace(/\{booking_service\}/gi, recipient.booking_service || "");
 
             const { data: existingCustomer } = await supabase
               .from("customers")

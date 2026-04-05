@@ -53,6 +53,9 @@ export default function BulkOutreach() {
         selected: r.matched,
         reason: r.reason || undefined,
         source: r.source || undefined,
+        booking_date: r.booking_date || null,
+        booking_time: r.booking_time || null,
+        booking_service: r.booking_service || null,
       }));
       setRecipients((prev) => mergeRecipients(prev, results));
       toast.success(`Looked up ${plates.length} plates, found ${results.filter((r) => r.matched).length} matches`);
@@ -79,6 +82,9 @@ export default function BulkOutreach() {
         phone: b.phone,
         matched: b.matched,
         selected: b.matched,
+        booking_date: b.booking_date || null,
+        booking_time: b.booking_time || null,
+        booking_service: b.booking_service || null,
       }));
       setRecipients((prev) => mergeRecipients(prev, bookings));
       toast.success(`Found ${bookings.length} bookings for ${date}`);
@@ -109,7 +115,7 @@ export default function BulkOutreach() {
       const { data, error } = await supabase.functions.invoke("bulk-outreach", {
         body: {
           action: "send_bulk",
-          recipients: selected.map((r) => ({ email: r.email, name: r.name, plate: r.plate })),
+          recipients: selected.map((r) => ({ email: r.email, name: r.name, plate: r.plate, booking_date: r.booking_date, booking_time: r.booking_time, booking_service: r.booking_service })),
           subject,
           message_template: messageTemplate,
           inbox_id: inboxId,
