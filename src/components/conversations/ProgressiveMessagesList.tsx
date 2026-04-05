@@ -18,6 +18,7 @@ import { useChatMessageNotifications } from "@/hooks/useChatMessageNotifications
 import { logger } from "@/utils/logger";
 import { useQueryClient } from "@tanstack/react-query";
 import { formatDistanceToNow } from 'date-fns';
+import { useConversationView } from "@/contexts/ConversationViewContext";
 
 interface ProgressiveMessagesListProps {
   conversationId: string;
