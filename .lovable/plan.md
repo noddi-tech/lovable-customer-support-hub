@@ -1,55 +1,64 @@
 
 
-# Enrich Bulk Outreach Recipients via Customer Lookup
+# Fix Booking Date/Time Formatting in Review Table
 
 ## Problem
 
-The current `extractBookingInfo()` in `bulk-outreach` fails because `/v1/bookings/` returns minimal booking objects missing the fields it checks. Meanwhile, `noddi-customer-lookup` already has battle-tested extraction logic and fetches bookings from richer endpoints (`/v1/user-groups/{id}/bookings-for-customer/`).
+The booking column shows raw ISO timestamps (`2026-04-06T05:00:00Z`) and UTC times (`05:00-10:00`) instead of user-friendly, timezone-aware values (`06.04.26` and `07:00-12:00` in Oslo time).
 
-## Approach
-
-After resolving a plate to a contact (email/phone), call `noddi-customer-lookup` internally to fetch their booking data. This reuses all existing extraction logic without duplication.
+Two issues:
+1. **Edge function** returns raw ISO date and UTC-based times (uses `toTimeString()` which depends on server timezone, not user's)
+2. **Frontend** displays these raw values without any formatting or timezone conversion
 
 ## Changes
 
-### 1. Edge function: add customer-lookup enrichment step
+### 1. Frontend: format booking date/time with user's timezone
+
+**File:** `src/components/bulk-outreach/RecipientReview.tsx`
+
+- Import `useDateFormatting` hook (already used elsewhere in the app)
+- Keep `booking_date` as raw ISO from the API (it's the data source)
+- Format display using the user's timezone:
+  - Date: format as `dd.MM.yy` (e.g., "06.04.26") using `formatInTimeZone`
+  - Time: convert UTC start/end timestamps to user's local timezone, display as `HH:mm-HH:mm`
+
+To support timezone conversion of the time window, the edge function should pass the raw UTC timestamps instead of pre-formatted strings.
+
+### 2. Edge function: pass raw UTC timestamps for time window
 
 **File:** `supabase/functions/bulk-outreach/index.ts`
 
-- After `resolvePlate()` returns a matched contact with email or phone, invoke `noddi-customer-lookup` via the Supabase client to get the customer's priority booking.
-- Extract from the response:
-  - `data.booking_date_iso` → `booking_date`
-  - `data.service_title` → `booking_service`
-  - `data.priority_booking.delivery_window_starts_at` + `delivery_window_ends_at` → `booking_time` (formatted as "HH:MM-HH:MM")
-- Apply this in the `resolve_plates` action loop, after each successful resolution.
-- Remove `fetchNearestBookingForCar()` calls from each resolution path (they never worked correctly anyway).
+In `enrichWithBookingData`, instead of formatting `bookingTime` as `HH:mm-HH:mm` using server's `toTimeString()`, pass the raw ISO start/end timestamps:
+- `booking_time_start`: raw ISO string (e.g., `2026-04-06T05:00:00Z`)
+- `booking_time_end`: raw ISO string (e.g., `2026-04-06T10:00:00Z`)
+- Keep `booking_time` as a formatted fallback for the message template (formatted in Oslo time since that's the business timezone)
 
-### 2. Clean up dead code
+### 3. Frontend type update
 
-**File:** `supabase/functions/bulk-outreach/index.ts`
+**File:** `src/components/bulk-outreach/RecipientReview.tsx`
 
-- Remove `extractBookingInfo()` function (lines 22-71)
-- Remove `fetchNearestBookingForCar()` function (lines 73-91)
-- Remove all `extractBookingInfo()` and `fetchNearestBookingForCar()` calls scattered through resolution strategies
-- Keep `extractBookingInfo` only in `list_route_bookings` if still needed there, or replace it with the same customer-lookup approach
+Add to `Recipient` interface:
+- `booking_time_start?: string | null`
+- `booking_time_end?: string | null`
 
-### 3. No frontend changes needed
+### 4. Frontend: format in review table
 
-The `Recipient` type, review table, message composer, and send payload already support `booking_date`, `booking_time`, `booking_service`. Only the data source changes.
+**File:** `src/components/bulk-outreach/RecipientReview.tsx`
 
-### 4. Redeploy edge function
+In the booking cell:
+- Date: `format(new Date(r.booking_date), 'dd.MM.yy')` using `date-fns-tz` `formatInTimeZone` with user's timezone
+- Time: convert `booking_time_start`/`booking_time_end` to user timezone and display as `HH:mm-HH:mm`
+- Service: display as-is (already human-readable)
 
-## Technical flow
+### 5. Pass new fields through state
 
-```text
-Current (broken):
-  resolvePlate → matched → fetchNearestBookingForCar → extractBookingInfo (wrong field paths) → nulls
+**File:** `src/pages/BulkOutreach.tsx`
 
-Fixed:
-  resolvePlate → matched (email/phone) → invoke noddi-customer-lookup → get priority_booking with booking_date_iso, service_title → populate booking fields
-```
+Map `booking_time_start` and `booking_time_end` from edge function response into recipient state.
 
 ## Files to change
 
-- `supabase/functions/bulk-outreach/index.ts`
+- `supabase/functions/bulk-outreach/index.ts` — pass raw UTC timestamps + Oslo-formatted fallback
+- `src/components/bulk-outreach/RecipientReview.tsx` — timezone-aware formatting using `useDateFormatting`
+- `src/pages/BulkOutreach.tsx` — pass new timestamp fields through state
 
