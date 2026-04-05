@@ -128,14 +128,16 @@ export function RecipientReview({ recipients, onToggle, onToggleAll }: Recipient
                     {r.booking_date ? (
                       <div className="space-y-0.5">
                         <p className="font-medium">{formatBookingDate(r.booking_date, timezone)}</p>
-                        {r.booking_time_start && (
+                        {r.booking_time_start ? (
                           <p className="text-xs text-muted-foreground">
                             {formatTimeInTz(r.booking_time_start, timezone)}
                             {r.booking_time_end && `–${formatTimeInTz(r.booking_time_end, timezone)}`}
                           </p>
-                        )}
+                        ) : r.booking_time ? (
+                          <p className="text-xs text-muted-foreground">{r.booking_time}</p>
+                        ) : null}
                         {r.booking_service && (
-                          <p className="text-xs text-muted-foreground">{r.booking_service}</p>
+                          <p className="text-xs text-muted-foreground truncate max-w-[200px]" title={r.booking_service}>{r.booking_service}</p>
                         )}
                       </div>
                     ) : (

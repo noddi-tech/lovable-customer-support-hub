@@ -144,7 +144,7 @@ export default function BulkOutreach() {
   ];
 
   return (
-    <div className="container max-w-3xl py-8 space-y-6">
+    <div className="container max-w-5xl py-8 space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Bulk Customer Outreach</h1>
         <p className="text-muted-foreground">
