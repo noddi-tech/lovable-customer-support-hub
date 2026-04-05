@@ -1,67 +1,84 @@
 
-Goal
 
-Fix the mismatch where the lookup toast says matches were found, but the Review step still shows every row as “Not found”.
+# Add Upcoming Booking Info to Bulk Outreach
 
-Do I know what the issue is? Yes.
+## Goal
 
-What is actually broken
+Enrich each resolved recipient with their nearest upcoming (or most recent) booking details so the message template can reference booking-specific variables like `{booking_date}`, `{booking_time}`, `{booking_service}`.
 
-- The current screenshots point to a frontend state bug, not primarily an API lookup bug.
-- In `src/pages/BulkOutreach.tsx`, both `handlePlateLookup` and `handleFetchBookings` only append brand-new plates:
-  - they build `existingPlates`
-  - then filter out any incoming result whose plate already exists
-- That means if a plate was previously loaded as unmatched, a later successful re-lookup for the same plate is ignored.
-- Result:
-  - toast uses the fresh edge-function response and says “found 10 matches”
-  - Review step uses stale `recipients` state and still shows the old unmatched rows
-- Secondary UI bug: in `src/components/bulk-outreach/RecipientReview.tsx`, `allSelected` becomes `true` when there are zero matched rows because `.every()` on an empty array returns `true`.
+## What changes
 
-Plan
+### 1. Edge function: enrich resolved plates with booking data
 
-1. Replace append-only merging with upsert-by-plate
-   - In `src/pages/BulkOutreach.tsx`, create one shared merge helper that updates existing recipients by `plate` instead of skipping them.
-   - Overwrite `name`, `email`, `phone`, `matched`, `reason`, and `source` with the newest lookup result.
-   - Recompute `selected` so newly matched rows become selected, while unmatched rows are unselected.
+**File:** `supabase/functions/bulk-outreach/index.ts`
 
-2. Use the same merge logic for both lookup flows
-   - Apply the helper in:
-     - `handlePlateLookup`
-     - `handleFetchBookings`
-   - This prevents stale data whether users search by plate or by route/date.
+After resolving a plate to a contact, fetch the nearest booking for that customer. The car lookup already provides `carId`, and the booking search already runs -- we just need to capture and return booking fields from those results instead of discarding them.
 
-3. Fix the Review-step selection summary
-   - In `src/components/bulk-outreach/RecipientReview.tsx`, change `allSelected` to only be true when `matchedCount > 0` and every matched row is selected.
-   - Use `plate` as the table row key instead of the array index so row updates render reliably.
+Add to each resolved result:
+- `booking_id` (number or null)
+- `booking_date` (string or null, e.g. "2026-04-10")
+- `booking_time` (string or null, e.g. "08:00-12:00")
+- `booking_service` (string or null, e.g. "Dekkskift")
+- `booking_status` (string or null)
 
-4. Improve the copy so it matches reality
-   - Change “11 customers loaded” to wording that does not imply all were resolved, e.g. “11 plates loaded”.
-   - Optionally show both total and matched counts before the user clicks Next.
+Sources (in priority order):
+1. Already-fetched bookings from `resolveFromBookingSearch` -- extract date/service from the booking that matched
+2. If contact was resolved from car user_group directly (no booking searched yet), do one quick `GET /v1/bookings/?car_ids={carId}&page_size=1&ordering=-created_at` to grab the nearest booking
+3. Cache hits: extract from `cached_priority_booking`
 
-5. Verify the stale-state scenario
-   - Re-run the same 11 plates that previously showed `Not found`.
-   - Expected:
-     - toast count and Review count match
-     - updated rows now show names/emails
-     - only truly unresolved plates remain `Not found`
+### 2. Frontend: extend Recipient type with booking fields
 
-Files to update
+**File:** `src/components/bulk-outreach/RecipientReview.tsx`
 
-- `src/pages/BulkOutreach.tsx`
-- `src/components/bulk-outreach/RecipientReview.tsx`
+Add optional fields to `Recipient` interface:
+- `booking_date?: string`
+- `booking_time?: string`  
+- `booking_service?: string`
 
-Technical detail
+Show booking info in the review table as a new column or as a subtitle under the name.
+
+### 3. Frontend: pass booking data through state
+
+**File:** `src/pages/BulkOutreach.tsx`
+
+Map the new fields from the edge function response into the `Recipient` objects so they flow through to the review and send steps.
+
+### 4. Message composer: add booking template variables
+
+**File:** `src/components/bulk-outreach/MessageComposer.tsx`
+
+- Add badges for `{booking_date}`, `{booking_time}`, `{booking_service}` alongside the existing `{name}` hint
+- Update the preview to replace these variables with sample values
+
+### 5. Edge function: replace booking variables on send
+
+**File:** `supabase/functions/bulk-outreach/index.ts` (in `send_bulk` action)
+
+Extend the personalization at line 546 to also replace `{booking_date}`, `{booking_time}`, `{booking_service}` from the recipient data passed by the frontend. The `send_bulk` recipients array will now include these fields.
+
+### 6. Frontend: pass booking fields in send payload
+
+**File:** `src/pages/BulkOutreach.tsx`
+
+In `handleSend`, include `booking_date`, `booking_time`, `booking_service` in each recipient object sent to the edge function.
+
+## Technical detail
 
 ```text
-Current:
-edge function returns fresh matches
-toast reads fresh response
-state merge drops duplicate plates
-review table reads old recipient objects
+Current flow:
+  resolve plate → return { plate, name, email, phone, matched }
+  send_bulk → replace {name} only
 
-Fixed:
-edge function returns fresh matches
-client upserts rows by plate
-review table reads updated recipient objects
-toast + review stay in sync
+New flow:
+  resolve plate → also capture nearest booking → return { ..., booking_date, booking_time, booking_service }
+  send_bulk → replace {name}, {booking_date}, {booking_time}, {booking_service}
 ```
+
+## Files to change
+
+- `supabase/functions/bulk-outreach/index.ts` -- enrich resolve + expand send personalization
+- `src/components/bulk-outreach/RecipientReview.tsx` -- extend Recipient type, show booking column
+- `src/pages/BulkOutreach.tsx` -- pass booking fields through state and send payload
+- `src/components/bulk-outreach/MessageComposer.tsx` -- add variable hints and preview
+- Redeploy edge function
+
