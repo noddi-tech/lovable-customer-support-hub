@@ -671,12 +671,28 @@ Deno.serve(async (req) => {
               continue;
             }
 
+            // Format booking date from ISO to dd.mm.yy in Oslo timezone
+            const formattedBookingDate = recipient.booking_date
+              ? (() => {
+                  try {
+                    const d = new Date(recipient.booking_date);
+                    return d.toLocaleDateString("nb-NO", {
+                      day: "2-digit", month: "2-digit", year: "2-digit",
+                      timeZone: "Europe/Oslo",
+                    });
+                  } catch { return recipient.booking_date; }
+                })()
+              : "";
+
             // Replace all template variables
             let personalizedMessage = message_template
               .replace(/\{name\}/gi, name || "Customer")
-              .replace(/\{booking_date\}/gi, recipient.booking_date || "")
+              .replace(/\{booking_date\}/gi, formattedBookingDate)
               .replace(/\{booking_time\}/gi, recipient.booking_time || "")
               .replace(/\{booking_service\}/gi, recipient.booking_service || "");
+
+            // Convert newlines to <br> for HTML email rendering
+            personalizedMessage = personalizedMessage.replace(/\n/g, "<br>");
 
             const { data: existingCustomer } = await supabase
               .from("customers")
