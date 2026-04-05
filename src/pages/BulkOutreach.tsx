@@ -53,6 +53,9 @@ export default function BulkOutreach() {
         selected: r.matched,
         reason: r.reason || undefined,
         source: r.source || undefined,
+        booking_date: r.booking_date || null,
+        booking_time: r.booking_time || null,
+        booking_service: r.booking_service || null,
       }));
       setRecipients((prev) => mergeRecipients(prev, results));
       toast.success(`Looked up ${plates.length} plates, found ${results.filter((r) => r.matched).length} matches`);
