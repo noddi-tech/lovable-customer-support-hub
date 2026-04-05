@@ -318,7 +318,8 @@ const MessageCardComponent = ({
   };
 
   // Use defaultCollapsed during bulk operations to prevent double-render
-  const effectiveCollapsed = disableAnimation ? defaultCollapsed : isCollapsed;
+  // AI drafts are always expanded
+  const effectiveCollapsed = isAiDraft ? false : (disableAnimation ? defaultCollapsed : isCollapsed);
   
   const handleToggle = () => {
     if (!disableAnimation) {
