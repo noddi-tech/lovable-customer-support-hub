@@ -549,7 +549,6 @@ export const NewConversationDialog: React.FC<NewConversationDialogProps> = ({ ch
       inboxId: selectedInboxId,
       priority
     });
-    });
   };
 
   return (
