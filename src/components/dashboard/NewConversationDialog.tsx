@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -78,6 +78,8 @@ export const NewConversationDialog: React.FC<NewConversationDialogProps> = ({ ch
   const [isBulkMode, setIsBulkMode] = useState(false);
   const [bulkEmails, setBulkEmails] = useState('');
   const [bulkSendProgress, setBulkSendProgress] = useState<{ current: number; total: number; failed: number } | null>(null);
+  const bulkSendProgressRef = useRef(bulkSendProgress);
+  useEffect(() => { bulkSendProgressRef.current = bulkSendProgress; }, [bulkSendProgress]);
 
   const parsedEmails = isBulkMode ? parseEmails(bulkEmails) : [];
 
@@ -284,6 +286,9 @@ export const NewConversationDialog: React.FC<NewConversationDialogProps> = ({ ch
       return conversation;
     },
     onSuccess: (conversation) => {
+      // Skip per-message handling during bulk send — bulk handler manages completion
+      if (bulkSendProgressRef.current) return;
+
       toast.success('Conversation created successfully');
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
       queryClient.invalidateQueries({ queryKey: ['conversation-counts'] });
@@ -303,6 +308,9 @@ export const NewConversationDialog: React.FC<NewConversationDialogProps> = ({ ch
       navigate(`${basePath}?inbox=${currentInbox}&c=${conversation.id}`);
     },
     onError: (error) => {
+      // Skip per-message handling during bulk send — bulk handler tracks failures
+      if (bulkSendProgressRef.current) return;
+
       console.error('Error creating conversation:', error);
       
       // Clean up any timeouts on error
