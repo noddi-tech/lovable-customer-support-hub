@@ -26,6 +26,8 @@ export interface Recipient {
   source?: string;
   booking_date?: string | null;
   booking_time?: string | null;
+  booking_time_start?: string | null;
+  booking_time_end?: string | null;
   booking_service?: string | null;
 }
 
