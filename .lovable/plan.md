@@ -1,50 +1,53 @@
 
 
-# Show Time Slot + Service in Booking Column & Widen Card
+# Fix Booking Date Formatting in Emails & Preserve Line Breaks
 
-## Problem
+## Problems
 
-The booking column in the review table is not displaying the time slot or service name, even though the edge function returns this data. Additionally, the card uses `max-w-3xl` (768px) which is too narrow for a 6-column table.
+1. **Raw ISO date in sent emails**: The `{booking_date}` variable is replaced with `2026-04-06T05:00:00Z` instead of `06.04.26`. The edge function's `send_bulk` action does a straight string replacement with the raw ISO value from the recipient object.
 
-## Root Cause
-
-Based on the edge function logs, booking data IS being returned correctly (e.g., `time=05:00-15:00, service=Fornyelse dekkhotell med hjemlevert dekkskift`). The frontend code in RecipientReview.tsx already has rendering logic for time and service. Two likely causes:
-
-1. **Edge function may need redeployment** — the latest code with `booking_time_start`/`booking_time_end` fields might not be deployed yet
-2. **Fallback display needed** — if `booking_time_start` is null but `booking_time` (the formatted string) exists, nothing renders. The component should fall back to displaying `booking_time` directly.
+2. **Line breaks lost**: The textarea produces `\n` characters which are passed as `message_template` to the edge function. The `send-reply-email` function does `.replace(/\n/g, '<br>')` on the stored content — but only on the `message.content` field read from the DB. The bulk outreach stores the personalized message directly, so `\n` should survive. However, if the content is being treated as HTML somewhere in the chain, newlines may be collapsed. We need to ensure `\n` → `<br>` conversion happens before storing the message content in the `send_bulk` action.
 
 ## Changes
 
-### 1. Redeploy edge function
-Ensure the latest `enrichWithBookingData` code (with `booking_time_start`, `booking_time_end`, and `booking_service` fields) is deployed.
+### 1. Format template variables before substitution
 
-### 2. Add fallback time display in RecipientReview.tsx
+**File:** `supabase/functions/bulk-outreach/index.ts`
 
-**File:** `src/components/bulk-outreach/RecipientReview.tsx`
+In the `send_bulk` case (around line 675-679), format the booking values before substitution:
 
-In the booking cell, if `booking_time_start` is not available, fall back to displaying `booking_time` (the pre-formatted Oslo-time string). This handles cases where the edge function returns the formatted time but not the raw timestamps:
+- `booking_date`: Convert from ISO to `dd.MM.yy` in `Europe/Oslo` timezone using `toLocaleDateString("nb-NO", { day: "2-digit", month: "2-digit", year: "2-digit", timeZone: "Europe/Oslo" })`
+- `booking_time`: Already formatted in Oslo time by `enrichWithBookingData` — no change needed
+- `booking_service`: Already human-readable — no change needed
 
+Add a helper function:
+```typescript
+function formatBookingDateForEmail(isoDate: string): string {
+  try {
+    const d = new Date(isoDate);
+    return d.toLocaleDateString("nb-NO", {
+      day: "2-digit", month: "2-digit", year: "2-digit",
+      timeZone: "Europe/Oslo"
+    });
+  } catch { return isoDate; }
+}
 ```
-{r.booking_time_start ? (
-  <p>formatted start-end in user tz</p>
-) : r.booking_time ? (
-  <p>{r.booking_time}</p>
-) : null}
+
+### 2. Convert newlines to `<br>` before storing
+
+**File:** `supabase/functions/bulk-outreach/index.ts`
+
+After template variable replacement (line ~679), convert `\n` to `<br>` so the email renders with proper line breaks:
+
+```typescript
+personalizedMessage = personalizedMessage.replace(/\n/g, '<br>');
 ```
 
-### 3. Widen the container
+This ensures the content stored in the DB is already HTML-formatted, and `send-reply-email`'s own `\n` → `<br>` conversion becomes a no-op (no remaining `\n` to convert).
 
-**File:** `src/pages/BulkOutreach.tsx`
-
-Change `max-w-3xl` to `max-w-5xl` (1024px) to give the table more breathing room for 6 columns.
-
-### 4. Ensure service always shows
-
-Currently `booking_service` only renders inside the `r.booking_date ?` block. If somehow date is missing but service exists, it won't show. Keep this as-is since service without a date is unlikely, but ensure the service line renders when present.
+### 3. Redeploy edge function
 
 ## Files to change
 
-- `supabase/functions/bulk-outreach/index.ts` — redeploy (no code changes needed, just deploy)
-- `src/components/bulk-outreach/RecipientReview.tsx` — add fallback for `booking_time`
-- `src/pages/BulkOutreach.tsx` — widen container from `max-w-3xl` to `max-w-5xl`
+- `supabase/functions/bulk-outreach/index.ts` — format date + convert newlines
 
