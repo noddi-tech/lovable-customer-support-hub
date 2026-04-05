@@ -1,53 +1,70 @@
 
 
-# Fix Booking Date Formatting in Emails & Preserve Line Breaks
+# AI Email Draft — Frontend Implementation
 
-## Problems
+## Overview
 
-1. **Raw ISO date in sent emails**: The `{booking_date}` variable is replaced with `2026-04-06T05:00:00Z` instead of `06.04.26`. The edge function's `send_bulk` action does a straight string replacement with the raw ISO value from the recipient object.
-
-2. **Line breaks lost**: The textarea produces `\n` characters which are passed as `message_template` to the edge function. The `send-reply-email` function does `.replace(/\n/g, '<br>')` on the stored content — but only on the `message.content` field read from the DB. The bulk outreach stores the personalized message directly, so `\n` should survive. However, if the content is being treated as HTML somewhere in the chain, newlines may be collapsed. We need to ensure `\n` → `<br>` conversion happens before storing the message content in the `send_bulk` action.
+Add visual distinction and action buttons for AI-generated draft replies (`sender_type = 'ai_draft'`) that already appear in the conversation via Realtime. Four files need changes.
 
 ## Changes
 
-### 1. Format template variables before substitution
+### 1. `src/lib/normalizeMessage.ts` — Recognize AI drafts
 
-**File:** `supabase/functions/bulk-outreach/index.ts`
+- Expand `authorType` type to include `'ai_draft'`
+- If `rawMessage.sender_type === 'ai_draft'`, set `authorType = 'ai_draft'`
+- Treat `ai_draft` as `'outbound'` direction
+- Update `NormalizedMessage` interface accordingly
 
-In the `send_bulk` case (around line 675-679), format the booking values before substitution:
+### 2. `src/components/conversations/MessageCard.tsx` — AI draft styling + action buttons
 
-- `booking_date`: Convert from ISO to `dd.MM.yy` in `Europe/Oslo` timezone using `toLocaleDateString("nb-NO", { day: "2-digit", month: "2-digit", year: "2-digit", timeZone: "Europe/Oslo" })`
-- `booking_time`: Already formatted in Oslo time by `enrichWithBookingData` — no change needed
-- `booking_service`: Already human-readable — no change needed
+**Styling:** emerald green, dashed border, Bot icon badge:
+- `border-l-4 border-dashed border-emerald-400`, `bg-emerald-50/30`
+- "AI Draft" badge with Bot icon in header
 
-Add a helper function:
-```typescript
-function formatBookingDateForEmail(isoDate: string): string {
-  try {
-    const d = new Date(isoDate);
-    return d.toLocaleDateString("nb-NO", {
-      day: "2-digit", month: "2-digit", year: "2-digit",
-      timeZone: "Europe/Oslo"
-    });
-  } catch { return isoDate; }
-}
-```
+**Props** — add three optional callbacks:
+- `onSendDraft?: (messageId: string) => void`
+- `onEditDraft?: (messageId: string, content: string) => void`
+- `onDismissDraft?: (messageId: string) => void`
 
-### 2. Convert newlines to `<br>` before storing
+**Action buttons** at bottom of draft cards:
+- **Send** (emerald primary) → `onSendDraft`
+- **Edit** (outline) → `onEditDraft` with content
+- **Dismiss** (ghost, red) → `onDismissDraft`
 
-**File:** `supabase/functions/bulk-outreach/index.ts`
+AI drafts always render expanded. Hide normal dropdown menu actions for drafts.
 
-After template variable replacement (line ~679), convert `\n` to `<br>` so the email renders with proper line breaks:
+### 3. `src/contexts/ConversationViewContext.tsx` — Draft action methods
 
-```typescript
-personalizedMessage = personalizedMessage.replace(/\n/g, '<br>');
-```
+**`sendDraft(messageId)`:**
+1. Read draft content from messages state
+2. Call the existing `sendReply()` flow with the draft content — do NOT create a parallel send path via raw insert. "Send" on an AI draft must behave identically to an agent manually typing and sending the same text.
+3. Delete the draft from DB
+4. Track in `response_tracking` with `response_source='ai_draft'`, `was_edited=false`
 
-This ensures the content stored in the DB is already HTML-formatted, and `send-reply-email`'s own `\n` → `<br>` conversion becomes a no-op (no remaining `\n` to convert).
+**`editDraft(messageId)`:**
+1. Pre-fill reply composer with draft content (dispatch SET_REPLY_TEXT + SET_SHOW_REPLY_AREA)
+2. Delete/hide the draft from DB
+3. Set state to track origin for `response_tracking` with `was_edited=true`
 
-### 3. Redeploy edge function
+**`dismissDraft(messageId)`:**
+1. Delete draft from DB
+2. Invalidate message queries
+
+### 4. `src/components/conversations/ProgressiveMessagesList.tsx` — Wire callbacks
+
+- Import `useConversationView` to get `sendDraft`, `editDraft`, `dismissDraft`
+- Pass as props to `MessageCard` instances
+
+## Edge cases
+
+- If no `ai_draft` message exists in a conversation, everything renders normally — no empty states or placeholder UI needed
+- If the draft generation is slow (5-10s after email arrives), the draft will simply pop in via Realtime when ready
+- If the agent has already started typing a reply before the draft appears, don't interrupt their work — the draft just appears above as an option they can use or ignore
 
 ## Files to change
 
-- `supabase/functions/bulk-outreach/index.ts` — format date + convert newlines
+- `src/lib/normalizeMessage.ts`
+- `src/components/conversations/MessageCard.tsx`
+- `src/contexts/ConversationViewContext.tsx`
+- `src/components/conversations/ProgressiveMessagesList.tsx`
 
