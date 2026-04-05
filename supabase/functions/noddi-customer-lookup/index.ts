@@ -1555,7 +1555,20 @@ Deno.serve(async (req) => {
       },
       priority_booking: g.bookings_summary?.priority_booking || null,
       membership_programs: g.membership_programs || [],
-      coupons: g.coupons || [],
+      coupons: (() => {
+        const raw = g.coupons || [];
+        if (raw.length > 0) console.log(`Coupons for group ${g.id}:`, JSON.stringify(raw.slice(0, 2)));
+        return raw.map((c: any) => ({
+          id: c.id,
+          code: c.coupon_code || c.code || c.name || null,
+          description: c.description || c.name || c.coupon_code || null,
+          is_active: c.is_active ?? c.active ?? true,
+          value: c.value || c.discount_value || c.amount || null,
+          discount_type: c.discount_type || c.type || null,
+          valid_from: c.valid_from || null,
+          valid_to: c.valid_to || null,
+        }));
+      })(),
     }));
 
     // Step 8: Enrich tags if empty (optional, the new API might already include them)
