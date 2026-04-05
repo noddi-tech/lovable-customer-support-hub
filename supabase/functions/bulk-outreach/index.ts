@@ -198,8 +198,7 @@ async function resolvePlate(plate: string, supabase: any, organizationId: string
             if (uObj?.email) {
               const name = [uObj.first_name, uObj.last_name].filter(Boolean).join(" ") || uObj.name || null;
               console.log(`[bulk-outreach] ✅ Car owners_current user match for ${cleanPlate}: ${uObj.email}`);
-              const bookingInfo = carId ? await fetchNearestBookingForCar(carId) : extractBookingInfo(null);
-              return { plate: cleanPlate, name, email: uObj.email, phone: uObj.phone_number || uObj.phone || null, matched: true, source: "car_user_group", ...bookingInfo };
+              return { plate: cleanPlate, name, email: uObj.email, phone: uObj.phone_number || uObj.phone || null, matched: true, source: "car_user_group" };
             }
           }
         }
