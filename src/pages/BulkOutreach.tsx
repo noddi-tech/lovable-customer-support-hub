@@ -115,7 +115,7 @@ export default function BulkOutreach() {
       const { data, error } = await supabase.functions.invoke("bulk-outreach", {
         body: {
           action: "send_bulk",
-          recipients: selected.map((r) => ({ email: r.email, name: r.name, plate: r.plate })),
+          recipients: selected.map((r) => ({ email: r.email, name: r.name, plate: r.plate, booking_date: r.booking_date, booking_time: r.booking_time, booking_service: r.booking_service })),
           subject,
           message_template: messageTemplate,
           inbox_id: inboxId,

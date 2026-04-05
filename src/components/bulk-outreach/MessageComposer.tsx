@@ -42,6 +42,12 @@ export function MessageComposer({
     },
   });
 
+  const previewMessage = messageTemplate
+    .replace(/\{name\}/gi, "Ola Nordmann")
+    .replace(/\{booking_date\}/gi, "2026-04-10")
+    .replace(/\{booking_time\}/gi, "08:00-12:00")
+    .replace(/\{booking_service\}/gi, "Dekkskift");
+
   return (
     <div className="space-y-4">
       <div className="space-y-2">
@@ -73,13 +79,16 @@ export function MessageComposer({
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <Label htmlFor="message">Message Body</Label>
-          <Badge variant="secondary" className="text-xs">
-            Use {"{name}"} for personalization
-          </Badge>
+          <div className="flex flex-wrap gap-1">
+            <Badge variant="secondary" className="text-xs">{"{name}"}</Badge>
+            <Badge variant="secondary" className="text-xs">{"{booking_date}"}</Badge>
+            <Badge variant="secondary" className="text-xs">{"{booking_time}"}</Badge>
+            <Badge variant="secondary" className="text-xs">{"{booking_service}"}</Badge>
+          </div>
         </div>
         <Textarea
           id="message"
-          placeholder={`Hi {name},\n\nWe regret to inform you that...`}
+          placeholder={`Hi {name},\n\nThis is regarding your booking on {booking_date} ({booking_service}).\n\nWe wanted to let you know that...`}
           value={messageTemplate}
           onChange={(e) => onMessageChange(e.target.value)}
           rows={8}
@@ -89,9 +98,7 @@ export function MessageComposer({
       {messageTemplate && (
         <div className="rounded-md border bg-muted/50 p-4">
           <p className="text-xs font-medium text-muted-foreground mb-2">Preview (first recipient):</p>
-          <p className="text-sm whitespace-pre-wrap">
-            {messageTemplate.replace(/\{name\}/gi, "Ola Nordmann")}
-          </p>
+          <p className="text-sm whitespace-pre-wrap">{previewMessage}</p>
         </div>
       )}
     </div>
