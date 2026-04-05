@@ -403,10 +403,13 @@ const MessageCardComponent = ({
                 
                 {/* Author type badge with name inside - replaces separate name span */}
                 {!isInternalNote && messageStyle && (
-                  <Badge className={cn("text-xs shrink-0", messageStyle.labelBadge)}>
-                    {message.authorType === 'customer' 
-                      ? shortName(message.from.name) || message.from.email?.split('@')[0] || 'Customer'
-                      : shortName(message.from.name) || message.from.email?.split('@')[0] || 'Agent'}
+                  <Badge className={cn("text-xs shrink-0 gap-1", messageStyle.labelBadge)}>
+                    {isAiDraft && <Bot className="w-3 h-3" />}
+                    {isAiDraft 
+                      ? 'AI Draft'
+                      : message.authorType === 'customer' 
+                        ? shortName(message.from.name) || message.from.email?.split('@')[0] || 'Customer'
+                        : shortName(message.from.name) || message.from.email?.split('@')[0] || 'Agent'}
                   </Badge>
                 )}
 
