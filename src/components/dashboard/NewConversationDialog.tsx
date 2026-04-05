@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -8,7 +8,10 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Plus, Mail, User, MessageSquare, Sparkles, Languages, Loader2, FileText } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Progress } from '@/components/ui/progress';
+import { Plus, Mail, User, Users, MessageSquare, Sparkles, Languages, Loader2, FileText } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -50,6 +53,13 @@ interface Customer {
   };
 }
 
+function parseEmails(raw: string): string[] {
+  return raw.split(/[\n,;]+/)
+    .map(e => e.trim().toLowerCase())
+    .filter(e => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e))
+    .filter((e, i, a) => a.indexOf(e) === i);
+}
+
 export const NewConversationDialog: React.FC<NewConversationDialogProps> = ({ children }) => {
   const [open, setOpen] = useState(false);
   const [customerEmail, setCustomerEmail] = useState('');
@@ -63,6 +73,13 @@ export const NewConversationDialog: React.FC<NewConversationDialogProps> = ({ ch
   const { profile } = useAuth();
   const { t } = useTranslation();
   const sendingTimeouts = useRef<Map<string, NodeJS.Timeout>>(new Map());
+
+  // Bulk mode state
+  const [isBulkMode, setIsBulkMode] = useState(false);
+  const [bulkEmails, setBulkEmails] = useState('');
+  const [bulkSendProgress, setBulkSendProgress] = useState<{ current: number; total: number; failed: number } | null>(null);
+
+  const parsedEmails = isBulkMode ? parseEmails(bulkEmails) : [];
 
   // AI and Translation features
   const [aiSuggestions, setAiSuggestions] = useState<string[]>([]);
@@ -306,6 +323,9 @@ export const NewConversationDialog: React.FC<NewConversationDialogProps> = ({ ch
     setAiSuggestions([]);
     setSelectedSuggestion(null);
     setShowAiDialog(false);
+    setIsBulkMode(false);
+    setBulkEmails('');
+    setBulkSendProgress(null);
     
     // Clean up any timeouts
     sendingTimeouts.current.forEach((timeout) => clearTimeout(timeout));
@@ -448,9 +468,69 @@ export const NewConversationDialog: React.FC<NewConversationDialogProps> = ({ ch
     { code: 'es', name: 'Spanish' },
   ];
 
+  // Bulk send handler
+  const handleBulkSend = useCallback(async () => {
+    if (!subject.trim() || !selectedInboxId || parsedEmails.length === 0) {
+      toast.error('Subject, inbox, and at least one valid email are required');
+      return;
+    }
+
+    setBulkSendProgress({ current: 0, total: parsedEmails.length, failed: 0 });
+    let failed = 0;
+
+    for (let i = 0; i < parsedEmails.length; i++) {
+      const email = parsedEmails[i];
+      const personalizedMessage = initialMessage.trim().replace(/\{email\}/gi, email);
+
+      try {
+        await createConversationMutation.mutateAsync({
+          customerEmail: email,
+          customerName: email.split('@')[0],
+          subject: subject.trim(),
+          initialMessage: personalizedMessage,
+          inboxId: selectedInboxId,
+          priority
+        });
+      } catch (error) {
+        console.error(`Failed to send to ${email}:`, error);
+        failed++;
+      }
+
+      setBulkSendProgress({ current: i + 1, total: parsedEmails.length, failed });
+    }
+
+    // Show summary
+    const sent = parsedEmails.length - failed;
+    if (failed === 0) {
+      toast.success(`Successfully sent ${sent} emails`);
+    } else {
+      toast.warning(`Sent ${sent} emails, ${failed} failed`);
+    }
+
+    queryClient.invalidateQueries({ queryKey: ['conversations'] });
+    queryClient.invalidateQueries({ queryKey: ['conversation-counts'] });
+
+    setBulkSendProgress(null);
+    setOpen(false);
+    resetForm();
+
+    // Navigate to inbox
+    const currentParams = new URLSearchParams(window.location.search);
+    const currentInbox = currentParams.get('inbox') || selectedInboxId;
+    const basePath = window.location.pathname.includes('/interactions')
+      ? window.location.pathname
+      : '/interactions/text/open';
+    navigate(`${basePath}?inbox=${currentInbox}`);
+  }, [parsedEmails, subject, selectedInboxId, initialMessage, priority, createConversationMutation, queryClient, navigate, resetForm]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (isBulkMode) {
+      handleBulkSend();
+      return;
+    }
+
     if (!customerEmail.trim() || !subject.trim()) {
       toast.error('Customer email and subject are required');
       return;
@@ -488,39 +568,72 @@ export const NewConversationDialog: React.FC<NewConversationDialogProps> = ({ ch
           {/* Customer Information */}
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="flex items-center space-x-2 text-base">
-                <User className="h-4 w-4" />
-                <span>{t('conversation.customerInformation')}</span>
+              <CardTitle className="flex items-center justify-between text-base">
+                <div className="flex items-center space-x-2">
+                  {isBulkMode ? <Users className="h-4 w-4" /> : <User className="h-4 w-4" />}
+                  <span>{isBulkMode ? 'Recipients' : t('conversation.customerInformation')}</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Label htmlFor="bulk-mode" className="text-xs font-normal text-muted-foreground cursor-pointer">
+                    Send to multiple
+                  </Label>
+                  <Switch
+                    id="bulk-mode"
+                    checked={isBulkMode}
+                    onCheckedChange={setIsBulkMode}
+                    disabled={!!bulkSendProgress}
+                  />
+                </div>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              {isBulkMode ? (
                 <div className="space-y-2">
-                  <Label htmlFor="customer-email">{t('conversation.emailAddress')} *</Label>
-                  <Input
-                    id="customer-email"
-                    type="email"
-                    placeholder="customer@example.com"
-                    value={customerEmail}
-                    onChange={(e) => setCustomerEmail(e.target.value)}
-                    required
+                  <Label htmlFor="bulk-emails">Email addresses (one per line, or comma/semicolon separated)</Label>
+                  <Textarea
+                    id="bulk-emails"
+                    placeholder={"customer1@example.com\ncustomer2@example.com\ncustomer3@example.com"}
+                    value={bulkEmails}
+                    onChange={(e) => setBulkEmails(e.target.value)}
+                    className="min-h-[100px] resize-none font-mono text-sm"
+                    emojiAutocomplete={false}
+                    disabled={!!bulkSendProgress}
                   />
+                  {bulkEmails.trim() && (
+                    <Badge variant="secondary" className="text-xs">
+                      {parsedEmails.length} valid {parsedEmails.length === 1 ? 'email' : 'emails'} detected
+                    </Badge>
+                  )}
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="customer-name">{t('conversation.customerName')}</Label>
-                  <Input
-                    id="customer-name"
-                    placeholder={t('conversation.customerName')}
-                    value={customerName}
-                    onChange={(e) => setCustomerName(e.target.value)}
-                  />
+              ) : (
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="customer-email">{t('conversation.emailAddress')} *</Label>
+                    <Input
+                      id="customer-email"
+                      type="email"
+                      placeholder="customer@example.com"
+                      value={customerEmail}
+                      onChange={(e) => setCustomerEmail(e.target.value)}
+                      required={!isBulkMode}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="customer-name">{t('conversation.customerName')}</Label>
+                    <Input
+                      id="customer-name"
+                      placeholder={t('conversation.customerName')}
+                      value={customerName}
+                      onChange={(e) => setCustomerName(e.target.value)}
+                    />
+                  </div>
                 </div>
-              </div>
+              )}
             </CardContent>
           </Card>
 
-          {/* Noddi Customer Search */}
-          {profile?.organization_id && (
+          {/* Noddi Customer Search - only in single mode */}
+          {!isBulkMode && profile?.organization_id && (
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center space-x-2 text-base">
@@ -556,13 +669,14 @@ export const NewConversationDialog: React.FC<NewConversationDialogProps> = ({ ch
                   value={subject}
                   onChange={(e) => setSubject(e.target.value)}
                   required
+                  disabled={!!bulkSendProgress}
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="inbox">{t('conversation.inbox')}</Label>
-                  <Select value={selectedInboxId} onValueChange={setSelectedInboxId}>
+                  <Select value={selectedInboxId} onValueChange={setSelectedInboxId} disabled={!!bulkSendProgress}>
                     <SelectTrigger>
                       <SelectValue placeholder={t('conversation.selectInbox')} />
                     </SelectTrigger>
@@ -585,7 +699,7 @@ export const NewConversationDialog: React.FC<NewConversationDialogProps> = ({ ch
 
                 <div className="space-y-2">
                   <Label htmlFor="priority">{t('conversation.priority')}</Label>
-                  <Select value={priority} onValueChange={setPriority}>
+                  <Select value={priority} onValueChange={setPriority} disabled={!!bulkSendProgress}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -601,7 +715,14 @@ export const NewConversationDialog: React.FC<NewConversationDialogProps> = ({ ch
 
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="initial-message">{t('conversation.initialMessage')}</Label>
+                  <Label htmlFor="initial-message">
+                    {t('conversation.initialMessage')}
+                    {isBulkMode && (
+                      <span className="text-xs text-muted-foreground ml-2">
+                        (use {'{email}'} for recipient's email)
+                      </span>
+                    )}
+                  </Label>
                   
                   {/* Editor Toolbar */}
                   <div className="flex items-center gap-1">
@@ -720,6 +841,7 @@ export const NewConversationDialog: React.FC<NewConversationDialogProps> = ({ ch
                   value={initialMessage}
                   onChange={(e) => setInitialMessage(e.target.value)}
                   className="min-h-[120px] resize-none"
+                  disabled={!!bulkSendProgress}
                 />
                 <p className="text-xs text-muted-foreground">
                   {t('conversation.initialMessageNote')}
@@ -727,6 +849,26 @@ export const NewConversationDialog: React.FC<NewConversationDialogProps> = ({ ch
               </div>
             </CardContent>
           </Card>
+
+          {/* Bulk Send Progress */}
+          {bulkSendProgress && (
+            <Card>
+              <CardContent className="py-4">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="flex items-center gap-2">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Sending {bulkSendProgress.current}/{bulkSendProgress.total}...
+                    </span>
+                    {bulkSendProgress.failed > 0 && (
+                      <span className="text-destructive text-xs">{bulkSendProgress.failed} failed</span>
+                    )}
+                  </div>
+                  <Progress value={(bulkSendProgress.current / bulkSendProgress.total) * 100} className="h-2" />
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           <Separator />
 
@@ -736,15 +878,26 @@ export const NewConversationDialog: React.FC<NewConversationDialogProps> = ({ ch
               type="button" 
               variant="outline" 
               onClick={() => setOpen(false)}
-              disabled={createConversationMutation.isPending}
+              disabled={createConversationMutation.isPending || !!bulkSendProgress}
             >
               {t('conversation.cancel')}
             </Button>
             <Button 
               type="submit"
-              disabled={createConversationMutation.isPending}
+              disabled={createConversationMutation.isPending || !!bulkSendProgress || (isBulkMode && parsedEmails.length === 0)}
             >
-              {createConversationMutation.isPending ? t('conversation.creating') : t('conversation.createConversation')}
+              {bulkSendProgress ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Sending {bulkSendProgress.current}/{bulkSendProgress.total}...
+                </>
+              ) : createConversationMutation.isPending ? (
+                t('conversation.creating')
+              ) : isBulkMode ? (
+                `Send to ${parsedEmails.length} recipient${parsedEmails.length !== 1 ? 's' : ''}`
+              ) : (
+                t('conversation.createConversation')
+              )}
             </Button>
           </div>
         </form>
