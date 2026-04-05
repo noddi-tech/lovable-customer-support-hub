@@ -153,6 +153,9 @@ interface MessageCardProps {
   onEdit?: (messageId: string, content: string) => void;
   onDelete?: (messageId: string) => void;
   onPin?: (messageId: string, pinned: boolean) => void;
+  onSendDraft?: (messageId: string) => void;
+  onEditDraft?: (messageId: string, content: string) => void;
+  onDismissDraft?: (messageId: string) => void;
 }
 
 const MessageCardComponent = ({ 
@@ -165,7 +168,10 @@ const MessageCardComponent = ({
   isPinned: propIsPinned,
   onEdit, 
   onDelete,
-  onPin
+  onPin,
+  onSendDraft,
+  onEditDraft,
+  onDismissDraft
 }: MessageCardProps) => {
   const { dateTime } = useDateFormatting();
   const { t } = useTranslation();
