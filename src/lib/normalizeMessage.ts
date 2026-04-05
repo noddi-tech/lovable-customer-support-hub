@@ -157,7 +157,7 @@ export interface NormalizedMessage {
 
   // Derived fields
   direction: 'inbound' | 'outbound';
-  authorType: 'agent' | 'customer' | 'system';
+  authorType: 'agent' | 'customer' | 'system' | 'ai_draft';
   authorLabel: string; // e.g., "Agent (tom@noddi.no)" or "torstein@hyre.no"
   avatarInitial: string; // Initial for avatar display
   isInternalNote: boolean; // Whether this is an internal note (only visible to team)
