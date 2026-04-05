@@ -70,24 +70,61 @@ function extractBookingInfo(booking: any): {
   return { booking_id: bookingId, booking_date: bookingDate, booking_time: bookingTime, booking_service: bookingService };
 }
 
-/** Fetch nearest booking for a carId and return booking info */
-async function fetchNearestBookingForCar(carId: number): Promise<ReturnType<typeof extractBookingInfo>> {
+/** Enrich a resolved contact with booking data via noddi-customer-lookup */
+async function enrichWithBookingData(
+  result: ResolveResult,
+  supabase: any,
+  organizationId: string,
+): Promise<ResolveResult> {
+  if (!result.matched || (!result.email && !result.phone)) return result;
   try {
-    const url = `${API_BASE}/v1/bookings/?car_ids=${carId}&page_size=1&ordering=-created_at`;
-    const res = await fetch(url, { headers: noddiHeaders() });
-    if (!res.ok) {
-      await res.text();
-      return extractBookingInfo(null);
+    console.log(`[bulk-outreach] 📅 Enriching booking data for ${result.plate} via customer-lookup (email=${result.email}, phone=${result.phone})`);
+    const { data, error } = await supabase.functions.invoke("noddi-customer-lookup", {
+      body: {
+        email: result.email || undefined,
+        phone: result.phone || undefined,
+        organizationId,
+      },
+    });
+    if (error || !data?.data) {
+      console.log(`[bulk-outreach] ⚠️ Customer lookup enrichment failed for ${result.plate}:`, error?.message || "no data");
+      return result;
     }
-    const data = await res.json();
-    const bookings = data?.results || (Array.isArray(data) ? data : []);
-    if (bookings.length > 0) {
-      return extractBookingInfo(bookings[0]);
+    const uiMeta = data.data.ui_meta;
+    const booking = data.data.priority_booking;
+    // Extract booking date from ui_meta (already computed correctly by customer-lookup)
+    const bookingDate = uiMeta?.booking_date_iso || null;
+    // Extract service title
+    const bookingService = uiMeta?.service_title || null;
+    // Extract time window from the booking's delivery_window
+    let bookingTime: string | null = null;
+    if (booking) {
+      const startAt = booking.delivery_window?.starts_at || booking.delivery_window_starts_at || null;
+      const endAt = booking.delivery_window?.ends_at || booking.delivery_window_ends_at || null;
+      if (startAt) {
+        try {
+          const startTime = new Date(startAt).toTimeString().slice(0, 5);
+          if (endAt) {
+            const endTime = new Date(endAt).toTimeString().slice(0, 5);
+            bookingTime = `${startTime}-${endTime}`;
+          } else {
+            bookingTime = startTime;
+          }
+        } catch (_) { /* ignore */ }
+      }
     }
+    console.log(`[bulk-outreach] 📅 Enriched ${result.plate}: date=${bookingDate}, time=${bookingTime}, service=${bookingService}`);
+    return {
+      ...result,
+      booking_id: booking?.id || null,
+      booking_date: bookingDate,
+      booking_time: bookingTime,
+      booking_service: bookingService,
+    };
   } catch (e) {
-    console.error(`[bulk-outreach] Nearest booking fetch error for car ${carId}:`, e);
+    console.error(`[bulk-outreach] Enrichment error for ${result.plate}:`, e);
+    return result;
   }
-  return extractBookingInfo(null);
 }
 
 interface ResolveResult {
@@ -133,8 +170,7 @@ async function resolvePlate(plate: string, supabase: any, organizationId: string
       if (directUser?.email) {
         const name = [directUser.first_name, directUser.last_name].filter(Boolean).join(" ") || directUser.name || null;
         console.log(`[bulk-outreach] ✅ Direct user on car for ${cleanPlate}: ${directUser.email}`);
-        const bookingInfo = carId ? await fetchNearestBookingForCar(carId) : extractBookingInfo(null);
-        return { plate: cleanPlate, name, email: directUser.email, phone: directUser.phone_number || directUser.phone || null, matched: true, source: "car_user", ...bookingInfo };
+        return { plate: cleanPlate, name, email: directUser.email, phone: directUser.phone_number || directUser.phone || null, matched: true, source: "car_user" };
       }
 
       // Try user_group.users[] directly from car response
@@ -146,8 +182,7 @@ async function resolvePlate(plate: string, supabase: any, organizationId: string
           if (uObj?.email) {
             const name = [uObj.first_name, uObj.last_name].filter(Boolean).join(" ") || uObj.name || null;
             console.log(`[bulk-outreach] ✅ Car user_group.users[] match for ${cleanPlate}: ${uObj.email}`);
-            const bookingInfo = carId ? await fetchNearestBookingForCar(carId) : extractBookingInfo(null);
-            return { plate: cleanPlate, name, email: uObj.email, phone: uObj.phone_number || uObj.phone || null, matched: true, source: "car_user_group", ...bookingInfo };
+            return { plate: cleanPlate, name, email: uObj.email, phone: uObj.phone_number || uObj.phone || null, matched: true, source: "car_user_group" };
           }
         }
       }
@@ -163,8 +198,7 @@ async function resolvePlate(plate: string, supabase: any, organizationId: string
             if (uObj?.email) {
               const name = [uObj.first_name, uObj.last_name].filter(Boolean).join(" ") || uObj.name || null;
               console.log(`[bulk-outreach] ✅ Car owners_current user match for ${cleanPlate}: ${uObj.email}`);
-              const bookingInfo = carId ? await fetchNearestBookingForCar(carId) : extractBookingInfo(null);
-              return { plate: cleanPlate, name, email: uObj.email, phone: uObj.phone_number || uObj.phone || null, matched: true, source: "car_user_group", ...bookingInfo };
+              return { plate: cleanPlate, name, email: uObj.email, phone: uObj.phone_number || uObj.phone || null, matched: true, source: "car_user_group" };
             }
           }
         }
@@ -175,8 +209,7 @@ async function resolvePlate(plate: string, supabase: any, organizationId: string
       for (const ugId of ugIds) {
         const contact = await resolveFromUserGroup(ugId, cleanPlate);
         if (contact) {
-          const bookingInfo = carId ? await fetchNearestBookingForCar(carId) : extractBookingInfo(null);
-          return { ...contact, source: "car_user_group", ...bookingInfo };
+          return { ...contact, source: "car_user_group" };
         }
       }
     } else {
@@ -203,8 +236,7 @@ async function resolvePlate(plate: string, supabase: any, organizationId: string
   if (carId) {
     const localContact = await resolveFromLocalCustomers(supabase, organizationId, cleanPlate, carId);
     if (localContact) {
-      const bookingInfo = await fetchNearestBookingForCar(carId);
-      return { ...localContact, source: "local_customers", ...bookingInfo };
+      return { ...localContact, source: "local_customers" };
     }
   }
 
@@ -523,7 +555,11 @@ Deno.serve(async (req) => {
           return jsonResponse({ error: "organization_id required" }, 400);
         }
 
-        const results = await Promise.all(plates.map((p: string) => resolvePlate(p, supabase, organization_id)));
+        const rawResults = await Promise.all(plates.map((p: string) => resolvePlate(p, supabase, organization_id)));
+        // Enrich matched results with booking data via customer-lookup
+        const results = await Promise.all(
+          rawResults.map((r) => enrichWithBookingData(r, supabase, organization_id))
+        );
         return jsonResponse({ results });
       }
 
