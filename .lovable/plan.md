@@ -1,70 +1,71 @@
 
 
-# AI Email Draft — Frontend Implementation
+# Add Multi-Recipient (BCC) Mode to New Conversation Dialog
 
 ## Overview
 
-Add visual distinction and action buttons for AI-generated draft replies (`sender_type = 'ai_draft'`) that already appear in the conversation via Realtime. Four files need changes.
+Add a toggle to the existing New Conversation dialog that switches from single-recipient to multi-recipient mode. In multi-recipient mode, the agent can add multiple email addresses and send the same message as individual, separate conversations — functionally identical to BCC (each recipient only sees their own email).
+
+## How It Works
+
+1. **Toggle in the Customer Information card**: A switch/button labeled "Send to multiple" that toggles between single and multi-recipient mode
+2. **Multi-recipient input**: When toggled on, replace the single email/name fields with a multi-email input (textarea or tag-style input) where the agent can paste or type multiple emails, one per line or comma-separated
+3. **On submit**: Loop through each recipient and create a separate conversation + message for each, reusing the existing `createConversationMutation` logic. Each email is sent individually via `send-reply-email`.
+4. **Progress feedback**: Show a progress indicator during bulk send (e.g., "Sending 3/10...")
 
 ## Changes
 
-### 1. `src/lib/normalizeMessage.ts` — Recognize AI drafts
+### 1. `src/components/dashboard/NewConversationDialog.tsx`
 
-- Expand `authorType` type to include `'ai_draft'`
-- If `rawMessage.sender_type === 'ai_draft'`, set `authorType = 'ai_draft'`
-- Treat `ai_draft` as `'outbound'` direction
-- Update `NormalizedMessage` interface accordingly
+**New state:**
+- `isBulkMode: boolean` — toggles multi-recipient mode
+- `bulkEmails: string` — raw textarea content (emails separated by newlines/commas)
+- `bulkSendProgress: { current: number; total: number } | null` — tracks progress
 
-### 2. `src/components/conversations/MessageCard.tsx` — AI draft styling + action buttons
+**UI changes:**
+- Add a "Send to multiple" toggle button/switch in the Customer Information card header
+- When `isBulkMode` is true:
+  - Hide the single email/name inputs and Noddi search
+  - Show a `Textarea` for pasting multiple emails (one per line or comma-separated)
+  - Show a count badge: "X valid emails detected"
+  - The subject, message, inbox, and priority fields remain the same
+- Submit button text changes to "Send to X recipients"
 
-**Styling:** emerald green, dashed border, Bot icon badge:
-- `border-l-4 border-dashed border-emerald-400`, `bg-emerald-50/30`
-- "AI Draft" badge with Bot icon in header
+**Submit logic changes:**
+- Parse `bulkEmails` into an array of unique, valid email addresses
+- For each email, sequentially:
+  1. Find or create customer (by email)
+  2. Create conversation
+  3. Create message with `sender_type='agent'`
+  4. Invoke `send-reply-email`
+  5. Update progress state
+- On completion, show summary toast ("Sent 10 emails, 0 failed")
+- Navigate to inbox (not to a specific conversation since there are multiple)
 
-**Props** — add three optional callbacks:
-- `onSendDraft?: (messageId: string) => void`
-- `onEditDraft?: (messageId: string, content: string) => void`
-- `onDismissDraft?: (messageId: string) => void`
+**Template variable support:**
+- The message template supports `{email}` placeholder (replaced per recipient)
+- Could later add `{name}` if customer names are resolved
 
-**Action buttons** at bottom of draft cards:
-- **Send** (emerald primary) → `onSendDraft`
-- **Edit** (outline) → `onEditDraft` with content
-- **Dismiss** (ghost, red) → `onDismissDraft`
+### 2. Helper: email parsing
 
-AI drafts always render expanded. Hide normal dropdown menu actions for drafts.
-
-### 3. `src/contexts/ConversationViewContext.tsx` — Draft action methods
-
-**`sendDraft(messageId)`:**
-1. Read draft content from messages state
-2. Call the existing `sendReply()` flow with the draft content — do NOT create a parallel send path via raw insert. "Send" on an AI draft must behave identically to an agent manually typing and sending the same text.
-3. Delete the draft from DB
-4. Track in `response_tracking` with `response_source='ai_draft'`, `was_edited=false`
-
-**`editDraft(messageId)`:**
-1. Pre-fill reply composer with draft content (dispatch SET_REPLY_TEXT + SET_SHOW_REPLY_AREA)
-2. Delete/hide the draft from DB
-3. Set state to track origin for `response_tracking` with `was_edited=true`
-
-**`dismissDraft(messageId)`:**
-1. Delete draft from DB
-2. Invalidate message queries
-
-### 4. `src/components/conversations/ProgressiveMessagesList.tsx` — Wire callbacks
-
-- Import `useConversationView` to get `sendDraft`, `editDraft`, `dismissDraft`
-- Pass as props to `MessageCard` instances
-
-## Edge cases
-
-- If no `ai_draft` message exists in a conversation, everything renders normally — no empty states or placeholder UI needed
-- If the draft generation is slow (5-10s after email arrives), the draft will simply pop in via Realtime when ready
-- If the agent has already started typing a reply before the draft appears, don't interrupt their work — the draft just appears above as an option they can use or ignore
+Add a small utility function (inline or extracted) to parse the textarea:
+```
+function parseEmails(raw: string): string[] {
+  return raw.split(/[\n,;]+/)
+    .map(e => e.trim().toLowerCase())
+    .filter(e => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e))
+    .filter((e, i, a) => a.indexOf(e) === i); // deduplicate
+}
+```
 
 ## Files to change
 
-- `src/lib/normalizeMessage.ts`
-- `src/components/conversations/MessageCard.tsx`
-- `src/contexts/ConversationViewContext.tsx`
-- `src/components/conversations/ProgressiveMessagesList.tsx`
+- `src/components/dashboard/NewConversationDialog.tsx` — add bulk mode toggle, multi-email input, sequential send loop with progress
+
+## Edge cases
+
+- Duplicate emails are deduplicated before sending
+- Invalid email formats are silently filtered out (count shows only valid ones)
+- If any individual send fails, it continues with the rest and reports failures at the end
+- The existing Bulk Outreach page remains for plate-based lookups; this feature is for when you already have email addresses
 
