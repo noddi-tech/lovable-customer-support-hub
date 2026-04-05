@@ -20,7 +20,11 @@ import {
   Mail,
   AlertCircle,
   RefreshCw,
-  Calendar
+  Calendar,
+  Bot,
+  Send,
+  Pencil,
+  X
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { type EmailAttachment } from "@/utils/emailFormatting";
