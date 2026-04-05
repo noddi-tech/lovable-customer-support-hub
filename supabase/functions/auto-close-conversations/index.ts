@@ -13,7 +13,7 @@ Deno.serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    
+
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     console.log('[Auto-Close] Starting auto-close job...');
@@ -25,7 +25,7 @@ Deno.serve(async (req) => {
       console.error('[Auto-Close] Error:', error);
       return new Response(
         JSON.stringify({ error: error.message }),
-        { 
+        {
           status: 500,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
@@ -37,7 +37,7 @@ Deno.serve(async (req) => {
 
     // Also calculate SLA breach times for open conversations
     const { error: slaError } = await supabase.rpc('calculate_sla_breach');
-    
+
     if (slaError) {
       console.error('[Auto-Close] Error calculating SLA:', slaError);
     } else {
@@ -46,7 +46,7 @@ Deno.serve(async (req) => {
 
     // Auto-abandon inactive chat sessions (no heartbeat for 2 minutes)
     const { data: abandonData, error: abandonError } = await supabase.rpc('auto_abandon_inactive_chat_sessions');
-    
+
     if (abandonError) {
       console.error('[Auto-Close] Error abandoning chat sessions:', abandonError);
     } else {
@@ -54,13 +54,99 @@ Deno.serve(async (req) => {
       console.log(`[Auto-Close] Auto-abandoned ${abandonedCount} inactive chat sessions`);
     }
 
+    // ── Memory extraction: Agent conversations ──────────────
+    // Find closed agent conversations that haven't had memories extracted yet
+    let agentMemoryCount = 0;
+    try {
+      const { data: closedConvs } = await supabase
+        .from('conversations')
+        .select('id, organization_id')
+        .eq('status', 'closed')
+        .is('memories_extracted_at', null)
+        .order('updated_at', { ascending: true })
+        .limit(10);
+
+      if (closedConvs && closedConvs.length > 0) {
+        console.log(`[Auto-Close] Found ${closedConvs.length} agent conversations needing memory extraction`);
+        for (const conv of closedConvs) {
+          supabase.functions.invoke('extract-customer-memories', {
+            body: {
+              conversationId: conv.id,
+              organizationId: conv.organization_id,
+              conversationType: 'agent',
+            },
+          }).catch((err: any) =>
+            console.warn(`[Auto-Close] Memory extraction failed for agent conv ${conv.id}:`, err)
+          );
+          agentMemoryCount++;
+        }
+      }
+    } catch (e) {
+      console.warn('[Auto-Close] Agent memory extraction query failed:', e);
+    }
+
+    // ── Memory extraction: Widget AI conversations ──────────
+    // Find stale AI conversations (no message in 30+ min) that haven't been extracted
+    let widgetMemoryCount = 0;
+    try {
+      const thirtyMinAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+
+      const { data: staleAiConvs } = await supabase
+        .from('widget_ai_conversations')
+        .select('id, organization_id')
+        .is('memories_extracted_at', null)
+        .lt('updated_at', thirtyMinAgo)
+        .not('visitor_phone', 'is', null)  // Must have some identifier
+        .order('updated_at', { ascending: true })
+        .limit(10);
+
+      // Also get ones with email but no phone
+      const { data: staleAiConvsEmail } = await supabase
+        .from('widget_ai_conversations')
+        .select('id, organization_id')
+        .is('memories_extracted_at', null)
+        .lt('updated_at', thirtyMinAgo)
+        .is('visitor_phone', null)
+        .not('visitor_email', 'is', null)
+        .order('updated_at', { ascending: true })
+        .limit(10);
+
+      const allStale = [
+        ...(staleAiConvs || []),
+        ...(staleAiConvsEmail || []),
+      ].slice(0, 10);
+
+      if (allStale.length > 0) {
+        console.log(`[Auto-Close] Found ${allStale.length} widget AI conversations needing memory extraction`);
+        for (const conv of allStale) {
+          supabase.functions.invoke('extract-customer-memories', {
+            body: {
+              conversationId: conv.id,
+              organizationId: conv.organization_id,
+              conversationType: 'widget_ai',
+            },
+          }).catch((err: any) =>
+            console.warn(`[Auto-Close] Memory extraction failed for widget conv ${conv.id}:`, err)
+          );
+          widgetMemoryCount++;
+        }
+      }
+    } catch (e) {
+      console.warn('[Auto-Close] Widget AI memory extraction query failed:', e);
+    }
+
+    if (agentMemoryCount > 0 || widgetMemoryCount > 0) {
+      console.log(`[Auto-Close] Triggered memory extraction: ${agentMemoryCount} agent, ${widgetMemoryCount} widget AI`);
+    }
+
     return new Response(
-      JSON.stringify({ 
-        success: true, 
+      JSON.stringify({
+        success: true,
         closed_count: closedCount,
+        memory_extraction: { agent: agentMemoryCount, widget_ai: widgetMemoryCount },
         message: `Auto-closed ${closedCount} inactive conversations`
       }),
-      { 
+      {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     );
@@ -69,7 +155,7 @@ Deno.serve(async (req) => {
     console.error('[Auto-Close] Unexpected error:', error);
     return new Response(
       JSON.stringify({ error: 'Internal server error' }),
-      { 
+      {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
