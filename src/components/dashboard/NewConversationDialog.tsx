@@ -284,6 +284,9 @@ export const NewConversationDialog: React.FC<NewConversationDialogProps> = ({ ch
       return conversation;
     },
     onSuccess: (conversation) => {
+      // Skip per-message handling during bulk send — bulk handler manages completion
+      if (bulkSendProgressRef.current) return;
+
       toast.success('Conversation created successfully');
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
       queryClient.invalidateQueries({ queryKey: ['conversation-counts'] });
@@ -303,6 +306,9 @@ export const NewConversationDialog: React.FC<NewConversationDialogProps> = ({ ch
       navigate(`${basePath}?inbox=${currentInbox}&c=${conversation.id}`);
     },
     onError: (error) => {
+      // Skip per-message handling during bulk send — bulk handler tracks failures
+      if (bulkSendProgressRef.current) return;
+
       console.error('Error creating conversation:', error);
       
       // Clean up any timeouts on error
