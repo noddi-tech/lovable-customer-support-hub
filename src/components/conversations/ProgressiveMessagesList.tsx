@@ -485,6 +485,9 @@ export const ProgressiveMessagesList = forwardRef<ProgressiveMessagesListRef, Pr
                     disableAnimation={isBulkToggling}
                     onEdit={onEditMessage}
                     onDelete={onDeleteMessage}
+                    onSendDraft={sendDraft}
+                    onEditDraft={(id, content) => editDraft(id)}
+                    onDismissDraft={dismissDraft}
                   />
                 );
               })
