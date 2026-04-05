@@ -323,6 +323,9 @@ export const NewConversationDialog: React.FC<NewConversationDialogProps> = ({ ch
     setAiSuggestions([]);
     setSelectedSuggestion(null);
     setShowAiDialog(false);
+    setIsBulkMode(false);
+    setBulkEmails('');
+    setBulkSendProgress(null);
     
     // Clean up any timeouts
     sendingTimeouts.current.forEach((timeout) => clearTimeout(timeout));
