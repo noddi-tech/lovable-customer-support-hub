@@ -468,9 +468,69 @@ export const NewConversationDialog: React.FC<NewConversationDialogProps> = ({ ch
     { code: 'es', name: 'Spanish' },
   ];
 
+  // Bulk send handler
+  const handleBulkSend = useCallback(async () => {
+    if (!subject.trim() || !selectedInboxId || parsedEmails.length === 0) {
+      toast.error('Subject, inbox, and at least one valid email are required');
+      return;
+    }
+
+    setBulkSendProgress({ current: 0, total: parsedEmails.length, failed: 0 });
+    let failed = 0;
+
+    for (let i = 0; i < parsedEmails.length; i++) {
+      const email = parsedEmails[i];
+      const personalizedMessage = initialMessage.trim().replace(/\{email\}/gi, email);
+
+      try {
+        await createConversationMutation.mutateAsync({
+          customerEmail: email,
+          customerName: email.split('@')[0],
+          subject: subject.trim(),
+          initialMessage: personalizedMessage,
+          inboxId: selectedInboxId,
+          priority
+        });
+      } catch (error) {
+        console.error(`Failed to send to ${email}:`, error);
+        failed++;
+      }
+
+      setBulkSendProgress({ current: i + 1, total: parsedEmails.length, failed });
+    }
+
+    // Show summary
+    const sent = parsedEmails.length - failed;
+    if (failed === 0) {
+      toast.success(`Successfully sent ${sent} emails`);
+    } else {
+      toast.warning(`Sent ${sent} emails, ${failed} failed`);
+    }
+
+    queryClient.invalidateQueries({ queryKey: ['conversations'] });
+    queryClient.invalidateQueries({ queryKey: ['conversation-counts'] });
+
+    setBulkSendProgress(null);
+    setOpen(false);
+    resetForm();
+
+    // Navigate to inbox
+    const currentParams = new URLSearchParams(window.location.search);
+    const currentInbox = currentParams.get('inbox') || selectedInboxId;
+    const basePath = window.location.pathname.includes('/interactions')
+      ? window.location.pathname
+      : '/interactions/text/open';
+    navigate(`${basePath}?inbox=${currentInbox}`);
+  }, [parsedEmails, subject, selectedInboxId, initialMessage, priority, createConversationMutation, queryClient, navigate, resetForm]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (isBulkMode) {
+      handleBulkSend();
+      return;
+    }
+
     if (!customerEmail.trim() || !subject.trim()) {
       toast.error('Customer email and subject are required');
       return;
@@ -488,6 +548,7 @@ export const NewConversationDialog: React.FC<NewConversationDialogProps> = ({ ch
       initialMessage: initialMessage.trim(),
       inboxId: selectedInboxId,
       priority
+    });
     });
   };
 
