@@ -73,6 +73,7 @@ function formatTimeInTz(isoTime: string, timezone: string): string {
 }
 
 export function RecipientReview({ recipients, onToggle, onToggleAll }: RecipientReviewProps) {
+  const { timezone } = useUserTimezone();
   const matchedCount = recipients.filter((r) => r.matched).length;
   const selectedCount = recipients.filter((r) => r.selected).length;
   const allSelected = matchedCount > 0 && recipients.filter((r) => r.matched).every((r) => r.selected);
