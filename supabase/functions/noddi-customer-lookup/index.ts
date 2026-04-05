@@ -1314,16 +1314,15 @@ Deno.serve(async (req) => {
             membership_programs: g.membership_programs || [],
             coupons: (() => {
               const raw = g.coupons || [];
-              if (raw.length > 0) console.log(`Coupons for group ${g.id}:`, JSON.stringify(raw.slice(0, 2)));
+              if (raw.length > 0) console.log(`Raw coupons for group ${g.id}:`, JSON.stringify(raw.slice(0, 2)));
               return raw.map((c: any) => ({
+                ...c,
                 id: c.id,
-                code: c.coupon_code || c.code || c.name || null,
-                description: c.description || c.name || c.coupon_code || null,
+                code: c.coupon_code || c.code || c.name || c.coupon?.code || null,
+                description: c.description_public || c.description || c.name || null,
                 is_active: c.is_active ?? c.active ?? true,
-                value: c.value || c.discount_value || c.amount || null,
-                discount_type: c.discount_type || c.type || null,
-                valid_from: c.valid_from || null,
-                valid_to: c.valid_to || null,
+                value: c.value || c.discount_value || c.amount || c.coupon?.value || null,
+                discount_type: c.discount_type || c.type || c.coupon?.discount_type || null,
               }));
             })(),
           }));
