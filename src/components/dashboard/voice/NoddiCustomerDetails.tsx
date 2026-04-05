@@ -742,11 +742,16 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
                   <div className="flex items-center gap-1.5 min-w-0">
                     <Ticket className="h-3 w-3 text-purple-500 shrink-0" />
                     <div className="min-w-0">
-                      {coupon.code && (
-                        <span className="text-xs font-mono font-medium text-purple-800">{coupon.code}</span>
-                      )}
-                      {coupon.description && (
+                      <span className="text-xs font-mono font-medium text-purple-800">
+                        {coupon.code || coupon.description || `Coupon #${coupon.id || idx + 1}`}
+                      </span>
+                      {coupon.code && coupon.description && coupon.description !== coupon.code && (
                         <p className="text-[10px] text-muted-foreground truncate">{coupon.description}</p>
+                      )}
+                      {coupon.value != null && (
+                        <p className="text-[10px] font-medium text-purple-700">
+                          {coupon.discount_type === 'percentage' ? `${coupon.value}%` : `${coupon.value} kr`}
+                        </p>
                       )}
                     </div>
                   </div>
