@@ -52,11 +52,16 @@ function filterForwardingEchoes(messages: NormalizedMessage[]): NormalizedMessag
     for (const agentMsg of agentTexts) {
       if (agentMsg.time >= inboundTime) continue;
       if (agentMsg.id === m.id) continue;
-      const searchKey = agentMsg.text.substring(0, 80);
+      // Only filter if the inbound message is very similar in length (within 30%)
+      // This catches true forwarding echoes but preserves customer replies that quote the agent
+      const lengthRatio = inboundText.length / agentMsg.text.length;
+      if (lengthRatio < 0.7 || lengthRatio > 1.3) continue;
+      const searchKey = agentMsg.text.substring(0, 120);
       if (inboundText.includes(searchKey)) {
-        logger.debug('Filtering forwarding echo (inbound contains earlier agent reply)', {
+        logger.debug('Filtering forwarding echo (near-identical inbound copy of agent reply)', {
           messageId: m.id,
           matchedAgainst: agentMsg.id,
+          lengthRatio: lengthRatio.toFixed(2),
         }, 'EchoFilter');
         return false;
       }
