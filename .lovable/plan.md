@@ -1,54 +1,78 @@
 
 
-# Fix: Customer Replies Hidden by Forwarding Echo Filter
+# Fix: Hide Quoted Forwarded Content in Customer Replies
 
 ## Problem
 
-The conversation view is missing customer replies in email threads. You can see 1 inbound message from the customer and 5 outbound agent messages, but the customer's responses between those agent messages are invisible.
+The customer reply from Øystein Borhaug shows the full quoted previous agent message inline (with "Fra: Noddi Support / Sendt: onsdag 25. mars..." headers), instead of hiding it behind a "Show quoted text" toggle.
 
-**Root cause:** The `filterForwardingEchoes` function in `src/hooks/conversations/useThreadMessagesList.ts` (lines 27-66) is designed to hide duplicate messages from Google Groups forwarding, but it's too aggressive. It checks whether the first 80 characters of any earlier agent message appear anywhere inside an inbound customer message. Since email clients always quote the previous message in replies, virtually every customer reply contains the agent's earlier text — and gets filtered out as a "forwarding echo."
+**Root cause:** The `WROTE_HEADERS` regex array in `parseQuotedEmail.ts` has a Norwegian Outlook pattern (line 116) that spans 4 lines (`Fra:`, `Sendt:`, `Til:`, `Emne:` on separate lines). However, the detection code tests each line *individually* against these regexes (line 559: `lines.findIndex(line => WROTE_HEADERS.some(rx => rx.test(line.trim())))`). A multi-line regex will never match a single line, so Norwegian Outlook-style quoted headers are never detected.
 
 ## Fix
 
-### `src/hooks/conversations/useThreadMessagesList.ts`
+### `src/lib/parseQuotedEmail.ts`
 
-Make the echo filter much stricter so it only catches true forwarding duplicates (where the inbound message is *mostly* a copy of the agent message), not legitimate replies that quote the agent:
-
-1. **Require high content overlap, not just substring match.** A true forwarding echo is nearly identical to the agent message. A legitimate reply has new content plus a quote. Check that the inbound message's text length is within ~30% of the agent text length (echoes are near-identical copies, replies add new content).
-
-2. **Add logging for filtered messages** so you can verify no legitimate replies are being hidden.
-
-3. **Only match if the inbound message starts with** (or is dominated by) the agent text — not just "contains" it somewhere.
-
-Concrete change — replace the inner matching logic (lines 52-63):
+Add single-line trigger patterns to `WROTE_HEADERS` that match standalone Norwegian/English forwarding header lines:
 
 ```typescript
-// Current (too aggressive):
-const searchKey = agentMsg.text.substring(0, 80);
-if (inboundText.includes(searchKey)) { ... return false; }
+const WROTE_HEADERS = [
+  // English
+  /^On .+ wrote:$/i,
+  /^-----Original Message-----$/i,
+  /^From: .+\n(?:Sent|Date): .+\n(?:To|Cc): .+\n(?:Subject|Re): .+$/i,
+  // Norwegian
+  /^(Den|På) .+ skrev:$/i,
+  /^Fra: .+\n(?:Sendt|Dato): .+\n(?:Til|Kopi): .+\n(?:Emne|Re): .+$/i,
+  /^Skrev .+:$/i,
+  // Single-line triggers for Outlook-style forwarded headers (matched per-line)
+  /^Fra:\s+.+$/i,        // Norwegian "From:" line
+  /^From:\s+.+$/i,       // English "From:" line (standalone)
+];
+```
 
-// Fixed (strict echo detection):
-// Only filter if the inbound message is very similar in length (within 30%)
-// AND contains the agent text — this catches true forwarding echoes
-// but preserves customer replies that quote the agent
-const lengthRatio = inboundText.length / agentMsg.text.length;
-if (lengthRatio < 0.7 || lengthRatio > 1.3) continue; // Different length = not an echo
-const searchKey = agentMsg.text.substring(0, 120);
-if (inboundText.includes(searchKey)) {
-  logger.debug('Filtering forwarding echo', { messageId: m.id, matchedAgainst: agentMsg.id, lengthRatio }, 'EchoFilter');
-  return false;
+**But** this is too broad — `From:` could appear in body text. Instead, detect the pattern as a *block*: when a line matches `Fra:` or `From:`, check if the next 1-3 lines match `Sendt:/Sent:/Date:`. This confirms it's a forwarding header block, not body text.
+
+Replace the per-line check in both Step 3 (HTML fallback, line 559) and `extractFromPlain` (line 685) with a block-aware check:
+
+```typescript
+// Find Outlook-style header blocks: Fra:/From: followed by Sendt:/Sent:/Date:
+function findHeaderBlockIndex(lines: string[]): number {
+  for (let i = 0; i < lines.length - 1; i++) {
+    const line = lines[i].trim();
+    if (/^(Fra|From):\s+.+/i.test(line)) {
+      // Check next 1-3 lines for Sent/Date pattern
+      for (let j = 1; j <= Math.min(3, lines.length - i - 1); j++) {
+        const next = lines[i + j].trim();
+        if (/^(Sendt|Sent|Date|Dato):\s+.+/i.test(next)) {
+          return i; // This is a forwarding header block
+        }
+        if (next.length > 0 && !/^(To|Til|Cc|Kopi|Subject|Emne|Re):\s+/i.test(next)) {
+          break; // Non-header line found, not a block
+        }
+      }
+    }
+  }
+  return -1;
 }
 ```
 
-This ensures:
-- Customer replies (which add new text, making them longer) pass through
-- True forwarding echoes (nearly identical length copies) are still filtered
+Then use it alongside the existing `WROTE_HEADERS` check:
+
+```typescript
+const headerIdx = lines.findIndex(l => WROTE_HEADERS.some(rx => rx.test(l.trim())));
+const blockIdx = findHeaderBlockIndex(lines);
+let cut = -1;
+if (headerIdx > -1) cut = headerIdx;
+if (blockIdx > -1 && (cut === -1 || blockIdx < cut)) cut = blockIdx;
+```
 
 ### File to change
 
-- `src/hooks/conversations/useThreadMessagesList.ts` — tighten echo filter logic
+- `src/lib/parseQuotedEmail.ts` — add `findHeaderBlockIndex` helper, use it in both `extractFromHtml` (Step 3) and `extractFromPlain`
 
-## Technical detail
+### What this achieves
 
-The length ratio check is the key safeguard. A customer reply that quotes an agent message will be significantly longer than the original (new content + quote + signature). A forwarding echo will be roughly the same length (±30%). This single check eliminates nearly all false positives while still catching true duplicates.
+- Norwegian Outlook forwarding headers ("Fra: / Sendt: / Til: / Emne:") will be detected and hidden behind a toggle
+- English "From: / Sent:" blocks that weren't caught by the multi-line regex will also be detected
+- No false positives: requires at least `From:` + `Sent:` on consecutive lines to trigger
 
