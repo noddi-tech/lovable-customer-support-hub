@@ -588,7 +588,7 @@ function extractFromHtml(html: string): { visibleHTML: string; quoted: QuotedBlo
   if (headerIdx > -1) bestIdx = headerIdx;
   if (blockIdx > -1 && (bestIdx === -1 || blockIdx < bestIdx)) bestIdx = blockIdx;
   if (bestIdx > -1) {
-    const raw = lines.slice(headerIdx).join('\n');
+    const raw = lines.slice(bestIdx).join('\n');
     if (raw.trim()) {
       const quotedBlock = { kind: 'header' as const, raw };
       quoted.push(quotedBlock);
@@ -597,7 +597,7 @@ function extractFromHtml(html: string): { visibleHTML: string; quoted: QuotedBlo
         quotedMessages.push(quotedMessage);
       }
       
-      const marker = lines[headerIdx].trim();
+      const marker = lines[bestIdx].trim();
       const idxInHtml = body.innerHTML.indexOf(marker);
       if (idxInHtml >= 0) {
         body.innerHTML = body.innerHTML.slice(0, idxInHtml);
