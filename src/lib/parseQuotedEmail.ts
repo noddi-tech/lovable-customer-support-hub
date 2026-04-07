@@ -117,6 +117,31 @@ const WROTE_HEADERS = [
   /^Skrev .+:$/i,
 ];
 
+/**
+ * Detect Outlook-style header blocks that span multiple lines.
+ * Matches "Fra:/From:" followed within 1-3 lines by "Sendt:/Sent:/Date:/Dato:".
+ * This catches Norwegian and English forwarding headers that multi-line regexes miss
+ * when lines are evaluated individually.
+ */
+function findHeaderBlockIndex(lines: string[]): number {
+  for (let i = 0; i < lines.length - 1; i++) {
+    const line = lines[i].trim();
+    if (/^(Fra|From):\s+.+/i.test(line)) {
+      for (let j = 1; j <= Math.min(3, lines.length - i - 1); j++) {
+        const next = lines[i + j].trim();
+        if (/^(Sendt|Sent|Date|Dato):\s+.+/i.test(next)) {
+          return i;
+        }
+        // Allow other header lines (To, Subject, etc.) but stop on non-header content
+        if (next.length > 0 && !/^(To|Til|Cc|Kopi|Subject|Emne|Re):\s*/i.test(next)) {
+          break;
+        }
+      }
+    }
+  }
+  return -1;
+}
+
 // Common email list footer patterns to strip
 const EMAIL_LIST_FOOTERS = [
   // Google Groups specific
