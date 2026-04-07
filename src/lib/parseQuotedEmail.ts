@@ -117,6 +117,31 @@ const WROTE_HEADERS = [
   /^Skrev .+:$/i,
 ];
 
+/**
+ * Detect Outlook-style header blocks that span multiple lines.
+ * Matches "Fra:/From:" followed within 1-3 lines by "Sendt:/Sent:/Date:/Dato:".
+ * This catches Norwegian and English forwarding headers that multi-line regexes miss
+ * when lines are evaluated individually.
+ */
+function findHeaderBlockIndex(lines: string[]): number {
+  for (let i = 0; i < lines.length - 1; i++) {
+    const line = lines[i].trim();
+    if (/^(Fra|From):\s+.+/i.test(line)) {
+      for (let j = 1; j <= Math.min(3, lines.length - i - 1); j++) {
+        const next = lines[i + j].trim();
+        if (/^(Sendt|Sent|Date|Dato):\s+.+/i.test(next)) {
+          return i;
+        }
+        // Allow other header lines (To, Subject, etc.) but stop on non-header content
+        if (next.length > 0 && !/^(To|Til|Cc|Kopi|Subject|Emne|Re):\s*/i.test(next)) {
+          break;
+        }
+      }
+    }
+  }
+  return -1;
+}
+
 // Common email list footer patterns to strip
 const EMAIL_LIST_FOOTERS = [
   // Google Groups specific
@@ -557,8 +582,13 @@ function extractFromHtml(html: string): { visibleHTML: string; quoted: QuotedBlo
   const remaining = body.innerText || '';
   const lines = remaining.split('\n');
   const headerIdx = lines.findIndex(line => WROTE_HEADERS.some(rx => rx.test(line.trim())));
-  if (headerIdx > -1) {
-    const raw = lines.slice(headerIdx).join('\n');
+  const blockIdx = findHeaderBlockIndex(lines);
+  // Use whichever match comes first
+  let bestIdx = -1;
+  if (headerIdx > -1) bestIdx = headerIdx;
+  if (blockIdx > -1 && (bestIdx === -1 || blockIdx < bestIdx)) bestIdx = blockIdx;
+  if (bestIdx > -1) {
+    const raw = lines.slice(bestIdx).join('\n');
     if (raw.trim()) {
       const quotedBlock = { kind: 'header' as const, raw };
       quoted.push(quotedBlock);
@@ -567,7 +597,7 @@ function extractFromHtml(html: string): { visibleHTML: string; quoted: QuotedBlo
         quotedMessages.push(quotedMessage);
       }
       
-      const marker = lines[headerIdx].trim();
+      const marker = lines[bestIdx].trim();
       const idxInHtml = body.innerHTML.indexOf(marker);
       if (idxInHtml >= 0) {
         body.innerHTML = body.innerHTML.slice(0, idxInHtml);
@@ -683,10 +713,12 @@ function extractFromPlain(text: string): { visibleText: string; quoted: QuotedBl
   const angleIdx = lines.findIndex(l => l.trim().startsWith('>'));
   // Or find classic header lines (On ... wrote:, Original Message, Norwegian variants)
   const headerIdx = lines.findIndex(l => WROTE_HEADERS.some(rx => rx.test(l.trim())));
+  const blockIdx = findHeaderBlockIndex(lines);
 
   let cut = -1;
   if (headerIdx > -1) cut = headerIdx;
-  else if (angleIdx > -1) cut = angleIdx;
+  if (blockIdx > -1 && (cut === -1 || blockIdx < cut)) cut = blockIdx;
+  if (cut === -1 && angleIdx > -1) cut = angleIdx;
 
   if (cut > -1) {
     const kind = headerIdx > -1 ? 'header' : 'plain';
