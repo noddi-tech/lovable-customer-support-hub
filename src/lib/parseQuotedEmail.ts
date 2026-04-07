@@ -582,7 +582,12 @@ function extractFromHtml(html: string): { visibleHTML: string; quoted: QuotedBlo
   const remaining = body.innerText || '';
   const lines = remaining.split('\n');
   const headerIdx = lines.findIndex(line => WROTE_HEADERS.some(rx => rx.test(line.trim())));
-  if (headerIdx > -1) {
+  const blockIdx = findHeaderBlockIndex(lines);
+  // Use whichever match comes first
+  let bestIdx = -1;
+  if (headerIdx > -1) bestIdx = headerIdx;
+  if (blockIdx > -1 && (bestIdx === -1 || blockIdx < bestIdx)) bestIdx = blockIdx;
+  if (bestIdx > -1) {
     const raw = lines.slice(headerIdx).join('\n');
     if (raw.trim()) {
       const quotedBlock = { kind: 'header' as const, raw };
