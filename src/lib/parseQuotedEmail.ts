@@ -713,10 +713,12 @@ function extractFromPlain(text: string): { visibleText: string; quoted: QuotedBl
   const angleIdx = lines.findIndex(l => l.trim().startsWith('>'));
   // Or find classic header lines (On ... wrote:, Original Message, Norwegian variants)
   const headerIdx = lines.findIndex(l => WROTE_HEADERS.some(rx => rx.test(l.trim())));
+  const blockIdx = findHeaderBlockIndex(lines);
 
   let cut = -1;
   if (headerIdx > -1) cut = headerIdx;
-  else if (angleIdx > -1) cut = angleIdx;
+  if (blockIdx > -1 && (cut === -1 || blockIdx < cut)) cut = blockIdx;
+  if (cut === -1 && angleIdx > -1) cut = angleIdx;
 
   if (cut > -1) {
     const kind = headerIdx > -1 ? 'header' : 'plain';
