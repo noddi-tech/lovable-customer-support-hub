@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { 
   ChevronDown, Phone, Mail, Car, Calendar, AlertTriangle, CreditCard,
   ExternalLink, Archive, RotateCcw, Truck, Package, Users, Droplets, 
-  Target, Gauge, Zap, Crown, Ticket
+  Target, Gauge, Zap, Crown, Ticket, MapPin, Star
 } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -101,6 +101,18 @@ export const MobileCustomerSummaryCard = ({ customer, noddiData }: MobileCustome
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
             <span className="text-xs font-medium truncate">{name || email || 'Unknown'}</span>
+            {/* Segment badges */}
+            {(() => {
+              const selectedGroup = allGroups?.find(g => g.id === noddiData?.data?.user_group_id) || allGroups?.[0];
+              const segments = (selectedGroup as any)?.segments || [];
+              const segLabels: Record<string, string> = { vip: 'VIP', new_customer: 'New', prospects: 'Prospect', customers: 'Customer' };
+              const segColors: Record<string, string> = { vip: 'bg-amber-100 text-amber-900', new_customer: 'bg-green-100 text-green-900', prospects: 'bg-blue-100 text-blue-900', customers: 'bg-gray-100 text-gray-700' };
+              return segments.map((s: any, i: number) => (
+                <span key={i} className={`rounded-full px-1.5 py-0.5 text-[9px] ${segColors[s.segment] || 'bg-gray-100 text-gray-700'}`}>
+                  {segLabels[s.segment] || s.segment}
+                </span>
+              ));
+            })()}
             {totalBookings > 0 && (
               <Badge variant="outline" className="text-[9px] h-4 px-1 shrink-0">
                 {totalBookings} booking{totalBookings > 1 ? 's' : ''}
@@ -207,6 +219,21 @@ export const MobileCustomerSummaryCard = ({ customer, noddiData }: MobileCustome
                 {statusLabel && (
                   <Badge variant="outline" className="text-[9px] h-4 px-1">{statusLabel}</Badge>
                 )}
+                {/* Booking type badge */}
+                {meta?.booking_type && meta.booking_type !== 'normal' && (
+                  <span className="rounded-full bg-orange-100 px-1.5 py-0.5 text-[9px] text-orange-900">
+                    {meta.booking_type === 'wheel_storage_pickup' ? 'Wheel Storage' : meta.booking_type}
+                  </span>
+                )}
+                {/* Location type badge */}
+                {meta?.location_type && (
+                  <span className={`inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[9px] ${
+                    meta.location_type === 'mobile' ? 'bg-blue-100 text-blue-900' : 'bg-gray-100 text-gray-700'
+                  }`}>
+                    <MapPin className="h-2.5 w-2.5" />
+                    {meta.location_type === 'mobile' ? 'Mobile' : 'Stationary'}
+                  </span>
+                )}
                 {/* Unable to complete */}
                 {showV16 && meta?.unable_to_complete && (
                   <span className="inline-flex items-center gap-0.5 rounded-full bg-amber-100 px-1.5 py-0.5 text-amber-900 text-[9px]">
@@ -227,6 +254,23 @@ export const MobileCustomerSummaryCard = ({ customer, noddiData }: MobileCustome
                   </span>
                 )}
               </div>
+
+              {/* Unable to complete public comment */}
+              {meta?.unable_to_complete && meta?.comments_unable_to_complete_public && (
+                <p className="text-[10px] text-amber-800 mt-0.5 truncate">
+                  {meta.comments_unable_to_complete_public}
+                </p>
+              )}
+
+              {/* Feedback overall rating */}
+              {meta?.feedback && (
+                <div className="flex items-center gap-1 mt-0.5">
+                  <Star className="h-2.5 w-2.5 text-amber-500 fill-amber-500" />
+                  <span className="text-[10px] text-muted-foreground">
+                    {meta.feedback.customer_rating_overall}/5 overall
+                  </span>
+                </div>
+              )}
             </div>
           )}
 
