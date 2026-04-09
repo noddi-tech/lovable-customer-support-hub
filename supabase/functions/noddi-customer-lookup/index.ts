@@ -1322,6 +1322,7 @@ Deno.serve(async (req) => {
             },
             priority_booking: g.bookings_summary?.priority_booking || null,
             membership_programs: g.membership_programs || [],
+            segments: g.segments || [],
             coupons: (() => {
               const raw = g.coupons || [];
               if (raw.length > 0) console.log(`Raw coupons for group ${g.id}:`, JSON.stringify(raw.slice(0, 2)));
@@ -1564,6 +1565,7 @@ Deno.serve(async (req) => {
       },
       priority_booking: g.bookings_summary?.priority_booking || null,
       membership_programs: g.membership_programs || [],
+      segments: g.segments || [],
       coupons: (() => {
         const raw = g.coupons || [];
         if (raw.length > 0) console.log(`Raw coupons for group ${g.id}:`, JSON.stringify(raw.slice(0, 2)));
