@@ -343,6 +343,40 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
     setMessage(prev => prev + emoji);
   }, []);
 
+  const handleGetAiSuggestions = useCallback(async () => {
+    try {
+      await getAiSuggestions();
+    } catch (error) {
+      // Error handling is done in the context
+    }
+  }, [getAiSuggestions]);
+
+  const handleAiSuggestionSelect = useCallback((suggestion: string) => {
+    setSelectedSuggestionForDialog(suggestion);
+    setOriginalSuggestionText(suggestion);
+  }, []);
+
+  const handleUseAsIs = useCallback(() => {
+    if (selectedSuggestionForDialog) {
+      setMessage(selectedSuggestionForDialog);
+      setSelectedSuggestionForDialog(null);
+      toast.success('Suggestion inserted into reply');
+    }
+  }, [selectedSuggestionForDialog]);
+
+  const handleRefineAndUse = useCallback(async (refinementInstructions: string, originalText: string) => {
+    const lastCustomerMessage = [...(messages || [])].reverse().find((m: any) => m.sender_type === 'customer');
+    const customerMessageText = lastCustomerMessage?.content || '';
+    
+    const refinedText = await refineAiSuggestion(originalText, refinementInstructions, customerMessageText);
+    
+    if (refinedText) {
+      setMessage(refinedText);
+      setSelectedSuggestionForDialog(refinedText);
+      toast.success('Refined suggestion ready! You can refine it more or use it.');
+    }
+  }, [messages, refineAiSuggestion]);
+
   const handleTranslate = useCallback(async () => {
     if (!message.trim() || translateLoading) return;
     setTranslateLoading(true);
