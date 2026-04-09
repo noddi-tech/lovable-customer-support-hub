@@ -600,17 +600,28 @@ const EmailRenderComponent: React.FC<EmailRenderProps> = ({
       </div>
       
       {/* Attachments */}
-      {attachments && attachments.filter(a => !a.isInline).length > 0 && (
+      {(() => {
+        // Include inline attachments whose contentId is NOT actually referenced in the HTML body
+        const downloadableAttachments = attachments.filter(a => {
+          if (!a.isInline) return true;
+          if (!a.contentId) return true;
+          if (isHTML) {
+            const cidNormalized = a.contentId.replace(/[<>]/g, '');
+            return !content.includes(`cid:${cidNormalized}`);
+          }
+          return true;
+        });
+        return downloadableAttachments.length > 0 ? (
         <div className="email-render__attachments" role="region" aria-label="Email attachments">
           <h4 className="email-render__attachments-title" id="attachments-heading">
-            Attachments ({attachments.filter(a => !a.isInline).length})
+            Attachments ({downloadableAttachments.length})
           </h4>
           <ul 
             className="email-render__attachments-list" 
             role="list"
             aria-labelledby="attachments-heading"
           >
-            {attachments.filter(a => !a.isInline).map((attachment, index) => (
+            {downloadableAttachments.map((attachment, index) => (
               <li key={index} className="email-render__attachment-item" role="listitem">
                 <div className="email-render__attachment-info">
                   <span className="email-render__attachment-name" title={attachment.filename}>
