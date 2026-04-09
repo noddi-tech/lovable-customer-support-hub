@@ -7,6 +7,7 @@ import { ConversationListDeleteDialog } from "./conversation-list/ConversationLi
 import { ConversationTable } from "./conversation-list/ConversationTable";
 import { ArchiveConfirmDialog } from "./conversation-list/ArchiveConfirmDialog";
 import { VirtualizedConversationTable } from "./conversation-list/VirtualizedConversationTable";
+import { ConversationPaginationFooter } from "./conversation-list/ConversationPaginationFooter";
 import { BulkActionsBar } from "./conversation-list/BulkActionsBar";
 import { SessionRecoveryBanner } from "@/components/conversations/SessionRecoveryBanner";
 import { SessionSyncButton } from "@/components/conversations/SessionSyncButton";
@@ -196,6 +197,9 @@ const ConversationListContent = ({ onSelectConversation, selectedConversation, o
           />
         )}
       </div>
+
+      {/* Pagination Footer */}
+      <ConversationPaginationFooter />
 
       <ConversationListDeleteDialog />
       <ArchiveConfirmDialog

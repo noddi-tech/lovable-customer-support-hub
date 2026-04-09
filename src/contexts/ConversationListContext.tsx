@@ -75,6 +75,8 @@ interface ConversationListState {
   bulkSelectionMode: boolean;
   tableSort: { key: string; direction: 'asc' | 'desc' | null };
   archiveDialog: ArchiveDialogState;
+  pageSize: number;
+  currentPage: number;
 }
 
 type ConversationListAction =
@@ -90,7 +92,9 @@ type ConversationListAction =
   | { type: 'TOGGLE_BULK_MODE' }
   | { type: 'SET_SORT'; payload: string }
   | { type: 'OPEN_ARCHIVE_DIALOG'; payload: ArchiveDialogState }
-  | { type: 'CLOSE_ARCHIVE_DIALOG' };
+  | { type: 'CLOSE_ARCHIVE_DIALOG' }
+  | { type: 'SET_PAGE_SIZE'; payload: number }
+  | { type: 'SET_CURRENT_PAGE'; payload: number };
 
 const initialState: ConversationListState = {
   searchQuery: '',
@@ -104,16 +108,18 @@ const initialState: ConversationListState = {
   bulkSelectionMode: false,
   tableSort: { key: 'waiting', direction: 'desc' },
   archiveDialog: { open: false, ids: [], nonClosedCount: 0, totalCount: 0 },
+  pageSize: 50,
+  currentPage: 1,
 };
 
 function conversationListReducer(state: ConversationListState, action: ConversationListAction): ConversationListState {
   switch (action.type) {
     case 'SET_SEARCH_QUERY':
-      return { ...state, searchQuery: action.payload };
+      return { ...state, searchQuery: action.payload, currentPage: 1 };
     case 'SET_STATUS_FILTER':
-      return { ...state, statusFilter: action.payload };
+      return { ...state, statusFilter: action.payload, currentPage: 1 };
     case 'SET_PRIORITY_FILTER':
-      return { ...state, priorityFilter: action.payload };
+      return { ...state, priorityFilter: action.payload, currentPage: 1 };
     case 'SET_SORT_BY':
       return { ...state, sortBy: action.payload };
     case 'TOGGLE_FILTERS':
@@ -152,6 +158,10 @@ function conversationListReducer(state: ConversationListState, action: Conversat
       return { ...state, archiveDialog: action.payload };
     case 'CLOSE_ARCHIVE_DIALOG':
       return { ...state, archiveDialog: { open: false, ids: [], nonClosedCount: 0, totalCount: 0 } };
+    case 'SET_PAGE_SIZE':
+      return { ...state, pageSize: action.payload, currentPage: 1 };
+    case 'SET_CURRENT_PAGE':
+      return { ...state, currentPage: action.payload };
     default:
       return state;
   }
@@ -175,6 +185,7 @@ interface ConversationListContextType {
   isMarkingAllAsRead: boolean;
   toggleConversationRead: (id: string, currentReadState: boolean) => void;
   filteredConversations: Conversation[];
+  paginatedConversations: Conversation[];
   bulkMarkAsRead: () => void;
   bulkMarkAsUnread: () => void;
   bulkChangeStatus: (status: string) => void;
@@ -951,6 +962,10 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
     isMarkingAllAsRead: markAllAsReadMutation.isPending,
     toggleConversationRead,
     filteredConversations: filteredAndSortedConversations,
+    paginatedConversations: filteredAndSortedConversations.slice(
+      (state.currentPage - 1) * state.pageSize,
+      state.currentPage * state.pageSize
+    ),
     bulkMarkAsRead,
     bulkMarkAsUnread,
     bulkChangeStatus,

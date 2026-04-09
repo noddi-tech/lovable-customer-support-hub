@@ -18,6 +18,7 @@ export const ConversationTable = memo<ConversationTableProps>(({
 }) => {
   const {
     filteredConversations,
+    paginatedConversations,
     isLoading,
     state,
     dispatch,
@@ -131,7 +132,7 @@ export const ConversationTable = memo<ConversationTableProps>(({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {filteredConversations.map((conversation) => (
+          {paginatedConversations.map((conversation) => (
             <ConversationTableRow
               key={conversation.id}
               conversation={conversation}
