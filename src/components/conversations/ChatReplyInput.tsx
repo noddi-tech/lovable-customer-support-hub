@@ -164,51 +164,59 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
 
       if (error) throw error;
 
-      // For non-internal messages: update status + send email if not live
-      if (!isInternalNote) {
-        // Update conversation status (agent chooses: closed, open, pending)
-        console.log('[ChatReplyInput] Updating conversation status:', { conversationId, replyStatus });
-        const { error: statusError } = await supabase
-          .from('conversations')
-          .update({ 
-            status: replyStatus,
-            is_read: true,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', conversationId);
-        
-        if (statusError) {
-          console.error('[ChatReplyInput] Failed to update conversation status:', statusError);
-          throw new Error(`Failed to update status: ${statusError.message}`);
-        }
-        console.log('[ChatReplyInput] Conversation status updated successfully to:', replyStatus);
+      // Track AI suggestion usage (same pattern as email ReplyArea via ConversationViewContext)
+      if (!isInternalNote && insertedMsg?.id && state.selectedAiSuggestion) {
+        try {
+          const { data: orgProfile } = await supabase
+            .from('profiles')
+            .select('organization_id')
+            .eq('user_id', user.id)
+            .maybeSingle();
 
-        // Check if there's an active live chat session
-        const { data: activeSession } = await supabase
-          .from('widget_chat_sessions')
-          .select('id, last_seen_at, status')
-          .eq('conversation_id', conversationId)
-          .in('status', ['active', 'waiting'])
-          .maybeSingle();
+          if (orgProfile?.organization_id) {
+            const customerMessage = [...(messages || [])].reverse().find((m: any) => m.sender_type === 'customer');
+            
+            let responseSource: 'ai_suggestion' | 'knowledge_base' = 'ai_suggestion';
+            let sourceId: string | null = state.selectedAiSuggestion;
+            
+            const selectedSuggestion = state.aiSuggestions.find(
+              (s: any) => s.reply === state.selectedAiSuggestion || s === state.selectedAiSuggestion
+            );
+            if (selectedSuggestion?.knowledgeEntryId) {
+              responseSource = 'knowledge_base';
+              sourceId = selectedSuggestion.knowledgeEntryId;
+            }
 
-        const isLive = activeSession?.last_seen_at && 
-          new Date(activeSession.last_seen_at) > new Date(Date.now() - 60000) &&
-          activeSession.status === 'active';
-
-        // If not actively live, send via email
-        if (!isLive && insertedMsg?.id) {
-          const { error: emailError } = await supabase.functions.invoke('send-reply-email', {
-            body: { messageId: insertedMsg.id }
-          });
-          if (emailError) {
-            console.error('[ChatReplyInput] Email send failed:', emailError);
-            await supabase.from('messages').update({ email_status: 'failed' }).eq('id', insertedMsg.id);
-            toast.warning('Reply saved but email sending failed');
+            await supabase.from('response_tracking').insert({
+              organization_id: orgProfile.organization_id,
+              conversation_id: conversationId,
+              message_id: insertedMsg.id,
+              agent_id: user.id,
+              response_source: responseSource,
+              ai_suggestion_id: responseSource === 'ai_suggestion' ? sourceId : null,
+              knowledge_entry_id: responseSource === 'knowledge_base' ? sourceId : null,
+              customer_message: customerMessage?.content || null,
+              agent_response: messageContent,
+            });
           }
+        } catch (trackingErr) {
+          console.error('[ChatReplyInput] Tracking error:', trackingErr);
         }
       }
+
+      // Return the message id for onSuccess
+      return insertedMsg;
     },
-    onSuccess: () => {
+    onSuccess: (insertedMsg) => {
+      // Show feedback prompt if AI suggestion was used
+      if (state.selectedAiSuggestion && insertedMsg?.id) {
+        dispatch({ type: 'SET_FEEDBACK_STATE', payload: { show: true, messageId: insertedMsg.id } });
+      }
+      dispatch({ type: 'SET_SELECTED_AI_SUGGESTION', payload: null });
+
+      // For non-internal messages: update status + send email if not live
+      // (moved status update to mutationFn above - keeping invalidation here)
+
       // Process mentions if this was an internal note with mentions
       if (isInternalNote && mentionedUserIds.length > 0) {
         processMentions(message, mentionedUserIds, {
