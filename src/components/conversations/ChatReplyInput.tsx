@@ -758,6 +758,16 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* AI Suggestion Dialog */}
+      <AiSuggestionDialog
+        open={selectedSuggestionForDialog !== null}
+        onOpenChange={(open) => !open && setSelectedSuggestionForDialog(null)}
+        suggestion={selectedSuggestionForDialog || ''}
+        onUseAsIs={handleUseAsIs}
+        onRefine={handleRefineAndUse}
+        isRefining={state.refiningSuggestion}
+      />
     </>
   );
 };
