@@ -638,7 +638,9 @@ const EmailRenderComponent: React.FC<EmailRenderProps> = ({
             ))}
           </ul>
         </div>
-      )}
+        ) : null;
+      })()}
+      
       
       {/* Image Lightbox for inline attachments */}
       {inlineImages.length > 0 && (
