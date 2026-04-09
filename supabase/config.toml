@@ -227,5 +227,8 @@ verify_jwt = false
 [functions.generate-email-draft]
 verify_jwt = true
 
+[functions.classify-agent-edit]
+verify_jwt = false
+
 [functions.auto-close-conversations]
 verify_jwt = false
