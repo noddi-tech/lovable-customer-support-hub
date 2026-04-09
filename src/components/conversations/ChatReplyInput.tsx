@@ -451,7 +451,39 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
           className="hidden"
         />
 
-        {/* Textarea: full width */}
+        {/* AI Suggestion Cards */}
+        {!isInternalNote && state.aiSuggestions.length > 0 && (
+          <div className="space-y-2">
+            <label className="text-xs font-medium flex items-center gap-2">
+              <Sparkles className="h-3.5 w-3.5 text-primary" />
+              AI Suggestions ({state.aiSuggestions.length})
+            </label>
+            <div className="grid gap-2">
+              {state.aiSuggestions.map((suggestion, index) => {
+                const preview = suggestion.length > 100 ? `${suggestion.slice(0, 100)}...` : suggestion;
+                return (
+                  <Card
+                    key={index}
+                    className="p-3 hover:bg-muted/50 cursor-pointer transition-colors border-border hover:border-primary/50"
+                    onClick={() => handleAiSuggestionSelect(suggestion)}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm leading-relaxed text-foreground/90 line-clamp-2">{preview}</p>
+                        <p className="text-xs text-muted-foreground mt-1">~{suggestion.length} characters</p>
+                      </div>
+                      <Badge variant="outline" className="text-xs gap-1 shrink-0">
+                        <Eye className="h-3 w-3" />
+                        View
+                      </Badge>
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {isInternalNote ? (
           <div className="min-w-0">
             <MentionTextarea
