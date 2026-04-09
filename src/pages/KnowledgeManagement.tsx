@@ -8,8 +8,9 @@ import { SuggestionPerformance } from "@/components/dashboard/SuggestionPerforma
 import { KnowledgeEntriesManager } from "@/components/dashboard/knowledge/KnowledgeEntriesManager";
 import { KnowledgeSettings } from "@/components/dashboard/knowledge/KnowledgeSettings";
 import { KnowledgeImportFromHistory } from "@/components/dashboard/knowledge/KnowledgeImportFromHistory";
-import { Brain, Activity, TrendingUp, Database, Settings, Upload, GraduationCap } from "lucide-react";
+import { Brain, Activity, TrendingUp, Database, Settings, Upload, GraduationCap, Shield } from "lucide-react";
 import { LearningDashboard } from "@/components/dashboard/knowledge/LearningDashboard";
+import { AutonomyDashboard } from "@/components/dashboard/knowledge/AutonomyDashboard";
 
 export default function KnowledgeManagement() {
   const { data: profile } = useQuery({
@@ -76,6 +77,10 @@ export default function KnowledgeManagement() {
               <Activity className="w-4 h-4" />
               System Health
             </TabsTrigger>
+            <TabsTrigger value="autonomy" className="flex items-center gap-2">
+              <Shield className="w-4 h-4" />
+              Autonomy
+            </TabsTrigger>
             <TabsTrigger value="settings" className="flex items-center gap-2">
               <Settings className="w-4 h-4" />
               Settings
@@ -107,6 +112,10 @@ export default function KnowledgeManagement() {
 
           <TabsContent value="health">
             <SystemHealthMonitor organizationId={profile.organization_id} />
+          </TabsContent>
+
+          <TabsContent value="autonomy">
+            <AutonomyDashboard organizationId={profile.organization_id} />
           </TabsContent>
 
           <TabsContent value="settings">
