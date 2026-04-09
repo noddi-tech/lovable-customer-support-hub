@@ -233,5 +233,8 @@ verify_jwt = false
 [functions.evaluate-conversations]
 verify_jwt = false
 
+[functions.review-queue]
+verify_jwt = true
+
 [functions.auto-close-conversations]
 verify_jwt = false

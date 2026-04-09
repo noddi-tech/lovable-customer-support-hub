@@ -72,6 +72,19 @@ Deno.serve(async (req) => {
       .update({ feedback_rating: rating })
       .eq('id', messageId);
 
+    // Route negative feedback to review queue
+    if (rating === 'negative') {
+      supabase.from('review_queue').upsert({
+        organization_id: widget.organization_id,
+        conversation_id: conversationId,
+        reason: 'negative_feedback',
+        priority: 3,
+        details: feedbackText ? `Negative feedback: ${feedbackText}` : 'Thumbs-down on AI response',
+        status: 'pending',
+      }, { onConflict: 'conversation_id,reason', ignoreDuplicates: true })
+        .then(({ error: qErr }: any) => { if (qErr) console.warn('[widget-ai-feedback] Review queue error:', qErr); });
+    }
+
     // Auto-learning: if positive feedback, check if we should create a knowledge entry
     if (rating === 'positive') {
       try {

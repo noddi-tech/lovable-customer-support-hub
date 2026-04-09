@@ -189,6 +189,20 @@ Respond in EXACTLY this JSON format:
       return null;
     }
 
+    // Route low-scoring conversations to review queue
+    if (composite < 0.5) {
+      await supabase.from('review_queue').upsert({
+        organization_id: organizationId,
+        conversation_id: conversationId,
+        reason: 'low_eval_score',
+        priority: 2,
+        details: `Composite score ${composite.toFixed(3)} — accuracy:${accuracy} helpfulness:${helpfulness} tone:${tone} completeness:${completeness} policy:${policy}`,
+        status: 'pending',
+      }, { onConflict: 'conversation_id,reason', ignoreDuplicates: true }).then(
+        ({ error: qErr }: any) => { if (qErr) console.warn('[evaluate-conversations] Review queue insert error:', qErr); }
+      );
+    }
+
     return { composite };
   } catch (err) {
     console.warn(`[evaluate-conversations] GPT evaluation failed for ${conversationId}:`, err);

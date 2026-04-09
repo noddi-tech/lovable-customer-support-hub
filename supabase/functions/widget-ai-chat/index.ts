@@ -780,7 +780,7 @@ Deno.serve(async (req) => {
 
         // Tier 1: inline quality check (fire-and-forget)
         if (!test && savedMessageId) {
-          quickQualityCheck(supabase, OPENAI_API_KEY, savedMessageId, reply, currentMessages, language)
+          quickQualityCheck(supabase, OPENAI_API_KEY, savedMessageId, dbConversationId, organizationId, reply, currentMessages, language)
             .catch(e => console.warn('[widget-ai-chat] Quality check error:', e));
         }
 
@@ -947,7 +947,7 @@ Deno.serve(async (req) => {
 
           // Tier 1: inline quality check (recovery path, fire-and-forget)
           if (savedMessageId) {
-            quickQualityCheck(supabase, OPENAI_API_KEY, savedMessageId, reply, currentMessages, language)
+            quickQualityCheck(supabase, OPENAI_API_KEY, savedMessageId, dbConversationId, organizationId, reply, currentMessages, language)
               .catch(e => console.warn('[widget-ai-chat] Quality check error:', e));
           }
 
@@ -1059,6 +1059,8 @@ async function quickQualityCheck(
   supabase: any,
   openaiKey: string,
   messageId: string,
+  conversationId: string | null,
+  organizationId: string,
   reply: string,
   conversationMessages: any[],
   language: string,
@@ -1110,6 +1112,19 @@ ${reply.slice(0, 500)}`;
         .update({ quality_check_passed: false, quality_flag: result })
         .eq('id', messageId);
       console.log(`[widget-ai-chat] Quality flag on ${messageId}: ${result}`);
+
+      // Route to review queue
+      if (conversationId) {
+        supabase.from('review_queue').upsert({
+          organization_id: organizationId,
+          conversation_id: conversationId,
+          reason: 'quality_flag',
+          priority: 1,
+          details: `Quality check failed: ${result}`,
+          status: 'pending',
+        }, { onConflict: 'conversation_id,reason', ignoreDuplicates: true })
+          .then(({ error: qErr }: any) => { if (qErr) console.warn('[widget-ai-chat] Review queue error:', qErr); });
+      }
     }
   } catch (err) {
     console.warn('[widget-ai-chat] Quality check API error:', err);
@@ -1154,6 +1169,19 @@ async function detectKnowledgeGap(
       frequency: 1,
       status: 'open',
     });
+  }
+
+  // Route to review queue
+  if (conversationId) {
+    supabase.from('review_queue').upsert({
+      organization_id: organizationId,
+      conversation_id: conversationId,
+      reason: 'knowledge_gap',
+      priority: 4,
+      details: `Knowledge gap: ${trimmed.slice(0, 200)}`,
+      status: 'pending',
+    }, { onConflict: 'conversation_id,reason', ignoreDuplicates: true })
+      .then(({ error: qErr }: any) => { if (qErr) console.warn('[widget-ai-chat] Review queue error:', qErr); });
   }
 }
 
