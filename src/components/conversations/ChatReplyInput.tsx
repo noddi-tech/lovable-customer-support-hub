@@ -255,8 +255,6 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
       }
       dispatch({ type: 'SET_SELECTED_AI_SUGGESTION', payload: null });
 
-      // For non-internal messages: update status + send email if not live
-      // (moved status update to mutationFn above - keeping invalidation here)
 
       // Process mentions if this was an internal note with mentions
       if (isInternalNote && mentionedUserIds.length > 0) {
