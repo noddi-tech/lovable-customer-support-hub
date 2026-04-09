@@ -8,9 +8,10 @@ import { SuggestionPerformance } from "@/components/dashboard/SuggestionPerforma
 import { KnowledgeEntriesManager } from "@/components/dashboard/knowledge/KnowledgeEntriesManager";
 import { KnowledgeSettings } from "@/components/dashboard/knowledge/KnowledgeSettings";
 import { KnowledgeImportFromHistory } from "@/components/dashboard/knowledge/KnowledgeImportFromHistory";
-import { Brain, Activity, TrendingUp, Database, Settings, Upload, GraduationCap, Shield } from "lucide-react";
+import { Brain, Activity, TrendingUp, Database, Settings, Upload, GraduationCap, Shield, Users } from "lucide-react";
 import { LearningDashboard } from "@/components/dashboard/knowledge/LearningDashboard";
 import { AutonomyDashboard } from "@/components/dashboard/knowledge/AutonomyDashboard";
+import { CustomerMemoryDashboard } from "@/components/dashboard/knowledge/CustomerMemoryDashboard";
 
 export default function KnowledgeManagement() {
   const { data: profile } = useQuery({
@@ -81,6 +82,10 @@ export default function KnowledgeManagement() {
               <Shield className="w-4 h-4" />
               Autonomy
             </TabsTrigger>
+            <TabsTrigger value="customers" className="flex items-center gap-2">
+              <Users className="w-4 h-4" />
+              Customer Profiles
+            </TabsTrigger>
             <TabsTrigger value="settings" className="flex items-center gap-2">
               <Settings className="w-4 h-4" />
               Settings
@@ -116,6 +121,10 @@ export default function KnowledgeManagement() {
 
           <TabsContent value="autonomy">
             <AutonomyDashboard organizationId={profile.organization_id} />
+          </TabsContent>
+
+          <TabsContent value="customers">
+            <CustomerMemoryDashboard organizationId={profile.organization_id} />
           </TabsContent>
 
           <TabsContent value="settings">
