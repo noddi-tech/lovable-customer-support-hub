@@ -107,7 +107,8 @@ export const MobileCustomerSummaryCard = ({ customer, noddiData }: MobileCustome
               const segments = (selectedGroup as any)?.segments || [];
               const segLabels: Record<string, string> = { vip: 'VIP', new_customer: 'New', prospects: 'Prospect', customers: 'Customer' };
               const segColors: Record<string, string> = { vip: 'bg-amber-100 text-amber-900', new_customer: 'bg-green-100 text-green-900', prospects: 'bg-blue-100 text-blue-900', customers: 'bg-gray-100 text-gray-700' };
-              return segments.map((s: any, i: number) => (
+              const uniqueSegments = [...new Map(segments.map((s: any) => [s.segment, s])).values()];
+              return uniqueSegments.map((s: any, i: number) => (
                 <span key={i} className={`rounded-full px-1.5 py-0.5 text-[9px] ${segColors[s.segment] || 'bg-gray-100 text-gray-700'}`}>
                   {segLabels[s.segment] || s.segment}
                 </span>
