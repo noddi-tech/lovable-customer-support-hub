@@ -8,7 +8,8 @@ import { SuggestionPerformance } from "@/components/dashboard/SuggestionPerforma
 import { KnowledgeEntriesManager } from "@/components/dashboard/knowledge/KnowledgeEntriesManager";
 import { KnowledgeSettings } from "@/components/dashboard/knowledge/KnowledgeSettings";
 import { KnowledgeImportFromHistory } from "@/components/dashboard/knowledge/KnowledgeImportFromHistory";
-import { Brain, Activity, TrendingUp, Database, Settings, Upload } from "lucide-react";
+import { Brain, Activity, TrendingUp, Database, Settings, Upload, GraduationCap } from "lucide-react";
+import { LearningDashboard } from "@/components/dashboard/knowledge/LearningDashboard";
 
 export default function KnowledgeManagement() {
   const { data: profile } = useQuery({
