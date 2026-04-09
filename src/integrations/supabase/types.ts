@@ -402,6 +402,75 @@ export type Database = {
           },
         ]
       }
+      conversation_evaluations: {
+        Row: {
+          accuracy_score: number | null
+          completeness_score: number | null
+          composite_score: number | null
+          conversation_id: string
+          created_at: string | null
+          evaluation_notes: string | null
+          evaluator_model: string | null
+          flagged_for_review: boolean | null
+          helpfulness_score: number | null
+          id: string
+          organization_id: string
+          policy_score: number | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          tone_score: number | null
+        }
+        Insert: {
+          accuracy_score?: number | null
+          completeness_score?: number | null
+          composite_score?: number | null
+          conversation_id: string
+          created_at?: string | null
+          evaluation_notes?: string | null
+          evaluator_model?: string | null
+          flagged_for_review?: boolean | null
+          helpfulness_score?: number | null
+          id?: string
+          organization_id: string
+          policy_score?: number | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          tone_score?: number | null
+        }
+        Update: {
+          accuracy_score?: number | null
+          completeness_score?: number | null
+          composite_score?: number | null
+          conversation_id?: string
+          created_at?: string | null
+          evaluation_notes?: string | null
+          evaluator_model?: string | null
+          flagged_for_review?: boolean | null
+          helpfulness_score?: number | null
+          id?: string
+          organization_id?: string
+          policy_score?: number | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          tone_score?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_evaluations_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "widget_ai_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_evaluations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversations: {
         Row: {
           assigned_to_id: string | null
@@ -2309,6 +2378,60 @@ export type Database = {
         }
         Relationships: []
       }
+      preference_pairs: {
+        Row: {
+          chosen_response: string
+          created_at: string | null
+          customer_message: string
+          edit_category: string | null
+          edit_distance: number | null
+          id: string
+          organization_id: string
+          quality_verified: boolean | null
+          rejected_response: string
+          response_tracking_id: string | null
+        }
+        Insert: {
+          chosen_response: string
+          created_at?: string | null
+          customer_message: string
+          edit_category?: string | null
+          edit_distance?: number | null
+          id?: string
+          organization_id: string
+          quality_verified?: boolean | null
+          rejected_response: string
+          response_tracking_id?: string | null
+        }
+        Update: {
+          chosen_response?: string
+          created_at?: string | null
+          customer_message?: string
+          edit_category?: string | null
+          edit_distance?: number | null
+          id?: string
+          organization_id?: string
+          quality_verified?: boolean | null
+          rejected_response?: string
+          response_tracking_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "preference_pairs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "preference_pairs_response_tracking_id_fkey"
+            columns: ["response_tracking_id"]
+            isOneToOne: false
+            referencedRelation: "response_tracking"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -3581,6 +3704,8 @@ export type Database = {
           feedback_rating: string | null
           id: string
           intent_detected: string | null
+          quality_check_passed: boolean | null
+          quality_flag: string | null
           role: string
           tools_used: string[] | null
         }
@@ -3591,6 +3716,8 @@ export type Database = {
           feedback_rating?: string | null
           id?: string
           intent_detected?: string | null
+          quality_check_passed?: boolean | null
+          quality_flag?: string | null
           role: string
           tools_used?: string[] | null
         }
@@ -3601,6 +3728,8 @@ export type Database = {
           feedback_rating?: string | null
           id?: string
           intent_detected?: string | null
+          quality_check_passed?: boolean | null
+          quality_flag?: string | null
           role?: string
           tools_used?: string[] | null
         }
