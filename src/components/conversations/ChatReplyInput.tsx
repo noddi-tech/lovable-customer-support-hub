@@ -6,7 +6,7 @@ import { MentionTextarea } from '@/components/ui/mention-textarea';
 import { useMentionNotifications } from '@/hooks/useMentionNotifications';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
-import { Send, Loader2, MessageSquareX, UserRoundPlus, Smile, Paperclip, Mic, Image, X, Languages, StickyNote, Sparkles, Eye } from 'lucide-react';
+import { Send, Loader2, MessageSquareX, UserRoundPlus, Smile, Paperclip, Mic, Image, X, Languages, StickyNote, Sparkles, Eye, Database } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useConversationView } from '@/contexts/ConversationViewContext';
 import { AiSuggestionDialog } from '@/components/dashboard/conversation-view/AiSuggestionDialog';
@@ -254,6 +254,7 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
         dispatch({ type: 'SET_FEEDBACK_STATE', payload: { show: true, messageId: insertedMsg.id } });
       }
       dispatch({ type: 'SET_SELECTED_AI_SUGGESTION', payload: null });
+      dispatch({ type: 'SET_TRACKING_ACTIVE', payload: false });
 
 
       // Process mentions if this was an internal note with mentions
@@ -502,6 +503,16 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
 
         {/* Feedback prompt for AI suggestion rating */}
         <FeedbackPrompt />
+
+        {/* Learning indicator when AI suggestion is being tracked */}
+        {state.trackingActive && (
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/5 border border-primary/20 rounded-md">
+            <Database className="h-3 w-3 text-primary animate-pulse" />
+            <span className="text-xs text-primary font-medium">
+              Learning from this response...
+            </span>
+          </div>
+        )}
 
         {/* AI Suggestion Cards */}
         {!isInternalNote && state.aiSuggestions.length > 0 && (
