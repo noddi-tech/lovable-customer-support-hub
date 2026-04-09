@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import DOMPurify from 'dompurify';
-import { sendAiMessage, streamAiMessage } from '../api';
+import { sendAiMessage, streamAiMessage, getApiUrl } from '../api';
 import { getWidgetTranslations } from '../translations';
 import { AiFeedback } from './AiFeedback';
 import { parseMessageBlocks, MessageBlock } from '../utils/parseMessageBlocks';
@@ -228,9 +228,32 @@ export const AiChat: React.FC<AiChatProps> = ({
     localStorage.setItem(`noddi_action_${blockKey}`, option);
     setUsedBlocks((prev) => new Set(prev).add(blockKey));
 
+    // Save star ratings to feedback DB
+    const ratingMatch = option.match(/^Rating: (\d)\/5$/);
+    if (ratingMatch && conversationId) {
+      const stars = parseInt(ratingMatch[1]);
+      const localMsgId = blockKey.split(':')[0];
+      const msg = messages.find(m => m.id === localMsgId);
+      if (msg?.serverId) {
+        const apiBase = getApiUrl();
+        fetch(`${apiBase}/widget-ai-feedback`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            widgetKey,
+            messageId: msg.serverId,
+            conversationId,
+            rating: stars >= 4 ? 'positive' : 'negative',
+            feedbackText: `Star rating: ${stars}/5`,
+            source: 'rating_block',
+          }),
+        }).catch(() => { /* best effort */ });
+      }
+    }
+
     // Always send as hidden — the block's inline badge provides visual feedback
     sendMessage(option, undefined, { hidden: true });
-  }, [sendMessage]);
+  }, [sendMessage, conversationId, messages, widgetKey]);
 
   const handlePhoneVerified = useCallback((phone: string, blockKey: string) => {
     setVerifiedPhone(phone);

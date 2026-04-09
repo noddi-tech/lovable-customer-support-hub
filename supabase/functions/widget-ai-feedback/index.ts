@@ -23,7 +23,7 @@ Deno.serve(async (req) => {
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    const { widgetKey, messageId, conversationId, rating, feedbackText } = await req.json();
+    const { widgetKey, messageId, conversationId, rating, feedbackText, source } = await req.json();
 
     if (!widgetKey || !messageId || !conversationId || !['positive', 'negative'].includes(rating)) {
       return new Response(JSON.stringify({ error: 'Invalid request' }), {
@@ -55,6 +55,7 @@ Deno.serve(async (req) => {
         organization_id: widget.organization_id,
         rating,
         feedback_text: feedbackText || null,
+        source: source || 'widget',
       });
 
     if (feedbackError) {

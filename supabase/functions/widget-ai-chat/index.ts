@@ -772,6 +772,12 @@ Deno.serve(async (req) => {
         const savedMessageId = await saveMessage(supabase, dbConversationId, 'assistant', reply, allToolsUsed);
         await updateConversationMeta(supabase, dbConversationId, allToolsUsed);
 
+        // Implicit feedback: detect successful tool completions
+        if (allToolsUsed.length > 0 && !test) {
+          detectImplicitFeedback(supabase, dbConversationId, organizationId, savedMessageId, allToolsUsed, reply)
+            .catch(e => console.warn('[widget-ai-chat] Implicit feedback error:', e));
+        }
+
         // Detect knowledge gaps: if knowledge search was used but returned no results
         if (allToolsUsed.includes('search_knowledge_base') && !test) {
           try {
@@ -927,6 +933,12 @@ Deno.serve(async (req) => {
           const savedMessageId = await saveMessage(supabase, dbConversationId, 'assistant', reply, allToolsUsed);
           await updateConversationMeta(supabase, dbConversationId, allToolsUsed);
 
+          // Implicit feedback: detect successful tool completions (recovery path)
+          if (allToolsUsed.length > 0) {
+            detectImplicitFeedback(supabase, dbConversationId, organizationId, savedMessageId, allToolsUsed, reply)
+              .catch(e => console.warn('[widget-ai-chat] Implicit feedback error:', e));
+          }
+
           if (stream) {
             return streamTextResponse(reply, dbConversationId, savedMessageId);
           }
@@ -960,6 +972,74 @@ Deno.serve(async (req) => {
     );
   }
 });
+
+// ========== Implicit feedback detection ==========
+
+const COMPLETION_TOOLS = new Set([
+  'create_shopping_cart',
+  'cancel_booking',
+  'reschedule_booking',
+  'update_booking',
+]);
+
+const INQUIRY_TOOLS = new Set([
+  'get_booking_details',
+  'lookup_customer',
+]);
+
+async function detectImplicitFeedback(
+  supabase: any,
+  conversationId: string | null,
+  organizationId: string,
+  messageId: string | null,
+  toolsUsed: string[],
+  reply: string,
+) {
+  if (!conversationId || !messageId || toolsUsed.length === 0) return;
+
+  try {
+    // Signal 1: Action completed (booking created, cancelled, rescheduled, updated)
+    const completionTool = toolsUsed.find(t => COMPLETION_TOOLS.has(t));
+    if (completionTool) {
+      await supabase.from('widget_ai_feedback').insert({
+        message_id: messageId,
+        conversation_id: conversationId,
+        organization_id: organizationId,
+        rating: 'positive',
+        feedback_text: `Implicit: ${completionTool} succeeded`,
+        source: 'implicit_completion',
+      });
+
+      // Mark conversation as resolved by AI
+      await supabase
+        .from('widget_ai_conversations')
+        .update({ resolved_by_ai: true })
+        .eq('id', conversationId);
+
+      console.log(`[widget-ai-chat] Implicit positive feedback: ${completionTool}`);
+      return;
+    }
+
+    // Signal 2: Successful inquiry (booking lookup, customer lookup) without escalation
+    const hasInquiryTool = toolsUsed.some(t => INQUIRY_TOOLS.has(t));
+    const hasEscalation = /\b(agent|human|person|kundeservice|menneskelig)\b/i.test(reply);
+    if (hasInquiryTool && !hasEscalation) {
+      const inquiryTool = toolsUsed.find(t => INQUIRY_TOOLS.has(t))!;
+      await supabase.from('widget_ai_feedback').insert({
+        message_id: messageId,
+        conversation_id: conversationId,
+        organization_id: organizationId,
+        rating: 'positive',
+        feedback_text: `Implicit: ${inquiryTool} answered without escalation`,
+        source: 'implicit_completion',
+      });
+
+      console.log(`[widget-ai-chat] Implicit positive feedback: ${inquiryTool} (no escalation)`);
+    }
+  } catch (err) {
+    console.warn('[widget-ai-chat] Implicit feedback error:', err);
+  }
+}
 
 // ========== Knowledge gap detection ==========
 
