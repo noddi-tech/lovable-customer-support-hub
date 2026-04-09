@@ -639,15 +639,20 @@ function buildResponse(params: {
         conflict: false,
         vehicle_label,
         service_title,
-        order_summary: hasLines ? order_summary : undefined, // Only include if has lines
+        order_summary: hasLines ? order_summary : undefined,
         order_tags,
         order_lines,
         money,
         unable_to_complete,
         unable_label,
         partner_urls,
+        booking_type: priority_booking?.booking_type || null,
+        location_type: priority_booking?.location_type || null,
+        comments_unable_to_complete_public: priority_booking?.comments_unable_to_complete_public || null,
+        comments_unable_to_complete_internal: priority_booking?.comments_unable_to_complete_internal || null,
+        feedback: priority_booking?.feedback || null,
         timezone: "Europe/Oslo",
-        version: "noddi-edge-1.7",
+        version: "noddi-edge-1.9",
         source
       }
     }
@@ -706,15 +711,20 @@ function mapCacheRowToUnified(cacheRow: any, email: string, remainingTtl: number
           conflict: false,
           vehicle_label,
           service_title,
-          order_summary: hasLines ? order_summary : undefined, // Only include if has lines
+          order_summary: hasLines ? order_summary : undefined,
           order_tags,
           order_lines,
           money,
           unable_to_complete,
           unable_label,
           partner_urls,
+          booking_type: priorityBooking?.booking_type || null,
+          location_type: priorityBooking?.location_type || null,
+          comments_unable_to_complete_public: priorityBooking?.comments_unable_to_complete_public || null,
+          comments_unable_to_complete_internal: priorityBooking?.comments_unable_to_complete_internal || null,
+          feedback: priorityBooking?.feedback || null,
           timezone: "Europe/Oslo",
-          version: "noddi-edge-1.7",
+          version: "noddi-edge-1.9",
           source: "cache" as const,
         }
     }
@@ -1635,7 +1645,12 @@ Deno.serve(async (req) => {
           unable_to_complete: isUnableToComplete(bookingForCache || priorityBooking),
           unable_label: unableLabel(bookingForCache || priorityBooking),
           partner_urls: buildPartnerUrls(selectedGroup.id, bookingForCache || priorityBooking),
-          version: "noddi-edge-1.8",
+          booking_type: (bookingForCache || priorityBooking)?.booking_type || null,
+          location_type: (bookingForCache || priorityBooking)?.location_type || null,
+          comments_unable_to_complete_public: (bookingForCache || priorityBooking)?.comments_unable_to_complete_public || null,
+          comments_unable_to_complete_internal: (bookingForCache || priorityBooking)?.comments_unable_to_complete_internal || null,
+          feedback: (bookingForCache || priorityBooking)?.feedback || null,
+          version: "noddi-edge-1.9",
           source: "live" as const
         }
       }
