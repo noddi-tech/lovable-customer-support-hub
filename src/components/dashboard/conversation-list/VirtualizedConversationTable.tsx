@@ -71,6 +71,7 @@ const OVERSCAN_COUNT = 5;
 const VirtualizedConversationTable = memo(({ onSelectConversation, selectedConversation }: VirtualizedConversationTableProps) => {
   const {
     filteredConversations,
+    paginatedConversations,
     isLoading,
     hasNextPage,
     fetchNextPage,
@@ -80,7 +81,7 @@ const VirtualizedConversationTable = memo(({ onSelectConversation, selectedConve
   } = useConversationList();
   const { t } = useTranslation();
 
-  const conversations = useMemo(() => filteredConversations, [filteredConversations]);
+  const conversations = useMemo(() => paginatedConversations, [paginatedConversations]);
   const conversationCount = conversations.length;
 
   const isItemLoaded = (index: number) => !hasNextPage || index < conversationCount;
