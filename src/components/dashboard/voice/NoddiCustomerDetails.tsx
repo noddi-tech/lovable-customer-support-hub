@@ -489,6 +489,23 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
                   {data.ui_meta?.unable_label ?? 'Unable to complete'}
                 </span>
               )}
+
+              {/* Unable to complete comments */}
+              {data.ui_meta?.unable_to_complete && (data.ui_meta?.comments_unable_to_complete_public || data.ui_meta?.comments_unable_to_complete_internal) && (
+                <div className="w-full mt-1 p-2 rounded-lg bg-amber-50 border border-amber-200 text-xs space-y-1">
+                  {data.ui_meta.comments_unable_to_complete_public && (
+                    <p className="text-amber-900">
+                      <span className="font-medium">Customer note:</span> {data.ui_meta.comments_unable_to_complete_public}
+                    </p>
+                  )}
+                  {data.ui_meta.comments_unable_to_complete_internal && (
+                    <details className="cursor-pointer">
+                      <summary className="text-amber-700 font-medium">Internal note</summary>
+                      <p className="text-amber-800 mt-0.5">{data.ui_meta.comments_unable_to_complete_internal}</p>
+                    </details>
+                  )}
+                </div>
+              )}
               {/* Paid state chip */}
               {data.ui_meta?.money?.paid_state && (
                 <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs ${
@@ -570,6 +587,47 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
               </div>
             )}
           </div>
+            )}
+
+            {/* Customer Feedback */}
+            {data.ui_meta?.feedback && (
+              <div className="p-2 rounded-lg border bg-muted/30">
+                <div className="flex items-center gap-1 mb-1.5">
+                  <MessageSquareQuote className="h-3 w-3 text-muted-foreground" />
+                  <span className="font-medium text-xs">Customer Feedback</span>
+                </div>
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground w-16">Overall</span>
+                    <StarRatingInput value={data.ui_meta.feedback.customer_rating_overall} onChange={() => {}} size="sm" disabled />
+                  </div>
+                  <div className="grid grid-cols-2 gap-x-3 gap-y-1">
+                    <div className="flex items-center gap-1">
+                      <span className="text-[10px] text-muted-foreground">Car result</span>
+                      <StarRatingInput value={data.ui_meta.feedback.customer_rating_car_result} onChange={() => {}} size="sm" disabled />
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <span className="text-[10px] text-muted-foreground">Communication</span>
+                      <StarRatingInput value={data.ui_meta.feedback.customer_rating_communication} onChange={() => {}} size="sm" disabled />
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <span className="text-[10px] text-muted-foreground">Ease of use</span>
+                      <StarRatingInput value={data.ui_meta.feedback.customer_rating_ease_of_use} onChange={() => {}} size="sm" disabled />
+                    </div>
+                    {data.ui_meta.feedback.customer_rating_politeness != null && (
+                      <div className="flex items-center gap-1">
+                        <span className="text-[10px] text-muted-foreground">Politeness</span>
+                        <StarRatingInput value={data.ui_meta.feedback.customer_rating_politeness} onChange={() => {}} size="sm" disabled />
+                      </div>
+                    )}
+                  </div>
+                  {data.ui_meta.feedback.customer_comment && (
+                    <blockquote className="border-l-2 border-muted-foreground/30 pl-2 text-xs italic text-muted-foreground mt-1">
+                      "{data.ui_meta.feedback.customer_comment}"
+                    </blockquote>
+                  )}
+                </div>
+              </div>
             )}
             
             {/* TEMPORARY: Debug section when no booking data */}
