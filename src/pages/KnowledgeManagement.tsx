@@ -8,7 +8,8 @@ import { SuggestionPerformance } from "@/components/dashboard/SuggestionPerforma
 import { KnowledgeEntriesManager } from "@/components/dashboard/knowledge/KnowledgeEntriesManager";
 import { KnowledgeSettings } from "@/components/dashboard/knowledge/KnowledgeSettings";
 import { KnowledgeImportFromHistory } from "@/components/dashboard/knowledge/KnowledgeImportFromHistory";
-import { Brain, Activity, TrendingUp, Database, Settings, Upload } from "lucide-react";
+import { Brain, Activity, TrendingUp, Database, Settings, Upload, GraduationCap } from "lucide-react";
+import { LearningDashboard } from "@/components/dashboard/knowledge/LearningDashboard";
 
 export default function KnowledgeManagement() {
   const { data: profile } = useQuery({
@@ -50,7 +51,7 @@ export default function KnowledgeManagement() {
         </div>
 
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="flex flex-wrap w-full">
             <TabsTrigger value="overview" className="flex items-center gap-2">
               <Brain className="w-4 h-4" />
               Overview
@@ -62,6 +63,10 @@ export default function KnowledgeManagement() {
             <TabsTrigger value="import" className="flex items-center gap-2">
               <Upload className="w-4 h-4" />
               Import
+            </TabsTrigger>
+            <TabsTrigger value="learning" className="flex items-center gap-2">
+              <GraduationCap className="w-4 h-4" />
+              Learning
             </TabsTrigger>
             <TabsTrigger value="performance" className="flex items-center gap-2">
               <TrendingUp className="w-4 h-4" />
@@ -90,6 +95,10 @@ export default function KnowledgeManagement() {
 
           <TabsContent value="import">
             <KnowledgeImportFromHistory organizationId={profile.organization_id} />
+          </TabsContent>
+
+          <TabsContent value="learning">
+            <LearningDashboard organizationId={profile.organization_id} />
           </TabsContent>
 
           <TabsContent value="performance">

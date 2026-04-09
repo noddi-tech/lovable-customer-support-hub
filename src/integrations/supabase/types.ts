@@ -1445,8 +1445,11 @@ export type Database = {
           id: string
           is_active: boolean | null
           is_manually_curated: boolean | null
+          last_verified_at: string | null
           organization_id: string
           quality_score: number | null
+          search_vector: unknown
+          staleness_category: string | null
           tags: string[] | null
           updated_at: string
           usage_count: number | null
@@ -1463,8 +1466,11 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           is_manually_curated?: boolean | null
+          last_verified_at?: string | null
           organization_id: string
           quality_score?: number | null
+          search_vector?: unknown
+          staleness_category?: string | null
           tags?: string[] | null
           updated_at?: string
           usage_count?: number | null
@@ -1481,8 +1487,11 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           is_manually_curated?: boolean | null
+          last_verified_at?: string | null
           organization_id?: string
           quality_score?: number | null
+          search_vector?: unknown
+          staleness_category?: string | null
           tags?: string[] | null
           updated_at?: string
           usage_count?: number | null
@@ -2754,6 +2763,63 @@ export type Database = {
           },
         ]
       }
+      review_queue: {
+        Row: {
+          conversation_id: string
+          created_at: string | null
+          details: string | null
+          id: string
+          organization_id: string
+          priority: number | null
+          reason: string
+          reviewed_at: string | null
+          reviewer_id: string | null
+          reviewer_notes: string | null
+          status: string | null
+        }
+        Insert: {
+          conversation_id: string
+          created_at?: string | null
+          details?: string | null
+          id?: string
+          organization_id: string
+          priority?: number | null
+          reason: string
+          reviewed_at?: string | null
+          reviewer_id?: string | null
+          reviewer_notes?: string | null
+          status?: string | null
+        }
+        Update: {
+          conversation_id?: string
+          created_at?: string | null
+          details?: string | null
+          id?: string
+          organization_id?: string
+          priority?: number | null
+          reason?: string
+          reviewed_at?: string | null
+          reviewer_id?: string | null
+          reviewer_notes?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "review_queue_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "widget_ai_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "review_queue_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       role_permissions: {
         Row: {
           created_at: string
@@ -3240,6 +3306,62 @@ export type Database = {
           },
         ]
       }
+      topic_autonomy_levels: {
+        Row: {
+          acceptance_rate: number | null
+          avg_confidence: number | null
+          avg_eval_score: number | null
+          created_at: string | null
+          current_level: number | null
+          id: string
+          intent_category: string
+          last_evaluated_at: string | null
+          last_negative_feedback_at: string | null
+          organization_id: string
+          override_max_level: number | null
+          total_responses: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          acceptance_rate?: number | null
+          avg_confidence?: number | null
+          avg_eval_score?: number | null
+          created_at?: string | null
+          current_level?: number | null
+          id?: string
+          intent_category: string
+          last_evaluated_at?: string | null
+          last_negative_feedback_at?: string | null
+          organization_id: string
+          override_max_level?: number | null
+          total_responses?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          acceptance_rate?: number | null
+          avg_confidence?: number | null
+          avg_eval_score?: number | null
+          created_at?: string | null
+          current_level?: number | null
+          id?: string
+          intent_category?: string
+          last_evaluated_at?: string | null
+          last_negative_feedback_at?: string | null
+          organization_id?: string
+          override_max_level?: number | null
+          total_responses?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "topic_autonomy_levels_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       translations: {
         Row: {
           context: string | null
@@ -3698,6 +3820,8 @@ export type Database = {
       }
       widget_ai_messages: {
         Row: {
+          confidence_breakdown: Json | null
+          confidence_score: number | null
           content: string
           conversation_id: string
           created_at: string
@@ -3710,6 +3834,8 @@ export type Database = {
           tools_used: string[] | null
         }
         Insert: {
+          confidence_breakdown?: Json | null
+          confidence_score?: number | null
           content: string
           conversation_id: string
           created_at?: string
@@ -3722,6 +3848,8 @@ export type Database = {
           tools_used?: string[] | null
         }
         Update: {
+          confidence_breakdown?: Json | null
+          confidence_score?: number | null
           content?: string
           conversation_id?: string
           created_at?: string
@@ -4355,6 +4483,24 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      hybrid_search_knowledge: {
+        Args: {
+          match_count?: number
+          org_id: string
+          query_embedding: string
+          query_text: string
+        }
+        Returns: {
+          agent_response: string
+          category: string
+          customer_context: string
+          final_score: number
+          freshness_boost: number
+          id: string
+          quality_score: number
+          similarity: number
+        }[]
       }
       is_organization_member: { Args: { _org_id: string }; Returns: boolean }
       is_super_admin: { Args: never; Returns: boolean }
