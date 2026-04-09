@@ -139,11 +139,42 @@ Deno.serve(async (req) => {
       console.log(`[Auto-Close] Triggered memory extraction: ${agentMemoryCount} agent, ${widgetMemoryCount} widget AI`);
     }
 
+    // ── Knowledge freshness check: deactivate stale entries ──
+    let staleCount = 0;
+    try {
+      const stalenessThresholds: Record<string, number> = {
+        pricing: 1, procedures: 30, faq: 90,
+      };
+      for (const [category, days] of Object.entries(stalenessThresholds)) {
+        const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+        const { data: stale } = await supabase
+          .from('knowledge_entries')
+          .select('id')
+          .eq('is_active', true)
+          .eq('staleness_category', category)
+          .lt('last_verified_at', cutoff)
+          .limit(20);
+
+        if (stale && stale.length > 0) {
+          // Mark as inactive (they'll stop appearing in search results)
+          await supabase
+            .from('knowledge_entries')
+            .update({ is_active: false, updated_at: new Date().toISOString() })
+            .in('id', stale.map((s: any) => s.id));
+          staleCount += stale.length;
+          console.log(`[Auto-Close] Deactivated ${stale.length} stale '${category}' knowledge entries`);
+        }
+      }
+    } catch (e) {
+      console.warn('[Auto-Close] Staleness check failed:', e);
+    }
+
     return new Response(
       JSON.stringify({
         success: true,
         closed_count: closedCount,
         memory_extraction: { agent: agentMemoryCount, widget_ai: widgetMemoryCount },
+        stale_knowledge: staleCount,
         message: `Auto-closed ${closedCount} inactive conversations`
       }),
       {

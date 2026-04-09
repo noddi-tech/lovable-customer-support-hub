@@ -501,6 +501,43 @@ async function updateConversationMeta(
   } catch { /* best effort */ }
 }
 
+// ========== Model routing ==========
+
+function selectModel(userMessage: string, conversationMessages: any[]): string {
+  // Check for complexity signals that warrant gpt-4o
+  const msg = userMessage.toLowerCase();
+
+  // Multi-part query: multiple question marks or conjunctions
+  const questionMarks = (msg.match(/\?/g) || []).length;
+  if (questionMarks >= 2) return 'gpt-4o';
+
+  // Multi-part with "and"/"og" connecting distinct requests
+  if (/\b(og|and)\b.*\b(også|also|dessuten|besides)\b/i.test(msg)) return 'gpt-4o';
+
+  // Customer frustration
+  const frustration = /\b(frustr|irritert|sint|angry|upset|terrible|horrible|worst|verste|elendig|skandal)\b/i;
+  if (frustration.test(msg)) return 'gpt-4o';
+
+  // Low RAG score: check last knowledge search result
+  for (let i = conversationMessages.length - 1; i >= 0; i--) {
+    const m = conversationMessages[i];
+    if (m.role !== 'tool') continue;
+    try {
+      const parsed = typeof m.content === 'string' ? JSON.parse(m.content) : m.content;
+      if (parsed.results && Array.isArray(parsed.results)) {
+        const maxSim = Math.max(0, ...parsed.results.map((r: any) => r.similarity || 0));
+        if (maxSim > 0 && maxSim < 0.6) return 'gpt-4o';
+        break;
+      }
+      // No results found → complex/unknown topic
+      if (parsed.results && parsed.results.length === 0) return 'gpt-4o';
+    } catch { /* not a knowledge result */ }
+  }
+
+  // Default: gpt-4o-mini (cheapest, sufficient for standard flows)
+  return 'gpt-4o-mini';
+}
+
 // ========== Main handler ==========
 
 Deno.serve(async (req) => {
@@ -705,6 +742,9 @@ Deno.serve(async (req) => {
       return { role: m.role, content: m.content };
     }));
 
+    // Model routing: select based on complexity
+    const selectedModel = selectModel(lastUserMsg?.content || '', conversationMessages);
+
     // Tool-calling loop (non-streaming phase — resolve all tool calls first)
     let currentMessages = [...conversationMessages];
     let maxIterations = 8;
@@ -718,7 +758,7 @@ Deno.serve(async (req) => {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: 'gpt-4o-mini',
+          model: selectedModel,
           messages: currentMessages,
           tools,
           tool_choice: 'auto',
@@ -912,7 +952,7 @@ Deno.serve(async (req) => {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
          body: JSON.stringify({
-          model: 'gpt-4o-mini',
+          model: selectedModel,
           messages: currentMessages,
           tools,
           tool_choice: 'none',

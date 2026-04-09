@@ -529,10 +529,11 @@ export async function executeSearchKnowledge(
       return JSON.stringify({ error: 'No embedding returned' });
     }
 
-    const { data: results, error } = await supabase.rpc('find_similar_responses', {
+    // Use hybrid search (vector + full-text + freshness)
+    const { data: results, error } = await supabase.rpc('hybrid_search_knowledge', {
       query_embedding: embedding,
+      query_text: String(query).slice(0, 500),
       org_id: organizationId,
-      match_threshold: 0.75,
       match_count: 5,
     });
 
