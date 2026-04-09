@@ -236,5 +236,8 @@ verify_jwt = false
 [functions.review-queue]
 verify_jwt = true
 
+[functions.evaluate-autonomy-levels]
+verify_jwt = false
+
 [functions.auto-close-conversations]
 verify_jwt = false

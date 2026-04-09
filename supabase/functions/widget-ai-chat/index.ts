@@ -784,6 +784,13 @@ Deno.serve(async (req) => {
             .catch(e => console.warn('[widget-ai-chat] Quality check error:', e));
         }
 
+        // Confidence scoring (fire-and-forget)
+        if (!test && savedMessageId) {
+          const forceReview = shouldForceHumanReview(reply, lastUserMsg?.content || '');
+          computeConfidence(supabase, OPENAI_API_KEY, savedMessageId, organizationId, reply, lastUserMsg?.content || '', currentMessages, forceReview)
+            .catch(e => console.warn('[widget-ai-chat] Confidence error:', e));
+        }
+
         // Detect knowledge gaps: if knowledge search was used but returned no results
         if (allToolsUsed.includes('search_knowledge_base') && !test) {
           try {
@@ -949,6 +956,13 @@ Deno.serve(async (req) => {
           if (savedMessageId) {
             quickQualityCheck(supabase, OPENAI_API_KEY, savedMessageId, dbConversationId, organizationId, reply, currentMessages, language)
               .catch(e => console.warn('[widget-ai-chat] Quality check error:', e));
+          }
+
+          // Confidence scoring (recovery path, fire-and-forget)
+          if (savedMessageId) {
+            const forceReview = shouldForceHumanReview(reply, lastUserMsg?.content || '');
+            computeConfidence(supabase, OPENAI_API_KEY, savedMessageId, organizationId, reply, lastUserMsg?.content || '', currentMessages, forceReview)
+              .catch(e => console.warn('[widget-ai-chat] Confidence error:', e));
           }
 
           if (stream) {
@@ -1128,6 +1142,142 @@ ${reply.slice(0, 500)}`;
     }
   } catch (err) {
     console.warn('[widget-ai-chat] Quality check API error:', err);
+  }
+}
+
+// ========== Confidence-gated autonomy ==========
+
+const GUARDRAIL_BILLING = /\b(refund|tilbakebetaling|faktura|invoice|kredittnota|credit\s*note|billing|betaling)\b/i;
+const GUARDRAIL_LEGAL = /\b(gdpr|personvern|privacy|klage|complaint|rettigheter|rights|datatilsynet)\b/i;
+const GUARDRAIL_SAFETY = /\b(skade|injury|damage|ulykke|accident|farlig|dangerous)\b/i;
+const GUARDRAIL_HUMAN = /\b(agent|human|person|kundeservice|menneskelig|snakke med)\b/i;
+
+function shouldForceHumanReview(reply: string, userMessage: string): boolean {
+  const combined = `${reply} ${userMessage}`;
+  return GUARDRAIL_BILLING.test(combined)
+    || GUARDRAIL_LEGAL.test(combined)
+    || GUARDRAIL_SAFETY.test(combined)
+    || GUARDRAIL_HUMAN.test(combined);
+}
+
+function extractRagScore(conversationMessages: any[]): number {
+  // Find the last search_knowledge_base tool result and extract max similarity
+  for (let i = conversationMessages.length - 1; i >= 0; i--) {
+    const m = conversationMessages[i];
+    if (m.role !== 'tool') continue;
+    try {
+      const parsed = typeof m.content === 'string' ? JSON.parse(m.content) : m.content;
+      if (parsed.results && Array.isArray(parsed.results)) {
+        const maxSim = Math.max(...parsed.results.map((r: any) => r.similarity || 0));
+        if (maxSim > 0) return Math.min(1, maxSim);
+      }
+    } catch { /* not a knowledge result */ }
+  }
+  return 0.5; // default when no search was done
+}
+
+function assessSelfConfidence(reply: string): number {
+  // Detect hedging language indicating low confidence
+  const hedges = /\b(I'm not sure|I don't have|usikker|vet ikke|ikke sikker|unfortunately I cannot|dessverre|kan ikke finne|no relevant|ingen relevant)\b/i;
+  const strong = /\b(\[BOOKING_CONFIRMED\]|\[BOOKING_SUMMARY\]|create_shopping_cart|bestilling.*bekreftet)\b/i;
+
+  if (strong.test(reply)) return 0.95;
+  if (hedges.test(reply)) return 0.3;
+  return 0.7; // neutral
+}
+
+async function computeConfidence(
+  supabase: any,
+  openaiKey: string,
+  messageId: string,
+  organizationId: string,
+  reply: string,
+  userMessage: string,
+  conversationMessages: any[],
+  forceHumanReview: boolean,
+) {
+  if (!messageId) return;
+
+  try {
+    // Signal 1: RAG score (from tool results, no API call)
+    const ragScore = extractRagScore(conversationMessages);
+
+    // Signal 2: Intent classification (cheap GPT-4o-mini call)
+    let intentCategory = 'general_faq';
+    let intentScore = 0.5;
+    try {
+      const intentRes = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${openaiKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [{ role: 'user', content: `Classify this customer message intent. Reply with JSON only: {"intent":"<category>","confidence":<0-1>}\nCategories: new_booking, change_time, change_address, cancel_booking, booking_status, pricing, general_faq, complaint, other\nMessage: ${userMessage.slice(0, 200)}` }],
+          max_tokens: 30,
+          temperature: 0,
+        }),
+      });
+      const intentData = await intentRes.json();
+      const raw = (intentData.choices?.[0]?.message?.content || '').trim();
+      const parsed = JSON.parse(raw.replace(/^```json?\s*/, '').replace(/\s*```$/, ''));
+      intentCategory = parsed.intent || 'general_faq';
+      intentScore = Math.min(1, Math.max(0, parsed.confidence || 0.5));
+    } catch { /* keep defaults */ }
+
+    // Signal 3: Historical acceptance rate for this intent
+    let historicalRate = 0.5;
+    let maturity = 0;
+    try {
+      const { data: autonomy } = await supabase
+        .from('topic_autonomy_levels')
+        .select('acceptance_rate, total_responses')
+        .eq('organization_id', organizationId)
+        .eq('intent_category', intentCategory)
+        .single();
+      if (autonomy) {
+        historicalRate = autonomy.acceptance_rate ?? 0.5;
+        maturity = Math.min(1, (autonomy.total_responses || 0) / 100);
+      }
+    } catch { /* keep defaults */ }
+
+    // Signal 4: Self-assessed confidence (regex-based, no API call)
+    const selfScore = assessSelfConfidence(reply);
+
+    // Weight interpolation based on data maturity
+    const initialW = { rag: 0.40, intent: 0.20, historical: 0.10, self: 0.30 };
+    const matureW = { rag: 0.30, intent: 0.20, historical: 0.35, self: 0.15 };
+    const w = {
+      rag: initialW.rag + (matureW.rag - initialW.rag) * maturity,
+      intent: initialW.intent + (matureW.intent - initialW.intent) * maturity,
+      historical: initialW.historical + (matureW.historical - initialW.historical) * maturity,
+      self: initialW.self + (matureW.self - initialW.self) * maturity,
+    };
+
+    let composite = ragScore * w.rag + intentScore * w.intent + historicalRate * w.historical + selfScore * w.self;
+
+    // Guardrail override
+    if (forceHumanReview) composite = 0;
+
+    const breakdown = {
+      rag: Math.round(ragScore * 100) / 100,
+      intent: Math.round(intentScore * 100) / 100,
+      historical: Math.round(historicalRate * 100) / 100,
+      self: Math.round(selfScore * 100) / 100,
+      maturity: Math.round(maturity * 100) / 100,
+      intent_category: intentCategory,
+      forced_review: forceHumanReview,
+    };
+
+    await supabase
+      .from('widget_ai_messages')
+      .update({
+        confidence_score: Math.round(composite * 1000) / 1000,
+        confidence_breakdown: breakdown,
+      })
+      .eq('id', messageId);
+
+    console.log(`[widget-ai-chat] Confidence: ${(composite * 100).toFixed(1)}% (${intentCategory}) rag=${ragScore.toFixed(2)} intent=${intentScore.toFixed(2)} hist=${historicalRate.toFixed(2)} self=${selfScore.toFixed(2)}${forceHumanReview ? ' [FORCED REVIEW]' : ''}`);
+  } catch (err) {
+    console.warn('[widget-ai-chat] Confidence computation error:', err);
   }
 }
 
