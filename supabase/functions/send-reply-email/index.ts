@@ -95,22 +95,37 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (!messageId) throw new Error('Message ID is required');
 
-    // Fetch message, conversation, customer and email account
-    const { data: message, error: messageError } = await supabaseClient
-      .from('messages')
-      .select(`
-        *,
-        conversation:conversations(
-          subject,
-          organization_id,
-          external_id,
-          inbox_id,
-          customer:customers(email, full_name),
-          email_account:email_accounts(*)
-        )
-      `)
-      .eq('id', messageId)
-      .single();
+    // Retry wrapper for transient DB errors (502, network hiccups)
+    async function fetchWithRetry<T>(fn: () => Promise<{ data: T; error: any }>, retries = 2, delayMs = 1000): Promise<{ data: T; error: any }> {
+      for (let attempt = 0; attempt <= retries; attempt++) {
+        const result = await fn();
+        if (!result.error) return result;
+        if (attempt < retries) {
+          console.warn(`DB fetch attempt ${attempt + 1} failed, retrying in ${delayMs}ms...`, result.error?.message);
+          await new Promise(r => setTimeout(r, delayMs));
+        }
+      }
+      return fn();
+    }
+
+    // Fetch message, conversation, customer and email account (with retry)
+    const { data: message, error: messageError } = await fetchWithRetry(() =>
+      supabaseClient
+        .from('messages')
+        .select(`
+          *,
+          conversation:conversations(
+            subject,
+            organization_id,
+            external_id,
+            inbox_id,
+            customer:customers(email, full_name),
+            email_account:email_accounts(*)
+          )
+        `)
+        .eq('id', messageId)
+        .single()
+    );
 
     if (messageError || !message) {
       console.error('Error fetching message:', messageError);
