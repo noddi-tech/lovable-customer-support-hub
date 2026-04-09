@@ -164,6 +164,46 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
 
       if (error) throw error;
 
+      // For non-internal messages: update status + send email if not live
+      if (!isInternalNote) {
+        console.log('[ChatReplyInput] Updating conversation status:', { conversationId, replyStatus });
+        const { error: statusError } = await supabase
+          .from('conversations')
+          .update({ 
+            status: replyStatus,
+            is_read: true,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', conversationId);
+        
+        if (statusError) {
+          console.error('[ChatReplyInput] Failed to update conversation status:', statusError);
+          throw new Error(`Failed to update status: ${statusError.message}`);
+        }
+
+        const { data: activeSession } = await supabase
+          .from('widget_chat_sessions')
+          .select('id, last_seen_at, status')
+          .eq('conversation_id', conversationId)
+          .in('status', ['active', 'waiting'])
+          .maybeSingle();
+
+        const isLive = activeSession?.last_seen_at && 
+          new Date(activeSession.last_seen_at) > new Date(Date.now() - 60000) &&
+          activeSession.status === 'active';
+
+        if (!isLive && insertedMsg?.id) {
+          const { error: emailError } = await supabase.functions.invoke('send-reply-email', {
+            body: { messageId: insertedMsg.id }
+          });
+          if (emailError) {
+            console.error('[ChatReplyInput] Email send failed:', emailError);
+            await supabase.from('messages').update({ email_status: 'failed' }).eq('id', insertedMsg.id);
+            toast.warning('Reply saved but email sending failed');
+          }
+        }
+      }
+
       // Track AI suggestion usage (same pattern as email ReplyArea via ConversationViewContext)
       if (!isInternalNote && insertedMsg?.id && state.selectedAiSuggestion) {
         try {
