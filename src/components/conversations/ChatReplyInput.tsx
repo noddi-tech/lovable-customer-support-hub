@@ -5,9 +5,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { MentionTextarea } from '@/components/ui/mention-textarea';
 import { useMentionNotifications } from '@/hooks/useMentionNotifications';
 import { Badge } from '@/components/ui/badge';
-import { Send, Loader2, MessageSquareX, UserRoundPlus, Smile, Paperclip, Mic, Image, X, Languages, StickyNote } from 'lucide-react';
-import { cn } from '@/lib/utils'; // utility
+import { Card } from '@/components/ui/card';
+import { Send, Loader2, MessageSquareX, UserRoundPlus, Smile, Paperclip, Mic, Image, X, Languages, StickyNote, Sparkles, Eye } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { useConversationView } from '@/contexts/ConversationViewContext';
+import { AiSuggestionDialog } from '@/components/dashboard/conversation-view/AiSuggestionDialog';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
