@@ -91,9 +91,11 @@ export function LearningDashboard({ organizationId }: Props) {
       (cur ?? []).forEach((r) => { bySource[r.source ?? "unknown"] = (bySource[r.source ?? "unknown"] || 0) + 1; });
 
       // assistant message counts for rate
+      const msgCurQ = supabase.from("widget_ai_messages").select("*", { count: "exact", head: true }).eq("organization_id", organizationId).eq("role", "assistant") as any;
+      const msgPrevQ = supabase.from("widget_ai_messages").select("*", { count: "exact", head: true }).eq("organization_id", organizationId).eq("role", "assistant") as any;
       const [{ count: msgCur }, { count: msgPrev }] = await Promise.all([
-        supabase.from("widget_ai_messages").select("*", { count: "exact", head: true }).eq("organization_id", organizationId).eq("role", "assistant").gte("created_at", now7),
-        supabase.from("widget_ai_messages").select("*", { count: "exact", head: true }).eq("organization_id", organizationId).eq("role", "assistant").gte("created_at", now14).lt("created_at", now7),
+        msgCurQ.gte("created_at", now7),
+        msgPrevQ.gte("created_at", now14).lt("created_at", now7),
       ]);
 
       const totalCur = (cur ?? []).length;
