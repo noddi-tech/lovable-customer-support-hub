@@ -1,71 +1,48 @@
 
 
-# Add Pagination Footer to Conversation List
+# Learning Dashboard — New Tab in Knowledge Management
 
 ## What this does
+Adds a 7th "Learning" tab to the Knowledge Management page showing the AI self-improvement flywheel performance: feedback signals, edit category distribution, evaluation score trends, and a review queue table.
 
-Adds a compact footer bar at the bottom of the conversation list pane showing total count, page size selector, and page navigation — matching the style from the service tickets table. The pane scroll behavior is preserved.
+## Files to create/change
 
-## Current state
+### 1. New: `src/components/dashboard/knowledge/LearningDashboard.tsx`
+Main component accepting `organizationId` prop, containing all 4 sections:
 
-- The conversation list uses infinite scroll with 50-item pages fetched from Supabase
-- `totalCount` is already available from `ConversationListContext`
-- `filteredConversations` accumulates all loaded pages (no client-side pagination)
-- Two table variants: `ConversationTable` (small lists) and `VirtualizedConversationTable` (large lists / infinite scroll)
+**Section 1 — Feedback Signal Overview (4 stat cards)**
+- Uses `useQuery` to fetch from `widget_ai_feedback` (grouped by source), `widget_ai_messages` (role='assistant' count), `preference_pairs` (count), `conversation_evaluations` (avg composite_score)
+- Compares last 7 days vs previous 7 days for trend arrows
+- Uses the existing Card/CardHeader/CardContent pattern from `KnowledgeAnalytics.tsx`
 
-## Approach
+**Section 2 — Edit Category Distribution (left half of 2-col grid)**
+- `useQuery` fetching `preference_pairs` grouped by `edit_category`
+- Recharts `BarChart` showing tone/factual/policy/completeness/format counts
+- Title: "What agents correct most"
 
-Since the conversation list currently loads all conversations via infinite scroll (not true client-side pagination), the footer will show:
-- **Total count**: "Total of X item(s)" from `totalCount`
-- **Page size selector**: Controls how many rows are visible per "page" (default 50) — this will add client-side pagination on top of the loaded data
-- **Page controls**: "Page X of Y" with first/prev/next/last buttons
+**Section 3 — Evaluation Score Trend (right half)**
+- `useQuery` fetching `conversation_evaluations` last 30 days, grouped by date
+- Recharts `LineChart` with daily avg `composite_score * 100`
+- Reference line at 50%
+- Title: "AI Quality Score Trend"
 
-This means we add a client-side pagination layer: `filteredConversations` is sliced to show only the current page, while infinite scroll continues loading data in the background.
+**Section 4 — Review Queue (full width)**
+- Fetches via `supabase.functions.invoke('review-queue', { body: { action: 'list', organizationId, status } })`
+- Filter dropdowns for reason and status (default: pending)
+- Table with Priority (colored badge), Reason (icon badge), Details (truncated), Created (relative time), Actions (Review/Dismiss buttons)
+- Dismiss calls the edge function with `action: 'update', status: 'dismissed'`
+- Review calls with `status: 'reviewed'`
 
-## Files to change
+### 2. Edit: `src/pages/KnowledgeManagement.tsx`
+- Change `grid-cols-6` to `grid-cols-7` on TabsList
+- Add `GraduationCap` icon import from lucide-react
+- Add new TabsTrigger for "Learning" tab
+- Add new TabsContent rendering `<LearningDashboard organizationId={...} />`
 
-### 1. New: `src/components/dashboard/conversation-list/ConversationPaginationFooter.tsx`
-
-A compact footer component matching the service tickets screenshot style:
-- Left: "Total of {totalCount} item(s)"
-- Right: Page size dropdown (10, 25, 50, 100), page indicator "Page X of Y", and `«` `‹` `›` `»` navigation buttons
-- Styled as a sticky bottom bar with `shrink-0`, border-top, small text
-
-### 2. `src/contexts/ConversationListContext.tsx`
-
-Add pagination state to the reducer:
-- `pageSize: number` (default 50)
-- `currentPage: number` (default 1)
-- Actions: `SET_PAGE_SIZE`, `SET_CURRENT_PAGE`
-- Expose `paginatedConversations` (sliced from `filteredConversations`) alongside `filteredConversations`
-- Reset `currentPage` to 1 when filters/search/sort change
-
-### 3. `src/components/dashboard/conversation-list/ConversationTable.tsx`
-
-- Use `paginatedConversations` instead of `filteredConversations` for rendering rows
-- Keep using `filteredConversations.length` for "select all" scope
-
-### 4. `src/components/dashboard/conversation-list/VirtualizedConversationTable.tsx`
-
-- Use `paginatedConversations` for the virtualized list
-- Adjust item count and infinite loader accordingly
-
-### 5. `src/components/dashboard/ConversationList.tsx`
-
-- Add `<ConversationPaginationFooter />` below the table area, inside the flex column but as a `shrink-0` element so it doesn't interfere with the scrollable pane above
-
-## Layout structure (preserved scroll)
-
-```text
-┌─ ConversationList (flex col, h-full) ──────┐
-│ [Header]                          shrink-0 │
-│ [BulkActions]                     shrink-0 │
-│ [FilterChips]                     shrink-0 │
-│ ┌─ Table area ──────────────── flex-1 ───┐ │
-│ │ (scrollable / virtualized)             │ │
-│ └────────────────────────────────────────┘ │
-│ [PaginationFooter]               shrink-0  │
-│ [DeleteDialog / ArchiveDialog]             │
-└────────────────────────────────────────────┘
-```
+## Technical details
+- All Supabase queries use the authenticated client (RLS handles org filtering); `widget_ai_feedback`, `widget_ai_messages`, `preference_pairs`, `conversation_evaluations` are all in the generated types
+- `review_queue` accessed only via the existing edge function
+- React Query stale times: 60s for stats, 30s for review queue
+- Recharts already in the project (used in `CallVolumeChart`, `AiAnalyticsDashboard`)
+- No database migrations needed — all tables exist
 
