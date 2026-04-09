@@ -458,6 +458,22 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
                   #{bookingId}
                 </Badge>
               )}
+              {/* Booking type & location badges */}
+              {data.ui_meta?.booking_type && data.ui_meta.booking_type !== 'normal' && (
+                <Badge variant="outline" className="h-4 px-1 text-[10px] bg-orange-50 text-orange-700 border-orange-200">
+                  {data.ui_meta.booking_type === 'wheel_storage_pickup' ? 'Wheel Storage Pickup' : data.ui_meta.booking_type}
+                </Badge>
+              )}
+              {data.ui_meta?.location_type && (
+                <Badge variant="outline" className={`h-4 px-1 text-[10px] ${
+                  data.ui_meta.location_type === 'mobile' 
+                    ? 'bg-blue-50 text-blue-700 border-blue-200' 
+                    : 'bg-gray-50 text-gray-600 border-gray-200'
+                }`}>
+                  <MapPin className="h-2.5 w-2.5 mr-0.5" />
+                  {data.ui_meta.location_type === 'mobile' ? 'Mobile' : 'Stationary'}
+                </Badge>
+              )}
             </div>
             
             {/* Status Chips */}
