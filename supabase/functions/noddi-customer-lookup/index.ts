@@ -103,7 +103,7 @@ interface NoddihCustomerLookupRequest {
 async function fetchUserGroupBookings(userGroupId: number, limit: number = 5): Promise<any[]> {
   try {
     // Use the dedicated bookings-for-customer endpoint instead
-    const url = `${API_BASE}/v1/user-groups/${userGroupId}/bookings-for-customer/?page_size=${limit}`;
+    const url = `${API_BASE}/v1/user-groups/${userGroupId}/bookings-for-customer/?page_size=${limit}&ordering=-id`;
     console.log(`📥 Fetching bookings for group ${userGroupId}...`);
     
     const response = await fetch(url, { headers: noddiAuthHeaders() });
@@ -118,7 +118,13 @@ async function fetchUserGroupBookings(userGroupId: number, limit: number = 5): P
     const data = await response.json();
     // Handle both paginated response (results array) and direct array response
     const bookings = data.results || data || [];
-    console.log(`✅ Fetched ${bookings.length} bookings for group ${userGroupId}`);
+    // Sort by newest first (fallback client-side sort)
+    bookings.sort((a: any, b: any) => {
+      const dateA = a.completed_at || a.delivery_window_starts_at || '';
+      const dateB = b.completed_at || b.delivery_window_starts_at || '';
+      return dateB.localeCompare(dateA);
+    });
+    console.log(`✅ Fetched ${bookings.length} bookings for group ${userGroupId} (newest first)`);
     return bookings;
   } catch (error) {
     console.error(`❌ Error fetching bookings for group ${userGroupId}:`, error);
