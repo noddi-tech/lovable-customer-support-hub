@@ -502,6 +502,9 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
           className="hidden"
         />
 
+        {/* Feedback prompt for AI suggestion rating */}
+        <FeedbackPrompt />
+
         {/* AI Suggestion Cards */}
         {!isInternalNote && state.aiSuggestions.length > 0 && (
           <div className="space-y-2">
