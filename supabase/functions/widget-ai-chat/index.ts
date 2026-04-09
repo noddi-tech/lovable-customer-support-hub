@@ -778,6 +778,12 @@ Deno.serve(async (req) => {
             .catch(e => console.warn('[widget-ai-chat] Implicit feedback error:', e));
         }
 
+        // Tier 1: inline quality check (fire-and-forget)
+        if (!test && savedMessageId) {
+          quickQualityCheck(supabase, OPENAI_API_KEY, savedMessageId, reply, currentMessages, language)
+            .catch(e => console.warn('[widget-ai-chat] Quality check error:', e));
+        }
+
         // Detect knowledge gaps: if knowledge search was used but returned no results
         if (allToolsUsed.includes('search_knowledge_base') && !test) {
           try {
@@ -939,6 +945,12 @@ Deno.serve(async (req) => {
               .catch(e => console.warn('[widget-ai-chat] Implicit feedback error:', e));
           }
 
+          // Tier 1: inline quality check (recovery path, fire-and-forget)
+          if (savedMessageId) {
+            quickQualityCheck(supabase, OPENAI_API_KEY, savedMessageId, reply, currentMessages, language)
+              .catch(e => console.warn('[widget-ai-chat] Quality check error:', e));
+          }
+
           if (stream) {
             return streamTextResponse(reply, dbConversationId, savedMessageId);
           }
@@ -1038,6 +1050,69 @@ async function detectImplicitFeedback(
     }
   } catch (err) {
     console.warn('[widget-ai-chat] Implicit feedback error:', err);
+  }
+}
+
+// ========== Tier 1: Inline quality check ==========
+
+async function quickQualityCheck(
+  supabase: any,
+  openaiKey: string,
+  messageId: string,
+  reply: string,
+  conversationMessages: any[],
+  language: string,
+) {
+  // Skip marker-only responses (interactive blocks)
+  if (/^\[(?:BOOKING_SUMMARY|BOOKING_EDIT|BOOKING_CONFIRMED|ADDRESS_SEARCH|LICENSE_PLATE|TIME_SLOT|SERVICE_SELECT)\]/.test(reply.trim())) {
+    return;
+  }
+
+  // Extract tool result content for hallucination context
+  const toolResults = conversationMessages
+    .filter((m: any) => m.role === 'tool')
+    .map((m: any) => (typeof m.content === 'string' ? m.content : JSON.stringify(m.content)).slice(0, 300))
+    .join('\n');
+
+  const prompt = `Check this AI customer support response for issues. Reply with ONLY "PASS" or a short flag (max 10 words).
+
+Flag if you find ANY of:
+- Booking IDs, order numbers, or reference codes NOT present in the tool data
+- Prices or service names that appear invented (not from tool data or knowledge)
+- Customer PII exposed (email addresses, phone numbers the AI shouldn't share)
+- Response language doesn't match expected: ${language === 'no' || language === 'nb' ? 'Norwegian' : language}
+
+Tool data context:
+${toolResults.slice(0, 600) || '(no tool calls)'}
+
+AI response to check:
+${reply.slice(0, 500)}`;
+
+  try {
+    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${openaiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: 30,
+        temperature: 0,
+      }),
+    });
+
+    const data = await res.json();
+    const result = (data.choices?.[0]?.message?.content || '').trim();
+    const passed = result.toUpperCase().startsWith('PASS');
+
+    if (!passed) {
+      await supabase
+        .from('widget_ai_messages')
+        .update({ quality_check_passed: false, quality_flag: result })
+        .eq('id', messageId);
+      console.log(`[widget-ai-chat] Quality flag on ${messageId}: ${result}`);
+    }
+  } catch (err) {
+    console.warn('[widget-ai-chat] Quality check API error:', err);
   }
 }
 
