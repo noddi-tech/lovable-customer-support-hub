@@ -73,7 +73,9 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const { state } = useConversationView();
+  const { state, getAiSuggestions, refineAiSuggestion, messages } = useConversationView();
+  const [selectedSuggestionForDialog, setSelectedSuggestionForDialog] = useState<string | null>(null);
+  const [originalSuggestionText, setOriginalSuggestionText] = useState<string>('');
   const { processMentions } = useMentionNotifications();
   
   // Fetch agents for transfer
