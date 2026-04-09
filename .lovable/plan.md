@@ -1,48 +1,46 @@
 
 
-# Learning Dashboard — New Tab in Knowledge Management
+# Autonomy Dashboard — New Tab in Knowledge Management
 
 ## What this does
-Adds a 7th "Learning" tab to the Knowledge Management page showing the AI self-improvement flywheel performance: feedback signals, edit category distribution, evaluation score trends, and a review queue table.
+Adds an 8th "Autonomy" tab to the Knowledge Management page showing the confidence-gated autonomy system: topic levels, confidence distribution, and guardrail triggers.
 
 ## Files to create/change
 
-### 1. New: `src/components/dashboard/knowledge/LearningDashboard.tsx`
-Main component accepting `organizationId` prop, containing all 4 sections:
+### 1. New: `src/components/dashboard/knowledge/AutonomyDashboard.tsx`
 
-**Section 1 — Feedback Signal Overview (4 stat cards)**
-- Uses `useQuery` to fetch from `widget_ai_feedback` (grouped by source), `widget_ai_messages` (role='assistant' count), `preference_pairs` (count), `conversation_evaluations` (avg composite_score)
-- Compares last 7 days vs previous 7 days for trend arrows
-- Uses the existing Card/CardHeader/CardContent pattern from `KnowledgeAnalytics.tsx`
+Main component accepting `organizationId` prop, with 4 sections:
 
-**Section 2 — Edit Category Distribution (left half of 2-col grid)**
-- `useQuery` fetching `preference_pairs` grouped by `edit_category`
-- Recharts `BarChart` showing tone/factual/policy/completeness/format counts
-- Title: "What agents correct most"
+**Section 1 — System Status Cards (3 cards)**
+- Topics Tracked: count from `topic_autonomy_levels`
+- Highest Level: MAX `current_level`, mapped to name (Suggest/Draft & Queue/Auto-Send/Full Auto)
+- Avg Confidence: average `confidence_score` from `widget_ai_messages` joined through `widget_ai_conversations` (since `widget_ai_messages` has no `organization_id` column — must join via `conversation_id` → `widget_ai_conversations.organization_id`)
 
-**Section 3 — Evaluation Score Trend (right half)**
-- `useQuery` fetching `conversation_evaluations` last 30 days, grouped by date
-- Recharts `LineChart` with daily avg `composite_score * 100`
-- Reference line at 50%
-- Title: "AI Quality Score Trend"
+**Section 2 — Topic Autonomy Levels Table**
+- Fetches all `topic_autonomy_levels` rows for the org
+- Columns: Topic (formatted intent_category), Level (colored badge), Responses, Acceptance Rate (color-coded), Avg Confidence, Eval Score, Last Evaluated (relative time), Max Level (dropdown)
+- Max Level dropdown updates `override_max_level` directly via Supabase update with toast confirmation
 
-**Section 4 — Review Queue (full width)**
-- Fetches via `supabase.functions.invoke('review-queue', { body: { action: 'list', organizationId, status } })`
-- Filter dropdowns for reason and status (default: pending)
-- Table with Priority (colored badge), Reason (icon badge), Details (truncated), Created (relative time), Actions (Review/Dismiss buttons)
-- Dismiss calls the edge function with `action: 'update', status: 'dismissed'`
-- Review calls with `status: 'reviewed'`
+**Section 3 — Confidence Score Distribution (left half)**
+- Recharts BarChart histogram of confidence_score buckets (0.0–1.0 in 0.1 steps)
+- Bars colored by range: red (0–0.4), amber (0.4–0.6), blue (0.6–0.75), green (0.75–1.0)
+- Vertical dashed reference lines at 0.60, 0.75, 0.90 thresholds
+- Data: query `widget_ai_messages` joined through `widget_ai_conversations` for org filtering
+
+**Section 4 — Guardrail Trigger Log (right half)**
+- Last 20 messages where `confidence_score = 0` and `confidence_breakdown->>'forced_review' = 'true'`
+- Shows time, user message preview (80 chars), guardrail type
+- Note: the LEFT JOIN for previous user message is complex for the Supabase JS client — will use a simpler approach: fetch the forced-review messages, then for each, fetch the preceding user message in the same conversation
 
 ### 2. Edit: `src/pages/KnowledgeManagement.tsx`
-- Change `grid-cols-6` to `grid-cols-7` on TabsList
-- Add `GraduationCap` icon import from lucide-react
-- Add new TabsTrigger for "Learning" tab
-- Add new TabsContent rendering `<LearningDashboard organizationId={...} />`
+- Import `AutonomyDashboard` and `Shield` icon from lucide-react
+- Add "Autonomy" TabsTrigger and TabsContent
 
 ## Technical details
-- All Supabase queries use the authenticated client (RLS handles org filtering); `widget_ai_feedback`, `widget_ai_messages`, `preference_pairs`, `conversation_evaluations` are all in the generated types
-- `review_queue` accessed only via the existing edge function
-- React Query stale times: 60s for stats, 30s for review queue
-- Recharts already in the project (used in `CallVolumeChart`, `AiAnalyticsDashboard`)
-- No database migrations needed — all tables exist
+- `widget_ai_messages` has NO `organization_id` column — all org-scoped queries must join through `widget_ai_conversations`
+- For the confidence histogram, use `.select('confidence_score, conversation_id, widget_ai_conversations!inner(organization_id)')` pattern or cast to `any` to avoid deep type instantiation errors (same approach as LearningDashboard)
+- `topic_autonomy_levels` has `organization_id` directly — straightforward queries
+- `override_max_level` update uses direct Supabase `.update()` — RLS handles auth
+- React Query with 60s stale time for stats, 30s for the guardrail log
+- No database migrations needed
 
