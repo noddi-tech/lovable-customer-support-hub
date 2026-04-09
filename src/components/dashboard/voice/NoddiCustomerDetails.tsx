@@ -6,8 +6,9 @@ import { Button } from '@/components/ui/button';
 import { 
   Loader2, User, Package, AlertCircle, Calendar, DollarSign, CheckCircle2, Star, ExternalLink,
   Archive, RotateCcw, Truck, Users, Droplets, Target, Gauge, Zap, Building2, RefreshCw,
-  Crown, Ticket
+  Crown, Ticket, MapPin, MessageSquareQuote
 } from 'lucide-react';
+import { StarRatingInput } from '@/components/ui/star-rating-input';
 import { useNoddihKundeData } from '@/hooks/useNoddihKundeData';
 import { displayName } from '@/utils/noddiHelpers';
 import { format } from 'date-fns';
@@ -341,6 +342,28 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
                 Default
               </Badge>
             )}
+            {/* Segment badges */}
+            {userGroup?.segments && userGroup.segments.length > 0 && userGroup.segments.map((seg: any, idx: number) => {
+              const segmentStyles: Record<string, string> = {
+                vip: 'bg-amber-100 text-amber-900 border-amber-300',
+                new_customer: 'bg-green-100 text-green-900 border-green-300',
+                prospects: 'bg-blue-100 text-blue-900 border-blue-300',
+                customers: 'bg-gray-100 text-gray-700 border-gray-300',
+              };
+              const segmentLabels: Record<string, string> = {
+                vip: 'VIP',
+                new_customer: 'New Customer',
+                prospects: 'Prospect',
+                customers: 'Customer',
+              };
+              const style = segmentStyles[seg.segment] || 'bg-gray-100 text-gray-700 border-gray-300';
+              const label = segmentLabels[seg.segment] || seg.segment;
+              return (
+                <Badge key={idx} variant="outline" className={`h-4 px-1 text-[10px] ${style}`}>
+                  {label}
+                </Badge>
+              );
+            })}
           </div>
           <p className="text-xs text-muted-foreground">
             {[customerEmail, data.user?.phone].filter(Boolean).join(' · ')}
@@ -435,6 +458,22 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
                   #{bookingId}
                 </Badge>
               )}
+              {/* Booking type & location badges */}
+              {data.ui_meta?.booking_type && data.ui_meta.booking_type !== 'normal' && (
+                <Badge variant="outline" className="h-4 px-1 text-[10px] bg-orange-50 text-orange-700 border-orange-200">
+                  {data.ui_meta.booking_type === 'wheel_storage_pickup' ? 'Wheel Storage Pickup' : data.ui_meta.booking_type}
+                </Badge>
+              )}
+              {data.ui_meta?.location_type && (
+                <Badge variant="outline" className={`h-4 px-1 text-[10px] ${
+                  data.ui_meta.location_type === 'mobile' 
+                    ? 'bg-blue-50 text-blue-700 border-blue-200' 
+                    : 'bg-gray-50 text-gray-600 border-gray-200'
+                }`}>
+                  <MapPin className="h-2.5 w-2.5 mr-0.5" />
+                  {data.ui_meta.location_type === 'mobile' ? 'Mobile' : 'Stationary'}
+                </Badge>
+              )}
             </div>
             
             {/* Status Chips */}
@@ -449,6 +488,23 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
                 <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-1 text-amber-900 text-xs">
                   {data.ui_meta?.unable_label ?? 'Unable to complete'}
                 </span>
+              )}
+
+              {/* Unable to complete comments */}
+              {data.ui_meta?.unable_to_complete && (data.ui_meta?.comments_unable_to_complete_public || data.ui_meta?.comments_unable_to_complete_internal) && (
+                <div className="w-full mt-1 p-2 rounded-lg bg-amber-50 border border-amber-200 text-xs space-y-1">
+                  {data.ui_meta.comments_unable_to_complete_public && (
+                    <p className="text-amber-900">
+                      <span className="font-medium">Customer note:</span> {data.ui_meta.comments_unable_to_complete_public}
+                    </p>
+                  )}
+                  {data.ui_meta.comments_unable_to_complete_internal && (
+                    <details className="cursor-pointer">
+                      <summary className="text-amber-700 font-medium">Internal note</summary>
+                      <p className="text-amber-800 mt-0.5">{data.ui_meta.comments_unable_to_complete_internal}</p>
+                    </details>
+                  )}
+                </div>
               )}
               {/* Paid state chip */}
               {data.ui_meta?.money?.paid_state && (
@@ -531,6 +587,47 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
               </div>
             )}
           </div>
+            )}
+
+            {/* Customer Feedback */}
+            {data.ui_meta?.feedback && (
+              <div className="p-2 rounded-lg border bg-muted/30">
+                <div className="flex items-center gap-1 mb-1.5">
+                  <MessageSquareQuote className="h-3 w-3 text-muted-foreground" />
+                  <span className="font-medium text-xs">Customer Feedback</span>
+                </div>
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground w-16">Overall</span>
+                    <StarRatingInput value={data.ui_meta.feedback.customer_rating_overall} onChange={() => {}} size="sm" disabled />
+                  </div>
+                  <div className="grid grid-cols-2 gap-x-3 gap-y-1">
+                    <div className="flex items-center gap-1">
+                      <span className="text-[10px] text-muted-foreground">Car result</span>
+                      <StarRatingInput value={data.ui_meta.feedback.customer_rating_car_result} onChange={() => {}} size="sm" disabled />
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <span className="text-[10px] text-muted-foreground">Communication</span>
+                      <StarRatingInput value={data.ui_meta.feedback.customer_rating_communication} onChange={() => {}} size="sm" disabled />
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <span className="text-[10px] text-muted-foreground">Ease of use</span>
+                      <StarRatingInput value={data.ui_meta.feedback.customer_rating_ease_of_use} onChange={() => {}} size="sm" disabled />
+                    </div>
+                    {data.ui_meta.feedback.customer_rating_politeness != null && (
+                      <div className="flex items-center gap-1">
+                        <span className="text-[10px] text-muted-foreground">Politeness</span>
+                        <StarRatingInput value={data.ui_meta.feedback.customer_rating_politeness} onChange={() => {}} size="sm" disabled />
+                      </div>
+                    )}
+                  </div>
+                  {data.ui_meta.feedback.customer_comment && (
+                    <blockquote className="border-l-2 border-muted-foreground/30 pl-2 text-xs italic text-muted-foreground mt-1">
+                      "{data.ui_meta.feedback.customer_comment}"
+                    </blockquote>
+                  )}
+                </div>
+              </div>
             )}
             
             {/* TEMPORARY: Debug section when no booking data */}
