@@ -6,8 +6,9 @@ import { Button } from '@/components/ui/button';
 import { 
   Loader2, User, Package, AlertCircle, Calendar, DollarSign, CheckCircle2, Star, ExternalLink,
   Archive, RotateCcw, Truck, Users, Droplets, Target, Gauge, Zap, Building2, RefreshCw,
-  Crown, Ticket
+  Crown, Ticket, MapPin, MessageSquareQuote
 } from 'lucide-react';
+import { StarRatingInput } from '@/components/ui/star-rating-input';
 import { useNoddihKundeData } from '@/hooks/useNoddihKundeData';
 import { displayName } from '@/utils/noddiHelpers';
 import { format } from 'date-fns';
@@ -341,6 +342,28 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
                 Default
               </Badge>
             )}
+            {/* Segment badges */}
+            {userGroup?.segments && userGroup.segments.length > 0 && userGroup.segments.map((seg: any, idx: number) => {
+              const segmentStyles: Record<string, string> = {
+                vip: 'bg-amber-100 text-amber-900 border-amber-300',
+                new_customer: 'bg-green-100 text-green-900 border-green-300',
+                prospects: 'bg-blue-100 text-blue-900 border-blue-300',
+                customers: 'bg-gray-100 text-gray-700 border-gray-300',
+              };
+              const segmentLabels: Record<string, string> = {
+                vip: 'VIP',
+                new_customer: 'New Customer',
+                prospects: 'Prospect',
+                customers: 'Customer',
+              };
+              const style = segmentStyles[seg.segment] || 'bg-gray-100 text-gray-700 border-gray-300';
+              const label = segmentLabels[seg.segment] || seg.segment;
+              return (
+                <Badge key={idx} variant="outline" className={`h-4 px-1 text-[10px] ${style}`}>
+                  {label}
+                </Badge>
+              );
+            })}
           </div>
           <p className="text-xs text-muted-foreground">
             {[customerEmail, data.user?.phone].filter(Boolean).join(' · ')}
