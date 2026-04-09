@@ -1,60 +1,54 @@
 
 
-# Create Slack Alerting System README
+# Fix: Show Unreferenced "Inline" Attachments
 
-## What this does
+## Problem
 
-Creates a new `docs/SLACK_ALERTING_SYSTEM.md` file that documents the complete Slack notification architecture — all five edge functions, their patterns, shared concepts (deduplication, token selection, Block Kit formatting, critical triage), and how to reuse these patterns for new alert types.
+Gmail marks image attachments with `isInline: true` even when they're regular photo attachments (not embedded in the email body). The current code:
+- Hides them from the "Attachments" section (which only shows `!isInline`)
+- Tries to render them inline via CID replacement in the HTML — but since the HTML doesn't contain any `cid:` references to these images, they never appear
 
-## File to create
+Result: the badge says "4 attachments" but nothing is visible or downloadable.
 
-### `docs/SLACK_ALERTING_SYSTEM.md`
+## Fix
 
-A single reference document covering:
+### `src/components/ui/email-render.tsx`
 
-**1. Architecture Overview**
-- Diagram of the 5 Slack-related edge functions and how they connect:
-  - `send-slack-notification` — real-time event notifications + critical triage (keyword + AI)
-  - `slack-daily-digest` — scheduled daily/weekly AI-powered summaries
-  - `review-open-critical` — batch audit scan for missed critical alerts
-  - `sla-breach-notifier` — SLA warning/breach notifications (delegates to `send-slack-notification`)
-  - `process-mention-notifications` — @mention DMs + channel posts
+Add a check: after the HTML content is processed, identify attachments that are marked `isInline` but whose `contentId` is NOT actually referenced in the email HTML body. Treat those as regular downloadable attachments.
 
-**2. Shared Patterns (the reusable parts)**
-- **Token selection**: primary `access_token` vs `secondary_access_token` (product workspace), when to use which
-- **CORS headers**: standard pattern used across all functions
-- **HTML-to-text cleaning**: `cleanPreviewText()` / `stripHtml()` utility for safe Slack rendering
-- **Block Kit message building**: attachment color coding (blue `#3b82f6` for standard, red `#dc2626` for critical), section/fields/context/actions structure
-- **24-hour deduplication**: using `notifications` table with `type` + `data->conversation_id` + `created_at` range check
-- **Time-gated scheduling**: pg_cron hourly trigger → per-org `digest_time` comparison in Europe/Oslo timezone
-- **AI triage**: GPT-4o-mini integration for context-aware critical detection (categories, severity 1-5)
-- **Critical keyword list**: bilingual EN/NO keyword array, shared between `send-slack-notification` and `review-open-critical`
+Change the attachment filtering logic (~line 603) from:
 
-**3. Database Dependencies**
-- `slack_integrations` table schema (key columns: `access_token`, `secondary_access_token`, `default_channel_id`, `digest_channel_id`, `critical_channel_id`, `configuration` JSONB)
-- `notifications` table (used for dedup tracking with `type: 'critical_alert_sent'`)
-- `conversations`, `messages`, `customers` tables (data sources)
+```typescript
+attachments.filter(a => !a.isInline)
+```
 
-**4. How to Add a New Alert Type**
-Step-by-step guide:
-1. Add event type to `SlackNotificationRequest.event_type` union
-2. Add to `enabled_events` config check
-3. Build Block Kit blocks (with template)
-4. Handle deduplication if needed
-5. Choose token (primary vs secondary)
-6. Post via `chat.postMessage`
+To a computed list that includes:
+1. Attachments explicitly marked as not inline (`!a.isInline`)
+2. Attachments marked as inline but whose `contentId` is NOT found as `cid:` in the HTML content
 
-Includes a minimal code template showing the pattern.
+Add a `useMemo` that computes "downloadable attachments":
 
-**5. Configuration Reference**
-- `SlackIntegrationConfig` fields and what each controls
-- Channel routing: which channel ID is used for which alert type
-- Event type → behavior mapping table
+```typescript
+const downloadableAttachments = useMemo(() => {
+  return attachments.filter(a => {
+    // Explicitly non-inline → always show
+    if (!a.isInline) return true;
+    // Inline but no contentId → show as downloadable
+    if (!a.contentId) return true;
+    // Inline with contentId → only show if NOT referenced in HTML body
+    if (isHTML) {
+      const cidNormalized = a.contentId.replace(/[<>]/g, '');
+      return !content.includes(`cid:${cidNormalized}`);
+    }
+    // Plain text can't have inline images
+    return true;
+  });
+}, [attachments, content, isHTML]);
+```
 
-**6. Testing & Manual Triggers**
-- How to force-trigger digest (`{ "force": true, "digest_type": "daily" }`)
-- How to invoke `review-open-critical` for batch review
-- How to test `send-slack-notification` with a sample payload
+Then use `downloadableAttachments` in the three places where `attachments.filter(a => !a.isInline)` currently appears (lines 603, 606, 613).
 
-This will be ~300-400 lines of focused, reusable documentation.
+### Single file change
+
+- `src/components/ui/email-render.tsx` — add `downloadableAttachments` memo, use it in attachment section rendering
 
