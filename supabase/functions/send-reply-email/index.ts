@@ -96,7 +96,7 @@ const handler = async (req: Request): Promise<Response> => {
     if (!messageId) throw new Error('Message ID is required');
 
     // Retry wrapper for transient DB errors (502, network hiccups)
-    async function fetchWithRetry<T>(fn: () => Promise<{ data: T; error: any }>, retries = 2, delayMs = 1000): Promise<{ data: T; error: any }> {
+    async function fetchWithRetry<T>(fn: () => Promise<{ data: T; error: any }> | { then: Function }, retries = 2, delayMs = 1000): Promise<{ data: T; error: any }> {
       for (let attempt = 0; attempt <= retries; attempt++) {
         const result = await fn();
         if (!result.error) return result;
