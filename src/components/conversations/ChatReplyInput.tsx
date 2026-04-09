@@ -10,6 +10,7 @@ import { Send, Loader2, MessageSquareX, UserRoundPlus, Smile, Paperclip, Mic, Im
 import { cn } from '@/lib/utils';
 import { useConversationView } from '@/contexts/ConversationViewContext';
 import { AiSuggestionDialog } from '@/components/dashboard/conversation-view/AiSuggestionDialog';
+import { FeedbackPrompt } from '@/components/dashboard/conversation-view/FeedbackPrompt';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -73,7 +74,7 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const { state, getAiSuggestions, refineAiSuggestion, messages } = useConversationView();
+  const { state, dispatch, getAiSuggestions, refineAiSuggestion, messages } = useConversationView();
   const [selectedSuggestionForDialog, setSelectedSuggestionForDialog] = useState<string | null>(null);
   const [originalSuggestionText, setOriginalSuggestionText] = useState<string>('');
   const { processMentions } = useMentionNotifications();
@@ -166,7 +167,6 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
 
       // For non-internal messages: update status + send email if not live
       if (!isInternalNote) {
-        // Update conversation status (agent chooses: closed, open, pending)
         console.log('[ChatReplyInput] Updating conversation status:', { conversationId, replyStatus });
         const { error: statusError } = await supabase
           .from('conversations')
@@ -181,9 +181,7 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
           console.error('[ChatReplyInput] Failed to update conversation status:', statusError);
           throw new Error(`Failed to update status: ${statusError.message}`);
         }
-        console.log('[ChatReplyInput] Conversation status updated successfully to:', replyStatus);
 
-        // Check if there's an active live chat session
         const { data: activeSession } = await supabase
           .from('widget_chat_sessions')
           .select('id, last_seen_at, status')
@@ -195,7 +193,6 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
           new Date(activeSession.last_seen_at) > new Date(Date.now() - 60000) &&
           activeSession.status === 'active';
 
-        // If not actively live, send via email
         if (!isLive && insertedMsg?.id) {
           const { error: emailError } = await supabase.functions.invoke('send-reply-email', {
             body: { messageId: insertedMsg.id }
@@ -207,8 +204,58 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
           }
         }
       }
+
+      // Track AI suggestion usage (same pattern as email ReplyArea via ConversationViewContext)
+      if (!isInternalNote && insertedMsg?.id && state.selectedAiSuggestion) {
+        try {
+          const { data: orgProfile } = await supabase
+            .from('profiles')
+            .select('organization_id')
+            .eq('user_id', user.id)
+            .maybeSingle();
+
+          if (orgProfile?.organization_id) {
+            const customerMessage = [...(messages || [])].reverse().find((m: any) => m.sender_type === 'customer');
+            
+            let responseSource: 'ai_suggestion' | 'knowledge_base' = 'ai_suggestion';
+            let sourceId: string | null = state.selectedAiSuggestion;
+            
+            const selectedSuggestion = state.aiSuggestions.find(
+              (s: any) => s.reply === state.selectedAiSuggestion || s === state.selectedAiSuggestion
+            );
+            if (selectedSuggestion?.knowledgeEntryId) {
+              responseSource = 'knowledge_base';
+              sourceId = selectedSuggestion.knowledgeEntryId;
+            }
+
+            await supabase.from('response_tracking').insert({
+              organization_id: orgProfile.organization_id,
+              conversation_id: conversationId,
+              message_id: insertedMsg.id,
+              agent_id: user.id,
+              response_source: responseSource,
+              ai_suggestion_id: responseSource === 'ai_suggestion' ? sourceId : null,
+              knowledge_entry_id: responseSource === 'knowledge_base' ? sourceId : null,
+              customer_message: customerMessage?.content || null,
+              agent_response: messageContent,
+            });
+          }
+        } catch (trackingErr) {
+          console.error('[ChatReplyInput] Tracking error:', trackingErr);
+        }
+      }
+
+      // Return the message id for onSuccess
+      return insertedMsg;
     },
-    onSuccess: () => {
+    onSuccess: (insertedMsg) => {
+      // Show feedback prompt if AI suggestion was used
+      if (state.selectedAiSuggestion && insertedMsg?.id) {
+        dispatch({ type: 'SET_FEEDBACK_STATE', payload: { show: true, messageId: insertedMsg.id } });
+      }
+      dispatch({ type: 'SET_SELECTED_AI_SUGGESTION', payload: null });
+
+
       // Process mentions if this was an internal note with mentions
       if (isInternalNote && mentionedUserIds.length > 0) {
         processMentions(message, mentionedUserIds, {
@@ -359,10 +406,11 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
   const handleUseAsIs = useCallback(() => {
     if (selectedSuggestionForDialog) {
       setMessage(selectedSuggestionForDialog);
+      dispatch({ type: 'SET_SELECTED_AI_SUGGESTION', payload: selectedSuggestionForDialog });
       setSelectedSuggestionForDialog(null);
       toast.success('Suggestion inserted into reply');
     }
-  }, [selectedSuggestionForDialog]);
+  }, [selectedSuggestionForDialog, dispatch]);
 
   const handleRefineAndUse = useCallback(async (refinementInstructions: string, originalText: string) => {
     const lastCustomerMessage = [...(messages || [])].reverse().find((m: any) => m.sender_type === 'customer');
@@ -372,10 +420,11 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
     
     if (refinedText) {
       setMessage(refinedText);
+      dispatch({ type: 'SET_SELECTED_AI_SUGGESTION', payload: refinedText });
       setSelectedSuggestionForDialog(refinedText);
       toast.success('Refined suggestion ready! You can refine it more or use it.');
     }
-  }, [messages, refineAiSuggestion]);
+  }, [messages, refineAiSuggestion, dispatch]);
 
   const handleTranslate = useCallback(async () => {
     if (!message.trim() || translateLoading) return;
@@ -450,6 +499,9 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
           onChange={handleFileSelect}
           className="hidden"
         />
+
+        {/* Feedback prompt for AI suggestion rating */}
+        <FeedbackPrompt />
 
         {/* AI Suggestion Cards */}
         {!isInternalNote && state.aiSuggestions.length > 0 && (
