@@ -82,40 +82,45 @@ export function LearningDashboard({ organizationId }: Props) {
       const now14 = fourteenDaysAgo();
 
       // total feedback by source (last 7 + prev 7)
+      // Use `as any` to avoid TS2589 deep instantiation with chained Supabase filters
+      const feedbackQ = (org: string) => supabase.from("widget_ai_feedback").select("source").eq("organization_id", org) as any;
       const [{ data: cur }, { data: prev }] = await Promise.all([
-        supabase.from("widget_ai_feedback").select("source").eq("organization_id", organizationId).gte("created_at", now7),
-        supabase.from("widget_ai_feedback").select("source").eq("organization_id", organizationId).gte("created_at", now14).lt("created_at", now7),
+        feedbackQ(organizationId).gte("created_at", now7),
+        feedbackQ(organizationId).gte("created_at", now14).lt("created_at", now7),
       ]);
 
       const bySource: Record<string, number> = {};
-      (cur ?? []).forEach((r) => { bySource[r.source ?? "unknown"] = (bySource[r.source ?? "unknown"] || 0) + 1; });
+      ((cur ?? []) as Array<{ source: string | null }>).forEach((r) => { bySource[r.source ?? "unknown"] = (bySource[r.source ?? "unknown"] || 0) + 1; });
 
       // assistant message counts for rate
-      const msgCurQ = supabase.from("widget_ai_messages").select("*", { count: "exact", head: true }).eq("organization_id", organizationId).eq("role", "assistant") as any;
-      const msgPrevQ = supabase.from("widget_ai_messages").select("*", { count: "exact", head: true }).eq("organization_id", organizationId).eq("role", "assistant") as any;
+      const msgQ = (org: string) => (supabase.from("widget_ai_messages").select("*", { count: "exact", head: true }) as any).eq("organization_id", org).eq("role", "assistant");
       const [{ count: msgCur }, { count: msgPrev }] = await Promise.all([
-        msgCurQ.gte("created_at", now7),
-        msgPrevQ.gte("created_at", now14).lt("created_at", now7),
+        msgQ(organizationId).gte("created_at", now7),
+        msgQ(organizationId).gte("created_at", now14).lt("created_at", now7),
       ]);
 
-      const totalCur = (cur ?? []).length;
-      const totalPrev = (prev ?? []).length;
+      const totalCur = ((cur ?? []) as any[]).length;
+      const totalPrev = ((prev ?? []) as any[]).length;
       const rateCur = (msgCur ?? 0) > 0 ? (totalCur / (msgCur ?? 1)) * 100 : 0;
       const ratePrev = (msgPrev ?? 0) > 0 ? (totalPrev / (msgPrev ?? 1)) * 100 : 0;
 
       // preference pairs
+      const ppQ = (org: string) => (supabase.from("preference_pairs").select("*", { count: "exact", head: true }) as any).eq("organization_id", org);
       const [{ count: ppCur }, { count: ppPrev }] = await Promise.all([
-        supabase.from("preference_pairs").select("*", { count: "exact", head: true }).eq("organization_id", organizationId).gte("created_at", now7),
-        supabase.from("preference_pairs").select("*", { count: "exact", head: true }).eq("organization_id", organizationId).gte("created_at", now14).lt("created_at", now7),
+        ppQ(organizationId).gte("created_at", now7),
+        ppQ(organizationId).gte("created_at", now14).lt("created_at", now7),
       ]);
 
       // avg eval score
+      const evalQ = (org: string) => (supabase.from("conversation_evaluations").select("composite_score") as any).eq("organization_id", org);
       const [{ data: evalCur }, { data: evalPrev }] = await Promise.all([
-        supabase.from("conversation_evaluations").select("composite_score").eq("organization_id", organizationId).gte("created_at", now7),
-        supabase.from("conversation_evaluations").select("composite_score").eq("organization_id", organizationId).gte("created_at", now14).lt("created_at", now7),
+        evalQ(organizationId).gte("created_at", now7),
+        evalQ(organizationId).gte("created_at", now14).lt("created_at", now7),
       ]);
-      const avgCur = (evalCur ?? []).length > 0 ? (evalCur ?? []).reduce((s, r) => s + (r.composite_score ?? 0), 0) / (evalCur ?? []).length : 0;
-      const avgPrev = (evalPrev ?? []).length > 0 ? (evalPrev ?? []).reduce((s, r) => s + (r.composite_score ?? 0), 0) / (evalPrev ?? []).length : 0;
+      const evalCurArr = (evalCur ?? []) as Array<{ composite_score: number | null }>;
+      const evalPrevArr = (evalPrev ?? []) as Array<{ composite_score: number | null }>;
+      const avgCur = evalCurArr.length > 0 ? evalCurArr.reduce((s, r) => s + (r.composite_score ?? 0), 0) / evalCurArr.length : 0;
+      const avgPrev = evalPrevArr.length > 0 ? evalPrevArr.reduce((s, r) => s + (r.composite_score ?? 0), 0) / evalPrevArr.length : 0;
 
       return {
         totalFeedback: totalCur,
