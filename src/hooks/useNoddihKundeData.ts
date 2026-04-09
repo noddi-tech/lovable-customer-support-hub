@@ -63,6 +63,10 @@ export type NoddiLookupResponse = {
         valid_to?: string;
         [key: string]: any;
       }>;
+      segments?: Array<{
+        segment: string;
+        service_department_id: number;
+      }>;
     }>;
     most_recent_group_id?: number | null;
     user: any;
@@ -112,6 +116,18 @@ export type NoddiLookupResponse = {
       };
       unable_to_complete?: boolean;
       unable_label?: string | null;
+      booking_type?: string | null;
+      location_type?: string | null;
+      comments_unable_to_complete_public?: string | null;
+      comments_unable_to_complete_internal?: string | null;
+      feedback?: {
+        customer_comment: string;
+        customer_rating_car_result: number;
+        customer_rating_communication: number;
+        customer_rating_ease_of_use: number;
+        customer_rating_overall: number;
+        customer_rating_politeness?: number | null;
+      } | null;
       partner_urls?: {
         customer_url: string | null;
         booking_url: string | null;
