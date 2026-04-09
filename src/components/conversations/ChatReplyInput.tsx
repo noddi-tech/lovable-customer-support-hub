@@ -5,9 +5,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { MentionTextarea } from '@/components/ui/mention-textarea';
 import { useMentionNotifications } from '@/hooks/useMentionNotifications';
 import { Badge } from '@/components/ui/badge';
-import { Send, Loader2, MessageSquareX, UserRoundPlus, Smile, Paperclip, Mic, Image, X, Languages, StickyNote } from 'lucide-react';
-import { cn } from '@/lib/utils'; // utility
+import { Card } from '@/components/ui/card';
+import { Send, Loader2, MessageSquareX, UserRoundPlus, Smile, Paperclip, Mic, Image, X, Languages, StickyNote, Sparkles, Eye } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { useConversationView } from '@/contexts/ConversationViewContext';
+import { AiSuggestionDialog } from '@/components/dashboard/conversation-view/AiSuggestionDialog';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -71,7 +73,9 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const { state } = useConversationView();
+  const { state, getAiSuggestions, refineAiSuggestion, messages } = useConversationView();
+  const [selectedSuggestionForDialog, setSelectedSuggestionForDialog] = useState<string | null>(null);
+  const [originalSuggestionText, setOriginalSuggestionText] = useState<string>('');
   const { processMentions } = useMentionNotifications();
   
   // Fetch agents for transfer
@@ -339,6 +343,40 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
     setMessage(prev => prev + emoji);
   }, []);
 
+  const handleGetAiSuggestions = useCallback(async () => {
+    try {
+      await getAiSuggestions();
+    } catch (error) {
+      // Error handling is done in the context
+    }
+  }, [getAiSuggestions]);
+
+  const handleAiSuggestionSelect = useCallback((suggestion: string) => {
+    setSelectedSuggestionForDialog(suggestion);
+    setOriginalSuggestionText(suggestion);
+  }, []);
+
+  const handleUseAsIs = useCallback(() => {
+    if (selectedSuggestionForDialog) {
+      setMessage(selectedSuggestionForDialog);
+      setSelectedSuggestionForDialog(null);
+      toast.success('Suggestion inserted into reply');
+    }
+  }, [selectedSuggestionForDialog]);
+
+  const handleRefineAndUse = useCallback(async (refinementInstructions: string, originalText: string) => {
+    const lastCustomerMessage = [...(messages || [])].reverse().find((m: any) => m.sender_type === 'customer');
+    const customerMessageText = lastCustomerMessage?.content || '';
+    
+    const refinedText = await refineAiSuggestion(originalText, refinementInstructions, customerMessageText);
+    
+    if (refinedText) {
+      setMessage(refinedText);
+      setSelectedSuggestionForDialog(refinedText);
+      toast.success('Refined suggestion ready! You can refine it more or use it.');
+    }
+  }, [messages, refineAiSuggestion]);
+
   const handleTranslate = useCallback(async () => {
     if (!message.trim() || translateLoading) return;
     setTranslateLoading(true);
@@ -413,7 +451,39 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
           className="hidden"
         />
 
-        {/* Textarea: full width */}
+        {/* AI Suggestion Cards */}
+        {!isInternalNote && state.aiSuggestions.length > 0 && (
+          <div className="space-y-2">
+            <label className="text-xs font-medium flex items-center gap-2">
+              <Sparkles className="h-3.5 w-3.5 text-primary" />
+              AI Suggestions ({state.aiSuggestions.length})
+            </label>
+            <div className="grid gap-2">
+              {state.aiSuggestions.map((suggestion, index) => {
+                const preview = suggestion.length > 100 ? `${suggestion.slice(0, 100)}...` : suggestion;
+                return (
+                  <Card
+                    key={index}
+                    className="p-3 hover:bg-muted/50 cursor-pointer transition-colors border-border hover:border-primary/50"
+                    onClick={() => handleAiSuggestionSelect(suggestion)}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm leading-relaxed text-foreground/90 line-clamp-2">{preview}</p>
+                        <p className="text-xs text-muted-foreground mt-1">~{suggestion.length} characters</p>
+                      </div>
+                      <Badge variant="outline" className="text-xs gap-1 shrink-0">
+                        <Eye className="h-3 w-3" />
+                        View
+                      </Badge>
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {isInternalNote ? (
           <div className="min-w-0">
             <MentionTextarea
@@ -471,7 +541,24 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
             <Paperclip className="h-5 w-5" />
           </Button>
 
-          {/* Internal note toggle */}
+          {/* AI Suggest button */}
+          {!isInternalNote && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="shrink-0 h-9 gap-1.5 text-muted-foreground hover:text-foreground"
+              onClick={handleGetAiSuggestions}
+              disabled={state.aiLoading}
+              title="Get AI suggestions"
+            >
+              {state.aiLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Sparkles className="h-4 w-4" />
+              )}
+              <span className="text-xs">AI Suggest</span>
+            </Button>
+          )}
           <Button 
             variant={isInternalNote ? "secondary" : "ghost"}
             size="sm" 
@@ -671,6 +758,16 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* AI Suggestion Dialog */}
+      <AiSuggestionDialog
+        open={selectedSuggestionForDialog !== null}
+        onOpenChange={(open) => !open && setSelectedSuggestionForDialog(null)}
+        suggestion={selectedSuggestionForDialog || ''}
+        onUseAsIs={handleUseAsIs}
+        onRefine={handleRefineAndUse}
+        isRefining={state.refiningSuggestion}
+      />
     </>
   );
 };
