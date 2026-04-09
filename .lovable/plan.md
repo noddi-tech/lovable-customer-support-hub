@@ -1,36 +1,30 @@
 
 
-# Fix AI Suggestion Learning/Tracking in Chat
+# Fix Duplicate Badges and Oldest Booking Display
 
-## Problem
-When an agent uses an AI suggestion in chat (via `ChatReplyInput`), the system doesn't track that the response came from AI and doesn't show the feedback prompt. This means no `response_tracking` record is created, no learning happens.
+## Problems
 
-**Root cause**: `ChatReplyInput` has its own `sendMessageMutation` that bypasses the context's tracking logic. It never dispatches `SET_SELECTED_AI_SUGGESTION`, so:
-1. The context doesn't know an AI suggestion was selected
-2. No `response_tracking` row is inserted on send
-3. The `FeedbackPrompt` never appears (it checks `state.showFeedbackRating`)
+### 1. Duplicate segment badges
+The `segments` array on each user group contains one entry per `service_department_id`. A customer in 6 service departments gets 6 segment entries (e.g., "Customer" x2, "Prospect" x4). The UI renders all of them without deduplication.
 
-In contrast, `ReplyArea` (email) dispatches `SET_SELECTED_AI_SUGGESTION` on "Use as-is"/"Refine", and uses the context's `sendReply` which checks `state.selectedAiSuggestion` to create a `response_tracking` record and trigger the feedback prompt.
+### 2. Showing oldest booking instead of most recent
+In the edge function's fallback path (`fetchUserGroupBookings`), bookings are fetched from `/v1/user-groups/{id}/bookings-for-customer/` without any ordering parameter. The API likely returns oldest-first by default, and the code takes `recentBookings[0]` (the oldest). Additionally, the Noddi API's `bookings_summary.priority_booking` may itself return the oldest booking.
 
 ## Changes
 
-### Edit: `src/components/conversations/ChatReplyInput.tsx`
+### 1. `src/components/dashboard/voice/NoddiCustomerDetails.tsx`
+- **Deduplicate segments**: Before rendering segment badges (line ~346), deduplicate by unique `segment` value. Use `[...new Map(segments.map(s => [s.segment, s])).values()]` to keep only one badge per segment type.
 
-1. **Get `dispatch` from context**: Extract `dispatch` from `useConversationView()` (already available via the context)
+### 2. `supabase/functions/noddi-customer-lookup/index.ts`
+- **Sort fetched bookings by date descending**: In `fetchUserGroupBookings` (~line 120), after fetching bookings, sort them by `completed_at` or `delivery_window_starts_at` descending so the newest booking comes first.
+- **Add ordering parameter to API call**: Append `&ordering=-id` (or `-completed_at`) to the API URL to request newest-first from the Noddi API directly.
+- Deploy the updated edge function.
 
-2. **Dispatch `SET_SELECTED_AI_SUGGESTION` in `handleUseAsIs`**: After setting the message text, dispatch `SET_SELECTED_AI_SUGGESTION` with the suggestion text — same as ReplyArea does
-
-3. **Dispatch `SET_SELECTED_AI_SUGGESTION` in `handleRefineAndUse`**: After refining, dispatch with the refined text
-
-4. **Add response tracking to `sendMessageMutation`**: After inserting the message, check if `state.selectedAiSuggestion` is set. If so, insert a `response_tracking` record with `response_source: 'ai_suggestion'` and the message ID — same logic as in `ConversationViewContext.sendReplyMutation`
-
-5. **Trigger feedback prompt on success**: In `onSuccess`, if an AI suggestion was used, dispatch `SET_FEEDBACK_STATE` with `show: true` and the message ID. Then reset the AI suggestion state
-
-6. **Render `FeedbackPrompt`**: Import and render the `FeedbackPrompt` component above or below the suggestion cards area so agents see the feedback UI after sending an AI-assisted reply
+### 3. `src/components/mobile/conversations/MobileCustomerSummaryCard.tsx`
+- Apply the same segment deduplication as the desktop component.
 
 ## Technical details
-- `dispatch` is already available from `useConversationView()` — just needs destructuring
-- `FeedbackPrompt` is self-contained (reads its own state from context, has dismiss button)
-- The `response_tracking` insert uses `state.selectedAiSuggestion` to find the matching suggestion metadata (same pattern as the email flow in `ConversationViewContext` lines ~358-402)
-- No backend changes needed — same `response_tracking` table and `submit-feedback` function
+- Segment deduplication is purely a UI concern: `Array.from(new Map(segments.map(s => [s.segment, s])).values())`
+- For booking ordering, the Noddi bookings-for-customer endpoint likely supports `-id` or `-completed_at` ordering. Adding a client-side sort as a fallback ensures correctness regardless of API behavior.
+- No database changes needed.
 
