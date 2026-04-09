@@ -359,10 +359,11 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
   const handleUseAsIs = useCallback(() => {
     if (selectedSuggestionForDialog) {
       setMessage(selectedSuggestionForDialog);
+      dispatch({ type: 'SET_SELECTED_AI_SUGGESTION', payload: selectedSuggestionForDialog });
       setSelectedSuggestionForDialog(null);
       toast.success('Suggestion inserted into reply');
     }
-  }, [selectedSuggestionForDialog]);
+  }, [selectedSuggestionForDialog, dispatch]);
 
   const handleRefineAndUse = useCallback(async (refinementInstructions: string, originalText: string) => {
     const lastCustomerMessage = [...(messages || [])].reverse().find((m: any) => m.sender_type === 'customer');
@@ -372,10 +373,11 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
     
     if (refinedText) {
       setMessage(refinedText);
+      dispatch({ type: 'SET_SELECTED_AI_SUGGESTION', payload: refinedText });
       setSelectedSuggestionForDialog(refinedText);
       toast.success('Refined suggestion ready! You can refine it more or use it.');
     }
-  }, [messages, refineAiSuggestion]);
+  }, [messages, refineAiSuggestion, dispatch]);
 
   const handleTranslate = useCallback(async () => {
     if (!message.trim() || translateLoading) return;
