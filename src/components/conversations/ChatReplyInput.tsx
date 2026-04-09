@@ -10,6 +10,7 @@ import { Send, Loader2, MessageSquareX, UserRoundPlus, Smile, Paperclip, Mic, Im
 import { cn } from '@/lib/utils';
 import { useConversationView } from '@/contexts/ConversationViewContext';
 import { AiSuggestionDialog } from '@/components/dashboard/conversation-view/AiSuggestionDialog';
+import { FeedbackPrompt } from '@/components/dashboard/conversation-view/FeedbackPrompt';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
