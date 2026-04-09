@@ -541,7 +541,24 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
             <Paperclip className="h-5 w-5" />
           </Button>
 
-          {/* Internal note toggle */}
+          {/* AI Suggest button */}
+          {!isInternalNote && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="shrink-0 h-9 gap-1.5 text-muted-foreground hover:text-foreground"
+              onClick={handleGetAiSuggestions}
+              disabled={state.aiLoading}
+              title="Get AI suggestions"
+            >
+              {state.aiLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Sparkles className="h-4 w-4" />
+              )}
+              <span className="text-xs">AI Suggest</span>
+            </Button>
+          )}
           <Button 
             variant={isInternalNote ? "secondary" : "ghost"}
             size="sm" 
