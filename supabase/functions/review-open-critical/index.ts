@@ -131,6 +131,11 @@ Deno.serve(async (req) => {
             .maybeSingle();
 
           if (routing) {
+            // Check if critical alerts are disabled for this inbox
+            if (routing.critical_enabled === false) {
+              console.log(`🔇 Critical alerts disabled for inbox ${conv.inbox_id}, skipping`);
+              continue;
+            }
             // Use dedicated critical channel if set, otherwise fall back to notification channel
             if (routing.critical_channel_id) {
               convCriticalChannelId = routing.critical_channel_id;

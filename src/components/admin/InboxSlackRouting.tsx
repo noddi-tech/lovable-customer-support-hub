@@ -4,6 +4,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
 import { Loader2, Hash, Lock, Inbox, Building2, Bell, BarChart3, AlertTriangle, X } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -29,9 +30,11 @@ interface RoutingEntry {
   digest_channel_id: string | null;
   digest_channel_name: string | null;
   digest_use_secondary: boolean;
+  digest_enabled: boolean;
   critical_channel_id: string | null;
   critical_channel_name: string | null;
   critical_use_secondary: boolean;
+  critical_enabled: boolean;
 }
 
 interface InboxInfo {
@@ -41,10 +44,10 @@ interface InboxInfo {
 
 type SlotKey = 'notifications' | 'digest' | 'critical';
 
-const SLOTS: { key: SlotKey; label: string; icon: React.ElementType }[] = [
-  { key: 'notifications', label: 'Notifications', icon: Bell },
-  { key: 'digest', label: 'Digest', icon: BarChart3 },
-  { key: 'critical', label: 'Critical Alerts', icon: AlertTriangle },
+const SLOTS: { key: SlotKey; label: string; icon: React.ElementType; toggleable: boolean }[] = [
+  { key: 'notifications', label: 'Notifications', icon: Bell, toggleable: false },
+  { key: 'digest', label: 'Digest', icon: BarChart3, toggleable: true },
+  { key: 'critical', label: 'Critical Alerts', icon: AlertTriangle, toggleable: true },
 ];
 
 export const InboxSlackRouting = ({
@@ -109,9 +112,11 @@ export const InboxSlackRouting = ({
             digest_channel_id: params.updates.digest_channel_id || null,
             digest_channel_name: params.updates.digest_channel_name || null,
             digest_use_secondary: params.updates.digest_use_secondary ?? false,
+            digest_enabled: params.updates.digest_enabled ?? true,
             critical_channel_id: params.updates.critical_channel_id || null,
             critical_channel_name: params.updates.critical_channel_name || null,
             critical_use_secondary: params.updates.critical_use_secondary ?? false,
+            critical_enabled: params.updates.critical_enabled ?? true,
           });
         if (error) throw error;
       }
@@ -157,6 +162,21 @@ export const InboxSlackRouting = ({
   }
 
   if (inboxes.length === 0) return null;
+
+  const getSlotEnabled = (routing: RoutingEntry | undefined, slot: SlotKey): boolean => {
+    if (!routing) return true; // default enabled
+    if (slot === 'notifications') return true; // always enabled
+    if (slot === 'digest') return routing.digest_enabled ?? true;
+    if (slot === 'critical') return routing.critical_enabled ?? true;
+    return true;
+  };
+
+  const handleToggleSlot = (inboxId: string, slot: SlotKey, enabled: boolean) => {
+    const updates: Partial<RoutingEntry> = {};
+    if (slot === 'digest') updates.digest_enabled = enabled;
+    if (slot === 'critical') updates.critical_enabled = enabled;
+    upsertRouting.mutate({ inbox_id: inboxId, updates });
+  };
 
   const getSlotValues = (routing: RoutingEntry | undefined, slot: SlotKey) => {
     if (!routing) return { channelId: '', useSecondary: false };
@@ -279,66 +299,81 @@ export const InboxSlackRouting = ({
               </div>
 
               <div className="space-y-2">
-                {SLOTS.map(({ key, label, icon: Icon }) => {
+                {SLOTS.map(({ key, label, icon: Icon, toggleable }) => {
                   const { channelId, useSecondary } = getSlotValues(routing, key);
                   const availableChannels = useSecondary ? secondaryChannels : channels;
+                  const isEnabled = getSlotEnabled(routing, key);
 
                   return (
                     <div key={key} className="flex items-center gap-2">
                       <div className="flex items-center gap-1.5 w-32 shrink-0">
+                        {toggleable && (
+                          <Switch
+                            checked={isEnabled}
+                            onCheckedChange={(checked) => handleToggleSlot(inbox.id, key, checked)}
+                            disabled={upsertRouting.isPending}
+                            className="scale-75"
+                          />
+                        )}
                         <Icon className="h-3.5 w-3.5 text-muted-foreground" />
                         <Label className="text-xs font-medium">{label}</Label>
                       </div>
 
-                      {hasSecondaryWorkspace && (
-                        <Select
-                          value={useSecondary ? 'secondary' : 'primary'}
-                          onValueChange={(v) => handleWorkspaceChange(inbox.id, key, v === 'secondary')}
-                          disabled={upsertRouting.isPending}
-                        >
-                          <SelectTrigger className="w-36 h-8 text-xs">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="primary">
-                              <div className="flex items-center gap-1.5">
-                                <Building2 className="h-3 w-3" />
-                                {integration.team_name || 'Primary'}
-                              </div>
-                            </SelectItem>
-                            <SelectItem value="secondary">
-                              <div className="flex items-center gap-1.5">
-                                <Building2 className="h-3 w-3" />
-                                {integration.secondary_team_name || 'Secondary'}
-                              </div>
-                            </SelectItem>
-                          </SelectContent>
-                        </Select>
-                      )}
+                      {!isEnabled ? (
+                        <Badge variant="outline" className="text-xs text-muted-foreground">Disabled</Badge>
+                      ) : (
+                        <>
+                          {hasSecondaryWorkspace && (
+                            <Select
+                              value={useSecondary ? 'secondary' : 'primary'}
+                              onValueChange={(v) => handleWorkspaceChange(inbox.id, key, v === 'secondary')}
+                              disabled={upsertRouting.isPending}
+                            >
+                              <SelectTrigger className="w-36 h-8 text-xs">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="primary">
+                                  <div className="flex items-center gap-1.5">
+                                    <Building2 className="h-3 w-3" />
+                                    {integration.team_name || 'Primary'}
+                                  </div>
+                                </SelectItem>
+                                <SelectItem value="secondary">
+                                  <div className="flex items-center gap-1.5">
+                                    <Building2 className="h-3 w-3" />
+                                    {integration.secondary_team_name || 'Secondary'}
+                                  </div>
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
+                          )}
 
-                      <Select
-                        value={channelId || ''}
-                        onValueChange={(cId) => handleChannelChange(inbox.id, key, cId, useSecondary)}
-                        disabled={upsertRouting.isPending}
-                      >
-                        <SelectTrigger className="flex-1 h-8 text-xs">
-                          <SelectValue placeholder="Select channel..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {availableChannels.map((channel) => (
-                            <SelectItem key={channel.id} value={channel.id}>
-                              <div className="flex items-center gap-1.5">
-                                {channel.is_private ? (
-                                  <Lock className="h-3 w-3 text-muted-foreground" />
-                                ) : (
-                                  <Hash className="h-3 w-3 text-muted-foreground" />
-                                )}
-                                {channel.name}
-                              </div>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                          <Select
+                            value={channelId || ''}
+                            onValueChange={(cId) => handleChannelChange(inbox.id, key, cId, useSecondary)}
+                            disabled={upsertRouting.isPending}
+                          >
+                            <SelectTrigger className="flex-1 h-8 text-xs">
+                              <SelectValue placeholder="Select channel..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {availableChannels.map((channel) => (
+                                <SelectItem key={channel.id} value={channel.id}>
+                                  <div className="flex items-center gap-1.5">
+                                    {channel.is_private ? (
+                                      <Lock className="h-3 w-3 text-muted-foreground" />
+                                    ) : (
+                                      <Hash className="h-3 w-3 text-muted-foreground" />
+                                    )}
+                                    {channel.name}
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </>
+                      )}
                     </div>
                   );
                 })}

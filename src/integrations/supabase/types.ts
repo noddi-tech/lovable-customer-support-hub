@@ -1189,9 +1189,11 @@ export type Database = {
           created_at: string | null
           critical_channel_id: string | null
           critical_channel_name: string | null
+          critical_enabled: boolean | null
           critical_use_secondary: boolean | null
           digest_channel_id: string | null
           digest_channel_name: string | null
+          digest_enabled: boolean | null
           digest_use_secondary: boolean | null
           id: string
           inbox_id: string
@@ -1206,9 +1208,11 @@ export type Database = {
           created_at?: string | null
           critical_channel_id?: string | null
           critical_channel_name?: string | null
+          critical_enabled?: boolean | null
           critical_use_secondary?: boolean | null
           digest_channel_id?: string | null
           digest_channel_name?: string | null
+          digest_enabled?: boolean | null
           digest_use_secondary?: boolean | null
           id?: string
           inbox_id: string
@@ -1223,9 +1227,11 @@ export type Database = {
           created_at?: string | null
           critical_channel_id?: string | null
           critical_channel_name?: string | null
+          critical_enabled?: boolean | null
           critical_use_secondary?: boolean | null
           digest_channel_id?: string | null
           digest_channel_name?: string | null
+          digest_enabled?: boolean | null
           digest_use_secondary?: boolean | null
           id?: string
           inbox_id?: string
