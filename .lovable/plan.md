@@ -1,33 +1,30 @@
 
 
-# Fix: Conversation Click Redirects to Wrong Inbox
+# Remove Duplicate Title from Slack Notification
 
-## Root Cause
-
-The bug is in `EnhancedInteractionsLayout.tsx` lines 119-123. Here's what happens:
-
-1. User clicks a conversation in Tronderdekk inbox
-2. Navigation goes to `/interactions/text/conversations/:id` (no `?inbox=` query param)
-3. The `useEffect` on line 119 fires: `!inbox` is true (no query param on conversation URL), `!selectedInboxId` may also be true
-4. It calls `navigationSetInbox(inboxes[0].id)` which navigates to `/interactions/text/open?inbox=<first-inbox>` (Noddi)
-5. This kicks the user out of the conversation view back to the list -- causing the flicker
-
-The `setInbox` function navigates to the **list** route, so calling it during a detail view destroys the conversation view.
+## Problem
+The notification shows "New Email Conversation in Tronderdekk" twice: once as the top-level fallback text (visible above the colored attachment) and again as the first line inside the attachment body.
 
 ## Fix
+**File: `supabase/functions/send-slack-notification/index.ts`**
 
-One-line change: skip the default-inbox effect when already viewing a conversation detail (`isDetail` is true).
+Remove the header section block (lines 323-329) that duplicates the fallback text. The fallback text (line 317) already serves as the visible header above the attachment. The attachment body should start directly with the From/Subject fields.
 
-**File**: `src/components/dashboard/EnhancedInteractionsLayout.tsx`
+This leaves the layout as:
 
-```typescript
-// Line 119-123: Add isDetail guard
-useEffect(() => {
-  if (!isDetail && !inbox && !selectedInboxId && inboxes.length > 0) {
-    navigationSetInbox(inboxes[0].id);
-  }
-}, [isDetail, inbox, selectedInboxId, inboxes, navigationSetInbox]);
+```text
+📧 New Email Conversation in Trønderdekk        ← fallback text (top-level)
+┌──────────────────────────────────────────────┐
+│ From:                       Subject:          │  ← attachment starts here
+│ joachim@example.com         Testing notifs    │
+│                                               │
+│ > Preview text up to 300 chars...             │
+│                                               │
+│ 📧 Channel: Email     ⏰ 4/10/26, 11:17 PM   │
+│                                               │
+│ [👀 View Conversation]                        │
+└──────────────────────────────────────────────┘
 ```
 
-This prevents the redirect when the user is viewing a conversation, while still setting a default inbox on the list view.
+One block removal, redeploy the edge function.
 
