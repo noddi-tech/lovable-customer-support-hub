@@ -121,6 +121,11 @@ Deno.serve(async (req) => {
       const routingMap = new Map<string, { digest_channel_id: string; digest_use_secondary: boolean }>();
       if (routingEntries) {
         for (const r of routingEntries) {
+          // Skip inboxes where digest is explicitly disabled
+          if (r.digest_enabled === false) {
+            routingMap.set(r.inbox_id, { digest_channel_id: '__disabled__', digest_use_secondary: false });
+            continue;
+          }
           if (r.digest_channel_id) {
             routingMap.set(r.inbox_id, { digest_channel_id: r.digest_channel_id, digest_use_secondary: r.digest_use_secondary ?? false });
           } else if (r.channel_id && r.channel_id !== '_placeholder') {

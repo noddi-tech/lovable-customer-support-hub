@@ -472,8 +472,11 @@ Deno.serve(async (req) => {
         .maybeSingle();
 
       if (critRouting) {
-        // Use dedicated critical channel if set, otherwise fall back to notification channel
-        if (critRouting.critical_channel_id) {
+        // Check if critical alerts are disabled for this inbox
+        if (critRouting.critical_enabled === false) {
+          console.log(`🔇 Critical alerts disabled for inbox ${inbox_id}`);
+          criticalChannelId = null;
+        } else if (critRouting.critical_channel_id) {
           criticalChannelId = critRouting.critical_channel_id;
           criticalToken = critRouting.critical_use_secondary && integration.secondary_access_token
             ? integration.secondary_access_token
