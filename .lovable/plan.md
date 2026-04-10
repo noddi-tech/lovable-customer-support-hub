@@ -1,34 +1,31 @@
 
 
-# Show Bot Channel Membership Warnings in Routing UI
+# Clean Up Slack Notification Format
 
-## Problem
-When a channel is selected for routing, notifications silently fail with `not_in_channel` if the Slack bot hasn't been invited. The admin has no visibility into this until messages go missing.
+## Changes (single file: `supabase/functions/send-slack-notification/index.ts`)
 
-## Approach
-Add a lightweight channel-membership check that runs when a channel is selected. If the bot is not in the channel, show an inline warning with instructions to invite it.
+### 1. Increase preview quote to 300 characters
+- Line 357: change `cleanPreviewText(preview_text, 180)` to `cleanPreviewText(preview_text, 300)`
 
-## Implementation
+### 2. Simplify fallback text (no duplicate info)
+- Lines 317-326: Replace with just `"${emoji} ${title}${inbox_name ? ' in ' + inbox_name : ''}"` -- no customer name or preview appended (those already appear in the blocks)
 
-### 1. New edge function endpoint or extend `slack-list-channels`
-Extend the existing `slack-list-channels` function to also return `is_member` for each channel. The Slack `conversations.list` API already returns `is_member` on each channel object -- we just need to pass it through.
+### 3. Add channel type to context footer
+- Lines 413-426: Merge the timestamp context block with a "Channel: Email" (or Chat, etc.) label using the existing `channelLabel` and `emoji` variables already in scope
 
-**File**: `supabase/functions/slack-list-channels/index.ts`
-- Add `is_member: channel.is_member` to the channel object pushed into the array
-- No new API calls needed
-
-### 2. Update `SlackChannel` type
-**File**: `src/hooks/useSlackIntegration.ts`
-- Add `is_member: boolean` to the `SlackChannel` interface
-
-### 3. Show warning in `InboxSlackRouting.tsx`
-**File**: `src/components/admin/InboxSlackRouting.tsx`
-- After the channel dropdown, check if the selected channel has `is_member === false`
-- If so, render a small orange warning: "Bot not in channel -- invite the bot with `/invite @BotName` in Slack"
-- Use the existing `AlertTriangle` icon already imported
-
-### Files to change
-1. `supabase/functions/slack-list-channels/index.ts` -- pass through `is_member`
-2. `src/hooks/useSlackIntegration.ts` -- add `is_member` to `SlackChannel`
-3. `src/components/admin/InboxSlackRouting.tsx` -- render warning when `is_member === false`
+**Result format:**
+```text
+┌──────────────────────────────────────────────────┐
+│ 📧 New Email Conversation in Trønderdekk        │
+│                                                  │
+│ From:                       Subject:             │
+│ joachim@example.com         Testing notifs       │
+│                                                  │
+│ > Full preview up to 300 chars now...            │
+│                                                  │
+│ 📧 Channel: Email     ⏰ 4/10/26, 10:53 PM      │
+│                                                  │
+│ [👀 View Conversation]                           │
+└──────────────────────────────────────────────────┘
+```
 
