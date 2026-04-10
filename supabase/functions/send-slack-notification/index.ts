@@ -313,17 +313,8 @@ Deno.serve(async (req) => {
         title = 'Notification';
     }
 
-    // Build fallback text for native push notifications
-    let fallbackText = title;
-    if (customer_name) {
-      fallbackText += ` from ${customer_name}`;
-    }
-    if (preview_text) {
-      const cleanedPreview = cleanPreviewText(preview_text, 100);
-      if (cleanedPreview) {
-        fallbackText += `: ${cleanedPreview}`;
-      }
-    }
+    // Build fallback text for native push notifications (keep it short, details are in blocks)
+    const fallbackText = `${emoji} ${title}${inbox_name ? ' in ' + inbox_name : ''}`;
 
     const blocks: any[] = [];
     const attachmentBlocks: any[] = [];
@@ -354,7 +345,7 @@ Deno.serve(async (req) => {
 
     // Message preview
     if (preview_text && config.include_message_preview !== false) {
-      const cleanedPreview = cleanPreviewText(preview_text, 180);
+      const cleanedPreview = cleanPreviewText(preview_text, 300);
       
       if (cleanedPreview) {
         const escapedPreview = cleanedPreview
@@ -410,10 +401,14 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Timestamp context
+    // Channel type + timestamp context
     attachmentBlocks.push({
       type: 'context',
       elements: [
+        {
+          type: 'mrkdwn',
+          text: `${emoji} *Channel:* ${channelLabel}`,
+        },
         {
           type: 'mrkdwn',
           text: `⏰ ${new Date().toLocaleString('en-US', { 
