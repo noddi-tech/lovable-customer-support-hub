@@ -4,6 +4,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
 import { Loader2, Hash, Lock, Inbox, Building2, Bell, BarChart3, AlertTriangle, X } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -29,9 +30,11 @@ interface RoutingEntry {
   digest_channel_id: string | null;
   digest_channel_name: string | null;
   digest_use_secondary: boolean;
+  digest_enabled: boolean;
   critical_channel_id: string | null;
   critical_channel_name: string | null;
   critical_use_secondary: boolean;
+  critical_enabled: boolean;
 }
 
 interface InboxInfo {
@@ -41,10 +44,10 @@ interface InboxInfo {
 
 type SlotKey = 'notifications' | 'digest' | 'critical';
 
-const SLOTS: { key: SlotKey; label: string; icon: React.ElementType }[] = [
-  { key: 'notifications', label: 'Notifications', icon: Bell },
-  { key: 'digest', label: 'Digest', icon: BarChart3 },
-  { key: 'critical', label: 'Critical Alerts', icon: AlertTriangle },
+const SLOTS: { key: SlotKey; label: string; icon: React.ElementType; toggleable: boolean }[] = [
+  { key: 'notifications', label: 'Notifications', icon: Bell, toggleable: false },
+  { key: 'digest', label: 'Digest', icon: BarChart3, toggleable: true },
+  { key: 'critical', label: 'Critical Alerts', icon: AlertTriangle, toggleable: true },
 ];
 
 export const InboxSlackRouting = ({
