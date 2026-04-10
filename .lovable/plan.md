@@ -1,93 +1,69 @@
 
 
-# Refactor: Conversation as a URL Resource
+# Per-Inbox Full Routing: Notifications + Digests + Critical Alerts
 
-## Current state
-Conversations live in query params: `/interactions/text/open?c=abc123`. The "open/active/ended" filter is part of the path, and the conversation is just a param. This breaks REST conventions and causes back-button issues.
+## Two problems to fix
 
-## New URL model
+**1. Can't select Navio workspace**: The workspace toggle is disabled until a channel is already selected (`disabled={!isRouted}`). Since the channel dropdown defaults to Primary channels, there's no way to switch to Navio first. Chicken-and-egg bug.
+
+**2. Digest and Critical are org-level only**: Currently there's one digest channel and one critical channel for the entire organization. User wants full per-inbox control: each inbox should independently configure its notification channel, digest channel, and critical channel — each with its own workspace selection.
+
+## New UX model
+
+Each inbox becomes a self-contained routing card with three channel slots:
 
 ```text
-List views (no conversation selected):
-  /interactions/text/open          → text inbox, "open" filter
-  /interactions/text/closed        → text inbox, "closed" filter
-  /interactions/chat/active        → chat, "active" filter
-
-Conversation views (resource URL):
-  /interactions/text/conversations/abc123        → view conversation abc123
-  /interactions/chat/conversations/abc123        → view chat conversation abc123
-  /interactions/text/conversations/abc123?m=msg1 → deep-link to message
-
-Short links (unchanged):
-  /c/abc123                        → redirect to correct resource URL
+┌─────────────────────────────────────────────────┐
+│ Trønderdekk                                     │
+│                                                  │
+│ Notifications   [Navio ▼]  [#tronderdekk-support ▼] │
+│ Digest          [Navio ▼]  [#tronderdekk-digest  ▼] │
+│ Critical Alerts [Navio ▼]  [#tronderdekk-urgent  ▼] │
+│                                                  │
+│                                    [Remove all]  │
+├─────────────────────────────────────────────────┤
+│ Dekkfix                                          │
+│                                                  │
+│ Notifications   [Primary ▼]  [#support ▼]       │
+│ Digest          [Primary ▼]  [#digest  ▼]       │
+│ Critical Alerts [Primary ▼]  [#critical ▼]      │
+└─────────────────────────────────────────────────┘
 ```
 
-The filter (open/closed/active/ended) is **not** in the conversation URL — it's UI state for the list, not a property of the resource link. The `?inbox=` param stays as a query param for list filtering.
+Workspace selector comes **before** the channel dropdown (fixes the Navio bug). Org-level digest/critical sections become fallback defaults for inboxes without specific routing.
 
-## Changes
+## Database changes
 
-### 1. Routes — `App.tsx`
-Add conversation resource routes before the filter routes:
-```
-/interactions/text/conversations/:conversationId
-/interactions/chat/conversations/:conversationId
-```
-Keep existing filter routes unchanged for list views.
+**Migration**: Add columns to `inbox_slack_routing`:
+- `digest_channel_id text`
+- `digest_channel_name text`
+- `digest_use_secondary boolean default false`
+- `critical_channel_id text`
+- `critical_channel_name text`
+- `critical_use_secondary boolean default false`
 
-### 2. `ConversationRedirect.tsx`
-Update target path from `?c=id` to `/conversations/id`:
-```
-/interactions/text/conversations/abc123
-/interactions/chat/conversations/abc123
-```
+The existing `channel_id` / `use_secondary_workspace` remain for notification routing.
 
-### 3. `useInteractionsNavigation.tsx`
-- `openConversation()`: use `navigate('/interactions/text/conversations/{id}')` (push)
-- `backToList()`: use `navigate(-1)` or navigate to the list path
-- `getCurrentState()`: read `conversationId` from `useParams()` instead of `searchParams.get('c')`
-- Remove all `?c=` query param logic
+## Edge function changes
 
-### 4. `InteractionsLayout.tsx`
-- Read `conversationId` from `useParams()` instead of `searchParams.get('c')`
-- `handleSelectConversation`: navigate to `/interactions/text/conversations/{id}`
-- Mobile back: `navigate(-1)` or navigate to list path
-- Remove all `newParams.set('c', ...)` / `newParams.delete('c')` logic
+**`send-slack-notification`**: Already looks up `inbox_slack_routing` for notifications. Add: if the event is critical, check `critical_channel_id` / `critical_use_secondary` from the same routing row first.
 
-### 5. `EnhancedInteractionsLayout.tsx`
-- Uses `navigation.openConversation()` — no direct `?c=` logic, inherits fix from hook
+**`slack-daily-digest`**: When generating per-inbox digests, use `digest_channel_id` / `digest_use_secondary` from the routing row instead of the org-level digest channel.
 
-### 6. `ChatLayout.tsx`
-- `handleSelectChat`: `navigate('/interactions/chat/conversations/{id}')`
-- `handleBack`: `navigate('/interactions/chat/${currentFilter}')`
-- Remove `searchParams.get('c')`
+**`review-open-critical`**: Use `critical_channel_id` / `critical_use_secondary` from routing row per conversation's inbox.
 
-### 7. `LiveChatQueue.tsx`
-- Change `navigate('/interactions/chat/active?c=${id}')` to `navigate('/interactions/chat/conversations/${id}')`
+## UI changes
 
-### 8. Back handlers (4 files)
-- `ConversationView.tsx` — Escape key handler: `navigate(-1)`
-- `ConversationViewContent.tsx` — back button: `navigate(-1)`
-- `MobileEmailConversationView.tsx` — back: `navigate(-1)`
-- `MobileChatConversationView.tsx` — back: `navigate(-1)`
+**`InboxSlackRouting.tsx`**: Redesign each inbox row to show three channel slots (notifications, digest, critical). Each slot has a workspace dropdown (Primary/Navio) and a channel dropdown. Workspace selection works independently of channel selection (no more `disabled={!isRouted}`).
 
-### 9. `InboxList.tsx`
-- Remove `newParams.delete('c')` — no longer needed since conversation is in path, not params
+**`SlackIntegrationSettings.tsx`**: Keep org-level digest/critical sections as "Default" fallbacks, but label them clearly as defaults for unrouted inboxes.
 
-### 10. `URLSanitizer.tsx`
-- Add migration: if URL contains `?c=`, redirect to `/conversations/{id}` path
+## Files to change
 
-### 11. Index.tsx / page rendering
-- When route matches `/interactions/text/conversations/:conversationId`, render the same layout but with conversation pre-selected from params
-
-### 12. Tests
-- Update `useInteractionsNavigation.test.ts` to use path-based conversation IDs
-
-## What stays the same
-- `/c/:conversationId` short links (just updated redirect target)
-- `?inbox=`, `?m=`, `?q=` query params (these are filters/state, not resources)
-- Filter routes (`/interactions/text/open`, `/interactions/chat/active`)
-- All component rendering logic — only navigation/URL-reading changes
-
-## Back button behavior (free)
-Since `navigate()` pushes by default, clicking a conversation creates a history entry. Browser back returns to the list. No more `replace: true/false` juggling.
+1. **New migration** -- add 6 columns to `inbox_slack_routing`
+2. **`src/components/admin/InboxSlackRouting.tsx`** -- redesign to 3-slot per-inbox routing
+3. **`src/components/admin/SlackIntegrationSettings.tsx`** -- label digest/critical as defaults
+4. **`supabase/functions/send-slack-notification/index.ts`** -- use critical routing from inbox row
+5. **`supabase/functions/slack-daily-digest/index.ts`** -- use digest routing from inbox row
+6. **`supabase/functions/review-open-critical/index.ts`** -- use critical routing from inbox row
 
