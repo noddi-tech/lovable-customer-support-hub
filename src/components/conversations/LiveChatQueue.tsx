@@ -43,12 +43,12 @@ export const LiveChatQueue: React.FC<LiveChatQueueProps> = ({
       toast.success('Chat claimed', { description: 'You are now chatting with the visitor' });
       
       // Navigate to the conversation
-      navigate(`/interactions/chat/active?c=${conversationId}`);
+      navigate(`/interactions/chat/conversations/${conversationId}`);
     }
   };
 
   const handleOpenConversation = (conversationId: string) => {
-    navigate(`/interactions/chat/active?c=${conversationId}`);
+    navigate(`/interactions/chat/conversations/${conversationId}`);
   };
 
   const handleDismissSession = async (sessionId: string, e: React.MouseEvent) => {

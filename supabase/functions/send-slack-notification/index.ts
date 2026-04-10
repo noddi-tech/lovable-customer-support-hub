@@ -560,9 +560,7 @@ Deno.serve(async (req) => {
 
         if (conversation_id) {
           const appUrl = Deno.env.get('APP_URL') || 'https://support.noddi.co';
-          const conversationUrl = inbox_id
-            ? `${appUrl}/?inbox=${inbox_id}&c=${conversation_id}`
-            : `${appUrl}/?c=${conversation_id}`;
+          const conversationUrl = `${appUrl}/c/${conversation_id}`;
           criticalBlocks.push({
             type: 'actions',
             elements: [

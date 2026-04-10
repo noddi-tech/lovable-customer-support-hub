@@ -121,9 +121,12 @@ const AppContent = () => {
       {/* ========== INTERACTIONS ========== */}
       <Route path="/interactions" element={<Navigate to="/interactions/text/open" replace />} />
       <Route path="/interactions/text" element={<Navigate to="/interactions/text/open" replace />} />
+      {/* Conversation resource routes (must be before :filter to avoid conflicts) */}
+      <Route path="/interactions/text/conversations/:conversationId" element={<ProtectedRoute><Index /></ProtectedRoute>} />
       <Route path="/interactions/text/:filter" element={<ProtectedRoute><Index /></ProtectedRoute>} />
       {/* Chat - Dedicated live chat section */}
       <Route path="/interactions/chat" element={<Navigate to="/interactions/chat/active" replace />} />
+      <Route path="/interactions/chat/conversations/:conversationId" element={<ProtectedRoute><Index /></ProtectedRoute>} />
       <Route path="/interactions/chat/:filter" element={<ProtectedRoute><Index /></ProtectedRoute>} />
       {/* Voice */}
       <Route path="/interactions/voice" element={<ProtectedRoute><Index /></ProtectedRoute>} />
