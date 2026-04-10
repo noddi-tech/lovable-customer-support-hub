@@ -199,16 +199,16 @@ Deno.serve(async (req) => {
           }],
         });
 
-        const criticalToken = integration.secondary_access_token || integration.access_token;
+        const critToken = convCriticalToken;
         try {
           const criticalResponse = await fetch('https://slack.com/api/chat.postMessage', {
             method: 'POST',
             headers: {
-              'Authorization': `Bearer ${criticalToken}`,
+              'Authorization': `Bearer ${critToken}`,
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-              channel: criticalChannelId,
+              channel: convCriticalChannelId,
               text: `🚨 CRITICAL (Batch): ${title} from ${customerName} — ${conv.subject || 'No subject'}`,
               attachments: [{
                 color: '#dc2626',
