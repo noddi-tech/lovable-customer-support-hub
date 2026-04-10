@@ -35,24 +35,16 @@ export const ConversationRedirect = () => {
   }
   
   const isChat = conversation.channel === 'widget';
-  const status = conversation.status || 'open';
   const params = new URLSearchParams();
-  
-  if (!isChat && conversation.inbox_id) {
-    params.set('inbox', conversation.inbox_id);
-  }
-  params.set('c', conversationId!);
   
   if (messageId) {
     params.set('m', messageId);
   }
   
-  // Route chat/widget conversations to chat layout, everything else to text layout
-  const basePath = isChat
-    ? `/interactions/chat/${status === 'open' || status === 'pending' ? 'active' : status === 'closed' || status === 'resolved' ? 'ended' : 'active'}`
-    : `/interactions/text/${status}`;
-  
-  const targetPath = `${basePath}?${params.toString()}`;
+  // Route to the conversation resource URL
+  const type = isChat ? 'chat' : 'text';
+  const qs = params.toString();
+  const targetPath = `/interactions/${type}/conversations/${conversationId}${qs ? `?${qs}` : ''}`;
   
   return <Navigate to={targetPath} replace />;
 };

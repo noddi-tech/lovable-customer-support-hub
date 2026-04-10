@@ -17,86 +17,40 @@ export const useInteractionsNavigation = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const location = useLocation();
   const navigate = useNavigate();
-  const params = useParams<{ filter?: string }>();
+  const params = useParams<{ filter?: string; conversationId?: string }>();
+
+  // Determine the interaction type (text/chat) and whether we're on a conversation route
+  const getInteractionType = useCallback((): 'text' | 'chat' | 'voice' => {
+    if (location.pathname.includes('/interactions/chat')) return 'chat';
+    if (location.pathname.includes('/interactions/voice')) return 'voice';
+    return 'text';
+  }, [location.pathname]);
+
+  // Check if we're on a conversation resource route
+  const isConversationRoute = location.pathname.includes('/conversations/');
 
   // Get current state from URL (path + query params)
   const getCurrentState = useCallback((): NavigationState => {
     const hash = location.hash.replace('#', '');
     
+    // Get conversationId from path if on resource route
+    const conversationId = params.conversationId || undefined;
+    
     // Get status from path segment (e.g., /interactions/text/open)
-    const statusFromPath = params.filter || 'open';
+    // When on a conversation route, status isn't in the URL
+    const statusFromPath = isConversationRoute ? 'open' : (params.filter || 'open');
     
     return {
       selectedTab: searchParams.get('tab') || 'all',
       selectedInboxId: searchParams.get('inbox') || undefined,
-      conversationId: searchParams.get('c') || searchParams.get('conversation') || undefined,
+      conversationId,
       messageId: searchParams.get('m') || undefined,
       inbox: searchParams.get('inbox') || undefined,
       status: statusFromPath as StatusFilter,
       search: searchParams.get('q') || undefined,
       hash: hash || undefined,
     };
-  }, [searchParams, location.hash, params.filter]);
-
-  // Update navigation state via URL
-  const updateNavigation = useCallback((updates: Partial<NavigationState>) => {
-    const current = getCurrentState();
-    const newState = { ...current, ...updates };
-    
-    // If status is being updated, navigate to new path
-    if (updates.status !== undefined && updates.status !== current.status) {
-      const pathParts = location.pathname.split('/');
-      const basePath = pathParts.slice(0, 3).join('/');
-      const newPath = `${basePath}/${updates.status}`;
-      
-      const newParams = new URLSearchParams();
-      if (newState.selectedInboxId || newState.inbox) {
-        newParams.set('inbox', newState.selectedInboxId || newState.inbox || '');
-      }
-      if (newState.conversationId && updates.conversationId !== undefined) {
-        newParams.set('c', newState.conversationId);
-      }
-      if (newState.search) {
-        newParams.set('q', newState.search);
-      }
-      
-      const queryString = newParams.toString();
-      const fullPath = queryString ? `${newPath}?${queryString}` : newPath;
-      navigate(fullPath, { replace: true });
-      return;
-    }
-    
-    // Otherwise just update query params
-    const newParams = new URLSearchParams();
-    
-    if (newState.selectedTab && newState.selectedTab !== 'all') {
-      newParams.set('tab', newState.selectedTab);
-    }
-    
-    if (newState.selectedInboxId || newState.inbox) {
-      newParams.set('inbox', newState.selectedInboxId || newState.inbox || '');
-    }
-    
-    if (newState.conversationId) {
-      newParams.set('c', newState.conversationId);
-    }
-    
-    if (newState.messageId) {
-      newParams.set('m', newState.messageId);
-    }
-    
-    if (newState.search) {
-      newParams.set('q', newState.search);
-    }
-    
-    // Update URL with hash if provided
-    if (updates.hash !== undefined) {
-      const newUrl = `${location.pathname}?${newParams.toString()}${updates.hash ? '#' + updates.hash : ''}`;
-      window.history.replaceState(null, '', newUrl);
-    } else {
-      setSearchParams(newParams, { replace: true });
-    }
-  }, [getCurrentState, setSearchParams, location.pathname, navigate]);
+  }, [searchParams, location.hash, params.filter, params.conversationId, isConversationRoute]);
 
   // Set hash-based tab state (for filter tabs like open/closed/archived)
   const setHashTab = useCallback((tab: string) => {
@@ -106,87 +60,147 @@ export const useInteractionsNavigation = () => {
 
   // Navigate to tab
   const navigateToTab = useCallback((tab: string) => {
-    updateNavigation({ selectedTab: tab });
-  }, [updateNavigation]);
+    const newParams = new URLSearchParams(searchParams);
+    if (tab && tab !== 'all') {
+      newParams.set('tab', tab);
+    } else {
+      newParams.delete('tab');
+    }
+    setSearchParams(newParams, { replace: true });
+  }, [searchParams, setSearchParams]);
 
-  // Navigate to conversation
+  // Navigate to conversation (alias)
   const navigateToConversation = useCallback((conversationId: string) => {
-    updateNavigation({ conversationId });
-  }, [updateNavigation]);
+    const type = getInteractionType();
+    navigate(`/interactions/${type}/conversations/${conversationId}`);
+  }, [navigate, getInteractionType]);
 
   // Navigate to inbox
   const navigateToInbox = useCallback((inboxId: string) => {
-    updateNavigation({ selectedInboxId: inboxId, inbox: inboxId });
-  }, [updateNavigation]);
+    const type = getInteractionType();
+    const currentState = getCurrentState();
+    const newParams = new URLSearchParams();
+    if (inboxId) newParams.set('inbox', inboxId);
+    const qs = newParams.toString();
+    const status = currentState.status || 'open';
+    navigate(`/interactions/${type}/${status}${qs ? `?${qs}` : ''}`, { replace: true });
+  }, [navigate, getInteractionType, getCurrentState]);
 
-  // Set inbox (clears conversation, preserves status)
+  // Set inbox (clears conversation by navigating to list, preserves status)
   const setInbox = useCallback((inboxId: InboxId) => {
-    updateNavigation({ 
-      selectedInboxId: inboxId, 
-      inbox: inboxId,
-      conversationId: undefined 
-    });
-  }, [updateNavigation]);
+    const type = getInteractionType();
+    const currentState = getCurrentState();
+    const newParams = new URLSearchParams();
+    if (inboxId) newParams.set('inbox', inboxId);
+    if (currentState.search) newParams.set('q', currentState.search);
+    const qs = newParams.toString();
+    const status = currentState.status || 'open';
+    navigate(`/interactions/${type}/${status}${qs ? `?${qs}` : ''}`, { replace: true });
+  }, [navigate, getInteractionType, getCurrentState]);
 
-  // Set status filter (navigates to new path)
+  // Set status filter (navigates to new list path)
   const setStatus = useCallback((status: StatusFilter) => {
-    // Build new path: /interactions/text/[status]
-    const pathParts = location.pathname.split('/');
-    const basePath = pathParts.slice(0, 3).join('/');
-    const newPath = `${basePath}/${status}`;
+    const type = getInteractionType();
     
-    // Preserve query params except conversation
-    const newParams = new URLSearchParams(searchParams);
-    newParams.delete('c');
+    // Preserve query params (inbox, search) but not conversation
+    const newParams = new URLSearchParams();
+    const inbox = searchParams.get('inbox');
+    const q = searchParams.get('q');
+    if (inbox) newParams.set('inbox', inbox);
+    if (q) newParams.set('q', q);
     
-    const queryString = newParams.toString();
-    const fullPath = queryString ? `${newPath}?${queryString}` : newPath;
-    
-    navigate(fullPath, { replace: false });
-  }, [location.pathname, searchParams, navigate]);
+    const qs = newParams.toString();
+    navigate(`/interactions/${type}/${status}${qs ? `?${qs}` : ''}`, { replace: false });
+  }, [getInteractionType, searchParams, navigate]);
 
-  // Set search query (debounced)
+  // Set search query
   const setSearch = useCallback((search: string) => {
-    updateNavigation({ search });
-  }, [updateNavigation]);
-
-  // Open conversation
-  const openConversation = useCallback((conversationId: ConversationId, threadIds?: string | string[]) => {
-    const updates: Partial<NavigationState> = { conversationId, messageId: undefined };
-    
-    // Store threadIds if provided (for thread viewing)
-    if (threadIds && Array.isArray(threadIds) && threadIds.length > 1) {
-      // Store as comma-separated string in URL
-      const newParams = new URLSearchParams(searchParams);
-      newParams.set('c', conversationId);
-      newParams.set('thread', threadIds.join(','));
-      newParams.delete('m');
-      setSearchParams(newParams, { replace: false });
-      return;
+    const newParams = new URLSearchParams(searchParams);
+    if (search) {
+      newParams.set('q', search);
+    } else {
+      newParams.delete('q');
     }
+    setSearchParams(newParams, { replace: true });
+  }, [searchParams, setSearchParams]);
+
+  // Open conversation — navigates to resource URL (pushes history)
+  const openConversation = useCallback((conversationId: ConversationId, threadIds?: string | string[]) => {
+    const type = getInteractionType();
     
-    updateNavigation(updates);
-  }, [updateNavigation, searchParams, setSearchParams]);
+    const newParams = new URLSearchParams();
+    if (threadIds && Array.isArray(threadIds) && threadIds.length > 1) {
+      newParams.set('thread', threadIds.join(','));
+    }
+    const qs = newParams.toString();
+    
+    navigate(`/interactions/${type}/conversations/${conversationId}${qs ? `?${qs}` : ''}`);
+  }, [navigate, getInteractionType]);
 
   // Open specific message within conversation
   const openMessage = useCallback((conversationId: ConversationId, messageId: string) => {
-    updateNavigation({ conversationId, messageId });
-  }, [updateNavigation]);
+    const type = getInteractionType();
+    navigate(`/interactions/${type}/conversations/${conversationId}?m=${messageId}`);
+  }, [navigate, getInteractionType]);
 
   // Set message ID (for scrolling to specific message)
   const setMessageId = useCallback((messageId: string | undefined) => {
-    updateNavigation({ messageId });
-  }, [updateNavigation]);
+    const newParams = new URLSearchParams(searchParams);
+    if (messageId) {
+      newParams.set('m', messageId);
+    } else {
+      newParams.delete('m');
+    }
+    setSearchParams(newParams, { replace: true });
+  }, [searchParams, setSearchParams]);
 
-  // Back to list (clear only conversation)
+  // Back to list — navigate back in history
   const backToList = useCallback(() => {
-    updateNavigation({ conversationId: undefined });
-  }, [updateNavigation]);
+    navigate(-1);
+  }, [navigate]);
 
   // Clear conversation (back to list)
   const clearConversation = useCallback(() => {
-    updateNavigation({ conversationId: undefined });
-  }, [updateNavigation]);
+    navigate(-1);
+  }, [navigate]);
+
+  // Update navigation state via URL (legacy compat — used for non-conversation state)
+  const updateNavigation = useCallback((updates: Partial<NavigationState>) => {
+    // If opening a conversation, use openConversation
+    if (updates.conversationId) {
+      openConversation(updates.conversationId);
+      return;
+    }
+    // If clearing conversation, use backToList
+    if (updates.conversationId === undefined && isConversationRoute) {
+      backToList();
+      return;
+    }
+    // For status changes
+    if (updates.status !== undefined) {
+      setStatus(updates.status as StatusFilter);
+      return;
+    }
+    // For other param updates
+    const newParams = new URLSearchParams(searchParams);
+    if (updates.selectedTab && updates.selectedTab !== 'all') {
+      newParams.set('tab', updates.selectedTab);
+    }
+    if (updates.selectedInboxId || updates.inbox) {
+      newParams.set('inbox', updates.selectedInboxId || updates.inbox || '');
+    }
+    if (updates.search) {
+      newParams.set('q', updates.search);
+    } else if (updates.search === '') {
+      newParams.delete('q');
+    }
+    if (updates.hash !== undefined) {
+      const newUrl = `${location.pathname}?${newParams.toString()}${updates.hash ? '#' + updates.hash : ''}`;
+      window.history.replaceState(null, '', newUrl);
+    } else {
+      setSearchParams(newParams, { replace: true });
+    }
+  }, [openConversation, backToList, setStatus, isConversationRoute, searchParams, setSearchParams, location.pathname]);
 
   // Memoize current state to prevent unnecessary re-renders
   const currentState = useMemo(() => getCurrentState(), [getCurrentState]);
