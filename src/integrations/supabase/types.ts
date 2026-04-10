@@ -1182,6 +1182,57 @@ export type Database = {
           },
         ]
       }
+      inbox_slack_routing: {
+        Row: {
+          channel_id: string
+          channel_name: string | null
+          created_at: string | null
+          id: string
+          inbox_id: string
+          is_active: boolean | null
+          slack_integration_id: string
+          updated_at: string | null
+          use_secondary_workspace: boolean | null
+        }
+        Insert: {
+          channel_id: string
+          channel_name?: string | null
+          created_at?: string | null
+          id?: string
+          inbox_id: string
+          is_active?: boolean | null
+          slack_integration_id: string
+          updated_at?: string | null
+          use_secondary_workspace?: boolean | null
+        }
+        Update: {
+          channel_id?: string
+          channel_name?: string | null
+          created_at?: string | null
+          id?: string
+          inbox_id?: string
+          is_active?: boolean | null
+          slack_integration_id?: string
+          updated_at?: string | null
+          use_secondary_workspace?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inbox_slack_routing_inbox_id_fkey"
+            columns: ["inbox_id"]
+            isOneToOne: true
+            referencedRelation: "inboxes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inbox_slack_routing_slack_integration_id_fkey"
+            columns: ["slack_integration_id"]
+            isOneToOne: false
+            referencedRelation: "slack_integrations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inboxes: {
         Row: {
           auto_assignment_rules: Json | null
