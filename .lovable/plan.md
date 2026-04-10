@@ -1,30 +1,34 @@
 
 
-# Remove Duplicate Title from Slack Notification
+# Fix: Back Button in Conversation Header Does Nothing
 
 ## Problem
-The notification shows "New Email Conversation in Tronderdekk" twice: once as the top-level fallback text (visible above the colored attachment) and again as the first line inside the attachment body.
+The "Back to Inbox" button in `ConversationHeader.tsx` navigates to `'/'` with `replace: true`. When a user arrives from an external link (e.g. Slack's "View Conversation"), there's no meaningful history. Navigating to `/` just redirects to `/interactions/text/open`, but since `replace: true` is used, the user may end up in a loop or see no visible change.
 
 ## Fix
-**File: `supabase/functions/send-slack-notification/index.ts`**
+**File: `src/components/dashboard/conversation-view/ConversationHeader.tsx`** (line 81)
 
-Remove the header section block (lines 323-329) that duplicates the fallback text. The fallback text (line 317) already serves as the visible header above the attachment. The attachment body should start directly with the From/Subject fields.
+Change the back button to navigate to the conversation's inbox list view instead of `/`:
 
-This leaves the layout as:
+```typescript
+// Before
+onClick={() => navigate('/', { replace: true })}
 
-```text
-📧 New Email Conversation in Trønderdekk        ← fallback text (top-level)
-┌──────────────────────────────────────────────┐
-│ From:                       Subject:          │  ← attachment starts here
-│ joachim@example.com         Testing notifs    │
-│                                               │
-│ > Preview text up to 300 chars...             │
-│                                               │
-│ 📧 Channel: Email     ⏰ 4/10/26, 11:17 PM   │
-│                                               │
-│ [👀 View Conversation]                        │
-└──────────────────────────────────────────────┘
+// After — navigate to the correct interactions list
+onClick={() => navigate(-1)}
 ```
 
-One block removal, redeploy the edge function.
+However, `navigate(-1)` won't work when arriving from an external link (no history). A more robust approach: detect whether there's app history to go back to, and if not, fall back to the interactions list route:
+
+```typescript
+onClick={() => {
+  if (window.history.length > 1) {
+    navigate(-1);
+  } else {
+    navigate('/interactions/text/open');
+  }
+}}
+```
+
+This ensures the back button always works — using browser history when available, and falling back to the inbox list when arriving from an external link.
 
