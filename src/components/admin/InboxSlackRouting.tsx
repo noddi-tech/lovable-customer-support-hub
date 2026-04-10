@@ -112,9 +112,11 @@ export const InboxSlackRouting = ({
             digest_channel_id: params.updates.digest_channel_id || null,
             digest_channel_name: params.updates.digest_channel_name || null,
             digest_use_secondary: params.updates.digest_use_secondary ?? false,
+            digest_enabled: params.updates.digest_enabled ?? true,
             critical_channel_id: params.updates.critical_channel_id || null,
             critical_channel_name: params.updates.critical_channel_name || null,
             critical_use_secondary: params.updates.critical_use_secondary ?? false,
+            critical_enabled: params.updates.critical_enabled ?? true,
           });
         if (error) throw error;
       }
