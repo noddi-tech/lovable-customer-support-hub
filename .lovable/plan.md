@@ -1,46 +1,34 @@
 
 
-# Add Per-Inbox Digest & Critical Alert Toggles
+# Show Bot Channel Membership Warnings in Routing UI
 
 ## Problem
-Some inboxes (like Trønderdekk) only need real-time notifications -- digests and critical alerts are unnecessary noise. Currently there's no way to disable these per inbox.
+When a channel is selected for routing, notifications silently fail with `not_in_channel` if the Slack bot hasn't been invited. The admin has no visibility into this until messages go missing.
 
 ## Approach
-Add two boolean columns to `inbox_slack_routing` and a simple toggle UI per slot. When disabled, the channel selector is hidden and edge functions skip that inbox for digests/critical alerts.
+Add a lightweight channel-membership check that runs when a channel is selected. If the bot is not in the channel, show an inline warning with instructions to invite it.
 
-## Database
-**Migration** -- add two columns:
-```sql
-ALTER TABLE public.inbox_slack_routing
-  ADD COLUMN digest_enabled boolean DEFAULT true,
-  ADD COLUMN critical_enabled boolean DEFAULT true;
-```
+## Implementation
 
-## UI Changes (`InboxSlackRouting.tsx`)
-- Add a small switch/toggle next to the Digest and Critical Alerts labels
-- When toggled off: hide the workspace + channel dropdowns for that slot, show "Disabled" badge
-- When toggled on (default): show dropdowns as today
-- Notifications slot has no toggle (always enabled if the routing row exists)
+### 1. New edge function endpoint or extend `slack-list-channels`
+Extend the existing `slack-list-channels` function to also return `is_member` for each channel. The Slack `conversations.list` API already returns `is_member` on each channel object -- we just need to pass it through.
 
-```text
-┌─────────────────────────────────────────────────┐
-│ Trønderdekk                        [Remove all] │
-│                                                  │
-│ Notifications   [Navio ▼]  [#support ▼]         │
-│ Digest      [off]  Disabled                      │
-│ Critical    [off]  Disabled                      │
-└─────────────────────────────────────────────────┘
-```
+**File**: `supabase/functions/slack-list-channels/index.ts`
+- Add `is_member: channel.is_member` to the channel object pushed into the array
+- No new API calls needed
 
-## Edge Function Changes
-1. **`slack-daily-digest`** -- when querying `inbox_slack_routing` for per-inbox digests, add `AND digest_enabled = true`. Inboxes with `digest_enabled = false` are excluded entirely (not even included in the default org digest for that inbox).
-2. **`review-open-critical`** -- when looking up routing, skip critical alerts for inboxes where `critical_enabled = false`.
-3. **`send-slack-notification`** -- for the critical alert section, check `critical_enabled` from the routing row before sending.
+### 2. Update `SlackChannel` type
+**File**: `src/hooks/useSlackIntegration.ts`
+- Add `is_member: boolean` to the `SlackChannel` interface
 
-## Files to change
-1. **New migration** -- add `digest_enabled` and `critical_enabled` columns
-2. **`src/components/admin/InboxSlackRouting.tsx`** -- add toggle switches per slot
-3. **`supabase/functions/send-slack-notification/index.ts`** -- respect `critical_enabled`
-4. **`supabase/functions/slack-daily-digest/index.ts`** -- respect `digest_enabled`
-5. **`supabase/functions/review-open-critical/index.ts`** -- respect `critical_enabled`
+### 3. Show warning in `InboxSlackRouting.tsx`
+**File**: `src/components/admin/InboxSlackRouting.tsx`
+- After the channel dropdown, check if the selected channel has `is_member === false`
+- If so, render a small orange warning: "Bot not in channel -- invite the bot with `/invite @BotName` in Slack"
+- Use the existing `AlertTriangle` icon already imported
+
+### Files to change
+1. `supabase/functions/slack-list-channels/index.ts` -- pass through `is_member`
+2. `src/hooks/useSlackIntegration.ts` -- add `is_member` to `SlackChannel`
+3. `src/components/admin/InboxSlackRouting.tsx` -- render warning when `is_member === false`
 
