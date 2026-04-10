@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { useNoddihKundeData } from '@/hooks/useNoddihKundeData';
-import { Check, CheckCheck, Lock } from 'lucide-react';
+import { Check, CheckCheck, Lock, Clock } from 'lucide-react';
 import { PresenceAvatarStack } from '@/components/conversations/PresenceAvatarStack';
 
 interface ChatConversation {
