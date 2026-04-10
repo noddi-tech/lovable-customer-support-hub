@@ -95,18 +95,18 @@ export const AdminPortal = () => {
             <LayoutItem className="md:col-span-2 lg:col-span-4">
               <ResponsiveTabs defaultValue="library" variant="pills" size="md" equalWidth>
                 <ResponsiveTabsList className="w-full">
+                  <ResponsiveTabsTrigger value="email-branding">Email Signature & Branding</ResponsiveTabsTrigger>
                   <ResponsiveTabsTrigger value="library">Design Library</ResponsiveTabsTrigger>
                   <ResponsiveTabsTrigger value="components">Components</ResponsiveTabsTrigger>
-                  <ResponsiveTabsTrigger value="email-templates">Email Templates</ResponsiveTabsTrigger>
                 </ResponsiveTabsList>
+                <ResponsiveTabsContent value="email-branding">
+                  <EmailTemplateSettings />
+                </ResponsiveTabsContent>
                 <ResponsiveTabsContent value="library">
                   <DesignLibrary />
                 </ResponsiveTabsContent>
                 <ResponsiveTabsContent value="components">
                   <ComponentConfigurationPanel />
-                </ResponsiveTabsContent>
-                <ResponsiveTabsContent value="email-templates">
-                  <EmailTemplateSettings />
                 </ResponsiveTabsContent>
               </ResponsiveTabs>
             </LayoutItem>

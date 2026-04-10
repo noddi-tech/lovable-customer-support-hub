@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { sanitizeTemplateHTML } from "@/utils/htmlSanitizer";
+import { Info } from "lucide-react";
 
 interface EmailTemplate {
   id?: string;
@@ -203,6 +204,13 @@ export function EmailTemplateSettings() {
 
   return (
     <div className="space-y-6">
+      <div className="flex items-start gap-3 p-4 rounded-lg border border-primary/20 bg-primary/5">
+        <Info className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+        <div className="text-sm text-muted-foreground">
+          <p className="font-medium text-foreground mb-1">Email Branding Settings</p>
+          <p>These settings control how your outbound emails look to customers. Changes here affect the header, body, signature, and footer of all email replies sent by your team. Chat messages are not affected.</p>
+        </div>
+      </div>
       <Card className="bg-gradient-surface border-border/50 shadow-surface">
         <CardHeader>
           <CardTitle className="text-primary">Organization Email Templates</CardTitle>
@@ -286,7 +294,10 @@ export function EmailTemplateSettings() {
                   <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #E5E7EB' }}>
                     <div dangerouslySetInnerHTML={{ 
                       __html: sanitizeTemplateHTML(
-                        template.signature_content.replace('{{agent_name}}', template.include_agent_name ? 'Your Name' : 'Support Team')
+                        (template.include_agent_name 
+                          ? template.signature_content.replace('{{agent_name}}', 'Your Name')
+                          : template.signature_content.replace('{{agent_name}}', '').replace(/(<br\s*\/?>){2,}/g, '<br>')
+                        )
                       )
                     }} />
                   </div>
@@ -377,6 +388,11 @@ export function EmailTemplateSettings() {
               />
               <Label htmlFor="include-agent">{t('emailTemplate.includeAgentName')}</Label>
             </div>
+            {!template.include_agent_name && (
+              <p className="text-sm text-muted-foreground bg-muted/50 px-3 py-2 rounded">
+                When disabled, the <code className="text-xs bg-muted px-1 rounded">{'{{agent_name}}'}</code> placeholder will be removed from the signature.
+              </p>
+            )}
             <div className="space-y-2">
               <Label htmlFor="signature">{t('emailTemplate.signatureContent')}</Label>
               <Textarea
