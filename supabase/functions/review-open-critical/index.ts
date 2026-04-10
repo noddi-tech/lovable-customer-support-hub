@@ -118,6 +118,26 @@ Deno.serve(async (req) => {
           continue;
         }
 
+        // Per-inbox routing: resolve channel and token for this conversation's inbox
+        let convCriticalChannelId = criticalChannelId;
+        let convCriticalToken = integration.secondary_access_token || integration.access_token;
+
+        if (conv.inbox_id) {
+          const { data: routing } = await supabase
+            .from('inbox_slack_routing')
+            .select('*')
+            .eq('inbox_id', conv.inbox_id)
+            .eq('is_active', true)
+            .maybeSingle();
+
+          if (routing) {
+            convCriticalChannelId = routing.channel_id;
+            convCriticalToken = routing.use_secondary_workspace && integration.secondary_access_token
+              ? integration.secondary_access_token
+              : integration.access_token;
+          }
+        }
+
         // Get latest customer message for better text matching
         const { data: latestMsg } = await supabase
           .from('messages')
@@ -179,16 +199,16 @@ Deno.serve(async (req) => {
           }],
         });
 
-        const criticalToken = integration.secondary_access_token || integration.access_token;
+        const critToken = convCriticalToken;
         try {
           const criticalResponse = await fetch('https://slack.com/api/chat.postMessage', {
             method: 'POST',
             headers: {
-              'Authorization': `Bearer ${criticalToken}`,
+              'Authorization': `Bearer ${critToken}`,
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-              channel: criticalChannelId,
+              channel: convCriticalChannelId,
               text: `🚨 CRITICAL (Batch): ${title} from ${customerName} — ${conv.subject || 'No subject'}`,
               attachments: [{
                 color: '#dc2626',

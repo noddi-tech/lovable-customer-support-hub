@@ -256,10 +256,29 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Check if we have a channel configured
-    const channelId = integration.default_channel_id;
+    // Per-inbox routing lookup
+    let channelId = integration.default_channel_id;
+    let accessToken = integration.access_token;
+
+    if (inbox_id) {
+      const { data: routing } = await supabase
+        .from('inbox_slack_routing')
+        .select('*')
+        .eq('inbox_id', inbox_id)
+        .eq('is_active', true)
+        .maybeSingle();
+
+      if (routing) {
+        channelId = routing.channel_id;
+        if (routing.use_secondary_workspace && integration.secondary_access_token) {
+          accessToken = integration.secondary_access_token;
+        }
+        console.log(`Per-inbox routing: inbox ${inbox_id} → channel ${routing.channel_id} (secondary: ${routing.use_secondary_workspace})`);
+      }
+    }
+
     if (!channelId) {
-      console.log('No default channel configured for organization:', organization_id);
+      console.log('No channel configured for organization:', organization_id);
       return new Response(
         JSON.stringify({ skipped: true, reason: 'No channel configured' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -410,7 +429,7 @@ Deno.serve(async (req) => {
     const slackResponse = await fetch('https://slack.com/api/chat.postMessage', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${integration.access_token}`,
+        'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
@@ -439,7 +458,26 @@ Deno.serve(async (req) => {
     }
 
     // === Critical Triage Detection (runs independently of main notification) ===
-    const criticalChannelId = integration.critical_channel_id;
+    // Critical alerts use per-inbox routing if available, else org-level critical channel
+    let criticalChannelId = integration.critical_channel_id;
+    let criticalToken = integration.secondary_access_token || integration.access_token;
+
+    // Override critical routing with per-inbox routing if configured
+    if (inbox_id) {
+      const { data: critRouting } = await supabase
+        .from('inbox_slack_routing')
+        .select('*')
+        .eq('inbox_id', inbox_id)
+        .eq('is_active', true)
+        .maybeSingle();
+
+      if (critRouting) {
+        criticalChannelId = critRouting.channel_id;
+        criticalToken = critRouting.use_secondary_workspace && integration.secondary_access_token
+          ? integration.secondary_access_token
+          : integration.access_token;
+      }
+    }
     
     if (!config.critical_alerts_enabled) {
       console.log('🔇 Critical alerts disabled in config');
@@ -574,7 +612,6 @@ Deno.serve(async (req) => {
         }
 
         try {
-          const criticalToken = integration.secondary_access_token || integration.access_token;
           const criticalResponse = await fetch('https://slack.com/api/chat.postMessage', {
             method: 'POST',
             headers: {
