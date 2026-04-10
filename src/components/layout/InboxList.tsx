@@ -100,8 +100,7 @@ export const InboxList: React.FC<InboxListProps> = ({
     } else {
       newParams.delete('inbox');
     }
-    // Remove conversation when changing inbox
-    newParams.delete('c');
+    // No need to clear 'c' — conversation is in path, not params
     
     const queryString = newParams.toString();
     const newUrl = queryString ? `${location.pathname}?${queryString}` : location.pathname;

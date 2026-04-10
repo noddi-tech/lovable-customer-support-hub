@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useMemo, useState, lazy, Suspense } from 'react';
 import { Loader2 as MobileLoader } from 'lucide-react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -159,11 +159,9 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
     previousStatusRef.current = currentStatus;
   }, [onlineStatus?.status]);
 
-  // Handle back navigation
+  const navigateBack = useNavigate();
   const handleBack = () => {
-    const newParams = new URLSearchParams(searchParams);
-    newParams.delete('c');
-    setSearchParams(newParams);
+    navigateBack(-1);
   };
 
   // ============ MOBILE: Dedicated mobile components ============
@@ -669,9 +667,7 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
                   queryClient.invalidateQueries({ queryKey: ['conversations'] });
                   queryClient.invalidateQueries({ queryKey: ['inboxCounts'] });
                   queryClient.invalidateQueries({ queryKey: ['all-counts'] });
-                  const newParams = new URLSearchParams(searchParams);
-                  newParams.delete('c');
-                  setSearchParams(newParams);
+                  navigateBack(-1);
                 }
               }}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"

@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { MessageCircle, Sidebar } from 'lucide-react';
@@ -60,6 +60,7 @@ export const InteractionsLayout: React.FC<InteractionsLayoutProps> = ({
   selectedInboxId
 }) => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [showConversationList, setShowConversationList] = useState(true);
   const [showConversationListDesktop, setShowConversationListDesktop] = useState(true);
@@ -85,9 +86,9 @@ export const InteractionsLayout: React.FC<InteractionsLayoutProps> = ({
       conversationView: isMobile ? 100 : 80
     }
   });
-  
-  // Get conversation ID from URL (using 'c' parameter)
-  const conversationIdFromUrl = searchParams.get('c');
+  // Get conversation ID from URL path params
+  const { conversationId: conversationIdFromParams } = useParams<{ conversationId?: string }>();
+  const conversationIdFromUrl = conversationIdFromParams || null;
   
   console.log('[EnhancedInteractionsLayout] URL conversation ID:', conversationIdFromUrl);
 
@@ -161,10 +162,8 @@ export const InteractionsLayout: React.FC<InteractionsLayoutProps> = ({
       _fetchIds: conversationIdsToFetch
     });
     
-    // Update URL with conversation ID (using 'c' parameter)
-    const newParams = new URLSearchParams(searchParams);
-    newParams.set('c', conversation.id);
-    setSearchParams(newParams, { replace: true });
+    // Navigate to conversation resource URL (pushes history entry)
+    navigate(`/interactions/text/conversations/${conversation.id}`);
     
     // On mobile, hide conversation list when selecting a conversation
     if (isMobile) {
@@ -201,10 +200,8 @@ export const InteractionsLayout: React.FC<InteractionsLayoutProps> = ({
     const handleMobileBack = () => {
       setSelectedConversation(null);
       setShowConversationList(true);
-      // Clear conversation from URL
-      const newParams = new URLSearchParams(searchParams);
-      newParams.delete('c');
-      setSearchParams(newParams, { replace: true });
+      // Navigate back in history
+      navigate(-1);
     };
 
     // Mobile: Stack layout without resizing

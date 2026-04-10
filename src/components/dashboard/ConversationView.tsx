@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -27,7 +27,7 @@ interface ConversationViewProps {
 }
 
 export const ConversationView: React.FC<ConversationViewProps> = ({ conversationId, conversationIds, showSidePanel = true }) => {
-  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { user } = useAuth();
@@ -51,9 +51,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
     {
       key: 'Escape',
       action: () => {
-        const newParams = new URLSearchParams(searchParams);
-        newParams.delete('c');
-        setSearchParams(newParams);
+        navigate(-1);
       },
       description: 'Back to inbox',
     },

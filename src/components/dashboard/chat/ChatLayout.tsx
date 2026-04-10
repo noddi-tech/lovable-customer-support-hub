@@ -15,9 +15,8 @@ import { ConversationView } from '@/components/dashboard/ConversationView';
 
 export const ChatLayout: React.FC = () => {
   const navigate = useNavigate();
-  const { filter: urlFilter } = useParams<{ filter?: string }>();
+  const { filter: urlFilter, conversationId: selectedConversationId } = useParams<{ filter?: string; conversationId?: string }>();
   const [searchParams] = useSearchParams();
-  const selectedConversationId = searchParams.get('c');
   const highlightMessageId = searchParams.get('m');
   const { profile } = useAuth();
   const organizationId = profile?.organization_id;
@@ -77,20 +76,16 @@ export const ChatLayout: React.FC = () => {
   });
 
   const handleFilterChange = (filter: ChatFilterType) => {
-    // Preserve the selected conversation when changing filters
-    const params = new URLSearchParams();
-    if (selectedConversationId) params.set('c', selectedConversationId);
-    if (highlightMessageId) params.set('m', highlightMessageId);
-    const qs = params.toString();
-    navigate(`/interactions/chat/${filter}${qs ? `?${qs}` : ''}`);
+    // Navigate to filter list view (no conversation in path)
+    navigate(`/interactions/chat/${filter}`);
   };
 
   const handleSelectChat = (conversationId: string) => {
-    navigate(`/interactions/chat/${currentFilter}?c=${conversationId}`);
+    navigate(`/interactions/chat/conversations/${conversationId}`);
   };
 
   const handleBack = () => {
-    navigate(`/interactions/chat/${currentFilter}`);
+    navigate(-1);
   };
 
   return (
