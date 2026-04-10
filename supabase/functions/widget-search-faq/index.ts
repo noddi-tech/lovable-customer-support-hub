@@ -18,6 +18,14 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // DISABLED: Knowledge search is temporarily disabled to prevent PII exposure.
+  // The knowledge_entries data contains unredacted customer information.
+  // Re-enable only after data has been sanitized.
+  return new Response(
+    JSON.stringify({ results: [] }),
+    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+  );
+
   if (req.method !== 'POST') {
     return new Response(
       JSON.stringify({ error: 'Method not allowed' }),

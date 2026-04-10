@@ -216,18 +216,7 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({ config, onClose, posit
                 </button>
               )}
               
-              {config.enableKnowledgeSearch && (
-                <button
-                  className="noddi-widget-action"
-                  onClick={() => setView('ai')}
-                >
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M12 2a7 7 0 0 1 7 7c0 3-2 5.5-4 7l-3 3-3-3c-2-1.5-4-4-4-7a7 7 0 0 1 7-7z"></path>
-                    <circle cx="12" cy="9" r="1"></circle>
-                  </svg>
-                  <span>{t.aiAssistant}</span>
-                </button>
-              )}
+              {/* Knowledge search / AI assistant temporarily disabled to prevent PII exposure */}
             </div>
           </div>
         ) : view === 'contact' ? (
@@ -250,22 +239,8 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({ config, onClose, posit
             />
           </div>
         ) : view === 'search' ? (
-          <div className="noddi-widget-view">
-            <button 
-              className="noddi-widget-back" 
-              onClick={() => setView('home')}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="15 18 9 12 15 6"></polyline>
-              </svg>
-              {t.back}
-            </button>
-            <KnowledgeSearch
-              widgetKey={config.widgetKey}
-              primaryColor={config.primaryColor}
-              language={currentLanguage}
-            />
-          </div>
+          /* Knowledge search view disabled — PII exposure risk */
+          null
         ) : view === 'chat' && chatSession ? (
           <LiveChat
             session={chatSession}
