@@ -161,7 +161,7 @@ export const useInteractionsNavigation = () => {
       newParams.set('c', conversationId);
       newParams.set('thread', threadIds.join(','));
       newParams.delete('m');
-      setSearchParams(newParams, { replace: true });
+      setSearchParams(newParams, { replace: false });
       return;
     }
     
