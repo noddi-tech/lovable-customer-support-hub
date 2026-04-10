@@ -163,6 +163,21 @@ export const InboxSlackRouting = ({
 
   if (inboxes.length === 0) return null;
 
+  const getSlotEnabled = (routing: RoutingEntry | undefined, slot: SlotKey): boolean => {
+    if (!routing) return true; // default enabled
+    if (slot === 'notifications') return true; // always enabled
+    if (slot === 'digest') return routing.digest_enabled ?? true;
+    if (slot === 'critical') return routing.critical_enabled ?? true;
+    return true;
+  };
+
+  const handleToggleSlot = (inboxId: string, slot: SlotKey, enabled: boolean) => {
+    const updates: Partial<RoutingEntry> = {};
+    if (slot === 'digest') updates.digest_enabled = enabled;
+    if (slot === 'critical') updates.critical_enabled = enabled;
+    upsertRouting.mutate({ inbox_id: inboxId, updates });
+  };
+
   const getSlotValues = (routing: RoutingEntry | undefined, slot: SlotKey) => {
     if (!routing) return { channelId: '', useSecondary: false };
     switch (slot) {
