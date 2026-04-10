@@ -1,69 +1,46 @@
 
 
-# Per-Inbox Full Routing: Notifications + Digests + Critical Alerts
+# Add Per-Inbox Digest & Critical Alert Toggles
 
-## Two problems to fix
+## Problem
+Some inboxes (like Trønderdekk) only need real-time notifications -- digests and critical alerts are unnecessary noise. Currently there's no way to disable these per inbox.
 
-**1. Can't select Navio workspace**: The workspace toggle is disabled until a channel is already selected (`disabled={!isRouted}`). Since the channel dropdown defaults to Primary channels, there's no way to switch to Navio first. Chicken-and-egg bug.
+## Approach
+Add two boolean columns to `inbox_slack_routing` and a simple toggle UI per slot. When disabled, the channel selector is hidden and edge functions skip that inbox for digests/critical alerts.
 
-**2. Digest and Critical are org-level only**: Currently there's one digest channel and one critical channel for the entire organization. User wants full per-inbox control: each inbox should independently configure its notification channel, digest channel, and critical channel — each with its own workspace selection.
+## Database
+**Migration** -- add two columns:
+```sql
+ALTER TABLE public.inbox_slack_routing
+  ADD COLUMN digest_enabled boolean DEFAULT true,
+  ADD COLUMN critical_enabled boolean DEFAULT true;
+```
 
-## New UX model
-
-Each inbox becomes a self-contained routing card with three channel slots:
+## UI Changes (`InboxSlackRouting.tsx`)
+- Add a small switch/toggle next to the Digest and Critical Alerts labels
+- When toggled off: hide the workspace + channel dropdowns for that slot, show "Disabled" badge
+- When toggled on (default): show dropdowns as today
+- Notifications slot has no toggle (always enabled if the routing row exists)
 
 ```text
 ┌─────────────────────────────────────────────────┐
-│ Trønderdekk                                     │
+│ Trønderdekk                        [Remove all] │
 │                                                  │
-│ Notifications   [Navio ▼]  [#tronderdekk-support ▼] │
-│ Digest          [Navio ▼]  [#tronderdekk-digest  ▼] │
-│ Critical Alerts [Navio ▼]  [#tronderdekk-urgent  ▼] │
-│                                                  │
-│                                    [Remove all]  │
-├─────────────────────────────────────────────────┤
-│ Dekkfix                                          │
-│                                                  │
-│ Notifications   [Primary ▼]  [#support ▼]       │
-│ Digest          [Primary ▼]  [#digest  ▼]       │
-│ Critical Alerts [Primary ▼]  [#critical ▼]      │
+│ Notifications   [Navio ▼]  [#support ▼]         │
+│ Digest      [off]  Disabled                      │
+│ Critical    [off]  Disabled                      │
 └─────────────────────────────────────────────────┘
 ```
 
-Workspace selector comes **before** the channel dropdown (fixes the Navio bug). Org-level digest/critical sections become fallback defaults for inboxes without specific routing.
-
-## Database changes
-
-**Migration**: Add columns to `inbox_slack_routing`:
-- `digest_channel_id text`
-- `digest_channel_name text`
-- `digest_use_secondary boolean default false`
-- `critical_channel_id text`
-- `critical_channel_name text`
-- `critical_use_secondary boolean default false`
-
-The existing `channel_id` / `use_secondary_workspace` remain for notification routing.
-
-## Edge function changes
-
-**`send-slack-notification`**: Already looks up `inbox_slack_routing` for notifications. Add: if the event is critical, check `critical_channel_id` / `critical_use_secondary` from the same routing row first.
-
-**`slack-daily-digest`**: When generating per-inbox digests, use `digest_channel_id` / `digest_use_secondary` from the routing row instead of the org-level digest channel.
-
-**`review-open-critical`**: Use `critical_channel_id` / `critical_use_secondary` from routing row per conversation's inbox.
-
-## UI changes
-
-**`InboxSlackRouting.tsx`**: Redesign each inbox row to show three channel slots (notifications, digest, critical). Each slot has a workspace dropdown (Primary/Navio) and a channel dropdown. Workspace selection works independently of channel selection (no more `disabled={!isRouted}`).
-
-**`SlackIntegrationSettings.tsx`**: Keep org-level digest/critical sections as "Default" fallbacks, but label them clearly as defaults for unrouted inboxes.
+## Edge Function Changes
+1. **`slack-daily-digest`** -- when querying `inbox_slack_routing` for per-inbox digests, add `AND digest_enabled = true`. Inboxes with `digest_enabled = false` are excluded entirely (not even included in the default org digest for that inbox).
+2. **`review-open-critical`** -- when looking up routing, skip critical alerts for inboxes where `critical_enabled = false`.
+3. **`send-slack-notification`** -- for the critical alert section, check `critical_enabled` from the routing row before sending.
 
 ## Files to change
-
-1. **New migration** -- add 6 columns to `inbox_slack_routing`
-2. **`src/components/admin/InboxSlackRouting.tsx`** -- redesign to 3-slot per-inbox routing
-3. **`src/components/admin/SlackIntegrationSettings.tsx`** -- label digest/critical as defaults
-4. **`supabase/functions/send-slack-notification/index.ts`** -- use critical routing from inbox row
-5. **`supabase/functions/slack-daily-digest/index.ts`** -- use digest routing from inbox row
-6. **`supabase/functions/review-open-critical/index.ts`** -- use critical routing from inbox row
+1. **New migration** -- add `digest_enabled` and `critical_enabled` columns
+2. **`src/components/admin/InboxSlackRouting.tsx`** -- add toggle switches per slot
+3. **`supabase/functions/send-slack-notification/index.ts`** -- respect `critical_enabled`
+4. **`supabase/functions/slack-daily-digest/index.ts`** -- respect `digest_enabled`
+5. **`supabase/functions/review-open-critical/index.ts`** -- respect `critical_enabled`
 
