@@ -1,6 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.53.0';
-import { buildCustomerMemoryPrompt, type CustomerMemory } from '../_shared/prompt-builder.ts';
+import { buildCustomerMemoryPrompt, buildCustomerContextPrompt, type CustomerMemory } from '../_shared/prompt-builder.ts';
+import { executeLookupCustomer } from '../_shared/noddi-tools.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -102,8 +103,12 @@ Deno.serve(async (req) => {
         : latestCustomerMsg.content)
       : '';
 
-    // Step 2: Resolve customer identity and fetch memory profile
+    // Step 2: Resolve customer identity
     let customerMemoryContext = '';
+    let customerContextPrompt = '';
+    let resolvedPhone: string | undefined;
+    let resolvedEmail: string | undefined;
+
     try {
       const { data: conv } = await supabase
         .from('conversations')
@@ -112,10 +117,13 @@ Deno.serve(async (req) => {
         .single();
 
       const customer = conv?.customer as { phone?: string; email?: string } | null;
-      const identifier = customer?.phone?.replace(/[^\d+]/g, '') || customer?.email?.trim().toLowerCase();
-      const identifierType = customer?.phone ? 'phone' : 'email';
+      resolvedPhone = customer?.phone?.replace(/[^\d+]/g, '') || undefined;
+      resolvedEmail = customer?.email?.trim().toLowerCase() || undefined;
+      const identifier = resolvedPhone || resolvedEmail;
+      const identifierType: 'phone' | 'email' = resolvedPhone ? 'phone' : 'email';
 
       if (identifier) {
+        // Fetch customer memory profile
         const { data: summary } = await supabase
           .from('customer_summaries')
           .select('summary_text')
@@ -142,9 +150,21 @@ Deno.serve(async (req) => {
 
           console.log(`[generate-email-draft] Injected customer memory for ${identifierType}=${identifier}`);
         }
+
+        // Fetch live customer data from Noddi API
+        try {
+          const lookupResultStr = await executeLookupCustomer(resolvedPhone, resolvedEmail);
+          const lookupResult = JSON.parse(lookupResultStr);
+          if (lookupResult.found) {
+            customerContextPrompt = '\n\n' + buildCustomerContextPrompt(lookupResult) + '\n';
+            console.log(`[generate-email-draft] Injected live customer data for ${identifier}`);
+          }
+        } catch (lookupErr) {
+          console.warn('[generate-email-draft] Noddi customer lookup failed:', lookupErr);
+        }
       }
     } catch (e) {
-      console.warn('[generate-email-draft] Customer memory lookup failed:', e);
+      console.warn('[generate-email-draft] Customer resolution failed:', e);
     }
 
     // Step 3: Search knowledge base for similar responses
@@ -198,7 +218,7 @@ Deno.serve(async (req) => {
     }
 
     // Step 4: Generate draft with GPT
-    const systemPrompt = SYSTEM_INSTRUCTIONS + customerMemoryContext + knowledgeContext;
+    const systemPrompt = SYSTEM_INSTRUCTIONS + customerContextPrompt + customerMemoryContext + knowledgeContext;
     const userPrompt = `EMAIL THREAD:\n${threadContext}\n\n---\nWrite a reply to the customer's latest message.`;
 
     const resp = await fetch('https://api.openai.com/v1/chat/completions', {

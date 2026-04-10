@@ -239,5 +239,8 @@ verify_jwt = true
 [functions.evaluate-autonomy-levels]
 verify_jwt = false
 
+[functions.sanitize-knowledge-entries]
+verify_jwt = true
+
 [functions.auto-close-conversations]
 verify_jwt = false

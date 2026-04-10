@@ -1,6 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.53.0';
-import { buildCustomerMemoryPrompt, type CustomerMemory } from '../_shared/prompt-builder.ts';
+import { buildCustomerMemoryPrompt, buildCustomerContextPrompt, type CustomerMemory } from '../_shared/prompt-builder.ts';
+import { executeLookupCustomer } from '../_shared/noddi-tools.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -185,6 +186,30 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Step 1.6: Fetch live customer data from Noddi API
+    let customerContextPrompt = '';
+    if (supabaseClient && organizationId) {
+      try {
+        const resolved = await resolveCustomerIdentifier(
+          supabaseClient,
+          customerIdentifier,
+          conversationId,
+        );
+        if (resolved) {
+          const phone = resolved.type === 'phone' ? resolved.identifier : undefined;
+          const email = resolved.type === 'email' ? resolved.identifier : undefined;
+          const lookupResultStr = await executeLookupCustomer(phone, email);
+          const lookupResult = JSON.parse(lookupResultStr);
+          if (lookupResult.found) {
+            customerContextPrompt = buildCustomerContextPrompt(lookupResult);
+            console.log(`[suggest-replies] Injected live customer data for ${resolved.type}=${resolved.identifier}`);
+          }
+        }
+      } catch (e) {
+        console.warn('[suggest-replies] Noddi customer lookup failed:', e);
+      }
+    }
+
     // Step 2: Search knowledge base for similar responses
     if (organizationId && SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY && supabaseClient) {
       try {
@@ -241,7 +266,7 @@ Deno.serve(async (req) => {
       temperature: 0.5,
       response_format: { type: 'json_object' },
       messages: [
-        { role: 'system', content: SYSTEM_INSTRUCTIONS + customerMemoryContext + learnedPatterns + knowledgeContext },
+        { role: 'system', content: SYSTEM_INSTRUCTIONS + customerContextPrompt + customerMemoryContext + learnedPatterns + knowledgeContext },
         { role: 'user', content: `Customer wrote:\n${inputText}` },
       ],
     };

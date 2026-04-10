@@ -22,7 +22,7 @@ import {
   patchTimeSlotConfirmToEdit,
   patchBookingEdit,
 } from '../_shared/post-processors.ts';
-import { buildSystemPrompt, buildCustomerMemoryPrompt, type ActionFlow, type GeneralConfig, type CustomerMemory } from '../_shared/prompt-builder.ts';
+import { buildSystemPrompt, buildCustomerMemoryPrompt, buildCustomerContextPrompt, type ActionFlow, type GeneralConfig, type CustomerMemory } from '../_shared/prompt-builder.ts';
 
 // ========== Tool definitions for OpenAI ==========
 
@@ -671,8 +671,62 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Fetch live customer data from Noddi API (cached per conversation, 10 min TTL)
+    let customerContextPrompt = '';
+    if (memoryIdentifier && isVerified) {
+      try {
+        const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
+        let useCache = false;
+
+        // Check cache in conversation metadata
+        const { data: convMeta2 } = await supabase
+          .from('widget_ai_conversations')
+          .select('metadata')
+          .eq('id', dbConversationId)
+          .single();
+
+        const cachedAt = convMeta2?.metadata?.customer_context_cached_at;
+        const cachedData = convMeta2?.metadata?.customer_context_cache;
+
+        if (cachedData && cachedAt && (Date.now() - new Date(cachedAt).getTime()) < CACHE_TTL_MS) {
+          customerContextPrompt = buildCustomerContextPrompt(cachedData);
+          useCache = true;
+          console.log('[widget-ai-chat] Using cached customer context');
+        }
+
+        if (!useCache) {
+          const phone = visitorPhone || undefined;
+          const email = visitorEmail || undefined;
+          const lookupResultStr = await executeLookupCustomer(phone, email);
+          const lookupResult = JSON.parse(lookupResultStr);
+          if (lookupResult.found) {
+            customerContextPrompt = buildCustomerContextPrompt(lookupResult);
+            console.log(`[widget-ai-chat] Fetched fresh customer context for ${memoryIdentifier}`);
+
+            // Cache in conversation metadata (fire-and-forget)
+            const existingMeta = convMeta2?.metadata || {};
+            supabase
+              .from('widget_ai_conversations')
+              .update({
+                metadata: {
+                  ...existingMeta,
+                  customer_context_cache: lookupResult,
+                  customer_context_cached_at: new Date().toISOString(),
+                },
+              })
+              .eq('id', dbConversationId)
+              .then(() => {})
+              .catch((err: any) => console.warn('[widget-ai-chat] Failed to cache customer context:', err));
+          }
+        }
+      } catch (e) {
+        console.warn('[widget-ai-chat] Customer context lookup failed:', e);
+      }
+    }
+
     // Build conversation with system prompt
     const systemPrompt = buildSystemPrompt(language, isVerified, actionFlows, generalConfig)
+      + (customerContextPrompt ? '\n\n' + customerContextPrompt : '')
       + (customerMemoryPrompt ? '\n\n' + customerMemoryPrompt : '');
     const conversationMessages: any[] = [
       { role: 'system', content: systemPrompt },

@@ -277,6 +277,11 @@ KNOWLEDGE BASE:
 - This is your PRIMARY source for answering questions. Always search before saying "I don't know."
 - If no results found, be honest: "I don't have specific information about that."
 
+KNOWLEDGE BASE PRIVACY:
+- When using knowledge base information to answer questions, always synthesize the answer in your own words. Never quote knowledge base entries verbatim.
+- Never share internal reference data, customer examples, or raw knowledge entries with the customer.
+- Never include customer names, phone numbers, emails, or addresses in your responses when referencing knowledge base information.
+
 BOOKING TIME DISPLAY:
 - ALWAYS present booking times as a full time range (e.g., "07:00–12:00"), NEVER as a single time (e.g., "07:00").
 - Use the 'timeSlot' field from booking data which contains the pre-formatted range.
@@ -342,5 +347,64 @@ export function buildCustomerMemoryPrompt(
   lines.push('Use this context naturally. Don\'t explicitly say "according to our records" — just use the knowledge for more personalized responses.');
   lines.push('If a memory contradicts what the customer says now, trust the customer.');
   lines.push('=== END CUSTOMER PROFILE ===');
+  return lines.join('\n');
+}
+
+// ── Live customer data context ──────────────────────────────
+
+export function buildCustomerContextPrompt(customerData: any): string {
+  if (!customerData || !customerData.found) return '';
+
+  const lines: string[] = ['=== LIVE CUSTOMER DATA ==='];
+  const c = customerData.customer;
+  if (c) {
+    const parts: string[] = [];
+    if (c.name) parts.push(`Name: ${c.name}`);
+    if (c.email) parts.push(`Email: ${c.email}`);
+    if (c.phone) parts.push(`Phone: ${c.phone}`);
+    if (parts.length > 0) lines.push(parts.join(' | '));
+  }
+
+  // Vehicles
+  const cars = customerData.stored_cars;
+  if (cars && cars.length > 0) {
+    const carList = cars.map((car: any) => {
+      const desc = [car.make, car.model].filter(Boolean).join(' ');
+      return car.plate ? `${desc} (${car.plate})` : desc;
+    }).join(', ');
+    lines.push(`Vehicles: ${carList}`);
+  }
+
+  // Addresses
+  const addresses = customerData.stored_addresses;
+  if (addresses && addresses.length > 0) {
+    const addrList = addresses.map((a: any) => a.label || `${a.zip_code} ${a.city}`).join(' | ');
+    lines.push(`Addresses: ${addrList}`);
+  }
+
+  // Upcoming/active bookings (max 5)
+  const bookings = customerData.bookings;
+  if (bookings && bookings.length > 0) {
+    const upcoming = bookings
+      .filter((b: any) => b.status === 'confirmed' || b.status === 'pending' || b.status === 'assigned')
+      .slice(0, 5);
+    if (upcoming.length > 0) {
+      lines.push('');
+      lines.push('Upcoming bookings:');
+      for (const b of upcoming) {
+        const parts: string[] = [];
+        if (b.services?.length > 0) parts.push(b.services.map((s: any) => s.name).join(', '));
+        if (b.scheduledAt) parts.push(b.scheduledAt);
+        if (b.timeSlot) parts.push(`kl. ${b.timeSlot}`);
+        if (b.address) parts.push(b.address);
+        if (b.vehicle) parts.push(`(${b.vehicle})`);
+        lines.push(`- #${b.id}: ${parts.join(', ')}`);
+      }
+    }
+  }
+
+  lines.push('');
+  lines.push('Use this data to personalize your response. Reference their name, vehicle, or upcoming booking when relevant.');
+  lines.push('=== END LIVE CUSTOMER DATA ===');
   return lines.join('\n');
 }

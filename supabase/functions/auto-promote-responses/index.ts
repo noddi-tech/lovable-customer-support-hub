@@ -1,5 +1,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.53.0';
+import { sanitizeTextForKnowledge } from '../_shared/sanitize-pii.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -84,7 +85,13 @@ Deno.serve(async (req) => {
 
       // Promote if quality score is high enough and has sufficient successful outcomes
       if (qualityScore >= effectiveMinQualityScore && totalReplies >= effectiveMinReplies) {
-        // Create embedding
+        // Sanitize PII before promotion
+        const [sanitizedContext, sanitizedResponse] = await Promise.all([
+          sanitizeTextForKnowledge(candidate.customer_message || '', OPENAI_API_KEY),
+          sanitizeTextForKnowledge(candidate.agent_response || '', OPENAI_API_KEY),
+        ]);
+
+        // Create embedding from sanitized text
         const embeddingResp = await fetch('https://api.openai.com/v1/embeddings', {
           method: 'POST',
           headers: {
@@ -93,7 +100,7 @@ Deno.serve(async (req) => {
           },
           body: JSON.stringify({
             model: 'text-embedding-3-small',
-            input: candidate.customer_message,
+            input: `${sanitizedContext} ${sanitizedResponse}`,
           }),
         });
 
@@ -105,17 +112,18 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        // Insert into knowledge_entries
+        // Insert into knowledge_entries with sanitized content
         const { data: knowledgeEntry, error: insertError } = await supabase
           .from('knowledge_entries')
           .insert({
             organization_id: organizationId,
-            customer_context: candidate.customer_message,
-            agent_response: candidate.agent_response,
+            customer_context: sanitizedContext,
+            agent_response: sanitizedResponse,
             quality_score: qualityScore,
             usage_count: totalReplies,
             acceptance_count: resolvedCount,
             embedding: embedding,
+            sanitized_at: new Date().toISOString(),
           })
           .select()
           .single();

@@ -1,5 +1,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.53.0';
+import { sanitizeTextForKnowledge } from '../_shared/sanitize-pii.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -212,7 +213,13 @@ Deno.serve(async (req) => {
           }
 
           // Generate embedding for promotion
-          const embedding = await generateEmbedding(OPENAI_API_KEY, entry.customer_context);
+          // Sanitize PII before promotion
+          const [sanitizedContext, sanitizedResponse] = await Promise.all([
+            sanitizeTextForKnowledge(entry.customer_context || '', OPENAI_API_KEY),
+            sanitizeTextForKnowledge(entry.agent_response || '', OPENAI_API_KEY),
+          ]);
+
+          const embedding = await generateEmbedding(OPENAI_API_KEY, `${sanitizedContext} ${sanitizedResponse}`);
 
           if (!embedding) {
             // Still update evaluation but don't promote if embedding fails
@@ -230,13 +237,13 @@ Deno.serve(async (req) => {
             continue;
           }
 
-          // Insert into knowledge_entries
+          // Insert into knowledge_entries with sanitized content
           const { error: insertError } = await supabase
             .from('knowledge_entries')
             .insert({
               organization_id: entry.organization_id,
-              customer_context: entry.customer_context,
-              agent_response: entry.agent_response,
+              customer_context: sanitizedContext,
+              agent_response: sanitizedResponse,
               embedding,
               quality_score: composite * 5,
               created_from_message_id: entry.source_message_id,
@@ -244,6 +251,7 @@ Deno.serve(async (req) => {
               is_manually_curated: false,
               usage_count: 0,
               acceptance_count: 0,
+              sanitized_at: now,
             });
 
           if (insertError) {
