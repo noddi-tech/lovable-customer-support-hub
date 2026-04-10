@@ -612,7 +612,6 @@ Deno.serve(async (req) => {
         }
 
         try {
-          const criticalToken = integration.secondary_access_token || integration.access_token;
           const criticalResponse = await fetch('https://slack.com/api/chat.postMessage', {
             method: 'POST',
             headers: {
