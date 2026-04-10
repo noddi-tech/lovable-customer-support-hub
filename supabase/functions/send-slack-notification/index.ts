@@ -402,7 +402,6 @@ Deno.serve(async (req) => {
     }
 
     // Channel type + timestamp context
-    const channelLabel = CHANNEL_LABELS[channel] || channel || 'Unknown';
     attachmentBlocks.push({
       type: 'context',
       elements: [
