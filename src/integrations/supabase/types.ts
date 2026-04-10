@@ -489,6 +489,7 @@ export type Database = {
           is_archived: boolean | null
           is_read: boolean | null
           last_message_is_internal: boolean | null
+          last_message_sender_type: string | null
           memories_extracted_at: string | null
           metadata: Json | null
           organization_id: string
@@ -519,6 +520,7 @@ export type Database = {
           is_archived?: boolean | null
           is_read?: boolean | null
           last_message_is_internal?: boolean | null
+          last_message_sender_type?: string | null
           memories_extracted_at?: string | null
           metadata?: Json | null
           organization_id: string
@@ -549,6 +551,7 @@ export type Database = {
           is_archived?: boolean | null
           is_read?: boolean | null
           last_message_is_internal?: boolean | null
+          last_message_sender_type?: string | null
           memories_extracted_at?: string | null
           metadata?: Json | null
           organization_id?: string
@@ -1448,6 +1451,7 @@ export type Database = {
           last_verified_at: string | null
           organization_id: string
           quality_score: number | null
+          sanitized_at: string | null
           search_vector: unknown
           staleness_category: string | null
           tags: string[] | null
@@ -1469,6 +1473,7 @@ export type Database = {
           last_verified_at?: string | null
           organization_id: string
           quality_score?: number | null
+          sanitized_at?: string | null
           search_vector?: unknown
           staleness_category?: string | null
           tags?: string[] | null
@@ -1490,6 +1495,7 @@ export type Database = {
           last_verified_at?: string | null
           organization_id?: string
           quality_score?: number | null
+          sanitized_at?: string | null
           search_vector?: unknown
           staleness_category?: string | null
           tags?: string[] | null
@@ -4358,6 +4364,7 @@ export type Database = {
               is_deleted: boolean
               is_read: boolean
               last_message_is_internal: boolean
+              last_message_sender_type: string
               metadata: Json
               organization_id: string
               preview_text: string
@@ -4504,6 +4511,46 @@ export type Database = {
       }
       is_organization_member: { Args: { _org_id: string }; Returns: boolean }
       is_super_admin: { Args: never; Returns: boolean }
+      list_conversations_optimized: {
+        Args: {
+          p_assigned_to_id?: string
+          p_channel?: string
+          p_inbox_id?: string
+          p_is_archived?: boolean
+          p_is_deleted?: boolean
+          p_limit?: number
+          p_offset?: number
+          p_organization_id: string
+          p_priority?: string
+          p_search_query?: string
+          p_status?: string
+        }
+        Returns: {
+          assigned_to_avatar: string
+          assigned_to_id: string
+          assigned_to_name: string
+          channel: string
+          created_at: string
+          customer_email: string
+          customer_id: string
+          customer_name: string
+          first_response_at: string
+          id: string
+          inbox_id: string
+          is_archived: boolean
+          is_read: boolean
+          last_message_is_internal: boolean
+          last_message_sender_type: string
+          preview_text: string
+          priority: string
+          sla_breach_at: string
+          snooze_until: string
+          status: string
+          subject: string
+          total_count: number
+          updated_at: string
+        }[]
+      }
       mark_all_notifications_read: { Args: never; Returns: undefined }
       mark_notification_read: {
         Args: { notification_id: string }

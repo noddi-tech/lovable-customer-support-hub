@@ -246,6 +246,14 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
                   Note
                 </Badge>
               )}
+              {conversation.last_message_sender_type === 'customer' && 
+               !conversation.last_message_is_internal && 
+               (conversation.status === 'open' || conversation.status === 'pending') && (
+                <Badge variant="outline" className="px-1 py-0 text-[9px] bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-900/20 dark:text-orange-400 dark:border-orange-800">
+                  <Clock className="h-2.5 w-2.5 mr-0.5" />
+                  Awaiting
+                </Badge>
+              )}
               {conversation.is_archived && (
                 <Badge className="px-1 py-0 text-[9px] bg-muted text-muted-foreground">
                   <Archive className="h-2.5 w-2.5 mr-0.5" />
@@ -304,6 +312,14 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
               <Badge className="px-1.5 py-0 text-[10px] shrink-0 bg-yellow-50 text-yellow-800 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-800">
                 <Lock className="h-3 w-3 mr-0.5" />
                 Note
+              </Badge>
+            )}
+            {conversation.last_message_sender_type === 'customer' && 
+             !conversation.last_message_is_internal && 
+             (conversation.status === 'open' || conversation.status === 'pending') && (
+              <Badge variant="outline" className="px-1.5 py-0 text-[10px] shrink-0 bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-900/20 dark:text-orange-400 dark:border-orange-800">
+                <Clock className="h-3 w-3 mr-0.5" />
+                Awaiting reply
               </Badge>
             )}
             {/* Hover reply button */}
@@ -422,6 +438,14 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
             <Badge className="px-1.5 py-0 text-[10px] shrink-0 bg-yellow-50 text-yellow-800 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-800">
               <Lock className="h-3 w-3 mr-0.5" />
               Note
+            </Badge>
+          )}
+          {conversation.last_message_sender_type === 'customer' && 
+           !conversation.last_message_is_internal && 
+           (conversation.status === 'open' || conversation.status === 'pending') && (
+            <Badge variant="outline" className="px-1.5 py-0 text-[10px] shrink-0 bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-900/20 dark:text-orange-400 dark:border-orange-800">
+              <Clock className="h-3 w-3 mr-0.5" />
+              Awaiting reply
             </Badge>
           )}
           <Button
