@@ -117,10 +117,10 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
   // Set default inbox if none selected - use stable reference to setInbox
   const { setInbox: navigationSetInbox } = navigation;
   useEffect(() => {
-    if (!inbox && !selectedInboxId && inboxes.length > 0) {
+    if (!isDetail && !inbox && !selectedInboxId && inboxes.length > 0) {
       navigationSetInbox(inboxes[0].id);
     }
-  }, [inbox, selectedInboxId, inboxes, navigationSetInbox]);
+  }, [isDetail, inbox, selectedInboxId, inboxes, navigationSetInbox]);
 
   // Get conversations and thread data
   // Exclude 'widget' channel since those are now in the dedicated Chat section
