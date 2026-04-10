@@ -27,20 +27,8 @@ import { buildSystemPrompt, buildCustomerMemoryPrompt, type ActionFlow, type Gen
 // ========== Tool definitions for OpenAI ==========
 
 const tools = [
-  {
-    type: 'function' as const,
-    function: {
-      name: 'search_knowledge_base',
-      description: 'Search the knowledge base for answers to customer questions about Noddi services, pricing, booking processes, etc.',
-      parameters: {
-        type: 'object',
-        properties: {
-          query: { type: 'string', description: 'The search query to find relevant knowledge base entries' },
-        },
-        required: ['query'],
-      },
-    },
-  },
+  // DISABLED: search_knowledge_base removed to prevent PII exposure via knowledge_entries.
+  // Re-enable only after data has been sanitized.
   {
     type: 'function' as const,
     function: {
@@ -224,7 +212,7 @@ async function executeTool(
 ): Promise<string> {
   switch (toolName) {
     case 'search_knowledge_base':
-      return executeSearchKnowledge(args.query, organizationId, supabase, openaiApiKey);
+      return JSON.stringify({ results: [], disabled: true, reason: 'Knowledge search temporarily disabled' });
     case 'lookup_customer': {
       let mcpResultObj: any = null;
 
