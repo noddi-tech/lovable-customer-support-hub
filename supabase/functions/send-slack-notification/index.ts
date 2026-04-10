@@ -462,7 +462,7 @@ Deno.serve(async (req) => {
     let criticalChannelId = integration.critical_channel_id;
     let criticalToken = integration.secondary_access_token || integration.access_token;
 
-    // Override critical routing with per-inbox routing if configured
+    // Override critical routing with per-inbox critical_channel if configured
     if (inbox_id) {
       const { data: critRouting } = await supabase
         .from('inbox_slack_routing')
@@ -472,10 +472,18 @@ Deno.serve(async (req) => {
         .maybeSingle();
 
       if (critRouting) {
-        criticalChannelId = critRouting.channel_id;
-        criticalToken = critRouting.use_secondary_workspace && integration.secondary_access_token
-          ? integration.secondary_access_token
-          : integration.access_token;
+        // Use dedicated critical channel if set, otherwise fall back to notification channel
+        if (critRouting.critical_channel_id) {
+          criticalChannelId = critRouting.critical_channel_id;
+          criticalToken = critRouting.critical_use_secondary && integration.secondary_access_token
+            ? integration.secondary_access_token
+            : integration.access_token;
+        } else if (critRouting.channel_id && critRouting.channel_id !== '_placeholder') {
+          criticalChannelId = critRouting.channel_id;
+          criticalToken = critRouting.use_secondary_workspace && integration.secondary_access_token
+            ? integration.secondary_access_token
+            : integration.access_token;
+        }
       }
     }
     

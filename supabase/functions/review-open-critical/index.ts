@@ -131,10 +131,18 @@ Deno.serve(async (req) => {
             .maybeSingle();
 
           if (routing) {
-            convCriticalChannelId = routing.channel_id;
-            convCriticalToken = routing.use_secondary_workspace && integration.secondary_access_token
-              ? integration.secondary_access_token
-              : integration.access_token;
+            // Use dedicated critical channel if set, otherwise fall back to notification channel
+            if (routing.critical_channel_id) {
+              convCriticalChannelId = routing.critical_channel_id;
+              convCriticalToken = routing.critical_use_secondary && integration.secondary_access_token
+                ? integration.secondary_access_token
+                : integration.access_token;
+            } else if (routing.channel_id && routing.channel_id !== '_placeholder') {
+              convCriticalChannelId = routing.channel_id;
+              convCriticalToken = routing.use_secondary_workspace && integration.secondary_access_token
+                ? integration.secondary_access_token
+                : integration.access_token;
+            }
           }
         }
 

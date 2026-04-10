@@ -366,9 +366,9 @@ export const SlackIntegrationSettings = () => {
                 <BarChart3 className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <CardTitle className="text-lg">AI-Powered Digest</CardTitle>
+              <CardTitle className="text-lg">AI-Powered Digest (Default)</CardTitle>
                 <CardDescription>
-                  AI-generated summary of customer conversations with themes, sentiment, and recommendations
+                  Default digest channel for inboxes without per-inbox routing configured above
                   {hasSecondaryWorkspace && (
                     <span className="ml-1 text-primary">
                       (→ {integration?.secondary_team_name})
@@ -500,9 +500,9 @@ export const SlackIntegrationSettings = () => {
                 <AlertTriangle className="h-5 w-5 text-destructive" />
               </div>
               <div>
-                <CardTitle className="text-lg">Critical Alerts</CardTitle>
+                <CardTitle className="text-lg">Critical Alerts (Default)</CardTitle>
                 <CardDescription>
-                  Instantly push critical issues (booking errors, payment failures) to a dedicated channel
+                  Default critical alert channel for inboxes without per-inbox routing configured above
                   {hasSecondaryWorkspace && (
                     <span className="ml-1 text-primary">
                       (→ {integration?.secondary_team_name})

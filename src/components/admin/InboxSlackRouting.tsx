@@ -1,11 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Hash, Lock, Inbox, ArrowRight, Building2 } from 'lucide-react';
+import { Loader2, Hash, Lock, Inbox, Building2, Bell, BarChart3, AlertTriangle, X } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useOrganizationStore } from '@/stores/organizationStore';
@@ -27,12 +26,26 @@ interface RoutingEntry {
   channel_name: string | null;
   use_secondary_workspace: boolean;
   is_active: boolean;
+  digest_channel_id: string | null;
+  digest_channel_name: string | null;
+  digest_use_secondary: boolean;
+  critical_channel_id: string | null;
+  critical_channel_name: string | null;
+  critical_use_secondary: boolean;
 }
 
 interface InboxInfo {
   id: string;
   name: string;
 }
+
+type SlotKey = 'notifications' | 'digest' | 'critical';
+
+const SLOTS: { key: SlotKey; label: string; icon: React.ElementType }[] = [
+  { key: 'notifications', label: 'Notifications', icon: Bell },
+  { key: 'digest', label: 'Digest', icon: BarChart3 },
+  { key: 'critical', label: 'Critical Alerts', icon: AlertTriangle },
+];
 
 export const InboxSlackRouting = ({
   integration,
@@ -43,7 +56,6 @@ export const InboxSlackRouting = ({
   const queryClient = useQueryClient();
   const { currentOrganizationId } = useOrganizationStore();
 
-  // Fetch inboxes for the org
   const { data: inboxes = [], isLoading: isLoadingInboxes } = useQuery({
     queryKey: ['inboxes-for-routing', currentOrganizationId],
     queryFn: async () => {
@@ -60,7 +72,6 @@ export const InboxSlackRouting = ({
     enabled: !!currentOrganizationId,
   });
 
-  // Fetch existing routing entries
   const { data: routingEntries = [], isLoading: isLoadingRouting } = useQuery({
     queryKey: ['inbox-slack-routing', integration.id],
     queryFn: async () => {
@@ -74,24 +85,16 @@ export const InboxSlackRouting = ({
     enabled: !!integration.id,
   });
 
-  // Upsert routing
   const upsertRouting = useMutation({
     mutationFn: async (params: {
       inbox_id: string;
-      channel_id: string;
-      channel_name: string;
-      use_secondary_workspace: boolean;
+      updates: Partial<RoutingEntry>;
     }) => {
       const existing = routingEntries.find(r => r.inbox_id === params.inbox_id);
       if (existing) {
         const { error } = await supabase
           .from('inbox_slack_routing')
-          .update({
-            channel_id: params.channel_id,
-            channel_name: params.channel_name,
-            use_secondary_workspace: params.use_secondary_workspace,
-            is_active: true,
-          })
+          .update(params.updates)
           .eq('id', existing.id);
         if (error) throw error;
       } else {
@@ -100,9 +103,15 @@ export const InboxSlackRouting = ({
           .insert({
             inbox_id: params.inbox_id,
             slack_integration_id: integration.id,
-            channel_id: params.channel_id,
-            channel_name: params.channel_name,
-            use_secondary_workspace: params.use_secondary_workspace,
+            channel_id: params.updates.channel_id || '_placeholder',
+            channel_name: params.updates.channel_name || null,
+            use_secondary_workspace: params.updates.use_secondary_workspace ?? false,
+            digest_channel_id: params.updates.digest_channel_id || null,
+            digest_channel_name: params.updates.digest_channel_name || null,
+            digest_use_secondary: params.updates.digest_use_secondary ?? false,
+            critical_channel_id: params.updates.critical_channel_id || null,
+            critical_channel_name: params.updates.critical_channel_name || null,
+            critical_use_secondary: params.updates.critical_use_secondary ?? false,
           });
         if (error) throw error;
       }
@@ -116,7 +125,6 @@ export const InboxSlackRouting = ({
     },
   });
 
-  // Delete routing
   const deleteRouting = useMutation({
     mutationFn: async (inbox_id: string) => {
       const { error } = await supabase
@@ -128,7 +136,7 @@ export const InboxSlackRouting = ({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['inbox-slack-routing'] });
-      toast.success('Inbox routing removed — will use default channel');
+      toast.success('All inbox routing removed — will use defaults');
     },
     onError: (error: Error) => {
       toast.error(`Failed to remove routing: ${error.message}`);
@@ -150,6 +158,78 @@ export const InboxSlackRouting = ({
 
   if (inboxes.length === 0) return null;
 
+  const getSlotValues = (routing: RoutingEntry | undefined, slot: SlotKey) => {
+    if (!routing) return { channelId: '', useSecondary: false };
+    switch (slot) {
+      case 'notifications':
+        return {
+          channelId: routing.channel_id === '_placeholder' ? '' : routing.channel_id,
+          useSecondary: routing.use_secondary_workspace,
+        };
+      case 'digest':
+        return { channelId: routing.digest_channel_id || '', useSecondary: routing.digest_use_secondary };
+      case 'critical':
+        return { channelId: routing.critical_channel_id || '', useSecondary: routing.critical_use_secondary };
+    }
+  };
+
+  const handleWorkspaceChange = (inboxId: string, slot: SlotKey, useSecondary: boolean) => {
+    const routing = routingMap.get(inboxId);
+    const updates: Partial<RoutingEntry> = {};
+    switch (slot) {
+      case 'notifications':
+        updates.use_secondary_workspace = useSecondary;
+        // Clear channel when switching workspace
+        updates.channel_id = '_placeholder';
+        updates.channel_name = null;
+        break;
+      case 'digest':
+        updates.digest_use_secondary = useSecondary;
+        updates.digest_channel_id = null;
+        updates.digest_channel_name = null;
+        break;
+      case 'critical':
+        updates.critical_use_secondary = useSecondary;
+        updates.critical_channel_id = null;
+        updates.critical_channel_name = null;
+        break;
+    }
+    upsertRouting.mutate({ inbox_id: inboxId, updates });
+  };
+
+  const handleChannelChange = (inboxId: string, slot: SlotKey, channelId: string, useSecondary: boolean) => {
+    const availChannels = useSecondary ? secondaryChannels : channels;
+    const channel = availChannels.find(c => c.id === channelId);
+    const updates: Partial<RoutingEntry> = {};
+    switch (slot) {
+      case 'notifications':
+        updates.channel_id = channelId;
+        updates.channel_name = channel?.name || '';
+        updates.use_secondary_workspace = useSecondary;
+        break;
+      case 'digest':
+        updates.digest_channel_id = channelId;
+        updates.digest_channel_name = channel?.name || '';
+        updates.digest_use_secondary = useSecondary;
+        break;
+      case 'critical':
+        updates.critical_channel_id = channelId;
+        updates.critical_channel_name = channel?.name || '';
+        updates.critical_use_secondary = useSecondary;
+        break;
+    }
+    upsertRouting.mutate({ inbox_id: inboxId, updates });
+  };
+
+  const hasAnyRouting = (routing: RoutingEntry | undefined) => {
+    if (!routing) return false;
+    return (
+      (routing.channel_id && routing.channel_id !== '_placeholder') ||
+      routing.digest_channel_id ||
+      routing.critical_channel_id
+    );
+  };
+
   return (
     <Card className="bg-gradient-surface border-border/50">
       <CardHeader>
@@ -160,7 +240,7 @@ export const InboxSlackRouting = ({
           <div>
             <CardTitle className="text-lg">Per-Inbox Channel Routing</CardTitle>
             <CardDescription>
-              Route notifications from specific inboxes to dedicated Slack channels. Unrouted inboxes use the default channel.
+              Route notifications, digests, and critical alerts from specific inboxes to dedicated channels and workspaces. Unrouted inboxes use the organization defaults above.
             </CardDescription>
           </div>
         </div>
@@ -168,9 +248,7 @@ export const InboxSlackRouting = ({
       <CardContent className="space-y-4">
         {inboxes.map((inbox) => {
           const routing = routingMap.get(inbox.id);
-          const isRouted = !!routing;
-          const useSecondary = routing?.use_secondary_workspace ?? false;
-          const availableChannels = useSecondary ? secondaryChannels : channels;
+          const isConfigured = hasAnyRouting(routing);
 
           return (
             <div
@@ -180,18 +258,13 @@ export const InboxSlackRouting = ({
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="font-medium">{inbox.name}</span>
-                  {isRouted ? (
-                    <Badge variant="secondary" className="text-xs">
-                      <ArrowRight className="h-3 w-3 mr-1" />
-                      {routing.channel_name || routing.channel_id}
-                    </Badge>
+                  {isConfigured ? (
+                    <Badge variant="secondary" className="text-xs">Configured</Badge>
                   ) : (
-                    <Badge variant="outline" className="text-xs text-muted-foreground">
-                      Using default
-                    </Badge>
+                    <Badge variant="outline" className="text-xs text-muted-foreground">Using defaults</Badge>
                   )}
                 </div>
-                {isRouted && (
+                {isConfigured && (
                   <Button
                     variant="ghost"
                     size="sm"
@@ -199,67 +272,76 @@ export const InboxSlackRouting = ({
                     disabled={deleteRouting.isPending}
                     className="text-muted-foreground hover:text-destructive"
                   >
-                    Remove
+                    <X className="h-3 w-3 mr-1" />
+                    Remove all
                   </Button>
                 )}
               </div>
 
-              <div className="flex items-center gap-3">
-                {hasSecondaryWorkspace && (
-                  <div className="flex items-center gap-2">
-                    <Switch
-                      checked={useSecondary}
-                      onCheckedChange={(checked) => {
-                        if (routing) {
-                          // Update workspace but keep channel (user needs to reselect)
-                          upsertRouting.mutate({
-                            inbox_id: inbox.id,
-                            channel_id: routing.channel_id,
-                            channel_name: routing.channel_name || '',
-                            use_secondary_workspace: checked,
-                          });
-                        }
-                      }}
-                      disabled={!isRouted}
-                    />
-                    <Label className="text-xs text-muted-foreground flex items-center gap-1">
-                      <Building2 className="h-3 w-3" />
-                      {useSecondary ? integration.secondary_team_name : 'Primary'}
-                    </Label>
-                  </div>
-                )}
+              <div className="space-y-2">
+                {SLOTS.map(({ key, label, icon: Icon }) => {
+                  const { channelId, useSecondary } = getSlotValues(routing, key);
+                  const availableChannels = useSecondary ? secondaryChannels : channels;
 
-                <Select
-                  value={routing?.channel_id || ''}
-                  onValueChange={(channelId) => {
-                    const channel = availableChannels.find(c => c.id === channelId);
-                    upsertRouting.mutate({
-                      inbox_id: inbox.id,
-                      channel_id: channelId,
-                      channel_name: channel?.name || '',
-                      use_secondary_workspace: useSecondary,
-                    });
-                  }}
-                  disabled={upsertRouting.isPending}
-                >
-                  <SelectTrigger className="flex-1">
-                    <SelectValue placeholder="Select channel..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableChannels.map((channel) => (
-                      <SelectItem key={channel.id} value={channel.id}>
-                        <div className="flex items-center gap-2">
-                          {channel.is_private ? (
-                            <Lock className="h-3 w-3 text-muted-foreground" />
-                          ) : (
-                            <Hash className="h-3 w-3 text-muted-foreground" />
-                          )}
-                          {channel.name}
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  return (
+                    <div key={key} className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5 w-32 shrink-0">
+                        <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+                        <Label className="text-xs font-medium">{label}</Label>
+                      </div>
+
+                      {hasSecondaryWorkspace && (
+                        <Select
+                          value={useSecondary ? 'secondary' : 'primary'}
+                          onValueChange={(v) => handleWorkspaceChange(inbox.id, key, v === 'secondary')}
+                          disabled={upsertRouting.isPending}
+                        >
+                          <SelectTrigger className="w-36 h-8 text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="primary">
+                              <div className="flex items-center gap-1.5">
+                                <Building2 className="h-3 w-3" />
+                                {integration.team_name || 'Primary'}
+                              </div>
+                            </SelectItem>
+                            <SelectItem value="secondary">
+                              <div className="flex items-center gap-1.5">
+                                <Building2 className="h-3 w-3" />
+                                {integration.secondary_team_name || 'Secondary'}
+                              </div>
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      )}
+
+                      <Select
+                        value={channelId || ''}
+                        onValueChange={(cId) => handleChannelChange(inbox.id, key, cId, useSecondary)}
+                        disabled={upsertRouting.isPending}
+                      >
+                        <SelectTrigger className="flex-1 h-8 text-xs">
+                          <SelectValue placeholder="Select channel..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availableChannels.map((channel) => (
+                            <SelectItem key={channel.id} value={channel.id}>
+                              <div className="flex items-center gap-1.5">
+                                {channel.is_private ? (
+                                  <Lock className="h-3 w-3 text-muted-foreground" />
+                                ) : (
+                                  <Hash className="h-3 w-3 text-muted-foreground" />
+                                )}
+                                {channel.name}
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           );
