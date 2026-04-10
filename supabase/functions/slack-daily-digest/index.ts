@@ -94,10 +94,10 @@ Deno.serve(async (req) => {
       const orgId = integration.organization_id;
       const since = new Date(Date.now() - periodDays * 24 * 60 * 60 * 1000).toISOString();
 
-      // Fetch conversation stats for the period
+      // Fetch conversation stats for the period (include inbox_id)
       const { data: conversations, error: convError } = await supabase
         .from('conversations')
-        .select('id, status, channel, priority, subject, customer_id, created_at, updated_at')
+        .select('id, status, channel, priority, subject, customer_id, inbox_id, created_at, updated_at')
         .eq('organization_id', orgId)
         .gte('updated_at', since)
         .is('deleted_at', null)
@@ -110,57 +110,92 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      // Fetch actual message content for AI summary
-      const conversationIds = (conversations || []).map(c => c.id);
-      let customerMessages: { content: string; conversation_subject: string }[] = [];
+      // Fetch per-inbox routing entries
+      const { data: routingEntries } = await supabase
+        .from('inbox_slack_routing')
+        .select('*')
+        .eq('slack_integration_id', integration.id)
+        .eq('is_active', true);
 
-      if (conversationIds.length > 0) {
-        // Fetch customer messages from the period (limit to 150 for AI context)
-        const { data: messages, error: msgError } = await supabase
-          .from('messages')
-          .select('content, conversation_id')
-          .in('conversation_id', conversationIds.slice(0, 100))
-          .eq('sender_type', 'customer')
-          .gte('created_at', since)
-          .order('created_at', { ascending: false })
-          .limit(150);
-
-        if (msgError) {
-          console.error(`Error fetching messages for org ${orgId}:`, msgError);
-        } else {
-          const convMap = new Map((conversations || []).map(c => [c.id, c.subject || '(no subject)']));
-          customerMessages = (messages || []).map(m => ({
-            content: stripHtml(m.content).substring(0, 300),
-            conversation_subject: convMap.get(m.conversation_id) || '(no subject)',
-          }));
+      const routingMap = new Map<string, { channel_id: string; use_secondary_workspace: boolean }>();
+      if (routingEntries) {
+        for (const r of routingEntries) {
+          routingMap.set(r.inbox_id, { channel_id: r.channel_id, use_secondary_workspace: r.use_secondary_workspace });
         }
       }
 
-      // Compute numeric stats
-      const newConversations = (conversations || []).filter(c => c.created_at >= since);
-      const openCount = (conversations || []).filter(c => c.status === 'open').length;
-      const pendingCount = (conversations || []).filter(c => c.status === 'pending').length;
-      const closedCount = (conversations || []).filter(c => c.status === 'closed').length;
-      const urgentCount = (conversations || []).filter(c => c.priority === 'urgent' || c.priority === 'high').length;
+      // Group conversations: routed inboxes get their own digest, rest go to default
+      const inboxGroups = new Map<string, typeof conversations>();
+      const defaultGroup: typeof conversations = [];
 
-      const channelCounts: Record<string, number> = {};
-      for (const c of newConversations) {
-        channelCounts[c.channel] = (channelCounts[c.channel] || 0) + 1;
+      for (const conv of (conversations || [])) {
+        if (conv.inbox_id && routingMap.has(conv.inbox_id)) {
+          if (!inboxGroups.has(conv.inbox_id)) {
+            inboxGroups.set(conv.inbox_id, []);
+          }
+          inboxGroups.get(conv.inbox_id)!.push(conv);
+        } else {
+          defaultGroup.push(conv);
+        }
       }
-      const channelBreakdown = Object.entries(channelCounts)
-        .map(([ch, count]) => `${ch}: ${count}`)
-        .join(' · ') || 'None';
 
-      // Generate AI summary if OpenAI key is available and we have messages
-      let aiSummary = '';
-      if (openaiApiKey && customerMessages.length > 0) {
-        try {
-          const messagesForAI = customerMessages.slice(0, 80).map((m, i) =>
-            `[${i + 1}] Subject: "${m.conversation_subject}" — "${m.content}"`
-          ).join('\n');
+      // Helper: build and send a digest for a set of conversations
+      const sendDigestForGroup = async (
+        groupConversations: typeof conversations,
+        targetChannelId: string,
+        targetToken: string,
+        inboxLabel?: string,
+      ) => {
+        // Fetch actual message content for AI summary
+        const conversationIds = (groupConversations || []).map(c => c.id);
+        let customerMessages: { content: string; conversation_subject: string }[] = [];
 
-          const systemPrompt = digestType === 'weekly'
-            ? `You are a support analytics assistant. Summarize this week's customer messages using Slack mrkdwn format.
+        if (conversationIds.length > 0) {
+          const { data: messages, error: msgError } = await supabase
+            .from('messages')
+            .select('content, conversation_id')
+            .in('conversation_id', conversationIds.slice(0, 100))
+            .eq('sender_type', 'customer')
+            .gte('created_at', since)
+            .order('created_at', { ascending: false })
+            .limit(150);
+
+          if (msgError) {
+            console.error(`Error fetching messages for org ${orgId}:`, msgError);
+          } else {
+            const convMap = new Map((groupConversations || []).map(c => [c.id, c.subject || '(no subject)']));
+            customerMessages = (messages || []).map(m => ({
+              content: stripHtml(m.content).substring(0, 300),
+              conversation_subject: convMap.get(m.conversation_id) || '(no subject)',
+            }));
+          }
+        }
+
+        // Compute numeric stats
+        const newConversations = (groupConversations || []).filter(c => c.created_at >= since);
+        const openCount = (groupConversations || []).filter(c => c.status === 'open').length;
+        const pendingCount = (groupConversations || []).filter(c => c.status === 'pending').length;
+        const closedCount = (groupConversations || []).filter(c => c.status === 'closed').length;
+        const urgentCount = (groupConversations || []).filter(c => c.priority === 'urgent' || c.priority === 'high').length;
+
+        const channelCounts: Record<string, number> = {};
+        for (const c of newConversations) {
+          channelCounts[c.channel] = (channelCounts[c.channel] || 0) + 1;
+        }
+        const channelBreakdown = Object.entries(channelCounts)
+          .map(([ch, count]) => `${ch}: ${count}`)
+          .join(' · ') || 'None';
+
+        // Generate AI summary if OpenAI key is available and we have messages
+        let aiSummary = '';
+        if (openaiApiKey && customerMessages.length > 0) {
+          try {
+            const messagesForAI = customerMessages.slice(0, 80).map((m, i) =>
+              `[${i + 1}] Subject: "${m.conversation_subject}" — "${m.content}"`
+            ).join('\n');
+
+            const systemPrompt = digestType === 'weekly'
+              ? `You are a support analytics assistant. Summarize this week's customer messages using Slack mrkdwn format.
 
 CRITICAL: Use *bold* (single asterisks) for emphasis. NEVER use **double asterisks**. Use • for bullet points. Be extremely concise.
 
@@ -176,7 +211,7 @@ Format exactly like this:
 *Sentiment:* One sentence overview.
 
 Max 200 words total. No extra sections.`
-            : `You are a support analytics assistant. Summarize today's customer messages using Slack mrkdwn format.
+              : `You are a support analytics assistant. Summarize today's customer messages using Slack mrkdwn format.
 
 CRITICAL: Use *bold* (single asterisks) for emphasis. NEVER use **double asterisks**. Use • for bullet points. Be extremely concise.
 
@@ -192,144 +227,181 @@ Format exactly like this:
 
 Max 150 words total. No extra sections.`;
 
-          const aiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${openaiApiKey}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              model: 'gpt-4o-mini',
-              messages: [
-                { role: 'system', content: systemPrompt },
-                { role: 'user', content: `Here are ${customerMessages.length} customer messages from the last ${periodDays} day(s):\n\n${messagesForAI}` },
-              ],
-              max_tokens: 500,
-              temperature: 0.3,
-            }),
-          });
+            const aiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${openaiApiKey}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                model: 'gpt-4o-mini',
+                messages: [
+                  { role: 'system', content: systemPrompt },
+                  { role: 'user', content: `Here are ${customerMessages.length} customer messages from the last ${periodDays} day(s):\n\n${messagesForAI}` },
+                ],
+                max_tokens: 500,
+                temperature: 0.3,
+              }),
+            });
 
-          if (aiResponse.ok) {
-            const aiResult = await aiResponse.json();
-            aiSummary = aiResult.choices?.[0]?.message?.content || '';
-            // Post-process: convert **bold** to *bold* for Slack mrkdwn
-            aiSummary = aiSummary.replace(/\*\*([^*]+)\*\*/g, '*$1*');
-            // Truncate to 2800 chars to stay under Slack's 3000-char block limit
-            if (aiSummary.length > 2800) aiSummary = aiSummary.substring(0, 2800) + '…';
-          } else {
-            console.error('OpenAI API error:', await aiResponse.text());
+            if (aiResponse.ok) {
+              const aiResult = await aiResponse.json();
+              aiSummary = aiResult.choices?.[0]?.message?.content || '';
+              aiSummary = aiSummary.replace(/\*\*([^*]+)\*\*/g, '*$1*');
+              if (aiSummary.length > 2800) aiSummary = aiSummary.substring(0, 2800) + '…';
+            } else {
+              console.error('OpenAI API error:', await aiResponse.text());
+            }
+          } catch (aiErr) {
+            console.error('AI summary generation failed:', aiErr);
           }
-        } catch (aiErr) {
-          console.error('AI summary generation failed:', aiErr);
         }
-      }
 
-      const now = new Date().toLocaleDateString('en-US', {
-        timeZone: 'Europe/Oslo',
-        weekday: 'long',
-        month: 'short',
-        day: 'numeric',
-      });
+        const now = new Date().toLocaleDateString('en-US', {
+          timeZone: 'Europe/Oslo',
+          weekday: 'long',
+          month: 'short',
+          day: 'numeric',
+        });
 
-      // Build Block Kit message
-      const blocks: any[] = [
-        {
-          type: 'header',
-          text: {
-            type: 'plain_text',
-            text: `📊 ${periodLabel} Support Digest — ${now}`,
-            emoji: true,
+        const headerText = inboxLabel
+          ? `📊 ${periodLabel} Digest — ${inboxLabel} — ${now}`
+          : `📊 ${periodLabel} Support Digest — ${now}`;
+
+        // Build Block Kit message
+        const blocks: any[] = [
+          {
+            type: 'header',
+            text: {
+              type: 'plain_text',
+              text: headerText,
+              emoji: true,
+            },
           },
-        },
-        {
-          type: 'section',
-          fields: [
-            { type: 'mrkdwn', text: `*New conversations:*\n${newConversations.length}` },
-            { type: 'mrkdwn', text: `*Open:*\n${openCount}` },
-            { type: 'mrkdwn', text: `*Pending:*\n${pendingCount}` },
-            { type: 'mrkdwn', text: `*Closed (${periodDays}d):*\n${closedCount}` },
-          ],
-        },
-      ];
+          {
+            type: 'section',
+            fields: [
+              { type: 'mrkdwn', text: `*New conversations:*\n${newConversations.length}` },
+              { type: 'mrkdwn', text: `*Open:*\n${openCount}` },
+              { type: 'mrkdwn', text: `*Pending:*\n${pendingCount}` },
+              { type: 'mrkdwn', text: `*Closed (${periodDays}d):*\n${closedCount}` },
+            ],
+          },
+        ];
 
-      if (urgentCount > 0) {
+        if (urgentCount > 0) {
+          blocks.push({
+            type: 'section',
+            fields: [
+              { type: 'mrkdwn', text: `*🔴 Urgent/High priority:*\n${urgentCount}` },
+            ],
+          });
+        }
+
         blocks.push({
           type: 'section',
           fields: [
-            { type: 'mrkdwn', text: `*🔴 Urgent/High priority:*\n${urgentCount}` },
+            { type: 'mrkdwn', text: `*By channel:*\n${channelBreakdown}` },
           ],
         });
-      }
 
-      blocks.push({
-        type: 'section',
-        fields: [
-          { type: 'mrkdwn', text: `*By channel:*\n${channelBreakdown}` },
-        ],
-      });
-
-      // Add AI summary section
-      if (aiSummary) {
-        blocks.push(
-          { type: 'divider' },
-          {
-            type: 'section',
-            text: {
-              type: 'mrkdwn',
-              text: `*🤖 AI Summary*\n\n${aiSummary}`,
-            },
-          },
-        );
-      } else if (customerMessages.length === 0) {
-        blocks.push(
-          { type: 'divider' },
-          {
-            type: 'section',
-            text: {
-              type: 'mrkdwn',
-              text: `_No customer messages to summarize for this period._`,
-            },
-          },
-        );
-      }
-
-      blocks.push(
-        { type: 'divider' },
-        {
-          type: 'context',
-          elements: [
+        if (aiSummary) {
+          blocks.push(
+            { type: 'divider' },
             {
-              type: 'mrkdwn',
-              text: `${periodLabel} digest · ${(conversations || []).length} conversations active · ${customerMessages.length} messages analyzed`,
+              type: 'section',
+              text: {
+                type: 'mrkdwn',
+                text: `*🤖 AI Summary*\n\n${aiSummary}`,
+              },
             },
-          ],
-        },
-      );
+          );
+        } else if (customerMessages.length === 0) {
+          blocks.push(
+            { type: 'divider' },
+            {
+              type: 'section',
+              text: {
+                type: 'mrkdwn',
+                text: `_No customer messages to summarize for this period._`,
+              },
+            },
+          );
+        }
 
-      // Post to Slack
-      const digestToken = integration.secondary_access_token || integration.access_token;
-      const slackResponse = await fetch('https://slack.com/api/chat.postMessage', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${digestToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          channel: integration.digest_channel_id,
-          text: `📊 ${periodLabel} Support Digest — ${now}: ${newConversations.length} new, ${openCount} open, ${urgentCount} urgent`,
-          blocks,
-          unfurl_links: false,
-          unfurl_media: false,
-        }),
-      });
+        blocks.push(
+          { type: 'divider' },
+          {
+            type: 'context',
+            elements: [
+              {
+                type: 'mrkdwn',
+                text: `${periodLabel} digest${inboxLabel ? ` · ${inboxLabel}` : ''} · ${(groupConversations || []).length} conversations active · ${customerMessages.length} messages analyzed`,
+              },
+            ],
+          },
+        );
 
-      const slackResult = await slackResponse.json();
-      if (!slackResult.ok) {
-        console.error(`Slack error for org ${orgId}:`, slackResult.error);
-        results.push({ org: orgId, sent: false, error: slackResult.error });
-      } else {
-        console.log(`${periodLabel} digest sent for org ${orgId}`);
-        results.push({ org: orgId, sent: true });
+        const slackResponse = await fetch('https://slack.com/api/chat.postMessage', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${targetToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            channel: targetChannelId,
+            text: `📊 ${periodLabel}${inboxLabel ? ` ${inboxLabel}` : ''} Digest — ${now}: ${newConversations.length} new, ${openCount} open, ${urgentCount} urgent`,
+            blocks,
+            unfurl_links: false,
+            unfurl_media: false,
+          }),
+        });
+
+        const slackResult = await slackResponse.json();
+        if (!slackResult.ok) {
+          console.error(`Slack error for org ${orgId}:`, slackResult.error);
+          return { sent: false, error: slackResult.error };
+        }
+        console.log(`${periodLabel} digest sent for org ${orgId}${inboxLabel ? ` (${inboxLabel})` : ''}`);
+        return { sent: true };
+      };
+
+      // Fetch inbox names for routed inboxes
+      const routedInboxIds = Array.from(inboxGroups.keys());
+      let inboxNames = new Map<string, string>();
+      if (routedInboxIds.length > 0) {
+        const { data: inboxes } = await supabase
+          .from('inboxes')
+          .select('id, name')
+          .in('id', routedInboxIds);
+        if (inboxes) {
+          for (const inbox of inboxes) {
+            inboxNames.set(inbox.id, inbox.name);
+          }
+        }
+      }
+
+      // Send per-inbox digests
+      for (const [inboxId, groupConvs] of inboxGroups) {
+        const routing = routingMap.get(inboxId)!;
+        const token = routing.use_secondary_workspace && integration.secondary_access_token
+          ? integration.secondary_access_token
+          : (integration.secondary_access_token || integration.access_token);
+        const inboxName = inboxNames.get(inboxId) || 'Unknown Inbox';
+        const result = await sendDigestForGroup(groupConvs, routing.channel_id, token, inboxName);
+        results.push({ org: orgId, sent: result.sent, error: result.error });
+      }
+
+      // Send default digest for unrouted conversations
+      if (defaultGroup.length > 0 && integration.digest_channel_id) {
+        const defaultToken = integration.secondary_access_token || integration.access_token;
+        const result = await sendDigestForGroup(defaultGroup, integration.digest_channel_id, defaultToken);
+        results.push({ org: orgId, sent: result.sent, error: result.error });
+      } else if (defaultGroup.length === 0 && inboxGroups.size === 0 && integration.digest_channel_id) {
+        // No conversations at all — send empty digest to default channel
+        const defaultToken = integration.secondary_access_token || integration.access_token;
+        const result = await sendDigestForGroup([], integration.digest_channel_id, defaultToken);
+        results.push({ org: orgId, sent: result.sent, error: result.error });
       }
     }
 
