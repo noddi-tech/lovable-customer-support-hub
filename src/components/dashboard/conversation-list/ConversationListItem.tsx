@@ -199,6 +199,14 @@ export const ConversationListItem = memo<ConversationListItemProps>(({
               Note
             </Badge>
           )}
+          {conversation.last_message_sender_type === 'customer' && 
+           !conversation.last_message_is_internal && 
+           (conversation.status === 'open' || conversation.status === 'pending') && (
+            <Badge variant="outline" className="px-1.5 py-0 text-xs shrink-0 bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-900/20 dark:text-orange-400 dark:border-orange-800">
+              <Clock className="h-3 w-3 mr-0.5" />
+              Awaiting reply
+            </Badge>
+          )}
         </div>
         
         <div className="flex items-center gap-1.5 shrink-0">

@@ -117,6 +117,14 @@ export const ChatListItem: React.FC<ChatListItemProps> = ({
               Note
             </Badge>
           )}
+          {(conv as any).last_message_sender_type === 'customer' && 
+           !conv.last_message_is_internal && 
+           (conv.status === 'open' || conv.status === 'pending') && (
+            <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-900/20 dark:text-orange-400 dark:border-orange-800">
+              <Clock className="h-3 w-3 mr-0.5" />
+              Awaiting reply
+            </Badge>
+          )}
         </div>
         {customerEmail && (
           <span className="text-xs text-muted-foreground truncate block">

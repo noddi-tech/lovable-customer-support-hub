@@ -54,6 +54,7 @@ export interface Conversation {
   is_thread_representative?: boolean; // True for the main/latest conversation in thread
   metadata?: Record<string, any>;
   last_message_is_internal?: boolean;
+  last_message_sender_type?: string;
 }
 
 interface ArchiveDialogState {
