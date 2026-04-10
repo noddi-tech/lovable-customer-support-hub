@@ -319,14 +319,7 @@ Deno.serve(async (req) => {
     const blocks: any[] = [];
     const attachmentBlocks: any[] = [];
 
-    // Header section with source indicator
-    attachmentBlocks.push({
-      type: 'section',
-      text: {
-        type: 'mrkdwn',
-        text: `${emoji} *${title}*${inbox_name ? ` in ${inbox_name}` : ''}`,
-      },
-    });
+    // Customer info follows directly — header is in fallback text above the attachment
 
     // Customer info with subject
     attachmentBlocks.push({
