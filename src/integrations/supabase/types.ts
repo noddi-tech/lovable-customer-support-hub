@@ -1187,6 +1187,12 @@ export type Database = {
           channel_id: string
           channel_name: string | null
           created_at: string | null
+          critical_channel_id: string | null
+          critical_channel_name: string | null
+          critical_use_secondary: boolean | null
+          digest_channel_id: string | null
+          digest_channel_name: string | null
+          digest_use_secondary: boolean | null
           id: string
           inbox_id: string
           is_active: boolean | null
@@ -1198,6 +1204,12 @@ export type Database = {
           channel_id: string
           channel_name?: string | null
           created_at?: string | null
+          critical_channel_id?: string | null
+          critical_channel_name?: string | null
+          critical_use_secondary?: boolean | null
+          digest_channel_id?: string | null
+          digest_channel_name?: string | null
+          digest_use_secondary?: boolean | null
           id?: string
           inbox_id: string
           is_active?: boolean | null
@@ -1209,6 +1221,12 @@ export type Database = {
           channel_id?: string
           channel_name?: string | null
           created_at?: string | null
+          critical_channel_id?: string | null
+          critical_channel_name?: string | null
+          critical_use_secondary?: boolean | null
+          digest_channel_id?: string | null
+          digest_channel_name?: string | null
+          digest_use_secondary?: boolean | null
           id?: string
           inbox_id?: string
           is_active?: boolean | null

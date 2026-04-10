@@ -117,10 +117,16 @@ Deno.serve(async (req) => {
         .eq('slack_integration_id', integration.id)
         .eq('is_active', true);
 
-      const routingMap = new Map<string, { channel_id: string; use_secondary_workspace: boolean }>();
+      // Build routing map: use dedicated digest_channel_id if set, else fall back to channel_id
+      const routingMap = new Map<string, { digest_channel_id: string; digest_use_secondary: boolean }>();
       if (routingEntries) {
         for (const r of routingEntries) {
-          routingMap.set(r.inbox_id, { channel_id: r.channel_id, use_secondary_workspace: r.use_secondary_workspace });
+          if (r.digest_channel_id) {
+            routingMap.set(r.inbox_id, { digest_channel_id: r.digest_channel_id, digest_use_secondary: r.digest_use_secondary ?? false });
+          } else if (r.channel_id && r.channel_id !== '_placeholder') {
+            // Fall back to notification channel for digest if no dedicated digest channel
+            routingMap.set(r.inbox_id, { digest_channel_id: r.channel_id, digest_use_secondary: r.use_secondary_workspace ?? false });
+          }
         }
       }
 
@@ -384,11 +390,11 @@ Max 150 words total. No extra sections.`;
       // Send per-inbox digests
       for (const [inboxId, groupConvs] of inboxGroups) {
         const routing = routingMap.get(inboxId)!;
-        const token = routing.use_secondary_workspace && integration.secondary_access_token
+        const token = routing.digest_use_secondary && integration.secondary_access_token
           ? integration.secondary_access_token
-          : (integration.secondary_access_token || integration.access_token);
+          : integration.access_token;
         const inboxName = inboxNames.get(inboxId) || 'Unknown Inbox';
-        const result = await sendDigestForGroup(groupConvs, routing.channel_id, token, inboxName);
+        const result = await sendDigestForGroup(groupConvs, routing.digest_channel_id, token, inboxName);
         results.push({ org: orgId, sent: result.sent, error: result.error });
       }
 
