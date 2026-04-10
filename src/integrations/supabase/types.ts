@@ -4364,6 +4364,7 @@ export type Database = {
               is_deleted: boolean
               is_read: boolean
               last_message_is_internal: boolean
+              last_message_sender_type: string
               metadata: Json
               organization_id: string
               preview_text: string
