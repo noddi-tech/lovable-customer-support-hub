@@ -78,7 +78,13 @@ export const ConversationHeader = () => {
           <Button 
             variant="ghost" 
             size="sm"
-            onClick={() => navigate('/', { replace: true })}
+onClick={() => {
+              if (window.history.length > 1) {
+                navigate(-1);
+              } else {
+                navigate('/interactions/text/open');
+              }
+            }}
             className="flex items-center gap-1 md:gap-2 text-muted-foreground hover:text-foreground flex-shrink-0"
           >
             <ChevronLeft className="h-4 w-4" />
