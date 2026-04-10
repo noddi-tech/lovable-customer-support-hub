@@ -326,7 +326,7 @@ const handler = async (req: Request): Promise<Response> => {
     if (templateSettings.include_agent_name && senderInfo?.full_name) {
       signature = signature.replace('{{agent_name}}', senderInfo.full_name);
     } else {
-      signature = signature.replace('{{agent_name}}', 'Support Team');
+      signature = signature.replace('{{agent_name}}', '').replace(/(<br\s*\/?>){2,}/g, '<br>');
     }
 
     // Only add "Re:" prefix if there are previous messages (this is a reply)
