@@ -305,7 +305,7 @@ export const InboxSlackRouting = ({
                   const isEnabled = getSlotEnabled(routing, key);
 
                   return (
-                    <div key={key} className="flex items-center gap-2">
+                    <div key={key} className="flex flex-wrap items-center gap-2">
                       <div className="flex items-center gap-1.5 w-32 shrink-0">
                         {toggleable && (
                           <Switch
