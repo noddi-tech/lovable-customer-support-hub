@@ -1,42 +1,58 @@
 
 
-# URGENT: Hide Knowledge Search to Stop PII Leak
+# Add "Awaiting Reply" Badge to Conversation Lists
 
-## The Problem
+## Problem
+When an agent reads a conversation but doesn't reply, it loses the "unread" indicator and blends in with answered conversations. There's no visual cue that the latest message is from the customer and still needs an agent response.
 
-The "Søk i hjelpesenter" (Knowledge Search) feature and the AI chat's `search_knowledge_base` tool are exposing raw customer data to the public widget. The `knowledge_entries` table contains unredacted customer emails with full names, phone numbers, addresses, and payment information. Any visitor can search and retrieve this data.
+## Approach
+Mirror the existing `last_message_is_internal` pattern: add a `last_message_sender_type` column to `conversations`, set it via the existing trigger, and render a badge in all list views.
 
-**Two leak vectors:**
-1. **Knowledge Search view** — `widget-search-faq` returns raw `customer_context`/`agent_response` directly to the browser
-2. **AI Chat** — `search_knowledge_base` tool feeds raw entries to the LLM, which can quote PII verbatim
+## Changes
 
-## Immediate Fix: Disable Both Vectors
+### 1. Database migration
+- Add column: `ALTER TABLE conversations ADD COLUMN last_message_sender_type text DEFAULT 'agent'`
+- Update `update_conversation_preview()` trigger to also set `last_message_sender_type = NEW.sender_type` on each message insert
+- Backfill from the most recent message per conversation:
+  ```sql
+  UPDATE conversations c SET last_message_sender_type = (
+    SELECT m.sender_type FROM messages m
+    WHERE m.conversation_id = c.id
+    ORDER BY m.created_at DESC LIMIT 1
+  )
+  ```
 
-### 1. Edge function: `supabase/functions/widget-search-faq/index.ts`
-- Add an early return that always returns empty results, effectively killing the endpoint
-- This stops the Knowledge Search view from returning any data
+### 2. Update the `list_conversations_optimized` RPC
+- In the migration that defines this function, add `c.last_message_sender_type` to the SELECT and return type
 
-### 2. Edge function: `supabase/functions/widget-ai-chat/index.ts`
-- Remove `search_knowledge_base` from the tools array passed to the LLM
-- Remove the case handler in `executeToolCall`
-- This prevents the AI from accessing knowledge entries
+### 3. Frontend type: `ConversationListContext.tsx`
+- Add `last_message_sender_type?: string` to the `Conversation` interface
 
-### 3. Widget UI: `src/widget/components/WidgetPanel.tsx`
-- Remove the `enableKnowledgeSearch` button from the home screen (the "Søk i hjelpesenter" action)
-- Remove the `search` view rendering block
-- Keep the AI chat available (it will still work for bookings, customer lookup etc. — just without knowledge search)
+### 4. Badge rendering (4 files, same pattern)
+Show an "Awaiting Reply" badge when `last_message_sender_type === 'customer'` AND the conversation is not internal-note AND status is `open` or `pending`. Uses a blue/orange style to stand out.
 
-### 4. Widget UI: `src/widget/components/WidgetPanel.tsx` (home view)
-- Also hide the standalone "Søk i hjelpesenter" action button that leads to the dedicated search view
+- **`ConversationListItem.tsx`** — after the Note badge block (~line 196)
+- **`ConversationTableRow.tsx`** — in all 3 render modes (compact ~line 243, default ~line 303, expanded ~line 421)
+- **`ChatListItem.tsx`** — after the Note badge (~line 114)
 
-### 5. Deploy both edge functions
+Badge markup (same everywhere):
+```tsx
+{conversation.last_message_sender_type === 'customer' && 
+ !conversation.last_message_is_internal && 
+ (conversation.status === 'open' || conversation.status === 'pending') && (
+  <Badge className="px-1.5 py-0 text-[10px] shrink-0 bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-900/20 dark:text-orange-400 dark:border-orange-800">
+    <Clock className="h-3 w-3 mr-0.5" />
+    Awaiting reply
+  </Badge>
+)}
+```
 
-## What stays working
-- AI chat (booking flows, customer lookup, cancellations, rescheduling)
-- Live chat
-- Contact form
-- All other widget functionality
+### 5. Supabase types
+- Regenerate or manually add `last_message_sender_type` to `types.ts`
 
-## Future: When re-enabling
-Before re-enabling knowledge search, the `knowledge_entries` data must be sanitized to strip PII (names, phones, emails, addresses) from `customer_context` and `agent_response` fields. This is a separate task.
+## Technical notes
+- The trigger already fires on every message insert, so adding one more column assignment is zero overhead
+- No new RLS policies needed — the column inherits the row's existing policy
+- The badge only shows for open/pending conversations to avoid noise on closed ones
+- `sender_type` values in the messages table are `'customer'` and `'agent'`
 
