@@ -12,6 +12,7 @@ import { Loader2, CheckCircle2, Hash, Lock, Send, ExternalLink, Slack, Info, Clo
 import { useSlackIntegration } from '@/hooks/useSlackIntegration';
 import { SlackSetupWizard } from './SlackSetupWizard';
 import { SecondarySlackSetupWizard } from './SecondarySlackSetupWizard';
+import { InboxSlackRouting } from './InboxSlackRouting';
 
 const EVENT_OPTIONS = [
   { id: 'new_conversation', label: 'New Conversation', description: 'When a new email/message arrives' },
