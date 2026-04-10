@@ -64,7 +64,7 @@ Deno.serve(async (req) => {
     }
 
     // Fetch channels from Slack
-    const channels: Array<{ id: string; name: string; is_private: boolean }> = [];
+    const channels: Array<{ id: string; name: string; is_private: boolean; is_member: boolean }> = [];
     let cursor: string | undefined;
 
     do {
@@ -96,6 +96,7 @@ Deno.serve(async (req) => {
           id: channel.id,
           name: channel.name,
           is_private: channel.is_private,
+          is_member: channel.is_member ?? false,
         });
       }
 
