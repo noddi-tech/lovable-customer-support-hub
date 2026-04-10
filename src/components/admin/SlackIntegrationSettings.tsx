@@ -316,6 +316,14 @@ export const SlackIntegrationSettings = () => {
         </CardContent>
       </Card>
 
+      {/* Per-Inbox Channel Routing */}
+      <InboxSlackRouting
+        integration={integration!}
+        channels={channels}
+        secondaryChannels={secondaryChannels}
+        hasSecondaryWorkspace={hasSecondaryWorkspace}
+      />
+
       {/* Event Configuration */}
       <Card className="bg-gradient-surface border-border/50">
         <CardHeader>
