@@ -96,6 +96,7 @@ Deno.serve(async (req) => {
           id: channel.id,
           name: channel.name,
           is_private: channel.is_private,
+          is_member: channel.is_member ?? false,
         });
       }
 
