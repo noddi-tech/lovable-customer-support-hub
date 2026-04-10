@@ -39,6 +39,7 @@ export interface SlackChannel {
   id: string;
   name: string;
   is_private: boolean;
+  is_member: boolean;
 }
 
 export const useSlackIntegration = () => {

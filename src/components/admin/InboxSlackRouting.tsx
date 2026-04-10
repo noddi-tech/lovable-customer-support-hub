@@ -367,11 +367,28 @@ export const InboxSlackRouting = ({
                                       <Hash className="h-3 w-3 text-muted-foreground" />
                                     )}
                                     {channel.name}
+                                    {!channel.is_member && (
+                                      <span className="text-warning text-[10px] ml-1">⚠</span>
+                                    )}
                                   </div>
                                 </SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
+
+                          {/* Warning when selected channel has no bot membership */}
+                          {channelId && (() => {
+                            const selected = availableChannels.find(c => c.id === channelId);
+                            if (selected && !selected.is_member) {
+                              return (
+                                <div className="flex items-center gap-1 text-warning">
+                                  <AlertTriangle className="h-3 w-3 shrink-0" />
+                                  <span className="text-[11px]">Bot not in channel — type <code className="font-mono bg-muted px-1 rounded">/invite @YourBot</code> in Slack</span>
+                                </div>
+                              );
+                            }
+                            return null;
+                          })()}
                         </>
                       )}
                     </div>
