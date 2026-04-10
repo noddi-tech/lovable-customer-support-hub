@@ -141,6 +141,11 @@ Deno.serve(async (req) => {
 
       for (const conv of (conversations || [])) {
         if (conv.inbox_id && routingMap.has(conv.inbox_id)) {
+          const entry = routingMap.get(conv.inbox_id)!;
+          if (entry.digest_channel_id === '__disabled__') {
+            // Digest disabled for this inbox — exclude entirely
+            continue;
+          }
           if (!inboxGroups.has(conv.inbox_id)) {
             inboxGroups.set(conv.inbox_id, []);
           }
