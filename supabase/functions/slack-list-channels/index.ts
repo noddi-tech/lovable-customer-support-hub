@@ -55,10 +55,27 @@ Deno.serve(async (req) => {
 
     // Pick the right token based on use_secondary flag
     const token = useSecondary ? integration?.secondary_access_token : integration?.access_token;
+    const workspaceLabel = useSecondary ? 'secondary' : 'primary';
 
     if (integrationError || !token) {
+      console.error(`No ${workspaceLabel} token found. Integration error:`, integrationError);
       return new Response(
         JSON.stringify({ error: useSecondary ? 'Secondary workspace not connected' : 'Slack not connected', channels: [] }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Verify token validity with auth.test
+    const authTestResponse = await fetch('https://slack.com/api/auth.test', {
+      headers: { 'Authorization': `Bearer ${token}` },
+    });
+    const authTestData = await authTestResponse.json();
+    console.log(`auth.test for ${workspaceLabel} workspace:`, JSON.stringify(authTestData));
+
+    if (!authTestData.ok) {
+      console.error(`Token invalid for ${workspaceLabel} workspace:`, authTestData.error);
+      return new Response(
+        JSON.stringify({ error: `Token is invalid or expired (${authTestData.error}). Please reconnect the workspace.`, channels: [] }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -102,6 +119,8 @@ Deno.serve(async (req) => {
 
       cursor = data.response_metadata?.next_cursor;
     } while (cursor);
+
+    console.log(`Fetched ${channels.length} channels from ${workspaceLabel} workspace (team: ${authTestData.team})`);
 
     // Sort channels alphabetically
     channels.sort((a, b) => a.name.localeCompare(b.name));
