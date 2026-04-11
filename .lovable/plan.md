@@ -1,34 +1,47 @@
 
 
-# Fix: Back Button in Conversation Header Does Nothing
+# Diagnosing: Navio Workspace Not Finding New Channels
 
-## Problem
-The "Back to Inbox" button in `ConversationHeader.tsx` navigates to `'/'` with `replace: true`. When a user arrives from an external link (e.g. Slack's "View Conversation"), there's no meaningful history. Navigating to `/` just redirects to `/interactions/text/open`, but since `replace: true` is used, the user may end up in a loop or see no visible change.
+## Investigation Summary
 
-## Fix
-**File: `src/components/dashboard/conversation-view/ConversationHeader.tsx`** (line 81)
+The code and database configuration look correct:
+- The secondary workspace (Navio, team ID `T02KWR5S290`) is properly connected with a valid token
+- The `slack-list-channels` edge function fetches both public and private channels using `conversations.list`
+- The UI doesn't filter channels — it shows everything returned by Slack
+- React Query has no aggressive caching that would prevent refetching
 
-Change the back button to navigate to the conversation's inbox list view instead of `/`:
+## Most Likely Cause
 
-```typescript
-// Before
-onClick={() => navigate('/', { replace: true })}
+The Slack `conversations.list` API only returns channels that the **bot can see**:
+- **Public channels**: always returned, but bot may not be a member
+- **Private channels**: only returned if the bot has been **invited** to them
 
-// After — navigate to the correct interactions list
-onClick={() => navigate(-1)}
-```
+If the new channels in the Navio workspace are **private**, someone needs to invite the "Support Alerts" bot to those channels in Slack.
 
-However, `navigate(-1)` won't work when arriving from an external link (no history). A more robust approach: detect whether there's app history to go back to, and if not, fall back to the interactions list route:
+If the channels are **public**, the issue could be a **stale/revoked token**. The secondary token was saved once and never refreshed — if someone reinstalled or rotated the Slack app, the stored token would be invalid.
 
-```typescript
-onClick={() => {
-  if (window.history.length > 1) {
-    navigate(-1);
-  } else {
-    navigate('/interactions/text/open');
-  }
-}}
-```
+## Plan
 
-This ensures the back button always works — using browser history when available, and falling back to the inbox list when arriving from an external link.
+### 1. Add better error logging to the edge function
+In `supabase/functions/slack-list-channels/index.ts`, add a `console.log` showing how many channels were returned and any Slack API errors, so we can see what's happening in the logs.
+
+### 2. Test the token validity
+Call Slack's `auth.test` with the secondary token before fetching channels — if the token is invalid, return a clear error message like "Token expired or revoked" instead of silently returning an empty list.
+
+### 3. Add a "Refresh Channels" button feedback
+Currently the refresh button exists but gives no feedback on what happened. Add a toast showing "Found X channels" or "Error: ..." after the refetch completes.
+
+## Technical Details
+
+**File: `supabase/functions/slack-list-channels/index.ts`**
+- Before calling `conversations.list`, call `auth.test` with the token to verify it's still valid
+- Log the channel count: `console.log('Fetched ${channels.length} channels from ${useSecondary ? 'secondary' : 'primary'} workspace')`
+- If `auth.test` fails, return `{ error: 'Token is invalid or expired. Please reconnect the workspace.', channels: [] }`
+
+**File: `src/hooks/useSlackIntegration.ts`**
+- No changes needed — the refetch mechanism works correctly
+
+**Redeploy**: `slack-list-channels` edge function
+
+This will give us visibility into whether the token works and what Slack is actually returning.
 
