@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { Loader2, Hash, Lock, Inbox, Building2, Bell, BarChart3, AlertTriangle, X } from 'lucide-react';
+import { Loader2, Hash, Lock, Inbox, Building2, Bell, BarChart3, AlertTriangle, X, RefreshCw } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useOrganizationStore } from '@/stores/organizationStore';
@@ -17,6 +17,8 @@ interface InboxSlackRoutingProps {
   channels: SlackChannel[];
   secondaryChannels: SlackChannel[];
   hasSecondaryWorkspace: boolean;
+  onRefreshChannels?: () => Promise<unknown>;
+  isRefreshing?: boolean;
 }
 
 interface RoutingEntry {
@@ -55,6 +57,8 @@ export const InboxSlackRouting = ({
   channels,
   secondaryChannels,
   hasSecondaryWorkspace,
+  onRefreshChannels,
+  isRefreshing,
 }: InboxSlackRoutingProps) => {
   const queryClient = useQueryClient();
   const { currentOrganizationId } = useOrganizationStore();
@@ -253,16 +257,32 @@ export const InboxSlackRouting = ({
   return (
     <Card className="bg-gradient-surface border-border/50">
       <CardHeader>
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-primary/10">
-            <Inbox className="h-5 w-5 text-primary" />
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-primary/10">
+              <Inbox className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <CardTitle className="text-lg">Per-Inbox Channel Routing</CardTitle>
+              <CardDescription>
+                Route notifications, digests, and critical alerts from specific inboxes to dedicated channels and workspaces. Unrouted inboxes use the organization defaults above.
+              </CardDescription>
+            </div>
           </div>
-          <div>
-            <CardTitle className="text-lg">Per-Inbox Channel Routing</CardTitle>
-            <CardDescription>
-              Route notifications, digests, and critical alerts from specific inboxes to dedicated channels and workspaces. Unrouted inboxes use the organization defaults above.
-            </CardDescription>
-          </div>
+          {onRefreshChannels && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={async () => {
+                await onRefreshChannels();
+                toast.success(`Refreshed: ${channels.length} primary${hasSecondaryWorkspace ? `, ${secondaryChannels.length} secondary` : ''} channels found`);
+              }}
+              disabled={isRefreshing}
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+              Refresh Channels
+            </Button>
+          )}
         </div>
       </CardHeader>
       <CardContent className="space-y-4">

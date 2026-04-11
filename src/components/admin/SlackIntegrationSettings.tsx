@@ -322,6 +322,10 @@ export const SlackIntegrationSettings = () => {
         channels={channels}
         secondaryChannels={secondaryChannels}
         hasSecondaryWorkspace={hasSecondaryWorkspace}
+        onRefreshChannels={async () => {
+          await Promise.all([refetchChannels(), refetchSecondaryChannels()]);
+        }}
+        isRefreshing={isLoadingChannels || isLoadingSecondaryChannels}
       />
 
       {/* Event Configuration */}
