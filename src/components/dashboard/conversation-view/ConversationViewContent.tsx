@@ -161,7 +161,11 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
 
   const navigateBack = useNavigate();
   const handleBack = () => {
-    navigateBack(-1);
+    if (window.history.state?.idx > 0) {
+      navigateBack(-1);
+    } else {
+      navigateBack('/interactions/text/open');
+    }
   };
 
   // ============ MOBILE: Dedicated mobile components ============
