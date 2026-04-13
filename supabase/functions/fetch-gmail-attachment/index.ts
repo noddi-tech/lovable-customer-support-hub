@@ -72,18 +72,41 @@ serve(async (req) => {
     const emailAccountId = conv.email_account_id;
     const organizationId = conv.organization_id;
 
-    if (!emailAccountId) {
-      return new Response(JSON.stringify({ error: 'No email account linked to this conversation' }), {
+    // Try direct email account first, then fall back to any Gmail OAuth account in the org
+    let account = null;
+    if (emailAccountId) {
+      const { data } = await supabaseClient
+        .from('email_accounts')
+        .select('id, access_token, refresh_token, token_expires_at, email_address')
+        .eq('id', emailAccountId)
+        .not('refresh_token', 'is', null)
+        .single();
+      account = data;
+    }
+
+    if (!account) {
+      // Fallback: find any Gmail OAuth account in the same org with valid tokens
+      console.log('[fetch-gmail-attachment] No direct account, searching org for Gmail OAuth account...');
+      const { data } = await supabaseClient
+        .from('email_accounts')
+        .select('id, access_token, refresh_token, token_expires_at, email_address')
+        .eq('organization_id', organizationId)
+        .eq('provider', 'gmail')
+        .eq('is_active', true)
+        .not('refresh_token', 'is', null)
+        .limit(1)
+        .single();
+      account = data;
+    }
+
+    if (!account) {
+      return new Response(JSON.stringify({ 
+        error: 'No Gmail account with OAuth access found. This attachment was received via forwarding and cannot be fetched on-demand. Please connect a Gmail account with OAuth to enable attachment downloads.',
+        recoverable: false
+      }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
-
-    // Get Gmail account credentials
-    const { data: account, error: accError } = await supabaseClient
-      .from('email_accounts')
-      .select('id, access_token, refresh_token, token_expires_at, email_address')
-      .eq('id', emailAccountId)
-      .single();
 
     if (accError || !account) {
       return new Response(JSON.stringify({ error: 'Email account not found' }), {
