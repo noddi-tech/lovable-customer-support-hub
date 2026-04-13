@@ -1,54 +1,44 @@
 
 
-# Fix: PDF Attachment Download Not Working
+# Fix: App Crash on "Fetch & Download" When No Gmail OAuth Account
 
-## Root Cause
-The attachment for "Møllr Bil Kalbakken.pdf" has `storageKey: null` in the database. This means the Gmail sync ingested the email metadata but failed to download and upload the attachment binary to Supabase Storage. The download button is intentionally disabled when `storageKey` is missing — but there's no user feedback explaining *why*.
+## Problem
+The "Fetch & Download" button correctly handles the 400 error (shows toast), but the Lovable dev error overlay also fires, showing "The app encountered an error." This is because the HTTP 400 response triggers the preview's error reporting system independently of the try/catch handling.
 
-## Two-Part Fix
+## Fix
 
-### 1. Better UX when download is unavailable
-Currently the button is just grayed out with no explanation. We should show a tooltip or message explaining the file isn't available and offer a re-sync option.
+**File: `src/components/ui/email-render.tsx`** (~lines 101-146)
 
-**File: `src/components/ui/email-render.tsx`** (AttachmentDownloadButton, ~line 155-170)
-- When `!attachment.storageKey`, show the button as clickable but display a toast explaining "This attachment wasn't downloaded during sync. Try refreshing the conversation." instead of silently disabling it.
+Two changes:
 
-### 2. Fix this specific attachment by re-fetching from Gmail
-The Gmail sync function already has attachment download logic. We need to either:
-- **Option A**: Add a "Re-sync attachments" button/action that re-invokes the Gmail sync for this specific message to re-download missing attachments
-- **Option B**: Create a small edge function that fetches a single attachment from Gmail on-demand when the user clicks download, and backfills the `storageKey`
+1. **Suppress the `console.error` for handled cases**: The catch block at line 163 logs `console.error('Download error:', error)` which triggers the error overlay. But since the `recoverable === false` case returns at line 138 before reaching catch, this shouldn't be the issue. The more likely cause is that `response.json()` at line 130 parses fine, but the error is also being reported by the Lovable preview's network error interceptor.
 
-**Recommended: Option B — On-demand attachment fetch**
+2. **Better approach — don't attempt fetch if we know it will fail**: Instead of calling the edge function and getting a 400, show the "unavailable" toast immediately when the user clicks. We can still offer the fetch attempt, but wrap it more defensively:
 
-**New file: `supabase/functions/fetch-gmail-attachment/index.ts`**
-- Accepts `messageId` (our DB message ID) and attachment index/filename
-- Looks up the message to find the Gmail message ID and the Gmail account
-- Calls the Gmail API to fetch the specific attachment
-- Uploads to Supabase Storage and updates the message's attachments JSON with the new `storageKey`
-- Returns the file as a download
-
-**File: `src/components/ui/email-render.tsx`** (AttachmentDownloadButton)
-- When `!attachment.storageKey`, clicking download calls `fetch-gmail-attachment` instead
-- On success, update the local attachment data and trigger the download
-- Pass `messageId` prop through to `AttachmentDownloadButton`
-
-### Technical Details
-
-**Edge function logic:**
-```
-1. Receive { messageId, filename }
-2. Query messages table for gmail_message_id and gmail account
-3. Get Gmail access token (refresh if needed)
-4. Call Gmail API: users.messages.attachments.get
-5. Upload binary to storage bucket
-6. Update messages.attachments JSONB to set storageKey
-7. Return the file blob for immediate download
+```typescript
+if (!response.ok) {
+  const errData = await response.json().catch(() => ({}));
+  if (errData.recoverable === false) {
+    toast({ 
+      title: "Attachment unavailable", 
+      description: errData.error || "This file can't be fetched on-demand.",
+      variant: "destructive",
+      duration: 8000,
+    });
+    setIsDownloading(false);
+    return; // Prevent any further error propagation
+  }
+  throw new Error(errData.error || `Failed to fetch attachment (${response.status})`);
+}
 ```
 
-**EmailRender changes:**
-- Pass `messageId` to `AttachmentDownloadButton`
-- In `handleDownload`, if no `storageKey`, call `fetch-gmail-attachment` edge function
-- On success, trigger download from the returned blob and show success toast
+3. **Add `edge function` to the `shouldSuppressError` list** in `GlobalErrorBoundary.tsx` to prevent the error overlay from showing for handled edge function errors. Add `message.includes('edge function')` to the suppression list.
 
-This ensures attachments that failed during initial sync can still be downloaded on-demand, and future downloads will be instant since the `storageKey` gets backfilled.
+**File: `src/components/error/GlobalErrorBoundary.tsx`** (~line 47-52)
+- Add `message.includes('edge function')` to the network error suppression block
+
+This ensures:
+- The toast still shows with a clear explanation
+- The app doesn't show the crash overlay
+- No blank screen
 
