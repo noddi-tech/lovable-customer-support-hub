@@ -83,63 +83,74 @@ const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
 };
 
 // Component to handle attachment download with auth
-const AttachmentDownloadButton: React.FC<{ attachment: EmailAttachment }> = ({ attachment }) => {
+const AttachmentDownloadButton: React.FC<{ attachment: EmailAttachment; messageId?: string }> = ({ attachment, messageId }) => {
   const [isDownloading, setIsDownloading] = useState(false);
   const { toast } = useToast();
 
-  const handleDownload = async () => {
-    if (!attachment.storageKey) {
-      toast({
-        title: "Download unavailable",
-        description: "This attachment cannot be downloaded",
-        variant: "destructive",
-      });
-      return;
-    }
+  const triggerBlobDownload = (blob: Blob, filename: string) => {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
 
+  const handleDownload = async () => {
     setIsDownloading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('get-attachment', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: null,
-      });
+      // If no storageKey, try on-demand fetch from Gmail
+      if (!attachment.storageKey) {
+        if (!messageId) {
+          toast({ title: "Download unavailable", description: "Missing message reference", variant: "destructive" });
+          return;
+        }
 
-      // Use direct fetch with auth header for binary download
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        throw new Error('Not authenticated');
+        toast({ title: "Fetching attachment...", description: "Downloading from Gmail. This may take a moment." });
+
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) throw new Error('Not authenticated');
+
+        const response = await fetch(
+          `https://qgfaycwsangsqzpveoup.supabase.co/functions/v1/fetch-gmail-attachment`,
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${session.access_token}`,
+              'Content-Type': 'application/json',
+              'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFnZmF5Y3dzYW5nc3F6cHZlb3VwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQwMzIwMDMsImV4cCI6MjA2OTYwODAwM30.Q5dNwdnAxCDwhaEluhFnCO1hbTY4rZ1uhEy284FLhTE',
+            },
+            body: JSON.stringify({ messageId, filename: attachment.filename }),
+          }
+        );
+
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({}));
+          throw new Error(errData.error || `Failed to fetch attachment (${response.status})`);
+        }
+
+        const blob = await response.blob();
+        triggerBlobDownload(blob, attachment.filename);
+        toast({ title: "Download complete", description: attachment.filename });
+        return;
       }
+
+      // Normal download via storage key
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not authenticated');
 
       const response = await fetch(
         `https://qgfaycwsangsqzpveoup.supabase.co/functions/v1/get-attachment?key=${encodeURIComponent(attachment.storageKey)}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`,
-          },
-        }
+        { headers: { 'Authorization': `Bearer ${session.access_token}` } }
       );
 
-      if (!response.ok) {
-        throw new Error('Download failed');
-      }
+      if (!response.ok) throw new Error('Download failed');
 
       const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = attachment.filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-
-      toast({
-        title: "Download complete",
-        description: attachment.filename,
-      });
+      triggerBlobDownload(blob, attachment.filename);
+      toast({ title: "Download complete", description: attachment.filename });
     } catch (error) {
       console.error('Download error:', error);
       toast({
@@ -159,14 +170,14 @@ const AttachmentDownloadButton: React.FC<{ attachment: EmailAttachment }> = ({ a
       className="text-xs"
       aria-label={`Download ${attachment.filename}`}
       onClick={handleDownload}
-      disabled={isDownloading || !attachment.storageKey}
+      disabled={isDownloading}
     >
       {isDownloading ? (
         <Loader2 className="h-3 w-3 mr-1 animate-spin" aria-hidden="true" />
       ) : (
         <Download className="h-3 w-3 mr-1" aria-hidden="true" />
       )}
-      Download
+      {!attachment.storageKey ? 'Fetch & Download' : 'Download'}
     </Button>
   );
 };
@@ -632,7 +643,7 @@ const EmailRenderComponent: React.FC<EmailRenderProps> = ({
                   </span>
                 </div>
                 <div className="email-render__attachment-actions">
-                  <AttachmentDownloadButton attachment={attachment} />
+                  <AttachmentDownloadButton attachment={attachment} messageId={messageId} />
                 </div>
               </li>
             ))}
