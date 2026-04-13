@@ -47,7 +47,8 @@ export class GlobalErrorBoundary extends Component<Props, State> {
     // Suppress network errors that are handled elsewhere
     if (message.includes('network') ||
         message.includes('fetch') ||
-        message.includes('cors')) {
+        message.includes('cors') ||
+        message.includes('edge function')) {
       return true;
     }
     

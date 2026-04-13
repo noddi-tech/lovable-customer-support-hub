@@ -135,6 +135,7 @@ const AttachmentDownloadButton: React.FC<{ attachment: EmailAttachment; messageI
               variant: "destructive",
               duration: 8000,
             });
+            setIsDownloading(false);
             return;
           }
           throw new Error(errData.error || `Failed to fetch attachment (${response.status})`);
