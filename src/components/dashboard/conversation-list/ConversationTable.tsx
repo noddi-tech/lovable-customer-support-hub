@@ -4,8 +4,9 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { ConversationTableRow } from './ConversationTableRow';
 import { TableHeaderCell } from './TableHeaderCell';
 import { useConversationList, type Conversation } from '@/contexts/ConversationListContext';
-import { Clock, Inbox } from 'lucide-react';
+import { Clock } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { InboxZeroCelebration, AlmostThereBanner } from './InboxZeroCelebration';
 
 interface ConversationTableProps {
   onSelectConversation: (conversation: Conversation) => void;
@@ -55,19 +56,12 @@ export const ConversationTable = memo<ConversationTableProps>(({
   }
 
   if (filteredConversations.length === 0) {
-    return (
-      <div className="flex items-center justify-center h-32 text-muted-foreground">
-        <div className="text-center">
-          <Inbox className="w-8 h-8 mx-auto mb-2 opacity-50" />
-          <p className="text-sm mb-1">{t('dashboard.conversationList.noConversations', 'No conversations found')}</p>
-          <p className="text-xs">{t('dashboard.conversationList.noConversationsDescription', 'There are no conversations matching your current filters.')}</p>
-        </div>
-      </div>
-    );
+    return <InboxZeroCelebration />;
   }
 
   return (
     <div className="flex-1 overflow-auto">
+      <AlmostThereBanner count={filteredConversations.length} />
       <Table>
         <TableHeader className="sticky top-0 z-20 bg-muted/50 backdrop-blur-sm border-b-2">
           <TableRow className="hover:bg-transparent">

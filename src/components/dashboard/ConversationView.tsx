@@ -51,7 +51,18 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
     {
       key: 'Escape',
       action: () => {
-        navigate(-1);
+        // Don't navigate if a dialog/lightbox/overlay is open — let it close naturally
+        const openOverlay = document.querySelector(
+          '[data-state="open"][role="dialog"], [data-state="open"][role="alertdialog"], [data-radix-dialog-overlay], .ReactModal__Overlay'
+        );
+        if (openOverlay) return;
+
+        const historyIdx = (window.history.state as any)?.idx;
+        if (historyIdx && historyIdx > 0) {
+          navigate(-1);
+        } else {
+          navigate('/interactions/text/open');
+        }
       },
       description: 'Back to inbox',
     },
