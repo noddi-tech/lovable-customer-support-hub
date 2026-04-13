@@ -643,7 +643,7 @@ const EmailRenderComponent: React.FC<EmailRenderProps> = ({
                   </span>
                 </div>
                 <div className="email-render__attachment-actions">
-                  <AttachmentDownloadButton attachment={attachment} />
+                  <AttachmentDownloadButton attachment={attachment} messageId={messageId} />
                 </div>
               </li>
             ))}
