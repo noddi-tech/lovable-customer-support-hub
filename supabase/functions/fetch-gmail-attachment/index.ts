@@ -108,11 +108,7 @@ serve(async (req) => {
       });
     }
 
-    if (accError || !account) {
-      return new Response(JSON.stringify({ error: 'Email account not found' }), {
-        status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
+    // Refresh token if expired
 
     // Refresh token if expired
     let accessToken = account.access_token;
