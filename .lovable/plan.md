@@ -1,78 +1,69 @@
 
 
-# Attachment Previews & Download for All File Types
+# Empty Inbox Celebration + Gamification + ESC Fix
 
-## What We're Building
+## Three Changes
 
-Enhance the attachment list in email messages to show inline previews (where possible) and a consistent download button for all file types — images, PDFs, Excel/Sheets, and other documents.
+### 1. Empty Inbox Celebration State
+Replace the plain "No conversations found" message in `ConversationTable.tsx` with a fun, animated celebration when `filteredConversations.length === 0`.
 
-## Current State
+**File: `src/components/dashboard/conversation-list/ConversationTable.tsx`** (lines 57-66)
 
-- Attachments render as a plain text list with filename, size, and a download button
-- Image thumbnails exist in `ImageGallery`/`ImageThumbnail` but only for non-inline image attachments in `MessagesList` — not in the attachment list inside `EmailRender`
-- No preview support for PDFs, spreadsheets, or other document types
-- The `get-attachment` edge function returns the raw binary, which can be used for previews
+When the conversation list is empty:
+- Show a confetti-style animation (CSS-only particle burst using keyframes)
+- Rotating fun messages like "Inbox Zero! You're a support legend", "All clear! Time for a victory dance", "Nothing to see here — you crushed it"
+- A trophy or party popper icon with a scale-in animation
+- Subtle animated sparkles around the icon
 
-## Plan
+### 2. "Almost There" Gamification for Low Counts
+Add a motivational banner when conversations are low (1-3 remaining).
 
-### 1. Create an `AttachmentPreviewCard` component
+**File: `src/components/dashboard/conversation-list/ConversationTable.tsx`**
 
-**New file: `src/components/ui/attachment-preview-card.tsx`**
+Before the table, when `filteredConversations.length` is between 1 and 3:
+- Show a small animated banner: "Almost there! Just {count} left — you've got this"
+- A progress-bar-style visual showing how close to zero
+- Fire emoji or lightning bolt icon with a pulse animation
 
-A card component that replaces the current plain `<li>` in the attachments list. It determines the file type from `mimeType` and renders:
+### 3. Fix ESC to Not Navigate When Modals Are Open
+Currently `ConversationView.tsx` registers ESC to always `navigate(-1)`. This interferes with closing dialogs (AI suggestion, image lightbox, etc.).
 
-- **Images** (`image/*`): Thumbnail preview using `createBlobUrl` (same as `ImageThumbnail`), clickable to open lightbox
-- **PDFs** (`application/pdf`): A small icon-based card with a PDF icon and filename. Clicking opens the PDF in a new browser tab via a blob URL from the `get-attachment` function
-- **Spreadsheets** (`application/vnd.openxmlformats-officedocument.spreadsheetml.*`, `application/vnd.ms-excel`, etc.): Icon card with spreadsheet icon
-- **Other files**: Generic file icon card with filename and size
+**File: `src/components/dashboard/ConversationView.tsx`** (lines 51-57)
 
-All cards include a download button using the existing `AttachmentDownloadButton` logic.
+Change the ESC shortcut to check if any dialog/modal is open before navigating. The fix:
+- Check `document.querySelector('[data-state="open"][role="dialog"], [data-state="open"][role="alertdialog"]')` — if any Radix dialog is open, let the dialog handle ESC natively and don't navigate
+- Only navigate back when no overlay is active
 
-The preview card is compact (~80px height) with the icon/thumbnail on the left and filename + size + download on the right.
-
-### 2. Update `EmailRender` attachment list
-
-**File: `src/components/ui/email-render.tsx`** (lines 624-663)
-
-Replace the current `<ul>` list items with the new `AttachmentPreviewCard` component. Change from a vertical list to a responsive grid (`grid-cols-1 sm:grid-cols-2`) for better use of space.
-
-### 3. Add a "Preview" action for PDFs and images
-
-In `AttachmentPreviewCard`:
-- **Images**: Click thumbnail → open lightbox (reuse existing `ImageLightbox`)
-- **PDFs**: Click preview → fetch blob via `get-attachment`, create object URL, open `window.open(blobUrl)` in new tab. This works because the browser natively renders PDFs
-- For files without `storageKey`, the on-demand Gmail fetch path is used (same as current download logic)
-
-### Technical Details
-
-**File type detection helper:**
 ```typescript
-const getFileCategory = (mimeType: string, filename: string) => {
-  if (mimeType?.startsWith('image/')) return 'image';
-  if (mimeType === 'application/pdf' || filename?.endsWith('.pdf')) return 'pdf';
-  if (mimeType?.includes('spreadsheet') || mimeType?.includes('excel') || 
-      filename?.match(/\.(xlsx?|csv)$/i)) return 'spreadsheet';
-  if (mimeType?.includes('document') || mimeType?.includes('word') || 
-      filename?.match(/\.(docx?|txt)$/i)) return 'document';
-  return 'other';
-};
+{
+  key: 'Escape',
+  action: () => {
+    // Don't navigate if a dialog/lightbox is open — let it close naturally
+    const openDialog = document.querySelector(
+      '[data-state="open"][role="dialog"], [data-state="open"][role="alertdialog"], [data-radix-dialog-overlay]'
+    );
+    if (openDialog) return;
+    
+    const historyIdx = window.history.state?.idx;
+    if (historyIdx && historyIdx > 0) {
+      navigate(-1);
+    } else {
+      navigate('/interactions/text/open');
+    }
+  },
+  description: 'Back to inbox',
+},
 ```
 
-**Preview card layout:**
-```text
-┌──────────────────────────────────────┐
-│ [Icon/Thumb]  filename.pdf           │
-│               125.3 KB               │
-│               [Preview] [Download]   │
-└──────────────────────────────────────┘
-```
+### New File
+**`src/components/dashboard/conversation-list/InboxZeroCelebration.tsx`**
+- Self-contained component with CSS confetti particles, rotating messages, animated trophy
+- Accepts optional `count` prop for the "almost there" banner variant
+- All animations via Tailwind keyframes (no external libraries)
 
-**Files to create/modify:**
-- **New**: `src/components/ui/attachment-preview-card.tsx`
-- **Edit**: `src/components/ui/email-render.tsx` — replace attachment list rendering
-- **No backend changes needed** — existing `get-attachment` and `fetch-gmail-attachment` functions handle all file types already
-
-### PDF Handling Answer
-
-Yes — PDFs are fully supported. The `get-attachment` edge function returns raw binary for any file type. The browser can natively render PDFs when opened via blob URL in a new tab. The on-demand Gmail fetch (`fetch-gmail-attachment`) also returns any attachment type, not just images. So PDFs work today for download, and with this change they'll also have a preview action.
+### Files to Modify
+- **New**: `src/components/dashboard/conversation-list/InboxZeroCelebration.tsx`
+- **Edit**: `src/components/dashboard/conversation-list/ConversationTable.tsx` — use new celebration component
+- **Edit**: `src/components/dashboard/ConversationView.tsx` — fix ESC behavior
+- **Edit**: `tailwind.config.ts` — add confetti/sparkle keyframes if needed
 
