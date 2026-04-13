@@ -5,6 +5,7 @@ import { useToast } from '@/hooks/use-toast';
 import { sanitizeEmailHTML, formatPlainTextEmail, type EmailAttachment, fixEncodingIssues } from '@/utils/emailFormatting';
 import { cleanupObjectUrls, rewriteImageSources, getImageErrorStats, logImageError } from '@/utils/imageAssetHandler';
 import { ImageLightbox } from '@/components/ui/image-lightbox';
+import { AttachmentPreviewCard } from '@/components/ui/attachment-preview-card';
 // NOTE: Removed redundant sanitizeForXSS import - content is already sanitized by sanitizeEmailHTML in emailFormatting.ts
 import { decodeHTMLEntities } from '@/lib/parseQuotedEmail';
 import { debug } from '@/utils/debug';
