@@ -128,6 +128,15 @@ const AttachmentDownloadButton: React.FC<{ attachment: EmailAttachment; messageI
 
         if (!response.ok) {
           const errData = await response.json().catch(() => ({}));
+          if (errData.recoverable === false) {
+            toast({ 
+              title: "Attachment unavailable", 
+              description: "This file was received via email forwarding and can't be fetched on-demand. Connect a Gmail account with OAuth to enable this.",
+              variant: "destructive",
+              duration: 8000,
+            });
+            return;
+          }
           throw new Error(errData.error || `Failed to fetch attachment (${response.status})`);
         }
 
