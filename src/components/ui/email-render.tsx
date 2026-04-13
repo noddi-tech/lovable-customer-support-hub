@@ -5,6 +5,7 @@ import { useToast } from '@/hooks/use-toast';
 import { sanitizeEmailHTML, formatPlainTextEmail, type EmailAttachment, fixEncodingIssues } from '@/utils/emailFormatting';
 import { cleanupObjectUrls, rewriteImageSources, getImageErrorStats, logImageError } from '@/utils/imageAssetHandler';
 import { ImageLightbox } from '@/components/ui/image-lightbox';
+import { AttachmentPreviewCard } from '@/components/ui/attachment-preview-card';
 // NOTE: Removed redundant sanitizeForXSS import - content is already sanitized by sanitizeEmailHTML in emailFormatting.ts
 import { decodeHTMLEntities } from '@/lib/parseQuotedEmail';
 import { debug } from '@/utils/debug';
@@ -637,27 +638,25 @@ const EmailRenderComponent: React.FC<EmailRenderProps> = ({
           <h4 className="email-render__attachments-title" id="attachments-heading">
             Attachments ({downloadableAttachments.length})
           </h4>
-          <ul 
-            className="email-render__attachments-list" 
-            role="list"
-            aria-labelledby="attachments-heading"
-          >
-            {downloadableAttachments.map((attachment, index) => (
-              <li key={index} className="email-render__attachment-item" role="listitem">
-                <div className="email-render__attachment-info">
-                  <span className="email-render__attachment-name" title={attachment.filename}>
-                    {attachment.filename}
-                  </span>
-                  <span className="email-render__attachment-size" aria-label={`File size: ${(attachment.size / 1024).toFixed(1)} kilobytes`}>
-                    {(attachment.size / 1024).toFixed(1)} KB
-                  </span>
-                </div>
-                <div className="email-render__attachment-actions">
-                  <AttachmentDownloadButton attachment={attachment} messageId={messageId} />
-                </div>
-              </li>
-            ))}
-          </ul>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+            {downloadableAttachments.map((attachment, index) => {
+              const isImage = attachment.mimeType?.startsWith('image/');
+              return (
+                <AttachmentPreviewCard
+                  key={index}
+                  attachment={attachment}
+                  messageId={messageId}
+                  onImageClick={isImage ? () => {
+                    const imgIndex = inlineImages.findIndex(img => img.filename === attachment.filename);
+                    if (imgIndex >= 0) {
+                      setLightboxIndex(imgIndex);
+                      setLightboxOpen(true);
+                    }
+                  } : undefined}
+                />
+              );
+            })}
+          </div>
         </div>
         ) : null;
       })()}
