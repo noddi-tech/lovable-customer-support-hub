@@ -170,6 +170,8 @@ async function sendMentionEmail(params: {
   previewText: string;
   contextType: string;
   linkUrl?: string;
+  conversationSubject?: string;
+  customerName?: string;
 }) {
   try {
     const contextLabel = params.contextType === 'internal_note' ? 'a note'
@@ -177,7 +179,15 @@ async function sendMentionEmail(params: {
       : params.contextType === 'customer_note' ? 'a customer note'
       : params.contextType === 'call_note' ? 'a call note' : 'a message';
 
-    const subject = `${params.mentionerName} mentioned you in ${contextLabel}`;
+    // Build a contextual, unique-ish subject line
+    let subject = `${params.mentionerName} mentioned you in ${contextLabel}`;
+    const suffixParts: string[] = [];
+    if (params.conversationSubject) suffixParts.push(params.conversationSubject);
+    if (params.customerName) suffixParts.push(params.customerName);
+    if (suffixParts.length > 0) {
+      subject += ` — ${suffixParts.join(' · ')}`;
+    }
+
     const htmlBody = `
       <div style="font-family: sans-serif; max-width: 500px;">
         <p><strong>${params.mentionerName}</strong> mentioned you in ${contextLabel}:</p>
@@ -187,6 +197,13 @@ async function sendMentionEmail(params: {
         ${params.linkUrl ? `<p><a href="${params.linkUrl}" style="display:inline-block;padding:8px 20px;background:#3b82f6;color:#fff;text-decoration:none;border-radius:6px;">View in App</a></p>` : ''}
       </div>
     `;
+
+    // Anti-threading headers: unique Message-ID and X-Entity-Ref-ID
+    const uniqueId = crypto.randomUUID();
+    const headers: Record<string, string> = {
+      'X-Entity-Ref-ID': uniqueId,
+      'Message-ID': `<${uniqueId}@noddi.no>`,
+    };
 
     await fetch(`${params.supabaseUrl}/functions/v1/send-email`, {
       method: 'POST',
@@ -198,6 +215,7 @@ async function sendMentionEmail(params: {
         to: params.toEmail,
         subject,
         html: htmlBody,
+        headers,
       }),
     });
     console.log(`📧 Mention email sent to ${params.toEmail}`);
