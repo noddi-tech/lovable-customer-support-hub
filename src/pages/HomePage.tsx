@@ -113,9 +113,16 @@ export default function HomePage() {
                       />
                       <span className="text-sm font-medium truncate text-foreground">{inbox.name}</span>
                     </div>
-                    <div className="text-right ml-2 shrink-0">
-                      <span className="text-base font-bold text-foreground">{inbox.conversation_count}</span>
-                      <p className="text-[10px] text-muted-foreground leading-tight">conversations</p>
+                    <div className="flex items-center gap-2 ml-2 shrink-0">
+                      {inbox.unread_count > 0 && (
+                        <span className="text-xs font-semibold bg-destructive text-destructive-foreground rounded-full px-1.5 py-0.5 leading-none">
+                          {inbox.unread_count}
+                        </span>
+                      )}
+                      <div className="text-right">
+                        <span className="text-base font-bold text-foreground">{inbox.open_count}</span>
+                        <p className="text-[10px] text-muted-foreground leading-tight">open</p>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
