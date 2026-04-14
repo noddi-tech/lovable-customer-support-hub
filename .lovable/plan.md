@@ -1,58 +1,25 @@
 
 
-# Fix: Inbox Cards Show Total Instead of Open Conversations
+# Fix: Unread Badge Shows All Unread Instead of Open+Unread
 
-## Root Cause
-
-In `get_all_counts()`, the per-inbox count subquery (lines 82-87) counts all non-deleted threaded conversations regardless of status:
-
-```sql
-SELECT inbox_id, COUNT(*)::int as cnt
-FROM threaded
-WHERE deleted_at IS NULL
-GROUP BY inbox_id
-```
-
-This returns 4690 for "Noddi" because it includes open + closed + pending + archived. The home page and sidebar display this as-is, but users expect to see the **open** count (7 for Noddi).
+## Problem
+The red unread badge on inbox cards shows 50 for "Noddi" because the SQL counts ALL unread conversations regardless of status. Users expect unread count to reflect only open conversations that are unread.
 
 ## Fix
 
-### 1. Migration: Add `open_count` and `unread_count` to inbox JSON
+### Migration: Filter unread by open status
+**File: `supabase/migrations/[timestamp]_fix_unread_open_only.sql`**
 
-**New file: `supabase/migrations/[timestamp]_fix_inbox_counts_open.sql`**
-
-Update the `inbox_data` CTE in `get_all_counts()` to include `open_count` and `unread_count` alongside the existing `conversation_count`:
+Update the `get_all_counts` function's inbox subquery to filter unread by `status = 'open'`:
 
 ```sql
-LEFT JOIN (
-  SELECT inbox_id, 
-    COUNT(*)::int as cnt,
-    COUNT(*) FILTER (WHERE status = 'open' 
-      AND (snooze_until IS NULL OR snooze_until <= NOW()))::int as open_cnt,
-    COUNT(*) FILTER (WHERE is_read = false 
-      AND (snooze_until IS NULL OR snooze_until <= NOW()))::int as unread_cnt
-  FROM threaded
-  WHERE deleted_at IS NULL
-  GROUP BY inbox_id
-) conv_count ON conv_count.inbox_id = i.id
+COUNT(*) FILTER (WHERE is_read = false 
+  AND status = 'open'
+  AND (snooze_until IS NULL OR snooze_until <= NOW()))::int as unread_cnt
 ```
 
-JSON output adds `open_count` and `unread_count` fields.
+This ensures the red badge only shows unread conversations that are actually in the open queue.
 
-### 2. Update `useOptimizedCounts` types
-
-**File: `src/hooks/useOptimizedCounts.tsx`**
-- Add `open_count` and `unread_count` to the inbox item interface
-
-### 3. Update Home page to show open count
-
-**File: `src/pages/HomePage.tsx`**
-- Display `inbox.open_count` instead of `inbox.conversation_count`
-- Show label like "open" instead of "conversations"
-- Optionally show unread count as a small badge
-
-### Files to create/modify
-- **Create**: `supabase/migrations/[timestamp]_fix_inbox_counts_open.sql`
-- **Modify**: `src/hooks/useOptimizedCounts.tsx` — add new fields to inbox type
-- **Modify**: `src/pages/HomePage.tsx` — display open count per inbox
+### Files
+- **Create**: `supabase/migrations/[timestamp]_fix_unread_open_only.sql` — recreate `get_all_counts` with the additional `status = 'open'` filter on `unread_cnt`
 
