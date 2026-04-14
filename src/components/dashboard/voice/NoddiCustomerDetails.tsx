@@ -554,6 +554,19 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
                 Vehicle: {data.ui_meta.vehicle_label}
               </p>
             )}
+            {/* Booking Address */}
+            {data.ui_meta?.address && (data.ui_meta.address.street || data.ui_meta.address.city) && (
+              <p className="text-xs text-muted-foreground mb-0.5">
+                <MapPin className="h-3 w-3 inline mr-0.5" />
+                {[data.ui_meta.address.street, data.ui_meta.address.zip, data.ui_meta.address.city].filter(Boolean).join(', ')}
+              </p>
+            )}
+            {/* Brand name */}
+            {data.ui_meta?.brand_name && (
+              <p className="text-xs text-muted-foreground mb-0.5">
+                Brand: {data.ui_meta.brand_name}
+              </p>
+            )}
 
             {/* Order Summary with Line Items */}
             {data.ui_meta?.order_lines && data.ui_meta.order_lines.length > 0 && (
