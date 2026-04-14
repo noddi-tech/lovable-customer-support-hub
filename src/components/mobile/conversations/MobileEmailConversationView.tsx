@@ -1,7 +1,8 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { canGoBackInApp, getConversationBackPath } from '@/utils/conversationNavigation';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { ArrowLeft, CircleDot, Clock, CheckCircle2, Archive, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -27,7 +28,7 @@ export const MobileEmailConversationView: React.FC<MobileEmailConversationViewPr
   conversationId,
   conversation,
 }) => {
-  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { conversationIds, updateStatus } = useConversationView();
   const { data: noddiData } = useNoddihKundeData(conversation.customer || null);
@@ -55,9 +56,11 @@ export const MobileEmailConversationView: React.FC<MobileEmailConversationViewPr
   } = useThreadMessagesList(fetchIds, normCtx);
 
   const handleBack = () => {
-    const p = new URLSearchParams(searchParams);
-    p.delete('c');
-    setSearchParams(p);
+    if (canGoBackInApp()) {
+      navigate(-1);
+    } else {
+      navigate(getConversationBackPath(window.location.pathname));
+    }
   };
 
   // Messages in ASC order (oldest first)

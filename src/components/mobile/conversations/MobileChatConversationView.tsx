@@ -1,5 +1,6 @@
 import React, { useRef, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { canGoBackInApp, getConversationBackPath } from '@/utils/conversationNavigation';
 import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -28,7 +29,7 @@ export const MobileChatConversationView: React.FC<MobileChatConversationViewProp
   conversationId,
   conversation,
 }) => {
-  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { conversationIds, updateStatus } = useConversationView();
   const { data: noddiData } = useNoddihKundeData(conversation.customer || null);
@@ -52,9 +53,11 @@ export const MobileChatConversationView: React.FC<MobileChatConversationViewProp
   const { messages, isLoading } = useThreadMessagesList(fetchIds, normCtx);
 
   const handleBack = () => {
-    const p = new URLSearchParams(searchParams);
-    p.delete('c');
-    setSearchParams(p);
+    if (canGoBackInApp()) {
+      navigate(-1);
+    } else {
+      navigate(getConversationBackPath(window.location.pathname));
+    }
   };
 
   return (
