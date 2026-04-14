@@ -882,8 +882,13 @@ Deno.serve(async (req) => {
       console.log('Force refresh requested, skipping cache');
     }
 
-    // Step 2: Call new comprehensive customer lookup endpoint - TRY ALL EMAILS
-    console.log('🚀 Calling user-customer-lookup-summary endpoint');
+    // Step 2: Call customer lookup endpoint - TRY ALL EMAILS
+    // Try new endpoint first, fall back to old if not found
+    const ENDPOINTS = [
+      { url: `${API_BASE}/v1/users/user-customer-lookup-summary/`, label: 'new (summary)' },
+      { url: `${API_BASE}/v1/users/customer-lookup-support/`, label: 'old (support)' },
+    ];
+    
     console.log(`📧 Will try ${emailsToTry.length} email(s): ${emailsToTry.map(e => e?.substring(0, 3) + '***').join(', ')}`);
     
     let lookupResponse: Response | null = null;
@@ -891,73 +896,121 @@ Deno.serve(async (req) => {
     let lookupMode: "phone" | "email" = phone ? "phone" : "email";
     let conflict = false;
     
-    // Try each email until we get a successful response
-    for (let i = 0; i < emailsToTry.length; i++) {
-      const emailToTry = emailsToTry[i];
-      const lookupUrl = new URL(`${API_BASE}/v1/users/user-customer-lookup-summary/`);
-      if (emailToTry) lookupUrl.searchParams.set('email', emailToTry);
-      if (phone) lookupUrl.searchParams.set('phone', phone);
-      if (body.forceRefresh) lookupUrl.searchParams.set('clear_cache', 'true');
+    for (const endpoint of ENDPOINTS) {
+      console.log(`🚀 Trying ${endpoint.label} endpoint`);
       
-      console.log(`📧 [${i + 1}/${emailsToTry.length}] Trying lookup with email: ${emailToTry?.substring(0, 3)}***`);
-      
-      const response = await fetch(lookupUrl.toString(), {
-        headers: noddiAuthHeaders()
-      });
-      
-      // If successful, use this response
-      if (response.ok) {
+      for (let i = 0; i < emailsToTry.length; i++) {
+        const emailToTry = emailsToTry[i];
+        const lookupUrl = new URL(endpoint.url);
+        if (emailToTry) lookupUrl.searchParams.set('email', emailToTry);
+        if (phone) lookupUrl.searchParams.set('phone', phone);
+        if (body.forceRefresh) lookupUrl.searchParams.set('clear_cache', 'true');
+        
+        console.log(`📧 [${i + 1}/${emailsToTry.length}] Trying lookup with email: ${emailToTry?.substring(0, 3)}***`);
+        
+        const response = await fetch(lookupUrl.toString(), {
+          headers: noddiAuthHeaders()
+        });
+        
+        if (response.ok) {
+          lookupResponse = response;
+          successfulEmail = emailToTry;
+          console.log(`✅ Found user with ${endpoint.label} endpoint, email: ${emailToTry?.substring(0, 3)}***`);
+          break;
+        }
+        
+        if (response.status === 400 || response.status === 404) {
+          const errorText = await response.text();
+          
+          let isNotFound = false;
+          try {
+            if (response.status === 404) {
+              isNotFound = true;
+            } else {
+              const errorData = JSON.parse(errorText);
+              const errors = errorData?.errors || [];
+              isNotFound = errors.some((err: any) => 
+                err?.code === 'user_does_not_exist' || 
+                err?.detail?.includes('does not exist')
+              );
+            }
+          } catch {
+            isNotFound = response.status === 404;
+          }
+          
+          if (isNotFound && i < emailsToTry.length - 1) {
+            console.log(`⚠️ User not found with ${emailToTry?.substring(0, 3)}***, trying next email...`);
+            continue;
+          }
+          
+          // Last email on this endpoint — store the error response but DON'T break yet
+          // (we'll try the next endpoint)
+          if (!lookupResponse) {
+            lookupResponse = new Response(errorText, {
+              status: response.status,
+              statusText: response.statusText,
+              headers: response.headers
+            });
+            successfulEmail = emailToTry;
+          }
+          break;
+        }
+        
+        // For other errors, store and stop
         lookupResponse = response;
         successfulEmail = emailToTry;
-        console.log(`✅ Found user with email: ${emailToTry?.substring(0, 3)}***`);
         break;
       }
       
-      // Check if it's a "user not found" error - if so, try next email
-      if (response.status === 400 || response.status === 404) {
-        const errorText = await response.text();
-        
-        let isNotFound = false;
-        try {
-          if (response.status === 404) {
-            isNotFound = true;
-          } else {
-            const errorData = JSON.parse(errorText);
-            const errors = errorData?.errors || [];
-            isNotFound = errors.some((err: any) => 
-              err?.code === 'user_does_not_exist' || 
-              err?.detail?.includes('does not exist')
-            );
-          }
-        } catch {
-          isNotFound = response.status === 404;
-        }
-        
-        if (isNotFound && i < emailsToTry.length - 1) {
-          console.log(`⚠️ User not found with ${emailToTry?.substring(0, 3)}***, trying next email...`);
-          continue; // Try next email
-        }
-        
-        // If this is the last email or it's not a "not found" error, create a Response-like object
-        // We need to recreate the Response because we already read the body
-        lookupResponse = new Response(errorText, {
-          status: response.status,
-          statusText: response.statusText,
-          headers: response.headers
-        });
-        successfulEmail = emailToTry;
-        break;
-      }
+      // If we got a successful (2xx) response, stop trying endpoints
+      if (lookupResponse?.ok) break;
       
-      // For other errors, use this response and stop trying
-      lookupResponse = response;
-      successfulEmail = emailToTry;
-      break;
+      // If we're about to try the fallback endpoint, reset the failed response
+      if (!lookupResponse?.ok && endpoint === ENDPOINTS[0]) {
+        console.log('⚠️ New endpoint failed, falling back to old endpoint...');
+        lookupResponse = null; // Reset so fallback can set it
+      }
     }
     
-    // If no response was set (shouldn't happen), create a 404
+    // Fallback 3: If both endpoints failed and we have noddi_user_id, try direct user fetch
+    if (!lookupResponse?.ok && body.noddi_user_id) {
+      console.log(`🔄 Trying direct user fetch with noddi_user_id: ${body.noddi_user_id}`);
+      try {
+        const userUrl = `${API_BASE}/v1/users/${body.noddi_user_id}/`;
+        const userResp = await fetch(userUrl, { headers: noddiAuthHeaders() });
+        if (userResp.ok) {
+          const userData = await userResp.json();
+          // Build a minimal lookup-like response from the direct user data
+          const userGroupId = body.user_group_id || userData.user_group_id || userData.userGroupId;
+          let userGroupData: any = null;
+          if (userGroupId) {
+            try {
+              const ugResp = await fetch(`${API_BASE}/v1/user-groups/${userGroupId}/`, { headers: noddiAuthHeaders() });
+              if (ugResp.ok) userGroupData = await ugResp.json();
+            } catch (e) { console.warn('Failed to fetch user group:', e); }
+          }
+          // Wrap into a shape the existing buildResponse expects
+          const syntheticLookup = {
+            user: userData,
+            user_groups: userGroupData ? [userGroupData] : [],
+            priority_booking: null,
+            unpaid_bookings: [],
+          };
+          lookupResponse = new Response(JSON.stringify(syntheticLookup), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' }
+          });
+          successfulEmail = userData.email || emailsToTry[0];
+          console.log(`✅ Found user via direct ID fetch`);
+        }
+      } catch (e) {
+        console.warn('Direct user ID fetch failed:', e);
+      }
+    }
+    
+    // If no response was set, create a 404
     if (!lookupResponse) {
-      console.error('❌ No lookup response after trying all emails');
+      console.error('❌ No lookup response after trying all endpoints');
       lookupResponse = new Response(JSON.stringify({ errors: [{ code: 'user_does_not_exist' }] }), {
         status: 404,
         headers: { 'Content-Type': 'application/json' }
