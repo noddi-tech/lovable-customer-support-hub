@@ -343,6 +343,8 @@ export const ChatCustomerPanel: React.FC<ChatCustomerPanelProps> = ({
             customerId: customerId,
             organizationId,
             alternative_emails: alternativeEmailsToTry,
+            noddi_user_id: selectedCustomer.metadata?.noddi_user_id,
+            user_group_id: selectedCustomer.metadata?.user_group_id,
           },
         });
 
