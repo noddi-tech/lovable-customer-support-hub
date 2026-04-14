@@ -1,29 +1,58 @@
 
 
-# Fix: "Failed to link customer" Error
+# Fix: Inbox Cards Show Total Instead of Open Conversations
 
 ## Root Cause
 
-Two bugs in `CustomerSidePanel.tsx` `handleSelectCustomer`:
+In `get_all_counts()`, the per-inbox count subquery (lines 82-87) counts all non-deleted threaded conversations regardless of status:
 
-1. **Missing `local_customer_id` in metadata**: The `NoddiCustomerSearch` component stores `local_customer_id` in the top-level `id` field (line 80) but does NOT include it in `metadata`. When the conversation has no existing customer and `is_new` is false, the code at line 313 does:
-   ```
-   customerId = selectedCustomer.metadata?.local_customer_id || selectedCustomer.id
-   ```
-   `metadata.local_customer_id` is always `undefined`, so it falls back to `selectedCustomer.id` which is `"noddi-123"` — an invalid UUID. Any subsequent Supabase query with this ID fails.
+```sql
+SELECT inbox_id, COUNT(*)::int as cnt
+FROM threaded
+WHERE deleted_at IS NULL
+GROUP BY inbox_id
+```
 
-2. **Noddi lookup failure blocks linking**: Even when the conversation already has a customer, the `noddi-customer-lookup` call at line 359-368 can fail (network error, edge function error), and `throw lookupError` at line 370 aborts the entire operation — even though the customer was already successfully linked at line 346-349.
+This returns 4690 for "Noddi" because it includes open + closed + pending + archived. The home page and sidebar display this as-is, but users expect to see the **open** count (7 for Noddi).
 
 ## Fix
 
-### File: `src/components/shared/NoddiCustomerSearch.tsx`
-- Add `local_customer_id: result.local_customer_id` to the metadata object (line 84-92) so it's available downstream
+### 1. Migration: Add `open_count` and `unread_count` to inbox JSON
 
-### File: `src/components/dashboard/conversation-view/CustomerSidePanel.tsx`
-- **Fix ID resolution** (line 311-314): When `is_new` is false and `selectedCustomer.id` starts with `noddi-`, create a new customer record in the database instead of using the invalid ID
-- **Make Noddi lookup non-fatal** (line 370): Wrap the lookup in a try/catch so that a failed enrichment doesn't prevent the customer from being linked. Show a warning toast instead of throwing
+**New file: `supabase/migrations/[timestamp]_fix_inbox_counts_open.sql`**
 
-### Files to modify
-- `src/components/shared/NoddiCustomerSearch.tsx` — pass `local_customer_id` in metadata
-- `src/components/dashboard/conversation-view/CustomerSidePanel.tsx` — handle `noddi-` IDs gracefully, make lookup non-fatal
+Update the `inbox_data` CTE in `get_all_counts()` to include `open_count` and `unread_count` alongside the existing `conversation_count`:
+
+```sql
+LEFT JOIN (
+  SELECT inbox_id, 
+    COUNT(*)::int as cnt,
+    COUNT(*) FILTER (WHERE status = 'open' 
+      AND (snooze_until IS NULL OR snooze_until <= NOW()))::int as open_cnt,
+    COUNT(*) FILTER (WHERE is_read = false 
+      AND (snooze_until IS NULL OR snooze_until <= NOW()))::int as unread_cnt
+  FROM threaded
+  WHERE deleted_at IS NULL
+  GROUP BY inbox_id
+) conv_count ON conv_count.inbox_id = i.id
+```
+
+JSON output adds `open_count` and `unread_count` fields.
+
+### 2. Update `useOptimizedCounts` types
+
+**File: `src/hooks/useOptimizedCounts.tsx`**
+- Add `open_count` and `unread_count` to the inbox item interface
+
+### 3. Update Home page to show open count
+
+**File: `src/pages/HomePage.tsx`**
+- Display `inbox.open_count` instead of `inbox.conversation_count`
+- Show label like "open" instead of "conversations"
+- Optionally show unread count as a small badge
+
+### Files to create/modify
+- **Create**: `supabase/migrations/[timestamp]_fix_inbox_counts_open.sql`
+- **Modify**: `src/hooks/useOptimizedCounts.tsx` — add new fields to inbox type
+- **Modify**: `src/pages/HomePage.tsx` — display open count per inbox
 
