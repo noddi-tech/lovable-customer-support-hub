@@ -1,42 +1,35 @@
 
 
-# Home Dashboard Page
+# Home Page Fixes: Scroll, Counts, and Visual Polish
 
-## Overview
-Create a dedicated Home page (`/home`) that serves as the landing page after login. It shows a dashboard with unread conversation counts per inbox and quick-link cards to all major sections from the sidebar navigation.
+## Problems
+1. **No scroll**: `HomePage` is rendered without `UnifiedAppLayout`, so it lacks the app shell (sidebar + scrollable main area)
+2. **Inbox counts show total conversations**, not open/unread — the RPC returns `conversation_count` which is all conversations, but users expect to see open/unread
+3. **Cards are too large and sections lack color** — everything looks the same, hard to scan
 
 ## Changes
 
-### 1. Create Home page component
-**New file: `src/pages/HomePage.tsx`**
+### 1. Wrap HomePage in UnifiedAppLayout
+**File: `src/pages/HomePage.tsx`**
+- Import and wrap content in `<UnifiedAppLayout>` — this gives the page the sidebar, scroll container, and consistent layout
 
-A clean dashboard layout with:
-- **Welcome header** with user's name and current date/time
-- **Inbox overview cards** — one card per inbox showing name, color dot, and unread/open conversation count (data from `useOptimizedCounts`)
-- **Quick stats row** — total open, unread, assigned, pending counts
-- **Section link cards** — grouped cards mirroring the sidebar structure:
-  - **Interactions**: Text Messages, Chat, Voice Calls
-  - **Marketing**: Campaigns, Newsletters
-  - **Operations**: Service Tickets, Doorman, Recruitment, Analytics, Bulk Outreach
-  - **Settings**: General, Profile, Admin Portal (if admin)
-- Each card has the section icon, label, and brief description, and links to the corresponding route
-- Uses existing `Card` components, `useOptimizedCounts` for data, `useAuth` for user info, and nav config from `nav-config.ts` for the link structure
-- Responsive grid: 1 col mobile, 2 col tablet, 3-4 col desktop
+### 2. Show open/unread label on inbox cards
+**File: `src/pages/HomePage.tsx`**
+- The `conversation_count` from the RPC is what we have per-inbox. Add a small label like "conversations" under the count so it's clear what it represents
+- This is a data limitation — per-inbox open/unread would require a new RPC. For now, label clearly
 
-### 2. Add route for Home page
-**File: `src/App.tsx`** (line 89)
-- Add `<Route path="/home" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />`
-- Change root redirect from `<Navigate to="/interactions/text" replace />` to `<Navigate to="/home" replace />`
+### 3. Make cards compact and add section colors
+**File: `src/pages/HomePage.tsx`**
+- **Stats cards**: Reduce padding from `p-4` to `p-3`, shrink icon from `h-8 w-8` to `h-6 w-6`, reduce number size from `text-2xl` to `text-xl`
+- **Inbox cards**: Reduce padding, use smaller text
+- **Section link cards**: Reduce padding from `p-4` to `p-3`, remove descriptions (just show icon + label + arrow) for a tighter grid
+- **Section headers**: Add a colored left border or subtle background tint per section:
+  - Interactions: blue accent
+  - Marketing: purple accent
+  - Operations: amber accent
+  - Settings: slate accent
+- **Section link icons**: Color-code to match section (blue for interactions items, purple for marketing, etc.)
 
-### 3. Update Home button link
-**File: `src/components/layout/AppMainNav.tsx`** (line 115)
-- Change NavLink `to` from `/interactions/text/open` to `/home`
-
-### 4. Update post-login redirect
-**File: `src/components/auth/ProtectedRoute.tsx`** — no change needed (already redirects to `/` which will now go to `/home`)
-
-### Files to create/modify
-- **Create**: `src/pages/HomePage.tsx`
-- **Modify**: `src/App.tsx` — add route + update root redirect
-- **Modify**: `src/components/layout/AppMainNav.tsx` — update Home link target
+### Files to modify
+- `src/pages/HomePage.tsx` — add UnifiedAppLayout wrapper, compact cards, add section colors
 
