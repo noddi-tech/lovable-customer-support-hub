@@ -1,30 +1,42 @@
 
 
-# Fix: "Assigned to Me" Shows Count But No Conversations
+# Home Dashboard Page
 
-## Root Cause
+## Overview
+Create a dedicated Home page (`/home`) that serves as the landing page after login. It shows a dashboard with unread conversation counts per inbox and quick-link cards to all major sections from the sidebar navigation.
 
-The `assigned_to_id` column in the `conversations` table stores `profiles.id` (the profile primary key). However, two RPC functions join on the wrong column:
+## Changes
 
-- `get_conversations_with_session_recovery`: `LEFT JOIN profiles p ON c.assigned_to_id = p.user_id` -- WRONG
-- `get_conversations`: `LEFT JOIN profiles p ON c.assigned_to_id = p.user_id` -- WRONG
+### 1. Create Home page component
+**New file: `src/pages/HomePage.tsx`**
 
-The correct join is `ON c.assigned_to_id = p.id`.
+A clean dashboard layout with:
+- **Welcome header** with user's name and current date/time
+- **Inbox overview cards** — one card per inbox showing name, color dot, and unread/open conversation count (data from `useOptimizedCounts`)
+- **Quick stats row** — total open, unread, assigned, pending counts
+- **Section link cards** — grouped cards mirroring the sidebar structure:
+  - **Interactions**: Text Messages, Chat, Voice Calls
+  - **Marketing**: Campaigns, Newsletters
+  - **Operations**: Service Tickets, Doorman, Recruitment, Analytics, Bulk Outreach
+  - **Settings**: General, Profile, Admin Portal (if admin)
+- Each card has the section icon, label, and brief description, and links to the corresponding route
+- Uses existing `Card` components, `useOptimizedCounts` for data, `useAuth` for user info, and nav config from `nav-config.ts` for the link structure
+- Responsive grid: 1 col mobile, 2 col tablet, 3-4 col desktop
 
-Because the join fails silently (LEFT JOIN), `assigned_to` comes back as NULL for every conversation. The client-side "Assigned to Me" filter then compares `null === currentUserProfileId` and finds zero matches.
+### 2. Add route for Home page
+**File: `src/App.tsx`** (line 89)
+- Add `<Route path="/home" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />`
+- Change root redirect from `<Navigate to="/interactions/text" replace />` to `<Navigate to="/home" replace />`
 
-The count functions (`get_all_counts`, `get_inbox_counts`) correctly compare `assigned_to_id = v_profile_id` (where `v_profile_id = profiles.id`), so the sidebar counter shows the right number.
+### 3. Update Home button link
+**File: `src/components/layout/AppMainNav.tsx`** (line 115)
+- Change NavLink `to` from `/interactions/text/open` to `/home`
 
-Additionally, `get_conversations` has a second bug: its `assigned` filter uses `c.assigned_to_id = auth.uid()` instead of comparing against the profile ID.
+### 4. Update post-login redirect
+**File: `src/components/auth/ProtectedRoute.tsx`** — no change needed (already redirects to `/` which will now go to `/home`)
 
-## Fix
-
-**Single migration** to recreate both functions with the corrected join:
-
-1. **`get_conversations_with_session_recovery`**: Change line `LEFT JOIN public.profiles p ON c.assigned_to_id = p.user_id` to `LEFT JOIN public.profiles p ON c.assigned_to_id = p.id`
-
-2. **`get_conversations`**: Same join fix (`p.user_id` to `p.id`), plus fix the assigned filter from `c.assigned_to_id = auth.uid()` to use profile ID lookup.
-
-### Files to create
-- `supabase/migrations/[timestamp]_fix_assigned_to_join.sql` — single migration with both function replacements
+### Files to create/modify
+- **Create**: `src/pages/HomePage.tsx`
+- **Modify**: `src/App.tsx` — add route + update root redirect
+- **Modify**: `src/components/layout/AppMainNav.tsx` — update Home link target
 
