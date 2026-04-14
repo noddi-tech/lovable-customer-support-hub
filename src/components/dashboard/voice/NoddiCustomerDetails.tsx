@@ -932,7 +932,88 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
           );
         })()}
 
-        {/* Service Tags with Icons */}
+        {/* Saved Addresses */}
+        {userGroup?.addresses && userGroup.addresses.length > 0 && (
+          <Collapsible>
+            <CollapsibleTrigger className="flex items-center gap-1 w-full text-left">
+              <Home className="h-3 w-3 text-muted-foreground" />
+              <span className="text-xs font-medium text-muted-foreground">
+                Saved Addresses ({userGroup.addresses.length})
+              </span>
+              <ChevronDown className="h-3 w-3 text-muted-foreground ml-auto transition-transform [&[data-state=open]]:rotate-180" />
+            </CollapsibleTrigger>
+            <CollapsibleContent className="mt-1 space-y-1">
+              {userGroup.addresses.map((addr: any, idx: number) => (
+                <div key={addr.id || idx} className="p-1.5 rounded border text-xs">
+                  {addr.label && <p className="font-medium">{addr.label}</p>}
+                  {addr.name && addr.name !== addr.label && <p className="text-muted-foreground">{addr.name}</p>}
+                  {addr.address && (
+                    <p className="text-muted-foreground">
+                      {[addr.address.street, addr.address.zip, addr.address.city].filter(Boolean).join(', ')}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </CollapsibleContent>
+          </Collapsible>
+        )}
+
+        {/* Tire Quotes */}
+        {userGroup?.tire_quotes && userGroup.tire_quotes.length > 0 && (
+          <Collapsible>
+            <CollapsibleTrigger className="flex items-center gap-1 w-full text-left">
+              <Car className="h-3 w-3 text-muted-foreground" />
+              <span className="text-xs font-medium text-muted-foreground">
+                Tire Quotes ({userGroup.tire_quotes.length})
+              </span>
+              <ChevronDown className="h-3 w-3 text-muted-foreground ml-auto transition-transform [&[data-state=open]]:rotate-180" />
+            </CollapsibleTrigger>
+            <CollapsibleContent className="mt-1 space-y-1.5">
+              {userGroup.tire_quotes.map((tq: any, idx: number) => (
+                <div key={tq.id || idx} className="p-2 rounded border text-xs space-y-1">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-medium">
+                        {tq.car?.make} {tq.car?.model}
+                        {tq.car?.license_plate && ` (${tq.car.license_plate})`}
+                      </span>
+                    </div>
+                    <Badge variant="outline" className={`h-4 px-1 text-[10px] ${
+                      tq.status === 'ACCEPTED' ? 'bg-green-50 text-green-700 border-green-200' :
+                      tq.status === 'PENDING' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
+                      tq.status === 'REJECTED' || tq.status === 'EXPIRED' ? 'bg-red-50 text-red-700 border-red-200' :
+                      'bg-muted text-muted-foreground'
+                    }`}>
+                      {tq.status}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <span>{tq.season}</span>
+                    {tq.payment_amount && (
+                      <span>{moneyFmt(tq.payment_amount.amount, tq.payment_amount.currency)}</span>
+                    )}
+                    {tq.payment_status && (
+                      <Badge variant="outline" className="h-4 px-1 text-[10px]">{tq.payment_status}</Badge>
+                    )}
+                  </div>
+                  {/* Status timeline */}
+                  {tq.status_events && tq.status_events.length > 0 && (
+                    <div className="border-t pt-1 mt-1">
+                      {tq.status_events.slice(0, 3).map((evt: any, eidx: number) => (
+                        <div key={eidx} className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                          <span className="font-medium">{evt.status}</span>
+                          <span>—</span>
+                          <span>{format(new Date(evt.created_at), 'PP')}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </CollapsibleContent>
+          </Collapsible>
+        )}
+
         {data.ui_meta?.order_tags && data.ui_meta.order_tags.length > 0 && (
           <div>
             <p className="text-xs font-medium text-muted-foreground mb-1">Service Tags</p>
