@@ -3,10 +3,11 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { 
   Loader2, User, Package, AlertCircle, Calendar, DollarSign, CheckCircle2, Star, ExternalLink,
   Archive, RotateCcw, Truck, Users, Droplets, Target, Gauge, Zap, Building2, RefreshCw,
-  Crown, Ticket, MapPin, MessageSquareQuote
+  Crown, Ticket, MapPin, MessageSquareQuote, Home, ChevronDown, Car
 } from 'lucide-react';
 import { StarRatingInput } from '@/components/ui/star-rating-input';
 import { useNoddihKundeData } from '@/hooks/useNoddihKundeData';
@@ -464,16 +465,19 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
                   {data.ui_meta.booking_type === 'wheel_storage_pickup' ? 'Wheel Storage Pickup' : data.ui_meta.booking_type}
                 </Badge>
               )}
-              {data.ui_meta?.location_type && (
+              {(data.ui_meta?.location_type || data.ui_meta?.booking_location_type) && (() => {
+                const locType = (data.ui_meta?.booking_location_type || data.ui_meta?.location_type || '').toUpperCase();
+                return (
                 <Badge variant="outline" className={`h-4 px-1 text-[10px] ${
-                  data.ui_meta.location_type === 'mobile' 
+                  locType === 'MOBILE' 
                     ? 'bg-blue-50 text-blue-700 border-blue-200' 
                     : 'bg-gray-50 text-gray-600 border-gray-200'
                 }`}>
                   <MapPin className="h-2.5 w-2.5 mr-0.5" />
-                  {data.ui_meta.location_type === 'mobile' ? 'Mobile' : 'Stationary'}
+                  {locType === 'MOBILE' ? 'Mobile' : 'Stationary'}
                 </Badge>
-              )}
+                );
+              })()}
             </div>
             
             {/* Status Chips */}
@@ -490,22 +494,33 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
                 </span>
               )}
 
-              {/* Unable to complete comments */}
-              {data.ui_meta?.unable_to_complete && (data.ui_meta?.comments_unable_to_complete_public || data.ui_meta?.comments_unable_to_complete_internal) && (
+              {/* Unable to complete comments - prefer new comments object, fallback to legacy */}
+              {data.ui_meta?.unable_to_complete && (() => {
+                const userComment = data.ui_meta?.comments?.user || data.ui_meta?.comments_unable_to_complete_public;
+                const adminComment = data.ui_meta?.comments?.admin || data.ui_meta?.comments_unable_to_complete_internal;
+                const workerComment = data.ui_meta?.comments?.worker;
+                if (!userComment && !adminComment && !workerComment) return null;
+                return (
                 <div className="w-full mt-1 p-2 rounded-lg bg-amber-50 border border-amber-200 text-xs space-y-1">
-                  {data.ui_meta.comments_unable_to_complete_public && (
+                  {userComment && (
                     <p className="text-amber-900">
-                      <span className="font-medium">Customer note:</span> {data.ui_meta.comments_unable_to_complete_public}
+                      <span className="font-medium">Customer note:</span> {userComment}
                     </p>
                   )}
-                  {data.ui_meta.comments_unable_to_complete_internal && (
+                  {workerComment && (
+                    <p className="text-amber-900">
+                      <span className="font-medium">Worker note:</span> {workerComment}
+                    </p>
+                  )}
+                  {adminComment && (
                     <details className="cursor-pointer">
                       <summary className="text-amber-700 font-medium">Internal note</summary>
-                      <p className="text-amber-800 mt-0.5">{data.ui_meta.comments_unable_to_complete_internal}</p>
+                      <p className="text-amber-800 mt-0.5">{adminComment}</p>
                     </details>
                   )}
                 </div>
-              )}
+                );
+              })()}
               {/* Paid state chip */}
               {data.ui_meta?.money?.paid_state && (
                 <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs ${
@@ -537,6 +552,19 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
             {data.ui_meta?.vehicle_label && (
               <p className="text-xs text-muted-foreground mb-0.5">
                 Vehicle: {data.ui_meta.vehicle_label}
+              </p>
+            )}
+            {/* Booking Address */}
+            {data.ui_meta?.address && (data.ui_meta.address.street || data.ui_meta.address.city) && (
+              <p className="text-xs text-muted-foreground mb-0.5">
+                <MapPin className="h-3 w-3 inline mr-0.5" />
+                {[data.ui_meta.address.street, data.ui_meta.address.zip, data.ui_meta.address.city].filter(Boolean).join(', ')}
+              </p>
+            )}
+            {/* Brand name */}
+            {data.ui_meta?.brand_name && (
+              <p className="text-xs text-muted-foreground mb-0.5">
+                Brand: {data.ui_meta.brand_name}
               </p>
             )}
 
@@ -657,7 +685,7 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
               </Alert>
             )}
 
-            {/* NEW: Show unpaid bookings list if no priority booking */}
+            {/* Expanded unpaid bookings list */}
             {!hasBooking && hasUnpaidBookings && (
               <div className="p-2 rounded-lg bg-amber-50 border border-amber-200">
                 <div className="flex items-center gap-1 mb-1">
@@ -666,9 +694,42 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
                     {unpaidCount} Unpaid Booking{unpaidCount !== 1 ? 's' : ''}
                   </p>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  This customer has bookings with outstanding payments. Check the Noddi admin panel for details.
-                </p>
+                {data.unpaid_bookings && data.unpaid_bookings.length > 0 ? (
+                  <div className="space-y-1.5 mt-1">
+                    {data.unpaid_bookings.slice(0, 5).map((ub: any, idx: number) => (
+                      <div key={ub.id || idx} className="p-1.5 rounded border border-amber-200 bg-white text-xs space-y-0.5">
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium">#{ub.id || idx + 1}</span>
+                          {ub.booking_type && ub.booking_type !== 'normal' && (
+                            <Badge variant="outline" className="h-4 px-1 text-[10px]">{ub.booking_type}</Badge>
+                          )}
+                        </div>
+                        {ub.address && (ub.address.street || ub.address.city) && (
+                          <p className="text-muted-foreground">
+                            <MapPin className="h-3 w-3 inline mr-0.5" />
+                            {[ub.address.street, ub.address.zip, ub.address.city].filter(Boolean).join(', ')}
+                          </p>
+                        )}
+                        {ub.brand_name && <p className="text-muted-foreground">Brand: {ub.brand_name}</p>}
+                        {ub.booking_location_type && (
+                          <Badge variant="outline" className="h-4 px-1 text-[10px]">
+                            <MapPin className="h-2.5 w-2.5 mr-0.5" />
+                            {ub.booking_location_type === 'MOBILE' ? 'Mobile' : 'Stationary'}
+                          </Badge>
+                        )}
+                        {ub.slug && (
+                          <a href={`https://partner.noddi.co/bookings/${ub.slug}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center gap-0.5">
+                            View <ExternalLink className="h-2.5 w-2.5" />
+                          </a>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    Check the Noddi admin panel for details.
+                  </p>
+                )}
               </div>
             )}
 
@@ -871,7 +932,88 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
           );
         })()}
 
-        {/* Service Tags with Icons */}
+        {/* Saved Addresses */}
+        {userGroup?.addresses && userGroup.addresses.length > 0 && (
+          <Collapsible>
+            <CollapsibleTrigger className="flex items-center gap-1 w-full text-left">
+              <Home className="h-3 w-3 text-muted-foreground" />
+              <span className="text-xs font-medium text-muted-foreground">
+                Saved Addresses ({userGroup.addresses.length})
+              </span>
+              <ChevronDown className="h-3 w-3 text-muted-foreground ml-auto transition-transform [&[data-state=open]]:rotate-180" />
+            </CollapsibleTrigger>
+            <CollapsibleContent className="mt-1 space-y-1">
+              {userGroup.addresses.map((addr: any, idx: number) => (
+                <div key={addr.id || idx} className="p-1.5 rounded border text-xs">
+                  {addr.label && <p className="font-medium">{addr.label}</p>}
+                  {addr.name && addr.name !== addr.label && <p className="text-muted-foreground">{addr.name}</p>}
+                  {addr.address && (
+                    <p className="text-muted-foreground">
+                      {[addr.address.street, addr.address.zip, addr.address.city].filter(Boolean).join(', ')}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </CollapsibleContent>
+          </Collapsible>
+        )}
+
+        {/* Tire Quotes */}
+        {userGroup?.tire_quotes && userGroup.tire_quotes.length > 0 && (
+          <Collapsible>
+            <CollapsibleTrigger className="flex items-center gap-1 w-full text-left">
+              <Car className="h-3 w-3 text-muted-foreground" />
+              <span className="text-xs font-medium text-muted-foreground">
+                Tire Quotes ({userGroup.tire_quotes.length})
+              </span>
+              <ChevronDown className="h-3 w-3 text-muted-foreground ml-auto transition-transform [&[data-state=open]]:rotate-180" />
+            </CollapsibleTrigger>
+            <CollapsibleContent className="mt-1 space-y-1.5">
+              {userGroup.tire_quotes.map((tq: any, idx: number) => (
+                <div key={tq.id || idx} className="p-2 rounded border text-xs space-y-1">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-medium">
+                        {tq.car?.make} {tq.car?.model}
+                        {tq.car?.license_plate && ` (${tq.car.license_plate})`}
+                      </span>
+                    </div>
+                    <Badge variant="outline" className={`h-4 px-1 text-[10px] ${
+                      tq.status === 'ACCEPTED' ? 'bg-green-50 text-green-700 border-green-200' :
+                      tq.status === 'PENDING' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
+                      tq.status === 'REJECTED' || tq.status === 'EXPIRED' ? 'bg-red-50 text-red-700 border-red-200' :
+                      'bg-muted text-muted-foreground'
+                    }`}>
+                      {tq.status}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <span>{tq.season}</span>
+                    {tq.payment_amount && (
+                      <span>{moneyFmt(tq.payment_amount.amount, tq.payment_amount.currency)}</span>
+                    )}
+                    {tq.payment_status && (
+                      <Badge variant="outline" className="h-4 px-1 text-[10px]">{tq.payment_status}</Badge>
+                    )}
+                  </div>
+                  {/* Status timeline */}
+                  {tq.status_events && tq.status_events.length > 0 && (
+                    <div className="border-t pt-1 mt-1">
+                      {tq.status_events.slice(0, 3).map((evt: any, eidx: number) => (
+                        <div key={eidx} className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                          <span className="font-medium">{evt.status}</span>
+                          <span>—</span>
+                          <span>{format(new Date(evt.created_at), 'PP')}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </CollapsibleContent>
+          </Collapsible>
+        )}
+
         {data.ui_meta?.order_tags && data.ui_meta.order_tags.length > 0 && (
           <div>
             <p className="text-xs font-medium text-muted-foreground mb-1">Service Tags</p>
