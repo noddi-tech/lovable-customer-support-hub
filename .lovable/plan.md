@@ -1,69 +1,57 @@
 
 
-# Empty Inbox Celebration + Gamification + ESC Fix
+# Bulletproof ESC + Back Navigation Fix
 
-## Three Changes
+## Root Causes
 
-### 1. Empty Inbox Celebration State
-Replace the plain "No conversations found" message in `ConversationTable.tsx` with a fun, animated celebration when `filteredConversations.length === 0`.
+1. **ESC fires multiple handlers**: Three independent `window.addEventListener('keydown')` listeners all react to Escape simultaneously:
+   - `App.tsx` line 82: "Emergency" handler force-clicks triggers on all `[data-state="open"]` elements
+   - `ConversationView.tsx` line 52: `useKeyboardShortcuts` handler navigates back — the DOM query for open dialogs races with App.tsx's handler which closes them first
+   - `image-lightbox.tsx` line 50: Its own Escape listener calls `onClose()`
+   
+   The race: App.tsx closes dialogs, then ConversationView checks for open dialogs (finds none — they were just closed), then navigates back. One keypress = modal closes AND navigates away.
 
-**File: `src/components/dashboard/conversation-list/ConversationTable.tsx`** (lines 57-66)
+2. **Back navigation unreliable from external links**: `window.history.state?.idx` is React Router internal state and `window.history.length` includes cross-origin entries. When arriving from Slack/email, `navigate(-1)` goes to the external site instead of the inbox. The fallback `/interactions/text/open` doesn't preserve the correct inbox or channel (chat vs text).
 
-When the conversation list is empty:
-- Show a confetti-style animation (CSS-only particle burst using keyframes)
-- Rotating fun messages like "Inbox Zero! You're a support legend", "All clear! Time for a victory dance", "Nothing to see here — you crushed it"
-- A trophy or party popper icon with a scale-in animation
-- Subtle animated sparkles around the icon
+## Fix
 
-### 2. "Almost There" Gamification for Low Counts
-Add a motivational banner when conversations are low (1-3 remaining).
+### 1. Remove App.tsx emergency Escape handler (lines 80-100)
+This handler is destructive — Radix dialogs already handle Escape natively. This handler force-clicks triggers which fights with Radix's own close logic and removes dialogs before other handlers can detect them. Delete it entirely.
 
-**File: `src/components/dashboard/conversation-list/ConversationTable.tsx`**
-
-Before the table, when `filteredConversations.length` is between 1 and 3:
-- Show a small animated banner: "Almost there! Just {count} left — you've got this"
-- A progress-bar-style visual showing how close to zero
-- Fire emoji or lightning bolt icon with a pulse animation
-
-### 3. Fix ESC to Not Navigate When Modals Are Open
-Currently `ConversationView.tsx` registers ESC to always `navigate(-1)`. This interferes with closing dialogs (AI suggestion, image lightbox, etc.).
-
-**File: `src/components/dashboard/ConversationView.tsx`** (lines 51-57)
-
-Change the ESC shortcut to check if any dialog/modal is open before navigating. The fix:
-- Check `document.querySelector('[data-state="open"][role="dialog"], [data-state="open"][role="alertdialog"]')` — if any Radix dialog is open, let the dialog handle ESC natively and don't navigate
-- Only navigate back when no overlay is active
+### 2. Make `useKeyboardShortcuts` modal-aware for Escape
+In `useKeyboardShortcuts.ts`, before running any Escape shortcut action, check if a dialog/overlay/popover is open. If so, skip the action entirely (let Radix handle it). Also check `event.defaultPrevented`.
 
 ```typescript
-{
-  key: 'Escape',
-  action: () => {
-    // Don't navigate if a dialog/lightbox is open — let it close naturally
-    const openDialog = document.querySelector(
-      '[data-state="open"][role="dialog"], [data-state="open"][role="alertdialog"], [data-radix-dialog-overlay]'
-    );
-    if (openDialog) return;
-    
-    const historyIdx = window.history.state?.idx;
-    if (historyIdx && historyIdx > 0) {
-      navigate(-1);
-    } else {
-      navigate('/interactions/text/open');
-    }
-  },
-  description: 'Back to inbox',
-},
+if (keyMatch && shortcut.key.toLowerCase() === 'escape') {
+  const hasOpenModal = document.querySelector(
+    '[data-state="open"][role="dialog"], [data-state="open"][role="alertdialog"], [data-radix-dialog-overlay], [data-radix-popover-content], [data-radix-dropdown-menu-content]'
+  );
+  if (hasOpenModal || event.defaultPrevented) return;
+}
 ```
 
-### New File
-**`src/components/dashboard/conversation-list/InboxZeroCelebration.tsx`**
-- Self-contained component with CSS confetti particles, rotating messages, animated trophy
-- Accepts optional `count` prop for the "almost there" banner variant
-- All animations via Tailwind keyframes (no external libraries)
+### 3. Remove duplicate Escape listener from image-lightbox.tsx
+The lightbox uses `<Dialog>` which already handles Escape via Radix. The manual `keydown` listener on line 47-51 for Escape is redundant and contributes to double-handling. Keep only ArrowLeft/ArrowRight.
 
-### Files to Modify
-- **New**: `src/components/dashboard/conversation-list/InboxZeroCelebration.tsx`
-- **Edit**: `src/components/dashboard/conversation-list/ConversationTable.tsx` — use new celebration component
-- **Edit**: `src/components/dashboard/ConversationView.tsx` — fix ESC behavior
-- **Edit**: `tailwind.config.ts` — add confetti/sparkle keyframes if needed
+### 4. Centralize "back to inbox" logic
+Create a small helper `getConversationBackPath()` that determines the correct return path based on the current URL context:
+
+```typescript
+export function getConversationBackPath(location: Location): string {
+  // Extract type (text/chat) from current path
+  const match = location.pathname.match(/\/interactions\/(text|chat)\//);
+  const type = match?.[1] || 'text';
+  return `/interactions/${type}/open`;
+}
+```
+
+Use this in ConversationView.tsx, ConversationViewContent.tsx, and ConversationHeader.tsx instead of hardcoded `/interactions/text/open`. For back navigation: try `navigate(-1)` only if React Router's `idx > 0`, otherwise use the deterministic fallback.
+
+### Files to modify
+- **`src/App.tsx`** — Delete emergency Escape handler (lines 80-100)
+- **`src/hooks/useKeyboardShortcuts.ts`** — Add modal-awareness for Escape key
+- **`src/components/ui/image-lightbox.tsx`** — Remove Escape from manual keydown listener
+- **`src/components/dashboard/ConversationView.tsx`** — Use centralized back path
+- **`src/components/dashboard/conversation-view/ConversationViewContent.tsx`** — Use centralized back path
+- **`src/components/dashboard/conversation-view/ConversationHeader.tsx`** — Use centralized back path
 
