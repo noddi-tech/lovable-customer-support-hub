@@ -1,38 +1,29 @@
 
 
-# Home Dashboard UI Redesign
+# Fix: Global "Unread" Stat Should Only Count Open Conversations
 
-## Overview
-Redesign the Home page to be cleaner and more polished, inspired by the reference screenshot but keeping the app's existing white/light theme. Key improvements: larger stat cards with icons and trend indicators, cleaner inbox grid with badge-style counts, and section cards with centered icon+label layout instead of the current compact row style.
+## Problem
+Line 64-65 of `get_all_counts()`:
+```sql
+COUNT(*) FILTER (WHERE is_read = false AND deleted_at IS NULL
+  AND (snooze_until IS NULL OR snooze_until <= NOW()))::bigint as conversations_unread,
+```
+This counts unread conversations in ALL statuses (open, closed, pending, archived), giving 111 instead of the actual unread count within the open filter.
 
-## Changes
+## Fix
 
-### File: `src/pages/HomePage.tsx` — full rewrite of the layout
+### Migration: Add `AND status = 'open'` to global unread filter
 
-**1. Stats row — larger, cleaner cards**
-- Each stat card gets a larger layout: big number on the left, icon on the top-right corner (muted), label below the number
-- Remove the colored left-border approach; use a subtle `bg-muted/30` background instead
-- Keep existing click navigation
+**New file: `supabase/migrations/[timestamp]_fix_global_unread_open_only.sql`**
 
-**2. Inboxes section — cleaner grid with badges**
-- Add a section header row with "INBOXES" label (uppercase, small, muted) and a "View all >" link
-- 3 columns on large screens, 2 on medium
-- Each inbox card: colored dot + name on the left, open count as a `Badge` on the right
-- Show unread count only if > 0, as a small red dot/badge next to the open badge
-- Remove the separate "open" sub-label — just show the badge like "3 open"
+Update line 64 to:
+```sql
+COUNT(*) FILTER (WHERE is_read = false AND status = 'open' AND deleted_at IS NULL
+  AND (snooze_until IS NULL OR snooze_until <= NOW()))::bigint as conversations_unread,
+```
 
-**3. Section link cards — centered icon+label layout**
-- Section headers: uppercase muted text (e.g., "INTERACTIONS", "MARKETING")
-- Cards become taller with the icon centered above the label text
-- Remove the colored left border; use a clean card with subtle hover shadow
-- Keep the `ArrowRight` on hover but position it in the top-right corner
-- Grid: 3 columns on large, 2 on small
+Also apply the same fix to `get_inbox_counts()` for consistency.
 
-**4. General polish**
-- Use `Separator` between major sections for visual clarity
-- Consistent spacing with `space-y-8` between sections
-- Section headers use `text-xs font-semibold uppercase tracking-wider text-muted-foreground`
-
-### No other files need changes
-All data hooks and navigation config remain the same.
+### No frontend changes needed
+The Home page already reads `conversations.unread` — it just needs the correct number from the database.
 
