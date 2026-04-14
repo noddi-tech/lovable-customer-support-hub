@@ -47,6 +47,7 @@ import NotFound from "./pages/NotFound";
 import SuperAdminImport from "./pages/SuperAdminImport";
 import SearchPage from "./pages/SearchPage";
 import BulkOutreach from "./pages/BulkOutreach";
+import HomePage from "./pages/HomePage";
 import "@/lib/i18n";
 import "@/styles/controls.css";
 
@@ -86,7 +87,8 @@ const AppContent = () => {
       <Route path="/auth" element={<Auth />} />
       
       {/* Root redirect to default section */}
-      <Route path="/" element={<Navigate to="/interactions/text" replace />} />
+      <Route path="/" element={<Navigate to="/home" replace />} />
+      <Route path="/home" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
       
       {/* ========== SHORT LINKS (for sharing) ========== */}
       <Route path="/c/:conversationId" element={<ProtectedRoute><ConversationRedirect /></ProtectedRoute>} />

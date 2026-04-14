@@ -112,7 +112,7 @@ export const AppMainNav = () => {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton asChild tooltip="Home">
-              <NavLink to="/interactions/text/open" onClick={handleNavClick} className="hover:bg-muted/50">
+              <NavLink to="/home" onClick={handleNavClick} className="hover:bg-muted/50">
                 <Home className="h-4 w-4" />
                 {!isCollapsed && <span className="font-semibold">Home</span>}
               </NavLink>
