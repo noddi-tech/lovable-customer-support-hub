@@ -11,6 +11,7 @@ interface EmailRequest {
   html: string;
   from_email?: string;
   from_name?: string;
+  headers?: Record<string, string>;
 }
 
 const handler = async (req: Request): Promise<Response> => {
