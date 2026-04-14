@@ -47,7 +47,7 @@ export const ImageLightbox = ({
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'ArrowLeft') onPrevious();
       if (e.key === 'ArrowRight') onNext();
-      if (e.key === 'Escape') onClose();
+      // Escape is handled natively by the Radix Dialog — don't duplicate
     };
     
     window.addEventListener('keydown', handleKeyDown);

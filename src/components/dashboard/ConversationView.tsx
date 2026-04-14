@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { canGoBackInApp, getConversationBackPath } from '@/utils/conversationNavigation';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -51,17 +52,11 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
     {
       key: 'Escape',
       action: () => {
-        // Don't navigate if a dialog/lightbox/overlay is open — let it close naturally
-        const openOverlay = document.querySelector(
-          '[data-state="open"][role="dialog"], [data-state="open"][role="alertdialog"], [data-radix-dialog-overlay], .ReactModal__Overlay'
-        );
-        if (openOverlay) return;
-
-        const historyIdx = (window.history.state as any)?.idx;
-        if (historyIdx && historyIdx > 0) {
+        // Modal-awareness is now handled inside useKeyboardShortcuts itself
+        if (canGoBackInApp()) {
           navigate(-1);
         } else {
-          navigate('/interactions/text/open');
+          navigate(getConversationBackPath(window.location.pathname));
         }
       },
       description: 'Back to inbox',

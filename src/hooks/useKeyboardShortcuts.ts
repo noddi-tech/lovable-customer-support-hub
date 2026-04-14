@@ -13,6 +13,9 @@ interface KeyboardShortcut {
 export const useKeyboardShortcuts = (shortcuts: KeyboardShortcut[]) => {
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
+      // If another handler already consumed this event, skip
+      if (event.defaultPrevented) return;
+
       // Check each shortcut
       for (const shortcut of shortcuts) {
         const keyMatch = event.key.toLowerCase() === shortcut.key.toLowerCase();
@@ -21,6 +24,16 @@ export const useKeyboardShortcuts = (shortcuts: KeyboardShortcut[]) => {
         const altMatch = shortcut.alt ? event.altKey : !event.altKey;
 
         if (keyMatch && ctrlMatch && shiftMatch && altMatch) {
+          // For Escape: don't fire if any Radix dialog/overlay/popover is open
+          if (shortcut.key.toLowerCase() === 'escape') {
+            const hasOpenModal = document.querySelector(
+              '[data-state="open"][role="dialog"], [data-state="open"][role="alertdialog"], ' +
+              '[data-radix-dialog-overlay], [data-radix-popover-content], ' +
+              '[data-radix-dropdown-menu-content], [data-radix-select-content]'
+            );
+            if (hasOpenModal) return;
+          }
+
           event.preventDefault();
           shortcut.action();
           break;
