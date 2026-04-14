@@ -27,6 +27,8 @@ export interface OptimizedCounts {
     name: string;
     color: string;
     conversation_count: number;
+    open_count: number;
+    unread_count: number;
     is_active: boolean;
   }>;
   loading: boolean;
@@ -140,6 +142,8 @@ export const useOptimizedCounts = (selectedInboxId?: string): OptimizedCounts =>
                 name: string;
                 color: string;
                 conversation_count: number;
+                open_count: number;
+                unread_count: number;
                 is_active: boolean;
               }> : []
             };
