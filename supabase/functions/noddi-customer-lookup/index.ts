@@ -568,7 +568,8 @@ function buildResponse(params: {
   unpaid_bookings?: any[];
   display_name?: string;
   userGroup?: any;
-  enriched_order_tags?: string[]; // Add this parameter
+  enriched_order_tags?: string[];
+  cached_at?: string | null;
 }): NoddiLookupResponse {
   const {
     source,
@@ -585,7 +586,8 @@ function buildResponse(params: {
     unpaid_bookings = [],
     display_name,
     userGroup,
-    enriched_order_tags
+    enriched_order_tags,
+    cached_at = null
   } = params;
 
   // Guard values
@@ -662,6 +664,7 @@ function buildResponse(params: {
         brand_name: priority_booking?.brand_name || null,
         feedback: priority_booking?.feedback || null,
         timezone: "Europe/Oslo",
+        cached_at: cached_at || null,
         version: "noddi-edge-2.0",
         source
       }
