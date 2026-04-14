@@ -1,29 +1,15 @@
 
 
-# Fix: Global "Unread" Stat Should Only Count Open Conversations
+# Compress Home Dashboard Layout
 
-## Problem
-Line 64-65 of `get_all_counts()`:
-```sql
-COUNT(*) FILTER (WHERE is_read = false AND deleted_at IS NULL
-  AND (snooze_until IS NULL OR snooze_until <= NOW()))::bigint as conversations_unread,
-```
-This counts unread conversations in ALL statuses (open, closed, pending, archived), giving 111 instead of the actual unread count within the open filter.
+## Changes — `src/pages/HomePage.tsx`
 
-## Fix
+1. **Reduce spacing**: `space-y-8` → `space-y-5`, padding `p-6 md:p-8` → `p-4 md:p-6`
+2. **Compact stat cards**: padding `p-5` → `p-3`, font `text-3xl` → `text-2xl`, icon size `h-5 w-5` → `h-4 w-4`
+3. **Compact inbox cards**: padding `p-4` → `p-3`, grid gap `gap-3` → `gap-2`
+4. **Compact section cards**: remove `min-h-[100px]`, reduce padding `p-5` → `p-3`, icon `h-6 w-6` → `h-5 w-5`, grid gap `gap-3` → `gap-2`, section header margin `mb-4` → `mb-2`
+5. **Reduce separator margins**: inbox separator `mt-8` → `mt-4`
+6. **More columns on large screens**: section grid `lg:grid-cols-4 xl:grid-cols-5` → `lg:grid-cols-5 xl:grid-cols-6`
 
-### Migration: Add `AND status = 'open'` to global unread filter
-
-**New file: `supabase/migrations/[timestamp]_fix_global_unread_open_only.sql`**
-
-Update line 64 to:
-```sql
-COUNT(*) FILTER (WHERE is_read = false AND status = 'open' AND deleted_at IS NULL
-  AND (snooze_until IS NULL OR snooze_until <= NOW()))::bigint as conversations_unread,
-```
-
-Also apply the same fix to `get_inbox_counts()` for consistency.
-
-### No frontend changes needed
-The Home page already reads `conversations.unread` — it just needs the correct number from the database.
+Single file change: `src/pages/HomePage.tsx`
 
