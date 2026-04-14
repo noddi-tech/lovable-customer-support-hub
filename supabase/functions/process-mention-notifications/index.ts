@@ -424,6 +424,8 @@ const handler = async (req: Request): Promise<Response> => {
               previewText: truncatedContent,
               contextType: context.type,
               linkUrl,
+              conversationSubject,
+              customerName,
             });
           }
         } catch (err) {
