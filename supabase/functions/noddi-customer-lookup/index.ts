@@ -1409,11 +1409,11 @@ Deno.serve(async (req) => {
               return raw.map((c: any) => ({
                 ...c,
                 id: c.id,
-                code: c.coupon_code || c.code || c.name || c.coupon?.code || null,
-                description: c.description_public || c.description || c.name || null,
+                name_public: c.name_public || null,
+                name_internal: c.name_internal || null,
+                discount: c.discount || null,
+                discount_percentage: c.discount_percentage ?? null,
                 is_active: c.is_active ?? c.active ?? true,
-                value: c.value || c.discount_value || c.amount || c.coupon?.value || null,
-                discount_type: c.discount_type || c.type || c.coupon?.discount_type || null,
               }));
             })(),
           }));
@@ -1655,11 +1655,11 @@ Deno.serve(async (req) => {
         return raw.map((c: any) => ({
           ...c,
           id: c.id,
-          code: c.coupon_code || c.code || c.name || c.coupon?.code || null,
-          description: c.description_public || c.description || c.name || null,
+          name_public: c.name_public || null,
+          name_internal: c.name_internal || null,
+          discount: c.discount || null,
+          discount_percentage: c.discount_percentage ?? null,
           is_active: c.is_active ?? c.active ?? true,
-          value: c.value || c.discount_value || c.amount || c.coupon?.value || null,
-          discount_type: c.discount_type || c.type || c.coupon?.discount_type || null,
         }));
       })(),
     }));
