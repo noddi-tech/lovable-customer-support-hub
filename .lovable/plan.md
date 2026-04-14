@@ -1,26 +1,30 @@
 
 
-# Fix: Coupon display — show name + value, not full description
+# Fix: Use `name_public` and `discount.amount`/`currency` for coupon display
 
 ## Problem
-Currently the coupon label uses `description_public` (long marketing text like "Rabatt på alle bilvaskpakker, velg en av pakkene og få rabatten aktivert!"). The customer app instead shows a short title (e.g., "Rabattkupong - Bilvaskpakker") with just the value ("300 kr").
+The coupon fields currently used (`name`, `code`, `value`, `discount_type`) don't match the actual API response. The real API returns `name_public`, `discount.amount`, `discount.currency`, and `discount_percentage`.
 
 ## Changes
 
-**File: `src/components/dashboard/voice/NoddiCustomerDetails.tsx`** (lines 904-935)
+**File: `src/components/dashboard/voice/NoddiCustomerDetails.tsx`** (lines 906-910)
 
-1. Change label priority: prefer `coupon.name` or `coupon.code` or `coupon.coupon_code` over `description_public` — use the short name, not the marketing description
-2. Make the value more prominent — show it as a badge-like element (like the customer app's dashed-border value pills) instead of tiny sub-text
-3. Keep the Active/Expired badge
-4. Optionally show `description_public` as a tooltip on hover so agents can still access it if needed
+Update the field mapping to match the actual API structure:
 
-The layout per coupon becomes:
+```typescript
+// Label: use name_public (what app shows), fall back to name_internal, then generic
+const label = coupon.name_public || coupon.name_internal || coupon.name || `Coupon #${coupon.id || idx + 1}`;
+
+// Value: use discount.amount + discount.currency, or discount_percentage
+const valueText = coupon.discount?.amount != null
+  ? `${coupon.discount.amount} ${coupon.discount.currency || 'kr'}`
+  : coupon.discount_percentage != null
+    ? `${coupon.discount_percentage}%`
+    : null;
 ```
-[Ticket icon] Rabattkupong - Bilvaskpakker    [300 kr]  [Active]
-```
 
-Instead of the current long-text layout.
+Remove the old `val`/`discType` intermediaries (lines 908-910) and replace with the above. Everything else (layout, badges, tooltip) stays the same.
 
 ### Files to modify
-- `src/components/dashboard/voice/NoddiCustomerDetails.tsx` — reorder label fields, make value prominent, add tooltip for description
+- `src/components/dashboard/voice/NoddiCustomerDetails.tsx` — fix field mapping on lines 906-910
 
