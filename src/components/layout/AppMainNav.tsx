@@ -21,7 +21,7 @@ import { useOptimizedCounts } from '@/hooks/useOptimizedCounts';
 import { useDateFormatting } from '@/hooks/useDateFormatting';
 import { getGroupedNavItems, logNavMatch } from '@/navigation/nav-config';
 import { cn } from '@/lib/utils';
-import { Crown, ChevronRight, ChevronLeft, LogOut, Settings, Palette } from 'lucide-react';
+import { Crown, ChevronRight, ChevronLeft, LogOut, Settings, Palette, Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -109,12 +109,23 @@ export const AppMainNav = () => {
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader className="p-4 space-y-3">
-        <h2 className={cn(
-          "text-lg font-semibold text-foreground",
-          isCollapsed && "sr-only"
-        )}>
-          Customer Platform
-        </h2>
+        <div className="flex items-center gap-2">
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild tooltip="Home">
+                <NavLink to="/interactions/text/open" onClick={handleNavClick} className="hover:bg-muted/50">
+                  <Home className="h-4 w-4" />
+                  {!isCollapsed && <span className="font-semibold">Home</span>}
+                </NavLink>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </div>
+        {!isCollapsed && (
+          <h2 className="text-lg font-semibold text-foreground">
+            Customer Platform
+          </h2>
+        )}
         
         {/* Organization Switcher — for super admins / multi-org users */}
         {!isCollapsed && <OrganizationSwitcher />}
@@ -150,7 +161,7 @@ export const AppMainNav = () => {
                     
                     return (
                       <SidebarMenuItem key={item.id}>
-                        <SidebarMenuButton asChild>
+                        <SidebarMenuButton asChild tooltip={item.label}>
                           <NavLink 
                             to={item.to} 
                             end={item.to === '/'}
