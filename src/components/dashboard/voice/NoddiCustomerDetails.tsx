@@ -4,6 +4,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { 
   Loader2, User, Package, AlertCircle, Calendar, DollarSign, CheckCircle2, Star, ExternalLink,
   Archive, RotateCcw, Truck, Users, Droplets, Target, Gauge, Zap, Building2, RefreshCw,
@@ -902,38 +903,56 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
             </div>
             <div className="space-y-1">
               {userGroup.coupons.map((coupon: any, idx: number) => {
-                const label = coupon.description_public || coupon.description || coupon.code || coupon.name || coupon.coupon_code || `Coupon #${coupon.id || idx + 1}`;
+                const label = coupon.name || coupon.code || coupon.coupon_code || coupon.description || `Coupon #${coupon.id || idx + 1}`;
+                const description = coupon.description_public || coupon.description || null;
                 const val = coupon.value ?? coupon.discount_value ?? coupon.amount ?? coupon.coupon?.value ?? null;
                 const discType = coupon.discount_type || coupon.type || coupon.coupon?.discount_type || null;
-                return (
+                const valueText = val != null ? (discType === 'percentage' ? `${val}%` : `${val} kr`) : null;
+
+                const content = (
                 <div
                   key={coupon.id || idx}
                   className="flex items-center justify-between p-1.5 rounded border bg-purple-50/50 border-purple-200"
                 >
                   <div className="flex items-center gap-1.5 min-w-0">
                     <Ticket className="h-3 w-3 text-purple-500 shrink-0" />
-                    <div className="min-w-0">
-                      <span className="text-xs font-medium text-purple-800">
-                        {label}
-                      </span>
-                      {val != null && (
-                        <p className="text-[10px] font-medium text-purple-700">
-                          {discType === 'percentage' ? `${val}%` : `${val} kr`}
-                        </p>
-                      )}
-                    </div>
+                    <span className="text-xs font-medium text-purple-800 truncate">
+                      {label}
+                    </span>
                   </div>
-                  <Badge
-                    variant="outline"
-                    className={`text-[10px] shrink-0 ${
-                      coupon.is_active !== false ? 'bg-green-50 text-green-700 border-green-200' : 'bg-muted text-muted-foreground'
-                    }`}
-                  >
-                    {coupon.is_active !== false ? 'Active' : 'Expired'}
-                  </Badge>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {valueText && (
+                      <Badge
+                        variant="outline"
+                        className="text-[10px] font-semibold border-dashed border-purple-300 text-purple-700 bg-purple-50"
+                      >
+                        {valueText}
+                      </Badge>
+                    )}
+                    <Badge
+                      variant="outline"
+                      className={`text-[10px] ${
+                        coupon.is_active !== false ? 'bg-green-50 text-green-700 border-green-200' : 'bg-muted text-muted-foreground'
+                      }`}
+                    >
+                      {coupon.is_active !== false ? 'Active' : 'Expired'}
+                    </Badge>
+                  </div>
                 </div>
                 );
-              })}
+
+                if (description) {
+                  return (
+                    <Tooltip key={coupon.id || idx}>
+                      <TooltipTrigger asChild>{content}</TooltipTrigger>
+                      <TooltipContent side="left" className="max-w-[250px] text-xs">
+                        {description}
+                      </TooltipContent>
+                    </Tooltip>
+                  );
+                }
+                return content;
+               })}
             </div>
           </div>
           );
