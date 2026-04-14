@@ -1,40 +1,23 @@
 
 
-# Fix: Swap endpoint order + capture cache freshness header
+# Fix: Mention notification emails threading together
 
-## What happened
-Anders confirmed the new `user-customer-lookup-summary` endpoint is **not deployed yet** (stuck in CI). So every lookup currently hits the new endpoint first, gets a 404, then falls back to the old one -- adding latency and noise. He also shared that when the new endpoint is live, it will return a `X-Navio-Cached-At` response header with the cache timestamp.
+## Problem
+When multiple mentions happen in the same conversation, the notification emails share the same subject line (e.g., "Joachim Rathke mentioned you in a note") and sender (`noreply@noddi.no`). Email clients like Gmail thread them together, making individual mentions easy to miss.
 
-## Changes
+## Solution
+Two changes to break email threading:
 
-### 1. Swap endpoint order (primary fix)
-**File: `supabase/functions/noddi-customer-lookup/index.ts`** (line ~887-890)
+### 1. Add custom headers support to `send-email/index.ts`
+Add an optional `headers` field to the SendGrid payload so callers can pass custom SMTP headers. This is a generic improvement.
 
-Flip the array so the old (working) endpoint is tried first:
-```typescript
-const ENDPOINTS = [
-  { url: `${API_BASE}/v1/users/customer-lookup-support/`, label: 'legacy (support)' },
-  { url: `${API_BASE}/v1/users/user-customer-lookup-summary/`, label: 'new (summary)' },
-];
-```
-
-This way lookups work immediately. When Anders deploys the new endpoint, the fallback will start being used -- we can swap back later.
-
-### 2. Capture `X-Navio-Cached-At` header
-When a successful response comes back, read the `X-Navio-Cached-At` header and include it in `ui_meta` as `cached_at`. This lets the UI show cache freshness (e.g., "Data from 2 min ago").
-
-### 3. Show cache freshness in UI
-**File: `src/components/dashboard/voice/NoddiCustomerDetails.tsx`**
-
-Next to the refresh button, show a subtle timestamp like "Cached 3m ago" when `ui_meta.cached_at` is present.
-
-### 4. Update types
-**File: `src/hooks/useNoddihKundeData.ts`**
-
-Add `cached_at?: string` to `ui_meta` in the response type.
+### 2. Send unique headers from `process-mention-notifications/index.ts`
+In `sendMentionEmail`:
+- Include conversation subject and customer name in the email subject line for better context (e.g., "Joachim Rathke mentioned you — Re: Dekk bestilling (Øystein Borhaug)")
+- Pass a unique `X-Entity-Ref-ID` header (a random UUID) — this is the standard way to prevent Gmail from threading emails with the same subject
+- Pass a unique `Message-ID` header to ensure each email is treated as a standalone message
 
 ### Files to modify
-- `supabase/functions/noddi-customer-lookup/index.ts` -- swap endpoint order, capture `X-Navio-Cached-At`
-- `src/components/dashboard/voice/NoddiCustomerDetails.tsx` -- show cache freshness
-- `src/hooks/useNoddihKundeData.ts` -- add `cached_at` to type
+- `supabase/functions/send-email/index.ts` — accept optional `headers` object, merge into SendGrid payload
+- `supabase/functions/process-mention-notifications/index.ts` — pass `subject`/`customerName` to `sendMentionEmail`, build contextual subject line, add anti-threading headers
 
