@@ -109,18 +109,16 @@ export const AppMainNav = () => {
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader className="p-4 space-y-3">
-        <div className="flex items-center gap-2">
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild tooltip="Home">
-                <NavLink to="/interactions/text/open" onClick={handleNavClick} className="hover:bg-muted/50">
-                  <Home className="h-4 w-4" />
-                  {!isCollapsed && <span className="font-semibold">Home</span>}
-                </NavLink>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </div>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild tooltip="Home">
+              <NavLink to="/interactions/text/open" onClick={handleNavClick} className="hover:bg-muted/50">
+                <Home className="h-4 w-4" />
+                {!isCollapsed && <span className="font-semibold">Home</span>}
+              </NavLink>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
         {!isCollapsed && (
           <h2 className="text-lg font-semibold text-foreground">
             Customer Platform
