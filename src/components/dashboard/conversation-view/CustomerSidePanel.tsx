@@ -467,10 +467,18 @@ export const CustomerSidePanel = ({
             query.queryKey[1] === conversation.id
         });
       } else {
+        // Customer was linked but no Noddi booking data found
         toast({
-          title: "No booking data",
-          description: `No Noddi data found for ${selectedCustomer.full_name}`,
-          variant: "destructive",
+          title: "Customer linked",
+          description: `Linked ${selectedCustomer.full_name}, but no Noddi booking data was found.`,
+        });
+        
+        // Still invalidate conversation metadata to refresh
+        await queryClient.invalidateQueries({
+          queryKey: ['conversation-meta'],
+          predicate: (query) => 
+            query.queryKey[0] === 'conversation-meta' && 
+            query.queryKey[1] === conversation.id
         });
       }
     } catch (error) {
