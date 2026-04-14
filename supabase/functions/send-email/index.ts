@@ -11,6 +11,7 @@ interface EmailRequest {
   html: string;
   from_email?: string;
   from_name?: string;
+  headers?: Record<string, string>;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -25,7 +26,7 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     const body: EmailRequest = await req.json();
-    const { to, subject, html, from_email, from_name } = body;
+    const { to, subject, html, from_email, from_name, headers } = body;
 
     if (!to || !subject || !html) {
       return new Response(
@@ -37,12 +38,16 @@ const handler = async (req: Request): Promise<Response> => {
     const senderEmail = from_email || "noreply@noddi.no";
     const senderName = from_name || "Noddi Support";
 
-    const sgPayload = {
+    const sgPayload: any = {
       personalizations: [{ to: [{ email: to }] }],
       from: { email: senderEmail, name: senderName },
       subject,
       content: [{ type: "text/html", value: html }],
     };
+
+    if (headers && Object.keys(headers).length > 0) {
+      sgPayload.headers = headers;
+    }
 
     const sgResponse = await fetch("https://api.sendgrid.com/v3/mail/send", {
       method: "POST",
