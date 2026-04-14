@@ -1,37 +1,40 @@
 
 
-# Fix: Customer lookup broken after API endpoint switch
+# Fix: Swap endpoint order + capture cache freshness header
 
-## Root Cause
-The last edit replaced the API URL from `/v1/users/customer-lookup-support/` to `/v1/users/user-customer-lookup-summary/`. The logs clearly show:
-- **14:31** — Old endpoint (`customer-lookup-support`) found `ingvaldsenstig@gmail.com` successfully
-- **14:38** — New endpoint (`user-customer-lookup-summary`) returns "not found" for the **same** email
+## What happened
+Anders confirmed the new `user-customer-lookup-summary` endpoint is **not deployed yet** (stuck in CI). So every lookup currently hits the new endpoint first, gets a 404, then falls back to the old one -- adding latency and noise. He also shared that when the new endpoint is live, it will return a `X-Navio-Cached-At` response header with the cache timestamp.
 
-The new endpoint is either not deployed yet on Noddi's side, expects different parameters, or has a different response format.
+## Changes
 
-## Fix — Add fallback with old endpoint
+### 1. Swap endpoint order (primary fix)
+**File: `supabase/functions/noddi-customer-lookup/index.ts`** (line ~887-890)
 
-**File: `supabase/functions/noddi-customer-lookup/index.ts`**
+Flip the array so the old (working) endpoint is tried first:
+```typescript
+const ENDPOINTS = [
+  { url: `${API_BASE}/v1/users/customer-lookup-support/`, label: 'legacy (support)' },
+  { url: `${API_BASE}/v1/users/user-customer-lookup-summary/`, label: 'new (summary)' },
+];
+```
 
-In the lookup loop (around line 895-956), after the new endpoint returns a "user not found" error, **fall back to the old endpoint** before giving up:
+This way lookups work immediately. When Anders deploys the new endpoint, the fallback will start being used -- we can swap back later.
 
-1. Try `user-customer-lookup-summary` first (GET with `email`/`phone`/`clear_cache` query params)
-2. If it returns 400/404 `user_does_not_exist`, retry with the old `customer-lookup-support` endpoint using the same query params
-3. If the old endpoint works, use its response and log that the fallback was used
-4. Keep all existing response parsing and `buildResponse` logic intact — both endpoints return the same shape
+### 2. Capture `X-Navio-Cached-At` header
+When a successful response comes back, read the `X-Navio-Cached-At` header and include it in `ui_meta` as `cached_at`. This lets the UI show cache freshness (e.g., "Data from 2 min ago").
 
-This ensures the system works regardless of which endpoint is active on Noddi's side.
+### 3. Show cache freshness in UI
+**File: `src/components/dashboard/voice/NoddiCustomerDetails.tsx`**
 
-## Also: incorporate the earlier plan (pass `noddi_user_id` for name-search linking)
+Next to the refresh button, show a subtle timestamp like "Cached 3m ago" when `ui_meta.cached_at` is present.
 
-Since we're already fixing the edge function, include the earlier approved plan items:
+### 4. Update types
+**File: `src/hooks/useNoddihKundeData.ts`**
 
-**Edge function**: Accept optional `noddi_user_id` and `user_group_id` params. If email/phone lookup fails but these IDs are provided, fetch user data directly via `/v1/users/{id}/` and `/v1/user-groups/{id}/` as a secondary fallback.
-
-**ChatCustomerPanel.tsx / CustomerSidePanel.tsx**: Pass `noddi_user_id` and `user_group_id` from customer metadata when calling the lookup after linking a name-search result.
+Add `cached_at?: string` to `ui_meta` in the response type.
 
 ### Files to modify
-- `supabase/functions/noddi-customer-lookup/index.ts` — add old-endpoint fallback + `noddi_user_id` direct-lookup fallback
-- `src/components/dashboard/chat/ChatCustomerPanel.tsx` — pass metadata IDs in lookup call
-- `src/components/dashboard/conversation-view/CustomerSidePanel.tsx` — same
+- `supabase/functions/noddi-customer-lookup/index.ts` -- swap endpoint order, capture `X-Navio-Cached-At`
+- `src/components/dashboard/voice/NoddiCustomerDetails.tsx` -- show cache freshness
+- `src/hooks/useNoddihKundeData.ts` -- add `cached_at` to type
 
