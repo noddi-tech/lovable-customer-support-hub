@@ -3,10 +3,11 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { 
   Loader2, User, Package, AlertCircle, Calendar, DollarSign, CheckCircle2, Star, ExternalLink,
   Archive, RotateCcw, Truck, Users, Droplets, Target, Gauge, Zap, Building2, RefreshCw,
-  Crown, Ticket, MapPin, MessageSquareQuote
+  Crown, Ticket, MapPin, MessageSquareQuote, Home, ChevronDown, Car
 } from 'lucide-react';
 import { StarRatingInput } from '@/components/ui/star-rating-input';
 import { useNoddihKundeData } from '@/hooks/useNoddihKundeData';
@@ -464,16 +465,19 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
                   {data.ui_meta.booking_type === 'wheel_storage_pickup' ? 'Wheel Storage Pickup' : data.ui_meta.booking_type}
                 </Badge>
               )}
-              {data.ui_meta?.location_type && (
+              {(data.ui_meta?.location_type || data.ui_meta?.booking_location_type) && (() => {
+                const locType = (data.ui_meta?.booking_location_type || data.ui_meta?.location_type || '').toUpperCase();
+                return (
                 <Badge variant="outline" className={`h-4 px-1 text-[10px] ${
-                  data.ui_meta.location_type === 'mobile' 
+                  locType === 'MOBILE' 
                     ? 'bg-blue-50 text-blue-700 border-blue-200' 
                     : 'bg-gray-50 text-gray-600 border-gray-200'
                 }`}>
                   <MapPin className="h-2.5 w-2.5 mr-0.5" />
-                  {data.ui_meta.location_type === 'mobile' ? 'Mobile' : 'Stationary'}
+                  {locType === 'MOBILE' ? 'Mobile' : 'Stationary'}
                 </Badge>
-              )}
+                );
+              })()}
             </div>
             
             {/* Status Chips */}
@@ -490,22 +494,33 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
                 </span>
               )}
 
-              {/* Unable to complete comments */}
-              {data.ui_meta?.unable_to_complete && (data.ui_meta?.comments_unable_to_complete_public || data.ui_meta?.comments_unable_to_complete_internal) && (
+              {/* Unable to complete comments - prefer new comments object, fallback to legacy */}
+              {data.ui_meta?.unable_to_complete && (() => {
+                const userComment = data.ui_meta?.comments?.user || data.ui_meta?.comments_unable_to_complete_public;
+                const adminComment = data.ui_meta?.comments?.admin || data.ui_meta?.comments_unable_to_complete_internal;
+                const workerComment = data.ui_meta?.comments?.worker;
+                if (!userComment && !adminComment && !workerComment) return null;
+                return (
                 <div className="w-full mt-1 p-2 rounded-lg bg-amber-50 border border-amber-200 text-xs space-y-1">
-                  {data.ui_meta.comments_unable_to_complete_public && (
+                  {userComment && (
                     <p className="text-amber-900">
-                      <span className="font-medium">Customer note:</span> {data.ui_meta.comments_unable_to_complete_public}
+                      <span className="font-medium">Customer note:</span> {userComment}
                     </p>
                   )}
-                  {data.ui_meta.comments_unable_to_complete_internal && (
+                  {workerComment && (
+                    <p className="text-amber-900">
+                      <span className="font-medium">Worker note:</span> {workerComment}
+                    </p>
+                  )}
+                  {adminComment && (
                     <details className="cursor-pointer">
                       <summary className="text-amber-700 font-medium">Internal note</summary>
-                      <p className="text-amber-800 mt-0.5">{data.ui_meta.comments_unable_to_complete_internal}</p>
+                      <p className="text-amber-800 mt-0.5">{adminComment}</p>
                     </details>
                   )}
                 </div>
-              )}
+                );
+              })()}
               {/* Paid state chip */}
               {data.ui_meta?.money?.paid_state && (
                 <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs ${
