@@ -164,6 +164,7 @@ export type NoddiLookupResponse = {
       } | null;
       slug?: string | null;
       brand_name?: string | null;
+      cached_at?: string | null;
       feedback?: {
         customer_comment: string;
         customer_rating_car_result: number;

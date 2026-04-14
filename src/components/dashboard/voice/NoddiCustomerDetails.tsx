@@ -12,7 +12,7 @@ import {
 import { StarRatingInput } from '@/components/ui/star-rating-input';
 import { useNoddihKundeData } from '@/hooks/useNoddihKundeData';
 import { displayName } from '@/utils/noddiHelpers';
-import { format } from 'date-fns';
+import { format, formatDistanceToNow } from 'date-fns';
 import { logger } from '@/utils/logger';
 
 interface NoddiCustomerDetailsProps {
@@ -272,15 +272,22 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <span className="text-xs font-semibold uppercase text-muted-foreground">Customer Information</span>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-6 px-1.5"
-           onClick={() => refresh()}
-           disabled={isLoadingData || !canRefresh}
-         >
-           <RefreshCw className={`h-3 w-3 ${isLoadingData ? 'animate-spin' : ''}`} />
-        </Button>
+        <div className="flex items-center gap-1.5">
+          {noddiData?.data?.ui_meta?.cached_at && (
+            <span className="text-[10px] text-muted-foreground" title={noddiData.data.ui_meta.cached_at}>
+              {formatDistanceToNow(new Date(noddiData.data.ui_meta.cached_at), { addSuffix: true })}
+            </span>
+          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 px-1.5"
+            onClick={() => refresh()}
+            disabled={isLoadingData || !canRefresh}
+          >
+            <RefreshCw className={`h-3 w-3 ${isLoadingData ? 'animate-spin' : ''}`} />
+          </Button>
+        </div>
       </div>
         {/* Show email alias indicator if using different email for lookups */}
         {noddiEmail && noddiEmail !== customerEmail && (
