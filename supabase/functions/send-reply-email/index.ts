@@ -221,8 +221,9 @@ const handler = async (req: Request): Promise<Response> => {
     senderDisplayName = organization?.sender_display_name || organization?.name || null;
   }
 
-  // Priority 4: Use agent's full name
-  if (!senderDisplayName && senderInfo?.full_name) {
+  // Priority 4: Use agent's full name (may be overridden below if include_agent_name is off)
+  const senderDisplayNameFromAgent = !senderDisplayName && senderInfo?.full_name;
+  if (senderDisplayNameFromAgent) {
     senderDisplayName = senderInfo.full_name;
   }
 

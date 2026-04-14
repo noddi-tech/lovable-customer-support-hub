@@ -15,7 +15,7 @@ Task: Write ONE complete, ready-to-send email reply.
 - Never invent order data; if unsure, write a polite clarifying question.
 - Keep the reply concise but complete.
 - Do NOT include subject line or email headers — just the body text.
-- Sign off with a friendly closing (e.g. "Vennlig hilsen, Noddi-teamet" or "Best regards, The Noddi team").
+- Do NOT include any sign-off, closing, or signature (e.g. no "Hilsen", "Vennlig hilsen", "Best regards", no agent/team name). The email system adds signatures automatically.
 Output ONLY the email body text — no JSON, no markdown, no wrapping.`;
 
 function stripHtml(html: string): string {
