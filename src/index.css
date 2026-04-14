@@ -1575,8 +1575,12 @@ Optimized for accessibility with WCAG AA compliance.
 
 /* Touch and accessibility - scoped to mobile form fields only */
 @media (max-width: 767px) {
-  input, textarea, select {
-    font-size: 16px; /* avoid iOS zoom on focus */
+  html, body, #root {
+    overflow-x: hidden;
+    max-width: 100vw;
+  }
+  input, textarea, select, textarea[class] {
+    font-size: 16px !important; /* avoid iOS zoom on focus */
   }
 }
 
