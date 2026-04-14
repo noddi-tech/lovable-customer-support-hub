@@ -221,8 +221,9 @@ const handler = async (req: Request): Promise<Response> => {
     senderDisplayName = organization?.sender_display_name || organization?.name || null;
   }
 
-  // Priority 4: Use agent's full name
-  if (!senderDisplayName && senderInfo?.full_name) {
+  // Priority 4: Use agent's full name (may be overridden below if include_agent_name is off)
+  const senderDisplayNameFromAgent = !senderDisplayName && senderInfo?.full_name;
+  if (senderDisplayNameFromAgent) {
     senderDisplayName = senderInfo.full_name;
   }
 
@@ -270,6 +271,12 @@ const handler = async (req: Request): Promise<Response> => {
       signature_content: 'Best regards,<br>{{agent_name}}<br>Support Team',
       include_agent_name: true
     } as any;
+
+    // If include_agent_name is off and senderDisplayName came from agent's name, reset it
+    if (templateSettings.include_agent_name === false && senderDisplayNameFromAgent) {
+      senderDisplayName = 'Support';
+      console.log('Sender display name reset to Support (include_agent_name is off)');
+    }
 
     // Threading headers: build a proper References chain
     const conversationExternalId = (message.conversation as any)?.external_id || null;
