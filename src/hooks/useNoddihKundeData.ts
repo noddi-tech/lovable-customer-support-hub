@@ -67,6 +67,38 @@ export type NoddiLookupResponse = {
         segment: string;
         service_department_id: number;
       }>;
+      addresses?: Array<{
+        id: number;
+        name?: string;
+        label?: string;
+        address?: {
+          street?: string;
+          zip?: string;
+          city?: string;
+        };
+      }>;
+      tire_quotes?: Array<{
+        id: number;
+        slug: string;
+        season: string;
+        status: string;
+        created_at: string;
+        car: {
+          license_plate?: string | null;
+          make?: string | null;
+          model?: string | null;
+          color?: string[];
+        };
+        payment_amount?: {
+          amount: number;
+          currency: string;
+        } | null;
+        payment_status?: string | null;
+        status_events?: Array<{
+          created_at: string;
+          status: string;
+        }>;
+      }>;
     }>;
     most_recent_group_id?: number | null;
     user: any;
@@ -120,6 +152,18 @@ export type NoddiLookupResponse = {
       location_type?: string | null;
       comments_unable_to_complete_public?: string | null;
       comments_unable_to_complete_internal?: string | null;
+      comments?: {
+        admin?: string | null;
+        user?: string | null;
+        worker?: string | null;
+      } | null;
+      address?: {
+        street?: string;
+        zip?: string;
+        city?: string;
+      } | null;
+      slug?: string | null;
+      brand_name?: string | null;
       feedback?: {
         customer_comment: string;
         customer_rating_car_result: number;
