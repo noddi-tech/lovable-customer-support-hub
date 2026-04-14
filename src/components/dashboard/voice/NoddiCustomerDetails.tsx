@@ -718,7 +718,7 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
                           </Badge>
                         )}
                         {ub.slug && (
-                          <a href={`${PARTNER_BASE_URL}/bookings/${ub.slug}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center gap-0.5">
+                          <a href={`https://partner.noddi.co/bookings/${ub.slug}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center gap-0.5">
                             View <ExternalLink className="h-2.5 w-2.5" />
                           </a>
                         )}
