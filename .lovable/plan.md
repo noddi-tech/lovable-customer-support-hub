@@ -1,30 +1,37 @@
 
 
-# Fix: Use `name_public` and `discount.amount`/`currency` for coupon display
+# Fix: Coupon value not showing for NOK amounts
 
 ## Problem
-The coupon fields currently used (`name`, `code`, `value`, `discount_type`) don't match the actual API response. The real API returns `name_public`, `discount.amount`, `discount.currency`, and `discount_percentage`.
+The coupons with `discount.amount` (e.g., 300 NOK) show no value badge, while `discount_percentage` (100%) works. This means the `discount` nested object from the API isn't reaching the frontend properly.
 
-## Changes
+## Root cause
+The edge function coupon mapping (lines 1409-1417 and 1655-1663) uses `...c` spread to pass raw fields through, but doesn't explicitly extract `discount.amount` or `discount.currency`. The summary endpoint may nest or omit the `discount` object differently than expected. Meanwhile `discount_percentage` works because it's a top-level field that passes through the spread.
 
-**File: `src/components/dashboard/voice/NoddiCustomerDetails.tsx`** (lines 906-910)
+## Fix
 
-Update the field mapping to match the actual API structure:
+### 1. Edge function: explicitly extract discount fields
+**File: `supabase/functions/noddi-customer-lookup/index.ts`** (both coupon mapping blocks ~lines 1409-1417 and 1655-1663)
+
+Add explicit extraction of the nested discount object fields:
 
 ```typescript
-// Label: use name_public (what app shows), fall back to name_internal, then generic
-const label = coupon.name_public || coupon.name_internal || coupon.name || `Coupon #${coupon.id || idx + 1}`;
-
-// Value: use discount.amount + discount.currency, or discount_percentage
-const valueText = coupon.discount?.amount != null
-  ? `${coupon.discount.amount} ${coupon.discount.currency || 'kr'}`
-  : coupon.discount_percentage != null
-    ? `${coupon.discount_percentage}%`
-    : null;
+return raw.map((c: any) => ({
+  ...c,
+  id: c.id,
+  name_public: c.name_public || null,
+  name_internal: c.name_internal || null,
+  discount: c.discount || null,
+  discount_percentage: c.discount_percentage ?? null,
+  is_active: c.is_active ?? c.active ?? true,
+}));
 ```
 
-Remove the old `val`/`discType` intermediaries (lines 908-910) and replace with the above. Everything else (layout, badges, tooltip) stays the same.
+Remove the old `code`, `description`, `value`, `discount_type` mappings — they were based on a wrong API shape and are no longer needed. The frontend now uses `name_public`, `discount.amount`, and `discount_percentage` directly.
+
+### 2. Redeploy edge function
+Deploy `noddi-customer-lookup`.
 
 ### Files to modify
-- `src/components/dashboard/voice/NoddiCustomerDetails.tsx` — fix field mapping on lines 906-910
+- `supabase/functions/noddi-customer-lookup/index.ts` — simplify coupon mapping in both blocks to explicitly preserve `discount` object and `discount_percentage`
 
