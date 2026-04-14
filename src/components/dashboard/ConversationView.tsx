@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { canGoBackInApp, getConversationBackPath } from '@/utils/conversationNavigation';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';

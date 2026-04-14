@@ -79,10 +79,10 @@ export const ConversationHeader = () => {
             variant="ghost" 
             size="sm"
 onClick={() => {
-              if (window.history.length > 1) {
+              if (canGoBackInApp()) {
                 navigate(-1);
               } else {
-                navigate('/interactions/text/open');
+                navigate(getConversationBackPath(window.location.pathname));
               }
             }}
             className="flex items-center gap-1 md:gap-2 text-muted-foreground hover:text-foreground flex-shrink-0"
