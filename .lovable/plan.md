@@ -1,46 +1,37 @@
 
 
-# Integrate Noddi Customer Lookup API v2 Changes
+# Fix: Customer lookup broken after API endpoint switch
 
-## Summary
-Anders' API update introduces a new endpoint (`/user-customer-lookup-summary/`), server-side caching with `clear_cache` param, new fields on unpaid/priority bookings (address, comments, slug, booking_location_type), saved addresses on user groups, and a new **Tire Quotes** section per user group. We need to update the edge function to use the new endpoint and pass through the new data, then update the UI to display the new fields.
+## Root Cause
+The last edit replaced the API URL from `/v1/users/customer-lookup-support/` to `/v1/users/user-customer-lookup-summary/`. The logs clearly show:
+- **14:31** — Old endpoint (`customer-lookup-support`) found `ingvaldsenstig@gmail.com` successfully
+- **14:38** — New endpoint (`user-customer-lookup-summary`) returns "not found" for the **same** email
 
-## Changes
+The new endpoint is either not deployed yet on Noddi's side, expects different parameters, or has a different response format.
 
-### 1. Edge Function: Switch to new endpoint + pass new fields
+## Fix — Add fallback with old endpoint
+
 **File: `supabase/functions/noddi-customer-lookup/index.ts`**
 
-- Replace API URL from `/v1/users/customer-lookup-support/` to `/v1/users/user-customer-lookup-summary/`
-- On `forceRefresh`, append `?clear_cache=true` query param to the Noddi API call (this clears server-side cache, making refresh fast)
-- Pass through new booking fields in `buildResponse` and `mapCacheRowToUnified`:
-  - `booking_location_type` (replaces `location_type` on priority bookings)
-  - `address` (street/zip/city) on priority + unpaid bookings
-  - `comments` object (`admin`, `user`, `worker`) on both booking types
-  - `slug` on unpaid bookings
-  - `booking_type` on unpaid bookings
-  - `brand_name` on unpaid bookings
-- Pass through new user group fields:
-  - `addresses` (saved addresses list) on `allUserGroupsFormatted`
-  - `tire_quotes` array on each user group
-- Update `ui_meta.location_type` → read from `booking_location_type` (with fallback to `location_type` for backward compat)
-- Bump version to `noddi-edge-2.0`
+In the lookup loop (around line 895-956), after the new endpoint returns a "user not found" error, **fall back to the old endpoint** before giving up:
 
-### 2. UI: Display new fields in NoddiCustomerDetails
-**File: `src/components/dashboard/voice/NoddiCustomerDetails.tsx`**
+1. Try `user-customer-lookup-summary` first (GET with `email`/`phone`/`clear_cache` query params)
+2. If it returns 400/404 `user_does_not_exist`, retry with the old `customer-lookup-support` endpoint using the same query params
+3. If the old endpoint works, use its response and log that the fallback was used
+4. Keep all existing response parsing and `buildResponse` logic intact — both endpoints return the same shape
 
-- **Booking address**: Show street/zip/city under booking details (next to date/service/vehicle)
-- **Comments**: Show `comments.user` and `comments.admin` in the booking card (replace inline `comments_unable_to_complete_*` with the new `comments` object, with fallback)
-- **Unpaid bookings**: Expand the unpaid section to show per-booking details (address, slug link, brand, booking_type) instead of just a count
-- **Booking location type**: Update badge to read `booking_location_type` field (with `location_type` fallback)
-- **Saved addresses**: Show user group saved addresses in a collapsible section
-- **Tire Quotes**: New collapsible section showing tire quotes with car info, season, status, payment, and status history timeline
+This ensures the system works regardless of which endpoint is active on Noddi's side.
 
-### 3. UI: Update refresh button to leverage server-side cache clear
-**File: `src/hooks/useNoddihKundeData.ts`**
-- Already passes `forceRefresh: true` on refresh — just ensure the edge function forwards it as `clear_cache=true` to the API
+## Also: incorporate the earlier plan (pass `noddi_user_id` for name-search linking)
+
+Since we're already fixing the edge function, include the earlier approved plan items:
+
+**Edge function**: Accept optional `noddi_user_id` and `user_group_id` params. If email/phone lookup fails but these IDs are provided, fetch user data directly via `/v1/users/{id}/` and `/v1/user-groups/{id}/` as a secondary fallback.
+
+**ChatCustomerPanel.tsx / CustomerSidePanel.tsx**: Pass `noddi_user_id` and `user_group_id` from customer metadata when calling the lookup after linking a name-search result.
 
 ### Files to modify
-- `supabase/functions/noddi-customer-lookup/index.ts` — new endpoint URL, `clear_cache` param, pass through new fields
-- `src/components/dashboard/voice/NoddiCustomerDetails.tsx` — display address, comments, expanded unpaid list, saved addresses, tire quotes
-- `src/hooks/useNoddihKundeData.ts` — minor: add `tire_quotes` and `addresses` to response type (if typed)
+- `supabase/functions/noddi-customer-lookup/index.ts` — add old-endpoint fallback + `noddi_user_id` direct-lookup fallback
+- `src/components/dashboard/chat/ChatCustomerPanel.tsx` — pass metadata IDs in lookup call
+- `src/components/dashboard/conversation-view/CustomerSidePanel.tsx` — same
 
