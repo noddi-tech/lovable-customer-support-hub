@@ -903,11 +903,13 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
             </div>
             <div className="space-y-1">
               {userGroup.coupons.map((coupon: any, idx: number) => {
-                const label = coupon.name || coupon.code || coupon.coupon_code || coupon.description || `Coupon #${coupon.id || idx + 1}`;
+                const label = coupon.name_public || coupon.name_internal || coupon.name || `Coupon #${coupon.id || idx + 1}`;
                 const description = coupon.description_public || coupon.description || null;
-                const val = coupon.value ?? coupon.discount_value ?? coupon.amount ?? coupon.coupon?.value ?? null;
-                const discType = coupon.discount_type || coupon.type || coupon.coupon?.discount_type || null;
-                const valueText = val != null ? (discType === 'percentage' ? `${val}%` : `${val} kr`) : null;
+                const valueText = coupon.discount?.amount != null
+                  ? `${coupon.discount.amount} ${coupon.discount.currency || 'kr'}`
+                  : coupon.discount_percentage != null
+                    ? `${coupon.discount_percentage}%`
+                    : null;
 
                 const content = (
                 <div
