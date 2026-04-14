@@ -1,23 +1,26 @@
 
 
-# Fix: Mention notification emails threading together
+# Fix: Coupon display — show name + value, not full description
 
 ## Problem
-When multiple mentions happen in the same conversation, the notification emails share the same subject line (e.g., "Joachim Rathke mentioned you in a note") and sender (`noreply@noddi.no`). Email clients like Gmail thread them together, making individual mentions easy to miss.
+Currently the coupon label uses `description_public` (long marketing text like "Rabatt på alle bilvaskpakker, velg en av pakkene og få rabatten aktivert!"). The customer app instead shows a short title (e.g., "Rabattkupong - Bilvaskpakker") with just the value ("300 kr").
 
-## Solution
-Two changes to break email threading:
+## Changes
 
-### 1. Add custom headers support to `send-email/index.ts`
-Add an optional `headers` field to the SendGrid payload so callers can pass custom SMTP headers. This is a generic improvement.
+**File: `src/components/dashboard/voice/NoddiCustomerDetails.tsx`** (lines 904-935)
 
-### 2. Send unique headers from `process-mention-notifications/index.ts`
-In `sendMentionEmail`:
-- Include conversation subject and customer name in the email subject line for better context (e.g., "Joachim Rathke mentioned you — Re: Dekk bestilling (Øystein Borhaug)")
-- Pass a unique `X-Entity-Ref-ID` header (a random UUID) — this is the standard way to prevent Gmail from threading emails with the same subject
-- Pass a unique `Message-ID` header to ensure each email is treated as a standalone message
+1. Change label priority: prefer `coupon.name` or `coupon.code` or `coupon.coupon_code` over `description_public` — use the short name, not the marketing description
+2. Make the value more prominent — show it as a badge-like element (like the customer app's dashed-border value pills) instead of tiny sub-text
+3. Keep the Active/Expired badge
+4. Optionally show `description_public` as a tooltip on hover so agents can still access it if needed
+
+The layout per coupon becomes:
+```
+[Ticket icon] Rabattkupong - Bilvaskpakker    [300 kr]  [Active]
+```
+
+Instead of the current long-text layout.
 
 ### Files to modify
-- `supabase/functions/send-email/index.ts` — accept optional `headers` object, merge into SendGrid payload
-- `supabase/functions/process-mention-notifications/index.ts` — pass `subject`/`customerName` to `sendMentionEmail`, build contextual subject line, add anti-threading headers
+- `src/components/dashboard/voice/NoddiCustomerDetails.tsx` — reorder label fields, make value prominent, add tooltip for description
 
