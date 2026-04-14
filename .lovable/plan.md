@@ -1,35 +1,29 @@
 
 
-# Home Page Fixes: Scroll, Counts, and Visual Polish
+# Fix: "Failed to link customer" Error
 
-## Problems
-1. **No scroll**: `HomePage` is rendered without `UnifiedAppLayout`, so it lacks the app shell (sidebar + scrollable main area)
-2. **Inbox counts show total conversations**, not open/unread — the RPC returns `conversation_count` which is all conversations, but users expect to see open/unread
-3. **Cards are too large and sections lack color** — everything looks the same, hard to scan
+## Root Cause
 
-## Changes
+Two bugs in `CustomerSidePanel.tsx` `handleSelectCustomer`:
 
-### 1. Wrap HomePage in UnifiedAppLayout
-**File: `src/pages/HomePage.tsx`**
-- Import and wrap content in `<UnifiedAppLayout>` — this gives the page the sidebar, scroll container, and consistent layout
+1. **Missing `local_customer_id` in metadata**: The `NoddiCustomerSearch` component stores `local_customer_id` in the top-level `id` field (line 80) but does NOT include it in `metadata`. When the conversation has no existing customer and `is_new` is false, the code at line 313 does:
+   ```
+   customerId = selectedCustomer.metadata?.local_customer_id || selectedCustomer.id
+   ```
+   `metadata.local_customer_id` is always `undefined`, so it falls back to `selectedCustomer.id` which is `"noddi-123"` — an invalid UUID. Any subsequent Supabase query with this ID fails.
 
-### 2. Show open/unread label on inbox cards
-**File: `src/pages/HomePage.tsx`**
-- The `conversation_count` from the RPC is what we have per-inbox. Add a small label like "conversations" under the count so it's clear what it represents
-- This is a data limitation — per-inbox open/unread would require a new RPC. For now, label clearly
+2. **Noddi lookup failure blocks linking**: Even when the conversation already has a customer, the `noddi-customer-lookup` call at line 359-368 can fail (network error, edge function error), and `throw lookupError` at line 370 aborts the entire operation — even though the customer was already successfully linked at line 346-349.
 
-### 3. Make cards compact and add section colors
-**File: `src/pages/HomePage.tsx`**
-- **Stats cards**: Reduce padding from `p-4` to `p-3`, shrink icon from `h-8 w-8` to `h-6 w-6`, reduce number size from `text-2xl` to `text-xl`
-- **Inbox cards**: Reduce padding, use smaller text
-- **Section link cards**: Reduce padding from `p-4` to `p-3`, remove descriptions (just show icon + label + arrow) for a tighter grid
-- **Section headers**: Add a colored left border or subtle background tint per section:
-  - Interactions: blue accent
-  - Marketing: purple accent
-  - Operations: amber accent
-  - Settings: slate accent
-- **Section link icons**: Color-code to match section (blue for interactions items, purple for marketing, etc.)
+## Fix
+
+### File: `src/components/shared/NoddiCustomerSearch.tsx`
+- Add `local_customer_id: result.local_customer_id` to the metadata object (line 84-92) so it's available downstream
+
+### File: `src/components/dashboard/conversation-view/CustomerSidePanel.tsx`
+- **Fix ID resolution** (line 311-314): When `is_new` is false and `selectedCustomer.id` starts with `noddi-`, create a new customer record in the database instead of using the invalid ID
+- **Make Noddi lookup non-fatal** (line 370): Wrap the lookup in a try/catch so that a failed enrichment doesn't prevent the customer from being linked. Show a warning toast instead of throwing
 
 ### Files to modify
-- `src/pages/HomePage.tsx` — add UnifiedAppLayout wrapper, compact cards, add section colors
+- `src/components/shared/NoddiCustomerSearch.tsx` — pass `local_customer_id` in metadata
+- `src/components/dashboard/conversation-view/CustomerSidePanel.tsx` — handle `noddi-` IDs gracefully, make lookup non-fatal
 
