@@ -895,6 +895,7 @@ Deno.serve(async (req) => {
     let successfulEmail: string | null = null;
     let lookupMode: "phone" | "email" = phone ? "phone" : "email";
     let conflict = false;
+    let navioCachedAt: string | null = null;
     
     for (const endpoint of ENDPOINTS) {
       console.log(`🚀 Trying ${endpoint.label} endpoint`);
@@ -919,7 +920,7 @@ Deno.serve(async (req) => {
           const cachedAtHeader = response.headers.get('X-Navio-Cached-At');
           if (cachedAtHeader) {
             console.log(`🕐 Server cache timestamp: ${cachedAtHeader}`);
-            (lookupResponse as any)._navioCachedAt = cachedAtHeader;
+            navioCachedAt = cachedAtHeader;
           }
           console.log(`✅ Found user with ${endpoint.label} endpoint, email: ${emailToTry?.substring(0, 3)}***`);
           break;
