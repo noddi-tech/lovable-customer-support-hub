@@ -1,25 +1,38 @@
 
 
-# Fix: Unread Badge Shows All Unread Instead of Open+Unread
+# Home Dashboard UI Redesign
 
-## Problem
-The red unread badge on inbox cards shows 50 for "Noddi" because the SQL counts ALL unread conversations regardless of status. Users expect unread count to reflect only open conversations that are unread.
+## Overview
+Redesign the Home page to be cleaner and more polished, inspired by the reference screenshot but keeping the app's existing white/light theme. Key improvements: larger stat cards with icons and trend indicators, cleaner inbox grid with badge-style counts, and section cards with centered icon+label layout instead of the current compact row style.
 
-## Fix
+## Changes
 
-### Migration: Filter unread by open status
-**File: `supabase/migrations/[timestamp]_fix_unread_open_only.sql`**
+### File: `src/pages/HomePage.tsx` — full rewrite of the layout
 
-Update the `get_all_counts` function's inbox subquery to filter unread by `status = 'open'`:
+**1. Stats row — larger, cleaner cards**
+- Each stat card gets a larger layout: big number on the left, icon on the top-right corner (muted), label below the number
+- Remove the colored left-border approach; use a subtle `bg-muted/30` background instead
+- Keep existing click navigation
 
-```sql
-COUNT(*) FILTER (WHERE is_read = false 
-  AND status = 'open'
-  AND (snooze_until IS NULL OR snooze_until <= NOW()))::int as unread_cnt
-```
+**2. Inboxes section — cleaner grid with badges**
+- Add a section header row with "INBOXES" label (uppercase, small, muted) and a "View all >" link
+- 3 columns on large screens, 2 on medium
+- Each inbox card: colored dot + name on the left, open count as a `Badge` on the right
+- Show unread count only if > 0, as a small red dot/badge next to the open badge
+- Remove the separate "open" sub-label — just show the badge like "3 open"
 
-This ensures the red badge only shows unread conversations that are actually in the open queue.
+**3. Section link cards — centered icon+label layout**
+- Section headers: uppercase muted text (e.g., "INTERACTIONS", "MARKETING")
+- Cards become taller with the icon centered above the label text
+- Remove the colored left border; use a clean card with subtle hover shadow
+- Keep the `ArrowRight` on hover but position it in the top-right corner
+- Grid: 3 columns on large, 2 on small
 
-### Files
-- **Create**: `supabase/migrations/[timestamp]_fix_unread_open_only.sql` — recreate `get_all_counts` with the additional `status = 'open'` filter on `unread_cnt`
+**4. General polish**
+- Use `Separator` between major sections for visual clarity
+- Consistent spacing with `space-y-8` between sections
+- Section headers use `text-xs font-semibold uppercase tracking-wider text-muted-foreground`
+
+### No other files need changes
+All data hooks and navigation config remain the same.
 
