@@ -685,7 +685,7 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
               </Alert>
             )}
 
-            {/* NEW: Show unpaid bookings list if no priority booking */}
+            {/* Expanded unpaid bookings list */}
             {!hasBooking && hasUnpaidBookings && (
               <div className="p-2 rounded-lg bg-amber-50 border border-amber-200">
                 <div className="flex items-center gap-1 mb-1">
@@ -694,9 +694,42 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
                     {unpaidCount} Unpaid Booking{unpaidCount !== 1 ? 's' : ''}
                   </p>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  This customer has bookings with outstanding payments. Check the Noddi admin panel for details.
-                </p>
+                {data.unpaid_bookings && data.unpaid_bookings.length > 0 ? (
+                  <div className="space-y-1.5 mt-1">
+                    {data.unpaid_bookings.slice(0, 5).map((ub: any, idx: number) => (
+                      <div key={ub.id || idx} className="p-1.5 rounded border border-amber-200 bg-white text-xs space-y-0.5">
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium">#{ub.id || idx + 1}</span>
+                          {ub.booking_type && ub.booking_type !== 'normal' && (
+                            <Badge variant="outline" className="h-4 px-1 text-[10px]">{ub.booking_type}</Badge>
+                          )}
+                        </div>
+                        {ub.address && (ub.address.street || ub.address.city) && (
+                          <p className="text-muted-foreground">
+                            <MapPin className="h-3 w-3 inline mr-0.5" />
+                            {[ub.address.street, ub.address.zip, ub.address.city].filter(Boolean).join(', ')}
+                          </p>
+                        )}
+                        {ub.brand_name && <p className="text-muted-foreground">Brand: {ub.brand_name}</p>}
+                        {ub.booking_location_type && (
+                          <Badge variant="outline" className="h-4 px-1 text-[10px]">
+                            <MapPin className="h-2.5 w-2.5 mr-0.5" />
+                            {ub.booking_location_type === 'MOBILE' ? 'Mobile' : 'Stationary'}
+                          </Badge>
+                        )}
+                        {ub.slug && (
+                          <a href={`${PARTNER_BASE_URL}/bookings/${ub.slug}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center gap-0.5">
+                            View <ExternalLink className="h-2.5 w-2.5" />
+                          </a>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    Check the Noddi admin panel for details.
+                  </p>
+                )}
               </div>
             )}
 
