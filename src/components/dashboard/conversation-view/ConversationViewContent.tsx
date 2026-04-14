@@ -1,4 +1,5 @@
 import React, { useRef, useEffect, useMemo, useState, lazy, Suspense } from 'react';
+import { canGoBackInApp, getConversationBackPath } from '@/utils/conversationNavigation';
 import { Loader2 as MobileLoader } from 'lucide-react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';

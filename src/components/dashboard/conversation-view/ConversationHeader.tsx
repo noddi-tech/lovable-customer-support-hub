@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { canGoBackInApp, getConversationBackPath } from '@/utils/conversationNavigation';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
