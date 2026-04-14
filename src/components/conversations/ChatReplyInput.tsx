@@ -2,6 +2,7 @@ import { useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { useIsMobile } from '@/hooks/use-responsive';
 import { MentionTextarea } from '@/components/ui/mention-textarea';
 import { useMentionNotifications } from '@/hooks/useMentionNotifications';
 import { Badge } from '@/components/ui/badge';
@@ -59,6 +60,7 @@ interface AttachmentPreview {
 }
 
 export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) => {
+  const isMobile = useIsMobile();
   const [message, setMessage] = useState('');
   const [isInternalNote, setIsInternalNote] = useState(false);
   const [mentionedUserIds, setMentionedUserIds] = useState<string[]>([]);
@@ -619,7 +621,7 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
               ) : (
                 <Sparkles className="h-4 w-4" />
               )}
-              <span className="text-xs">AI Suggest</span>
+              {!isMobile && <span className="text-xs">AI Suggest</span>}
             </Button>
           )}
           <Button 
@@ -635,7 +637,7 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
             title={isInternalNote ? "Switch to reply" : "Write internal note"}
           >
             <StickyNote className="h-4 w-4" />
-            <span className="text-xs">Note</span>
+            {!isMobile && <span className="text-xs">Note</span>}
           </Button>
 
           {/* Translate button */}
@@ -695,22 +697,24 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
             </PopoverContent>
           </Popover>
 
-          {/* Mic button (placeholder) */}
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="shrink-0 h-9 w-9 text-muted-foreground"
-            disabled
-            title="Voice messages coming soon"
-          >
-            <Mic className="h-5 w-5" />
-          </Button>
+          {/* Mic button (placeholder) - hidden on mobile */}
+          {!isMobile && (
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="shrink-0 h-9 w-9 text-muted-foreground"
+              disabled
+              title="Voice messages coming soon"
+            >
+              <Mic className="h-5 w-5" />
+            </Button>
+          )}
 
           {/* Spacer */}
           <div className="flex-1" />
 
-          {/* Reply status selector - hidden for internal notes */}
-          {!isInternalNote && (
+          {/* Reply status selector - hidden on mobile and for internal notes */}
+          {!isInternalNote && !isMobile && (
             <Select value={replyStatus} onValueChange={(v) => setReplyStatus(v as 'closed' | 'open' | 'pending')}>
               <SelectTrigger className="shrink-0 h-9 w-[140px] text-xs">
                 <SelectValue />
@@ -754,7 +758,7 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
               ) : (
                 <UserRoundPlus className="h-4 w-4" />
               )}
-              <span className="text-xs">Transfer</span>
+              {!isMobile && <span className="text-xs">Transfer</span>}
             </Button>
           )}
           
@@ -770,7 +774,7 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
             ) : (
               <MessageSquareX className="h-4 w-4" />
             )}
-            <span className="text-xs">End Chat</span>
+            {!isMobile && <span className="text-xs">End Chat</span>}
           </Button>
         </div>
       </div>
