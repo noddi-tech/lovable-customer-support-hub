@@ -1,15 +1,46 @@
 
 
-# Compress Home Dashboard Layout
+# Integrate Noddi Customer Lookup API v2 Changes
 
-## Changes — `src/pages/HomePage.tsx`
+## Summary
+Anders' API update introduces a new endpoint (`/user-customer-lookup-summary/`), server-side caching with `clear_cache` param, new fields on unpaid/priority bookings (address, comments, slug, booking_location_type), saved addresses on user groups, and a new **Tire Quotes** section per user group. We need to update the edge function to use the new endpoint and pass through the new data, then update the UI to display the new fields.
 
-1. **Reduce spacing**: `space-y-8` → `space-y-5`, padding `p-6 md:p-8` → `p-4 md:p-6`
-2. **Compact stat cards**: padding `p-5` → `p-3`, font `text-3xl` → `text-2xl`, icon size `h-5 w-5` → `h-4 w-4`
-3. **Compact inbox cards**: padding `p-4` → `p-3`, grid gap `gap-3` → `gap-2`
-4. **Compact section cards**: remove `min-h-[100px]`, reduce padding `p-5` → `p-3`, icon `h-6 w-6` → `h-5 w-5`, grid gap `gap-3` → `gap-2`, section header margin `mb-4` → `mb-2`
-5. **Reduce separator margins**: inbox separator `mt-8` → `mt-4`
-6. **More columns on large screens**: section grid `lg:grid-cols-4 xl:grid-cols-5` → `lg:grid-cols-5 xl:grid-cols-6`
+## Changes
 
-Single file change: `src/pages/HomePage.tsx`
+### 1. Edge Function: Switch to new endpoint + pass new fields
+**File: `supabase/functions/noddi-customer-lookup/index.ts`**
+
+- Replace API URL from `/v1/users/customer-lookup-support/` to `/v1/users/user-customer-lookup-summary/`
+- On `forceRefresh`, append `?clear_cache=true` query param to the Noddi API call (this clears server-side cache, making refresh fast)
+- Pass through new booking fields in `buildResponse` and `mapCacheRowToUnified`:
+  - `booking_location_type` (replaces `location_type` on priority bookings)
+  - `address` (street/zip/city) on priority + unpaid bookings
+  - `comments` object (`admin`, `user`, `worker`) on both booking types
+  - `slug` on unpaid bookings
+  - `booking_type` on unpaid bookings
+  - `brand_name` on unpaid bookings
+- Pass through new user group fields:
+  - `addresses` (saved addresses list) on `allUserGroupsFormatted`
+  - `tire_quotes` array on each user group
+- Update `ui_meta.location_type` → read from `booking_location_type` (with fallback to `location_type` for backward compat)
+- Bump version to `noddi-edge-2.0`
+
+### 2. UI: Display new fields in NoddiCustomerDetails
+**File: `src/components/dashboard/voice/NoddiCustomerDetails.tsx`**
+
+- **Booking address**: Show street/zip/city under booking details (next to date/service/vehicle)
+- **Comments**: Show `comments.user` and `comments.admin` in the booking card (replace inline `comments_unable_to_complete_*` with the new `comments` object, with fallback)
+- **Unpaid bookings**: Expand the unpaid section to show per-booking details (address, slug link, brand, booking_type) instead of just a count
+- **Booking location type**: Update badge to read `booking_location_type` field (with `location_type` fallback)
+- **Saved addresses**: Show user group saved addresses in a collapsible section
+- **Tire Quotes**: New collapsible section showing tire quotes with car info, season, status, payment, and status history timeline
+
+### 3. UI: Update refresh button to leverage server-side cache clear
+**File: `src/hooks/useNoddihKundeData.ts`**
+- Already passes `forceRefresh: true` on refresh — just ensure the edge function forwards it as `clear_cache=true` to the API
+
+### Files to modify
+- `supabase/functions/noddi-customer-lookup/index.ts` — new endpoint URL, `clear_cache` param, pass through new fields
+- `src/components/dashboard/voice/NoddiCustomerDetails.tsx` — display address, comments, expanded unpaid list, saved addresses, tire quotes
+- `src/hooks/useNoddihKundeData.ts` — minor: add `tire_quotes` and `addresses` to response type (if typed)
 
