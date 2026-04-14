@@ -653,12 +653,16 @@ function buildResponse(params: {
         unable_label,
         partner_urls,
         booking_type: priority_booking?.booking_type || null,
-        location_type: priority_booking?.location_type || null,
-        comments_unable_to_complete_public: priority_booking?.comments_unable_to_complete_public || null,
-        comments_unable_to_complete_internal: priority_booking?.comments_unable_to_complete_internal || null,
+        location_type: priority_booking?.booking_location_type || priority_booking?.location_type || null,
+        comments_unable_to_complete_public: priority_booking?.comments?.user || priority_booking?.comments_unable_to_complete_public || null,
+        comments_unable_to_complete_internal: priority_booking?.comments?.admin || priority_booking?.comments_unable_to_complete_internal || null,
+        comments: priority_booking?.comments || null,
+        address: priority_booking?.address || null,
+        slug: priority_booking?.slug || null,
+        brand_name: priority_booking?.brand_name || null,
         feedback: priority_booking?.feedback || null,
         timezone: "Europe/Oslo",
-        version: "noddi-edge-1.9",
+        version: "noddi-edge-2.0",
         source
       }
     }
@@ -725,12 +729,16 @@ function mapCacheRowToUnified(cacheRow: any, email: string, remainingTtl: number
           unable_label,
           partner_urls,
           booking_type: priorityBooking?.booking_type || null,
-          location_type: priorityBooking?.location_type || null,
-          comments_unable_to_complete_public: priorityBooking?.comments_unable_to_complete_public || null,
-          comments_unable_to_complete_internal: priorityBooking?.comments_unable_to_complete_internal || null,
+          location_type: priorityBooking?.booking_location_type || priorityBooking?.location_type || null,
+          comments_unable_to_complete_public: priorityBooking?.comments?.user || priorityBooking?.comments_unable_to_complete_public || null,
+          comments_unable_to_complete_internal: priorityBooking?.comments?.admin || priorityBooking?.comments_unable_to_complete_internal || null,
+          comments: priorityBooking?.comments || null,
+          address: priorityBooking?.address || null,
+          slug: priorityBooking?.slug || null,
+          brand_name: priorityBooking?.brand_name || null,
           feedback: priorityBooking?.feedback || null,
           timezone: "Europe/Oslo",
-          version: "noddi-edge-1.9",
+          version: "noddi-edge-2.0",
           source: "cache" as const,
         }
     }
@@ -875,7 +883,7 @@ Deno.serve(async (req) => {
     }
 
     // Step 2: Call new comprehensive customer lookup endpoint - TRY ALL EMAILS
-    console.log('🚀 Calling new customer-lookup-support endpoint');
+    console.log('🚀 Calling user-customer-lookup-summary endpoint');
     console.log(`📧 Will try ${emailsToTry.length} email(s): ${emailsToTry.map(e => e?.substring(0, 3) + '***').join(', ')}`);
     
     let lookupResponse: Response | null = null;
@@ -886,9 +894,10 @@ Deno.serve(async (req) => {
     // Try each email until we get a successful response
     for (let i = 0; i < emailsToTry.length; i++) {
       const emailToTry = emailsToTry[i];
-      const lookupUrl = new URL(`${API_BASE}/v1/users/customer-lookup-support/`);
+      const lookupUrl = new URL(`${API_BASE}/v1/users/user-customer-lookup-summary/`);
       if (emailToTry) lookupUrl.searchParams.set('email', emailToTry);
       if (phone) lookupUrl.searchParams.set('phone', phone);
+      if (body.forceRefresh) lookupUrl.searchParams.set('clear_cache', 'true');
       
       console.log(`📧 [${i + 1}/${emailsToTry.length}] Trying lookup with email: ${emailToTry?.substring(0, 3)}***`);
       
@@ -1572,6 +1581,8 @@ Deno.serve(async (req) => {
       priority_booking: g.bookings_summary?.priority_booking || null,
       membership_programs: g.membership_programs || [],
       segments: g.segments || [],
+      addresses: g.addresses || [],
+      tire_quotes: g.tire_quotes || [],
       coupons: (() => {
         const raw = g.coupons || [];
         if (raw.length > 0) console.log(`Raw coupons for group ${g.id}:`, JSON.stringify(raw.slice(0, 2)));
@@ -1654,11 +1665,15 @@ Deno.serve(async (req) => {
           unable_label: unableLabel(bookingForCache || priorityBooking),
           partner_urls: buildPartnerUrls(selectedGroup.id, bookingForCache || priorityBooking),
           booking_type: (bookingForCache || priorityBooking)?.booking_type || null,
-          location_type: (bookingForCache || priorityBooking)?.location_type || null,
-          comments_unable_to_complete_public: (bookingForCache || priorityBooking)?.comments_unable_to_complete_public || null,
-          comments_unable_to_complete_internal: (bookingForCache || priorityBooking)?.comments_unable_to_complete_internal || null,
+          location_type: (bookingForCache || priorityBooking)?.booking_location_type || (bookingForCache || priorityBooking)?.location_type || null,
+          comments_unable_to_complete_public: (bookingForCache || priorityBooking)?.comments?.user || (bookingForCache || priorityBooking)?.comments_unable_to_complete_public || null,
+          comments_unable_to_complete_internal: (bookingForCache || priorityBooking)?.comments?.admin || (bookingForCache || priorityBooking)?.comments_unable_to_complete_internal || null,
+          comments: (bookingForCache || priorityBooking)?.comments || null,
+          address: (bookingForCache || priorityBooking)?.address || null,
+          slug: (bookingForCache || priorityBooking)?.slug || null,
+          brand_name: (bookingForCache || priorityBooking)?.brand_name || null,
           feedback: (bookingForCache || priorityBooking)?.feedback || null,
-          version: "noddi-edge-1.9",
+          version: "noddi-edge-2.0",
           source: "live" as const
         }
       }
