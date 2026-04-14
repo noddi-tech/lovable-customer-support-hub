@@ -1446,6 +1446,7 @@ Deno.serve(async (req) => {
             unpaid_count: pendingBookings.length,
             unpaid_bookings: pendingBookings,
             enriched_order_tags: enrichedTags,
+            cached_at: navioCachedAt,
           });
           
           // Update cache with fresh data
