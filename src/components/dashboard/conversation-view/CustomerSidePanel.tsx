@@ -310,7 +310,31 @@ export const CustomerSidePanel = ({
           });
         } else {
           // Use existing customer from search results
-          customerId = selectedCustomer.metadata?.local_customer_id || selectedCustomer.id;
+          const resolvedId = selectedCustomer.metadata?.local_customer_id || selectedCustomer.id;
+          
+          // If the ID is a noddi- prefixed string (not a valid UUID), we need to create a local customer
+          if (typeof resolvedId === 'string' && resolvedId.startsWith('noddi-')) {
+            const metadata: Record<string, any> = {};
+            if (selectedCustomer.metadata?.noddi_user_id) metadata.noddi_user_id = selectedCustomer.metadata.noddi_user_id;
+            if (selectedCustomer.metadata?.user_group_id) metadata.user_group_id = selectedCustomer.metadata.user_group_id;
+
+            const { data: newCustomer, error: createError } = await supabase
+              .from("customers")
+              .insert({
+                full_name: selectedCustomer.full_name,
+                email: conversation.customer?.email || selectedCustomer.email || null,
+                phone: selectedCustomer.phone,
+                organization_id: organizationId,
+                metadata,
+              })
+              .select()
+              .single();
+
+            if (createError) throw createError;
+            customerId = newCustomer.id;
+          } else {
+            customerId = resolvedId;
+          }
         }
       }
 
@@ -355,19 +379,28 @@ export const CustomerSidePanel = ({
         alternativeEmailsToTry.push(selectedCustomer.metadata.noddi_email);
       }
 
-      // Always call noddi-customer-lookup to get full enriched data
-      const { data: lookupData, error: lookupError } =
-        await supabase.functions.invoke("noddi-customer-lookup", {
-          body: {
-            email: conversation.customer?.email, // Use conversation email for lookup (the one we communicate with)
-            phone: selectedCustomer.phone,
-            customerId: customerId,
-            organizationId,
-            alternative_emails: alternativeEmailsToTry, // Pass directly for immediate use
-          },
-        });
+      // Always call noddi-customer-lookup to get full enriched data (non-fatal)
+      let lookupData: any = null;
+      try {
+        const { data, error: lookupError } =
+          await supabase.functions.invoke("noddi-customer-lookup", {
+            body: {
+              email: conversation.customer?.email,
+              phone: selectedCustomer.phone,
+              customerId: customerId,
+              organizationId,
+              alternative_emails: alternativeEmailsToTry,
+            },
+          });
 
-      if (lookupError) throw lookupError;
+        if (lookupError) {
+          console.warn("[Select Customer] Noddi lookup failed (non-fatal):", lookupError);
+        } else {
+          lookupData = data;
+        }
+      } catch (err) {
+        console.warn("[Select Customer] Noddi lookup exception (non-fatal):", err);
+      }
 
       // Link customer to conversation if data found
       if (lookupData?.data?.found) {
