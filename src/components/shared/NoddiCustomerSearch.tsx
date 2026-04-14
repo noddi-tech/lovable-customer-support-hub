@@ -84,6 +84,7 @@ export const NoddiCustomerSearch = ({
           metadata: {
             noddi_user_id: result.noddi_user_id,
             user_group_id: result.user_group_id,
+            local_customer_id: result.local_customer_id,
             is_new: result.is_new,
             noddi_email: result.noddi_email,
             badge: result.badge,
