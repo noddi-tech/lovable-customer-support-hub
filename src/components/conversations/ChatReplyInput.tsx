@@ -60,6 +60,7 @@ interface AttachmentPreview {
 }
 
 export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) => {
+  const isMobile = useIsMobile();
   const [message, setMessage] = useState('');
   const [isInternalNote, setIsInternalNote] = useState(false);
   const [mentionedUserIds, setMentionedUserIds] = useState<string[]>([]);
