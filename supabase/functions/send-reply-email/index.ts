@@ -272,6 +272,12 @@ const handler = async (req: Request): Promise<Response> => {
       include_agent_name: true
     } as any;
 
+    // If include_agent_name is off and senderDisplayName came from agent's name, reset it
+    if (templateSettings.include_agent_name === false && senderDisplayNameFromAgent) {
+      senderDisplayName = 'Support';
+      console.log('Sender display name reset to Support (include_agent_name is off)');
+    }
+
     // Threading headers: build a proper References chain
     const conversationExternalId = (message.conversation as any)?.external_id || null;
 
