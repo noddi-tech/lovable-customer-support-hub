@@ -61,7 +61,7 @@ export default function HomePage() {
 
   return (
     <UnifiedAppLayout>
-      <div className="flex-1 overflow-auto p-6 md:p-8 space-y-8">
+      <div className="flex-1 overflow-auto p-4 md:p-6 space-y-5">
         {/* Header */}
         <div>
           <h1 className="text-2xl font-bold text-foreground">
@@ -80,9 +80,9 @@ export default function HomePage() {
               className="cursor-pointer hover:shadow-md transition-shadow"
               onClick={() => navigate('/interactions/text/' + s.label.toLowerCase().replace(/ /g, ''))}
             >
-              <CardContent className="p-5 relative">
-                <s.icon className="h-5 w-5 text-muted-foreground/50 absolute top-4 right-4" />
-                <p className="text-3xl font-bold text-foreground">{s.value}</p>
+              <CardContent className="p-3 relative">
+                <s.icon className="h-4 w-4 text-muted-foreground/50 absolute top-3 right-3" />
+                <p className="text-2xl font-bold text-foreground">{s.value}</p>
                 <p className="text-sm text-muted-foreground mt-1">{s.label}</p>
               </CardContent>
             </Card>
@@ -99,14 +99,14 @@ export default function HomePage() {
                 <Inbox className="h-4 w-4" /> Inboxes
               </h2>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
               {inboxes.filter(i => i.is_active).map(inbox => (
                 <Card
                   key={inbox.id}
                   className="cursor-pointer hover:shadow-md transition-shadow"
                   onClick={() => navigate(`/interactions/text/open?inbox=${inbox.id}`)}
                 >
-                  <CardContent className="p-4 flex items-center justify-between">
+                  <CardContent className="p-3 flex items-center justify-between">
                     <div className="flex items-center gap-3 min-w-0">
                       <span
                         className="h-2.5 w-2.5 rounded-full shrink-0"
@@ -128,7 +128,7 @@ export default function HomePage() {
                 </Card>
               ))}
             </div>
-            <Separator className="mt-8" />
+            <Separator className="mt-4" />
           </div>
         )}
 
@@ -140,10 +140,10 @@ export default function HomePage() {
 
           return (
             <div key={sectionKey}>
-              <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4 flex items-center gap-2">
+              <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-2">
                 <SectionIcon className="h-4 w-4" /> {sectionLabels[sectionKey]}
               </h2>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 gap-2">
                 {items.map(item => {
                   const Icon = item.icon;
                   return (
@@ -152,9 +152,9 @@ export default function HomePage() {
                       className="cursor-pointer hover:shadow-md transition-shadow group relative"
                       onClick={() => navigate(item.to)}
                     >
-                      <CardContent className="p-5 flex flex-col items-center justify-center text-center min-h-[100px]">
-                        <ArrowRight className="h-3.5 w-3.5 text-muted-foreground absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                        <Icon className="h-6 w-6 text-muted-foreground mb-2" />
+                      <CardContent className="p-3 flex flex-col items-center justify-center text-center">
+                        <ArrowRight className="h-3 w-3 text-muted-foreground absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <Icon className="h-5 w-5 text-muted-foreground mb-1.5" />
                         <span className="text-sm font-medium text-foreground">{item.label}</span>
                       </CardContent>
                     </Card>
