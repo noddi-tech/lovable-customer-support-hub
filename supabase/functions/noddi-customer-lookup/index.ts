@@ -888,8 +888,8 @@ Deno.serve(async (req) => {
     // Step 2: Call customer lookup endpoint - TRY ALL EMAILS
     // Try new endpoint first, fall back to old if not found
     const ENDPOINTS = [
-      { url: `${API_BASE}/v1/users/customer-lookup-support/`, label: 'legacy (support)' },
       { url: `${API_BASE}/v1/users/user-customer-lookup-summary/`, label: 'new (summary)' },
+      { url: `${API_BASE}/v1/users/customer-lookup-support/`, label: 'legacy (support)' },
     ];
     
     console.log(`📧 Will try ${emailsToTry.length} email(s): ${emailsToTry.map(e => e?.substring(0, 3) + '***').join(', ')}`);
