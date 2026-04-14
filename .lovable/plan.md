@@ -1,20 +1,43 @@
 
-# Collapsed Sidebar Tooltips + Home Button
 
-## 1. Add tooltips to collapsed sidebar items
-The `SidebarMenuButton` already has a built-in `tooltip` prop that shows only when the sidebar is collapsed. Currently `AppMainNav.tsx` doesn't pass it.
+# Center Home Icon in Collapsed Sidebar
 
-**File: `src/components/layout/AppMainNav.tsx`** (line 153)
-- Add `tooltip={item.label}` to each `SidebarMenuButton` in the nav items loop
+## Problem
+The Home button is wrapped in an extra `<div className="flex items-center gap-2">` around the `SidebarMenu`, which other nav items don't have. This causes the Home icon to be offset/misaligned when the sidebar is collapsed.
 
-## 2. Add a Home button
-Add a Home icon button at the top of the sidebar (in `SidebarHeader`, before the title) that navigates to `/interactions/text/open`. When collapsed, it shows as just the icon with a tooltip; when expanded, it shows "Home" with the icon.
+## Fix
+**File: `src/components/layout/AppMainNav.tsx`** (lines 112-123)
 
-**File: `src/components/layout/AppMainNav.tsx`**
-- Import `Home` from lucide-react
-- Add a Home button in the `SidebarHeader` area, before "Customer Platform" title
-- Links to `/interactions/text/open`
-- Uses `SidebarMenuButton` with `tooltip="Home"` so it works when collapsed too
+Remove the wrapping `<div>` so the Home `SidebarMenu` sits directly in the `SidebarHeader`, matching the same structure as the nav items in `SidebarContent`:
+
+```tsx
+{/* Before */}
+<div className="flex items-center gap-2">
+  <SidebarMenu>
+    <SidebarMenuItem>
+      <SidebarMenuButton asChild tooltip="Home">
+        <NavLink ...>
+          <Home />
+          {!isCollapsed && <span>Home</span>}
+        </NavLink>
+      </SidebarMenuButton>
+    </SidebarMenuItem>
+  </SidebarMenu>
+</div>
+
+{/* After */}
+<SidebarMenu>
+  <SidebarMenuItem>
+    <SidebarMenuButton asChild tooltip="Home">
+      <NavLink ...>
+        <Home />
+        {!isCollapsed && <span>Home</span>}
+      </NavLink>
+    </SidebarMenuButton>
+  </SidebarMenuItem>
+</SidebarMenu>
+```
 
 ### Files to modify
-- `src/components/layout/AppMainNav.tsx` — add tooltip prop + Home button
+- `src/components/layout/AppMainNav.tsx` — remove wrapping div around Home button
+
