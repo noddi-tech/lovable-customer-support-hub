@@ -1,37 +1,45 @@
 
 
-# Fix: Coupon value not showing for NOK amounts
+# Fix: Agent name showing in reply emails despite being configured off
 
 ## Problem
-The coupons with `discount.amount` (e.g., 300 NOK) show no value badge, while `discount_percentage` (100%) works. This means the `discount` nested object from the API isn't reaching the frontend properly.
+When `include_agent_name` is toggled off in the email template, the agent's full name still appears in the email. This happens because there are **two places** the agent name leaks through:
 
-## Root cause
-The edge function coupon mapping (lines 1409-1417 and 1655-1663) uses `...c` spread to pass raw fields through, but doesn't explicitly extract `discount.amount` or `discount.currency`. The summary endpoint may nest or omit the `discount` object differently than expected. Meanwhile `discount_percentage` works because it's a top-level field that passes through the spread.
+1. **The "From" header** (line 459): `from: { name: senderDisplayName }` — the `senderDisplayName` resolution chain (lines 195-230) falls back to the agent's full name (line 225) when no other display name is configured at the inbound route, inbox, or organization level.
 
-## Fix
+2. **The AI draft body** (separate function): The AI system prompt tells it to "Sign off with a friendly closing" — already covered by the previous plan.
 
-### 1. Edge function: explicitly extract discount fields
-**File: `supabase/functions/noddi-customer-lookup/index.ts`** (both coupon mapping blocks ~lines 1409-1417 and 1655-1663)
+The `include_agent_name` toggle only controls the `{{agent_name}}` placeholder in the signature template body. It does NOT prevent the agent name from appearing in the email's "From" field.
 
-Add explicit extraction of the nested discount object fields:
+## Solution
+
+### 1. Respect `include_agent_name` for the From header display name
+**File: `supabase/functions/send-reply-email/index.ts`** (lines 224-227)
+
+Skip the "Priority 4: agent's full name" fallback when `include_agent_name` is false in the template. Move the sender display name resolution to after the template is loaded (currently it's before), or check the template setting before applying Priority 4.
+
+Concretely: after the template is loaded (line 258), add a check — if `templateSettings.include_agent_name === false`, don't use the agent name as senderDisplayName. Instead fall through to the "Support" fallback.
 
 ```typescript
-return raw.map((c: any) => ({
-  ...c,
-  id: c.id,
-  name_public: c.name_public || null,
-  name_internal: c.name_internal || null,
-  discount: c.discount || null,
-  discount_percentage: c.discount_percentage ?? null,
-  is_active: c.is_active ?? c.active ?? true,
-}));
+// After template is loaded (line 258+):
+// If include_agent_name is off AND senderDisplayName came from agent name, reset it
+if (templateSettings.include_agent_name === false && senderDisplayName === senderInfo?.full_name) {
+  senderDisplayName = null;
+}
+senderDisplayName = senderDisplayName || 'Support';
 ```
 
-Remove the old `code`, `description`, `value`, `discount_type` mappings — they were based on a wrong API shape and are no longer needed. The frontend now uses `name_public`, `discount.amount`, and `discount_percentage` directly.
+### 2. Update AI draft system prompt (from previous plan)
+**File: `supabase/functions/generate-email-draft/index.ts`** (line 18)
 
-### 2. Redeploy edge function
-Deploy `noddi-customer-lookup`.
+Change sign-off instruction to:
+```
+Do NOT include any sign-off, closing, or signature. The email system adds signatures automatically.
+```
+
+### 3. Redeploy both edge functions
 
 ### Files to modify
-- `supabase/functions/noddi-customer-lookup/index.ts` — simplify coupon mapping in both blocks to explicitly preserve `discount` object and `discount_percentage`
+- `supabase/functions/send-reply-email/index.ts` — respect `include_agent_name` for From header display name
+- `supabase/functions/generate-email-draft/index.ts` — remove sign-off instruction from system prompt
 
