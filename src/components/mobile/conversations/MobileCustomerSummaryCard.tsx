@@ -28,6 +28,16 @@ const getServiceTagStyle = (tag: string) => {
   return { bg: 'bg-muted', text: 'text-muted-foreground', icon: null };
 };
 
+const formatBookingType = (type: string): string => {
+  if (type === 'normal') return '';
+  const map: Record<string, string> = {
+    wheel_storage_pickup: 'Wheel Storage Pickup',
+    wheel_storage_delivery: 'Wheel Storage Delivery',
+    tire_change: 'Tire Change',
+  };
+  return map[type.toLowerCase()] || type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+};
+
 const moneyFmt = (amt: number, cur: string) =>
   new Intl.NumberFormat(undefined, { style: "currency", currency: cur }).format(amt);
 
@@ -223,7 +233,7 @@ export const MobileCustomerSummaryCard = ({ customer, noddiData }: MobileCustome
                 {/* Booking type badge */}
                 {meta?.booking_type && meta.booking_type !== 'normal' && (
                   <span className="rounded-full bg-orange-100 px-1.5 py-0.5 text-[9px] text-orange-900">
-                    {meta.booking_type === 'wheel_storage_pickup' ? 'Wheel Storage' : meta.booking_type}
+                    {formatBookingType(meta.booking_type)}
                   </span>
                 )}
                 {/* Location type badge */}
@@ -256,6 +266,21 @@ export const MobileCustomerSummaryCard = ({ customer, noddiData }: MobileCustome
                 )}
               </div>
 
+              {/* Service tags */}
+              {meta?.order_tags && meta.order_tags.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {meta.order_tags.map((tag: string, idx: number) => {
+                    const style = getServiceTagStyle(tag);
+                    const Icon = style.icon;
+                    return (
+                      <span key={idx} className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[9px] rounded-full ${style.bg} ${style.text}`}>
+                        {Icon && <Icon className="w-2.5 h-2.5" />}
+                        {tag}
+                      </span>
+                    );
+                  })}
+                </div>
+              )}
               {/* Unable to complete public comment */}
               {meta?.unable_to_complete && meta?.comments_unable_to_complete_public && (
                 <p className="text-[10px] text-amber-800 mt-0.5 truncate">

@@ -124,6 +124,17 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
   const moneyFmt = (amt: number, cur: string) =>
     new Intl.NumberFormat(undefined, { style: "currency", currency: cur }).format(amt);
 
+  // Format booking type to human-readable label
+  const formatBookingType = (type: string): string => {
+    if (type === 'normal') return '';
+    const map: Record<string, string> = {
+      wheel_storage_pickup: 'Wheel Storage Pickup',
+      wheel_storage_delivery: 'Wheel Storage Delivery',
+      tire_change: 'Tire Change',
+    };
+    return map[type.toLowerCase()] || type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  };
+
   // Map service tags to icons and colors
   const getServiceTagStyle = (tag: string) => {
     const tagLower = tag.toLowerCase();
@@ -470,7 +481,7 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
               {/* Booking type & location badges */}
               {data.ui_meta?.booking_type && data.ui_meta.booking_type !== 'normal' && (
                 <Badge variant="outline" className="h-4 px-1 text-[10px] bg-orange-50 text-orange-700 border-orange-200">
-                  {data.ui_meta.booking_type === 'wheel_storage_pickup' ? 'Wheel Storage Pickup' : data.ui_meta.booking_type}
+                  {formatBookingType(data.ui_meta.booking_type)}
                 </Badge>
               )}
               {(data.ui_meta?.location_type || data.ui_meta?.booking_location_type) && (() => {
@@ -546,6 +557,22 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
                 </span>
               )}
             </div>
+
+            {/* Service tags */}
+            {data.ui_meta?.order_tags && data.ui_meta.order_tags.length > 0 && (
+              <div className="flex flex-wrap gap-1 mb-1">
+                {data.ui_meta.order_tags.map((tag: string, idx: number) => {
+                  const style = getServiceTagStyle(tag);
+                  const IconComponent = style.icon;
+                  return (
+                    <span key={idx} className={`inline-flex items-center gap-1 px-2 py-0.5 text-[10px] rounded-full ${style.bg} ${style.text}`}>
+                      {IconComponent && <IconComponent className="w-3 h-3" />}
+                      {tag}
+                    </span>
+                  );
+                })}
+              </div>
+            )}
 
             {data.ui_meta?.booking_date_iso && (
               <p className="text-xs text-muted-foreground mb-1">
