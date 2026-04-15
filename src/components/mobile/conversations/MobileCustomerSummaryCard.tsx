@@ -223,7 +223,7 @@ export const MobileCustomerSummaryCard = ({ customer, noddiData }: MobileCustome
                 {/* Booking type badge */}
                 {meta?.booking_type && meta.booking_type !== 'normal' && (
                   <span className="rounded-full bg-orange-100 px-1.5 py-0.5 text-[9px] text-orange-900">
-                    {meta.booking_type === 'wheel_storage_pickup' ? 'Wheel Storage' : meta.booking_type}
+                    {formatBookingType(meta.booking_type)}
                   </span>
                 )}
                 {/* Location type badge */}
