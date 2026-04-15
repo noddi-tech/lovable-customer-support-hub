@@ -124,6 +124,17 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
   const moneyFmt = (amt: number, cur: string) =>
     new Intl.NumberFormat(undefined, { style: "currency", currency: cur }).format(amt);
 
+  // Format booking type to human-readable label
+  const formatBookingType = (type: string): string => {
+    if (type === 'normal') return '';
+    const map: Record<string, string> = {
+      wheel_storage_pickup: 'Wheel Storage Pickup',
+      wheel_storage_delivery: 'Wheel Storage Delivery',
+      tire_change: 'Tire Change',
+    };
+    return map[type.toLowerCase()] || type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  };
+
   // Map service tags to icons and colors
   const getServiceTagStyle = (tag: string) => {
     const tagLower = tag.toLowerCase();

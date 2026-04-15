@@ -28,6 +28,16 @@ const getServiceTagStyle = (tag: string) => {
   return { bg: 'bg-muted', text: 'text-muted-foreground', icon: null };
 };
 
+const formatBookingType = (type: string): string => {
+  if (type === 'normal') return '';
+  const map: Record<string, string> = {
+    wheel_storage_pickup: 'Wheel Storage Pickup',
+    wheel_storage_delivery: 'Wheel Storage Delivery',
+    tire_change: 'Tire Change',
+  };
+  return map[type.toLowerCase()] || type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+};
+
 const moneyFmt = (amt: number, cur: string) =>
   new Intl.NumberFormat(undefined, { style: "currency", currency: cur }).format(amt);
 
