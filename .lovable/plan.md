@@ -1,109 +1,68 @@
 
 
-# Security Fixes — Voicemails, Widget Tables, Realtime
+# Improve Recent Booking card formatting and add service tags
 
-## Overview
-Three security findings to address via one SQL migration plus a manual Dashboard step.
+## Problem
+The "Recent Booking" card in Customer Details shows:
+1. Raw `WHEEL_STORAGE_PICKUP` as text instead of a human-readable, styled badge
+2. No service tags (dekkhotell, dekkskift, etc.) — these exist in `data.ui_meta.order_tags` but are only rendered at the very bottom of the details section, not inside the booking card itself
+3. The booking type badge only handles `wheel_storage_pickup` — other types show raw API strings
 
----
+## Solution
 
-## 1. Voicemails publicly accessible
+### 1. Format booking_type into readable labels with proper styling
+**File: `src/components/dashboard/voice/NoddiCustomerDetails.tsx`** (lines 471-475)
 
-**Problem:** `Voicemails are publicly accessible` storage policy grants unauthenticated read access. Permissive OR logic overrides restrictive policies.
+Add a `formatBookingType` helper that maps known booking types to human-readable labels:
+- `wheel_storage_pickup` → "Wheel Storage Pickup"
+- `wheel_storage_delivery` → "Wheel Storage Delivery"  
+- `normal` → (hidden)
+- Others → title-case the snake_case string
 
-**Fix:** Drop the public policy and set bucket to private. All voicemail access goes through `download-voicemail` edge function (service_role), so no functionality breaks.
+### 2. Move service tags into the booking card
+**File: `src/components/dashboard/voice/NoddiCustomerDetails.tsx`**
 
-```sql
-DROP POLICY IF EXISTS "Voicemails are publicly accessible" ON storage.objects;
-DROP POLICY IF EXISTS "Service role can manage voicemails" ON storage.objects;
-UPDATE storage.buckets SET public = false WHERE id = 'voicemails';
+Add the service tags (using existing `getServiceTagStyle`) inside the booking card, right after the status chips and before the date/service/vehicle details (around line 548). Currently they only appear at line 1045 — we'll show them in both places or move them into the card.
 
-CREATE POLICY "Org members can read voicemails" ON storage.objects FOR SELECT
-TO authenticated
-USING (bucket_id = 'voicemails');
+### 3. Apply same fix to mobile view
+**File: `src/components/mobile/conversations/MobileCustomerSummaryCard.tsx`** (line 226)
+
+Use the same `formatBookingType` helper for consistency.
+
+## Technical details
+
+**New helper function:**
+```typescript
+const formatBookingType = (type: string): string => {
+  if (type === 'normal') return '';
+  const map: Record<string, string> = {
+    wheel_storage_pickup: 'Wheel Storage Pickup',
+    wheel_storage_delivery: 'Wheel Storage Delivery',
+    tire_change: 'Tire Change',
+  };
+  return map[type] || type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+};
 ```
 
-**Risk:** None. Frontend uses `download-voicemail` edge function, not direct bucket access.
-
----
-
-## 2. Widget tables overly permissive RLS
-
-**Problem:** Migration `20260121192814` attempted to fix this but the scanner still flags it — likely because the old `USING(true)` policies from `20260121151357` weren't successfully dropped, or additional permissive policies exist. The fix migration needs to be re-applied defensively.
-
-**Fix:** Re-drop any remaining permissive policies and ensure only org-scoped policies exist:
-
-```sql
--- Defensive cleanup of any remaining permissive policies
-DROP POLICY IF EXISTS "Service role has full access to chat sessions" ON widget_chat_sessions;
-DROP POLICY IF EXISTS "Service role has full access to typing indicators" ON chat_typing_indicators;
-
--- Re-create org-scoped policies (DROP IF EXISTS first to be idempotent)
-DROP POLICY IF EXISTS "Authenticated users can view chat sessions in their org" ON widget_chat_sessions;
-DROP POLICY IF EXISTS "Authenticated users can update chat sessions in their org" ON widget_chat_sessions;
-DROP POLICY IF EXISTS "Authenticated users can view typing indicators in their org" ON chat_typing_indicators;
-DROP POLICY IF EXISTS "Authenticated users can manage typing indicators in their org" ON chat_typing_indicators;
-
-CREATE POLICY "Authenticated users can view chat sessions in their org"
-ON widget_chat_sessions FOR SELECT TO authenticated
-USING (EXISTS (
-  SELECT 1 FROM widget_configs wc
-  JOIN organization_memberships om ON om.organization_id = wc.organization_id
-  WHERE wc.id = widget_chat_sessions.widget_config_id
-  AND om.user_id = auth.uid() AND om.status = 'active'
-));
-
-CREATE POLICY "Authenticated users can update chat sessions in their org"
-ON widget_chat_sessions FOR UPDATE TO authenticated
-USING (EXISTS (
-  SELECT 1 FROM widget_configs wc
-  JOIN organization_memberships om ON om.organization_id = wc.organization_id
-  WHERE wc.id = widget_chat_sessions.widget_config_id
-  AND om.user_id = auth.uid() AND om.status = 'active'
-));
-
-CREATE POLICY "Authenticated users can view typing indicators in their org"
-ON chat_typing_indicators FOR SELECT TO authenticated
-USING (EXISTS (
-  SELECT 1 FROM conversations c
-  JOIN organization_memberships om ON om.organization_id = c.organization_id
-  WHERE c.id = chat_typing_indicators.conversation_id
-  AND om.user_id = auth.uid() AND om.status = 'active'
-));
-
-CREATE POLICY "Authenticated users can manage typing indicators in their org"
-ON chat_typing_indicators FOR ALL TO authenticated
-USING (EXISTS (
-  SELECT 1 FROM conversations c
-  JOIN organization_memberships om ON om.organization_id = c.organization_id
-  WHERE c.id = chat_typing_indicators.conversation_id
-  AND om.user_id = auth.uid() AND om.status = 'active'
-));
+**Service tags placement** — insert after status chips (line ~548), before date:
+```tsx
+{data.ui_meta?.order_tags && data.ui_meta.order_tags.length > 0 && (
+  <div className="flex flex-wrap gap-1 mb-1">
+    {data.ui_meta.order_tags.map((tag: string, idx: number) => {
+      const style = getServiceTagStyle(tag);
+      const IconComponent = style.icon;
+      return (
+        <span key={idx} className={`inline-flex items-center gap-1 px-2 py-0.5 text-[10px] rounded-full ${style.bg} ${style.text}`}>
+          {IconComponent && <IconComponent className="w-3 h-3" />}
+          {tag}
+        </span>
+      );
+    })}
+  </div>
+)}
 ```
 
-**Risk:** Low. Agent-side code uses authenticated client (scoped by org). Widget visitor-side uses `widget-chat` edge function with service_role (bypasses RLS). Session creation/deletion is done by edge functions only.
-
----
-
-## 3. Realtime data broadcast (no channel authorization)
-
-**Problem:** Any authenticated user can subscribe to Realtime channels and receive events for tables across all organizations.
-
-**Fix:** This requires enabling **Realtime Authorization** in the Supabase Dashboard. All published tables already have org-scoped RLS SELECT policies, so once enabled, Realtime will filter events to only rows the user can SELECT.
-
-**Action:** Manual — go to Supabase Dashboard > Database > Replication and enable Realtime Authorization. No SQL migration needed.
-
----
-
-## Summary
-
-| Finding | Action | Risk |
-|---------|--------|------|
-| Voicemails public | Drop public policy, set bucket private | None |
-| Widget tables permissive | Re-apply org-scoped policies, drop any remaining USING(true) | Low |
-| Realtime broadcast | Enable Realtime Authorization in Dashboard | Low |
-
-**Files to modify:** One SQL migration covering voicemail + widget table policies. No frontend code changes.
-
-**User action required:** Enable Realtime Authorization in Supabase Dashboard.
+### Files to modify
+- `src/components/dashboard/voice/NoddiCustomerDetails.tsx` — add `formatBookingType`, insert service tags in booking card
+- `src/components/mobile/conversations/MobileCustomerSummaryCard.tsx` — use `formatBookingType`
 
