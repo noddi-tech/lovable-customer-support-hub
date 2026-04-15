@@ -15,8 +15,28 @@ import { useNoddihKundeData } from '@/hooks/useNoddihKundeData';
 import { displayName } from '@/utils/noddiHelpers';
 import { format, formatDistanceToNow } from 'date-fns';
 import { logger } from '@/utils/logger';
+const TIRE_EVENT_LABELS: Record<string, string> = {
+  BOOKING_PROPOSAL_TIRE_MOUNT_SENT_TO_CUSTOMER: 'Proposal sent',
+  BOOKING_PROPOSAL_TIRE_MOUNT_ACCEPTED: 'Proposal accepted',
+  BOOKING_PROPOSAL_TIRE_MOUNT_REJECTED: 'Proposal rejected',
+  INVENTORY_RECEIVED_IN_FULL: 'Inventory received',
+  INVENTORY_ORDERED_AT_SUPPLIERS_IN_FULL: 'Ordered from supplier',
+  INVENTORY_ORDERED_AT_SUPPLIERS_PARTIALLY: 'Partially ordered',
+  FULFILLED: 'Fulfilled',
+  ACCEPTED: 'Accepted',
+  PENDING: 'Pending',
+  REJECTED: 'Rejected',
+  EXPIRED: 'Expired',
+};
 
-interface NoddiCustomerDetailsProps {
+function formatTireEventLabel(raw: string): string {
+  if (TIRE_EVENT_LABELS[raw]) return TIRE_EVENT_LABELS[raw];
+  // Fallback: take last segment, title-case it
+  const last = raw.split('_').pop() || raw;
+  return last.charAt(0).toUpperCase() + last.slice(1).toLowerCase();
+}
+
+
   customerId?: string;
   customerEmail?: string;
   customerPhone?: string;
