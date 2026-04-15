@@ -323,7 +323,7 @@ export const ReplyArea = () => {
             <Sparkles className="h-3.5 w-3.5" />
             View {state.aiSuggestions.length} AI Suggestion{state.aiSuggestions.length > 1 ? 's' : ''}
           </Button>
-        )
+        )}
 
         {/* Controls Row: Internal Note toggle (only for replies) + AI + Translate */}
         <div className="flex items-center justify-between gap-3">
