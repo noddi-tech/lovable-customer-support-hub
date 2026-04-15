@@ -70,7 +70,7 @@ export function AiSuggestionsSheet({
         </SheetHeader>
 
         <ScrollArea className="flex-1 px-6 py-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pb-4">
+          <div className="grid grid-cols-1 gap-3 pb-4">
             {suggestions.map((suggestion, index) => (
               <div
                 key={index}

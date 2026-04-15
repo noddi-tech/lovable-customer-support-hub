@@ -10,7 +10,7 @@ import { Card } from '@/components/ui/card';
 import { Send, Loader2, MessageSquareX, UserRoundPlus, Smile, Paperclip, Mic, Image, X, Languages, StickyNote, Sparkles, Eye, Database } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useConversationView } from '@/contexts/ConversationViewContext';
-import { AiSuggestionDialog } from '@/components/dashboard/conversation-view/AiSuggestionDialog';
+import { AiSuggestionsSheet } from '@/components/dashboard/conversation-view/AiSuggestionsSheet';
 import { FeedbackPrompt } from '@/components/dashboard/conversation-view/FeedbackPrompt';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -77,8 +77,7 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { state, dispatch, getAiSuggestions, refineAiSuggestion, messages } = useConversationView();
-  const [selectedSuggestionForDialog, setSelectedSuggestionForDialog] = useState<string | null>(null);
-  const [originalSuggestionText, setOriginalSuggestionText] = useState<string>('');
+  const [showSuggestionsSheet, setShowSuggestionsSheet] = useState(false);
   const { processMentions } = useMentionNotifications();
   
   // Fetch agents for transfer
@@ -396,24 +395,17 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
   const handleGetAiSuggestions = useCallback(async () => {
     try {
       await getAiSuggestions();
+      setShowSuggestionsSheet(true);
     } catch (error) {
       // Error handling is done in the context
     }
   }, [getAiSuggestions]);
 
-  const handleAiSuggestionSelect = useCallback((suggestion: string) => {
-    setSelectedSuggestionForDialog(suggestion);
-    setOriginalSuggestionText(suggestion);
-  }, []);
-
-  const handleUseAsIs = useCallback(() => {
-    if (selectedSuggestionForDialog) {
-      setMessage(selectedSuggestionForDialog);
-      dispatch({ type: 'SET_SELECTED_AI_SUGGESTION', payload: selectedSuggestionForDialog });
-      setSelectedSuggestionForDialog(null);
-      toast.success('Suggestion inserted into reply');
-    }
-  }, [selectedSuggestionForDialog, dispatch]);
+  const handleSheetUseAsIs = useCallback((suggestion: string) => {
+    setMessage(suggestion);
+    dispatch({ type: 'SET_SELECTED_AI_SUGGESTION', payload: suggestion });
+    toast.success('Suggestion inserted into reply');
+  }, [dispatch]);
 
   const handleRefineAndUse = useCallback(async (refinementInstructions: string, originalText: string) => {
     const lastCustomerMessage = [...(messages || [])].reverse().find((m: any) => m.sender_type === 'customer');
