@@ -1,27 +1,68 @@
 
 
-# Apply AI Suggestions Sheet to Chat view (compact single-column)
+# Fix: Completed bookings missing service details (tags, vehicle, address)
 
 ## Problem
-The chat `ChatReplyInput.tsx` still uses the old inline preview cards with "View" badges and `AiSuggestionDialog`. The user wants the same Sheet overlay approach used in email, but with a **single-column layout** to save space (not two columns).
+When the Noddi API returns a `priority_booking` from `bookings_summary`, completed bookings have a **summary structure** that lacks detail fields like `service`, `order.tags`, `address`, `booking_type`, and vehicle info. The current enrichment logic (`enrichTagsIfEmpty`) only fetches full booking details from `/v1/bookings/{id}/` when `order.tags` is empty. If the summary happens to have tags but lacks other fields (or has neither), the service title, vehicle, address, and booking type remain null.
 
-## Changes
+## Root cause
+In `supabase/functions/noddi-customer-lookup/index.ts`, the enrichment gate at lines 1426 and 1672 is:
+```
+if (orderTags.length === 0 && priorityBooking) { ... }
+```
+This only enriches for missing tags. But completed booking summaries also lack `service`, `address`, `booking_type`, and vehicle data.
 
-**File: `src/components/conversations/ChatReplyInput.tsx`**
+## Solution
+**Change the enrichment condition** to always fetch full booking detail when key fields are missing — not just tags. Rename the function to `enrichBookingIfNeeded` and broaden the check.
 
-1. **Import `AiSuggestionsSheet`** instead of `AiSuggestionDialog`
-2. **Add `showSuggestionsSheet` state** (boolean)
-3. **Remove inline suggestion cards** (lines 519–550) — the stacked cards with "View" badges
-4. **Replace with a compact "View Suggestions" button** that opens the sheet when suggestions exist
-5. **Remove `AiSuggestionDialog`** (lines 829–837) and related state (`selectedSuggestionForDialog`, `originalSuggestionText`)
-6. **Add `<AiSuggestionsSheet>`** with handlers for `onUseAsIs` and `onRefine`
-7. **Auto-open sheet** after `handleGetAiSuggestions` completes (same as email ReplyArea)
+### File: `supabase/functions/noddi-customer-lookup/index.ts`
 
-**File: `src/components/dashboard/conversation-view/AiSuggestionsSheet.tsx`**
+1. **Rename `enrichTagsIfEmpty` → `enrichBookingIfNeeded`** — fetch full booking detail if tags OR service_title OR vehicle_label are missing from the summary object. Return the full detail object as `bookingForCache`.
 
-8. **Change grid to single column** — replace `grid grid-cols-1 md:grid-cols-2` with `grid grid-cols-1` so suggestions stack vertically in a compact list, taking less horizontal space
+2. **Update the condition** in both code paths (lines ~1426 and ~1672):
+   - Old: `if (orderTags.length === 0 && priorityBooking)`
+   - New: Always call `enrichBookingIfNeeded(priorityBooking)` when `priorityBooking` exists. The function itself decides whether to fetch based on missing fields.
+
+3. **Update the function logic**:
+   ```typescript
+   async function enrichBookingIfNeeded(pb: any): Promise<{tags: string[]; bookingForCache: any}> {
+     if (!pb?.id) return { tags: extractOrderTags(pb), bookingForCache: pb };
+     
+     const tags = extractOrderTags(pb);
+     const hasService = !!extractServiceTitle(pb);
+     const hasVehicle = !!extractVehicleLabel(pb);
+     
+     // If we already have all key data, skip the extra fetch
+     if (tags.length > 0 && hasService && hasVehicle) {
+       return { tags, bookingForCache: pb };
+     }
+     
+     // Fetch full booking detail
+     try {
+       const r = await fetch(`${API_BASE}/v1/bookings/${pb.id}/`, { headers: noddiAuthHeaders() });
+       if (r.ok) {
+         const detail = await r.json();
+         return { tags: extractOrderTags(detail) || tags, bookingForCache: detail };
+       }
+     } catch (e) { /* fallback to summary */ }
+     return { tags, bookingForCache: pb };
+   }
+   ```
+
+4. **Both call sites** (lines ~1421-1431 and ~1667-1677) become:
+   ```typescript
+   let enrichedTags = priorityBooking?.order?.tags || [];
+   let bookingForCache = priorityBooking;
+   if (priorityBooking) {
+     const enrichResult = await enrichBookingIfNeeded(priorityBooking);
+     enrichedTags = enrichResult.tags;
+     bookingForCache = enrichResult.bookingForCache || priorityBooking;
+   }
+   ```
 
 ## Files to modify
-- `src/components/conversations/ChatReplyInput.tsx` — swap cards + dialog for sheet
-- `src/components/dashboard/conversation-view/AiSuggestionsSheet.tsx` — single-column layout
+- `supabase/functions/noddi-customer-lookup/index.ts` — broaden enrichment logic
+
+## Impact
+This adds one extra API call for completed bookings that lack detail, but it's already done for tag-less bookings today. No frontend changes needed — the `NoddiCustomerDetails` component already renders all these fields when present.
 
