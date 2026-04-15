@@ -37,7 +37,7 @@ function formatTireEventLabel(raw: string): string {
 }
 
 
-  customerId?: string;
+  interface NoddiCustomerDetailsProps {
   customerEmail?: string;
   customerPhone?: string;
   customerName?: string;
