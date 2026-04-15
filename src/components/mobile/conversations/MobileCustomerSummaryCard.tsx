@@ -295,7 +295,8 @@ export const MobileCustomerSummaryCard = ({ customer, noddiData }: MobileCustome
                     );
                   })}
                 </div>
-              )}
+                );
+              })()}
               {/* Unable to complete public comment */}
               {meta?.unable_to_complete && meta?.comments_unable_to_complete_public && (
                 <p className="text-[10px] text-amber-800 mt-0.5 truncate">
