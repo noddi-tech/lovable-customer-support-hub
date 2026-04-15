@@ -1116,8 +1116,11 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
                           </div>
                         </div>
                       )}
-                </div>
+                    </div>
+                  );
+                })()}
               ))}
+
             </CollapsibleContent>
           </Collapsible>
         )}
