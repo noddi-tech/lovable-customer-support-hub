@@ -534,18 +534,26 @@ async function getUserByPhone(phone: string) {
   return await response.json();
 }
 
-async function enrichTagsIfEmpty(pb: any): Promise<{tags: string[]; bookingForCache: any}> {
-  let tags = extractOrderTags(pb);
-  if (tags.length > 0 || !pb?.id) return { tags, bookingForCache: pb };
+async function enrichBookingIfNeeded(pb: any): Promise<{tags: string[]; bookingForCache: any}> {
+  if (!pb?.id) return { tags: extractOrderTags(pb), bookingForCache: pb };
+
+  const tags = extractOrderTags(pb);
+  const hasService = !!extractServiceTitle(pb);
+  const hasVehicle = !!extractVehicleLabel(pb);
+
+  // If we already have all key data, skip the extra fetch
+  if (tags.length > 0 && hasService && hasVehicle) {
+    return { tags, bookingForCache: pb };
+  }
 
   try {
-    if (DEBUG) console.log(`[noddi] Enriching booking ${pb.id} (initially no tags)`);
+    if (DEBUG) console.log(`[noddi] Enriching booking ${pb.id} (missing: tags=${tags.length === 0}, service=${!hasService}, vehicle=${!hasVehicle})`);
     const r = await fetch(`${API_BASE}/v1/bookings/${pb.id}/`, { headers: noddiAuthHeaders() });
     if (r.ok) {
       const detail = await r.json();
-      tags = extractOrderTags(detail);
-      if (DEBUG) console.log(`[noddi] Enriched tags:`, tags);
-      return { tags, bookingForCache: detail };
+      const enrichedTags = extractOrderTags(detail);
+      if (DEBUG) console.log(`[noddi] Enriched tags:`, enrichedTags);
+      return { tags: enrichedTags.length > 0 ? enrichedTags : tags, bookingForCache: detail };
     }
   } catch (e) {
     if (DEBUG) console.log(`[noddi] Enrichment failed:`, e);
@@ -1418,14 +1426,12 @@ Deno.serve(async (req) => {
             })(),
           }));
 
-          // Enrich tags if empty
-          const orderTags = priorityBooking?.order?.tags || [];
-          let enrichedTags = orderTags;
+          // Enrich booking if key fields are missing (tags, service, vehicle)
+          let enrichedTags = priorityBooking?.order?.tags || [];
           let bookingForCache = priorityBooking;
           
-          if (orderTags.length === 0 && priorityBooking) {
-            console.log('Tags empty, enriching...');
-            const enrichResult = await enrichTagsIfEmpty(priorityBooking);
+          if (priorityBooking) {
+            const enrichResult = await enrichBookingIfNeeded(priorityBooking);
             enrichedTags = enrichResult.tags;
             bookingForCache = enrichResult.bookingForCache || priorityBooking;
           }
@@ -1664,14 +1670,12 @@ Deno.serve(async (req) => {
       })(),
     }));
 
-    // Step 8: Enrich tags if empty (optional, the new API might already include them)
-    const orderTags = priorityBooking?.order?.tags || [];
-    let enrichedTags = orderTags;
+    // Step 8: Enrich booking if key fields are missing (tags, service, vehicle)
+    let enrichedTags = priorityBooking?.order?.tags || [];
     let bookingForCache = priorityBooking;
     
-    if (orderTags.length === 0 && priorityBooking) {
-      console.log('Tags empty, enriching...');
-      const enrichResult = await enrichTagsIfEmpty(priorityBooking);
+    if (priorityBooking) {
+      const enrichResult = await enrichBookingIfNeeded(priorityBooking);
       enrichedTags = enrichResult.tags;
       bookingForCache = enrichResult.bookingForCache || priorityBooking;
     }
