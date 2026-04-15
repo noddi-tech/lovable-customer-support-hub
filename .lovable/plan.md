@@ -1,62 +1,27 @@
 
 
-# Replace AI Suggestions list with a Sheet overlay
+# Apply AI Suggestions Sheet to Chat view (compact single-column)
 
 ## Problem
-Currently, AI suggestions appear as a stacked list of preview cards in the reply area. To see a full suggestion, you must click "View" on each one individually via a dialog. This is slow and loses context.
-
-## Solution
-Replace the inline suggestion cards + dialog with a **Sheet** (slide-in panel from the right) that displays **all suggestions at once in a two-column grid** on desktop. The conversation remains visible behind the semi-transparent overlay, preserving chat context.
+The chat `ChatReplyInput.tsx` still uses the old inline preview cards with "View" badges and `AiSuggestionDialog`. The user wants the same Sheet overlay approach used in email, but with a **single-column layout** to save space (not two columns).
 
 ## Changes
 
-### 1. Create `AiSuggestionsSheet.tsx`
-New component replacing both the inline cards and `AiSuggestionDialog`:
-- Sheet slides in from the right (`side="right"`, wider than default — `sm:max-w-3xl`)
-- Header: "AI Suggestions (N)" with sparkle icon
-- Body: `grid grid-cols-1 md:grid-cols-2 gap-3` — each suggestion is a full card showing the complete text (in a scroll area if long), character count, and action buttons ("Use as-is", "Refine")
-- Refine: clicking "Refine" on a card expands an inline textarea + submit button on that card
-- Footer or per-card: "Use as-is" inserts the suggestion and closes the sheet
+**File: `src/components/conversations/ChatReplyInput.tsx`**
 
-### 2. Update `ReplyArea.tsx`
-- Remove the inline `<div className="grid gap-2">` suggestion cards block (lines 313–349)
-- Remove `<AiSuggestionDialog>` usage (lines 352–360)
-- Add state: `showSuggestionsSheet` (boolean)
-- When suggestions arrive, auto-open the sheet
-- The "AI Suggest" button in the toolbar also toggles the sheet open
-- Pass suggestions, handlers (`onUseAsIs`, `onRefine`) to the new sheet component
+1. **Import `AiSuggestionsSheet`** instead of `AiSuggestionDialog`
+2. **Add `showSuggestionsSheet` state** (boolean)
+3. **Remove inline suggestion cards** (lines 519–550) — the stacked cards with "View" badges
+4. **Replace with a compact "View Suggestions" button** that opens the sheet when suggestions exist
+5. **Remove `AiSuggestionDialog`** (lines 829–837) and related state (`selectedSuggestionForDialog`, `originalSuggestionText`)
+6. **Add `<AiSuggestionsSheet>`** with handlers for `onUseAsIs` and `onRefine`
+7. **Auto-open sheet** after `handleGetAiSuggestions` completes (same as email ReplyArea)
 
-### 3. Remove or keep `AiSuggestionDialog.tsx`
-Keep the file but it will no longer be imported from `ReplyArea`. Can be cleaned up later if unused elsewhere.
+**File: `src/components/dashboard/conversation-view/AiSuggestionsSheet.tsx`**
 
-## Technical details
+8. **Change grid to single column** — replace `grid grid-cols-1 md:grid-cols-2` with `grid grid-cols-1` so suggestions stack vertically in a compact list, taking less horizontal space
 
-**Sheet content structure:**
-```
-┌─────────────────────────────────────────┐
-│ ✨ AI Suggestions (5)              [X]  │
-│ Review and pick a suggestion            │
-├────────────────┬────────────────────────┤
-│ Suggestion 1   │ Suggestion 2           │
-│ (full text)    │ (full text)            │
-│ ~253 chars     │ ~192 chars             │
-│ [Use] [Refine] │ [Use] [Refine]         │
-├────────────────┼────────────────────────┤
-│ Suggestion 3   │ Suggestion 4           │
-│ (full text)    │ (full text)            │
-│ ~189 chars     │ ~169 chars             │
-│ [Use] [Refine] │ [Use] [Refine]         │
-├────────────────┴────────────────────────┤
-│ Suggestion 5                            │
-│ (full text)                             │
-│ ~170 chars                              │
-│ [Use] [Refine]                          │
-└─────────────────────────────────────────┘
-```
-
-**Files to create:**
-- `src/components/dashboard/conversation-view/AiSuggestionsSheet.tsx`
-
-**Files to modify:**
-- `src/components/dashboard/conversation-view/ReplyArea.tsx` — swap inline cards + dialog for sheet
+## Files to modify
+- `src/components/conversations/ChatReplyInput.tsx` — swap cards + dialog for sheet
+- `src/components/dashboard/conversation-view/AiSuggestionsSheet.tsx` — single-column layout
 
