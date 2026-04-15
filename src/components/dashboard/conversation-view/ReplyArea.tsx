@@ -51,7 +51,7 @@ import {
 } from "@/components/ui/popover";
 import { TemplateSelector } from "./TemplateSelector";
 import { FeedbackPrompt } from "./FeedbackPrompt";
-import { AiSuggestionDialog } from "./AiSuggestionDialog";
+import { AiSuggestionsSheet } from "./AiSuggestionsSheet";
 import { NoteTemplateSelector } from "@/components/conversations/NoteTemplateSelector";
 import { toast } from 'sonner';
 
@@ -74,8 +74,7 @@ export const ReplyArea = () => {
   const replyRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [replyStatus, setReplyStatus] = React.useState<string>('closed');
-  const [selectedSuggestionForDialog, setSelectedSuggestionForDialog] = useState<string | null>(null);
-  const [originalSuggestionText, setOriginalSuggestionText] = useState<string>('');
+  const [showSuggestionsSheet, setShowSuggestionsSheet] = useState(false);
   const [mentionedUserIds, setMentionedUserIds] = useState<string[]>([]);
   const [attachments, setAttachments] = useState<{ file: File; previewUrl: string }[]>([]);
   const [replyAll, setReplyAll] = useState(true);
@@ -218,21 +217,15 @@ export const ReplyArea = () => {
     }
   };
 
-  const handleAiSuggestionSelect = (suggestion: string, index: number) => {
-    setSelectedSuggestionForDialog(suggestion);
-    setOriginalSuggestionText(suggestion);
+  // Sheet-based suggestion handlers
+  const handleSheetUseAsIs = (suggestion: string) => {
+    dispatch({ type: 'SET_REPLY_TEXT', payload: suggestion });
+    dispatch({ type: 'SET_SELECTED_AI_SUGGESTION', payload: suggestion });
+    setShowSuggestionsSheet(false);
+    toast.success('Suggestion inserted into reply area');
   };
 
-  const handleUseAsIs = () => {
-    if (selectedSuggestionForDialog) {
-      dispatch({ type: 'SET_REPLY_TEXT', payload: selectedSuggestionForDialog });
-      dispatch({ type: 'SET_SELECTED_AI_SUGGESTION', payload: selectedSuggestionForDialog });
-      setSelectedSuggestionForDialog(null);
-      toast.success('Suggestion inserted into reply area');
-    }
-  };
-
-  const handleRefineAndUse = async (refinementInstructions: string, originalText: string) => {
+  const handleSheetRefine = async (refinementInstructions: string, originalText: string) => {
     const lastCustomerMessage = [...messages].reverse().find((m: any) => m.sender_type === 'customer');
     const customerMessageText = lastCustomerMessage?.content || '';
     
@@ -241,10 +234,11 @@ export const ReplyArea = () => {
     if (refinedText) {
       dispatch({ type: 'SET_REPLY_TEXT', payload: refinedText });
       dispatch({ type: 'SET_SELECTED_AI_SUGGESTION', payload: refinedText });
-      setSelectedSuggestionForDialog(refinedText); // Update dialog with refined version
-      toast.success('Refined suggestion ready! You can refine it more or use it.');
+      setShowSuggestionsSheet(false);
+      toast.success('Refined suggestion inserted into reply area');
     }
   };
+
 
   const handleTemplateSelect = (content: string, templateId: string) => {
     dispatch({ type: 'SET_REPLY_TEXT', payload: content });
