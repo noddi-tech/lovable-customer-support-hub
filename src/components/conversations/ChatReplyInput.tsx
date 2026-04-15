@@ -10,7 +10,7 @@ import { Card } from '@/components/ui/card';
 import { Send, Loader2, MessageSquareX, UserRoundPlus, Smile, Paperclip, Mic, Image, X, Languages, StickyNote, Sparkles, Eye, Database } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useConversationView } from '@/contexts/ConversationViewContext';
-import { AiSuggestionDialog } from '@/components/dashboard/conversation-view/AiSuggestionDialog';
+import { AiSuggestionsSheet } from '@/components/dashboard/conversation-view/AiSuggestionsSheet';
 import { FeedbackPrompt } from '@/components/dashboard/conversation-view/FeedbackPrompt';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -77,8 +77,7 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { state, dispatch, getAiSuggestions, refineAiSuggestion, messages } = useConversationView();
-  const [selectedSuggestionForDialog, setSelectedSuggestionForDialog] = useState<string | null>(null);
-  const [originalSuggestionText, setOriginalSuggestionText] = useState<string>('');
+  const [showSuggestionsSheet, setShowSuggestionsSheet] = useState(false);
   const { processMentions } = useMentionNotifications();
   
   // Fetch agents for transfer
@@ -396,24 +395,17 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
   const handleGetAiSuggestions = useCallback(async () => {
     try {
       await getAiSuggestions();
+      setShowSuggestionsSheet(true);
     } catch (error) {
       // Error handling is done in the context
     }
   }, [getAiSuggestions]);
 
-  const handleAiSuggestionSelect = useCallback((suggestion: string) => {
-    setSelectedSuggestionForDialog(suggestion);
-    setOriginalSuggestionText(suggestion);
-  }, []);
-
-  const handleUseAsIs = useCallback(() => {
-    if (selectedSuggestionForDialog) {
-      setMessage(selectedSuggestionForDialog);
-      dispatch({ type: 'SET_SELECTED_AI_SUGGESTION', payload: selectedSuggestionForDialog });
-      setSelectedSuggestionForDialog(null);
-      toast.success('Suggestion inserted into reply');
-    }
-  }, [selectedSuggestionForDialog, dispatch]);
+  const handleSheetUseAsIs = useCallback((suggestion: string) => {
+    setMessage(suggestion);
+    dispatch({ type: 'SET_SELECTED_AI_SUGGESTION', payload: suggestion });
+    toast.success('Suggestion inserted into reply');
+  }, [dispatch]);
 
   const handleRefineAndUse = useCallback(async (refinementInstructions: string, originalText: string) => {
     const lastCustomerMessage = [...(messages || [])].reverse().find((m: any) => m.sender_type === 'customer');
@@ -424,7 +416,7 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
     if (refinedText) {
       setMessage(refinedText);
       dispatch({ type: 'SET_SELECTED_AI_SUGGESTION', payload: refinedText });
-      setSelectedSuggestionForDialog(refinedText);
+      toast.success('Refined suggestion ready! You can refine it more or use it.');
       toast.success('Refined suggestion ready! You can refine it more or use it.');
     }
   }, [messages, refineAiSuggestion, dispatch]);
@@ -516,37 +508,17 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
           </div>
         )}
 
-        {/* AI Suggestion Cards */}
+        {/* AI Suggestions - compact button to open sheet */}
         {!isInternalNote && state.aiSuggestions.length > 0 && (
-          <div className="space-y-2">
-            <label className="text-xs font-medium flex items-center gap-2">
-              <Sparkles className="h-3.5 w-3.5 text-primary" />
-              AI Suggestions ({state.aiSuggestions.length})
-            </label>
-            <div className="grid gap-2">
-              {state.aiSuggestions.map((suggestion, index) => {
-                const preview = suggestion.length > 100 ? `${suggestion.slice(0, 100)}...` : suggestion;
-                return (
-                  <Card
-                    key={index}
-                    className="p-3 hover:bg-muted/50 cursor-pointer transition-colors border-border hover:border-primary/50"
-                    onClick={() => handleAiSuggestionSelect(suggestion)}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm leading-relaxed text-foreground/90 line-clamp-2">{preview}</p>
-                        <p className="text-xs text-muted-foreground mt-1">~{suggestion.length} characters</p>
-                      </div>
-                      <Badge variant="outline" className="text-xs gap-1 shrink-0">
-                        <Eye className="h-3 w-3" />
-                        View
-                      </Badge>
-                    </div>
-                  </Card>
-                );
-              })}
-            </div>
-          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5 text-xs"
+            onClick={() => setShowSuggestionsSheet(true)}
+          >
+            <Sparkles className="h-3.5 w-3.5 text-primary" />
+            View AI Suggestions ({state.aiSuggestions.length})
+          </Button>
         )}
 
         {isInternalNote ? (
@@ -826,12 +798,12 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
         </DialogContent>
       </Dialog>
 
-      {/* AI Suggestion Dialog */}
-      <AiSuggestionDialog
-        open={selectedSuggestionForDialog !== null}
-        onOpenChange={(open) => !open && setSelectedSuggestionForDialog(null)}
-        suggestion={selectedSuggestionForDialog || ''}
-        onUseAsIs={handleUseAsIs}
+      {/* AI Suggestions Sheet */}
+      <AiSuggestionsSheet
+        open={showSuggestionsSheet}
+        onOpenChange={setShowSuggestionsSheet}
+        suggestions={state.aiSuggestions}
+        onUseAsIs={handleSheetUseAsIs}
         onRefine={handleRefineAndUse}
         isRefining={state.refiningSuggestion}
       />
