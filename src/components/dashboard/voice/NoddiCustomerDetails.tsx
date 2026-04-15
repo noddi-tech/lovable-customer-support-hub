@@ -465,12 +465,24 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
                   rel="noopener noreferrer"
                   className="font-medium text-xs hover:text-primary hover:underline flex items-center gap-1"
                 >
-                  {data.priority_booking_type === 'upcoming' ? 'Upcoming' : 'Recent'} Booking
+                  {(() => {
+                    if (data.priority_booking_type === 'upcoming') return 'Upcoming';
+                    if (data.priority_booking_type === 'completed') return 'Recent';
+                    const dateIso = data.ui_meta?.booking_date_iso;
+                    if (dateIso && new Date(dateIso) > new Date()) return 'Upcoming';
+                    return 'Recent';
+                  })()} Booking
                   <ExternalLink className="h-3 w-3" />
                 </a>
               ) : (
                 <span className="font-medium text-xs">
-                  {data.priority_booking_type === 'upcoming' ? 'Upcoming' : 'Recent'} Booking
+                  {(() => {
+                    if (data.priority_booking_type === 'upcoming') return 'Upcoming';
+                    if (data.priority_booking_type === 'completed') return 'Recent';
+                    const dateIso = data.ui_meta?.booking_date_iso;
+                    if (dateIso && new Date(dateIso) > new Date()) return 'Upcoming';
+                    return 'Recent';
+                  })()} Booking
                 </span>
               )}
               {bookingId && (
@@ -558,10 +570,25 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
               )}
             </div>
 
-            {/* Service tags */}
-            {data.ui_meta?.order_tags && data.ui_meta.order_tags.length > 0 && (
+            {/* Service tags — with client-side fallback from service_title */}
+            {(() => {
+              const deriveTagsFromTitle = (title: string): string[] => {
+                const rules: [string, RegExp][] = [
+                  ["Dekkhotell", /\b(dekkhotell|tire\s*(hotel|storage))\b/i],
+                  ["Dekkskift", /\b(dekkskift|hjulskift|tire\s*(change|swap))\b/i],
+                  ["Hjemlevering", /\b(hjemlever(t|ing)|home\s*(delivery|service))\b/i],
+                  ["Henting/Levering", /\b(henting|levering|pickup|delivery|hente)\b/i],
+                  ["Felgvask", /\b(felgvask|rim\s*wash)\b/i],
+                ];
+                return rules.filter(([, re]) => re.test(title)).map(([label]) => label);
+              };
+              const effectiveTags = (data.ui_meta?.order_tags?.length > 0)
+                ? data.ui_meta.order_tags
+                : deriveTagsFromTitle(data.ui_meta?.service_title || '');
+              if (effectiveTags.length === 0) return null;
+              return (
               <div className="flex flex-wrap gap-1 mb-1">
-                {data.ui_meta.order_tags.map((tag: string, idx: number) => {
+                {effectiveTags.map((tag: string, idx: number) => {
                   const style = getServiceTagStyle(tag);
                   const IconComponent = style.icon;
                   return (
@@ -572,7 +599,8 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
                   );
                 })}
               </div>
-            )}
+              );
+            })()}
 
             {data.ui_meta?.booking_date_iso && (
               <p className="text-xs text-muted-foreground mb-1">
