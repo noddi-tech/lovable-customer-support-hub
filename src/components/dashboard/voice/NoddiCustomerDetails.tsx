@@ -838,24 +838,6 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
                       </p>
                     )}
 
-                    {/* Service Tags */}
-                    {mostRecentBooking.tags && Array.isArray(mostRecentBooking.tags) && mostRecentBooking.tags.length > 0 && (
-                      <div className="mb-3">
-                        <div className="flex flex-wrap gap-1.5">
-                          {mostRecentBooking.tags.map((tag: string, idx: number) => {
-                            const style = getServiceTagStyle(tag);
-                            const IconComponent = style.icon;
-                            
-                            return (
-                              <span key={idx} className={`inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full ${style.bg} ${style.text}`}>
-                                {IconComponent && <IconComponent className="w-3 h-3" />}
-                                {tag}
-                              </span>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
 
                     {/* Order lines and totals */}
                     {mostRecentBooking.order?.order_lines && mostRecentBooking.order.order_lines.length > 0 && (
@@ -1097,24 +1079,6 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
           </Collapsible>
         )}
 
-        {data.ui_meta?.order_tags && data.ui_meta.order_tags.length > 0 && (
-          <div>
-            <p className="text-xs font-medium text-muted-foreground mb-1">Service Tags</p>
-            <div className="flex flex-wrap gap-1.5">
-              {data.ui_meta.order_tags.map((tag: string, idx: number) => {
-                const style = getServiceTagStyle(tag);
-                const IconComponent = style.icon;
-                
-                return (
-                  <span key={idx} className={`inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full ${style.bg} ${style.text}`}>
-                    {IconComponent && <IconComponent className="w-3 h-3" />}
-                    {tag}
-                  </span>
-                );
-              })}
-            </div>
-          </div>
-        )}
 
         {/* Data Source */}
         <div className="pt-2 border-t text-xs text-muted-foreground">
