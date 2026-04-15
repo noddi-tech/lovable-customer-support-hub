@@ -1,68 +1,38 @@
 
 
-# Fix: Completed bookings missing service details (tags, vehicle, address)
+# Improve Tire Quotes display: links, event badges, readable labels
 
 ## Problem
-When the Noddi API returns a `priority_booking` from `bookings_summary`, completed bookings have a **summary structure** that lacks detail fields like `service`, `order.tags`, `address`, `booking_type`, and vehicle info. The current enrichment logic (`enrichTagsIfEmpty`) only fetches full booking details from `/v1/bookings/{id}/` when `order.tags` is empty. If the summary happens to have tags but lacks other fields (or has neither), the service title, vehicle, address, and booking type remain null.
+1. Tire quote IDs are not linked — should link to `https://partner.noddi.co/tire-offers/{id}`
+2. Status events show raw technical names like `BOOKING_PROPOSAL_TIRE_MOUNT_SENT_TO_CUSTOMER`
+3. Events are plain text, not badges
 
-## Root cause
-In `supabase/functions/noddi-customer-lookup/index.ts`, the enrichment gate at lines 1426 and 1672 is:
+## Changes
+
+**File: `src/components/dashboard/voice/NoddiCustomerDetails.tsx`**
+
+### 1. Add clickable link to each tire quote
+Wrap the car make/model heading (line 1041-1044) in an anchor tag:
+```tsx
+<a href={`https://partner.noddi.co/tire-offers/${tq.id}`} target="_blank" rel="noopener noreferrer" className="font-medium hover:underline text-primary">
+  {tq.car?.make} {tq.car?.model} ...
+</a>
 ```
-if (orderTags.length === 0 && priorityBooking) { ... }
-```
-This only enriches for missing tags. But completed booking summaries also lack `service`, `address`, `booking_type`, and vehicle data.
 
-## Solution
-**Change the enrichment condition** to always fetch full booking detail when key fields are missing — not just tags. Rename the function to `enrichBookingIfNeeded` and broaden the check.
+### 2. Create an event label mapping function
+Add a helper that shortens technical event names to readable labels:
 
-### File: `supabase/functions/noddi-customer-lookup/index.ts`
+| Raw status | Display label |
+|---|---|
+| `BOOKING_PROPOSAL_TIRE_MOUNT_SENT_TO_CUSTOMER` | Proposal sent |
+| `INVENTORY_RECEIVED_IN_FULL` | Inventory received |
+| `INVENTORY_ORDERED_AT_SUPPLIERS_IN_FULL` | Ordered from supplier |
+| `FULFILLED` | Fulfilled |
+| Other | Title-case the last segment |
 
-1. **Rename `enrichTagsIfEmpty` → `enrichBookingIfNeeded`** — fetch full booking detail if tags OR service_title OR vehicle_label are missing from the summary object. Return the full detail object as `bookingForCache`.
-
-2. **Update the condition** in both code paths (lines ~1426 and ~1672):
-   - Old: `if (orderTags.length === 0 && priorityBooking)`
-   - New: Always call `enrichBookingIfNeeded(priorityBooking)` when `priorityBooking` exists. The function itself decides whether to fetch based on missing fields.
-
-3. **Update the function logic**:
-   ```typescript
-   async function enrichBookingIfNeeded(pb: any): Promise<{tags: string[]; bookingForCache: any}> {
-     if (!pb?.id) return { tags: extractOrderTags(pb), bookingForCache: pb };
-     
-     const tags = extractOrderTags(pb);
-     const hasService = !!extractServiceTitle(pb);
-     const hasVehicle = !!extractVehicleLabel(pb);
-     
-     // If we already have all key data, skip the extra fetch
-     if (tags.length > 0 && hasService && hasVehicle) {
-       return { tags, bookingForCache: pb };
-     }
-     
-     // Fetch full booking detail
-     try {
-       const r = await fetch(`${API_BASE}/v1/bookings/${pb.id}/`, { headers: noddiAuthHeaders() });
-       if (r.ok) {
-         const detail = await r.json();
-         return { tags: extractOrderTags(detail) || tags, bookingForCache: detail };
-       }
-     } catch (e) { /* fallback to summary */ }
-     return { tags, bookingForCache: pb };
-   }
-   ```
-
-4. **Both call sites** (lines ~1421-1431 and ~1667-1677) become:
-   ```typescript
-   let enrichedTags = priorityBooking?.order?.tags || [];
-   let bookingForCache = priorityBooking;
-   if (priorityBooking) {
-     const enrichResult = await enrichBookingIfNeeded(priorityBooking);
-     enrichedTags = enrichResult.tags;
-     bookingForCache = enrichResult.bookingForCache || priorityBooking;
-   }
-   ```
+### 3. Render events as badges instead of plain text
+Replace the plain `<span className="font-medium">{evt.status}</span>` (line 1069) with a small `<Badge>` using the shortened label and color-coded by event type (proposal = blue, inventory = purple, fulfilled = green, default = muted).
 
 ## Files to modify
-- `supabase/functions/noddi-customer-lookup/index.ts` — broaden enrichment logic
-
-## Impact
-This adds one extra API call for completed bookings that lack detail, but it's already done for tag-less bookings today. No frontend changes needed — the `NoddiCustomerDetails` component already renders all these fields when present.
+- `src/components/dashboard/voice/NoddiCustomerDetails.tsx` — tire quotes section (lines 1037-1076)
 
