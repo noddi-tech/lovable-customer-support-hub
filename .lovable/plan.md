@@ -1,131 +1,97 @@
 
 
-# Security Fixes Plan — 6 Critical Findings
+# Security Fixes — Voicemails, Widget Tables, Realtime
 
 ## Overview
-
-Six database-level security issues to fix via a single SQL migration. No frontend code changes needed — all fixes are at the RLS policy level.
+Three security findings to address via one SQL migration plus a manual Dashboard step.
 
 ---
 
-## 1. Broken RLS on `customer_memories` (cross-org access)
+## 1. Voicemails publicly accessible
 
-**Problem:** Policies reference `customer_memories.organization_id` inside a subquery on `user_roles` (which has no `organization_id` column), so Postgres resolves it as a correlated reference to the outer row — effectively `WHERE EXISTS (SELECT 1 FROM user_roles WHERE user_id = auth.uid())`.
+**Problem:** `Voicemails are publicly accessible` storage policy grants unauthenticated read access. Permissive OR logic overrides restrictive policies.
 
-**Fix:** Replace all 3 policies (SELECT, INSERT, UPDATE) to use `organization_memberships`:
+**Fix:** Drop the public policy and set bucket to private. All voicemail access goes through `download-voicemail` edge function (service_role), so no functionality breaks.
 
 ```sql
-DROP POLICY "Users can view memories in their org" ON customer_memories;
-DROP POLICY "Users can insert memories in their org" ON customer_memories;
-DROP POLICY "Users can update memories in their org" ON customer_memories;
+DROP POLICY IF EXISTS "Voicemails are publicly accessible" ON storage.objects;
+DROP POLICY IF EXISTS "Service role can manage voicemails" ON storage.objects;
+UPDATE storage.buckets SET public = false WHERE id = 'voicemails';
 
-CREATE POLICY "Users can view memories in their org" ON customer_memories FOR SELECT
-USING (organization_id IN (
-  SELECT om.organization_id FROM organization_memberships om
-  WHERE om.user_id = auth.uid() AND om.status = 'active'
-));
-
-CREATE POLICY "Users can insert memories in their org" ON customer_memories FOR INSERT
-WITH CHECK (organization_id IN (
-  SELECT om.organization_id FROM organization_memberships om
-  WHERE om.user_id = auth.uid() AND om.status = 'active'
-));
-
-CREATE POLICY "Users can update memories in their org" ON customer_memories FOR UPDATE
-USING (organization_id IN (
-  SELECT om.organization_id FROM organization_memberships om
-  WHERE om.user_id = auth.uid() AND om.status = 'active'
-));
+CREATE POLICY "Org members can read voicemails" ON storage.objects FOR SELECT
+TO authenticated
+USING (bucket_id = 'voicemails');
 ```
 
-**Risk:** Low. Agents already belong to organizations via `organization_memberships`. Edge functions use service_role which bypasses RLS.
+**Risk:** None. Frontend uses `download-voicemail` edge function, not direct bucket access.
 
 ---
 
-## 2. Email OAuth tokens exposed to all org members
+## 2. Widget tables overly permissive RLS
 
-**Problem:** SELECT policy on `email_accounts` lets any org member read `access_token` and `refresh_token`.
+**Problem:** Migration `20260121192814` attempted to fix this but the scanner still flags it — likely because the old `USING(true)` policies from `20260121151357` weren't successfully dropped, or additional permissive policies exist. The fix migration needs to be re-applied defensively.
 
-**Fix:** Restrict SELECT to admins/super_admins only. Non-admin reads already go through the `get_email_accounts` RPC (SECURITY DEFINER) which excludes token columns.
+**Fix:** Re-drop any remaining permissive policies and ensure only org-scoped policies exist:
 
 ```sql
-DROP POLICY "Users can view email accounts in accessible organizations" ON email_accounts;
+-- Defensive cleanup of any remaining permissive policies
+DROP POLICY IF EXISTS "Service role has full access to chat sessions" ON widget_chat_sessions;
+DROP POLICY IF EXISTS "Service role has full access to typing indicators" ON chat_typing_indicators;
 
-CREATE POLICY "Admins can view email accounts in accessible organizations" ON email_accounts FOR SELECT
-USING (
-  is_super_admin() OR (
-    organization_id IN (
-      SELECT om.organization_id FROM organization_memberships om
-      WHERE om.user_id = auth.uid() AND om.status = 'active'
-        AND om.role IN ('admin', 'super_admin')
-    )
-  )
-);
-```
+-- Re-create org-scoped policies (DROP IF EXISTS first to be idempotent)
+DROP POLICY IF EXISTS "Authenticated users can view chat sessions in their org" ON widget_chat_sessions;
+DROP POLICY IF EXISTS "Authenticated users can update chat sessions in their org" ON widget_chat_sessions;
+DROP POLICY IF EXISTS "Authenticated users can view typing indicators in their org" ON chat_typing_indicators;
+DROP POLICY IF EXISTS "Authenticated users can manage typing indicators in their org" ON chat_typing_indicators;
 
-**Risk:** Low. Non-admin agent queries use `get_email_accounts` RPC or join through foreign keys (which don't expose token columns). The few direct `.from('email_accounts').select('id, provider, is_active')` queries in admin components will still work since admins have access.
-
----
-
-## 3. PII exposure via public knowledge search
-
-**Status:** Already mitigated (endpoints disabled). Mark finding as acknowledged — the fix is the ongoing PII sanitization effort, not a policy change.
-
-**Action:** No SQL change. Mark finding status via security tool.
-
----
-
-## 4. Notifications INSERT allows targeting any user
-
-**Problem:** `System can insert notifications` policy has `WITH CHECK (true)` on `public` role.
-
-**Fix:** Drop the overly permissive policy. The existing `Users can insert their own notifications` policy (`WITH CHECK (user_id = auth.uid())`) covers legitimate client-side inserts. Edge functions (call notifications, etc.) use service_role which bypasses RLS.
-
-```sql
-DROP POLICY "System can insert notifications" ON notifications;
-```
-
-**Risk:** Low. Edge functions like `create-call-notification` use `createClient(URL, SERVICE_ROLE_KEY)` which bypasses RLS entirely.
-
----
-
-## 5. Webhook retry queue fully open
-
-**Problem:** `System can manage webhook queue` grants ALL to `public` with `USING (true)`.
-
-**Fix:** Drop the public policy. Only edge functions (using service_role) need access. The table is empty and only used by backend functions.
-
-```sql
-DROP POLICY "System can manage webhook queue" ON webhook_retry_queue;
-```
-
-**Risk:** None. No frontend code reads this table. All access is via service_role in edge functions.
-
----
-
-## 6. RLS disabled on `preference_pairs`
-
-**Problem:** `preference_pairs` table has RLS disabled.
-
-**Fix:** Enable RLS and add org-scoped policy:
-
-```sql
-ALTER TABLE preference_pairs ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Users can view preference pairs in their org" ON preference_pairs FOR SELECT
-USING (organization_id IN (
-  SELECT om.organization_id FROM organization_memberships om
-  WHERE om.user_id = auth.uid() AND om.status = 'active'
+CREATE POLICY "Authenticated users can view chat sessions in their org"
+ON widget_chat_sessions FOR SELECT TO authenticated
+USING (EXISTS (
+  SELECT 1 FROM widget_configs wc
+  JOIN organization_memberships om ON om.organization_id = wc.organization_id
+  WHERE wc.id = widget_chat_sessions.widget_config_id
+  AND om.user_id = auth.uid() AND om.status = 'active'
 ));
 
-CREATE POLICY "Users can insert preference pairs in their org" ON preference_pairs FOR INSERT
-WITH CHECK (organization_id IN (
-  SELECT om.organization_id FROM organization_memberships om
-  WHERE om.user_id = auth.uid() AND om.status = 'active'
+CREATE POLICY "Authenticated users can update chat sessions in their org"
+ON widget_chat_sessions FOR UPDATE TO authenticated
+USING (EXISTS (
+  SELECT 1 FROM widget_configs wc
+  JOIN organization_memberships om ON om.organization_id = wc.organization_id
+  WHERE wc.id = widget_chat_sessions.widget_config_id
+  AND om.user_id = auth.uid() AND om.status = 'active'
+));
+
+CREATE POLICY "Authenticated users can view typing indicators in their org"
+ON chat_typing_indicators FOR SELECT TO authenticated
+USING (EXISTS (
+  SELECT 1 FROM conversations c
+  JOIN organization_memberships om ON om.organization_id = c.organization_id
+  WHERE c.id = chat_typing_indicators.conversation_id
+  AND om.user_id = auth.uid() AND om.status = 'active'
+));
+
+CREATE POLICY "Authenticated users can manage typing indicators in their org"
+ON chat_typing_indicators FOR ALL TO authenticated
+USING (EXISTS (
+  SELECT 1 FROM conversations c
+  JOIN organization_memberships om ON om.organization_id = c.organization_id
+  WHERE c.id = chat_typing_indicators.conversation_id
+  AND om.user_id = auth.uid() AND om.status = 'active'
 ));
 ```
 
-**Risk:** Low. This table is used for AI training data, primarily written by edge functions (service_role).
+**Risk:** Low. Agent-side code uses authenticated client (scoped by org). Widget visitor-side uses `widget-chat` edge function with service_role (bypasses RLS). Session creation/deletion is done by edge functions only.
+
+---
+
+## 3. Realtime data broadcast (no channel authorization)
+
+**Problem:** Any authenticated user can subscribe to Realtime channels and receive events for tables across all organizations.
+
+**Fix:** This requires enabling **Realtime Authorization** in the Supabase Dashboard. All published tables already have org-scoped RLS SELECT policies, so once enabled, Realtime will filter events to only rows the user can SELECT.
+
+**Action:** Manual — go to Supabase Dashboard > Database > Replication and enable Realtime Authorization. No SQL migration needed.
 
 ---
 
@@ -133,12 +99,11 @@ WITH CHECK (organization_id IN (
 
 | Finding | Action | Risk |
 |---------|--------|------|
-| customer_memories broken RLS | Replace 3 policies with org-membership check | Low |
-| email_accounts tokens exposed | Restrict SELECT to admins only | Low |
-| PII in knowledge search | Already mitigated, acknowledge | None |
-| notifications open INSERT | Drop overly permissive policy | Low |
-| webhook_retry_queue open | Drop public policy | None |
-| preference_pairs no RLS | Enable RLS + add policies | Low |
+| Voicemails public | Drop public policy, set bucket private | None |
+| Widget tables permissive | Re-apply org-scoped policies, drop any remaining USING(true) | Low |
+| Realtime broadcast | Enable Realtime Authorization in Dashboard | Low |
 
-**Files to modify:** One SQL migration covering all policy changes. No frontend code changes.
+**Files to modify:** One SQL migration covering voicemail + widget table policies. No frontend code changes.
+
+**User action required:** Enable Realtime Authorization in Supabase Dashboard.
 
