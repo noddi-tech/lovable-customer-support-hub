@@ -15,6 +15,26 @@ import { useNoddihKundeData } from '@/hooks/useNoddihKundeData';
 import { displayName } from '@/utils/noddiHelpers';
 import { format, formatDistanceToNow } from 'date-fns';
 import { logger } from '@/utils/logger';
+const TIRE_EVENT_LABELS: Record<string, string> = {
+  BOOKING_PROPOSAL_TIRE_MOUNT_SENT_TO_CUSTOMER: 'Proposal sent',
+  BOOKING_PROPOSAL_TIRE_MOUNT_ACCEPTED: 'Proposal accepted',
+  BOOKING_PROPOSAL_TIRE_MOUNT_REJECTED: 'Proposal rejected',
+  INVENTORY_RECEIVED_IN_FULL: 'Inventory received',
+  INVENTORY_ORDERED_AT_SUPPLIERS_IN_FULL: 'Ordered from supplier',
+  INVENTORY_ORDERED_AT_SUPPLIERS_PARTIALLY: 'Partially ordered',
+  FULFILLED: 'Fulfilled',
+  ACCEPTED: 'Accepted',
+  PENDING: 'Pending',
+  REJECTED: 'Rejected',
+  EXPIRED: 'Expired',
+};
+
+function formatTireEventLabel(raw: string): string {
+  if (TIRE_EVENT_LABELS[raw]) return TIRE_EVENT_LABELS[raw];
+  // Fallback: take last segment, title-case it
+  const last = raw.split('_').pop() || raw;
+  return last.charAt(0).toUpperCase() + last.slice(1).toLowerCase();
+}
 
 interface NoddiCustomerDetailsProps {
   customerId?: string;
@@ -1038,10 +1058,15 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
                 <div key={tq.id || idx} className="p-2 rounded border text-xs space-y-1">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5">
-                      <span className="font-medium">
+                      <a
+                        href={`https://partner.noddi.co/tire-offers/${tq.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-medium hover:underline text-primary"
+                      >
                         {tq.car?.make} {tq.car?.model}
                         {tq.car?.license_plate && ` (${tq.car.license_plate})`}
-                      </span>
+                      </a>
                     </div>
                     <Badge variant="outline" className={`h-4 px-1 text-[10px] ${
                       tq.status === 'ACCEPTED' ? 'bg-green-50 text-green-700 border-green-200' :
@@ -1061,15 +1086,23 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
                       <Badge variant="outline" className="h-4 px-1 text-[10px]">{tq.payment_status}</Badge>
                     )}
                   </div>
-                  {/* Status timeline */}
+                  {/* Status timeline as badges */}
                   {tq.status_events && tq.status_events.length > 0 && (
-                    <div className="border-t pt-1 mt-1">
-                      {tq.status_events.slice(0, 3).map((evt: any, eidx: number) => (
-                        <div key={eidx} className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                          <span className="font-medium">{evt.status}</span>
-                          <span>—</span>
-                          <span>{format(new Date(evt.created_at), 'PP')}</span>
-                        </div>
+                    <div className="border-t pt-1 mt-1 flex flex-wrap gap-1">
+                      {tq.status_events.slice(0, 5).map((evt: any, eidx: number) => (
+                        <Badge
+                          key={eidx}
+                          variant="outline"
+                          className={`h-4 px-1.5 text-[10px] font-normal ${
+                            /PROPOSAL|SENT/.test(evt.status) ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                            /INVENTORY|ORDER/.test(evt.status) ? 'bg-purple-50 text-purple-700 border-purple-200' :
+                            /FULFILLED|COMPLETE/.test(evt.status) ? 'bg-green-50 text-green-700 border-green-200' :
+                            'bg-muted text-muted-foreground'
+                          }`}
+                          title={`${evt.status} — ${format(new Date(evt.created_at), 'PP')}`}
+                        >
+                          {formatTireEventLabel(evt.status)}
+                        </Badge>
                       ))}
                     </div>
                   )}
