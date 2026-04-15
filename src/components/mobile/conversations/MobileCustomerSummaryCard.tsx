@@ -266,10 +266,25 @@ export const MobileCustomerSummaryCard = ({ customer, noddiData }: MobileCustome
                 )}
               </div>
 
-              {/* Service tags */}
-              {meta?.order_tags && meta.order_tags.length > 0 && (
+              {/* Service tags — with client-side fallback */}
+              {(() => {
+                const deriveTagsFromTitle = (title: string): string[] => {
+                  const rules: [string, RegExp][] = [
+                    ["Dekkhotell", /\b(dekkhotell|tire\s*(hotel|storage))\b/i],
+                    ["Dekkskift", /\b(dekkskift|hjulskift|tire\s*(change|swap))\b/i],
+                    ["Hjemlevering", /\b(hjemlever(t|ing)|home\s*(delivery|service))\b/i],
+                    ["Henting/Levering", /\b(henting|levering|pickup|delivery|hente)\b/i],
+                    ["Felgvask", /\b(felgvask|rim\s*wash)\b/i],
+                  ];
+                  return rules.filter(([, re]) => re.test(title)).map(([label]) => label);
+                };
+                const effectiveTags = (meta?.order_tags?.length > 0)
+                  ? meta.order_tags
+                  : deriveTagsFromTitle(serviceTitle || '');
+                if (effectiveTags.length === 0) return null;
+                return (
                 <div className="flex flex-wrap gap-1 mt-1">
-                  {meta.order_tags.map((tag: string, idx: number) => {
+                  {effectiveTags.map((tag: string, idx: number) => {
                     const style = getServiceTagStyle(tag);
                     const Icon = style.icon;
                     return (
