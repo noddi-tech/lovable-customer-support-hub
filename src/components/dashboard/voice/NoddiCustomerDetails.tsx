@@ -1054,73 +1054,70 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
               <ChevronDown className="h-3 w-3 text-muted-foreground ml-auto transition-transform [&[data-state=open]]:rotate-180" />
             </CollapsibleTrigger>
             <CollapsibleContent className="mt-1 space-y-1.5">
-              {userGroup.tire_quotes.map((tq: any, idx: number) => (
-                {(() => {
-                  const isCompleted = tq.status === 'FULFILLED' && tq.payment_status === 'paid';
-                  const plate = typeof tq.car?.license_plate === 'object'
-                    ? (tq.car.license_plate?.number || tq.car.license_plate?.registration_number || '')
-                    : (tq.car?.license_plate || '');
-                  return (
-                    <div key={tq.id || idx} className={`p-2 rounded border text-xs space-y-1 ${isCompleted ? 'border-green-300 bg-green-50/50' : ''}`}>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-1.5">
-                          {isCompleted && <CheckCircle2 className="h-3.5 w-3.5 text-green-600 shrink-0" />}
-                          <a
-                            href={`https://partner.noddi.co/tire-offers/${tq.id}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="font-medium hover:underline text-primary"
-                          >
-                            {tq.car?.make} {tq.car?.model}
-                            {plate && ` (${plate})`}
-                          </a>
-                        </div>
-                        <Badge variant="outline" className={`h-4 px-1 text-[10px] ${
-                          isCompleted ? 'bg-green-100 text-green-700 border-green-300' :
-                          tq.status === 'ACCEPTED' ? 'bg-green-50 text-green-700 border-green-200' :
-                          tq.status === 'PENDING' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
-                          tq.status === 'REJECTED' || tq.status === 'EXPIRED' ? 'bg-red-50 text-red-700 border-red-200' :
-                          'bg-muted text-muted-foreground'
-                        }`}>
-                          Active status: {formatTireEventLabel(tq.status)}
-                        </Badge>
+              {userGroup.tire_quotes.map((tq: any, idx: number) => {
+                const isCompleted = tq.status === 'FULFILLED' && tq.payment_status === 'paid';
+                const plate = typeof tq.car?.license_plate === 'object'
+                  ? (tq.car.license_plate?.number || tq.car.license_plate?.registration_number || '')
+                  : (tq.car?.license_plate || '');
+                return (
+                  <div key={tq.id || idx} className={`p-2 rounded border text-xs space-y-1 ${isCompleted ? 'border-green-300 bg-green-50/50' : ''}`}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        {isCompleted && <CheckCircle2 className="h-3.5 w-3.5 text-green-600 shrink-0" />}
+                        <a
+                          href={`https://partner.noddi.co/tire-offers/${tq.id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="font-medium hover:underline text-primary"
+                        >
+                          {tq.car?.make} {tq.car?.model}
+                          {plate && ` (${plate})`}
+                        </a>
                       </div>
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <span>{tq.season}</span>
-                        {tq.payment_amount && (
-                          <span>{moneyFmt(tq.payment_amount.amount, tq.payment_amount.currency)}</span>
-                        )}
-                        {tq.payment_status && (
-                          <Badge variant="outline" className={`h-4 px-1 text-[10px] ${isCompleted ? 'bg-green-100 text-green-700 border-green-300' : ''}`}>{tq.payment_status}</Badge>
-                        )}
-                      </div>
-                      {tq.status_events && tq.status_events.length > 0 && (
-                        <div className="border-t pt-1 mt-1 space-y-0.5">
-                          <span className="text-[10px] text-muted-foreground">Historic events:</span>
-                          <div className="flex flex-wrap gap-1">
-                            {tq.status_events.slice(0, 5).map((evt: any, eidx: number) => (
-                              <Badge
-                                key={eidx}
-                                variant="outline"
-                                className={`h-4 px-1.5 text-[10px] font-normal ${
-                                  /PROPOSAL|SENT/.test(evt.status) ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                                  /INVENTORY|ORDER/.test(evt.status) ? 'bg-purple-50 text-purple-700 border-purple-200' :
-                                  /FULFILLED|COMPLETE/.test(evt.status) ? 'bg-green-50 text-green-700 border-green-200' :
-                                  'bg-muted text-muted-foreground'
-                                }`}
-                                title={`${evt.status} — ${format(new Date(evt.created_at), 'PP')}`}
-                              >
-                                {formatTireEventLabel(evt.status)}
-                              </Badge>
-                            ))}
-                          </div>
-                        </div>
+                      <Badge variant="outline" className={`h-4 px-1 text-[10px] ${
+                        isCompleted ? 'bg-green-100 text-green-700 border-green-300' :
+                        tq.status === 'ACCEPTED' ? 'bg-green-50 text-green-700 border-green-200' :
+                        tq.status === 'PENDING' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
+                        tq.status === 'REJECTED' || tq.status === 'EXPIRED' ? 'bg-red-50 text-red-700 border-red-200' :
+                        'bg-muted text-muted-foreground'
+                      }`}>
+                        Active status: {formatTireEventLabel(tq.status)}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <span>{tq.season}</span>
+                      {tq.payment_amount && (
+                        <span>{moneyFmt(tq.payment_amount.amount, tq.payment_amount.currency)}</span>
+                      )}
+                      {tq.payment_status && (
+                        <Badge variant="outline" className={`h-4 px-1 text-[10px] ${isCompleted ? 'bg-green-100 text-green-700 border-green-300' : ''}`}>{tq.payment_status}</Badge>
                       )}
                     </div>
-                  );
-                })()}
-              ))}
-
+                    {tq.status_events && tq.status_events.length > 0 && (
+                      <div className="border-t pt-1 mt-1 space-y-0.5">
+                        <span className="text-[10px] text-muted-foreground">Historic events:</span>
+                        <div className="flex flex-wrap gap-1">
+                          {tq.status_events.slice(0, 5).map((evt: any, eidx: number) => (
+                            <Badge
+                              key={eidx}
+                              variant="outline"
+                              className={`h-4 px-1.5 text-[10px] font-normal ${
+                                /PROPOSAL|SENT/.test(evt.status) ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                                /INVENTORY|ORDER/.test(evt.status) ? 'bg-purple-50 text-purple-700 border-purple-200' :
+                                /FULFILLED|COMPLETE/.test(evt.status) ? 'bg-green-50 text-green-700 border-green-200' :
+                                'bg-muted text-muted-foreground'
+                              }`}
+                              title={`${evt.status} — ${format(new Date(evt.created_at), 'PP')}`}
+                            >
+                              {formatTireEventLabel(evt.status)}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </CollapsibleContent>
           </Collapsible>
         )}
