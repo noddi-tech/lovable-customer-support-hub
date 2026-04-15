@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { MentionTextarea } from "@/components/ui/mention-textarea";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Card } from "@/components/ui/card";
+
 import { 
   Send,
   Sparkles,
@@ -14,8 +14,6 @@ import {
   Languages,
   Lock,
   Database,
-  Eye,
-  Star,
   StickyNote,
   Paperclip,
   X,
@@ -253,6 +251,7 @@ export const ReplyArea = () => {
   const handleGetAiSuggestions = async () => {
     try {
       await getAiSuggestions();
+      setShowSuggestionsSheet(true);
     } catch (error) {
       // Error handling is done in the context
     }
