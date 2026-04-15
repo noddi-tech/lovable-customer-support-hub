@@ -266,6 +266,21 @@ export const MobileCustomerSummaryCard = ({ customer, noddiData }: MobileCustome
                 )}
               </div>
 
+              {/* Service tags */}
+              {meta?.order_tags && meta.order_tags.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {meta.order_tags.map((tag: string, idx: number) => {
+                    const style = getServiceTagStyle(tag);
+                    const Icon = style.icon;
+                    return (
+                      <span key={idx} className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[9px] rounded-full ${style.bg} ${style.text}`}>
+                        {Icon && <Icon className="w-2.5 h-2.5" />}
+                        {tag}
+                      </span>
+                    );
+                  })}
+                </div>
+              )}
               {/* Unable to complete public comment */}
               {meta?.unable_to_complete && meta?.comments_unable_to_complete_public && (
                 <p className="text-[10px] text-amber-800 mt-0.5 truncate">
