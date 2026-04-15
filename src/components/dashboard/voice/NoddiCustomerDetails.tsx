@@ -36,8 +36,8 @@ function formatTireEventLabel(raw: string): string {
   return last.charAt(0).toUpperCase() + last.slice(1).toLowerCase();
 }
 
-
-  interface NoddiCustomerDetailsProps {
+interface NoddiCustomerDetailsProps {
+  customerId?: string;
   customerEmail?: string;
   customerPhone?: string;
   customerName?: string;
