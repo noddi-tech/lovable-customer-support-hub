@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { MentionTextarea } from "@/components/ui/mention-textarea";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Card } from "@/components/ui/card";
+
 import { 
   Send,
   Sparkles,
@@ -14,8 +14,6 @@ import {
   Languages,
   Lock,
   Database,
-  Eye,
-  Star,
   StickyNote,
   Paperclip,
   X,
@@ -51,7 +49,7 @@ import {
 } from "@/components/ui/popover";
 import { TemplateSelector } from "./TemplateSelector";
 import { FeedbackPrompt } from "./FeedbackPrompt";
-import { AiSuggestionDialog } from "./AiSuggestionDialog";
+import { AiSuggestionsSheet } from "./AiSuggestionsSheet";
 import { NoteTemplateSelector } from "@/components/conversations/NoteTemplateSelector";
 import { toast } from 'sonner';
 
@@ -74,8 +72,7 @@ export const ReplyArea = () => {
   const replyRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [replyStatus, setReplyStatus] = React.useState<string>('closed');
-  const [selectedSuggestionForDialog, setSelectedSuggestionForDialog] = useState<string | null>(null);
-  const [originalSuggestionText, setOriginalSuggestionText] = useState<string>('');
+  const [showSuggestionsSheet, setShowSuggestionsSheet] = useState(false);
   const [mentionedUserIds, setMentionedUserIds] = useState<string[]>([]);
   const [attachments, setAttachments] = useState<{ file: File; previewUrl: string }[]>([]);
   const [replyAll, setReplyAll] = useState(true);
@@ -218,21 +215,15 @@ export const ReplyArea = () => {
     }
   };
 
-  const handleAiSuggestionSelect = (suggestion: string, index: number) => {
-    setSelectedSuggestionForDialog(suggestion);
-    setOriginalSuggestionText(suggestion);
+  // Sheet-based suggestion handlers
+  const handleSheetUseAsIs = (suggestion: string) => {
+    dispatch({ type: 'SET_REPLY_TEXT', payload: suggestion });
+    dispatch({ type: 'SET_SELECTED_AI_SUGGESTION', payload: suggestion });
+    setShowSuggestionsSheet(false);
+    toast.success('Suggestion inserted into reply area');
   };
 
-  const handleUseAsIs = () => {
-    if (selectedSuggestionForDialog) {
-      dispatch({ type: 'SET_REPLY_TEXT', payload: selectedSuggestionForDialog });
-      dispatch({ type: 'SET_SELECTED_AI_SUGGESTION', payload: selectedSuggestionForDialog });
-      setSelectedSuggestionForDialog(null);
-      toast.success('Suggestion inserted into reply area');
-    }
-  };
-
-  const handleRefineAndUse = async (refinementInstructions: string, originalText: string) => {
+  const handleSheetRefine = async (refinementInstructions: string, originalText: string) => {
     const lastCustomerMessage = [...messages].reverse().find((m: any) => m.sender_type === 'customer');
     const customerMessageText = lastCustomerMessage?.content || '';
     
@@ -241,10 +232,11 @@ export const ReplyArea = () => {
     if (refinedText) {
       dispatch({ type: 'SET_REPLY_TEXT', payload: refinedText });
       dispatch({ type: 'SET_SELECTED_AI_SUGGESTION', payload: refinedText });
-      setSelectedSuggestionForDialog(refinedText); // Update dialog with refined version
-      toast.success('Refined suggestion ready! You can refine it more or use it.');
+      setShowSuggestionsSheet(false);
+      toast.success('Refined suggestion inserted into reply area');
     }
   };
+
 
   const handleTemplateSelect = (content: string, templateId: string) => {
     dispatch({ type: 'SET_REPLY_TEXT', payload: content });
@@ -259,6 +251,7 @@ export const ReplyArea = () => {
   const handleGetAiSuggestions = async () => {
     try {
       await getAiSuggestions();
+      setShowSuggestionsSheet(true);
     } catch (error) {
       // Error handling is done in the context
     }
@@ -308,56 +301,28 @@ export const ReplyArea = () => {
         {/* Feedback Prompt */}
         <FeedbackPrompt />
 
-        {/* AI Suggestions Section with Preview Cards - only for replies, not notes */}
-        {!state.isInternalNote && state.aiSuggestions.length > 0 && (
-          <div className="space-y-2">
-            <Label className="text-xs font-medium flex items-center gap-2">
-              <Sparkles className="h-3.5 w-3.5 text-primary" />
-              {t('conversation.aiSuggestions')} ({state.aiSuggestions.length})
-            </Label>
-            <div className="grid gap-2">
-              {state.aiSuggestions.map((suggestion, index) => {
-                const preview = suggestion.length > 100 ? `${suggestion.slice(0, 100)}...` : suggestion;
-                const charCount = suggestion.length;
-                
-                return (
-                  <Card
-                    key={index}
-                    className="p-3 hover:bg-muted/50 cursor-pointer transition-colors border-border hover:border-primary/50"
-                    onClick={() => handleAiSuggestionSelect(suggestion, index)}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm leading-relaxed text-foreground/90 line-clamp-2">
-                          {preview}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          ~{charCount} characters
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <Badge variant="outline" className="text-xs gap-1">
-                          <Eye className="h-3 w-3" />
-                          View
-                        </Badge>
-                      </div>
-                    </div>
-                  </Card>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* AI Suggestion Dialog */}
-        <AiSuggestionDialog
-          open={selectedSuggestionForDialog !== null}
-          onOpenChange={(open) => !open && setSelectedSuggestionForDialog(null)}
-          suggestion={selectedSuggestionForDialog || ''}
-          onUseAsIs={handleUseAsIs}
-          onRefine={handleRefineAndUse}
+        {/* AI Suggestions Sheet */}
+        <AiSuggestionsSheet
+          open={showSuggestionsSheet}
+          onOpenChange={setShowSuggestionsSheet}
+          suggestions={state.aiSuggestions}
+          onUseAsIs={handleSheetUseAsIs}
+          onRefine={handleSheetRefine}
           isRefining={state.refiningSuggestion}
         />
+
+        {/* Compact suggestions indicator */}
+        {!state.isInternalNote && state.aiSuggestions.length > 0 && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowSuggestionsSheet(true)}
+            className="w-full gap-2 border-primary/30 text-primary hover:bg-primary/5"
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            View {state.aiSuggestions.length} AI Suggestion{state.aiSuggestions.length > 1 ? 's' : ''}
+          </Button>
+        )}
 
         {/* Controls Row: Internal Note toggle (only for replies) + AI + Translate */}
         <div className="flex items-center justify-between gap-3">

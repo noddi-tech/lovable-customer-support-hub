@@ -125,6 +125,50 @@ export type Database = {
           },
         ]
       }
+      ai_instructions: {
+        Row: {
+          category: string
+          created_at: string
+          created_by: string | null
+          id: string
+          instruction_text: string
+          is_active: boolean
+          organization_id: string
+          priority: number
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          instruction_text: string
+          is_active?: boolean
+          organization_id: string
+          priority?: number
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          instruction_text?: string
+          is_active?: boolean
+          organization_id?: string
+          priority?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_instructions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bulk_outreach_jobs: {
         Row: {
           created_at: string
