@@ -1,38 +1,43 @@
 
 
-# Improve Tire Quotes display: links, event badges, readable labels
+# Fix Tire Quotes display issues
 
-## Problem
-1. Tire quote IDs are not linked — should link to `https://partner.noddi.co/tire-offers/{id}`
-2. Status events show raw technical names like `BOOKING_PROPOSAL_TIRE_MOUNT_SENT_TO_CUSTOMER`
-3. Events are plain text, not badges
+## Problems (from screenshot)
+1. **`[object Object]`** — `tq.car.license_plate` is an object (likely `{number: "XX1234", country: "NO"}`), not a string
+2. **Active status not labeled** — the top-right badge should say "Active status: X"
+3. **Events section not labeled** — should say "Historic events:" before the badge list
+4. **Missing label** — `BOOKING_PROPOSAL_TIRE_MOUNT_SENT_TO_CUSTOMER` should map to "Booking proposal sent" (currently "Proposal sent")
+5. **Fulfilled + paid not visually complete** — should show green background with checkmark
 
 ## Changes
 
 **File: `src/components/dashboard/voice/NoddiCustomerDetails.tsx`**
 
-### 1. Add clickable link to each tire quote
-Wrap the car make/model heading (line 1041-1044) in an anchor tag:
+### 1. Fix `[object Object]` for license plate (line 1068)
 ```tsx
-<a href={`https://partner.noddi.co/tire-offers/${tq.id}`} target="_blank" rel="noopener noreferrer" className="font-medium hover:underline text-primary">
-  {tq.car?.make} {tq.car?.model} ...
-</a>
+// Extract plate string from object or string
+const plate = typeof tq.car?.license_plate === 'object' 
+  ? tq.car.license_plate?.number || tq.car.license_plate?.registration_number 
+  : tq.car?.license_plate;
+```
+Display: `Peugeot Ion (AB12345)` — or just the plate if make/model missing.
+
+### 2. Label the active status badge (line 1071-1078)
+Prefix with "Active status:" or change format to show it clearly. For fulfilled + paid quotes, use green bg with checkmark icon.
+
+### 3. Add "Historic events:" label before event badges (line 1090-1091)
+```tsx
+<span className="text-[10px] text-muted-foreground">Historic events:</span>
 ```
 
-### 2. Create an event label mapping function
-Add a helper that shortens technical event names to readable labels:
+### 4. Update event label mapping (line 19)
+```
+BOOKING_PROPOSAL_TIRE_MOUNT_SENT_TO_CUSTOMER: 'Booking proposal sent',
+```
 
-| Raw status | Display label |
-|---|---|
-| `BOOKING_PROPOSAL_TIRE_MOUNT_SENT_TO_CUSTOMER` | Proposal sent |
-| `INVENTORY_RECEIVED_IN_FULL` | Inventory received |
-| `INVENTORY_ORDERED_AT_SUPPLIERS_IN_FULL` | Ordered from supplier |
-| `FULFILLED` | Fulfilled |
-| Other | Title-case the last segment |
-
-### 3. Render events as badges instead of plain text
-Replace the plain `<span className="font-medium">{evt.status}</span>` (line 1069) with a small `<Badge>` using the shortened label and color-coded by event type (proposal = blue, inventory = purple, fulfilled = green, default = muted).
+### 5. Green completed state for fulfilled + paid
+When `tq.status === 'FULFILLED' && tq.payment_status === 'paid'`, show a green card border and a checkmark icon to indicate completion.
 
 ## Files to modify
-- `src/components/dashboard/voice/NoddiCustomerDetails.tsx` — tire quotes section (lines 1037-1076)
+- `src/components/dashboard/voice/NoddiCustomerDetails.tsx` — tire quotes section
 
