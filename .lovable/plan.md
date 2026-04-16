@@ -1,54 +1,58 @@
 
 
-# Update for new Noddi API: remove booking tags, add inventory_orders to tire quotes
+# Migrate from `priority_booking` to `upcoming_booking` / `recent_booking`
 
 ## Context
-The Noddi API is being updated:
-1. **Removing `tags`** from booking records — they were always empty lists, not a real concept
-2. **Adding `inventory_orders`** to `CustomerLookupTireQuoteRecord` — shows supplier order fulfillment/shipment status
+The Noddi API has replaced `bookings_summary.priority_booking` with two new fields:
+- `upcoming_booking` — next upcoming booking (full detail)
+- `recent_booking` — most recently completed booking (full detail)
 
-The frontend currently derives tags from service titles (via `TAG_RULES` regex), which still works and is separate from the API "tags" field. The `order_tags` in `ui_meta` are populated by `extractOrderTags()` which does text-matching on booking content — this is our own logic, not dependent on the API's removed field.
+The legacy `priority_booking` field is kept temporarily but will be removed. Both new fields are full `CustomerLookupBookingRecord` objects with service details, vehicle info, address, etc. — solving the "completed bookings lack details" problem.
 
 ## Changes
 
-### 1. Edge Function — pass through `inventory_orders` on tire quotes
-**File: `supabase/functions/noddi-customer-lookup/index.ts`**
-- In both user group mapping locations (lines ~1411-1413 and ~1655-1657), the tire_quotes are already passed through as `g.tire_quotes || []`. The new `inventory_orders` field will automatically flow through since we spread the tire quote objects. No change needed here unless we're cherry-picking fields — let me verify.
+### File: `supabase/functions/noddi-customer-lookup/index.ts`
 
-Actually, looking at the code, `tire_quotes: g.tire_quotes || []` passes the entire array from the API, so `inventory_orders` will be included automatically. No edge function changes needed.
+**1. Update priority booking extraction (two locations: ~line 1336 and ~line 1551)**
 
-### 2. TypeScript types — add `inventory_orders` to tire quote type
-**File: `src/hooks/useNoddihKundeData.ts`**
-- Add `inventory_orders` to the `tire_quotes` type definition:
-```typescript
-inventory_orders?: Array<{
-  estimated_delivery_date: string;
-  order_number: string;
-  status: string; // DRAFT | ORDERED_AT_SUPPLIER | IN_TRANSIT | RECEIVED | INVENTORY_IN_STOCK | RETURNED_TO_SUPPLIER
-  tracking_number: string;
-}>;
+Replace the current logic that reads `group.bookings_summary.priority_booking` with:
+```
+upcoming = group.bookings_summary?.upcoming_booking
+recent   = group.bookings_summary?.recent_booking
+legacy   = group.bookings_summary?.priority_booking  // fallback
 ```
 
-### 3. Frontend — display inventory orders in tire quote cards
-**File: `src/components/dashboard/voice/NoddiCustomerDetails.tsx`**
-- After the existing status_events section (line ~1117), add a new section for inventory orders
-- Show each order as a compact row with:
-  - Status badge (color-coded: DRAFT=gray, ORDERED=blue, IN_TRANSIT=purple, RECEIVED=green, IN_STOCK=green, RETURNED=red)
-  - Order number
-  - Estimated delivery date
-  - Tracking number (if available)
-- Add a label mapping for inventory order statuses:
-  - `DRAFT` → "Draft"
-  - `ORDERED_AT_SUPPLIER` → "Ordered"
-  - `IN_TRANSIT` → "In transit"
-  - `RECEIVED` → "Received"
-  - `INVENTORY_IN_STOCK` → "In stock"
-  - `RETURNED_TO_SUPPLIER` → "Returned"
+Priority selection logic:
+- If `upcoming_booking` exists → use it, type = `'upcoming'`
+- Else if `recent_booking` exists → use it, type = `'completed'`
+- Else fall back to legacy `priority_booking` (backward compat)
 
-### 4. No removal of `order_tags` from frontend
-The `order_tags` / `extractOrderTags` logic is our own tag derivation from service titles (regex-based), not dependent on the API's removed "tags" field. It still provides value for displaying service type badges. Keep it as-is.
+This applies to both the email-lookup path (~line 1335) and the phone-lookup path (~line 1550).
+
+**2. Update `all_user_groups` formatting (two locations: ~line 1409 and ~line 1653)**
+
+Add `upcoming_booking` and `recent_booking` to each group's output alongside the legacy `priority_booking`:
+```
+upcoming_booking: g.bookings_summary?.upcoming_booking || null,
+recent_booking: g.bookings_summary?.recent_booking || null,
+priority_booking: g.bookings_summary?.priority_booking || null, // keep for now
+```
+
+**3. Enrichment may become unnecessary**
+
+Since the new fields return full booking records, `enrichBookingIfNeeded` should rarely need to fetch `/v1/bookings/{id}/`. Keep it as a safety net — it already checks for missing fields before fetching.
+
+### File: `src/hooks/useNoddihKundeData.ts`
+
+**4. Add new fields to types**
+
+Add `upcoming_booking` and `recent_booking` to the `all_user_groups` type alongside existing `booking` field.
+
+### No frontend display changes needed
+
+The frontend already renders whatever is in `priority_booking` — which will now contain the full booking record (either upcoming or recent). Service titles, vehicle labels, addresses, and order tags will all be present.
 
 ## Files to modify
-- `src/hooks/useNoddihKundeData.ts` — add `inventory_orders` type
-- `src/components/dashboard/voice/NoddiCustomerDetails.tsx` — render inventory orders in tire quote cards
+- `supabase/functions/noddi-customer-lookup/index.ts` — use new API fields for priority booking selection
+- `src/hooks/useNoddihKundeData.ts` — add types for new fields
 
