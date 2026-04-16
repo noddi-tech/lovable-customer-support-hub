@@ -1332,23 +1332,35 @@ Deno.serve(async (req) => {
           let priorityBookingType: 'upcoming' | 'completed' | null = null;
           let priorityGroup: any = null;
           
-          // Find the group with the most relevant priority booking
+          // Find the group with the most relevant booking (prefer upcoming > recent > legacy)
           for (const group of userGroups) {
-            if (group.bookings_summary?.priority_booking) {
+            const upcoming = group.bookings_summary?.upcoming_booking;
+            const recent = group.bookings_summary?.recent_booking;
+            const legacy = group.bookings_summary?.priority_booking;
+            
+            if (upcoming) {
               priorityGroup = group;
-              priorityBooking = group.bookings_summary.priority_booking;
-              
+              priorityBooking = upcoming;
+              priorityBookingType = 'upcoming';
+              console.log(`Upcoming booking ${priorityBooking.id} from group ${group.id}`);
+              break;
+            } else if (recent) {
+              priorityGroup = group;
+              priorityBooking = recent;
+              priorityBookingType = 'completed';
+              console.log(`Recent booking ${priorityBooking.id} from group ${group.id}`);
+              break;
+            } else if (legacy) {
+              priorityGroup = group;
+              priorityBooking = legacy;
               // Determine type based on booking status/dates
               if (priorityBooking.deliveryWindowStartsAt && 
                   new Date(priorityBooking.deliveryWindowStartsAt) > new Date()) {
                 priorityBookingType = 'upcoming';
-              } else if (priorityBooking.startedAt && !priorityBooking.completedAt) {
-                priorityBookingType = 'completed';
               } else if (priorityBooking.completedAt) {
                 priorityBookingType = 'completed';
               }
-              
-              console.log(`Priority booking ${priorityBooking.id} from group ${priorityGroup.id} (type: ${priorityBookingType})`);
+              console.log(`Legacy priority booking ${priorityBooking.id} from group ${group.id} (type: ${priorityBookingType})`);
               break;
             }
           }
@@ -1406,7 +1418,9 @@ Deno.serve(async (req) => {
               completed_count: g.bookings_summary?.completed_count || 0,
               unpaid_count: g.bookings_summary?.unpaid_count || 0
             },
-            priority_booking: g.bookings_summary?.priority_booking || null,
+            upcoming_booking: g.bookings_summary?.upcoming_booking || null,
+            recent_booking: g.bookings_summary?.recent_booking || null,
+            priority_booking: g.bookings_summary?.priority_booking || null, // legacy fallback
             membership_programs: g.membership_programs || [],
             segments: g.segments || [],
             addresses: g.addresses || [],
@@ -1547,23 +1561,34 @@ Deno.serve(async (req) => {
     let priorityBookingType: 'upcoming' | 'completed' | null = null;
     let priorityGroup: any = null;
     
-    // Find the group with the most relevant priority booking
+    // Find the group with the most relevant booking (prefer upcoming > recent > legacy)
     for (const group of userGroups) {
-      if (group.bookings_summary?.priority_booking) {
+      const upcoming = group.bookings_summary?.upcoming_booking;
+      const recent = group.bookings_summary?.recent_booking;
+      const legacy = group.bookings_summary?.priority_booking;
+      
+      if (upcoming) {
         priorityGroup = group;
-        priorityBooking = group.bookings_summary.priority_booking;
-        
-        // Determine type based on booking status/dates
+        priorityBooking = upcoming;
+        priorityBookingType = 'upcoming';
+        console.log(`Upcoming booking ${priorityBooking.id} from group ${group.id}`);
+        break;
+      } else if (recent) {
+        priorityGroup = group;
+        priorityBooking = recent;
+        priorityBookingType = 'completed';
+        console.log(`Recent booking ${priorityBooking.id} from group ${group.id}`);
+        break;
+      } else if (legacy) {
+        priorityGroup = group;
+        priorityBooking = legacy;
         if (priorityBooking.deliveryWindowStartsAt && 
             new Date(priorityBooking.deliveryWindowStartsAt) > new Date()) {
           priorityBookingType = 'upcoming';
-        } else if (priorityBooking.startedAt && !priorityBooking.completedAt) {
-          priorityBookingType = 'completed';
         } else if (priorityBooking.completedAt) {
           priorityBookingType = 'completed';
         }
-        
-        console.log(`Priority booking ${priorityBooking.id} from group ${priorityGroup.id} (type: ${priorityBookingType})`);
+        console.log(`Legacy priority booking ${priorityBooking.id} from group ${group.id} (type: ${priorityBookingType})`);
         break;
       }
     }
@@ -1650,7 +1675,9 @@ Deno.serve(async (req) => {
         completed_count: g.bookings_summary?.completed_count || 0,
         unpaid_count: g.bookings_summary?.unpaid_count || 0
       },
-      priority_booking: g.bookings_summary?.priority_booking || null,
+      upcoming_booking: g.bookings_summary?.upcoming_booking || null,
+      recent_booking: g.bookings_summary?.recent_booking || null,
+      priority_booking: g.bookings_summary?.priority_booking || null, // legacy fallback
       membership_programs: g.membership_programs || [],
       segments: g.segments || [],
       addresses: g.addresses || [],

@@ -46,6 +46,8 @@ export type NoddiLookupResponse = {
       is_personal: boolean;
       is_default: boolean;
       booking?: any;
+      upcoming_booking?: any;
+      recent_booking?: any;
       booking_type?: "upcoming" | "completed" | null;
       total_bookings: number;
       membership_programs?: Array<{
