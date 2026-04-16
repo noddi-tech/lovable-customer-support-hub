@@ -29,6 +29,26 @@ const TIRE_EVENT_LABELS: Record<string, string> = {
   EXPIRED: 'Expired',
 };
 
+const INVENTORY_ORDER_LABELS: Record<string, string> = {
+  DRAFT: 'Draft',
+  ORDERED_AT_SUPPLIER: 'Ordered',
+  IN_TRANSIT: 'In transit',
+  RECEIVED: 'Received',
+  INVENTORY_IN_STOCK: 'In stock',
+  RETURNED_TO_SUPPLIER: 'Returned',
+};
+
+const getInventoryStatusColor = (status: string) => {
+  switch (status) {
+    case 'ORDERED_AT_SUPPLIER': return 'bg-blue-50 text-blue-700 border-blue-200';
+    case 'IN_TRANSIT': return 'bg-purple-50 text-purple-700 border-purple-200';
+    case 'RECEIVED':
+    case 'INVENTORY_IN_STOCK': return 'bg-green-50 text-green-700 border-green-200';
+    case 'RETURNED_TO_SUPPLIER': return 'bg-red-50 text-red-700 border-red-200';
+    default: return 'bg-muted text-muted-foreground';
+  }
+};
+
 function formatTireEventLabel(raw: string): string {
   if (TIRE_EVENT_LABELS[raw]) return TIRE_EVENT_LABELS[raw];
   // Fallback: take last segment, title-case it
