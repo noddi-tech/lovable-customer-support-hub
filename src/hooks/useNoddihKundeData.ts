@@ -98,6 +98,12 @@ export type NoddiLookupResponse = {
           created_at: string;
           status: string;
         }>;
+        inventory_orders?: Array<{
+          estimated_delivery_date: string;
+          order_number: string;
+          status: string;
+          tracking_number: string;
+        }>;
       }>;
     }>;
     most_recent_group_id?: number | null;
