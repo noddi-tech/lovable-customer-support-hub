@@ -1135,6 +1135,36 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
                         </div>
                       </div>
                     )}
+                    {tq.inventory_orders && tq.inventory_orders.length > 0 && (
+                      <div className="border-t pt-1 mt-1 space-y-0.5">
+                        <span className="text-[10px] text-muted-foreground">Inventory orders:</span>
+                        <div className="space-y-0.5">
+                          {tq.inventory_orders.map((io: any, iidx: number) => (
+                            <div key={iidx} className="flex items-center gap-1.5 flex-wrap">
+                              <Badge
+                                variant="outline"
+                                className={`h-4 px-1.5 text-[10px] font-normal ${getInventoryStatusColor(io.status)}`}
+                              >
+                                {INVENTORY_ORDER_LABELS[io.status] || io.status}
+                              </Badge>
+                              <span className="text-[10px] text-muted-foreground">
+                                #{io.order_number}
+                              </span>
+                              {io.estimated_delivery_date && (
+                                <span className="text-[10px] text-muted-foreground">
+                                  ETA: {format(new Date(io.estimated_delivery_date), 'dd MMM')}
+                                </span>
+                              )}
+                              {io.tracking_number && (
+                                <span className="text-[10px] text-muted-foreground">
+                                  Track: {io.tracking_number}
+                                </span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 );
               })}
