@@ -15,6 +15,23 @@ import { useNoddihKundeData } from '@/hooks/useNoddihKundeData';
 import { displayName } from '@/utils/noddiHelpers';
 import { format, formatDistanceToNow } from 'date-fns';
 import { logger } from '@/utils/logger';
+import { cn } from '@/lib/utils';
+
+const CompactRating: React.FC<{ value: number; size?: 'sm' | 'md' }> = ({ value, size = 'sm' }) => {
+  const colorClass =
+    value >= 4.5 ? 'text-green-600' :
+    value >= 3.5 ? 'text-yellow-600' :
+    value >= 2.5 ? 'text-orange-600' :
+    'text-red-600';
+  const starSize = size === 'md' ? 'h-3.5 w-3.5' : 'h-3 w-3';
+  const textSize = size === 'md' ? 'text-xs' : 'text-[10px]';
+  return (
+    <span className={cn('inline-flex items-center gap-0.5 font-medium tabular-nums', colorClass, textSize)}>
+      <Star className={cn(starSize, 'fill-current')} />
+      {value.toFixed(1)}/5
+    </span>
+  );
+};
 const TIRE_EVENT_LABELS: Record<string, string> = {
   BOOKING_PROPOSAL_TIRE_MOUNT_SENT_TO_CUSTOMER: 'Booking proposal sent',
   BOOKING_PROPOSAL_TIRE_MOUNT_ACCEPTED: 'Proposal accepted',
