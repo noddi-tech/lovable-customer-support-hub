@@ -15,6 +15,23 @@ import { useNoddihKundeData } from '@/hooks/useNoddihKundeData';
 import { displayName } from '@/utils/noddiHelpers';
 import { format, formatDistanceToNow } from 'date-fns';
 import { logger } from '@/utils/logger';
+import { cn } from '@/lib/utils';
+
+const CompactRating: React.FC<{ value: number; size?: 'sm' | 'md' }> = ({ value, size = 'sm' }) => {
+  const colorClass =
+    value >= 4.5 ? 'text-green-600' :
+    value >= 3.5 ? 'text-yellow-600' :
+    value >= 2.5 ? 'text-orange-600' :
+    'text-red-600';
+  const starSize = size === 'md' ? 'h-3.5 w-3.5' : 'h-3 w-3';
+  const textSize = size === 'md' ? 'text-xs' : 'text-[10px]';
+  return (
+    <span className={cn('inline-flex items-center gap-0.5 font-medium tabular-nums', colorClass, textSize)}>
+      <Star className={cn(starSize, 'fill-current')} />
+      {value.toFixed(1)}/5
+    </span>
+  );
+};
 const TIRE_EVENT_LABELS: Record<string, string> = {
   BOOKING_PROPOSAL_TIRE_MOUNT_SENT_TO_CUSTOMER: 'Booking proposal sent',
   BOOKING_PROPOSAL_TIRE_MOUNT_ACCEPTED: 'Proposal accepted',
@@ -728,27 +745,27 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
                   <span className="font-medium text-xs">Customer Feedback</span>
                 </div>
                 <div className="space-y-1.5">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground w-16">Overall</span>
-                    <StarRatingInput value={data.ui_meta.feedback.customer_rating_overall} onChange={() => {}} size="sm" disabled />
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium">Overall</span>
+                    <CompactRating value={data.ui_meta.feedback.customer_rating_overall} size="md" />
                   </div>
                   <div className="grid grid-cols-2 gap-x-3 gap-y-1">
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center justify-between">
                       <span className="text-[10px] text-muted-foreground">Car result</span>
-                      <StarRatingInput value={data.ui_meta.feedback.customer_rating_car_result} onChange={() => {}} size="sm" disabled />
+                      <CompactRating value={data.ui_meta.feedback.customer_rating_car_result} />
                     </div>
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center justify-between">
                       <span className="text-[10px] text-muted-foreground">Communication</span>
-                      <StarRatingInput value={data.ui_meta.feedback.customer_rating_communication} onChange={() => {}} size="sm" disabled />
+                      <CompactRating value={data.ui_meta.feedback.customer_rating_communication} />
                     </div>
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center justify-between">
                       <span className="text-[10px] text-muted-foreground">Ease of use</span>
-                      <StarRatingInput value={data.ui_meta.feedback.customer_rating_ease_of_use} onChange={() => {}} size="sm" disabled />
+                      <CompactRating value={data.ui_meta.feedback.customer_rating_ease_of_use} />
                     </div>
                     {data.ui_meta.feedback.customer_rating_politeness != null && (
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center justify-between">
                         <span className="text-[10px] text-muted-foreground">Politeness</span>
-                        <StarRatingInput value={data.ui_meta.feedback.customer_rating_politeness} onChange={() => {}} size="sm" disabled />
+                        <CompactRating value={data.ui_meta.feedback.customer_rating_politeness} />
                       </div>
                     )}
                   </div>
