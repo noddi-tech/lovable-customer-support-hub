@@ -728,27 +728,27 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
                   <span className="font-medium text-xs">Customer Feedback</span>
                 </div>
                 <div className="space-y-1.5">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground w-16">Overall</span>
-                    <StarRatingInput value={data.ui_meta.feedback.customer_rating_overall} onChange={() => {}} size="sm" disabled />
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium">Overall</span>
+                    <CompactRating value={data.ui_meta.feedback.customer_rating_overall} size="md" />
                   </div>
                   <div className="grid grid-cols-2 gap-x-3 gap-y-1">
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center justify-between">
                       <span className="text-[10px] text-muted-foreground">Car result</span>
-                      <StarRatingInput value={data.ui_meta.feedback.customer_rating_car_result} onChange={() => {}} size="sm" disabled />
+                      <CompactRating value={data.ui_meta.feedback.customer_rating_car_result} />
                     </div>
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center justify-between">
                       <span className="text-[10px] text-muted-foreground">Communication</span>
-                      <StarRatingInput value={data.ui_meta.feedback.customer_rating_communication} onChange={() => {}} size="sm" disabled />
+                      <CompactRating value={data.ui_meta.feedback.customer_rating_communication} />
                     </div>
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center justify-between">
                       <span className="text-[10px] text-muted-foreground">Ease of use</span>
-                      <StarRatingInput value={data.ui_meta.feedback.customer_rating_ease_of_use} onChange={() => {}} size="sm" disabled />
+                      <CompactRating value={data.ui_meta.feedback.customer_rating_ease_of_use} />
                     </div>
                     {data.ui_meta.feedback.customer_rating_politeness != null && (
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center justify-between">
                         <span className="text-[10px] text-muted-foreground">Politeness</span>
-                        <StarRatingInput value={data.ui_meta.feedback.customer_rating_politeness} onChange={() => {}} size="sm" disabled />
+                        <CompactRating value={data.ui_meta.feedback.customer_rating_politeness} />
                       </div>
                     )}
                   </div>
