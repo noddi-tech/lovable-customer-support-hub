@@ -1,58 +1,59 @@
 
 
-# Migrate from `priority_booking` to `upcoming_booking` / `recent_booking`
+# Fix: "Failed to link customer" — duplicate email constraint
 
-## Context
-The Noddi API has replaced `bookings_summary.priority_booking` with two new fields:
-- `upcoming_booking` — next upcoming booking (full detail)
-- `recent_booking` — most recently completed booking (full detail)
+## Root cause
 
-The legacy `priority_booking` field is kept temporarily but will be removed. Both new fields are full `CustomerLookupBookingRecord` objects with service details, vehicle info, address, etc. — solving the "completed bookings lack details" problem.
-
-## Changes
-
-### File: `supabase/functions/noddi-customer-lookup/index.ts`
-
-**1. Update priority booking extraction (two locations: ~line 1336 and ~line 1551)**
-
-Replace the current logic that reads `group.bookings_summary.priority_booking` with:
+Console shows:
 ```
-upcoming = group.bookings_summary?.upcoming_booking
-recent   = group.bookings_summary?.recent_booking
-legacy   = group.bookings_summary?.priority_booking  // fallback
+[CustomerSync] Error syncing customer: code 23505
+"duplicate key value violates unique constraint idx_customers_org_email_unique"
 ```
 
-Priority selection logic:
-- If `upcoming_booking` exists → use it, type = `'upcoming'`
-- Else if `recent_booking` exists → use it, type = `'completed'`
-- Else fall back to legacy `priority_booking` (backward compat)
+The DB has a unique index on `(organization_id, lower(email))`. There are TWO independent issues blocking customer linking:
 
-This applies to both the email-lookup path (~line 1335) and the phone-lookup path (~line 1550).
+### Issue 1 — `syncCustomerFromNoddi` upsert can't resolve cross-constraint conflicts
+In `src/utils/customerSync.ts`, the upsert uses `onConflict: 'phone,organization_id'`. When the (phone, org) pair doesn't match an existing row, Postgres tries an INSERT — but if another customer in that org already has the same email (created earlier from an inbound email), the email-unique index throws 23505. Postgres can only resolve ONE conflict target per upsert, so this is structural.
 
-**2. Update `all_user_groups` formatting (two locations: ~line 1409 and ~line 1653)**
+Confirmed in DB for the current case:
+- Existing customer `5327061e-…` has `email=heidiosthagen@hotmail.com`, `phone=null`, `full_name=heidiosthagen@hotmail.com` (stub from inbound email, created Nov 30)
+- Noddi returns Heidi with same email + a real phone → INSERT attempt → 23505
 
-Add `upcoming_booking` and `recent_booking` to each group's output alongside the legacy `priority_booking`:
+### Issue 2 — `CustomerSidePanel.handleSelectCustomer` links to the wrong customer
+The current conversation `9f0b51cb-…` already has `customer_id` set to **Unni** (`9f01a028-…`) for some unrelated reason (likely a stale/earlier link). When the agent searches "Heidi Østhagen" and clicks her name:
+
+```ts
+const conversationCustomerId = conversation.customer_id;   // Unni
+let customerId = conversationCustomerId;
+if (!conversationCustomerId) { /* skipped */ }
+// Step 4
+if (customerId !== conversationCustomerId) { /* skipped — they're equal */ }
 ```
-upcoming_booking: g.bookings_summary?.upcoming_booking || null,
-recent_booking: g.bookings_summary?.recent_booking || null,
-priority_booking: g.bookings_summary?.priority_booking || null, // keep for now
-```
 
-**3. Enrichment may become unnecessary**
+The selected Noddi customer is never actually linked. The `noddi_email` from Heidi gets appended to **Unni's** `alternative_emails` (data corruption), and the conversation keeps pointing at Unni.
 
-Since the new fields return full booking records, `enrichBookingIfNeeded` should rarely need to fetch `/v1/bookings/{id}/`. Keep it as a safety net — it already checks for missing fields before fetching.
+## Fix
 
-### File: `src/hooks/useNoddihKundeData.ts`
+### File: `src/utils/customerSync.ts`
+Make `syncCustomerFromNoddi` resilient to the email-unique conflict:
 
-**4. Add new fields to types**
+1. Before upserting by `(phone, organization_id)`, check whether a customer with the same `lower(email)` already exists in the org.
+2. If yes → **UPDATE that existing row** (set phone, full_name, metadata, updated_at) instead of inserting a new one. Also write to `calls` if `callId` is provided.
+3. If no → keep the current upsert behaviour.
+4. Catch 23505 specifically and fall through to a "find-by-email then update" recovery path so we never fail the parent flow.
 
-Add `upcoming_booking` and `recent_booking` to the `all_user_groups` type alongside existing `booking` field.
+### File: `src/components/dashboard/conversation-view/CustomerSidePanel.tsx` (`handleSelectCustomer`)
+Always honour the agent's explicit selection:
 
-### No frontend display changes needed
+1. Resolve the **selected** customer first (by `local_customer_id`, by `noddi_user_id` lookup in `customers`, or create new) — independent of `conversation.customer_id`.
+2. If the resolved customer differs from `conversation.customer_id`, swap the link (`UPDATE conversations SET customer_id = <selected>`).
+3. Only append `noddi_email` to the resolved (selected) customer's `alternative_emails` — never to whichever customer happens to be on the conversation.
+4. When creating a new customer (the `is_new` path), first check by `(organization_id, lower(email))` and reuse if found, instead of blind INSERT (this also avoids 23505 in the side-panel flow).
 
-The frontend already renders whatever is in `priority_booking` — which will now contain the full booking record (either upcoming or recent). Service titles, vehicle labels, addresses, and order tags will all be present.
+### Optional cleanup (not strictly required to unblock)
+The conversation `9f0b51cb-…` is currently mis-linked to Unni. After the fix, the agent simply re-clicks "Link" on Heidi and the conversation will repoint to Heidi's record. No migration needed.
 
 ## Files to modify
-- `supabase/functions/noddi-customer-lookup/index.ts` — use new API fields for priority booking selection
-- `src/hooks/useNoddihKundeData.ts` — add types for new fields
+- `src/utils/customerSync.ts` — handle email-unique conflict via find-then-update
+- `src/components/dashboard/conversation-view/CustomerSidePanel.tsx` — honour selected customer over existing `customer_id`, and reuse-by-email instead of blind insert
 
