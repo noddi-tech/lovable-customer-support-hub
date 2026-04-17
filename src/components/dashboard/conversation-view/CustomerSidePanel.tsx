@@ -276,66 +276,142 @@ export const CustomerSidePanel = ({
     setSearchLoading(true);
 
     try {
-      // Step 1: Check if conversation already has a customer
+      // Step 1: Always resolve the *selected* customer first, independent of
+      // whatever customer (if any) is currently linked to the conversation.
+      // This prevents linking the wrong customer when conversation.customer_id
+      // already points at a different (stale/unrelated) record.
       const conversationCustomerId = conversation.customer_id;
-      let customerId = conversationCustomerId;
+      let customerId: string | null = null;
 
-      // Step 2: If conversation has NO customer, create or link one
-      if (!conversationCustomerId) {
-        if (selectedCustomer.metadata?.is_new) {
-          // Create new customer with Noddi email in alternative_emails
-          const metadata: any = {};
+      // Helper: try to find an existing local customer by (org, lower(email))
+      // to avoid the idx_customers_org_email_unique conflict (23505).
+      const findCustomerByEmail = async (email: string | null | undefined) => {
+        if (!email) return null;
+        const { data } = await supabase
+          .from("customers")
+          .select("id")
+          .eq("organization_id", organizationId)
+          .ilike("email", email)
+          .maybeSingle();
+        return data?.id ?? null;
+      };
+
+      // Helper: insert a new customer, but reuse-by-email on 23505
+      const createOrReuseCustomer = async (payload: {
+        full_name: string;
+        email: string | null;
+        phone: string | null;
+        metadata: Record<string, any>;
+      }): Promise<string> => {
+        // Pre-check by email to avoid blind insert -> 23505
+        const existingId = await findCustomerByEmail(payload.email);
+        if (existingId) {
+          // Update existing row with new info (phone/full_name/metadata)
+          const { data: existing } = await supabase
+            .from("customers")
+            .select("metadata")
+            .eq("id", existingId)
+            .single();
+          const merged = {
+            ...((existing?.metadata as Record<string, any>) || {}),
+            ...payload.metadata,
+          };
+          await supabase
+            .from("customers")
+            .update({
+              full_name: payload.full_name,
+              phone: payload.phone ?? undefined,
+              metadata: merged,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", existingId);
+          return existingId;
+        }
+
+        const { data: newCustomer, error: createError } = await supabase
+          .from("customers")
+          .insert({
+            full_name: payload.full_name,
+            email: payload.email,
+            phone: payload.phone,
+            organization_id: organizationId,
+            metadata: payload.metadata,
+          })
+          .select("id")
+          .single();
+
+        if (createError) {
+          // Recover from email-unique conflict
+          if ((createError as any).code === "23505") {
+            const recoveredId = await findCustomerByEmail(payload.email);
+            if (recoveredId) return recoveredId;
+          }
+          throw createError;
+        }
+        return newCustomer.id;
+      };
+
+      // Resolve the selected customer to a local customer id
+      if (selectedCustomer.metadata?.is_new) {
+        // Create (or reuse) a customer for a brand-new Noddi result
+        const metadata: Record<string, any> = {};
+        if (selectedCustomer.metadata?.noddi_email) {
+          metadata.alternative_emails = [selectedCustomer.metadata.noddi_email];
+        }
+        if (selectedCustomer.metadata?.noddi_user_id) {
+          metadata.noddi_user_id = selectedCustomer.metadata.noddi_user_id;
+        }
+        if (selectedCustomer.metadata?.user_group_id) {
+          metadata.user_group_id = selectedCustomer.metadata.user_group_id;
+        }
+
+        customerId = await createOrReuseCustomer({
+          full_name: selectedCustomer.full_name,
+          email:
+            selectedCustomer.email ||
+            selectedCustomer.metadata?.noddi_email ||
+            conversation.customer?.email ||
+            null,
+          phone: selectedCustomer.phone ?? null,
+          metadata,
+        });
+
+        toast({
+          title: "Customer linked",
+          description: `Linked customer: ${selectedCustomer.full_name}`,
+        });
+      } else {
+        const resolvedId =
+          selectedCustomer.metadata?.local_customer_id || selectedCustomer.id;
+
+        if (typeof resolvedId === "string" && resolvedId.startsWith("noddi-")) {
+          // No local customer yet — create or reuse by email
+          const metadata: Record<string, any> = {};
+          if (selectedCustomer.metadata?.noddi_user_id)
+            metadata.noddi_user_id = selectedCustomer.metadata.noddi_user_id;
+          if (selectedCustomer.metadata?.user_group_id)
+            metadata.user_group_id = selectedCustomer.metadata.user_group_id;
           if (selectedCustomer.metadata?.noddi_email) {
             metadata.alternative_emails = [selectedCustomer.metadata.noddi_email];
           }
 
-          const { data: newCustomer, error: createError } = await supabase
-            .from("customers")
-            .insert({
-              full_name: selectedCustomer.full_name,
-              email: conversation.customer?.email || selectedCustomer.phone,
-              phone: selectedCustomer.phone,
-              organization_id: organizationId,
-              metadata,
-            })
-            .select()
-            .single();
-
-          if (createError) throw createError;
-          customerId = newCustomer.id;
-
-          toast({
-            title: "Customer created",
-            description: `Created new customer: ${selectedCustomer.full_name}`,
+          customerId = await createOrReuseCustomer({
+            full_name: selectedCustomer.full_name,
+            email:
+              selectedCustomer.email ||
+              selectedCustomer.metadata?.noddi_email ||
+              conversation.customer?.email ||
+              null,
+            phone: selectedCustomer.phone ?? null,
+            metadata,
           });
         } else {
-          // Use existing customer from search results
-          const resolvedId = selectedCustomer.metadata?.local_customer_id || selectedCustomer.id;
-          
-          // If the ID is a noddi- prefixed string (not a valid UUID), we need to create a local customer
-          if (typeof resolvedId === 'string' && resolvedId.startsWith('noddi-')) {
-            const metadata: Record<string, any> = {};
-            if (selectedCustomer.metadata?.noddi_user_id) metadata.noddi_user_id = selectedCustomer.metadata.noddi_user_id;
-            if (selectedCustomer.metadata?.user_group_id) metadata.user_group_id = selectedCustomer.metadata.user_group_id;
-
-            const { data: newCustomer, error: createError } = await supabase
-              .from("customers")
-              .insert({
-                full_name: selectedCustomer.full_name,
-                email: conversation.customer?.email || selectedCustomer.email || null,
-                phone: selectedCustomer.phone,
-                organization_id: organizationId,
-                metadata,
-              })
-              .select()
-              .single();
-
-            if (createError) throw createError;
-            customerId = newCustomer.id;
-          } else {
-            customerId = resolvedId;
-          }
+          customerId = resolvedId;
         }
+      }
+
+      if (!customerId) {
+        throw new Error("Could not resolve a customer id for the selection");
       }
 
       // Step 3: Add Noddi email to alternative_emails if not already there

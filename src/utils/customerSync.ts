@@ -5,6 +5,10 @@ import { displayName } from '@/utils/noddiHelpers';
 /**
  * Syncs customer data from Noddi API to local database
  * Creates or updates customer record based on phone number
+ *
+ * Resilient to the (organization_id, lower(email)) unique index:
+ * if a customer with the same email already exists in the org we
+ * UPDATE that row instead of trying to INSERT a new one.
  */
 export async function syncCustomerFromNoddi(
   noddiData: NoddiLookupResponse,
@@ -30,94 +34,152 @@ export async function syncCustomerFromNoddi(
 
   const user = noddiData.data.user;
   const uiMeta = noddiData.data.ui_meta;
-  
+
   // Find personal or default user group
   const userGroup = noddiData.data.all_user_groups?.find(
     (g: any) => g.is_personal || g.is_default
   ) || noddiData.data.all_user_groups?.[0];
-  
+
   // Extract full name using comprehensive logic (same as NoddiCustomerDetails)
   let fullName: string;
-  
-  // 1. Try ui_meta.display_name (most reliable - already formatted by API)
+
   if (uiMeta?.display_name && uiMeta.display_name.trim()) {
     fullName = uiMeta.display_name.trim();
-  }
-  // 2. Try user group name (for personal accounts, this is the customer name)
-  else if (userGroup?.name && userGroup.name.trim()) {
+  } else if (userGroup?.name && userGroup.name.trim()) {
     fullName = userGroup.name.trim();
-  }
-  // 3. Use the displayName helper (handles all field variations)
-  else {
+  } else {
     fullName = displayName(user, user.email, noddiData.data.priority_booking);
   }
 
-  console.log('[CustomerSync] 💾 Syncing customer to database:', { 
-    phone, 
-    fullName, 
-    email: user.email,
+  const email = user.email?.trim() || null;
+
+  console.log('[CustomerSync] 💾 Syncing customer to database:', {
+    phone,
+    fullName,
+    email,
     organizationId,
     noddiUserId: user.id,
-    sources: {
-      uiMetaDisplayName: uiMeta?.display_name,
-      userGroupName: userGroup?.name,
-      fromHelper: displayName(user, user.email, noddiData.data.priority_booking)
-    }
   });
 
+  const metadata = {
+    noddi_user_id: user.id,
+    user_group_id: user.userGroupId,
+    synced_from_noddi: true,
+    last_synced_at: new Date().toISOString(),
+  };
+
+  const updateCallRecord = async (customerId: string) => {
+    if (!callId) return;
+    console.log('[CustomerSync] 🔗 Updating call record with customer data:', {
+      callId,
+      customerId,
+      fullName,
+      email,
+    });
+    const { error: callUpdateError } = await supabase
+      .from('calls')
+      .update({
+        customer_id: customerId,
+        customer_name: fullName,
+        customer_email: email,
+      })
+      .eq('id', callId);
+
+    if (callUpdateError) {
+      console.error('[CustomerSync] Error updating call record:', callUpdateError);
+    } else {
+      console.log('[CustomerSync] ✅ Call record updated with customer_id');
+    }
+  };
+
+  // Recovery path: find existing customer by email (case-insensitive) and UPDATE it.
+  const updateExistingByEmail = async (): Promise<{ id: string } | null> => {
+    if (!email) return null;
+    const { data: existing, error: findErr } = await supabase
+      .from('customers')
+      .select('id, metadata')
+      .eq('organization_id', organizationId)
+      .ilike('email', email)
+      .maybeSingle();
+
+    if (findErr) {
+      console.error('[CustomerSync] Error looking up by email:', findErr);
+      return null;
+    }
+    if (!existing) return null;
+
+    const mergedMetadata = {
+      ...((existing.metadata as Record<string, any>) || {}),
+      ...metadata,
+    };
+
+    const { data: updated, error: updateErr } = await supabase
+      .from('customers')
+      .update({
+        phone,
+        full_name: fullName,
+        email,
+        metadata: mergedMetadata,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', existing.id)
+      .select('id')
+      .single();
+
+    if (updateErr) {
+      console.error('[CustomerSync] Error updating existing customer by email:', updateErr);
+      return null;
+    }
+
+    console.log('[CustomerSync] ✅ Updated existing customer by email:', updated?.id);
+    await updateCallRecord(updated.id);
+    return updated;
+  };
+
   try {
+    // 1. If we have an email, prefer updating an existing email-matched customer
+    //    to avoid the (organization_id, lower(email)) unique-index conflict.
+    if (email) {
+      const existing = await updateExistingByEmail();
+      if (existing) return existing;
+    }
+
+    // 2. Otherwise upsert by (phone, organization_id)
     const { data, error } = await supabase
       .from('customers')
-      .upsert({
-        phone: phone,
-        full_name: fullName,
-        email: user.email || null,
-        organization_id: organizationId,
-        metadata: {
-          noddi_user_id: user.id,
-          user_group_id: user.userGroupId,
-          synced_from_noddi: true,
-          last_synced_at: new Date().toISOString()
+      .upsert(
+        {
+          phone,
+          full_name: fullName,
+          email,
+          organization_id: organizationId,
+          metadata,
+          updated_at: new Date().toISOString(),
         },
-        updated_at: new Date().toISOString()
-      }, {
-        onConflict: 'phone,organization_id',
-        ignoreDuplicates: false
-      })
+        {
+          onConflict: 'phone,organization_id',
+          ignoreDuplicates: false,
+        }
+      )
       .select('id')
       .single();
 
     if (error) {
+      // 3. If we hit the email-unique index, recover by updating that row.
+      if ((error as any).code === '23505') {
+        console.warn(
+          '[CustomerSync] 23505 on upsert — falling back to update-by-email:',
+          error.message
+        );
+        const recovered = await updateExistingByEmail();
+        if (recovered) return recovered;
+      }
       console.error('[CustomerSync] Error syncing customer:', error);
       return null;
     }
 
     console.log('[CustomerSync] Customer synced successfully:', data?.id);
-    
-    // Also update the call record with customer data for immediate display
-    if (callId && data) {
-      console.log('[CustomerSync] 🔗 Updating call record with customer data:', { 
-        callId, 
-        customerId: data.id,
-        fullName, 
-        email: user.email 
-      });
-      const { error: callUpdateError } = await supabase
-        .from('calls')
-        .update({
-          customer_id: data.id, // ← Set the foreign key relationship
-          customer_name: fullName,
-          customer_email: user.email || null
-        })
-        .eq('id', callId);
-      
-      if (callUpdateError) {
-        console.error('[CustomerSync] Error updating call record:', callUpdateError);
-      } else {
-        console.log('[CustomerSync] ✅ Call record updated with customer_id');
-      }
-    }
-    
+    if (data) await updateCallRecord(data.id);
     return data;
   } catch (err) {
     console.error('[CustomerSync] Exception syncing customer:', err);
