@@ -17,6 +17,7 @@ import {
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { AlertTriangle } from 'lucide-react';
 import {
   TARGET_FIELD_LABELS,
   mapRow,
@@ -148,6 +149,32 @@ const ImportMappingStep: React.FC<Props> = ({
           </Table>
         </Card>
       </div>
+
+      {invalidRows.length > 0 && (
+        <Card className="p-4 bg-destructive/5 border-destructive/30">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="h-5 w-5 text-destructive mt-0.5 shrink-0" />
+            <div className="flex-1 space-y-2">
+              <p className="text-sm font-medium">
+                {invalidRows.length} rader har ugyldig eller manglende e-post og vil bli hoppet
+                over ved import.
+              </p>
+              <ul className="text-sm text-muted-foreground space-y-1">
+                {invalidRows.slice(0, 5).map((r) => (
+                  <li key={r.rowNum}>
+                    <span className="font-medium text-foreground">Rad {r.rowNum}:</span>{' '}
+                    {r.reason}
+                    {r.name && ` (${r.name})`}
+                  </li>
+                ))}
+                {invalidRows.length > 5 && (
+                  <li className="italic">… og {invalidRows.length - 5} flere</li>
+                )}
+              </ul>
+            </div>
+          </div>
+        </Card>
+      )}
 
       <div className="flex justify-between pt-2">
         <Button variant="outline" onClick={onBack}>
