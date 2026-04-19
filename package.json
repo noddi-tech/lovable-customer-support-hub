@@ -61,6 +61,7 @@
     "@types/dompurify": "^3.2.0",
     "@types/lodash.debounce": "^4.0.9",
     "@types/lodash.throttle": "^4.1.9",
+    "@types/papaparse": "^5.5.2",
     "@types/react-virtualized-auto-sizer": "^1.0.8",
     "@types/react-window": "^1.8.8",
     "@vitest/coverage-v8": "^3.2.4",
@@ -83,6 +84,7 @@
     "lodash.throttle": "^4.1.1",
     "lucide-react": "^0.462.0",
     "next-themes": "^0.3.0",
+    "papaparse": "^5.5.3",
     "picocolors": "^1.1.1",
     "react": "^18.3.1",
     "react-day-picker": "^8.10.1",
@@ -104,6 +106,7 @@
     "tsx": "^4.20.5",
     "vaul": "^0.9.3",
     "vitest": "^3.2.4",
+    "xlsx": "^0.18.5",
     "zod": "^3.23.8",
     "zustand": "^5.0.7"
   },
