@@ -32,7 +32,8 @@ import {
   LayoutDashboard,
   ArrowLeft,
   ScrollText,
-  MessageCircle
+  MessageCircle,
+  Briefcase
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useTranslation } from 'react-i18next';
@@ -110,6 +111,14 @@ const AdminSidebar = () => {
       title: 'Contact Widget',
       url: '/admin/widget',
       icon: MessageCircle
+    }
+  ];
+
+  const recruitmentItems = [
+    {
+      title: 'Recruitment',
+      url: '/admin/recruitment',
+      icon: Briefcase
     }
   ];
 
@@ -248,6 +257,26 @@ const AdminSidebar = () => {
           <SidebarGroupContent>
             <SidebarMenu>
               {intelligenceItems.map((item) => (
+                <SidebarMenuItem key={item.url}>
+                  <SidebarMenuButton asChild isActive={isActive(item.url)}>
+                    <Link to={item.url}>
+                      <item.icon />
+                      <span>{item.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel className="text-sidebar-foreground/70">
+            Recruitment
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {recruitmentItems.map((item) => (
                 <SidebarMenuItem key={item.url}>
                   <SidebarMenuButton asChild isActive={isActive(item.url)}>
                     <Link to={item.url}>

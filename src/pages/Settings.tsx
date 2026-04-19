@@ -57,7 +57,16 @@ export default function Settings() {
         </React.Suspense>
       );
     }
-    
+
+    if (location.pathname.startsWith('/admin/recruitment')) {
+      const RecruitmentAdmin = React.lazy(() => import('./admin/RecruitmentAdmin'));
+      return (
+        <React.Suspense fallback={<div>Loading...</div>}>
+          <RecruitmentAdmin />
+        </React.Suspense>
+      );
+    }
+
     return <AdminPortal />;
   }
 

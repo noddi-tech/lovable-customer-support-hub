@@ -138,7 +138,6 @@ const AppContent = () => {
       <Route path="/operations/recruitment/positions" element={<ProtectedRoute><Index /></ProtectedRoute>} />
       <Route path="/operations/recruitment/positions/:id" element={<ProtectedRoute><Index /></ProtectedRoute>} />
       <Route path="/operations/recruitment/import" element={<ProtectedRoute><Index /></ProtectedRoute>} />
-      <Route path="/operations/recruitment/settings" element={<ProtectedRoute><Index /></ProtectedRoute>} />
       <Route path="/operations/analytics" element={<ProtectedRoute><Index /></ProtectedRoute>} />
       <Route path="/operations/bulk-outreach" element={<ProtectedRoute><Index /></ProtectedRoute>} />
       <Route path="/operations/settings" element={<ProtectedRoute><Index /></ProtectedRoute>} />
@@ -170,6 +169,7 @@ const AppContent = () => {
       <Route path="/admin/knowledge" element={<ProtectedRoute><AdminRoute><KnowledgeManagement /></AdminRoute></ProtectedRoute>} />
       <Route path="/admin/ai-chatbot" element={<ProtectedRoute><AdminRoute><Settings /></AdminRoute></ProtectedRoute>} />
       <Route path="/admin/widget" element={<ProtectedRoute><AdminRoute><Settings /></AdminRoute></ProtectedRoute>} />
+      <Route path="/admin/recruitment" element={<ProtectedRoute><AdminRoute><Settings /></AdminRoute></ProtectedRoute>} />
       
       {/* ========== SUPER ADMIN ========== */}
       <Route path="/super-admin" element={<Navigate to="/super-admin/dashboard" replace />} />
