@@ -132,16 +132,22 @@ export function useCreateJobPosition() {
   const { currentOrganizationId } = useOrganizationStore();
 
   return useMutation({
-    mutationFn: async (input: JobPositionFormPayload) => {
+    mutationFn: async (
+      input: JobPositionFormPayload & { publishImmediately?: boolean },
+    ) => {
       if (!currentOrganizationId) {
         throw new Error('No organization selected');
       }
 
+      const { publishImmediately, ...rest } = input;
+      const status = publishImmediately ? 'open' : 'draft';
+
       const { data, error } = await supabase
         .from('job_positions')
         .insert({
-          ...input,
-          status: 'draft',
+          ...rest,
+          status,
+          published_at: publishImmediately ? new Date().toISOString() : null,
           organization_id: currentOrganizationId,
         })
         .select()
