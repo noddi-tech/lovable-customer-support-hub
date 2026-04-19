@@ -97,6 +97,7 @@ export function useApplicantPipeline() {
       return { id: data.id, name: data.name, stages };
     },
     enabled: !!currentOrganizationId,
+    refetchOnMount: 'always',
   });
 }
 
