@@ -1,53 +1,35 @@
 
-## Plan: Admin recruitment shell at `/admin/recruitment`
+## Plan addition: refetchOnMount on useApplicantPipeline
 
-### 1. Sidebar — `src/components/admin/AdminPortalLayout.tsx`
-- Import `Briefcase` from `lucide-react`.
-- Add a new array `recruitmentItems = [{ title: 'Recruitment', url: '/admin/recruitment', icon: Briefcase }]`.
-- Render a new `<SidebarGroup>` titled **"Recruitment"** placed AFTER the "AI & Intelligence" group and BEFORE the Super Admin block. Single item, no sub-items (matches `/admin/knowledge` pattern). Uses existing `isActive(url)` so the entry highlights on any `/admin/recruitment*` path.
+`useApplicantPipeline` lives in `src/components/dashboard/recruitment/applicants/useApplicants.ts` (lines 76-95). It loads the default pipeline (stages JSONB) used by the operations kanban board to render columns. It currently has no `refetchOnMount`, so it inherits the global `false` from `persistedQueryClient.ts` — meaning admin edits stay invisible until the persisted cache expires.
 
-### 2. Route — `src/App.tsx`
-- Add: `<Route path="/admin/recruitment" element={<ProtectedRoute><AdminRoute><Settings /></AdminRoute></ProtectedRoute>} />` next to other `/admin/*` routes (line ~172). Goes through `Settings` dispatcher just like every other admin route — keeps `AdminRoute` redirect-to-`/settings/general` working for non-admins automatically.
-- Remove: `<Route path="/operations/recruitment/settings" ... />` (line 141).
+### Single change
+**`src/components/dashboard/recruitment/applicants/useApplicants.ts`** — in `useApplicantPipeline()`, add `refetchOnMount: 'always'` next to the existing `enabled: !!currentOrganizationId,` line:
 
-### 3. Dispatcher — `src/pages/Settings.tsx`
-In `renderAdminContent()`, before the `return <AdminPortal />`, add:
-```tsx
-if (location.pathname.startsWith('/admin/recruitment')) {
-  const RecruitmentAdmin = React.lazy(() => import('./admin/RecruitmentAdmin'));
-  return (
-    <React.Suspense fallback={<div>Loading...</div>}>
-      <RecruitmentAdmin />
-    </React.Suspense>
-  );
-}
+```ts
+return useQuery({
+  queryKey: ['recruitment-pipeline-default', currentOrganizationId],
+  queryFn: async () => { /* unchanged */ },
+  enabled: !!currentOrganizationId,
+  refetchOnMount: 'always',
+});
 ```
-Mirrors the existing `AdminDesignComponents` lazy-load pattern.
 
-### 4. Page — `src/pages/admin/RecruitmentAdmin.tsx` (new)
-- Does **NOT** wrap itself in `<AdminPortalLayout>` — the dispatcher in `Settings.tsx` already wraps admin content in `AdminPortalLayout`. Wrapping again would double-nest the sidebar (this is the same reason `KnowledgeManagement` and `AdminPortal` don't self-wrap).
-- Uses shadcn `Tabs` with `value`/`onValueChange` driven by `useSearchParams` — `?tab=` param syncs both ways, defaults to `pipeline`.
-- Five `TabsTrigger` entries with icons: Pipeline (Workflow), E-postmaler (Mail), Automatisering (Zap), Integrasjoner (Link2), Revisjon (History).
-- Header: heading "Rekruttering" + Norwegian description.
-- Each `TabsContent` renders a small `<PlaceholderTab title description />` card with a "Kommer snart" badge — pure display, no data fetching.
+### Why
+Mirrors the scoped fix already in place on `useApplicants`, `usePipelineAdmin.useDefaultPipeline`, and `useJobPositions`. Bypasses `localStorage` persisted cache on mount without touching global config (preserves the 99.9% uptime constraint).
 
-### 5. Operations tab bar — `src/components/dashboard/RecruitmentInterface.tsx`
-- Remove the `{ label: 'Innstillinger', path: \`${BASE}/settings\` }` entry from `TABS`.
-- Remove the `case 'settings': return <RecruitmentSettings />;` branch and the `import RecruitmentSettings` line.
-- Delete `src/components/dashboard/recruitment/RecruitmentSettings.tsx`.
+### Integrates with the pipeline-editor build
+`useUpdatePipelineStages` and `useReassignAndUpdateStages` already invalidate `recruitment-pipeline-admin`, but the operations kanban uses key `recruitment-pipeline-default`. Two ways to handle:
+1. Add `queryClient.invalidateQueries({ queryKey: ['recruitment-pipeline-default'] })` to both mutations' `onSuccess` (covers same-tab navigation).
+2. Rely on `refetchOnMount: 'always'` (covers new-tab/cross-tab navigation, which is the failure mode in the verification step).
+
+Do **both** — invalidation handles same-tab, `refetchOnMount` handles new-tab/persisted cache.
 
 ### Verification
-1. Admin clicks "Recruitment" in admin sidebar → `/admin/recruitment` loads with Pipeline tab active.
-2. Clicking each tab updates `?tab=…` and swaps placeholder content.
-3. Direct load `/admin/recruitment?tab=automation` → Automatisering pre-selected.
-4. Sidebar entry stays highlighted on any `/admin/recruitment*`.
-5. Non-admin visiting `/admin/recruitment` redirects to `/settings/general` via existing `AdminRoute`.
-6. `/operations/recruitment` no longer shows "Innstillinger" tab; `/operations/recruitment/settings` no longer routes.
+1. Edit stage name/order/color in `/admin/recruitment?tab=pipeline` → Save.
+2. Open `/operations/recruitment/pipeline` in a new tab → new stages render immediately, no hard refresh needed.
+3. Same-tab navigation between admin and operations also reflects changes (covered by invalidation).
 
-### Files touched
-- `src/components/admin/AdminPortalLayout.tsx` (add group)
-- `src/App.tsx` (add admin route, remove operations settings route)
-- `src/pages/Settings.tsx` (dispatch new path)
-- `src/pages/admin/RecruitmentAdmin.tsx` (new)
-- `src/components/dashboard/RecruitmentInterface.tsx` (remove tab + case + import)
-- `src/components/dashboard/recruitment/RecruitmentSettings.tsx` (delete)
+### Files touched (added to the pipeline-editor plan)
+- `src/components/dashboard/recruitment/applicants/useApplicants.ts` — add `refetchOnMount: 'always'` to `useApplicantPipeline`.
+- `src/components/dashboard/recruitment/admin/pipeline/usePipelineAdmin.ts` — add `['recruitment-pipeline-default']` to both mutations' invalidation lists.
