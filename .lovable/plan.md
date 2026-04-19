@@ -1,40 +1,53 @@
 
-## Plan: Fix stale cache for recruitment lists after CSV import
+## Plan: Admin recruitment shell at `/admin/recruitment`
 
-Three scoped changes — no global config touched.
+### 1. Sidebar — `src/components/admin/AdminPortalLayout.tsx`
+- Import `Briefcase` from `lucide-react`.
+- Add a new array `recruitmentItems = [{ title: 'Recruitment', url: '/admin/recruitment', icon: Briefcase }]`.
+- Render a new `<SidebarGroup>` titled **"Recruitment"** placed AFTER the "AI & Intelligence" group and BEFORE the Super Admin block. Single item, no sub-items (matches `/admin/knowledge` pattern). Uses existing `isActive(url)` so the entry highlights on any `/admin/recruitment*` path.
 
-### 1. `src/components/dashboard/recruitment/import/useImport.ts`
-The mutation already has an `onSuccess` invalidating `['applicants']`, `['pipeline-applications']`, `['job-positions']`. Expand it to cover all recruitment keys:
+### 2. Route — `src/App.tsx`
+- Add: `<Route path="/admin/recruitment" element={<ProtectedRoute><AdminRoute><Settings /></AdminRoute></ProtectedRoute>} />` next to other `/admin/*` routes (line ~172). Goes through `Settings` dispatcher just like every other admin route — keeps `AdminRoute` redirect-to-`/settings/general` working for non-admins automatically.
+- Remove: `<Route path="/operations/recruitment/settings" ... />` (line 141).
 
-```ts
-onSuccess: () => {
-  queryClient.invalidateQueries({ queryKey: ['applicants'] });
-  queryClient.invalidateQueries({ queryKey: ['pipeline-applications'] });
-  queryClient.invalidateQueries({ queryKey: ['pipeline'] });
-  queryClient.invalidateQueries({ queryKey: ['job-positions'] });
-  queryClient.invalidateQueries({ queryKey: ['job-position'] });
-  queryClient.invalidateQueries({ queryKey: ['applicant-profile'] });
-},
+### 3. Dispatcher — `src/pages/Settings.tsx`
+In `renderAdminContent()`, before the `return <AdminPortal />`, add:
+```tsx
+if (location.pathname.startsWith('/admin/recruitment')) {
+  const RecruitmentAdmin = React.lazy(() => import('./admin/RecruitmentAdmin'));
+  return (
+    <React.Suspense fallback={<div>Loading...</div>}>
+      <RecruitmentAdmin />
+    </React.Suspense>
+  );
+}
 ```
-(Note: actual pipeline query key is `['pipeline-applications', ...]` per `usePipeline.ts`, so keep that one and also add `['pipeline']` as requested for any future hooks.)
+Mirrors the existing `AdminDesignComponents` lazy-load pattern.
 
-### 2. `src/components/dashboard/recruitment/applicants/useApplicants.ts`
-Add `refetchOnMount: 'always'` to the `useApplicants` query options (after `enabled`). Bypasses persisted-cache staleness on mount, mirroring the `useJobPositions` fix.
+### 4. Page — `src/pages/admin/RecruitmentAdmin.tsx` (new)
+- Does **NOT** wrap itself in `<AdminPortalLayout>` — the dispatcher in `Settings.tsx` already wraps admin content in `AdminPortalLayout`. Wrapping again would double-nest the sidebar (this is the same reason `KnowledgeManagement` and `AdminPortal` don't self-wrap).
+- Uses shadcn `Tabs` with `value`/`onValueChange` driven by `useSearchParams` — `?tab=` param syncs both ways, defaults to `pipeline`.
+- Five `TabsTrigger` entries with icons: Pipeline (Workflow), E-postmaler (Mail), Automatisering (Zap), Integrasjoner (Link2), Revisjon (History).
+- Header: heading "Rekruttering" + Norwegian description.
+- Each `TabsContent` renders a small `<PlaceholderTab title description />` card with a "Kommer snart" badge — pure display, no data fetching.
 
-### 3. `src/components/dashboard/recruitment/pipeline/usePipeline.ts`
-Add `refetchOnMount: 'always'` to `usePipelineApplications` (alongside existing `placeholderData: keepPreviousData`).
-
-### Why this works
-- `PersistQueryClientProvider` rehydrates `['applicants', orgId, ...]` and `['pipeline-applications', orgId, ...]` from localStorage on every page load with `refetchOnMount: false`. Mutation invalidation only refetches **active** observers — when the user is on the import page, the list/pipeline pages have no observers, so invalidation marks them stale but the next mount serves persisted (empty) data.
-- `refetchOnMount: 'always'` forces a network fetch when the component mounts, regardless of staleness or persisted data → the 10 imported rows show up immediately.
-- The expanded `onSuccess` covers any in-tab observers that ARE active.
-
-### Files modified
-- `src/components/dashboard/recruitment/import/useImport.ts`
-- `src/components/dashboard/recruitment/applicants/useApplicants.ts`
-- `src/components/dashboard/recruitment/pipeline/usePipeline.ts`
+### 5. Operations tab bar — `src/components/dashboard/RecruitmentInterface.tsx`
+- Remove the `{ label: 'Innstillinger', path: \`${BASE}/settings\` }` entry from `TABS`.
+- Remove the `case 'settings': return <RecruitmentSettings />;` branch and the `import RecruitmentSettings` line.
+- Delete `src/components/dashboard/recruitment/RecruitmentSettings.tsx`.
 
 ### Verification
-1. After import wizard completes → navigate to `/operations/recruitment/applicants` → 10 rows visible.
-2. Navigate to `/operations/recruitment/pipeline` → 10 cards in "Ikke vurdert" column.
-3. Hard refresh both pages → still visible (fetch on mount, not persisted snapshot).
+1. Admin clicks "Recruitment" in admin sidebar → `/admin/recruitment` loads with Pipeline tab active.
+2. Clicking each tab updates `?tab=…` and swaps placeholder content.
+3. Direct load `/admin/recruitment?tab=automation` → Automatisering pre-selected.
+4. Sidebar entry stays highlighted on any `/admin/recruitment*`.
+5. Non-admin visiting `/admin/recruitment` redirects to `/settings/general` via existing `AdminRoute`.
+6. `/operations/recruitment` no longer shows "Innstillinger" tab; `/operations/recruitment/settings` no longer routes.
+
+### Files touched
+- `src/components/admin/AdminPortalLayout.tsx` (add group)
+- `src/App.tsx` (add admin route, remove operations settings route)
+- `src/pages/Settings.tsx` (dispatch new path)
+- `src/pages/admin/RecruitmentAdmin.tsx` (new)
+- `src/components/dashboard/RecruitmentInterface.tsx` (remove tab + case + import)
+- `src/components/dashboard/recruitment/RecruitmentSettings.tsx` (delete)
