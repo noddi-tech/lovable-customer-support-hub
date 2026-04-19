@@ -26,10 +26,10 @@ interface Props {
 }
 
 const FILE_TYPES: { value: string; label: string }[] = [
-  { value: 'cv', label: 'CV' },
+  { value: 'resume', label: 'CV' },
   { value: 'cover_letter', label: 'Søknadsbrev' },
   { value: 'drivers_license', label: 'Førerkort' },
-  { value: 'certificate', label: 'Sertifikat' },
+  { value: 'certification', label: 'Sertifikat' },
   { value: 'id_document', label: 'ID-dokument' },
   { value: 'other', label: 'Annet' },
 ];
@@ -51,7 +51,7 @@ const ApplicantFilesTab: React.FC<Props> = ({ applicantId, applicationId }) => {
   const uploadMut = useUploadApplicantFile();
   const { data: team } = useTeamMembers();
   const inputRef = useRef<HTMLInputElement>(null);
-  const [fileType, setFileType] = useState('cv');
+  const [fileType, setFileType] = useState('resume');
   const [dragOver, setDragOver] = useState(false);
 
   const teamMap = new Map((team ?? []).map((m) => [m.id, m.full_name]));
