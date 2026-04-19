@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Select,
   SelectContent,
@@ -10,6 +11,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import { AlertCircle } from 'lucide-react';
 import { useJobPositions } from '../positions/usePositions';
 
 const SOURCES = ['Meta Lead Ad', 'Finn.no', 'CSV Import', 'Nettside', 'Referanse'];
@@ -37,9 +39,11 @@ const ImportConfigureStep: React.FC<Props> = ({
   onBack,
   onImport,
 }) => {
+  const navigate = useNavigate();
   const { data: positions } = useJobPositions();
   const open = (positions ?? []).filter((p) => p.status === 'open');
   const positionTitle = open.find((p) => p.id === positionId)?.title;
+  const noOpenPositions = open.length === 0;
 
   useEffect(() => {
     if (source === 'Meta Lead Ad' && !gdprConfirmed) onGdprChange(true);
@@ -58,23 +62,38 @@ const ImportConfigureStep: React.FC<Props> = ({
       <Card className="space-y-5 p-6">
         <div className="space-y-2">
           <Label>Hvilken stilling søker de på? *</Label>
-          <Select value={positionId} onValueChange={onPositionChange}>
-            <SelectTrigger>
-              <SelectValue placeholder="Velg stilling" />
-            </SelectTrigger>
-            <SelectContent>
-              {open.length === 0 && (
-                <SelectItem value="__none__" disabled>
-                  Ingen åpne stillinger
-                </SelectItem>
-              )}
-              {open.map((p) => (
-                <SelectItem key={p.id} value={p.id}>
-                  {p.title}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {noOpenPositions ? (
+            <div className="flex items-start gap-3 rounded-md border border-destructive/30 bg-destructive/5 p-4">
+              <AlertCircle className="h-5 w-5 text-destructive mt-0.5 shrink-0" />
+              <div className="space-y-2 flex-1">
+                <p className="font-medium text-sm">Ingen åpne stillinger</p>
+                <p className="text-sm text-muted-foreground">
+                  Du må publisere en stilling før du kan importere søkere. Gå til Stillinger
+                  og klikk "Publiser" på den stillingen du ønsker å koble søkerne til.
+                </p>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => navigate('/operations/recruitment/positions')}
+                >
+                  Gå til stillinger
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <Select value={positionId} onValueChange={onPositionChange}>
+              <SelectTrigger>
+                <SelectValue placeholder="Velg stilling" />
+              </SelectTrigger>
+              <SelectContent>
+                {open.map((p) => (
+                  <SelectItem key={p.id} value={p.id}>
+                    {p.title}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </div>
 
         <div className="space-y-2">
