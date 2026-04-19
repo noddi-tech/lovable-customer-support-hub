@@ -1,5 +1,4 @@
-import React, { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
 import {
   Select,
   SelectContent,
@@ -11,8 +10,9 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Loader2, Plus } from 'lucide-react';
 import { useJobPositions } from '../positions/usePositions';
+import CreatePositionDialog from '../positions/CreatePositionDialog';
 
 const SOURCES = ['Meta Lead Ad', 'Finn.no', 'CSV Import', 'Nettside', 'Referanse'];
 
@@ -39,16 +39,37 @@ const ImportConfigureStep: React.FC<Props> = ({
   onBack,
   onImport,
 }) => {
-  const navigate = useNavigate();
-  const { data: positions } = useJobPositions();
-  const open = (positions ?? []).filter((p) => p.status === 'open');
+  const { data: positions, isLoading: positionsLoading } = useJobPositions();
+  const [createOpen, setCreateOpen] = useState(false);
+
+  // Debug logs to inspect data flow / status filtering
+  useEffect(() => {
+    if (!positionsLoading) {
+      // eslint-disable-next-line no-console
+      console.log('[ImportConfigure] all positions:', positions);
+      // eslint-disable-next-line no-console
+      console.log(
+        '[ImportConfigure] statuses:',
+        (positions ?? []).map((p) => ({ id: p.id, title: p.title, status: p.status })),
+      );
+    }
+  }, [positions, positionsLoading]);
+
+  const open = (positions ?? []).filter(
+    (p) => (p.status ?? '').trim().toLowerCase() === 'open',
+  );
   const positionTitle = open.find((p) => p.id === positionId)?.title;
-  const noOpenPositions = open.length === 0;
+  const noOpenPositions = !positionsLoading && open.length === 0;
 
   useEffect(() => {
     if (source === 'Meta Lead Ad' && !gdprConfirmed) onGdprChange(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [source]);
+
+  const handleCreated = (id: string) => {
+    // The query invalidates on success; pre-select the newly created position.
+    onPositionChange(id);
+  };
 
   return (
     <div className="space-y-6 max-w-2xl">
@@ -62,21 +83,24 @@ const ImportConfigureStep: React.FC<Props> = ({
       <Card className="space-y-5 p-6">
         <div className="space-y-2">
           <Label>Hvilken stilling søker de på? *</Label>
-          {noOpenPositions ? (
+
+          {positionsLoading ? (
+            <div className="flex items-center gap-2 rounded-md border border-dashed p-4 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Laster stillinger...
+            </div>
+          ) : noOpenPositions ? (
             <div className="flex items-start gap-3 rounded-md border border-destructive/30 bg-destructive/5 p-4">
               <AlertCircle className="h-5 w-5 text-destructive mt-0.5 shrink-0" />
               <div className="space-y-2 flex-1">
                 <p className="font-medium text-sm">Ingen åpne stillinger</p>
                 <p className="text-sm text-muted-foreground">
-                  Du må publisere en stilling før du kan importere søkere. Gå til Stillinger
-                  og klikk "Publiser" på den stillingen du ønsker å koble søkerne til.
+                  Du må publisere en stilling før du kan koble søkerne til den. Opprett én
+                  her uten å forlate importflyten — den blir publisert med en gang.
                 </p>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => navigate('/operations/recruitment/positions')}
-                >
-                  Gå til stillinger
+                <Button size="sm" onClick={() => setCreateOpen(true)} className="gap-2">
+                  <Plus className="h-4 w-4" />
+                  Opprett ny stilling
                 </Button>
               </div>
             </div>
@@ -146,6 +170,13 @@ const ImportConfigureStep: React.FC<Props> = ({
           Importer {validCount} søkere
         </Button>
       </div>
+
+      <CreatePositionDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        publishImmediately
+        onCreated={handleCreated}
+      />
     </div>
   );
 };
