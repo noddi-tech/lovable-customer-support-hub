@@ -62,7 +62,7 @@ export function EmailTemplateTipTap({ value, onChange, placeholder, className }:
   useEffect(() => {
     if (!editor) return;
     if (editor.getHTML() !== value) {
-      editor.commands.setContent(value || '<p></p>', false);
+      editor.commands.setContent(value || '<p></p>', { emitUpdate: false });
     }
   }, [value, editor]);
 
