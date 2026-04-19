@@ -15,7 +15,13 @@ import { AlertCircle, Loader2, Plus } from 'lucide-react';
 import { useJobPositions } from '../positions/usePositions';
 import CreatePositionDialog from '../positions/CreatePositionDialog';
 
-const SOURCES = ['Meta Lead Ad', 'Finn.no', 'CSV Import', 'Nettside', 'Referanse'];
+const SOURCES = [
+  { value: 'meta_lead_ad', label: 'Meta Lead Ad' },
+  { value: 'finn', label: 'Finn.no' },
+  { value: 'csv_import', label: 'CSV Import' },
+  { value: 'website', label: 'Nettside' },
+  { value: 'referral', label: 'Referanse' },
+];
 
 interface Props {
   validCount: number;
