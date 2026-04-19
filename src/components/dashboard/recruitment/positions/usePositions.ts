@@ -43,6 +43,8 @@ export function useJobPositions() {
       return (data ?? []) as unknown as JobPositionRow[];
     },
     enabled: !!currentOrganizationId,
+    staleTime: 10_000,
+    refetchOnWindowFocus: true,
   });
 }
 
@@ -220,9 +222,12 @@ export function useUpdateJobPositionStatus() {
       if (error) throw error;
       return data;
     },
-    onSuccess: (_data, vars) => {
-      queryClient.invalidateQueries({ queryKey: ['job-position', vars.id] });
-      queryClient.invalidateQueries({ queryKey: ['job-positions'] });
+    onSuccess: async (_data, vars) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['job-position', vars.id] }),
+        queryClient.invalidateQueries({ queryKey: ['job-positions'] }),
+      ]);
+      await queryClient.refetchQueries({ queryKey: ['job-positions'] });
       const label = STATUS_LABELS[vars.status] ?? vars.status;
       toast.success(`Status endret til ${label}`);
     },
