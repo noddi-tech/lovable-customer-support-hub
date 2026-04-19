@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+
 import {
   Select,
   SelectContent,
@@ -41,19 +42,6 @@ const ImportConfigureStep: React.FC<Props> = ({
 }) => {
   const { data: positions, isLoading: positionsLoading } = useJobPositions();
   const [createOpen, setCreateOpen] = useState(false);
-
-  // Debug logs to inspect data flow / status filtering
-  useEffect(() => {
-    if (!positionsLoading) {
-      // eslint-disable-next-line no-console
-      console.log('[ImportConfigure] all positions:', positions);
-      // eslint-disable-next-line no-console
-      console.log(
-        '[ImportConfigure] statuses:',
-        (positions ?? []).map((p) => ({ id: p.id, title: p.title, status: p.status })),
-      );
-    }
-  }, [positions, positionsLoading]);
 
   const open = (positions ?? []).filter(
     (p) => (p.status ?? '').trim().toLowerCase() === 'open',
