@@ -5426,6 +5426,15 @@ export type Database = {
         Args: { notification_id: string }
         Returns: undefined
       }
+      move_application_stage: {
+        Args: {
+          p_application_id: string
+          p_note?: string
+          p_notify?: boolean
+          p_to_stage_id: string
+        }
+        Returns: Json
+      }
       reassign_applications_to_stage: {
         Args: {
           p_from_stage_id: string
