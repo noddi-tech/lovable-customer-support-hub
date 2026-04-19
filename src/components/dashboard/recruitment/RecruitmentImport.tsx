@@ -26,7 +26,7 @@ const RecruitmentImport: React.FC = () => {
   const [rows, setRows] = useState<Record<string, string>[]>([]);
   const [mapping, setMapping] = useState<Record<string, TargetField>>({});
   const [positionId, setPositionId] = useState<string>('');
-  const [source, setSource] = useState<string>('Meta Lead Ad');
+  const [source, setSource] = useState<string>('meta_lead_ad');
   const [gdprConfirmed, setGdprConfirmed] = useState<boolean>(true);
   const [progress, setProgress] = useState({ current: 0, total: 0 });
   const [result, setResult] = useState<ImportResult | null>(null);
@@ -49,7 +49,7 @@ const RecruitmentImport: React.FC = () => {
     setRows([]);
     setMapping({});
     setPositionId('');
-    setSource('Meta Lead Ad');
+    setSource('meta_lead_ad');
     setGdprConfirmed(true);
     setProgress({ current: 0, total: 0 });
     setResult(null);
@@ -124,7 +124,7 @@ const RecruitmentImport: React.FC = () => {
             setHeaders(headers);
             setRows(rows);
             setMapping(mapping);
-            if (detectedMeta) setSource('Meta Lead Ad');
+            if (detectedMeta) setSource('meta_lead_ad');
             setStep('map');
           }}
         />
