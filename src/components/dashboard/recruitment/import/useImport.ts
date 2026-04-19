@@ -152,7 +152,10 @@ export function useBulkCreateApplicants() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['applicants'] });
       queryClient.invalidateQueries({ queryKey: ['pipeline-applications'] });
+      queryClient.invalidateQueries({ queryKey: ['pipeline'] });
       queryClient.invalidateQueries({ queryKey: ['job-positions'] });
+      queryClient.invalidateQueries({ queryKey: ['job-position'] });
+      queryClient.invalidateQueries({ queryKey: ['applicant-profile'] });
     },
   });
 }
