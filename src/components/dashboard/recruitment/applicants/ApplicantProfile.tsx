@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeft,
   ChevronDown,
@@ -41,6 +41,14 @@ import { useTeamMembers } from '@/hooks/useTeamMembers';
 
 const ApplicantProfile: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const handleBack = () => {
+    if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      navigate('/operations/recruitment/applicants');
+    }
+  };
   const { data: applicant, isLoading } = useApplicantProfile(id);
   const { data: events } = useApplicantEvents(id);
   const { data: pipeline } = useApplicantPipeline();
@@ -65,13 +73,14 @@ const ApplicantProfile: React.FC = () => {
   if (!applicant) {
     return (
       <div className="p-6 max-w-4xl mx-auto">
-        <Link
-          to="/operations/recruitment/applicants"
+        <button
+          type="button"
+          onClick={handleBack}
           className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6"
         >
           <ArrowLeft className="h-4 w-4" />
-          Tilbake til søkere
-        </Link>
+          Tilbake
+        </button>
         <div className="text-center py-12">
           <h1 className="text-2xl font-semibold mb-2 text-foreground">Søker ikke funnet</h1>
         </div>
@@ -85,13 +94,14 @@ const ApplicantProfile: React.FC = () => {
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
-      <Link
-        to="/operations/recruitment/applicants"
+      <button
+        type="button"
+        onClick={handleBack}
         className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft className="h-4 w-4" />
-        Tilbake til søkere
-      </Link>
+        Tilbake
+      </button>
 
       {/* Header */}
       <div className="space-y-3">
