@@ -63,10 +63,25 @@ const ImportMappingStep: React.FC<Props> = ({
     [rows, mapping]
   );
 
-  const validCount = useMemo(
-    () => rows.filter((r) => isValidEmail(mapRow(r, mapping).email)).length,
-    [rows, mapping]
-  );
+  const invalidRows = useMemo(() => {
+    const out: { rowNum: number; reason: string; name: string }[] = [];
+    rows.forEach((r, i) => {
+      const m = mapRow(r, mapping);
+      const name = [m.first_name, m.last_name].filter(Boolean).join(' ');
+      if (!m.email) {
+        out.push({ rowNum: i + 1, reason: 'Mangler e-post', name });
+      } else if (!isValidEmail(m.email)) {
+        out.push({
+          rowNum: i + 1,
+          reason: `Ugyldig e-post format '${m.email}'`,
+          name,
+        });
+      }
+    });
+    return out;
+  }, [rows, mapping]);
+
+  const validCount = rows.length - invalidRows.length;
 
   return (
     <div className="space-y-6">
