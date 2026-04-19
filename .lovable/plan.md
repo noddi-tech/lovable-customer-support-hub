@@ -1,49 +1,36 @@
 
+# Plan: Fix source enum mismatch in CSV import
 
-## Findings (data flow audit)
+The DB CHECK constraint `applicants_source_check` expects snake_case enum values, but the UI is sending Norwegian display labels — causing all 10 rows to fail.
 
-1. **`PositionsTable`** (line 19) uses `useJobPositions()` from `usePositions.ts` — same hook everywhere (PipelineFilters, ApplicantsFilterBar, CreateApplicantDialog, ImportConfigureStep all share it). No alternative list query exists.
+## Changes
 
-2. **`PositionStatusBadge`** is correct — `STATUS_MAP['open']` → "Åpen". No fallback bug. Both `PositionsTable` and `PositionDetail` render the exact same component.
-
-3. **`useJobPositions` query** uses `.select('*, applications(count)')` — wildcard correctly returns `status`. DB confirms: position `05deb373…` has `status='open'`, `published_at='2026-04-19 13:43:08'`. So the data in Postgres is correct.
-
-4. **`PositionDetail`** uses a different query key (`['job-position', id]`) hitting the same table with `*, recruitment_pipelines(...)`. That's why it shows the fresh "Åpen" — different cache entry, refetched on detail page mount.
-
-5. **Root cause — persisted query cache**: `src/lib/persistedQueryClient.ts` wraps the app in `PersistQueryClientProvider` with `createSyncStoragePersister` against `localStorage` (key `NODDI_QUERY_CACHE`), and sets these defaults:
-   - `gcTime: 24h`
-   - `staleTime: 10 min` (global default)
-   - **`refetchOnMount: false`**
-   - **`refetchOnWindowFocus: false`**
-   
-   Even though `useJobPositions` overrides `staleTime: 10_000` and `refetchOnWindowFocus: true`, **it does NOT override `refetchOnMount`**. Combined with the localStorage persistence, a stale `['job-positions', orgId]` snapshot (with `status: 'draft'`) is rehydrated from localStorage on every page load and never refetched on mount — so a hard refresh keeps showing "Utkast" indefinitely until either (a) the 10-second staleness triggers a window-focus refetch, or (b) a mutation explicitly invalidates AND refetches the key.
-
-   The status-change mutation (`useUpdateJobPositionStatus`) does call `refetchQueries({ queryKey: ['job-positions'] })`, but if the user changed status from the **detail page** while the list query was either (i) inactive (no observers) or (ii) still in localStorage, the persisted snapshot wins on next mount.
-
-## Fix
-
-Single targeted change in `src/components/dashboard/recruitment/positions/usePositions.ts` — add `refetchOnMount: 'always'` to `useJobPositions`:
-
+### 1. `ImportConfigureStep.tsx`
+Convert `SOURCES` from string array to `{value, label}[]`:
 ```ts
-return useQuery({
-  queryKey: ['job-positions', currentOrganizationId],
-  queryFn: async () => { /* unchanged */ },
-  enabled: !!currentOrganizationId,
-  staleTime: 10_000,
-  refetchOnMount: 'always',     // <-- NEW: bypass persisted-cache staleness
-  refetchOnWindowFocus: true,
-});
+const SOURCES = [
+  { value: 'meta_lead_ad', label: 'Meta Lead Ad' },
+  { value: 'finn', label: 'Finn.no' },
+  { value: 'csv_import', label: 'CSV Import' },
+  { value: 'website', label: 'Nettside' },
+  { value: 'referral', label: 'Referanse' },
+];
 ```
+Update the `<Select>` map to render `<SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>`.
 
-Also add `refetchOnMount: 'always'` to `useJobPosition(id)` (the detail query) for symmetry — same persistence trap applies there.
+Also update the GDPR auto-check `useEffect`: change `source === 'Meta Lead Ad'` → `source === 'meta_lead_ad'`.
 
-## Why not change global defaults
+### 2. `RecruitmentImport.tsx`
+- Initial state: `useState<string>('meta_lead_ad')` (was `'Meta Lead Ad'`)
+- `reset()` function: same change
+- `onParsed` handler in upload step: `if (detectedMeta) setSource('meta_lead_ad')` (was `'Meta Lead Ad'`)
 
-Touching `persistedQueryClient.ts` would affect every query in the app (conversations, customers, etc.) and risks the "99.9% uptime" core constraint. Scoping the override to the two recruitment-position queries fixes the bug without collateral risk.
+### 3. `ImportUploadStep.tsx`
+Audit confirms: this file does NOT set source itself — it only emits `detectedMeta` boolean. The source-setting lives in `RecruitmentImport.tsx`'s `onParsed` callback (covered above). No changes needed here.
 
-## Verification after fix
+## Verification
+After fix: re-upload test CSV → 10 rows insert successfully without `applicants_source_check` violation.
 
-1. Hard-refresh `/operations/recruitment/positions` → list immediately shows "Åpen" matching the detail page.
-2. Change status on detail page → list reflects change without manual reload.
-3. No regression to other tables that consume `useJobPositions` (Pipeline filters, Applicants filter, Create applicant dialog, Import configure step).
-
+## Files modified
+- `src/components/dashboard/recruitment/import/ImportConfigureStep.tsx`
+- `src/components/dashboard/recruitment/RecruitmentImport.tsx`
