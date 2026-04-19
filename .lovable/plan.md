@@ -1,130 +1,171 @@
 
 
-# Plan: Native Applicants list page
+I'll explore the codebase first to confirm patterns, then present a plan.
+<lov-tool-use id="toolu_vrtx_01UPMhPx7G62okbi9RWT9HLX" name="code--view" integration-id="code" data="{\"file_path\": \"src/components/dashboard/recruitment/applicants/useApplicants.ts\"}">
+</lov-tool-use>
 
-Replace `RecruitmentApplicants.tsx` placeholder with a real list + create dialog at `/operations/recruitment/applicants`.
+<lov-tool-use id="toolu_vrtx_01JLGCiS9HgXSSyLTca2NL6U" name="code--view" integration-id="code" data="{\"file_path\": \"src/hooks/useAuth.tsx\", \"lines\": \"1-60\"}">
+</lov-tool-use>
+
+<lov-tool-use id="toolu_vrtx_01JVtEmiSWCpXhi3te1Yb88A" name="code--search_files" integration-id="code" data="{\"query\": \"storage.from\\\\(\", \"include_patterns\": \"*.ts,*.tsx\", \"exclude_dirs\": \"node_modules\"}">
+</lov-tool-use>
+
+<lov-tool-use id="toolu_vrtx_01SF8J7txQYy7WYrH2uhBvDT" name="code--search_files" integration-id="code" data="{\"query\": \"from\\\\('profiles'\\\\)\", \"include_patterns\": \"*.ts,*.tsx\"}">
+</lov-tool-use>
+
+<lov-tool-use id="toolu_vrtx_01586sadrQdDKxozrofnJXSq" name="code--view" integration-id="code" data="{\"file_path\": \"src/components/dashboard/recruitment/applicants/useApplicants.ts\"}">
+</lov-tool-use>
+
+<lov-tool-use id="toolu_vrtx_01PasxvwUoo6Vn43hfcyJ5rz" name="code--search_files" integration-id="code" data="{\"query\": \"from\\\\('profiles'\\\\).select\", \"include_patterns\": \"*.ts,*.tsx\", \"exclude_dirs\": \"node_modules\"}">
+</lov-tool-use>
+
+<lov-tool-use id="toolu_vrtx_01MP4F1MTM2K9gqjMsoD7SB5" name="code--search_files" integration-id="code" data="{\"query\": \"storage\\\\.from\\\\(\", \"include_patterns\": \"*.ts,*.tsx\", \"exclude_dirs\": \"node_modules\"}">
+</lov-tool-use>
+
+<lov-tool-use id="toolu_vrtx_01Ebn6ptuujmCbTvHbn8FD92" name="security--get_table_schema" integration-id="security" data="">
+</lov-tool-use>
+
+<lov-tool-use id="toolu_vrtx_01YWvFKMraHPsqnzAxgbFAzw" name="code--exec" integration-id="code" data="{\"command\": \"grep -n \\\"application_events\\\\|applicant_files\\\\|storage.buckets\\\\|applicant-files\\\" tool-results://security--get_table_schema/20260419-153129-402387 2>/dev/null | head -50\", \"user_facing_description\": \"Looking up schema details\"}">
+</lov-tool-use>
+
+<lov-tool-use id="toolu_vrtx_01MdyVLyD7HT5pPZHhjRkQmJ" name="code--search_files" integration-id="code" data="{\"query\": \"application_events\", \"include_patterns\": \"*.sql\"}">
+</lov-tool-use>
+
+<lov-tool-use id="toolu_vrtx_019DNGhkFPvZnGaDxWWm4o51" name="code--view" integration-id="code" data="{\"file_path\": \"tool-results://security--get_table_schema/20260419-153129-402387\", \"lines\": \"103-260\"}">
+</lov-tool-use>
+I have enough info. Let me check if `applicant-files` storage bucket exists and the team members hook.
+<lov-tool-use id="toolu_vrtx_014BjEZzhXrqncqTFdSLXpVc" name="code--exec" integration-id="code" data="{\"command\": \"grep -n \\\"Storage Buckets\\\\|applicant-files\\\\|avatars\\\" tool-results://security--get_table_schema/20260419-153129-402387 | head -20\", \"user_facing_description\": \"Looking up storage buckets\"}">
+</lov-tool-use>
+
+<lov-tool-use id="toolu_vrtx_013nd7rf9yNAZTpPaKsR8Dc9" name="code--search_files" integration-id="code" data="{\"query\": \"Storage Buckets|applicant-files\", \"search_dir\": \"tool-results://security--get_table_schema\"}">
+</lov-tool-use>
+
+<lov-tool-use id="toolu_vrtx_01WGyiZLH8b35riz3xQCVQb8" name="code--view" integration-id="code" data="{\"file_path\": \"tool-results://security--get_table_schema/20260419-153129-402387\", \"lines\": \"3700-3811\"}">
+</lov-tool-use>
+I have what I need. The `applicant-files` storage bucket exists. `profiles.full_name` is the right column. `useTeamMembers` already exists. The schema is confirmed. Now I'll present the plan.
+
+<lov-plan>
+# Plan: Full applicant profile page
+
+Replace `ApplicantProfile.tsx` placeholder at `/operations/recruitment/applicants/:id` with the recruitment module's most important page.
 
 ## File structure
 
+**New (`src/components/dashboard/recruitment/applicants/`):**
+- `useApplicantProfile.ts` — all the data hooks listed below
+- `ApplicantEventTimeline.tsx` — timeline feed with icon + description rendering
+- `LogEventForm.tsx` — popover form for manual events (call, interview, other)
+- `ApplicantInfoCard.tsx` — right-column qualifications card
+- `ApplicantNotesTab.tsx`
+- `ApplicantFilesTab.tsx`
+- `MoveStageDialog.tsx` — confirmation + notification choice
+- `ScoreCircle.tsx` — small reusable score badge
+
 **Modified:**
-- `src/components/dashboard/recruitment/RecruitmentApplicants.tsx` — assemble header + filters + table + dialog
+- `ApplicantProfile.tsx` — full rewrite assembling everything
 
-**New (in `src/components/dashboard/recruitment/applicants/`):**
-- `useApplicants.ts` — TanStack Query hooks: `useApplicants(filters)`, `useCreateApplicant()`, `useApplicantPipeline()` (helper that returns the default pipeline's stages map for status badge colors)
-- `ApplicantSourceBadge.tsx` — colored source badge
-- `ApplicantStageBadge.tsx` — stage badge (uses pipeline stage colors from JSONB)
-- `ApplicantsFilterBar.tsx` — search + 3 selects
-- `ApplicantsTable.tsx` — the table itself
-- `CreateApplicantDialog.tsx` — the create dialog with multi-insert mutation
+## Hooks (`useApplicantProfile.ts`)
 
-## Data layer (`useApplicants.ts`)
+All hooks scoped via RLS; query keys include applicant id so invalidation is precise.
 
-**`useApplicants({ search, source, positionId, stageId })`** — query key `['applicants', org, filters]`.
-- Uses 300ms-debounced `search` from caller.
-- Builds query: `from('applicants').select('*, applications(id, current_stage_id, score, assigned_to, applied_at, position_id, job_positions(id, title))').order('created_at', { ascending: false })`
-- Server-side filters (when value !== 'all'):
-  - `source` → `.eq('source', source)`
-  - `positionId` → `.eq('applications.position_id', positionId)` + inner-join hint via `applications!inner(...)` so the filter actually scopes rows
-  - `stageId` → `.eq('applications.current_stage_id', stageId)` + same inner-join
-  - `search` → `.or('first_name.ilike.%q%,last_name.ilike.%q%,email.ilike.%q%,phone.ilike.%q%')` with sanitized `q`
-- Returns rows with `applications: [...]` (each having nested `job_positions`).
+- `useApplicantProfile(id)` — exactly the spec query, `.maybeSingle()`. Key `['applicant', id]`.
+- `useApplicantEvents(applicantId)` — joins `profiles:performed_by(id, full_name, avatar_url)`. Key `['applicant-events', applicantId]`.
+- `useApplicantNotes(applicantId)` — joins `profiles:author_id(id, full_name, avatar_url)`. Key `['applicant-notes', applicantId]`.
+- `useApplicantFiles(applicantId)` — plain select, ordered desc. Key `['applicant-files', applicantId]`.
+- `useUpdateApplicationStage()` — input `{ applicationId, applicantId, fromStageId, toStageId, notify }`. Updates `applications.current_stage_id`, then inserts `application_events` row `{ event_type: 'stage_change', event_data: { from: fromStageId, to: toStageId, notify } }`. Invalidates applicant + events + applicants list.
+- `useAddApplicantNote()` — input `{ applicantId, applicationId?, content, note_type }`. Inserts note + `note_added` event with `{ note_type, preview }`. Invalidates notes + events.
+- `useLogApplicantEvent()` — input `{ applicantId, applicationId, event_type, event_data, notes? }`. Generic insert. Invalidates events.
+- `useAssignApplication()` — input `{ applicationId, applicantId, profileId, profileName }`. Updates `applications.assigned_to`, inserts `assigned` event with `{ profile_id, name }`. Invalidates events + applicant.
+- `useUploadApplicantFile()` — uploads to `applicant-files/{org_id}/{applicant_id}/{timestamp}-{filename}`, then inserts `applicant_files` row + `file_uploaded` event with `{ file_name, file_type }`. Uses `currentOrganizationId` from store and `profile.id` from `useAuth()`.
 
-**`useApplicantPipeline()`** — fetches default pipeline (`is_default = true`) `stages` JSONB to look up stage name + color in the table. Query key `['recruitment-pipeline-default', org]`.
+`profile.id` from `useAuth()` is used for `performed_by` / `author_id` / `uploaded_by` (already the established pattern in `useApplicants.ts`). Reuses `useTeamMembers()` (already exists, queries `profiles` with `full_name`/`avatar_url`/org filter).
 
-**`useCreateApplicant()`** — multi-step mutation. Input includes basic fields + `positionId`, `source`, `qualifications`, `noteContent`. Sequence:
-1. Insert into `applicants` with `organization_id`, `gdpr_consent: true`, `gdpr_consent_at: now()`, `source`, plus qualification fields (`drivers_license_classes`, `years_experience`, `availability_date`, `language_norwegian`, `work_permit_status`). Returns `applicantId`.
-2. Insert into `applications` with `applicant_id`, `position_id`, `current_stage_id: 'not_reviewed'`, `organization_id`. Returns `applicationId`.
-3. Insert into `application_events`: `event_type: 'created'`, `event_data: { source }`, `performed_by: profile.id`.
-4. If `noteContent` not empty: insert into `applicant_notes` (`author_id: profile.id`, `note_type: 'internal'`, `application_id: applicationId`) AND `application_events` (`event_type: 'note_added'`, `event_data: { note_type: 'internal', preview: noteContent.slice(0,100) }`).
-5. Returns `applicantId`. On success: invalidate `['applicants']`, `['job-positions']`; toast "Søker opprettet"; caller navigates to detail page.
+Reuses existing `useApplicantPipeline()` from `useApplicants.ts` for stage name/color lookups.
 
-`profile.id` comes from `useAuth()` (already exposes `profile: UserProfile`).
+## `ApplicantProfile.tsx` (top section)
 
-## `ApplicantSourceBadge.tsx`
-Map `source` → label + tailwind color pair:
-- `meta_lead_ad` → blue, "Meta"
-- `finn` → orange, "Finn.no"
-- `website` → purple, "Nettside"
-- `referral` → green, "Referanse"
-- `manual` → gray, "Manuell"
-- `csv_import` → indigo, "CSV"
+Layout: `<div className="p-6 max-w-7xl mx-auto space-y-6">`
 
-Use solid background pairs like `bg-blue-100 text-blue-800` (matching `PositionStatusBadge` style).
+- Back link "← Tilbake til søkere"
+- `<h1 className="text-2xl font-semibold">{first_name} {last_name}</h1>`
+- Contact row: `<Mail/>` mailto, `<Phone/>` tel, `<MapPin/>` location — muted, gap-4, flex-wrap, only render if value present
+- Badge row: `<ApplicantSourceBadge>`, `<ApplicantStageBadge>` (first application's stage), `<ScoreCircle score={firstApp.score} />`
+- Action row (gap-2):
+  - `<Button variant="outline">Send e-post</Button>` — sets `tab='email'`
+  - `<Button variant="outline" asChild><a href={`tel:${phone}`}>Ring</a></Button>` — disabled if no phone
+  - "Flytt til..." → `<DropdownMenu>` listing pipeline stages → opens `<MoveStageDialog>`
+  - "Tilordne" → `<DropdownMenu>` of `useTeamMembers()` results → calls `useAssignApplication()` directly
 
-## `ApplicantStageBadge.tsx`
-Props: `stageId`, `pipeline` (stages JSONB array). Looks up `{ name, color }` in `pipeline.stages.find(s => s.id === stageId)`. Renders inline-styled badge using stage `color` (hex) as background with auto-contrast text. Falls back to muted "—" if not found.
+Loading: skeleton header. If `data === null`: "Søker ikke funnet" + back link.
 
-## `ApplicantsFilterBar.tsx`
-Flex row, `gap-3 items-center flex-wrap`:
-- `<Input>` with leading `<Search>` icon, controlled `searchInput`, debounced via `useDebounce(searchInput, 300)` (already present at `src/hooks/useDebounce.ts`) — debounced value is what flows into the query
-- Source `<Select>`: Alle, Meta Lead Ad, Finn.no, Nettside, Referanse, Manuell, CSV Import
-- Position `<Select>`: Alle + map of `useJobPositions()` → `<SelectItem value={p.id}>{p.title}</SelectItem>`
-- Status `<Select>`: Alle + 4 hard-coded stage IDs `not_reviewed` "Ikke vurdert", `qualified` "Kvalifisert & i dialog", `disqualified` "Diskvalifisert", `hired` "Ansatt"
+## `MoveStageDialog.tsx`
 
-State lives in parent (`RecruitmentApplicants`) so it can be passed to both `ApplicantsTable` and the URL-less query.
+`<Dialog>` with text "Flytt {name} til {stageName}? Vil du varsle søkeren?" and 4 buttons: E-post, SMS, Begge, Hopp over. All four call `useUpdateApplicationStage()` with the chosen `notify` value. Email/SMS dispatch is a TODO (`console.log('TODO: send', notify, applicantId)`). Toast: "Søker flyttet til {stageName}".
 
-## `ApplicantsTable.tsx`
-Standard shadcn `Table` matching `PositionsTable` pattern.
+## Tabs (shadcn `Tabs`, value-controlled so "Send e-post" can switch it)
 
-Columns: Navn, E-post, Telefon, Kilde, Stilling, Status, Poeng, Søkt.
+### Tab "Oversikt"
+2-col grid `grid-cols-1 lg:grid-cols-3 gap-6`:
 
-- **Navn** — `<Link to={'/operations/recruitment/applicants/' + a.id}>` bold, `${first_name} ${last_name}`
-- **E-post** — `text-sm text-muted-foreground`
-- **Telefon** — value or muted "—"
-- **Kilde** — `<ApplicantSourceBadge source={a.source} />`
-- **Stilling** — `apps[0]?.job_positions?.title ?? "—"` + `apps.length > 1 && <Badge variant="secondary">+{apps.length-1}</Badge>`
-- **Status** — `<ApplicantStageBadge stageId={apps[0]?.current_stage_id} pipeline={pipeline} />`
-- **Poeng** — `apps[0]?.score`. Color: `score < 30` red, `30–60` amber, `>60` green. Else "—".
-- **Søkt** — `formatDistanceToNow(applied_at, { addSuffix: true, locale: nb })`
+**Left (col-span-2):** "Hendelser" `<Card>`
+- Header row: title + `<Popover>` triggered by `<Button size="sm"><Plus/>Logg hendelse</Button>` containing `<LogEventForm>`
+- `<ApplicantEventTimeline events={events} pipeline={pipeline} />`
 
-States:
-- Loading → 5 skeleton rows × 8 cells
-- Empty → centered card, `<Briefcase>` icon + "Ingen søkere ennå. Legg til søkere manuelt eller importer fra CSV."
+**Right (col-span-1):** `<ApplicantInfoCard applicant={data} />`
+- Førerkort (badges from `drivers_license_classes`) / Erfaring (`years_experience`) / Sertifiseringer (badges from `certifications`) / Egen bil (`own_vehicle`) / Tilgjengelig fra (`availability_date` formatted) / Norsk (label from `language_norwegian`) / Arbeidstillatelse (label from `work_permit_status`) / GDPR samtykke (`gdpr_consent` + `gdpr_consent_at` date)
+- Each row: `<dt className="text-sm text-muted-foreground">…</dt><dd>…</dd>`; "Ikke oppgitt" muted when null/empty
 
-## `CreateApplicantDialog.tsx`
-`<Dialog>` + `<DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">`. Plain `useState` form (consistent with `CreatePositionDialog`).
+### `LogEventForm.tsx`
+Local `useState`. Event type select drives conditional fields:
+- `phone_call` → duration (number, min) + outcome `<Select>` (Interessert / Ikke svar / Ikke interessert / Ring tilbake) → `event_data: { duration_minutes, outcome }`
+- `interview_scheduled` → type select (phone/onsite/trial_day) + datetime-local + location → `event_data: { interview_type, scheduled_at, location }`
+- `interview_completed` → type + rating (1-5 number) + notes textarea → `event_data: { interview_type, rating }`, `notes`
+- Annet → notes textarea → emits `note_added` with `{ note_type: 'internal', preview }`
+Submit calls `useLogApplicantEvent()` (or `useAddApplicantNote()` for "Annet"), closes popover, resets form.
 
-Fields:
-1. Fornavn `<Input>` required
-2. Etternavn `<Input>` required
-3. E-post `<Input type="email">` required
-4. Telefon `<Input>`
-5. Stilling `<Select>` — required, populated from `useJobPositions().filter(p => p.status === 'open')`
-6. Kilde `<Select>` — Manuell (default), Referanse, Nettside, Finn.no
-7. Section "Kvalifikasjoner" (h4 + border-top):
-   - Førerkortklasser — same checkbox grid as `CreatePositionDialog` (B, B96, BE, C1, C1E, C, CE, D1, D1E, D, DE)
-   - Års erfaring — `<Input type="number" min={0}>`
-   - Tilgjengelig fra — `<Input type="date">` (native date input, consistent with simplicity here)
-   - Norsk nivå — `<Select>`: native, fluent, conversational, basic, none → Norwegian labels
-   - Arbeidstillatelse — `<Select>`: citizen, permanent_resident, work_permit, needs_sponsorship → Norwegian labels
-8. GDPR samtykke — `<Checkbox>` + label, required (submit disabled until checked): "Søkeren har gitt samtykke til behandling av personopplysninger"
-9. Notat — `<Textarea emojiAutocomplete={false}>`, optional
+### `ApplicantEventTimeline.tsx`
+For each event, vertical list. Layout per row: colored circle icon (left) + content block (right) + timeline connector line via border-l on container.
 
-Submit:
-- Build qualifications object, call `createMut.mutateAsync(...)`
-- On success: close dialog, reset form, `navigate('/operations/recruitment/applicants/' + newApplicantId)`
-
-Footer: Avbryt + Opprett søker (disabled while pending or required fields missing or GDPR unchecked, with `<Loader2 className="animate-spin">`).
-
-## `RecruitmentApplicants.tsx` (assembled)
+Icon + color map (Tailwind bg-X-100 text-X-600):
 ```
-<div className="p-6 space-y-4">
-  <div className="flex items-center justify-between">
-    <h2 className="text-2xl font-semibold">Søkere</h2>
-    <Button onClick={() => setOpen(true)}><Plus /> Legg til søker</Button>
-  </div>
-  <ApplicantsFilterBar value={filters} onChange={setFilters} />
-  <ApplicantsTable filters={filters} />
-  <CreateApplicantDialog open={open} onOpenChange={setOpen} />
-</div>
+created → UserPlus / blue
+stage_change → ArrowRight / purple
+note_added → MessageSquare / gray
+email_sent → Mail / green
+email_received → MailOpen / blue
+phone_call → Phone / orange
+interview_scheduled → Calendar / indigo
+interview_completed → CheckCircle / green
+file_uploaded → Paperclip / gray
+assigned → UserCheck / teal
+sms_sent → Smartphone / yellow
+score_calculated → BarChart / purple
 ```
 
-State: `filters = { search, source: 'all', positionId: 'all', stageId: 'all' }`.
+`describeEvent(event, pipeline)` helper returns the human-readable string per spec (stage_change looks up `pipeline.stages.find(s => s.id === ...).name` for from/to). Renders performed-by ("System" if null) and `formatDistanceToNow(created_at, { addSuffix: true, locale: nb })`. If `event.notes` present, render below in muted small block.
+
+### Tab "Notater" (`ApplicantNotesTab.tsx`)
+- Top form: `<Textarea>` + `<Select>` (Internt notat / Intervjufeedback / Privat → `internal`/`interview_feedback`/`private`) + "Legg til" button → `useAddApplicantNote()`
+- List below: each note → author name (from joined profile), timestamp (`formatDistanceToNow`), type badge (interview_feedback gets `bg-blue-100 text-blue-800`), content `whitespace-pre-wrap`
+
+### Tab "Filer" (`ApplicantFilesTab.tsx`)
+- File type `<Select>` (cv / cover_letter / drivers_license / certificate / id_document / other → Norwegian labels)
+- Drop zone: dashed border, `<input type="file" hidden ref>` triggered by click; supports drag-and-drop via `onDragOver`/`onDrop`. Shows "Dra filer hit eller klikk for å laste opp"
+- On file selected → `useUploadApplicantFile()` with chosen type
+- File list table/cards: file_name, type badge, size (`formatBytes` helper → KB/MB), uploader name (lookup via `useTeamMembers` map by id), formatted date, download button (`supabase.storage.from('applicant-files').createSignedUrl(storage_path, 3600)` → window.open)
+
+### Tab "E-post"
+Plain `<Card>` with muted text "E-postkommunikasjon kobles til i fase 6"
+
+## Helpers (inline in component files)
+- `STAGE_LABELS` map for default stages used in fallback
+- `LANG_LABELS` and `WORK_PERMIT_LABELS` Norwegian maps
+- `formatBytes(n)` helper
 
 ## Notes
-- RLS scopes by org for all involved tables (verified in schema dump).
-- The `current_stage_id` is text matching `stages[].id` in the pipeline JSONB — colors come from there.
-- Search uses sanitized input to avoid breaking PostgREST `.or()` syntax (escape commas/parens/% via simple replacement before interpolating).
-- `useDebounce` (already exists) handles the 300 ms debounce.
-- No new shadcn deps; everything is in place.
-
+- All UI strings in Norwegian Bokmål.
+- RLS handles org scoping for all 4 tables + storage bucket (verified in schema dump).
+- Storage path follows existing policy: `{org_id}/{applicant_id}/{filename}` (first folder = org id per RLS check).
+- `profiles.full_name` is the correct column (verified in `useTeamMembers` and `ConversationViewContext`).
+- No DB migrations required — `applicant_files`, `applicant_notes`, `application_events` tables and `applicant-files` bucket all exist with proper RLS.
+- No new shadcn deps; reuses Dialog, Popover, DropdownMenu, Tabs, Card, Badge, Select, Textarea, Button, Skeleton.
