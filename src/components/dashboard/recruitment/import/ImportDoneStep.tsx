@@ -23,8 +23,8 @@ const ImportDoneStep: React.FC<Props> = ({ result, onRestart }) => {
     <div className="flex justify-center">
       <Card className="w-full max-w-2xl p-8 space-y-6">
         <div className="flex flex-col items-center text-center gap-2">
-          <div className="h-14 w-14 rounded-full bg-emerald-500/10 flex items-center justify-center">
-            <CheckCircle2 className="h-8 w-8 text-emerald-500" />
+          <div className="h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center">
+            <CheckCircle2 className="h-8 w-8 text-primary" />
           </div>
           <h3 className="text-xl font-semibold">Import fullført!</h3>
           <p className="text-sm text-muted-foreground">
@@ -33,12 +33,12 @@ const ImportDoneStep: React.FC<Props> = ({ result, onRestart }) => {
         </div>
 
         <div className="grid grid-cols-3 gap-3">
-          <div className="rounded-lg border p-4 text-center bg-emerald-500/5 border-emerald-500/30">
-            <div className="text-2xl font-semibold text-emerald-600">{result.imported}</div>
+          <div className="rounded-lg border p-4 text-center bg-primary/5 border-primary/30">
+            <div className="text-2xl font-semibold text-primary">{result.imported}</div>
             <div className="text-xs text-muted-foreground mt-1">Importert</div>
           </div>
-          <div className="rounded-lg border p-4 text-center bg-amber-500/5 border-amber-500/30">
-            <div className="text-2xl font-semibold text-amber-600">{result.duplicates}</div>
+          <div className="rounded-lg border p-4 text-center bg-muted border-border">
+            <div className="text-2xl font-semibold text-foreground">{result.duplicates}</div>
             <div className="text-xs text-muted-foreground mt-1">Duplikater</div>
           </div>
           <div className="rounded-lg border p-4 text-center bg-destructive/5 border-destructive/30">
