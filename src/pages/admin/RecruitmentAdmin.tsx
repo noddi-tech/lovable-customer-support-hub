@@ -1,0 +1,110 @@
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Heading } from "@/components/ui/heading";
+import { useSearchParams } from "react-router-dom";
+import { Workflow, Mail, Zap, Link2, History } from "lucide-react";
+
+const VALID_TABS = ["pipeline", "templates", "automation", "integrations", "audit"] as const;
+
+export default function RecruitmentAdmin() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get("tab");
+  const activeTab = VALID_TABS.includes(tabParam as typeof VALID_TABS[number])
+    ? (tabParam as string)
+    : "pipeline";
+
+  const handleTabChange = (value: string) => {
+    setSearchParams({ tab: value }, { replace: true });
+  };
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <Heading level={1} className="text-2xl font-semibold">
+          Rekruttering
+        </Heading>
+        <p className="text-sm text-muted-foreground mt-1">
+          Konfigurer pipeline, e-postmaler, automatisering og integrasjoner for rekrutteringsmodulen.
+        </p>
+      </div>
+
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+        <TabsList>
+          <TabsTrigger value="pipeline">
+            <Workflow className="h-4 w-4" />
+            Pipeline
+          </TabsTrigger>
+          <TabsTrigger value="templates">
+            <Mail className="h-4 w-4" />
+            E-postmaler
+          </TabsTrigger>
+          <TabsTrigger value="automation">
+            <Zap className="h-4 w-4" />
+            Automatisering
+          </TabsTrigger>
+          <TabsTrigger value="integrations">
+            <Link2 className="h-4 w-4" />
+            Integrasjoner
+          </TabsTrigger>
+          <TabsTrigger value="audit">
+            <History className="h-4 w-4" />
+            Revisjon
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="pipeline">
+          <PlaceholderTab
+            title="Pipeline-konfigurasjon"
+            description="Definer stadier, scoring-regler og standardflyt for søknader."
+          />
+        </TabsContent>
+        <TabsContent value="templates">
+          <PlaceholderTab
+            title="E-postmaler"
+            description="Administrer maler for invitasjoner, avslag og statusoppdateringer til søkere."
+          />
+        </TabsContent>
+        <TabsContent value="automation">
+          <PlaceholderTab
+            title="Automatisering"
+            description="Sett opp regler som flytter søkere mellom stadier basert på hendelser og scoring."
+          />
+        </TabsContent>
+        <TabsContent value="integrations">
+          <PlaceholderTab
+            title="Integrasjoner"
+            description="Koble til Finn.no, Meta Lead Ads og andre kilder for innkommende søknader."
+          />
+        </TabsContent>
+        <TabsContent value="audit">
+          <PlaceholderTab
+            title="Revisjon"
+            description="Se historikk over endringer i rekrutteringsoppsettet og søknadsbehandling."
+          />
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
+
+function PlaceholderTab({ title, description }: { title: string; description: string }) {
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-start justify-between gap-4">
+          <div className="space-y-1">
+            <CardTitle>{title}</CardTitle>
+            <CardDescription>{description}</CardDescription>
+          </div>
+          <Badge variant="secondary">Kommer snart</Badge>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <p className="text-sm text-muted-foreground">
+          Denne seksjonen er under utvikling og blir tilgjengelig snart.
+        </p>
+      </CardContent>
+    </Card>
+  );
+}

@@ -3137,14 +3137,150 @@ export type Database = {
         }
         Relationships: []
       }
-      recruitment_email_templates: {
+      recruitment_automation_executions: {
         Row: {
-          body: string
+          action_detail: Json | null
+          action_result: string
+          applicant_id: string | null
+          application_id: string | null
           created_at: string
+          duration_ms: number | null
+          id: string
+          organization_id: string
+          rule_id: string | null
+          rule_name: string
+          trigger_context: Json
+        }
+        Insert: {
+          action_detail?: Json | null
+          action_result: string
+          applicant_id?: string | null
+          application_id?: string | null
+          created_at?: string
+          duration_ms?: number | null
+          id?: string
+          organization_id: string
+          rule_id?: string | null
+          rule_name: string
+          trigger_context: Json
+        }
+        Update: {
+          action_detail?: Json | null
+          action_result?: string
+          applicant_id?: string | null
+          application_id?: string | null
+          created_at?: string
+          duration_ms?: number | null
+          id?: string
+          organization_id?: string
+          rule_id?: string | null
+          rule_name?: string
+          trigger_context?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recruitment_automation_executions_applicant_id_fkey"
+            columns: ["applicant_id"]
+            isOneToOne: false
+            referencedRelation: "applicants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recruitment_automation_executions_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recruitment_automation_executions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recruitment_automation_executions_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "recruitment_automation_rules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recruitment_automation_rules: {
+        Row: {
+          action_config: Json
+          action_type: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          execution_order: number
           id: string
           is_active: boolean
           name: string
           organization_id: string
+          trigger_config: Json
+          trigger_type: string
+          updated_at: string
+        }
+        Insert: {
+          action_config?: Json
+          action_type: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          execution_order?: number
+          id?: string
+          is_active?: boolean
+          name: string
+          organization_id: string
+          trigger_config?: Json
+          trigger_type: string
+          updated_at?: string
+        }
+        Update: {
+          action_config?: Json
+          action_type?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          execution_order?: number
+          id?: string
+          is_active?: boolean
+          name?: string
+          organization_id?: string
+          trigger_config?: Json
+          trigger_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recruitment_automation_rules_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recruitment_automation_rules_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recruitment_email_templates: {
+        Row: {
+          body: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          organization_id: string
+          soft_deleted_at: string | null
           stage_trigger: string | null
           subject: string
           updated_at: string
@@ -3152,10 +3288,12 @@ export type Database = {
         Insert: {
           body: string
           created_at?: string
+          description?: string | null
           id?: string
           is_active?: boolean
           name: string
           organization_id: string
+          soft_deleted_at?: string | null
           stage_trigger?: string | null
           subject: string
           updated_at?: string
@@ -3163,10 +3301,12 @@ export type Database = {
         Update: {
           body?: string
           created_at?: string
+          description?: string | null
           id?: string
           is_active?: boolean
           name?: string
           organization_id?: string
+          soft_deleted_at?: string | null
           stage_trigger?: string | null
           subject?: string
           updated_at?: string
@@ -3214,6 +3354,69 @@ export type Database = {
             foreignKeyName: "recruitment_pipelines_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recruitment_settings: {
+        Row: {
+          auto_delete_on_retention: boolean
+          created_at: string
+          default_applicant_source: string
+          default_pipeline_id: string | null
+          default_retention_months: number
+          id: string
+          organization_id: string
+          reply_to_email: string | null
+          require_gdpr_consent: boolean
+          sender_email: string | null
+          sender_name: string | null
+          sms_from_number: string | null
+          updated_at: string
+        }
+        Insert: {
+          auto_delete_on_retention?: boolean
+          created_at?: string
+          default_applicant_source?: string
+          default_pipeline_id?: string | null
+          default_retention_months?: number
+          id?: string
+          organization_id: string
+          reply_to_email?: string | null
+          require_gdpr_consent?: boolean
+          sender_email?: string | null
+          sender_name?: string | null
+          sms_from_number?: string | null
+          updated_at?: string
+        }
+        Update: {
+          auto_delete_on_retention?: boolean
+          created_at?: string
+          default_applicant_source?: string
+          default_pipeline_id?: string | null
+          default_retention_months?: number
+          id?: string
+          organization_id?: string
+          reply_to_email?: string | null
+          require_gdpr_consent?: boolean
+          sender_email?: string | null
+          sender_name?: string | null
+          sms_from_number?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recruitment_settings_default_pipeline_id_fkey"
+            columns: ["default_pipeline_id"]
+            isOneToOne: false
+            referencedRelation: "recruitment_pipelines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recruitment_settings_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
             referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
