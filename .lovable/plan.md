@@ -1,81 +1,99 @@
 
 
-# Build native Recruitment module with tabbed sub-navigation
+# Plan: Native job positions management page
 
-## Overview
-Replace the iframe in `RecruitmentInterface.tsx` with a native tabbed layout. All recruitment sub-routes (`/operations/recruitment/*`) keep using `<Index />` as the page shell (consistent with how `tickets`, `doorman`, etc. work today), so the existing `OperationsSidebar` continues to work unchanged.
+Replace `RecruitmentPositions.tsx` placeholder with a real list + create dialog at `/operations/recruitment/positions`.
 
-## Routes added in `src/App.tsx`
-Under the existing `/operations/recruitment` block, add:
-- `/operations/recruitment/pipeline` → `<Index />`
-- `/operations/recruitment/applicants` → `<Index />`
-- `/operations/recruitment/applicants/:id` → `<Index />`
-- `/operations/recruitment/positions` → `<Index />`
-- `/operations/recruitment/positions/:id` → `<Index />`
-- `/operations/recruitment/import` → `<Index />`
-- `/operations/recruitment/settings` → `<Index />`
+## File structure
 
-The existing `/operations/recruitment` route stays as-is (default = Overview).
+**New files (in `src/components/dashboard/recruitment/positions/`):**
+- `usePositions.ts` — TanStack Query hooks (list + create)
+- `PositionStatusBadge.tsx` — colored status badge component
+- `CreatePositionDialog.tsx` — the create dialog
+- `PositionsTable.tsx` — the table component
 
-## `src/pages/Index.tsx` — sub-section detection
-`getCurrentSubSection()` already returns `'recruitment'` for any path starting with `/operations/recruitment`. Keep that, and let `RecruitmentInterface` handle internal routing based on `useLocation()`.
-
-## New folder: `src/components/dashboard/recruitment/`
-
-**`RecruitmentInterface.tsx`** (replaces existing iframe file)
-- Reads `useLocation()` and parses the path after `/operations/recruitment/`.
-- If path matches `applicants/:id` or `positions/:id` → render the detail page **without** the tab bar.
-- Otherwise → render:
-  - A horizontal tab bar at the top (sticky, styled like other in-app nav tabs).
-  - Below: the active sub-page based on the path segment (default = Overview).
-- Tab bar uses Tailwind styling consistent with the app:
-  - `border-b border-border` row, each tab as a `Link` with `px-4 py-2 text-sm font-medium`, active state `border-b-2 border-primary text-foreground`, inactive `text-muted-foreground hover:text-foreground`.
-- Tab definitions (label, path):
-  - `Oversikt` → `/operations/recruitment`
-  - `Pipeline` → `/operations/recruitment/pipeline`
-  - `Søkere` → `/operations/recruitment/applicants`
-  - `Stillinger` → `/operations/recruitment/positions`
-  - `Importer` → `/operations/recruitment/import`
-  - `Innstillinger` → `/operations/recruitment/settings`
-- Active detection: a tab is active when `location.pathname === tab.path` OR (for non-overview tabs) `location.pathname.startsWith(tab.path + '/')`. The Overview tab is active only on exact match (otherwise nested paths would activate it too).
-
-**Placeholder pages** — each is a tiny component rendering a heading + "Denne siden er under utvikling" inside a centered card (matching `ServiceTicketsInterface` style):
-- `RecruitmentOverview.tsx` — title "Oversikt"
-- `RecruitmentPipeline.tsx` — title "Pipeline"
-- `RecruitmentApplicants.tsx` — title "Søkere"
-- `RecruitmentPositions.tsx` — title "Stillinger"
-- `RecruitmentImport.tsx` — title "Importer"
-- `RecruitmentSettings.tsx` — title "Innstillinger"
-- `ApplicantProfile.tsx` — title "Søker", reads `:id` via `useParams`, includes a back button (`← Tilbake til søkere` → `/operations/recruitment/applicants`). No tab bar.
-- `PositionDetail.tsx` — title "Stilling", reads `:id`, back button → `/operations/recruitment/positions`. No tab bar.
-
-## Sub-section routing inside `RecruitmentInterface.tsx`
-Simple switch based on the path segment after `recruitment/`:
-```
-'' or undefined → <RecruitmentOverview />
-'pipeline'      → <RecruitmentPipeline />
-'applicants'    → <RecruitmentApplicants /> (with tabs)
-'applicants/:id'→ <ApplicantProfile />     (no tabs, returned early)
-'positions'     → <RecruitmentPositions />
-'positions/:id' → <PositionDetail />       (no tabs, returned early)
-'import'        → <RecruitmentImport />
-'settings'      → <RecruitmentSettings />
-```
-
-## Files
 **Modified:**
-- `src/App.tsx` — add 7 new child routes under `/operations/recruitment`
-- `src/components/dashboard/RecruitmentInterface.tsx` — rewrite as tabbed layout dispatcher
+- `src/components/dashboard/recruitment/RecruitmentPositions.tsx` — assemble header + table + dialog
 
-**New (in `src/components/dashboard/recruitment/`):**
-- `RecruitmentOverview.tsx`
-- `RecruitmentPipeline.tsx`
-- `RecruitmentApplicants.tsx`
-- `RecruitmentPositions.tsx`
-- `RecruitmentImport.tsx`
-- `RecruitmentSettings.tsx`
-- `ApplicantProfile.tsx`
-- `PositionDetail.tsx`
+## Data layer (`usePositions.ts`)
 
-**Untouched:** `nav-config.ts`, `OperationsSidebar.tsx`, `OpsWrapper.tsx`, `Index.tsx` (the existing `recruitment` sub-section already maps to `<RecruitmentInterface />`).
+Following the codebase pattern (plain Supabase + TanStack Query, RLS handles org filtering):
+
+- `useJobPositions()` — `select('*, applications(count)').order('created_at', { ascending: false })` from `job_positions`. The nested `applications(count)` returns Postgres-aggregated counts in one round-trip. Returns rows with `applications: [{ count: number }]`.
+- `useRecruitmentPipelines()` — `select('id, name, is_default')` from `recruitment_pipelines`, ordered with default first.
+- `useCreateJobPosition()` — `useMutation` that inserts a row with `status: 'draft'`, `organization_id` from `useOrganizationStore().currentOrganizationId`, `requirements` as JSONB. On success: `queryClient.invalidateQueries({ queryKey: ['job-positions'] })` + sonner `toast.success('Stilling opprettet')`. On error: `toast.error(...)`.
+
+## `PositionStatusBadge.tsx`
+
+Map status → variant + label:
+- `draft` → secondary/gray, "Utkast"
+- `open` → green (`bg-green-100 text-green-800`), "Åpen"
+- `paused` → yellow (`bg-yellow-100 text-yellow-800`), "Pauset"
+- `closed` → red (`bg-red-100 text-red-800`), "Lukket"
+
+## `PositionsTable.tsx`
+
+Uses shadcn `Table` (matches `DataTable` styling). Columns: Tittel (bold, `<Link>` to `/operations/recruitment/positions/:id`), Sted, Kampanje (muted gray when empty, shows "—"), Status (badge), Søkere (number from `applications[0]?.count ?? 0`), Opprettet (`formatDistanceToNow(date, { addSuffix: true, locale: nb })` from `date-fns` + `date-fns/locale`).
+
+States:
+- Loading → 5 `<Skeleton>` rows
+- Empty → centered card with `Briefcase` icon + "Ingen stillinger opprettet ennå. Klikk 'Opprett stilling' for å komme i gang."
+
+## `CreatePositionDialog.tsx`
+
+Plain `useState` form (consistent with `CreateTicketDialog`). No zod — simple inline validation (required title).
+
+Fields, in order, inside `<Dialog><DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">`:
+
+1. **Tittel** — `<Input>` required
+2. **Beskrivelse** — `<Textarea emojiAutocomplete={false}>` (avoid emoji picker on a job description)
+3. **Sted** — `<Input>`
+4. **Kampanje** — `<Input>`
+5. **Ansettelsestype** — `<Select>` with: `full_time`→Heltid, `part_time`→Deltid, `contract`→Vikariat, `seasonal`→Sesong (default `full_time`)
+6. **Lønnsspenn** — 2-col grid: `<Input type="number">` Min / Max with "NOK/år" suffix as muted helper text under each
+7. Section heading **"Krav"** (h4 + border-top divider)
+8. **Førerkortklasses** — grid of `<Checkbox>` + `<Label>` pairs for `['B','B96','BE','C1','C1E','C','CE','D1','D1E','D','DE']`, stored in a `Set<string>`
+9. **Minimum års erfaring** — `<Input type="number" min={0}>`
+10. **Sertifiseringer** — chip input: `<Input>` + Enter handler appends to `string[]`, displayed as `<Badge variant="secondary">{cert} <X onClick={remove} /></Badge>` (mirrors the Tags pattern in `CreateTicketDialog`)
+11. **Pipeline** — `<Select>` populated from `useRecruitmentPipelines()`, pre-selected to default pipeline once data loads (via `useEffect`)
+
+Footer: Avbryt + Opprett stilling (disabled while pending or title empty, with `<Loader2 className="animate-spin">`).
+
+On submit, build payload:
+```ts
+{
+  title, description: description || null, location: location || null,
+  campaign: campaign || null, employment_type, 
+  salary_range_min: minSalary ? Number(minSalary) : null,
+  salary_range_max: maxSalary ? Number(maxSalary) : null,
+  pipeline_id: pipelineId || null,
+  requirements: {
+    drivers_license: Array.from(licenseClasses),
+    min_experience_years: minYears ? Number(minYears) : null,
+    certifications,
+  },
+  status: 'draft',
+  organization_id: currentOrganizationId,
+}
+```
+Insert → on success: reset form, close dialog (parent handles invalidation via the hook).
+
+## `RecruitmentPositions.tsx` (assembled page)
+
+```
+<div className="p-6 space-y-4">
+  <div className="flex items-center justify-between">
+    <h2 className="text-2xl font-semibold">Stillinger</h2>
+    <Button onClick={() => setOpen(true)}><Plus /> Opprett stilling</Button>
+  </div>
+  <PositionsTable />
+  <CreatePositionDialog open={open} onOpenChange={setOpen} />
+</div>
+```
+
+## Notes
+- All UI strings are Norwegian Bokmål (matches existing recruitment tabs).
+- RLS on `job_positions` (`organization_id` filter) handles scoping automatically — no client-side `.eq()` needed for the list query.
+- The `applications(count)` embedded select requires the FK `applications.position_id → job_positions.id`, which exists per the schema dump.
+- Detail page (`/positions/:id`) is already a placeholder — out of scope here, the title link just navigates to it.
 
