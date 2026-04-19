@@ -1,36 +1,40 @@
 
-# Plan: Fix source enum mismatch in CSV import
+## Plan: Fix stale cache for recruitment lists after CSV import
 
-The DB CHECK constraint `applicants_source_check` expects snake_case enum values, but the UI is sending Norwegian display labels — causing all 10 rows to fail.
+Three scoped changes — no global config touched.
 
-## Changes
+### 1. `src/components/dashboard/recruitment/import/useImport.ts`
+The mutation already has an `onSuccess` invalidating `['applicants']`, `['pipeline-applications']`, `['job-positions']`. Expand it to cover all recruitment keys:
 
-### 1. `ImportConfigureStep.tsx`
-Convert `SOURCES` from string array to `{value, label}[]`:
 ```ts
-const SOURCES = [
-  { value: 'meta_lead_ad', label: 'Meta Lead Ad' },
-  { value: 'finn', label: 'Finn.no' },
-  { value: 'csv_import', label: 'CSV Import' },
-  { value: 'website', label: 'Nettside' },
-  { value: 'referral', label: 'Referanse' },
-];
+onSuccess: () => {
+  queryClient.invalidateQueries({ queryKey: ['applicants'] });
+  queryClient.invalidateQueries({ queryKey: ['pipeline-applications'] });
+  queryClient.invalidateQueries({ queryKey: ['pipeline'] });
+  queryClient.invalidateQueries({ queryKey: ['job-positions'] });
+  queryClient.invalidateQueries({ queryKey: ['job-position'] });
+  queryClient.invalidateQueries({ queryKey: ['applicant-profile'] });
+},
 ```
-Update the `<Select>` map to render `<SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>`.
+(Note: actual pipeline query key is `['pipeline-applications', ...]` per `usePipeline.ts`, so keep that one and also add `['pipeline']` as requested for any future hooks.)
 
-Also update the GDPR auto-check `useEffect`: change `source === 'Meta Lead Ad'` → `source === 'meta_lead_ad'`.
+### 2. `src/components/dashboard/recruitment/applicants/useApplicants.ts`
+Add `refetchOnMount: 'always'` to the `useApplicants` query options (after `enabled`). Bypasses persisted-cache staleness on mount, mirroring the `useJobPositions` fix.
 
-### 2. `RecruitmentImport.tsx`
-- Initial state: `useState<string>('meta_lead_ad')` (was `'Meta Lead Ad'`)
-- `reset()` function: same change
-- `onParsed` handler in upload step: `if (detectedMeta) setSource('meta_lead_ad')` (was `'Meta Lead Ad'`)
+### 3. `src/components/dashboard/recruitment/pipeline/usePipeline.ts`
+Add `refetchOnMount: 'always'` to `usePipelineApplications` (alongside existing `placeholderData: keepPreviousData`).
 
-### 3. `ImportUploadStep.tsx`
-Audit confirms: this file does NOT set source itself — it only emits `detectedMeta` boolean. The source-setting lives in `RecruitmentImport.tsx`'s `onParsed` callback (covered above). No changes needed here.
+### Why this works
+- `PersistQueryClientProvider` rehydrates `['applicants', orgId, ...]` and `['pipeline-applications', orgId, ...]` from localStorage on every page load with `refetchOnMount: false`. Mutation invalidation only refetches **active** observers — when the user is on the import page, the list/pipeline pages have no observers, so invalidation marks them stale but the next mount serves persisted (empty) data.
+- `refetchOnMount: 'always'` forces a network fetch when the component mounts, regardless of staleness or persisted data → the 10 imported rows show up immediately.
+- The expanded `onSuccess` covers any in-tab observers that ARE active.
 
-## Verification
-After fix: re-upload test CSV → 10 rows insert successfully without `applicants_source_check` violation.
+### Files modified
+- `src/components/dashboard/recruitment/import/useImport.ts`
+- `src/components/dashboard/recruitment/applicants/useApplicants.ts`
+- `src/components/dashboard/recruitment/pipeline/usePipeline.ts`
 
-## Files modified
-- `src/components/dashboard/recruitment/import/ImportConfigureStep.tsx`
-- `src/components/dashboard/recruitment/RecruitmentImport.tsx`
+### Verification
+1. After import wizard completes → navigate to `/operations/recruitment/applicants` → 10 rows visible.
+2. Navigate to `/operations/recruitment/pipeline` → 10 cards in "Ikke vurdert" column.
+3. Hard refresh both pages → still visible (fetch on mount, not persisted snapshot).
