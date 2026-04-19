@@ -52,6 +52,7 @@ export function usePipelineApplications(filters: PipelineFilters) {
     },
     enabled: !!currentOrganizationId,
     placeholderData: keepPreviousData,
+    refetchOnMount: 'always',
   });
 }
 
