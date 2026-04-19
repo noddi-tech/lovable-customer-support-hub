@@ -122,8 +122,8 @@ const ImportConfigureStep: React.FC<Props> = ({
             </SelectTrigger>
             <SelectContent>
               {SOURCES.map((s) => (
-                <SelectItem key={s} value={s}>
-                  {s}
+                <SelectItem key={s.value} value={s.value}>
+                  {s.label}
                 </SelectItem>
               ))}
             </SelectContent>
