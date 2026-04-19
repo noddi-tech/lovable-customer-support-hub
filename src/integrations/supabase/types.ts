@@ -5426,6 +5426,15 @@ export type Database = {
         Args: { notification_id: string }
         Returns: undefined
       }
+      reassign_applications_to_stage: {
+        Args: {
+          p_from_stage_id: string
+          p_new_stages: Json
+          p_pipeline_id: string
+          p_to_stage_id: string
+        }
+        Returns: Json
+      }
       relink_calls_to_customers: {
         Args: never
         Returns: {
@@ -5438,6 +5447,10 @@ export type Database = {
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
       strip_html_tags: { Args: { input_text: string }; Returns: string }
+      update_pipeline_stages: {
+        Args: { p_new_stages: Json; p_pipeline_id: string }
+        Returns: Json
+      }
       user_has_any_role: {
         Args: { _roles: string[]; _user_id: string }
         Returns: boolean
