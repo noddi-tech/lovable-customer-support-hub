@@ -7,7 +7,7 @@ import RecruitmentApplicants from './recruitment/RecruitmentApplicants';
 import RecruitmentPositions from './recruitment/RecruitmentPositions';
 import RecruitmentImport from './recruitment/RecruitmentImport';
 import RecruitmentSettings from './recruitment/RecruitmentSettings';
-import ApplicantProfile from './recruitment/ApplicantProfile';
+import ApplicantProfile from './recruitment/applicants/ApplicantProfile';
 import PositionDetail from './recruitment/PositionDetail';
 
 const BASE = '/operations/recruitment';
