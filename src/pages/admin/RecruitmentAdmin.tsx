@@ -5,6 +5,7 @@ import { Heading } from "@/components/ui/heading";
 import { useSearchParams } from "react-router-dom";
 import { Workflow, Mail, Zap, Link2, History } from "lucide-react";
 import { PipelineEditor } from "@/components/dashboard/recruitment/admin/pipeline/PipelineEditor";
+import { EmailTemplatesTab } from "@/components/dashboard/recruitment/admin/templates/EmailTemplatesTab";
 
 const VALID_TABS = ["pipeline", "templates", "automation", "integrations", "audit"] as const;
 
@@ -58,10 +59,7 @@ export default function RecruitmentAdmin() {
           <PipelineEditor />
         </TabsContent>
         <TabsContent value="templates">
-          <PlaceholderTab
-            title="E-postmaler"
-            description="Administrer maler for invitasjoner, avslag og statusoppdateringer til søkere."
-          />
+          <EmailTemplatesTab />
         </TabsContent>
         <TabsContent value="automation">
           <PlaceholderTab
