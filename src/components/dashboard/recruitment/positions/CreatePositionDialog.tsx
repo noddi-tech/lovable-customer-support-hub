@@ -31,6 +31,10 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   position?: JobPositionDetail | null;
+  /** When true and creating a new position, status is set to 'open' instead of 'draft'. */
+  publishImmediately?: boolean;
+  /** Called with the created position id after successful creation. */
+  onCreated?: (id: string) => void;
 }
 
 const LICENSE_CLASSES = ['B', 'B96', 'BE', 'C1', 'C1E', 'C', 'CE', 'D1', 'D1E', 'D', 'DE'];
@@ -42,7 +46,13 @@ const EMPLOYMENT_TYPES: { value: string; label: string }[] = [
   { value: 'seasonal', label: 'Sesong' },
 ];
 
-const CreatePositionDialog: React.FC<Props> = ({ open, onOpenChange, position }) => {
+const CreatePositionDialog: React.FC<Props> = ({
+  open,
+  onOpenChange,
+  position,
+  publishImmediately,
+  onCreated,
+}) => {
   const isEdit = !!position;
   const createMut = useCreateJobPosition();
   const updateMut = useUpdateJobPosition();
@@ -153,8 +163,9 @@ const CreatePositionDialog: React.FC<Props> = ({ open, onOpenChange, position })
       if (isEdit && position) {
         await updateMut.mutateAsync({ id: position.id, payload });
       } else {
-        await createMut.mutateAsync(payload);
+        const created = await createMut.mutateAsync({ ...payload, publishImmediately });
         reset();
+        if (created?.id) onCreated?.(created.id);
       }
       onOpenChange(false);
     } catch {
