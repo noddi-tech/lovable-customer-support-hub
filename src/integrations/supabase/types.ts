@@ -169,6 +169,394 @@ export type Database = {
           },
         ]
       }
+      applicant_conversations: {
+        Row: {
+          applicant_id: string
+          conversation_id: string
+          created_at: string
+          id: string
+          organization_id: string
+        }
+        Insert: {
+          applicant_id: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          organization_id: string
+        }
+        Update: {
+          applicant_id?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          organization_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "applicant_conversations_applicant_id_fkey"
+            columns: ["applicant_id"]
+            isOneToOne: false
+            referencedRelation: "applicants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "applicant_conversations_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "applicant_conversations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      applicant_files: {
+        Row: {
+          applicant_id: string
+          created_at: string
+          file_name: string
+          file_size: number | null
+          file_type: string
+          id: string
+          organization_id: string
+          storage_path: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          applicant_id: string
+          created_at?: string
+          file_name: string
+          file_size?: number | null
+          file_type?: string
+          id?: string
+          organization_id: string
+          storage_path: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          applicant_id?: string
+          created_at?: string
+          file_name?: string
+          file_size?: number | null
+          file_type?: string
+          id?: string
+          organization_id?: string
+          storage_path?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "applicant_files_applicant_id_fkey"
+            columns: ["applicant_id"]
+            isOneToOne: false
+            referencedRelation: "applicants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "applicant_files_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "applicant_files_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      applicant_notes: {
+        Row: {
+          applicant_id: string
+          application_id: string | null
+          author_id: string
+          content: string
+          created_at: string
+          id: string
+          note_type: string
+          organization_id: string
+          updated_at: string
+        }
+        Insert: {
+          applicant_id: string
+          application_id?: string | null
+          author_id: string
+          content: string
+          created_at?: string
+          id?: string
+          note_type?: string
+          organization_id: string
+          updated_at?: string
+        }
+        Update: {
+          applicant_id?: string
+          application_id?: string | null
+          author_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          note_type?: string
+          organization_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "applicant_notes_applicant_id_fkey"
+            columns: ["applicant_id"]
+            isOneToOne: false
+            referencedRelation: "applicants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "applicant_notes_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "applicant_notes_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "applicant_notes_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      applicants: {
+        Row: {
+          availability_date: string | null
+          certifications: string[]
+          created_at: string
+          drivers_license_classes: string[]
+          email: string
+          first_name: string
+          gdpr_consent: boolean
+          gdpr_consent_at: string | null
+          id: string
+          language_norwegian: string
+          last_name: string
+          location: string | null
+          metadata: Json
+          organization_id: string
+          own_vehicle: boolean | null
+          phone: string | null
+          source: string
+          source_details: Json
+          updated_at: string
+          work_permit_status: string
+          years_experience: number | null
+        }
+        Insert: {
+          availability_date?: string | null
+          certifications?: string[]
+          created_at?: string
+          drivers_license_classes?: string[]
+          email: string
+          first_name: string
+          gdpr_consent?: boolean
+          gdpr_consent_at?: string | null
+          id?: string
+          language_norwegian?: string
+          last_name: string
+          location?: string | null
+          metadata?: Json
+          organization_id: string
+          own_vehicle?: boolean | null
+          phone?: string | null
+          source?: string
+          source_details?: Json
+          updated_at?: string
+          work_permit_status?: string
+          years_experience?: number | null
+        }
+        Update: {
+          availability_date?: string | null
+          certifications?: string[]
+          created_at?: string
+          drivers_license_classes?: string[]
+          email?: string
+          first_name?: string
+          gdpr_consent?: boolean
+          gdpr_consent_at?: string | null
+          id?: string
+          language_norwegian?: string
+          last_name?: string
+          location?: string | null
+          metadata?: Json
+          organization_id?: string
+          own_vehicle?: boolean | null
+          phone?: string | null
+          source?: string
+          source_details?: Json
+          updated_at?: string
+          work_permit_status?: string
+          years_experience?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "applicants_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      application_events: {
+        Row: {
+          applicant_id: string
+          application_id: string
+          created_at: string
+          event_data: Json
+          event_type: string
+          id: string
+          notes: string | null
+          organization_id: string
+          performed_by: string | null
+        }
+        Insert: {
+          applicant_id: string
+          application_id: string
+          created_at?: string
+          event_data?: Json
+          event_type: string
+          id?: string
+          notes?: string | null
+          organization_id: string
+          performed_by?: string | null
+        }
+        Update: {
+          applicant_id?: string
+          application_id?: string
+          created_at?: string
+          event_data?: Json
+          event_type?: string
+          id?: string
+          notes?: string | null
+          organization_id?: string
+          performed_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "application_events_applicant_id_fkey"
+            columns: ["applicant_id"]
+            isOneToOne: false
+            referencedRelation: "applicants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "application_events_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "application_events_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "application_events_performed_by_fkey"
+            columns: ["performed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      applications: {
+        Row: {
+          applicant_id: string
+          applied_at: string
+          assigned_to: string | null
+          created_at: string
+          current_stage_id: string
+          id: string
+          organization_id: string
+          position_id: string
+          rejection_reason: string | null
+          score: number | null
+          score_breakdown: Json | null
+          updated_at: string
+        }
+        Insert: {
+          applicant_id: string
+          applied_at?: string
+          assigned_to?: string | null
+          created_at?: string
+          current_stage_id?: string
+          id?: string
+          organization_id: string
+          position_id: string
+          rejection_reason?: string | null
+          score?: number | null
+          score_breakdown?: Json | null
+          updated_at?: string
+        }
+        Update: {
+          applicant_id?: string
+          applied_at?: string
+          assigned_to?: string | null
+          created_at?: string
+          current_stage_id?: string
+          id?: string
+          organization_id?: string
+          position_id?: string
+          rejection_reason?: string | null
+          score?: number | null
+          score_breakdown?: Json | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "applications_applicant_id_fkey"
+            columns: ["applicant_id"]
+            isOneToOne: false
+            referencedRelation: "applicants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "applications_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "applications_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "applications_position_id_fkey"
+            columns: ["position_id"]
+            isOneToOne: false
+            referencedRelation: "job_positions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bulk_outreach_jobs: {
         Row: {
           created_at: string
@@ -1513,6 +1901,84 @@ export type Database = {
           },
         ]
       }
+      job_positions: {
+        Row: {
+          campaign: string | null
+          closes_at: string | null
+          created_at: string
+          description: string | null
+          employment_type: string
+          finn_listing_url: string | null
+          id: string
+          location: string | null
+          meta_lead_form_id: string | null
+          organization_id: string
+          pipeline_id: string | null
+          published_at: string | null
+          requirements: Json
+          salary_range_max: number | null
+          salary_range_min: number | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          campaign?: string | null
+          closes_at?: string | null
+          created_at?: string
+          description?: string | null
+          employment_type?: string
+          finn_listing_url?: string | null
+          id?: string
+          location?: string | null
+          meta_lead_form_id?: string | null
+          organization_id: string
+          pipeline_id?: string | null
+          published_at?: string | null
+          requirements?: Json
+          salary_range_max?: number | null
+          salary_range_min?: number | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          campaign?: string | null
+          closes_at?: string | null
+          created_at?: string
+          description?: string | null
+          employment_type?: string
+          finn_listing_url?: string | null
+          id?: string
+          location?: string | null
+          meta_lead_form_id?: string | null
+          organization_id?: string
+          pipeline_id?: string | null
+          published_at?: string | null
+          requirements?: Json
+          salary_range_max?: number | null
+          salary_range_min?: number | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_positions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_positions_pipeline_id_fkey"
+            columns: ["pipeline_id"]
+            isOneToOne: false
+            referencedRelation: "recruitment_pipelines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       knowledge_categories: {
         Row: {
           color: string
@@ -2670,6 +3136,88 @@ export type Database = {
           row_count?: number | null
         }
         Relationships: []
+      }
+      recruitment_email_templates: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          organization_id: string
+          stage_trigger: string | null
+          subject: string
+          updated_at: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          organization_id: string
+          stage_trigger?: string | null
+          subject: string
+          updated_at?: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          organization_id?: string
+          stage_trigger?: string | null
+          subject?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recruitment_email_templates_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recruitment_pipelines: {
+        Row: {
+          created_at: string
+          id: string
+          is_default: boolean
+          name: string
+          organization_id: string
+          stages: Json
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          name: string
+          organization_id: string
+          stages: Json
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          name?: string
+          organization_id?: string
+          stages?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recruitment_pipelines_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       response_outcomes: {
         Row: {

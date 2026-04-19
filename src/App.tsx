@@ -132,6 +132,13 @@ const AppContent = () => {
       <Route path="/operations/tickets/:id" element={<ProtectedRoute><Index /></ProtectedRoute>} />
       <Route path="/operations/doorman" element={<ProtectedRoute><Index /></ProtectedRoute>} />
       <Route path="/operations/recruitment" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+      <Route path="/operations/recruitment/pipeline" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+      <Route path="/operations/recruitment/applicants" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+      <Route path="/operations/recruitment/applicants/:id" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+      <Route path="/operations/recruitment/positions" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+      <Route path="/operations/recruitment/positions/:id" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+      <Route path="/operations/recruitment/import" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+      <Route path="/operations/recruitment/settings" element={<ProtectedRoute><Index /></ProtectedRoute>} />
       <Route path="/operations/analytics" element={<ProtectedRoute><Index /></ProtectedRoute>} />
       <Route path="/operations/bulk-outreach" element={<ProtectedRoute><Index /></ProtectedRoute>} />
       <Route path="/operations/settings" element={<ProtectedRoute><Index /></ProtectedRoute>} />
