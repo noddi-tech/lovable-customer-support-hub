@@ -44,6 +44,7 @@ export function useJobPositions() {
     },
     enabled: !!currentOrganizationId,
     staleTime: 10_000,
+    refetchOnMount: 'always',
     refetchOnWindowFocus: true,
   });
 }
@@ -85,6 +86,7 @@ export function useJobPosition(id: string | undefined) {
       return (data as unknown as JobPositionDetail) ?? null;
     },
     enabled: !!id,
+    refetchOnMount: 'always',
   });
 }
 
