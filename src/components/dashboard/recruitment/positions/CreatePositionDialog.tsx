@@ -20,11 +20,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useCreateJobPosition, useRecruitmentPipelines } from './usePositions';
+import {
+  useCreateJobPosition,
+  useRecruitmentPipelines,
+  useUpdateJobPosition,
+  type JobPositionDetail,
+} from './usePositions';
 
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  position?: JobPositionDetail | null;
 }
 
 const LICENSE_CLASSES = ['B', 'B96', 'BE', 'C1', 'C1E', 'C', 'CE', 'D1', 'D1E', 'D', 'DE'];
@@ -36,8 +42,10 @@ const EMPLOYMENT_TYPES: { value: string; label: string }[] = [
   { value: 'seasonal', label: 'Sesong' },
 ];
 
-const CreatePositionDialog: React.FC<Props> = ({ open, onOpenChange }) => {
+const CreatePositionDialog: React.FC<Props> = ({ open, onOpenChange, position }) => {
+  const isEdit = !!position;
   const createMut = useCreateJobPosition();
+  const updateMut = useUpdateJobPosition();
   const { data: pipelines } = useRecruitmentPipelines();
 
   const [title, setTitle] = useState('');
@@ -53,13 +61,36 @@ const CreatePositionDialog: React.FC<Props> = ({ open, onOpenChange }) => {
   const [certInput, setCertInput] = useState('');
   const [pipelineId, setPipelineId] = useState<string>('');
 
-  // Pre-select default pipeline once
+  const pending = createMut.isPending || updateMut.isPending;
+
+  // Pre-fill from position when in edit mode (or reset to defaults in create mode)
   useEffect(() => {
+    if (!open) return;
+    if (position) {
+      setTitle(position.title ?? '');
+      setDescription(position.description ?? '');
+      setLocation(position.location ?? '');
+      setCampaign(position.campaign ?? '');
+      setEmploymentType(position.employment_type ?? 'full_time');
+      setMinSalary(position.salary_range_min != null ? String(position.salary_range_min) : '');
+      setMaxSalary(position.salary_range_max != null ? String(position.salary_range_max) : '');
+      const req = position.requirements ?? {};
+      setLicenseClasses(new Set(Array.isArray(req.drivers_license) ? req.drivers_license : []));
+      setMinYears(req.min_experience_years != null ? String(req.min_experience_years) : '');
+      setCertifications(Array.isArray(req.certifications) ? req.certifications : []);
+      setCertInput('');
+      setPipelineId(position.pipeline_id ?? '');
+    }
+  }, [position, open]);
+
+  // Pre-select default pipeline once (create mode only)
+  useEffect(() => {
+    if (isEdit) return;
     if (!pipelineId && pipelines && pipelines.length > 0) {
       const def = pipelines.find((p) => p.is_default) ?? pipelines[0];
       if (def) setPipelineId(def.id);
     }
-  }, [pipelines, pipelineId]);
+  }, [pipelines, pipelineId, isEdit]);
 
   const reset = () => {
     setTitle('');
@@ -102,23 +133,29 @@ const CreatePositionDialog: React.FC<Props> = ({ open, onOpenChange }) => {
     e.preventDefault();
     if (!title.trim()) return;
 
+    const payload = {
+      title: title.trim(),
+      description: description.trim() || null,
+      location: location.trim() || null,
+      campaign: campaign.trim() || null,
+      employment_type: employmentType,
+      salary_range_min: minSalary ? Number(minSalary) : null,
+      salary_range_max: maxSalary ? Number(maxSalary) : null,
+      pipeline_id: pipelineId || null,
+      requirements: {
+        drivers_license: Array.from(licenseClasses),
+        min_experience_years: minYears ? Number(minYears) : null,
+        certifications,
+      },
+    };
+
     try {
-      await createMut.mutateAsync({
-        title: title.trim(),
-        description: description.trim() || null,
-        location: location.trim() || null,
-        campaign: campaign.trim() || null,
-        employment_type: employmentType,
-        salary_range_min: minSalary ? Number(minSalary) : null,
-        salary_range_max: maxSalary ? Number(maxSalary) : null,
-        pipeline_id: pipelineId || null,
-        requirements: {
-          drivers_license: Array.from(licenseClasses),
-          min_experience_years: minYears ? Number(minYears) : null,
-          certifications,
-        },
-      });
-      reset();
+      if (isEdit && position) {
+        await updateMut.mutateAsync({ id: position.id, payload });
+      } else {
+        await createMut.mutateAsync(payload);
+        reset();
+      }
       onOpenChange(false);
     } catch {
       // toast handled in hook
@@ -126,7 +163,7 @@ const CreatePositionDialog: React.FC<Props> = ({ open, onOpenChange }) => {
   };
 
   const handleOpenChange = (next: boolean) => {
-    if (!next) reset();
+    if (!next && !isEdit) reset();
     onOpenChange(next);
   };
 
@@ -134,7 +171,7 @@ const CreatePositionDialog: React.FC<Props> = ({ open, onOpenChange }) => {
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Opprett stilling</DialogTitle>
+          <DialogTitle>{isEdit ? 'Rediger stilling' : 'Opprett stilling'}</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -315,13 +352,13 @@ const CreatePositionDialog: React.FC<Props> = ({ open, onOpenChange }) => {
               type="button"
               variant="outline"
               onClick={() => handleOpenChange(false)}
-              disabled={createMut.isPending}
+              disabled={pending}
             >
               Avbryt
             </Button>
-            <Button type="submit" disabled={!title.trim() || createMut.isPending}>
-              {createMut.isPending && <Loader2 className="animate-spin" />}
-              Opprett stilling
+            <Button type="submit" disabled={!title.trim() || pending}>
+              {pending && <Loader2 className="animate-spin" />}
+              {isEdit ? 'Lagre endringer' : 'Opprett stilling'}
             </Button>
           </DialogFooter>
         </form>

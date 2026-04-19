@@ -21,6 +21,13 @@ export interface JobPositionRow {
   applications: { count: number }[];
 }
 
+export const STATUS_LABELS: Record<string, string> = {
+  draft: 'Utkast',
+  open: 'Åpen',
+  paused: 'Pauset',
+  closed: 'Lukket',
+};
+
 export function useJobPositions() {
   const { currentOrganizationId } = useOrganizationStore();
 
@@ -36,6 +43,46 @@ export function useJobPositions() {
       return (data ?? []) as unknown as JobPositionRow[];
     },
     enabled: !!currentOrganizationId,
+  });
+}
+
+export interface JobPositionDetail {
+  id: string;
+  title: string;
+  description: string | null;
+  location: string | null;
+  campaign: string | null;
+  employment_type: string;
+  status: string;
+  salary_range_min: number | null;
+  salary_range_max: number | null;
+  pipeline_id: string | null;
+  requirements: any;
+  created_at: string;
+  updated_at: string;
+  organization_id: string;
+  finn_listing_url: string | null;
+  meta_lead_form_id: string | null;
+  published_at: string | null;
+  closes_at: string | null;
+  recruitment_pipelines: { id: string; name: string } | null;
+}
+
+export function useJobPosition(id: string | undefined) {
+  return useQuery({
+    queryKey: ['job-position', id],
+    queryFn: async () => {
+      if (!id) return null;
+      const { data, error } = await supabase
+        .from('job_positions')
+        .select('*, recruitment_pipelines(id, name)')
+        .eq('id', id)
+        .maybeSingle();
+
+      if (error) throw error;
+      return (data as unknown as JobPositionDetail) ?? null;
+    },
+    enabled: !!id,
   });
 }
 
@@ -64,7 +111,7 @@ export function useRecruitmentPipelines() {
   });
 }
 
-export interface CreateJobPositionInput {
+export interface JobPositionFormPayload {
   title: string;
   description: string | null;
   location: string | null;
@@ -85,7 +132,7 @@ export function useCreateJobPosition() {
   const { currentOrganizationId } = useOrganizationStore();
 
   return useMutation({
-    mutationFn: async (input: CreateJobPositionInput) => {
+    mutationFn: async (input: JobPositionFormPayload) => {
       if (!currentOrganizationId) {
         throw new Error('No organization selected');
       }
@@ -112,3 +159,72 @@ export function useCreateJobPosition() {
     },
   });
 }
+
+export function useUpdateJobPosition() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, payload }: { id: string; payload: JobPositionFormPayload }) => {
+      const { data, error } = await supabase
+        .from('job_positions')
+        .update(payload)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (_data, vars) => {
+      queryClient.invalidateQueries({ queryKey: ['job-position', vars.id] });
+      queryClient.invalidateQueries({ queryKey: ['job-positions'] });
+      toast.success('Stilling oppdatert');
+    },
+    onError: (error: any) => {
+      toast.error(error?.message || 'Kunne ikke oppdatere stilling');
+    },
+  });
+}
+
+export function useUpdateJobPositionStatus() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      id,
+      status,
+      currentPublishedAt,
+    }: {
+      id: string;
+      status: string;
+      currentPublishedAt: string | null;
+    }) => {
+      const patch: Record<string, any> = { status };
+      if (status === 'open' && !currentPublishedAt) {
+        patch.published_at = new Date().toISOString();
+      }
+
+      const { data, error } = await supabase
+        .from('job_positions')
+        .update(patch)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (_data, vars) => {
+      queryClient.invalidateQueries({ queryKey: ['job-position', vars.id] });
+      queryClient.invalidateQueries({ queryKey: ['job-positions'] });
+      const label = STATUS_LABELS[vars.status] ?? vars.status;
+      toast.success(`Status endret til ${label}`);
+    },
+    onError: (error: any) => {
+      toast.error(error?.message || 'Kunne ikke endre status');
+    },
+  });
+}
+
+// Backwards-compat alias
+export type CreateJobPositionInput = JobPositionFormPayload;
