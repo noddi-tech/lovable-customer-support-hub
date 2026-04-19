@@ -51,7 +51,7 @@ const ApplicantFilesTab: React.FC<Props> = ({ applicantId, applicationId }) => {
   const uploadMut = useUploadApplicantFile();
   const { data: team } = useTeamMembers();
   const inputRef = useRef<HTMLInputElement>(null);
-  const [fileType, setFileType] = useState('cv');
+  const [fileType, setFileType] = useState('resume');
   const [dragOver, setDragOver] = useState(false);
 
   const teamMap = new Map((team ?? []).map((m) => [m.id, m.full_name]));
