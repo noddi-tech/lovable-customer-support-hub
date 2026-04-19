@@ -1,99 +1,82 @@
 
 
-# Plan: Native job positions management page
+# Plan: Full position detail page
 
-Replace `RecruitmentPositions.tsx` placeholder with a real list + create dialog at `/operations/recruitment/positions`.
+Replace the `PositionDetail.tsx` placeholder at `/operations/recruitment/positions/:id` with a real detail page (header + tabs), and refactor `CreatePositionDialog` to also support edit mode.
 
 ## File structure
 
-**New files (in `src/components/dashboard/recruitment/positions/`):**
-- `usePositions.ts` — TanStack Query hooks (list + create)
-- `PositionStatusBadge.tsx` — colored status badge component
-- `CreatePositionDialog.tsx` — the create dialog
-- `PositionsTable.tsx` — the table component
-
 **Modified:**
-- `src/components/dashboard/recruitment/RecruitmentPositions.tsx` — assemble header + table + dialog
+- `src/components/dashboard/recruitment/positions/usePositions.ts` — add `useJobPosition(id)`, `useUpdateJobPosition()`, `useUpdateJobPositionStatus()`
+- `src/components/dashboard/recruitment/positions/CreatePositionDialog.tsx` — accept optional `position` prop; switches to edit mode (title "Rediger stilling", button "Lagre endringer", UPDATE instead of INSERT, pre-fills fields via `useEffect`)
+- `src/components/dashboard/recruitment/PositionDetail.tsx` — full rewrite
 
-## Data layer (`usePositions.ts`)
+## Hooks (`usePositions.ts` additions)
 
-Following the codebase pattern (plain Supabase + TanStack Query, RLS handles org filtering):
+- `useJobPosition(id)` — `select('*, recruitment_pipelines(id, name)')` from `job_positions`, `.eq('id', id).maybeSingle()`. Query key: `['job-position', id]`.
+- `useUpdateJobPosition()` — `useMutation` doing `update(payload).eq('id', id)`. Invalidates `['job-position', id]` and `['job-positions']`. Toast: "Stilling oppdatert".
+- `useUpdateJobPositionStatus()` — `useMutation({ id, status })`. Builds patch `{ status }`; if `status === 'open'` and current `published_at` is null, also adds `published_at: new Date().toISOString()`. Invalidates both queries. Toast: `Status endret til ${label}`.
 
-- `useJobPositions()` — `select('*, applications(count)').order('created_at', { ascending: false })` from `job_positions`. The nested `applications(count)` returns Postgres-aggregated counts in one round-trip. Returns rows with `applications: [{ count: number }]`.
-- `useRecruitmentPipelines()` — `select('id, name, is_default')` from `recruitment_pipelines`, ordered with default first.
-- `useCreateJobPosition()` — `useMutation` that inserts a row with `status: 'draft'`, `organization_id` from `useOrganizationStore().currentOrganizationId`, `requirements` as JSONB. On success: `queryClient.invalidateQueries({ queryKey: ['job-positions'] })` + sonner `toast.success('Stilling opprettet')`. On error: `toast.error(...)`.
+## `CreatePositionDialog.tsx` refactor
 
-## `PositionStatusBadge.tsx`
+Add optional prop `position?: JobPositionRow`. When present:
+- Title → "Rediger stilling", submit button → "Lagre endringer"
+- `useEffect` on `[position, open]` pre-fills all local state (title, description, location, campaign, employment_type, salary, license set, min years, certifications, pipelineId)
+- Submit calls `updateMut` with same payload shape (excluding `status`, `organization_id` — those don't change here)
+- `reset()` only runs on close in create mode; in edit mode close just clears local edits
 
-Map status → variant + label:
-- `draft` → secondary/gray, "Utkast"
-- `open` → green (`bg-green-100 text-green-800`), "Åpen"
-- `paused` → yellow (`bg-yellow-100 text-yellow-800`), "Pauset"
-- `closed` → red (`bg-red-100 text-red-800`), "Lukket"
+## `PositionDetail.tsx` (full rewrite)
 
-## `PositionsTable.tsx`
+Layout: `<div className="p-6 max-w-5xl mx-auto space-y-6">`
 
-Uses shadcn `Table` (matches `DataTable` styling). Columns: Tittel (bold, `<Link>` to `/operations/recruitment/positions/:id`), Sted, Kampanje (muted gray when empty, shows "—"), Status (badge), Søkere (number from `applications[0]?.count ?? 0`), Opprettet (`formatDistanceToNow(date, { addSuffix: true, locale: nb })` from `date-fns` + `date-fns/locale`).
+### Header
+- Back link `← Tilbake til stillinger` → `/operations/recruitment/positions`
+- Row: `<h1 className="text-2xl font-semibold">{title}</h1>` + `<PositionStatusBadge>` + spacer + action buttons:
+  - `<Button variant="outline" onClick={() => setEditOpen(true)}><Pencil/> Rediger</Button>`
+  - `<DropdownMenu>` "Endre status" with items based on `position.status`:
+    - `draft`: Publiser → `open`
+    - `open`: Pause → `paused`, Lukk → `closed`
+    - `paused`: Gjenåpne → `open`, Lukk → `closed`
+    - `closed`: Gjenåpne → `open`
 
-States:
-- Loading → 5 `<Skeleton>` rows
-- Empty → centered card with `Briefcase` icon + "Ingen stillinger opprettet ennå. Klikk 'Opprett stilling' for å komme i gang."
+### Tabs (shadcn `Tabs`)
+- **Detaljer** (default)
+- **Søkere** — single muted line: "Søkerlisten kobles til når pipeline er bygget"
 
-## `CreatePositionDialog.tsx`
+### Detaljer content — two `Card`s
 
-Plain `useState` form (consistent with `CreateTicketDialog`). No zod — simple inline validation (required title).
+**Card "Generelt"** — definition-list rows (label muted-foreground, value foreground):
+- Tittel
+- Beskrivelse — `whitespace-pre-wrap`, or muted "Ingen beskrivelse"
+- Sted, Kampanje (muted "—" if null)
+- Ansettelsestype — Norwegian label via lookup map (`full_time`→Heltid, `part_time`→Deltid, `contract`→Vikariat, `seasonal`→Sesong)
+- Lønnsspenn — `NOK ${min.toLocaleString('nb-NO')} — NOK ${max.toLocaleString('nb-NO')} per år` (handles one-side-only too); else "Ikke spesifisert"
+- Pipeline — `position.recruitment_pipelines?.name ?? "—"`
+- Finn.no lenke — `<a href target="_blank" className="underline">` if set, else "—"
+- Publisert — formatted date or "—"
+- Lukkes — formatted date or "—"
 
-Fields, in order, inside `<Dialog><DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">`:
+**Card "Krav"** — reads `position.requirements` JSONB:
+- Førerkortklasser — array of `<Badge variant="secondary">` per class, or "—"
+- Minimum erfaring — `${n} år` or "Ikke spesifisert"
+- Sertifiseringer — badges or "—"
+- If all three are empty/missing → render single muted line "Ingen krav spesifisert"
 
-1. **Tittel** — `<Input>` required
-2. **Beskrivelse** — `<Textarea emojiAutocomplete={false}>` (avoid emoji picker on a job description)
-3. **Sted** — `<Input>`
-4. **Kampanje** — `<Input>`
-5. **Ansettelsestype** — `<Select>` with: `full_time`→Heltid, `part_time`→Deltid, `contract`→Vikariat, `seasonal`→Sesong (default `full_time`)
-6. **Lønnsspenn** — 2-col grid: `<Input type="number">` Min / Max with "NOK/år" suffix as muted helper text under each
-7. Section heading **"Krav"** (h4 + border-top divider)
-8. **Førerkortklasses** — grid of `<Checkbox>` + `<Label>` pairs for `['B','B96','BE','C1','C1E','C','CE','D1','D1E','D','DE']`, stored in a `Set<string>`
-9. **Minimum års erfaring** — `<Input type="number" min={0}>`
-10. **Sertifiseringer** — chip input: `<Input>` + Enter handler appends to `string[]`, displayed as `<Badge variant="secondary">{cert} <X onClick={remove} /></Badge>` (mirrors the Tags pattern in `CreateTicketDialog`)
-11. **Pipeline** — `<Select>` populated from `useRecruitmentPipelines()`, pre-selected to default pipeline once data loads (via `useEffect`)
+### Loading / not-found
+- While loading: skeleton header + skeleton card
+- If `data === null`: "Stilling ikke funnet" with back link
 
-Footer: Avbryt + Opprett stilling (disabled while pending or title empty, with `<Loader2 className="animate-spin">`).
+### Edit dialog mount
+At bottom: `<CreatePositionDialog open={editOpen} onOpenChange={setEditOpen} position={position} />`
 
-On submit, build payload:
-```ts
-{
-  title, description: description || null, location: location || null,
-  campaign: campaign || null, employment_type, 
-  salary_range_min: minSalary ? Number(minSalary) : null,
-  salary_range_max: maxSalary ? Number(maxSalary) : null,
-  pipeline_id: pipelineId || null,
-  requirements: {
-    drivers_license: Array.from(licenseClasses),
-    min_experience_years: minYears ? Number(minYears) : null,
-    certifications,
-  },
-  status: 'draft',
-  organization_id: currentOrganizationId,
-}
+## Status label map (shared)
 ```
-Insert → on success: reset form, close dialog (parent handles invalidation via the hook).
-
-## `RecruitmentPositions.tsx` (assembled page)
-
+{ draft: 'Utkast', open: 'Åpen', paused: 'Pauset', closed: 'Lukket' }
 ```
-<div className="p-6 space-y-4">
-  <div className="flex items-center justify-between">
-    <h2 className="text-2xl font-semibold">Stillinger</h2>
-    <Button onClick={() => setOpen(true)}><Plus /> Opprett stilling</Button>
-  </div>
-  <PositionsTable />
-  <CreatePositionDialog open={open} onOpenChange={setOpen} />
-</div>
-```
+Used by status-change toast.
 
 ## Notes
-- All UI strings are Norwegian Bokmål (matches existing recruitment tabs).
-- RLS on `job_positions` (`organization_id` filter) handles scoping automatically — no client-side `.eq()` needed for the list query.
-- The `applications(count)` embedded select requires the FK `applications.position_id → job_positions.id`, which exists per the schema dump.
-- Detail page (`/positions/:id`) is already a placeholder — out of scope here, the title link just navigates to it.
+- RLS already scopes by org; no extra filter needed.
+- Date formatting uses `format(date, 'd. MMM yyyy', { locale: nb })` from `date-fns`.
+- No new shadcn components needed — `Tabs`, `Card`, `DropdownMenu`, `Badge`, `Button` all already in use.
 
