@@ -73,6 +73,7 @@ export function useApplicants(filters: ApplicantsFilters) {
       return (data ?? []) as unknown as ApplicantRow[];
     },
     enabled: !!currentOrganizationId,
+    refetchOnMount: 'always',
   });
 }
 
