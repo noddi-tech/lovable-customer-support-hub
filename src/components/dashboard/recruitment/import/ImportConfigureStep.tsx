@@ -56,7 +56,7 @@ const ImportConfigureStep: React.FC<Props> = ({
   const noOpenPositions = !positionsLoading && open.length === 0;
 
   useEffect(() => {
-    if (source === 'Meta Lead Ad' && !gdprConfirmed) onGdprChange(true);
+    if (source === 'meta_lead_ad' && !gdprConfirmed) onGdprChange(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [source]);
 
