@@ -34,6 +34,8 @@ export function useTriageHealth() {
   return useQuery({
     queryKey: ['triage-health', currentOrganizationId],
     enabled: !!currentOrganizationId,
+    refetchInterval: 30_000,
+    refetchOnWindowFocus: true,
     queryFn: async (): Promise<TriageHealthData> => {
       if (!currentOrganizationId) throw new Error('No organization');
 
