@@ -541,6 +541,7 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
               onBlur={stopTyping}
               disabled={isPending}
               mentionedUserIds={mentionedUserIds}
+              onMentionMenuOpenChange={setIsMentionMenuOpen}
             />
           </div>
         ) : (
