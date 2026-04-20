@@ -19,7 +19,8 @@ interface Props {
 type Bucket = 'tech' | 'ops';
 
 const DEFAULT_CATEGORY_BUCKETS: Record<string, Bucket> = {
-  service_failure: 'tech',
+  app_failure: 'tech',
+  service_quality: 'ops',
   data_issue: 'tech',
   billing_issue: 'ops',
   safety_concern: 'ops',
@@ -29,10 +30,11 @@ const DEFAULT_CATEGORY_BUCKETS: Record<string, Bucket> = {
 };
 
 const CATEGORY_META: Array<{ key: string; label: string; example: string }> = [
-  { key: 'service_failure',     label: 'Tjenestefeil',         example: '"appen krasjer", "kan ikke logge inn"' },
+  { key: 'app_failure',         label: 'App-/systemfeil',      example: '"appen krasjer", "kan ikke logge inn"' },
+  { key: 'service_quality',     label: 'Tjenestekvalitet',     example: '"metallisk lyd", "skade etter service", "feil montert"' },
   { key: 'data_issue',          label: 'Datafeil',             example: '"feil data vist", "mangler info"' },
   { key: 'billing_issue',       label: 'Betalingsproblem',     example: '"feil belastet", "betaling feilet"' },
-  { key: 'safety_concern',      label: 'Sikkerhetsproblem',    example: '"skadet bil", "ulykke"' },
+  { key: 'safety_concern',      label: 'Sikkerhetsproblem',    example: '"personskade", "ulykke"' },
   { key: 'frustrated_customer', label: 'Frustrert kunde',      example: '"elendig service", "verste opplevelse"' },
   { key: 'escalation_request',  label: 'Eskalering',           example: '"snakke med leder", "klage"' },
   { key: 'legal_threat',        label: 'Rettslig trussel',     example: '"advokat", "stevning"' },
@@ -298,8 +300,8 @@ export const CriticalAlertRouting = ({ integration, onUpdate, isPending }: Props
           <Alert className="mt-3 bg-muted/30 border-border/30">
             <Info className="h-3.5 w-3.5" />
             <AlertDescription className="text-xs">
-              <strong>Tips:</strong> Flytt <code>billing_issue</code> til Tech hvis betalingsfeilene deres oftest er kode-relaterte (API-feil, integrasjonsproblemer)
-              i stedet for kunde-disputter.
+              <strong>Tips:</strong> Flytt <code>Tjenestekvalitet</code> til Tech kun hvis tekniske montørverktøy/maskiner er årsaken til feilen,
+              ikke når selve det utførte arbeidet er problemet.
             </AlertDescription>
           </Alert>
         </CardContent>
