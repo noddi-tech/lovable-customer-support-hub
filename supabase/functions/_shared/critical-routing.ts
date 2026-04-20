@@ -7,6 +7,11 @@
  *  2. The org-wide category → bucket mapping (with admin overrides)
  *  3. The bucket's mention mode + target id (subteam/user/channel/none)
  *  4. Optional per-inbox overrides from `inbox_slack_routing`
+ *
+ * Also provides:
+ *  - Category-aware alert headers (emoji + Norwegian label + color)
+ *  - Effective-keyword resolution (base list + admin add/remove + temp mutes)
+ *  - Per-category AI severity thresholds
  */
 
 export type CriticalCategory =
@@ -37,6 +42,155 @@ export const DEFAULT_CATEGORY_BUCKETS: Record<string, CriticalBucket> = {
   escalation_request: 'ops',
   legal_threat: 'ops',
 };
+
+/**
+ * Per-category presentation: emoji, Norwegian label, attachment color.
+ * Used to build scannable alert headers like "⚙️ *Tjenestefeil* — {title}".
+ */
+export interface CategoryPresentation {
+  emoji: string;
+  label: string;
+  color: string;
+}
+
+export const CATEGORY_PRESENTATION: Record<string, CategoryPresentation> = {
+  service_failure:     { emoji: '⚙️',  label: 'Tjenestefeil',      color: '#dc2626' },
+  data_issue:          { emoji: '📊', label: 'Datafeil',          color: '#dc2626' },
+  billing_issue:       { emoji: '💳', label: 'Betalingsproblem',  color: '#f59e0b' },
+  safety_concern:      { emoji: '⚠️',  label: 'Sikkerhetsproblem', color: '#7c2d12' },
+  frustrated_customer: { emoji: '😤', label: 'Frustrert kunde',   color: '#ea580c' },
+  escalation_request:  { emoji: '🆙', label: 'Eskalering',        color: '#ea580c' },
+  legal_threat:        { emoji: '⚖️',  label: 'Rettslig trussel',  color: '#581c87' },
+};
+
+const FALLBACK_PRESENTATION: CategoryPresentation = {
+  emoji: '🚨',
+  label: 'Kritisk varsel',
+  color: '#dc2626',
+};
+
+export function getCategoryPresentation(category: string | null | undefined): CategoryPresentation {
+  if (!category) return FALLBACK_PRESENTATION;
+  return CATEGORY_PRESENTATION[category.toLowerCase()] ?? FALLBACK_PRESENTATION;
+}
+
+/**
+ * Build a category-prefixed Slack alert header.
+ *
+ * Returns:
+ *  - `headerText`: markdown for the first section block ("⚙️ *Tjenestefeil* — {title}")
+ *  - `fallbackText`: short text for mobile push notifications
+ *  - `color`: attachment sidebar color
+ *  - `severityBadge`: optional second-line badge ("🔥 Severity 5/5")
+ */
+export function buildAlertHeader(opts: {
+  category: string | null | undefined;
+  title: string;
+  customerName?: string | null;
+  severity?: number | null;
+  mentionPrefix?: string;
+  isBatch?: boolean;
+}): { headerText: string; fallbackText: string; color: string; severityBadge: string | null; label: string; emoji: string } {
+  const { category, title, customerName, severity, mentionPrefix, isBatch } = opts;
+  const pres = getCategoryPresentation(category);
+  const batchSuffix = isBatch ? ' (Batch)' : '';
+
+  const headerText = `${pres.emoji} *${pres.label}*${batchSuffix} — ${title}`;
+
+  const customerPart = customerName ? ` (${customerName})` : '';
+  const mentionPart = mentionPrefix ? ` ${mentionPrefix}` : '';
+  const fallbackText = `${pres.emoji} ${pres.label}${batchSuffix} — ${title}${customerPart}${mentionPart}`;
+
+  let severityBadge: string | null = null;
+  if (typeof severity === 'number' && severity >= 4) {
+    severityBadge = `🔥 Severity ${severity}/5`;
+  } else if (severity === 3) {
+    severityBadge = `🟠 Severity 3/5`;
+  }
+
+  return {
+    headerText,
+    fallbackText,
+    color: pres.color,
+    severityBadge,
+    label: pres.label,
+    emoji: pres.emoji,
+  };
+}
+
+/**
+ * Standard footer prompting Slack users to react with feedback.
+ * Wired to the `slack-event-handler` reaction listener.
+ */
+export const FEEDBACK_FOOTER_TEXT =
+  '👍 nyttig · 👎 falsk alarm · 🔇 demp denne triggeren i 7 dager';
+
+export function buildFeedbackFooterBlock(): { type: 'context'; elements: Array<{ type: 'mrkdwn'; text: string }> } {
+  return {
+    type: 'context',
+    elements: [{ type: 'mrkdwn', text: FEEDBACK_FOOTER_TEXT }],
+  };
+}
+
+/**
+ * Base critical keyword list — shared between `send-slack-notification` and
+ * `review-open-critical`. Admin overrides (add/remove) and temporary mutes
+ * are applied via {@link getEffectiveKeywords}.
+ */
+export const BASE_CRITICAL_KEYWORDS: string[] = [
+  // English
+  'booking', "can't book", 'cannot book', 'payment failed', 'payment error',
+  'error', 'not working', 'broken', 'down', 'outage', "can't access",
+  'unable to', 'fails', 'failure', 'critical', 'urgent',
+  // Norwegian
+  'kan ikke bestille', 'bestilling feilet', 'bestilling feiler',
+  'betaling feilet', 'betaling feiler', 'betalingsfeil',
+  'fungerer ikke', 'virker ikke', 'funker ikke',
+  'feil', 'feilmelding', 'feiler',
+  'nedetid', 'ødelagt', 'nede',
+  'får ikke til', 'klarer ikke', 'ikke tilgjengelig',
+  'kritisk', 'haster', 'akutt',
+  'kan ikke logge inn', 'innlogging feiler',
+  'appen krasjer', 'krasjer', 'tom side', 'blank side',
+];
+
+export interface KeywordOverrides {
+  disabled?: string[];
+  added?: string[];
+}
+
+/**
+ * Compute the effective keyword list for an org:
+ *   BASE ∪ overrides.added − overrides.disabled − active mutes
+ */
+export function getEffectiveKeywords(
+  overrides: KeywordOverrides | null | undefined,
+  activeMutedKeywords: string[],
+): string[] {
+  const disabled = new Set((overrides?.disabled || []).map((k) => k.toLowerCase()));
+  const muted = new Set(activeMutedKeywords.map((k) => k.toLowerCase()));
+  const added = (overrides?.added || []).map((k) => k.toLowerCase());
+
+  const merged = new Set<string>([...BASE_CRITICAL_KEYWORDS.map((k) => k.toLowerCase()), ...added]);
+  for (const d of disabled) merged.delete(d);
+  for (const m of muted) merged.delete(m);
+
+  return Array.from(merged);
+}
+
+/**
+ * Get the minimum AI severity required to fire an alert for a given category.
+ * Defaults to 3 if not explicitly set.
+ */
+export function getCategoryThreshold(
+  thresholds: Record<string, number> | null | undefined,
+  category: string | null | undefined,
+): number {
+  if (!category) return 3;
+  const t = thresholds?.[category.toLowerCase()];
+  if (typeof t === 'number' && t >= 1 && t <= 5) return t;
+  return 3;
+}
 
 /**
  * Keyword → category hint, used when the alert was triggered by keyword
