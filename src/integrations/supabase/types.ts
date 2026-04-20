@@ -5540,6 +5540,10 @@ export type Database = {
               updated_at: string
             }[]
           }
+      get_critical_alert_count: {
+        Args: { _organization_id: string; _since: string }
+        Returns: number
+      }
       get_email_accounts: {
         Args: never
         Returns: {
