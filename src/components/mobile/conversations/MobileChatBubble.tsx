@@ -1,10 +1,29 @@
+import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useDateFormatting } from '@/hooks/useDateFormatting';
-import { CheckCheck, AlertCircle, RefreshCw, Loader2, Lock } from 'lucide-react';
+import { CheckCheck, AlertCircle, RefreshCw, Loader2, Lock, MoreHorizontal, Edit3, Trash2, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { MentionRenderer } from '@/components/ui/mention-renderer';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { InlineNoteEditor } from '@/components/conversations/InlineNoteEditor';
+import { useNoteMutations } from '@/hooks/useNoteMutations';
 import type { NormalizedMessage } from '@/lib/normalizeMessage';
 
 interface MobileChatBubbleProps {
