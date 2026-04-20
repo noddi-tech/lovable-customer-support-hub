@@ -3,6 +3,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useTeamMemberMentions, TeamMemberForMention } from '@/hooks/useTeamMemberMentions';
+import { noteDebug } from '@/utils/noteInteractionDebug';
 
 export interface MentionTextareaProps extends Omit<React.TextareaHTMLAttributes<HTMLTextAreaElement>, 'onChange'> {
   value: string;
@@ -46,7 +47,29 @@ const MentionTextarea = React.forwardRef<HTMLTextAreaElement, MentionTextareaPro
     // Notify parent when menu open state changes
     useEffect(() => {
       onMentionMenuOpenChange?.(mentionState.isOpen);
+      noteDebug(mentionState.isOpen ? 'mention_menu_opened' : 'mention_menu_closed', {
+        query: mentionState.searchQuery,
+        resultCount: filteredMembers.length,
+      }, 'MentionTextarea');
     }, [mentionState.isOpen, onMentionMenuOpenChange]);
+
+    // While menu is open, capture outside pointer events to detect what swallows clicks
+    useEffect(() => {
+      if (!mentionState.isOpen) return;
+      const handler = (e: PointerEvent) => {
+        const target = e.target as HTMLElement | null;
+        const insideTextarea = !!target?.closest('textarea');
+        const insidePanel = !!target?.closest('[data-mention-panel="true"]');
+        if (insideTextarea || insidePanel) return;
+        noteDebug('mention_outside_pointerdown', {
+          targetTag: target?.tagName?.toLowerCase(),
+          targetClass: typeof target?.className === 'string' ? target.className.slice(0, 80) : '',
+          eventType: e.type,
+        }, 'MentionTextarea');
+      };
+      document.addEventListener('pointerdown', handler, true);
+      return () => document.removeEventListener('pointerdown', handler, true);
+    }, [mentionState.isOpen]);
 
     // Use forwarded ref or internal ref
     const actualRef = (ref as React.RefObject<HTMLTextAreaElement>) || textareaRef;
@@ -102,7 +125,18 @@ const MentionTextarea = React.forwardRef<HTMLTextAreaElement, MentionTextareaPro
     const handleSelectMember = (member: TeamMemberForMention) => {
       const { triggerIndex, searchQuery } = mentionState;
       const textarea = actualRef.current;
-      if (!textarea) return;
+      noteDebug('mention_insert_started', {
+        memberId: member.user_id,
+        memberName: member.full_name,
+        triggerIndex,
+        searchQuery,
+        selectionStart: textarea?.selectionStart,
+        selectionEnd: textarea?.selectionEnd,
+      }, 'MentionTextarea');
+      if (!textarea) {
+        noteDebug('mention_insert_aborted_no_textarea', { memberId: member.user_id }, 'MentionTextarea');
+        return;
+      }
 
       const fallbackCursor = triggerIndex + 1 + searchQuery.length;
       const rawCursor = textarea.selectionStart;
@@ -127,6 +161,12 @@ const MentionTextarea = React.forwardRef<HTMLTextAreaElement, MentionTextareaPro
         const newCursorPos = triggerIndex + mentionText.length;
         textarea.setSelectionRange(newCursorPos, newCursorPos);
         textarea.focus();
+        noteDebug('mention_insert_finished', {
+          memberId: member.user_id,
+          newCursorPos,
+          activeElement: document.activeElement?.tagName?.toLowerCase(),
+          activeIsTextarea: document.activeElement === textarea,
+        }, 'MentionTextarea');
       }, 0);
     };
 
@@ -135,19 +175,28 @@ const MentionTextarea = React.forwardRef<HTMLTextAreaElement, MentionTextareaPro
         if (e.key === 'ArrowDown') {
           e.preventDefault();
           e.stopPropagation();
-          setActiveIndex((i) => (i + 1) % filteredMembers.length);
+          setActiveIndex((i) => {
+            const next = (i + 1) % filteredMembers.length;
+            noteDebug('mention_arrow_down', { from: i, to: next, count: filteredMembers.length }, 'MentionTextarea');
+            return next;
+          });
           return;
         }
         if (e.key === 'ArrowUp') {
           e.preventDefault();
           e.stopPropagation();
-          setActiveIndex((i) => (i - 1 + filteredMembers.length) % filteredMembers.length);
+          setActiveIndex((i) => {
+            const next = (i - 1 + filteredMembers.length) % filteredMembers.length;
+            noteDebug('mention_arrow_up', { from: i, to: next, count: filteredMembers.length }, 'MentionTextarea');
+            return next;
+          });
           return;
         }
         if (e.key === 'Enter') {
           e.preventDefault();
           e.stopPropagation();
           const member = filteredMembers[activeIndex] ?? filteredMembers[0];
+          noteDebug('mention_key_enter', { memberId: member?.user_id, activeIndex }, 'MentionTextarea');
           if (member) handleSelectMember(member);
           return;
         }
@@ -155,12 +204,14 @@ const MentionTextarea = React.forwardRef<HTMLTextAreaElement, MentionTextareaPro
           e.preventDefault();
           e.stopPropagation();
           const member = filteredMembers[activeIndex] ?? filteredMembers[0];
+          noteDebug('mention_key_tab', { memberId: member?.user_id, activeIndex }, 'MentionTextarea');
           if (member) handleSelectMember(member);
           return;
         }
         if (e.key === 'Escape') {
           e.preventDefault();
           e.stopPropagation();
+          noteDebug('mention_key_escape', {}, 'MentionTextarea');
           setMentionState(prev => ({ ...prev, isOpen: false }));
           return;
         }
@@ -187,6 +238,7 @@ const MentionTextarea = React.forwardRef<HTMLTextAreaElement, MentionTextareaPro
 
         {mentionState.isOpen && (
           <div
+            data-mention-panel="true"
             className="absolute z-[10050] w-[280px] rounded-md border bg-popover text-popover-foreground shadow-md outline-none"
             style={{ top: caretPosition.top, left: caretPosition.left }}
             // Keep textarea focused when interacting with the panel
@@ -206,10 +258,22 @@ const MentionTextarea = React.forwardRef<HTMLTextAreaElement, MentionTextareaPro
                     <button
                       key={member.user_id}
                       type="button"
-                      onMouseDown={(e) => e.preventDefault()}
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        noteDebug('mention_item_mouse_down', {
+                          memberId: member.user_id,
+                          index,
+                          activeIndex,
+                        }, 'MentionTextarea');
+                      }}
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
+                        noteDebug('mention_item_clicked', {
+                          memberId: member.user_id,
+                          memberName: member.full_name,
+                          index,
+                        }, 'MentionTextarea');
                         handleSelectMember(member);
                       }}
                       onMouseEnter={() => setActiveIndex(index)}
