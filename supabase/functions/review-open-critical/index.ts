@@ -129,6 +129,7 @@ Deno.serve(async (req) => {
         // Per-inbox routing: resolve channel and token for this conversation's inbox
         let convCriticalChannelId = criticalChannelId;
         let convCriticalToken = integration.secondary_access_token || integration.access_token;
+        let inboxRoutingOverride: any = null;
 
         if (conv.inbox_id) {
           const { data: routing } = await supabase
@@ -139,6 +140,7 @@ Deno.serve(async (req) => {
             .maybeSingle();
 
           if (routing) {
+            inboxRoutingOverride = routing;
             // Check if critical alerts are disabled for this inbox
             if (routing.critical_enabled === false) {
               console.log(`🔇 Critical alerts disabled for inbox ${conv.inbox_id}, skipping`);
