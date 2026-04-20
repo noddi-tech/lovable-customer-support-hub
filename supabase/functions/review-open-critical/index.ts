@@ -206,9 +206,26 @@ Deno.serve(async (req) => {
           });
         }
 
+        // Resolve Tech vs Ops bucket + mention prefix
+        const resolvedCategory = inferCategoryFromKeyword(matchedKeyword);
+        const bucket = resolveBucket(
+          resolvedCategory,
+          (integration.critical_category_routing as Record<string, string>) || {},
+        );
+        const bucketConfig = getBucketConfig(
+          bucket,
+          integration as IntegrationRoutingFields,
+          inboxRoutingOverride,
+        );
+        const mentionPrefix = buildMentionPrefix(bucketConfig);
+
         criticalBlocks.push({
           type: 'context',
           elements: [{ type: 'mrkdwn', text: `🔑 Triggered by keyword: \`${matchedKeyword}\`` }],
+        });
+        criticalBlocks.push({
+          type: 'context',
+          elements: [{ type: 'mrkdwn', text: describeRouting(bucket, bucketConfig, resolvedCategory) }],
         });
 
         const appUrl = Deno.env.get('APP_URL') || 'https://support.noddi.co';
@@ -224,6 +241,9 @@ Deno.serve(async (req) => {
 
         const critToken = convCriticalToken;
         try {
+          const fallbackText = mentionPrefix
+            ? `🚨 CRITICAL (Batch): ${title} from ${customerName} — ${conv.subject || 'No subject'} ${mentionPrefix}`
+            : `🚨 CRITICAL (Batch): ${title} from ${customerName} — ${conv.subject || 'No subject'}`;
           const criticalResponse = await fetch('https://slack.com/api/chat.postMessage', {
             method: 'POST',
             headers: {
@@ -232,7 +252,7 @@ Deno.serve(async (req) => {
             },
             body: JSON.stringify({
               channel: convCriticalChannelId,
-              text: `🚨 CRITICAL (Batch): ${title} from ${customerName} — ${conv.subject || 'No subject'}`,
+              text: fallbackText,
               attachments: [{
                 color: '#dc2626',
                 blocks: criticalBlocks,
