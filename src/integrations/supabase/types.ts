@@ -1622,6 +1622,14 @@ export type Database = {
           critical_channel_id: string | null
           critical_channel_name: string | null
           critical_enabled: boolean | null
+          critical_ops_mention_mode: string | null
+          critical_ops_subteam_handle: string | null
+          critical_ops_subteam_id: string | null
+          critical_ops_user_id: string | null
+          critical_tech_mention_mode: string | null
+          critical_tech_subteam_handle: string | null
+          critical_tech_subteam_id: string | null
+          critical_tech_user_id: string | null
           critical_use_secondary: boolean | null
           digest_channel_id: string | null
           digest_channel_name: string | null
@@ -1641,6 +1649,14 @@ export type Database = {
           critical_channel_id?: string | null
           critical_channel_name?: string | null
           critical_enabled?: boolean | null
+          critical_ops_mention_mode?: string | null
+          critical_ops_subteam_handle?: string | null
+          critical_ops_subteam_id?: string | null
+          critical_ops_user_id?: string | null
+          critical_tech_mention_mode?: string | null
+          critical_tech_subteam_handle?: string | null
+          critical_tech_subteam_id?: string | null
+          critical_tech_user_id?: string | null
           critical_use_secondary?: boolean | null
           digest_channel_id?: string | null
           digest_channel_name?: string | null
@@ -1660,6 +1676,14 @@ export type Database = {
           critical_channel_id?: string | null
           critical_channel_name?: string | null
           critical_enabled?: boolean | null
+          critical_ops_mention_mode?: string | null
+          critical_ops_subteam_handle?: string | null
+          critical_ops_subteam_id?: string | null
+          critical_ops_user_id?: string | null
+          critical_tech_mention_mode?: string | null
+          critical_tech_subteam_handle?: string | null
+          critical_tech_subteam_id?: string | null
+          critical_tech_user_id?: string | null
           critical_use_secondary?: boolean | null
           digest_channel_id?: string | null
           digest_channel_name?: string | null
@@ -4081,8 +4105,17 @@ export type Database = {
           client_secret: string | null
           configuration: Json | null
           created_at: string | null
+          critical_category_routing: Json
           critical_channel_id: string | null
           critical_channel_name: string | null
+          critical_ops_mention_mode: string | null
+          critical_ops_subteam_handle: string | null
+          critical_ops_subteam_id: string | null
+          critical_ops_user_id: string | null
+          critical_tech_mention_mode: string | null
+          critical_tech_subteam_handle: string | null
+          critical_tech_subteam_id: string | null
+          critical_tech_user_id: string | null
           default_channel_id: string | null
           default_channel_name: string | null
           digest_channel_id: string | null
@@ -4105,8 +4138,17 @@ export type Database = {
           client_secret?: string | null
           configuration?: Json | null
           created_at?: string | null
+          critical_category_routing?: Json
           critical_channel_id?: string | null
           critical_channel_name?: string | null
+          critical_ops_mention_mode?: string | null
+          critical_ops_subteam_handle?: string | null
+          critical_ops_subteam_id?: string | null
+          critical_ops_user_id?: string | null
+          critical_tech_mention_mode?: string | null
+          critical_tech_subteam_handle?: string | null
+          critical_tech_subteam_id?: string | null
+          critical_tech_user_id?: string | null
           default_channel_id?: string | null
           default_channel_name?: string | null
           digest_channel_id?: string | null
@@ -4129,8 +4171,17 @@ export type Database = {
           client_secret?: string | null
           configuration?: Json | null
           created_at?: string | null
+          critical_category_routing?: Json
           critical_channel_id?: string | null
           critical_channel_name?: string | null
+          critical_ops_mention_mode?: string | null
+          critical_ops_subteam_handle?: string | null
+          critical_ops_subteam_id?: string | null
+          critical_ops_user_id?: string | null
+          critical_tech_mention_mode?: string | null
+          critical_tech_subteam_handle?: string | null
+          critical_tech_subteam_id?: string | null
+          critical_tech_user_id?: string | null
           default_channel_id?: string | null
           default_channel_name?: string | null
           digest_channel_id?: string | null
