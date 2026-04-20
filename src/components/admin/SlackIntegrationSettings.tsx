@@ -13,6 +13,7 @@ import { useSlackIntegration } from '@/hooks/useSlackIntegration';
 import { SlackSetupWizard } from './SlackSetupWizard';
 import { SecondarySlackSetupWizard } from './SecondarySlackSetupWizard';
 import { InboxSlackRouting } from './InboxSlackRouting';
+import { CriticalAlertRouting } from './CriticalAlertRouting';
 
 const EVENT_OPTIONS = [
   { id: 'new_conversation', label: 'New Conversation', description: 'When a new email/message arrives' },
