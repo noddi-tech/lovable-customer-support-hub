@@ -614,9 +614,32 @@ const MessageCardComponent = ({
           effectiveCollapsed ? "is-collapsed" : "pl-2 pr-2 pb-3 md:pl-16 md:pr-4 md:pb-4"
         )}>
           <div className="space-y-4 overflow-hidden">
-            {/* Email content or mention-aware note */}
+            {/* Email content or mention-aware note (with inline editor) */}
             {isInternalNote ? (
-              <MentionRenderer content={message.visibleBody || ''} className="text-sm" />
+              isEditingThisNote ? (
+                <InlineNoteEditor
+                  messageId={message.id}
+                  initialContent={message.originalMessage?.content || message.visibleBody || ''}
+                  conversationId={message.originalMessage?.conversation_id}
+                  context={{
+                    type: 'internal_note',
+                    conversation_id: message.originalMessage?.conversation_id,
+                    message_id: message.id,
+                  }}
+                  onCancel={() => setIsEditingThisNote(false)}
+                />
+              ) : (
+                <div>
+                  <MentionRenderer content={message.visibleBody || ''} className="text-sm" />
+                  {message.originalMessage?.updated_at &&
+                    message.originalMessage?.created_at &&
+                    new Date(message.originalMessage.updated_at).getTime() -
+                      new Date(message.originalMessage.created_at).getTime() >
+                      2000 && (
+                      <span className="ml-2 text-[10px] text-muted-foreground italic">(edited)</span>
+                    )}
+                </div>
+              )
             ) : (
               <EmailRender 
                 content={message.visibleBody || ''} 
