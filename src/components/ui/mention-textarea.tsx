@@ -141,17 +141,9 @@ const MentionTextarea = React.forwardRef<HTMLTextAreaElement, MentionTextareaPro
       props.onKeyDown?.(e);
     };
 
-    // Close popover when clicking outside
-    useEffect(() => {
-      const handleClickOutside = (e: MouseEvent) => {
-        if (actualRef.current && !actualRef.current.contains(e.target as Node)) {
-          setMentionState(prev => ({ ...prev, isOpen: false }));
-        }
-      };
-
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, [actualRef]);
+    // Note: outside-click handling delegated to Radix Popover (onInteractOutside below).
+    // A manual mousedown listener would close the popover before CommandItem.onSelect fires
+    // because PopoverContent is portaled to document.body.
 
     return (
       <div className="relative">
