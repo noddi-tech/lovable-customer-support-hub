@@ -254,13 +254,32 @@ export const ChatMessagesList = ({
                           <Copy className="h-4 w-4 mr-2" />
                           Copy
                         </DropdownMenuItem>
-                        {isAgent && (
+                        {/* Edit + Delete for internal notes (author or admin) */}
+                        {isInternal && canEditNote({
+                          is_internal: true,
+                          sender_id: message.originalMessage?.sender_id,
+                        }) && (
+                          <>
+                            <DropdownMenuItem onClick={() => setEditingNoteId(message.id)}>
+                              <Edit3 className="h-4 w-4 mr-2" />
+                              Edit note
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => setConfirmDeleteId(message.id)}
+                              className="text-destructive focus:text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Delete note
+                            </DropdownMenuItem>
+                          </>
+                        )}
+                        {isAgent && !isInternal && (
                           <DropdownMenuItem onClick={() => handleResendEmail(message.id)}>
                             <Mail className="h-4 w-4 mr-2" />
                             Resend Email
                           </DropdownMenuItem>
                         )}
-                        {isAgent && (message.emailStatus === 'failed' || message.emailStatus === 'retry') && (
+                        {isAgent && !isInternal && (message.emailStatus === 'failed' || message.emailStatus === 'retry') && (
                           <DropdownMenuItem 
                             onClick={() => handleDeleteMessage(message.id)}
                             className="text-destructive"
@@ -283,7 +302,31 @@ export const ChatMessagesList = ({
                         : "bg-muted text-foreground rounded-bl-md"
                   )}>
                     {isInternal ? (
-                      <MentionRenderer content={message.visibleBody} className="text-sm" />
+                      editingNoteId === message.id ? (
+                        <InlineNoteEditor
+                          messageId={message.id}
+                          initialContent={message.originalMessage?.content || message.visibleBody}
+                          conversationId={conversationId}
+                          context={{
+                            type: 'internal_note',
+                            conversation_id: conversationId,
+                            message_id: message.id,
+                          }}
+                          onCancel={() => setEditingNoteId(null)}
+                          compact
+                        />
+                      ) : (
+                        <>
+                          <MentionRenderer content={message.visibleBody} className="text-sm" />
+                          {message.originalMessage?.updated_at &&
+                            message.originalMessage?.created_at &&
+                            new Date(message.originalMessage.updated_at).getTime() -
+                              new Date(message.originalMessage.created_at).getTime() >
+                              2000 && (
+                              <span className="ml-2 text-[10px] text-muted-foreground italic">(edited)</span>
+                            )}
+                        </>
+                      )
                     ) : (
                       <EmailRender
                         content={message.visibleBody}
