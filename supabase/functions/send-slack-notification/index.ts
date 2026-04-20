@@ -459,6 +459,7 @@ Deno.serve(async (req) => {
     let criticalToken = integration.secondary_access_token || integration.access_token;
 
     // Override critical routing with per-inbox critical_channel if configured
+    let inboxRoutingOverride: any = null;
     if (inbox_id) {
       const { data: critRouting } = await supabase
         .from('inbox_slack_routing')
@@ -468,6 +469,7 @@ Deno.serve(async (req) => {
         .maybeSingle();
 
       if (critRouting) {
+        inboxRoutingOverride = critRouting;
         // Check if critical alerts are disabled for this inbox
         if (critRouting.critical_enabled === false) {
           console.log(`🔇 Critical alerts disabled for inbox ${inbox_id}`);
