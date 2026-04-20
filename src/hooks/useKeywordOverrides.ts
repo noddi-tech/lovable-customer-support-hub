@@ -46,10 +46,10 @@ export function useKeywordOverrides() {
         .eq('organization_id', currentOrganizationId)
         .maybeSingle();
       if (error) throw error;
-      const ov = (data?.critical_keyword_overrides as KeywordOverrides) || { disabled: [], added: [] };
+      const ov = (data?.critical_keyword_overrides as unknown as KeywordOverrides) || { disabled: [], added: [] };
       return {
         overrides: { disabled: ov.disabled || [], added: ov.added || [] },
-        thresholds: (data?.critical_ai_severity_thresholds as CategoryThresholds) || {},
+        thresholds: (data?.critical_ai_severity_thresholds as unknown as CategoryThresholds) || {},
       };
     },
   });
@@ -59,7 +59,7 @@ export function useKeywordOverrides() {
       if (!currentOrganizationId) throw new Error('No org');
       const { error } = await supabase
         .from('slack_integrations')
-        .update({ critical_keyword_overrides: next })
+        .update({ critical_keyword_overrides: next as unknown as never })
         .eq('organization_id', currentOrganizationId);
       if (error) throw error;
     },
@@ -75,7 +75,7 @@ export function useKeywordOverrides() {
       if (!currentOrganizationId) throw new Error('No org');
       const { error } = await supabase
         .from('slack_integrations')
-        .update({ critical_ai_severity_thresholds: next })
+        .update({ critical_ai_severity_thresholds: next as unknown as never })
         .eq('organization_id', currentOrganizationId);
       if (error) throw error;
     },
