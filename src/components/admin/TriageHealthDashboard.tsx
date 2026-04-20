@@ -130,7 +130,8 @@ export const TriageHealthDashboard = () => {
               <Info className="h-3.5 w-3.5" />
               <AlertDescription className="text-xs">
                 Ingen reaksjoner registrert ennå. Be teamet reagere med 👍 / 👎 / 🔇 på Slack-varsler for å bygge opp dataen.
-                Dette krever at <code className="text-[11px] bg-muted px-1 rounded">slack-event-handler</code> er konfigurert som Events URL i Slack-appen.
+                Eldre varsler kan ikke reageres på fordi vi ikke lagret Slack-meldings-ID-en — bruk <strong>Send testvarsel</strong> for å verifisere flyten,
+                eller <strong>Backfill gamle varsler</strong> for å forsøke å gjenopprette ID-er for nylige meldinger.
               </AlertDescription>
             </Alert>
           )}
