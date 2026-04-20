@@ -38,6 +38,7 @@ import { EmailDebugOverlay } from "./EmailDebugOverlay";
 import { stripHtml } from "@/utils/stripHtml";
 import { getSmartPreview } from "@/utils/messagePreview";
 import { logger } from "@/utils/logger";
+import { noteDebug, scheduleInteractionLockWatchdog } from "@/utils/noteInteractionDebug";
 import { supabase } from "@/integrations/supabase/client";
 import { InlineNoteEditor } from "./InlineNoteEditor";
 import { useNoteMutations } from "@/hooks/useNoteMutations";
@@ -549,13 +550,28 @@ const MessageCardComponent = ({
                       sender_id: message.originalMessage?.sender_id,
                     }) && (
                       <>
-                        <DropdownMenuItem onClick={() => setIsEditingThisNote(true)}>
+                        <DropdownMenuItem
+                          onSelect={(e) => {
+                            e.preventDefault();
+                            noteDebug('note_editor_open_requested', {
+                              source: 'MessageCard',
+                              messageId: message.id,
+                              triggeredFrom: 'onSelect',
+                            }, 'MessageCard');
+                            // Defer to after dropdown unmount to avoid Radix pointer-lock conflict
+                            setTimeout(() => setIsEditingThisNote(true), 0);
+                          }}
+                        >
                           <Edit3 className="w-4 h-4 mr-2" />
                           Edit note
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           onSelect={(e) => {
                             e.preventDefault();
+                            noteDebug('delete_dialog_open_requested', {
+                              source: 'MessageCard',
+                              messageId: message.id,
+                            }, 'MessageCard');
                             // Defer dialog open until dropdown fully closes (avoids Radix pointer-lock bug)
                             setTimeout(() => setShowDeleteConfirm(true), 0);
                           }}
@@ -745,7 +761,16 @@ const MessageCardComponent = ({
         </div>
 
       {/* Delete confirmation dialog (internal notes) */}
-      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+      <AlertDialog
+        open={showDeleteConfirm}
+        onOpenChange={(open) => {
+          noteDebug('delete_dialog_open_changed', { source: 'MessageCard', open, messageId: message.id }, 'MessageCard');
+          setShowDeleteConfirm(open);
+          if (!open) {
+            scheduleInteractionLockWatchdog('MessageCard', { phase: 'dialog_closed', messageId: message.id });
+          }
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete this internal note?</AlertDialogTitle>
@@ -757,9 +782,11 @@ const MessageCardComponent = ({
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={async () => {
+                noteDebug('delete_confirm_clicked', { source: 'MessageCard', messageId: message.id }, 'MessageCard');
                 // Close dialog FIRST, then perform async delete (prevents pointer-lock freeze)
                 setShowDeleteConfirm(false);
                 await deleteNote(message.id, message.originalMessage?.conversation_id);
+                scheduleInteractionLockWatchdog('MessageCard', { phase: 'after_delete', messageId: message.id });
               }}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >

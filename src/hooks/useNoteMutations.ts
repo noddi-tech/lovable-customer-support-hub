@@ -5,6 +5,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useMentionNotifications, MentionContext } from '@/hooks/useMentionNotifications';
 import { toast } from 'sonner';
+import { logger } from '@/utils/logger';
+import { noteDebug } from '@/utils/noteInteractionDebug';
 
 interface UpdateNoteArgs {
   messageId: string;
@@ -60,6 +62,7 @@ export const useNoteMutations = () => {
       conversationId,
       context,
     }: UpdateNoteArgs) => {
+      noteDebug('update_mutation_started', { messageId, mentionCount: mentionedUserIds.length }, 'useNoteMutations');
       try {
         const { error } = await supabase
           .from('messages')
@@ -81,10 +84,12 @@ export const useNoteMutations = () => {
         }
 
         invalidateMessageCaches(conversationId);
+        noteDebug('update_mutation_finished', { messageId, ok: true }, 'useNoteMutations');
         toast.success('Note updated');
         return true;
       } catch (err: any) {
-        console.error('Failed to update note:', err);
+        logger.error('Failed to update note', err, 'useNoteMutations');
+        noteDebug('update_mutation_finished', { messageId, ok: false, error: err?.message }, 'useNoteMutations');
         toast.error(err?.message || 'Failed to update note');
         return false;
       }
@@ -94,6 +99,7 @@ export const useNoteMutations = () => {
 
   const deleteNote = useCallback(
     async (messageId: string, conversationId?: string) => {
+      noteDebug('delete_mutation_started', { messageId, conversationId }, 'useNoteMutations');
       try {
         const { error } = await supabase
           .from('messages')
@@ -104,10 +110,12 @@ export const useNoteMutations = () => {
         if (error) throw error;
 
         invalidateMessageCaches(conversationId);
+        noteDebug('delete_mutation_finished', { messageId, ok: true }, 'useNoteMutations');
         toast.success('Note deleted');
         return true;
       } catch (err: any) {
-        console.error('Failed to delete note:', err);
+        logger.error('Failed to delete note', err, 'useNoteMutations');
+        noteDebug('delete_mutation_finished', { messageId, ok: false, error: err?.message }, 'useNoteMutations');
         toast.error(err?.message || 'Failed to delete note');
         return false;
       }

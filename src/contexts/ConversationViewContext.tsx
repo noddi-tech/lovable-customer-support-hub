@@ -205,8 +205,8 @@ export const ConversationViewProvider = ({ children, conversationId, conversatio
     queryKey: ['messages', conversationId, user?.id],
     queryFn: async () => {
       if (!conversationId) return [];
-      
-      console.log('Fetching messages for conversation:', conversationId);
+
+      logger.debug('Fetching messages', { conversationId }, 'ConversationViewContext');
       const { data, error } = await supabase
         .from('messages')
         .select(`
@@ -224,13 +224,13 @@ export const ConversationViewProvider = ({ children, conversationId, conversatio
         `)
         .eq('conversation_id', conversationId)
         .order('created_at', { ascending: true });
-        
+
       if (error) {
-        console.error('Error fetching messages:', error);
+        logger.error('Error fetching messages', error, 'ConversationViewContext');
         throw error;
       }
-      
-      console.log('Messages fetched:', data?.length || 0);
+
+      logger.debug('Messages fetched', { count: data?.length || 0 }, 'ConversationViewContext');
       return data || [];
     },
     enabled: !!conversationId && !!user,
@@ -250,7 +250,7 @@ export const ConversationViewProvider = ({ children, conversationId, conversatio
         table: 'messages',
         filter: `conversation_id=eq.${conversationId}`
       }, (payload) => {
-        console.log('Real-time message update:', payload);
+        logger.debug('Real-time message update', { event: (payload as any)?.eventType }, 'ConversationViewContext');
         // Invalidate both query keys for immediate update
         queryClient.invalidateQueries({ 
           queryKey: ['thread-messages'] 

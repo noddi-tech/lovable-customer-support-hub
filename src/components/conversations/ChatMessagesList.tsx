@@ -19,6 +19,7 @@ import { MentionRenderer } from '@/components/ui/mention-renderer';
 import { toast } from 'sonner';
 import { InlineNoteEditor } from './InlineNoteEditor';
 import { useNoteMutations } from '@/hooks/useNoteMutations';
+import { noteDebug, scheduleInteractionLockWatchdog } from '@/utils/noteInteractionDebug';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -265,6 +266,10 @@ export const ChatMessagesList = ({
                             <DropdownMenuItem
                               onSelect={(e) => {
                                 e.preventDefault();
+                                noteDebug('note_editor_open_requested', {
+                                  source: 'ChatMessagesList',
+                                  messageId: message.id,
+                                }, 'ChatMessagesList');
                                 // Defer to after dropdown unmount to avoid Radix pointer-lock conflict
                                 setTimeout(() => setEditingNoteId(message.id), 0);
                               }}
@@ -275,6 +280,10 @@ export const ChatMessagesList = ({
                             <DropdownMenuItem
                               onSelect={(e) => {
                                 e.preventDefault();
+                                noteDebug('delete_dialog_open_requested', {
+                                  source: 'ChatMessagesList',
+                                  messageId: message.id,
+                                }, 'ChatMessagesList');
                                 setTimeout(() => setConfirmDeleteId(message.id), 0);
                               }}
                               className="text-destructive focus:text-destructive"
@@ -414,7 +423,16 @@ export const ChatMessagesList = ({
 
     </ScrollArea>
 
-      <AlertDialog open={!!confirmDeleteId} onOpenChange={(o) => !o && setConfirmDeleteId(null)}>
+      <AlertDialog
+        open={!!confirmDeleteId}
+        onOpenChange={(o) => {
+          noteDebug('delete_dialog_open_changed', { source: 'ChatMessagesList', open: o, messageId: confirmDeleteId }, 'ChatMessagesList');
+          if (!o) {
+            setConfirmDeleteId(null);
+            scheduleInteractionLockWatchdog('ChatMessagesList', { phase: 'dialog_closed' });
+          }
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete this internal note?</AlertDialogTitle>
@@ -427,9 +445,11 @@ export const ChatMessagesList = ({
             <AlertDialogAction
               onClick={async () => {
                 const idToDelete = confirmDeleteId;
+                noteDebug('delete_confirm_clicked', { source: 'ChatMessagesList', messageId: idToDelete }, 'ChatMessagesList');
                 setConfirmDeleteId(null);
                 if (idToDelete) {
                   await deleteNote(idToDelete, conversationId);
+                  scheduleInteractionLockWatchdog('ChatMessagesList', { phase: 'after_delete', messageId: idToDelete });
                 }
               }}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
