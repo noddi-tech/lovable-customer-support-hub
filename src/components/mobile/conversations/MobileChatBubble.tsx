@@ -238,8 +238,8 @@ export const MobileChatBubble = ({ message, customerName }: MobileChatBubbleProp
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={async () => {
-                await deleteNote(message.id, conversationId);
                 setShowDeleteConfirm(false);
+                await deleteNote(message.id, conversationId);
               }}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
