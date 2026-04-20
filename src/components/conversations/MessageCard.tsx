@@ -739,6 +739,30 @@ const MessageCardComponent = ({
             {import.meta.env.VITE_UI_PROBE === '1' && <MessageDebugProbe message={message} />}
           </div>
         </div>
+
+      {/* Delete confirmation dialog (internal notes) */}
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this internal note?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This cannot be undone. The note will be removed for everyone in the conversation.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                await deleteNote(message.id, message.originalMessage?.conversation_id);
+                setShowDeleteConfirm(false);
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
