@@ -14,6 +14,8 @@ import { SlackSetupWizard } from './SlackSetupWizard';
 import { SecondarySlackSetupWizard } from './SecondarySlackSetupWizard';
 import { InboxSlackRouting } from './InboxSlackRouting';
 import { CriticalAlertRouting } from './CriticalAlertRouting';
+import { TriageHealthDashboard } from './TriageHealthDashboard';
+import { KeywordTuningCard } from './KeywordTuningCard';
 
 const EVENT_OPTIONS = [
   { id: 'new_conversation', label: 'New Conversation', description: 'When a new email/message arrives' },
@@ -595,6 +597,12 @@ export const SlackIntegrationSettings = () => {
                 isPending={updateConfiguration.isPending}
               />
             )}
+
+            {/* Triage Health & Learning Loop */}
+            <TriageHealthDashboard />
+
+            {/* Keyword tuning (add/disable + view active mutes) */}
+            <KeywordTuningCard />
           </CardContent>
         )}
       </Card>
