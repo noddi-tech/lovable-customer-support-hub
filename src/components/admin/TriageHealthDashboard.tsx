@@ -63,7 +63,8 @@ export const TriageHealthDashboard = () => {
     );
   }
 
-  const noFeedback = data.total_feedback === 0;
+  const noAlerts = data.total_alerts === 0;
+  const noFeedback = !noAlerts && data.total_feedback === 0;
 
   return (
     <div className="space-y-4">
@@ -129,13 +130,21 @@ export const TriageHealthDashboard = () => {
             </div>
           </div>
 
+          {noAlerts && (
+            <Alert className="mt-4 bg-muted/30 border-border/30">
+              <Info className="h-3.5 w-3.5" />
+              <AlertDescription className="text-xs">
+                Ingen kritiske varsler de siste 30 dagene. Bruk <strong>Send testvarsel</strong> for å verifisere at flyten fungerer.
+              </AlertDescription>
+            </Alert>
+          )}
+
           {noFeedback && (
             <Alert className="mt-4 bg-muted/30 border-border/30">
               <Info className="h-3.5 w-3.5" />
               <AlertDescription className="text-xs">
                 Ingen reaksjoner registrert ennå. Be teamet reagere med 👍 / 👎 / 🔇 på Slack-varsler for å bygge opp dataen.
-                Eldre varsler kan ikke reageres på fordi vi ikke lagret Slack-meldings-ID-en — bruk <strong>Send testvarsel</strong> for å verifisere flyten,
-                eller <strong>Backfill gamle varsler</strong> for å forsøke å gjenopprette ID-er for nylige meldinger.
+                Eldre varsler kan ikke reageres på fordi vi ikke lagret Slack-meldings-ID-en — bruk <strong>Backfill gamle varsler</strong> for å forsøke å gjenopprette ID-er for nylige meldinger.
               </AlertDescription>
             </Alert>
           )}

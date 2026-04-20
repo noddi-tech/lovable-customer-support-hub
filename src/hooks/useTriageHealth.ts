@@ -34,6 +34,8 @@ export function useTriageHealth() {
   return useQuery({
     queryKey: ['triage-health', currentOrganizationId],
     enabled: !!currentOrganizationId,
+    refetchInterval: 30_000,
+    refetchOnWindowFocus: true,
     queryFn: async (): Promise<TriageHealthData> => {
       if (!currentOrganizationId) throw new Error('No organization');
 
@@ -46,12 +48,11 @@ export function useTriageHealth() {
           .select('matched_keyword, ai_category, reaction')
           .eq('organization_id', currentOrganizationId)
           .gte('created_at', since),
-        supabase
-          .from('notifications')
-          .select('id', { count: 'exact', head: true })
-          .eq('type', 'critical_alert_sent')
-          .filter('data->>organization_id', 'eq', currentOrganizationId)
-          .gte('created_at', since),
+        // Use security-definer RPC to bypass per-user RLS on notifications
+        supabase.rpc('get_critical_alert_count', {
+          _organization_id: currentOrganizationId,
+          _since: since,
+        }),
         supabase
           .from('critical_keyword_mutes')
           .select('id, keyword, expires_at, muted_via')
@@ -61,7 +62,7 @@ export function useTriageHealth() {
       ]);
 
       const feedback = feedbackRes.data || [];
-      const totalAlerts = alertsRes.count || 0;
+      const totalAlerts = (alertsRes.data as number | null) ?? 0;
       const activeMutes = mutesRes.data || [];
 
       // Aggregate
