@@ -65,6 +65,15 @@ const MentionTextarea = React.forwardRef<HTMLTextAreaElement, MentionTextareaPro
     // Keeps panel inside viewport horizontally.
     const computePanelPosition = useCallback(() => {
       const textarea = actualRef.current;
+      // [DIAG] TEMPORARY
+      // eslint-disable-next-line no-console
+      console.log('[mention-position] running', {
+        hasTextareaRef: !!textarea,
+        refType: actualRef === textareaRef ? 'internal' : 'forwarded',
+        rect: textarea ? textarea.getBoundingClientRect() : null,
+        selectionStart: textarea?.selectionStart,
+        valueLen: value.length,
+      });
       if (!textarea) return;
 
       const rect = textarea.getBoundingClientRect();
@@ -269,6 +278,19 @@ const MentionTextarea = React.forwardRef<HTMLTextAreaElement, MentionTextareaPro
                           e.preventDefault();
                         }}
                         onClick={(e) => {
+                          // [DIAG] TEMPORARY
+                          // eslint-disable-next-line no-console
+                          console.log('[mention-item] fired', {
+                            type: e.type,
+                            index,
+                            memberId: member.user_id,
+                            memberName: member.full_name,
+                            textareaFocused: document.activeElement === actualRef.current,
+                            activeEl: (document.activeElement as HTMLElement | null)?.tagName?.toLowerCase(),
+                            selectionStart: actualRef.current?.selectionStart,
+                            mentionStateIsOpen: mentionState.isOpen,
+                            triggerIndex: mentionState.triggerIndex,
+                          });
                           e.preventDefault();
                           e.stopPropagation();
                           noteDebug('mention_item_clicked', {
@@ -277,6 +299,13 @@ const MentionTextarea = React.forwardRef<HTMLTextAreaElement, MentionTextareaPro
                             index,
                           }, 'MentionTextarea');
                           handleSelectMember(member);
+                        }}
+                        onMouseDownCapture={() => {
+                          // [DIAG] TEMPORARY - confirm mousedown reaches the item
+                          // eslint-disable-next-line no-console
+                          console.log('[mention-item] mousedown-capture', {
+                            index, memberId: member.user_id,
+                          });
                         }}
                         onMouseEnter={() => setActiveIndex(index)}
                         className={cn(
