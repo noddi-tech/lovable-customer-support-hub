@@ -78,19 +78,25 @@ export const TriageHealthDashboard = () => {
                 </CardDescription>
               </div>
             </div>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => runMining.mutate()}
-              disabled={runMining.isPending}
-            >
-              {runMining.isPending ? (
-                <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
-              ) : (
-                <Sparkles className="h-3.5 w-3.5 mr-1.5" />
-              )}
-              Analyser nå
-            </Button>
+            <div className="flex flex-wrap gap-1.5">
+              <Button size="sm" variant="outline" onClick={sendTestAlert} disabled={sendingTest}>
+                {sendingTest ? <Loader2 className="animate-spin" /> : <Send />}
+                Send testvarsel
+              </Button>
+              <Button size="sm" variant="outline" onClick={runBackfill} disabled={backfilling}>
+                {backfilling ? <Loader2 className="animate-spin" /> : <History />}
+                Backfill gamle varsler
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => runMining.mutate()}
+                disabled={runMining.isPending}
+              >
+                {runMining.isPending ? <Loader2 className="animate-spin" /> : <Sparkles />}
+                Analyser nå
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
