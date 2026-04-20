@@ -19,7 +19,7 @@ import { MentionRenderer } from '@/components/ui/mention-renderer';
 import { toast } from 'sonner';
 import { InlineNoteEditor } from './InlineNoteEditor';
 import { useNoteMutations } from '@/hooks/useNoteMutations';
-import { noteDebug, scheduleInteractionLockWatchdog } from '@/utils/noteInteractionDebug';
+import { noteDebug } from '@/utils/noteInteractionDebug';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -427,10 +427,7 @@ export const ChatMessagesList = ({
         open={!!confirmDeleteId}
         onOpenChange={(o) => {
           noteDebug('delete_dialog_open_changed', { source: 'ChatMessagesList', open: o, messageId: confirmDeleteId }, 'ChatMessagesList');
-          if (!o) {
-            setConfirmDeleteId(null);
-            scheduleInteractionLockWatchdog('ChatMessagesList', { phase: 'dialog_closed' });
-          }
+          if (!o) setConfirmDeleteId(null);
         }}
       >
         <AlertDialogContent>
@@ -443,14 +440,17 @@ export const ChatMessagesList = ({
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={async () => {
+              onClick={() => {
                 const idToDelete = confirmDeleteId;
                 noteDebug('delete_confirm_clicked', { source: 'ChatMessagesList', messageId: idToDelete }, 'ChatMessagesList');
+                // 1. Close dialog synchronously so Radix completes focus return + body unlock
                 setConfirmDeleteId(null);
-                if (idToDelete) {
-                  await deleteNote(idToDelete, conversationId);
-                  scheduleInteractionLockWatchdog('ChatMessagesList', { phase: 'after_delete', messageId: idToDelete });
-                }
+                if (!idToDelete) return;
+                // 2. Defer the mutation by one tick so the cache invalidation
+                //    (which unmounts the deleted bubble) runs AFTER Radix cleanup.
+                setTimeout(() => {
+                  void deleteNote(idToDelete, conversationId);
+                }, 0);
               }}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >

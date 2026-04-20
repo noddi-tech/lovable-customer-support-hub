@@ -4,6 +4,18 @@ import { Button } from "@/components/ui/button";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useNoteMutations } from "@/hooks/useNoteMutations";
+import { noteDebug } from "@/utils/noteInteractionDebug";
 
 interface ThreadedMessagesListProps {
   threadTree: ThreadNode[];
@@ -23,6 +35,8 @@ export const ThreadedMessagesList = ({
   onDeleteMessage,
 }: ThreadedMessagesListProps) => {
   const maxDepth = 3; // Flatten threads deeper than this
+  const [confirmDeleteNoteId, setConfirmDeleteNoteId] = useState<string | null>(null);
+  const { deleteNote } = useNoteMutations();
   
   const renderThread = (node: ThreadNode, actualDepth: number = 0) => {
     const isCollapsed = collapsedThreads.has(node.message.id);
@@ -96,6 +110,7 @@ export const ThreadedMessagesList = ({
                   defaultCollapsed={false}
                   onEdit={onEditMessage}
                   onDelete={onDeleteMessage}
+                  onRequestDeleteNote={(id) => setConfirmDeleteNoteId(id)}
                 />
                 
                 {/* Thread count badge */}
@@ -133,6 +148,44 @@ export const ThreadedMessagesList = ({
   return (
     <div className="space-y-2">
       {threadTree.map(node => renderThread(node, 0))}
+
+      {/* Hoisted delete-note confirmation — survives MessageCard unmount so Radix can complete focus return */}
+      <AlertDialog
+        open={!!confirmDeleteNoteId}
+        onOpenChange={(open) => {
+          noteDebug('delete_dialog_open_changed', { source: 'ThreadedMessagesList', open, messageId: confirmDeleteNoteId }, 'ThreadedMessagesList');
+          if (!open) setConfirmDeleteNoteId(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this internal note?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This cannot be undone. The note will be removed for everyone in the conversation.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                const idToDelete = confirmDeleteNoteId;
+                noteDebug('delete_confirm_clicked', { source: 'ThreadedMessagesList', messageId: idToDelete }, 'ThreadedMessagesList');
+                // 1. Close dialog synchronously so Radix completes its focus return + body unlock
+                setConfirmDeleteNoteId(null);
+                if (!idToDelete) return;
+                // 2. Defer the mutation by one tick so the cache invalidation
+                //    (which unmounts the deleted MessageCard) runs AFTER Radix cleanup.
+                setTimeout(() => {
+                  void deleteNote(idToDelete, conversation?.id);
+                }, 0);
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
