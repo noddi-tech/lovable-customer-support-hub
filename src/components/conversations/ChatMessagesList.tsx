@@ -49,6 +49,9 @@ export const ChatMessagesList = ({
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const { canEditNote, deleteNote } = useNoteMutations();
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
