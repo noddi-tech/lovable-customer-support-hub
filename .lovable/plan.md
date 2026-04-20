@@ -1,47 +1,48 @@
 
 
-## Plan: Backfill Slack timestamps + add manual test trigger
+## Plan: Fix "non-2xx status code" on Send testvarsel — surface real error + verify routing
 
-Two small additions so you can verify the feedback loop without waiting for a real critical alert.
+The frontend is showing the generic Supabase invoke error because `send-test-critical-alert` returns HTTP 500/4xx with the actual reason hidden in the response body (which `supabase.functions.invoke` swallows). I'll fix that and harden the test-trigger flow.
 
-### 1. Backfill `slack_message_ts` for recent alerts (best-effort)
+### 1. Always return HTTP 200 with structured `{ ok, error, stage }`
 
-For the last ~50 `critical_alert_sent` notifications missing `slack_message_ts`, call Slack `conversations.history` on the resolved channel and match by:
-- approximate timestamp (notification `created_at` ± 10s)
-- bot user ID (the message author must be our bot)
-- text contains `CRITICAL` (sanity check)
+Refactor `supabase/functions/send-test-critical-alert/index.ts` to:
 
-When matched, `UPDATE notifications SET data = data || jsonb_build_object('slack_message_ts', ts, 'slack_channel_id', channel) WHERE id = ...`.
+- Use a `respond(ok, payload)` helper that always returns `status: 200` so the client can read the body.
+- Tag every failure with an `error_stage` (`auth`, `authz`, `no_inbox`, `no_conversation`, `slack_invoke`, `slack_response`, `unexpected`).
+- Capture `console.error` with full context so the next failure shows up in edge function logs (currently only "booted" is logged).
+- Inspect the `send-slack-notification` response (`{ data, error }`) AND look for `data.success === false` / `data.error` (Slack invoke can resolve with a body-level error and still be HTTP 200).
 
-Implemented as a one-off edge function `backfill-critical-alert-ts` invoked manually. Safe to re-run (skips rows that already have ts).
+### 2. Update the client to read the structured error
 
-Caveats:
-- Only works for alerts within Slack's history window and where the channel is still resolvable from the integration.
-- Won't recover alerts where the bot message was deleted or the channel was archived.
-- The "Booking av dekkskift" message in your screenshot is from `C02KWUX0Q03` ts=`1776677349.611669` — it'll be one of the candidates.
+In `src/components/admin/TriageHealthDashboard.tsx` (`handleSendTest`):
 
-### 2. "Send test critical alert" button (admin UI)
+- Treat `res.ok === false` as the failure signal (instead of relying on `error` from invoke).
+- Show `res.error` and `res.error_stage` in the toast so we see the real cause (e.g. "no_inbox", "slack_invoke: missing channel mapping").
 
-Add a button on the Triage Health card → calls a new edge function `send-test-critical-alert` that:
-- Fires a real Slack alert via `send-slack-notification` to the configured Tech channel
-- Uses keyword `"test-trigger-please-ignore"` so it's distinct from real alerts
-- Subject/body marked clearly as a test
-- Writes a normal `critical_alert_sent` notification (so the reaction loop is reachable)
+### 3. Likely root causes the new logs/toast will pinpoint
 
-This gives you a deterministic way to verify 👍/👎/🔇 → `critical_alert_feedback` / `critical_keyword_mutes` without waiting for a customer issue.
+Based on the function code, the test alert will fail at one of these stages — the new error surfacing will tell us which:
 
-### 3. Implementation map
+- **`no_conversation`** — the chosen inbox has zero conversations. Mitigation: fall back to any conversation in the org regardless of inbox.
+- **`slack_invoke`** — `send-slack-notification` rejects because no Slack integration / channel routing is configured for the org, or because `event_type: 'new_conversation'` requires a real conversation that doesn't trip the keyword filter.
+- **`auth/authz`** — caller isn't admin in the chosen org (super-admin path missing).
 
-- New `supabase/functions/backfill-critical-alert-ts/index.ts` — admin-only, JWT-verified, scans last 50 notifications.
-- New `supabase/functions/send-test-critical-alert/index.ts` — admin-only, fires one alert.
-- `src/components/admin/TriageHealthDashboard.tsx` — add two small buttons in the header: "Send testvarsel" and "Backfill gamle varsler".
-- Empty-state alert (the one in your screenshot) updated to mention: *"Eldre varsler kan ikke reageres på fordi vi ikke lagret Slack-ID-en. Bruk 'Send testvarsel' for å verifisere flyten."*
+I'll add small fallbacks for the first two:
 
-### 4. Verification
+- Pick any conversation in the org (drop the `inbox_id` filter) if the inbox-scoped lookup is empty.
+- Allow `super_admin` callers (not just `admin`) to pass authz.
+- Pass an explicit `force_critical: true` flag to `send-slack-notification` so the test bypasses keyword detection if we ever change the sentinel.
 
-1. Click **Send testvarsel** → real alert appears in Tech channel (or fallback channel).
-2. React 👍 on it → row appears in `critical_alert_feedback` with `reaction='+1'`.
-3. React 🔇 → row appears in `critical_keyword_mutes` with `keyword='test-trigger-please-ignore'`, `expires_at=+7d`.
-4. Triage Health KPIs update on next refresh.
-5. Click **Backfill gamle varsler** → recent alerts gain `slack_message_ts` in `notifications.data`. Try reacting to the "Booking av dekkskift" message — should now record feedback.
+### 4. Files touched
+
+- `supabase/functions/send-test-critical-alert/index.ts` — structured responses, logging, fallbacks, super-admin authz.
+- `src/components/admin/TriageHealthDashboard.tsx` — read `res.ok`/`res.error`/`res.error_stage`, show in toast.
+- Deploy `send-test-critical-alert` after the change.
+
+### 5. Verification
+
+1. Click **Send testvarsel** again.
+2. If it still fails, the toast now shows a precise reason like `no_conversation` or `slack_invoke: <slack reason>`. Share the toast text and I'll fix the underlying config gap.
+3. On success: alert appears in the routed Slack channel, react 👍/🔇, confirm rows in `critical_alert_feedback` / `critical_keyword_mutes`.
 
