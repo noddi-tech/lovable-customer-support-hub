@@ -89,6 +89,9 @@ export const useSlackIntegration = () => {
           critical_alerts_enabled: !!config.critical_alerts_enabled,
         },
         setup_completed: data.setup_completed || false,
+        critical_tech_mention_mode: (data.critical_tech_mention_mode as SlackMentionMode) || 'channel',
+        critical_ops_mention_mode: (data.critical_ops_mention_mode as SlackMentionMode) || 'channel',
+        critical_category_routing: (data.critical_category_routing as Record<string, 'tech' | 'ops'>) || {},
       } as SlackIntegration;
     },
     enabled: !!currentOrganizationId,
