@@ -5,7 +5,12 @@ import {
   buildMentionPrefix,
   describeRouting,
   inferCategoryFromKeyword,
+  buildAlertHeader,
+  buildFeedbackFooterBlock,
+  getEffectiveKeywords,
+  getCategoryThreshold,
   type IntegrationRoutingFields,
+  type KeywordOverrides,
 } from '../_shared/critical-routing.ts';
 
 const corsHeaders = {
@@ -514,29 +519,22 @@ Deno.serve(async (req) => {
           alreadyAlerted = true;
         }
       }
-      const CRITICAL_KEYWORDS = [
-        // English
-        'booking', "can't book", 'cannot book', 'payment failed', 'payment error',
-        'error', 'not working', 'broken', 'down', 'outage', 'can\'t access',
-        'unable to', 'fails', 'failure', 'critical', 'urgent',
-        // Norwegian
-        'kan ikke bestille', 'bestilling feilet', 'bestilling feiler',
-        'betaling feilet', 'betaling feiler', 'betalingsfeil',
-        'fungerer ikke', 'virker ikke', 'funker ikke',
-        'feil', 'feilmelding', 'feiler',
-        'nedetid', 'ødelagt', 'nede',
-        'får ikke til', 'klarer ikke', 'ikke tilgjengelig',
-        'kritisk', 'haster', 'akutt',
-        'kan ikke logge inn', 'innlogging feiler',
-        'appen krasjer', 'krasjer', 'tom side', 'blank side',
-      ];
+      // Resolve effective keyword list: BASE ∪ added − disabled − active mutes
+      const overrides = (integration.critical_keyword_overrides as KeywordOverrides) || {};
+      const { data: muteRows } = await supabase
+        .from('critical_keyword_mutes')
+        .select('keyword')
+        .eq('organization_id', organization_id)
+        .gt('expires_at', new Date().toISOString());
+      const activeMutes = (muteRows || []).map((m: { keyword: string }) => m.keyword);
+      const effectiveKeywords = getEffectiveKeywords(overrides, activeMutes);
 
       const textToCheck = [subject, preview_text, customer_name]
         .filter(Boolean)
         .join(' ')
         .toLowerCase();
 
-      const matchedKeyword = CRITICAL_KEYWORDS.find(kw => textToCheck.includes(kw));
+      const matchedKeyword = effectiveKeywords.find(kw => textToCheck.includes(kw));
       
       // AI triage: if no keyword match, use AI for context-aware detection
       let aiTriageResult: { critical: boolean; category: string; reason: string; severity: number } | null = null;
@@ -546,31 +544,65 @@ Deno.serve(async (req) => {
         aiTriageResult = await aiCriticalTriage(supabase, conversation_id, openaiApiKey);
       }
 
-      const shouldAlert = !alreadyAlerted && (matchedKeyword || (aiTriageResult?.critical && (aiTriageResult?.severity || 0) >= 3));
+      // Resolve category early so we can apply per-category severity threshold
+      const aiThresholds = (integration.critical_ai_severity_thresholds as Record<string, number>) || {};
+      const aiCategory = aiTriageResult?.category;
+      const aiSeverity = aiTriageResult?.severity ?? 0;
+      const requiredThreshold = getCategoryThreshold(aiThresholds, aiCategory);
+      const aiPasses = !!aiTriageResult?.critical && aiSeverity >= requiredThreshold;
+
+      const shouldAlert = !alreadyAlerted && (matchedKeyword || aiPasses);
 
       if (shouldAlert) {
+        const resolvedCategory = aiTriageResult?.category
+          ?? inferCategoryFromKeyword(matchedKeyword);
+        const bucket = resolveBucket(
+          resolvedCategory,
+          (integration.critical_category_routing as Record<string, string>) || {},
+        );
+        const bucketConfig = getBucketConfig(
+          bucket,
+          integration as IntegrationRoutingFields,
+          inboxRoutingOverride,
+        );
+        const mentionPrefix = buildMentionPrefix(bucketConfig);
+
+        // Build category-aware header
+        const header = buildAlertHeader({
+          category: resolvedCategory,
+          title: subject || title,
+          customerName: customer_name,
+          severity: aiSeverity || null,
+          mentionPrefix,
+        });
+
         const criticalBlocks: any[] = [
           {
             type: 'section',
-            text: {
-              type: 'mrkdwn',
-              text: `🚨 *CRITICAL ALERT* — ${title}`,
-            },
-          },
-          {
-            type: 'section',
-            fields: [
-              {
-                type: 'mrkdwn',
-                text: `*From:*\n${customer_name || 'Unknown'}${customer_email ? ` (${customer_email})` : ''}`,
-              },
-              {
-                type: 'mrkdwn',
-                text: `*Subject:*\n${subject || 'No subject'}`,
-              },
-            ],
+            text: { type: 'mrkdwn', text: header.headerText },
           },
         ];
+
+        if (header.severityBadge) {
+          criticalBlocks.push({
+            type: 'context',
+            elements: [{ type: 'mrkdwn', text: header.severityBadge }],
+          });
+        }
+
+        criticalBlocks.push({
+          type: 'section',
+          fields: [
+            {
+              type: 'mrkdwn',
+              text: `*From:*\n${customer_name || 'Unknown'}${customer_email ? ` (${customer_email})` : ''}`,
+            },
+            {
+              type: 'mrkdwn',
+              text: `*Subject:*\n${subject || 'No subject'}`,
+            },
+          ],
+        });
 
         if (preview_text) {
           const cleanedPreview = cleanPreviewText(preview_text, 180);
@@ -585,20 +617,6 @@ Deno.serve(async (req) => {
           }
         }
 
-        // Resolve Tech vs Ops bucket + mention prefix
-        const resolvedCategory = aiTriageResult?.category
-          ?? inferCategoryFromKeyword(matchedKeyword);
-        const bucket = resolveBucket(
-          resolvedCategory,
-          (integration.critical_category_routing as Record<string, string>) || {},
-        );
-        const bucketConfig = getBucketConfig(
-          bucket,
-          integration as IntegrationRoutingFields,
-          inboxRoutingOverride,
-        );
-        const mentionPrefix = buildMentionPrefix(bucketConfig);
-
         // Show trigger reason
         if (matchedKeyword) {
           criticalBlocks.push({
@@ -611,15 +629,15 @@ Deno.serve(async (req) => {
           criticalBlocks.push({
             type: 'context',
             elements: [
-              { 
-                type: 'mrkdwn', 
-                text: `🤖 AI detected: *${aiTriageResult.category.replace(/_/g, ' ')}* (severity ${aiTriageResult.severity}/5)\n${aiTriageResult.reason}` 
+              {
+                type: 'mrkdwn',
+                text: `🤖 AI detected: *${aiTriageResult.category.replace(/_/g, ' ')}* (severity ${aiTriageResult.severity}/5)\n${aiTriageResult.reason}`,
               },
             ],
           });
         }
 
-        // Show routing decision (Tech vs Ops + target)
+        // Routing decision
         criticalBlocks.push({
           type: 'context',
           elements: [
@@ -642,10 +660,13 @@ Deno.serve(async (req) => {
           });
         }
 
+        // Feedback prompt footer (👍 / 👎 / 🔇)
+        criticalBlocks.push(buildFeedbackFooterBlock());
+
         try {
           const fallbackText = mentionPrefix
-            ? `🚨 CRITICAL: ${title} from ${customer_name || 'Unknown'} — ${subject || 'No subject'} ${mentionPrefix}`
-            : `🚨 CRITICAL: ${title} from ${customer_name || 'Unknown'} — ${subject || 'No subject'}`;
+            ? `${header.fallbackText}`
+            : header.fallbackText;
           const criticalResponse = await fetch('https://slack.com/api/chat.postMessage', {
             method: 'POST',
             headers: {
@@ -657,7 +678,7 @@ Deno.serve(async (req) => {
               text: fallbackText,
               attachments: [
                 {
-                  color: '#dc2626',
+                  color: header.color,
                   blocks: criticalBlocks,
                 },
               ],
@@ -669,17 +690,31 @@ Deno.serve(async (req) => {
           if (!critResult.ok) {
             console.error('Critical alert Slack error:', critResult.error);
           } else {
-            const triggerSource = matchedKeyword ? `keyword: ${matchedKeyword}` : `AI: ${aiTriageResult?.category}`;
-            console.log(`Critical alert sent to ${criticalChannelId} (${triggerSource})`);
-            
-            // Track this alert to prevent duplicates for 24h
+            const triggerSource: 'keyword' | 'ai' = matchedKeyword ? 'keyword' : 'ai';
+            const triggerLabel = matchedKeyword ? `keyword: ${matchedKeyword}` : `AI: ${aiTriageResult?.category}`;
+            console.log(`Critical alert sent to ${criticalChannelId} (${triggerLabel}) ts=${critResult.ts}`);
+
+            // Track this alert with rich data for the feedback loop
             if (conversation_id) {
               await supabase.from('notifications').insert({
                 user_id: '00000000-0000-0000-0000-000000000000',
                 title: 'Critical alert sent',
                 message: `Critical alert for conversation ${conversation_id}`,
                 type: 'critical_alert_sent',
-                data: { conversation_id, trigger: triggerSource },
+                data: {
+                  conversation_id,
+                  organization_id,
+                  trigger: triggerLabel,
+                  trigger_source: triggerSource,
+                  matched_keyword: matchedKeyword || null,
+                  ai_category: aiTriageResult?.category || null,
+                  ai_severity: aiTriageResult?.severity || null,
+                  ai_reason: aiTriageResult?.reason || null,
+                  resolved_bucket: bucket,
+                  resolved_category: resolvedCategory,
+                  slack_channel_id: criticalChannelId,
+                  slack_message_ts: critResult.ts,
+                },
               }).then(({ error }) => {
                 if (error) console.error('Failed to track critical alert:', error);
               });

@@ -250,3 +250,10 @@ verify_jwt = true
 
 [functions.auto-close-conversations]
 verify_jwt = false
+
+# PUBLIC: Slack Events API endpoint — security via signing-secret HMAC verification
+[functions.slack-event-handler]
+verify_jwt = false
+
+[functions.triage-pattern-mining]
+verify_jwt = false

@@ -5,30 +5,17 @@ import {
   buildMentionPrefix,
   describeRouting,
   inferCategoryFromKeyword,
+  buildAlertHeader,
+  buildFeedbackFooterBlock,
+  getEffectiveKeywords,
   type IntegrationRoutingFields,
+  type KeywordOverrides,
 } from '../_shared/critical-routing.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
-
-const CRITICAL_KEYWORDS = [
-  // English
-  'booking', "can't book", 'cannot book', 'payment failed', 'payment error',
-  'error', 'not working', 'broken', 'down', 'outage', 'can\'t access',
-  'unable to', 'fails', 'failure', 'critical', 'urgent',
-  // Norwegian
-  'kan ikke bestille', 'bestilling feilet', 'bestilling feiler',
-  'betaling feilet', 'betaling feiler', 'betalingsfeil',
-  'fungerer ikke', 'virker ikke', 'funker ikke',
-  'feil', 'feilmelding', 'feiler',
-  'nedetid', 'ødelagt', 'nede',
-  'får ikke til', 'klarer ikke', 'ikke tilgjengelig',
-  'kritisk', 'haster', 'akutt',
-  'kan ikke logge inn', 'innlogging feiler',
-  'appen krasjer', 'krasjer', 'tom side', 'blank side',
-];
 
 function cleanPreviewText(text: string | undefined, maxLength: number = 180): string {
   if (!text) return '';
@@ -55,7 +42,6 @@ Deno.serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Get all orgs with active slack integrations that have critical alerts configured
     const { data: integrations, error: intError } = await supabase
       .from('slack_integrations')
       .select('*')
@@ -81,7 +67,16 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      // Fetch open/pending conversations with latest customer message
+      // Resolve effective keyword list (BASE ∪ added − disabled − active mutes)
+      const overrides = (integration.critical_keyword_overrides as KeywordOverrides) || {};
+      const { data: muteRows } = await supabase
+        .from('critical_keyword_mutes')
+        .select('keyword')
+        .eq('organization_id', orgId)
+        .gt('expires_at', new Date().toISOString());
+      const activeMutes = (muteRows || []).map((m: { keyword: string }) => m.keyword);
+      const effectiveKeywords = getEffectiveKeywords(overrides, activeMutes);
+
       const { data: conversations, error: convError } = await supabase
         .from('conversations')
         .select('id, subject, preview_text, customer_id, inbox_id, customers(full_name, email)')
@@ -98,7 +93,6 @@ Deno.serve(async (req) => {
 
       console.log(`📋 Org ${orgId}: reviewing ${conversations.length} open conversations`);
 
-      // Check which conversations already have critical alerts in last 24h
       const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
       const { data: existingAlerts } = await supabase
         .from('notifications')
@@ -120,13 +114,11 @@ Deno.serve(async (req) => {
         const customerName = customer?.full_name || 'Unknown';
         const customerEmail = customer?.email || '';
 
-        // Check dedup
         if (alertedConvIds.has(conv.id)) {
           summary.skipped_dedup++;
           continue;
         }
 
-        // Per-inbox routing: resolve channel and token for this conversation's inbox
         let convCriticalChannelId = criticalChannelId;
         let convCriticalToken = integration.secondary_access_token || integration.access_token;
         let inboxRoutingOverride: any = null;
@@ -141,12 +133,10 @@ Deno.serve(async (req) => {
 
           if (routing) {
             inboxRoutingOverride = routing;
-            // Check if critical alerts are disabled for this inbox
             if (routing.critical_enabled === false) {
               console.log(`🔇 Critical alerts disabled for inbox ${conv.inbox_id}, skipping`);
               continue;
             }
-            // Use dedicated critical channel if set, otherwise fall back to notification channel
             if (routing.critical_channel_id) {
               convCriticalChannelId = routing.critical_channel_id;
               convCriticalToken = routing.critical_use_secondary && integration.secondary_access_token
@@ -161,7 +151,6 @@ Deno.serve(async (req) => {
           }
         }
 
-        // Get latest customer message for better text matching
         const { data: latestMsg } = await supabase
           .from('messages')
           .select('content')
@@ -177,18 +166,39 @@ Deno.serve(async (req) => {
           .join(' ')
           .toLowerCase();
 
-        const matchedKeyword = CRITICAL_KEYWORDS.find(kw => textToCheck.includes(kw));
+        const matchedKeyword = effectiveKeywords.find(kw => textToCheck.includes(kw));
 
         if (!matchedKeyword) continue;
 
-        // Build and send critical alert
         const title = conv.subject || 'No subject';
         const cleanedPreview = cleanPreviewText(previewText, 180);
+
+        // Resolve Tech vs Ops bucket + mention prefix
+        const resolvedCategory = inferCategoryFromKeyword(matchedKeyword);
+        const bucket = resolveBucket(
+          resolvedCategory,
+          (integration.critical_category_routing as Record<string, string>) || {},
+        );
+        const bucketConfig = getBucketConfig(
+          bucket,
+          integration as IntegrationRoutingFields,
+          inboxRoutingOverride,
+        );
+        const mentionPrefix = buildMentionPrefix(bucketConfig);
+
+        // Category-aware header
+        const header = buildAlertHeader({
+          category: resolvedCategory,
+          title,
+          customerName,
+          mentionPrefix,
+          isBatch: true,
+        });
 
         const criticalBlocks: any[] = [
           {
             type: 'section',
-            text: { type: 'mrkdwn', text: `🚨 *CRITICAL ALERT (Batch Review)* — ${title}` },
+            text: { type: 'mrkdwn', text: header.headerText },
           },
           {
             type: 'section',
@@ -205,19 +215,6 @@ Deno.serve(async (req) => {
             text: { type: 'mrkdwn', text: `> ${cleanedPreview.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}` },
           });
         }
-
-        // Resolve Tech vs Ops bucket + mention prefix
-        const resolvedCategory = inferCategoryFromKeyword(matchedKeyword);
-        const bucket = resolveBucket(
-          resolvedCategory,
-          (integration.critical_category_routing as Record<string, string>) || {},
-        );
-        const bucketConfig = getBucketConfig(
-          bucket,
-          integration as IntegrationRoutingFields,
-          inboxRoutingOverride,
-        );
-        const mentionPrefix = buildMentionPrefix(bucketConfig);
 
         criticalBlocks.push({
           type: 'context',
@@ -239,11 +236,10 @@ Deno.serve(async (req) => {
           }],
         });
 
+        criticalBlocks.push(buildFeedbackFooterBlock());
+
         const critToken = convCriticalToken;
         try {
-          const fallbackText = mentionPrefix
-            ? `🚨 CRITICAL (Batch): ${title} from ${customerName} — ${conv.subject || 'No subject'} ${mentionPrefix}`
-            : `🚨 CRITICAL (Batch): ${title} from ${customerName} — ${conv.subject || 'No subject'}`;
           const criticalResponse = await fetch('https://slack.com/api/chat.postMessage', {
             method: 'POST',
             headers: {
@@ -252,9 +248,9 @@ Deno.serve(async (req) => {
             },
             body: JSON.stringify({
               channel: convCriticalChannelId,
-              text: fallbackText,
+              text: header.fallbackText,
               attachments: [{
-                color: '#dc2626',
+                color: header.color,
                 blocks: criticalBlocks,
               }],
               unfurl_links: false,
@@ -268,18 +264,31 @@ Deno.serve(async (req) => {
             continue;
           }
 
-          // Track to prevent duplicates
+          // Track with rich data for feedback loop
           await supabase.from('notifications').insert({
             user_id: '00000000-0000-0000-0000-000000000000',
             title: 'Critical alert sent',
             message: `Batch critical alert for conversation ${conv.id}`,
             type: 'critical_alert_sent',
-            data: { conversation_id: conv.id, trigger: `keyword: ${matchedKeyword}`, source: 'batch_review' },
+            data: {
+              conversation_id: conv.id,
+              organization_id: orgId,
+              trigger: `keyword: ${matchedKeyword}`,
+              trigger_source: 'batch_keyword',
+              matched_keyword: matchedKeyword,
+              ai_category: null,
+              ai_severity: null,
+              resolved_bucket: bucket,
+              resolved_category: resolvedCategory,
+              slack_channel_id: convCriticalChannelId,
+              slack_message_ts: critResult.ts,
+              source: 'batch_review',
+            },
           });
 
           summary.alerted++;
           summary.details.push({ conversation_id: conv.id, subject: conv.subject, keyword: matchedKeyword, customer: customerName });
-          console.log(`🚨 Alert sent for conv ${conv.id} (keyword: ${matchedKeyword})`);
+          console.log(`🚨 Alert sent for conv ${conv.id} (keyword: ${matchedKeyword}) ts=${critResult.ts}`);
         } catch (err) {
           console.error(`Error sending alert for conv ${conv.id}:`, err);
         }
