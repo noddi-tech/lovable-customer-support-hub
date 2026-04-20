@@ -257,3 +257,9 @@ verify_jwt = false
 
 [functions.triage-pattern-mining]
 verify_jwt = false
+
+[functions.send-test-critical-alert]
+verify_jwt = true
+
+[functions.backfill-critical-alert-ts]
+verify_jwt = true
