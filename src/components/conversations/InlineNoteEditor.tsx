@@ -6,6 +6,7 @@ import { useNoteMutations, extractMentionNames } from '@/hooks/useNoteMutations'
 import type { MentionContext } from '@/hooks/useMentionNotifications';
 import { Loader2, X, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { noteDebug } from '@/utils/noteInteractionDebug';
 
 interface InlineNoteEditorProps {
   messageId: string;
@@ -55,6 +56,15 @@ export const InlineNoteEditor = ({
     setMentionedUserIds(ids);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [members.length]);
+
+  // Lifecycle tracking for the editor
+  useEffect(() => {
+    noteDebug('note_editor_mounted', { messageId, hasContext: !!context }, 'InlineNoteEditor');
+    return () => {
+      noteDebug('note_editor_unmounted', { messageId }, 'InlineNoteEditor');
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleSave = async () => {
     if (!value.trim() || isSaving) return;

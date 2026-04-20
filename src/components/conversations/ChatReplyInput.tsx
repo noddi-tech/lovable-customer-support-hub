@@ -5,6 +5,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useIsMobile } from '@/hooks/use-responsive';
 import { MentionTextarea } from '@/components/ui/mention-textarea';
 import { useMentionNotifications } from '@/hooks/useMentionNotifications';
+import { noteDebug } from '@/utils/noteInteractionDebug';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Send, Loader2, MessageSquareX, UserRoundPlus, Smile, Paperclip, Mic, Image, X, Languages, StickyNote, Sparkles, Eye, Database } from 'lucide-react';
@@ -343,9 +344,15 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     // Don't hijack Enter while the @mention menu is open — let MentionTextarea handle selection
-    if (isMentionMenuOpen) return;
+    if (isMentionMenuOpen) {
+      if (e.key === 'Enter') {
+        noteDebug('chat_enter_blocked_menu_open', { isInternalNote }, 'ChatReplyInput');
+      }
+      return;
+    }
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
+      noteDebug('chat_enter_send', { isInternalNote }, 'ChatReplyInput');
       handleSend();
     }
   };
@@ -541,7 +548,10 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
               onBlur={stopTyping}
               disabled={isPending}
               mentionedUserIds={mentionedUserIds}
-              onMentionMenuOpenChange={setIsMentionMenuOpen}
+              onMentionMenuOpenChange={(open) => {
+                setIsMentionMenuOpen(open);
+                noteDebug('chat_mention_menu_state', { open }, 'ChatReplyInput');
+              }}
             />
           </div>
         ) : (

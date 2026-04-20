@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { InlineNoteEditor } from '@/components/conversations/InlineNoteEditor';
 import { useNoteMutations } from '@/hooks/useNoteMutations';
+import { noteDebug, scheduleInteractionLockWatchdog } from '@/utils/noteInteractionDebug';
 import type { NormalizedMessage } from '@/lib/normalizeMessage';
 
 interface MobileChatBubbleProps {
@@ -146,6 +147,10 @@ export const MobileChatBubble = ({ message, customerName }: MobileChatBubbleProp
                 <DropdownMenuItem
                   onSelect={(e) => {
                     e.preventDefault();
+                    noteDebug('note_editor_open_requested', {
+                      source: 'MobileChatBubble',
+                      messageId: message.id,
+                    }, 'MobileChatBubble');
                     setTimeout(() => setIsEditing(true), 0);
                   }}
                 >
@@ -155,6 +160,10 @@ export const MobileChatBubble = ({ message, customerName }: MobileChatBubbleProp
                 <DropdownMenuItem
                   onSelect={(e) => {
                     e.preventDefault();
+                    noteDebug('delete_dialog_open_requested', {
+                      source: 'MobileChatBubble',
+                      messageId: message.id,
+                    }, 'MobileChatBubble');
                     setTimeout(() => setShowDeleteConfirm(true), 0);
                   }}
                   className="text-destructive focus:text-destructive"
@@ -237,7 +246,16 @@ export const MobileChatBubble = ({ message, customerName }: MobileChatBubbleProp
         </div>
       )}
 
-      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+      <AlertDialog
+        open={showDeleteConfirm}
+        onOpenChange={(open) => {
+          noteDebug('delete_dialog_open_changed', { source: 'MobileChatBubble', open, messageId: message.id }, 'MobileChatBubble');
+          setShowDeleteConfirm(open);
+          if (!open) {
+            scheduleInteractionLockWatchdog('MobileChatBubble', { phase: 'dialog_closed', messageId: message.id });
+          }
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete this internal note?</AlertDialogTitle>
@@ -249,8 +267,10 @@ export const MobileChatBubble = ({ message, customerName }: MobileChatBubbleProp
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={async () => {
+                noteDebug('delete_confirm_clicked', { source: 'MobileChatBubble', messageId: message.id }, 'MobileChatBubble');
                 setShowDeleteConfirm(false);
                 await deleteNote(message.id, conversationId);
+                scheduleInteractionLockWatchdog('MobileChatBubble', { phase: 'after_delete', messageId: message.id });
               }}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
