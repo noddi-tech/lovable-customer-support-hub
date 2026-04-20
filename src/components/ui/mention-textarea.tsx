@@ -58,22 +58,24 @@ const MentionTextarea = React.forwardRef<HTMLTextAreaElement, MentionTextareaPro
       }, 'MentionTextarea');
     }, [mentionState.isOpen, onMentionMenuOpenChange]);
 
-    // Use forwarded ref or internal ref
-    const actualRef = (ref as React.RefObject<HTMLTextAreaElement>) || textareaRef;
+    // Always read/write through the internal ref; forward the DOM node to any
+    // external ref that a parent passed in. The previous `(ref || textareaRef)`
+    // selection was defective: if `ref` was a RefObject with `current: null`
+    // (truthy object), actualRef pointed at the forwarded ref but nothing ever
+    // bound the textarea to it, leaving `actualRef.current` null forever.
+    const setTextareaNode = useCallback((node: HTMLTextAreaElement | null) => {
+      textareaRef.current = node;
+      if (typeof ref === 'function') {
+        ref(node);
+      } else if (ref) {
+        (ref as React.MutableRefObject<HTMLTextAreaElement | null>).current = node;
+      }
+    }, [ref]);
 
     // Compute viewport-relative panel position from textarea rect + caret line.
     // Keeps panel inside viewport horizontally.
     const computePanelPosition = useCallback(() => {
-      const textarea = actualRef.current;
-      // [DIAG] TEMPORARY
-      // eslint-disable-next-line no-console
-      console.log('[mention-position] running', {
-        hasTextareaRef: !!textarea,
-        refType: actualRef === textareaRef ? 'internal' : 'forwarded',
-        rect: textarea ? textarea.getBoundingClientRect() : null,
-        selectionStart: textarea?.selectionStart,
-        valueLen: value.length,
-      });
+      const textarea = textareaRef.current;
       if (!textarea) return;
 
       const rect = textarea.getBoundingClientRect();
@@ -104,7 +106,7 @@ const MentionTextarea = React.forwardRef<HTMLTextAreaElement, MentionTextareaPro
       const left = Math.max(8, Math.min(desiredLeft, maxLeft));
 
       setPanelPos({ top, left });
-    }, [value, actualRef]);
+    }, [value]);
 
     // Recompute position when menu opens, on scroll, and on resize.
     useLayoutEffect(() => {
@@ -150,7 +152,7 @@ const MentionTextarea = React.forwardRef<HTMLTextAreaElement, MentionTextareaPro
 
     const handleSelectMember = (member: TeamMemberForMention) => {
       const { triggerIndex, searchQuery } = mentionState;
-      const textarea = actualRef.current;
+      const textarea = textareaRef.current;
       noteDebug('mention_insert_started', {
         memberId: member.user_id,
         memberName: member.full_name,
@@ -238,7 +240,7 @@ const MentionTextarea = React.forwardRef<HTMLTextAreaElement, MentionTextareaPro
     return (
       <div className="relative">
         <textarea
-          ref={actualRef}
+          ref={setTextareaNode}
           className={cn(
             "flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
             className
@@ -278,19 +280,6 @@ const MentionTextarea = React.forwardRef<HTMLTextAreaElement, MentionTextareaPro
                           e.preventDefault();
                         }}
                         onClick={(e) => {
-                          // [DIAG] TEMPORARY
-                          // eslint-disable-next-line no-console
-                          console.log('[mention-item] fired', {
-                            type: e.type,
-                            index,
-                            memberId: member.user_id,
-                            memberName: member.full_name,
-                            textareaFocused: document.activeElement === actualRef.current,
-                            activeEl: (document.activeElement as HTMLElement | null)?.tagName?.toLowerCase(),
-                            selectionStart: actualRef.current?.selectionStart,
-                            mentionStateIsOpen: mentionState.isOpen,
-                            triggerIndex: mentionState.triggerIndex,
-                          });
                           e.preventDefault();
                           e.stopPropagation();
                           noteDebug('mention_item_clicked', {
@@ -299,13 +288,6 @@ const MentionTextarea = React.forwardRef<HTMLTextAreaElement, MentionTextareaPro
                             index,
                           }, 'MentionTextarea');
                           handleSelectMember(member);
-                        }}
-                        onMouseDownCapture={() => {
-                          // [DIAG] TEMPORARY - confirm mousedown reaches the item
-                          // eslint-disable-next-line no-console
-                          console.log('[mention-item] mousedown-capture', {
-                            index, memberId: member.user_id,
-                          });
                         }}
                         onMouseEnter={() => setActiveIndex(index)}
                         className={cn(
