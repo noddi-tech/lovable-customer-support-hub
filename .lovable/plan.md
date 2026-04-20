@@ -1,83 +1,58 @@
 
 
-## Plan: Split "Tjenestefeil" into App-failure (Tech) vs Service-quality (Ops)
+## Plan: Make Triage-helse panel show real numbers
 
-### Problem
+### Root causes (verified against DB)
 
-`service_failure` today is overloaded — it covers both:
-- "appen krasjer", "kan ikke logge inn" → genuinely **tech** (software/app)
-- "metallisk lyd etter dekkskifte", "skadet bil", "feil montert" → genuinely **ops** (physical service quality)
+1. `notifications` RLS only allows `user_id = auth.uid()`. Critical alert rows are inserted with a system sentinel `user_id`, so the dashboard's count query returns 0 even though 134 rows exist for the org in the last 30 days.
+2. `critical_alert_feedback` is correctly org-scoped, so its 4 rows ARE readable — but the percentages and worst/best sections look empty because (a) when `total_feedback = 0` on first render the panel shows the "Ingen reaksjoner" alert, and (b) there is no `refetchInterval`, so newly arrived reactions never refresh the panel without a hard reload.
 
-So routing one bucket either way is always wrong half the time. The right fix is to split the category, not move the bucket. The previous routing (`service_failure → tech`) stays correct for what its label/examples imply.
+### Fix
 
-### New category model
+#### 1. New SQL migration — security-definer count function
 
-Replace the single `service_failure` with two clearly separated categories:
+Create `public.get_critical_alert_count(_organization_id uuid, _since timestamptz)` returning `integer`. `security definer`, `stable`, `set search_path = public`. Body:
 
-| Code | Norwegian label | Emoji | Default bucket | Examples |
-|---|---|---|---|---|
-| `app_failure` | App-/systemfeil | ⚙️ | tech | "appen krasjer", "kan ikke logge inn", "siden er nede", "betalingsside funker ikke" |
-| `service_quality` | Tjenestekvalitet | 🔧 | ops | "metallisk lyd etter dekkskifte", "skade på bil etter service", "feil montert", "dårlig utført" |
+```sql
+select count(*)::int
+from notifications
+where type = 'critical_alert_sent'
+  and data->>'organization_id' = _organization_id::text
+  and created_at >= _since;
+```
 
-Existing categories unchanged: `data_issue` (tech), `billing_issue`, `safety_concern`, `frustrated_customer`, `escalation_request`, `legal_threat` (ops).
+Grant `execute` to `authenticated`. Authorization is enforced caller-side: `useTriageHealth` only ever passes `currentOrganizationId` from `useOrganizationStore`, which is already gated to the user's verified org.
 
-`safety_concern` already exists for actual injuries/hazards — `service_quality` covers the broader "the work we did was wrong/poor" gap that's currently being misfiled.
+#### 2. `src/hooks/useTriageHealth.ts`
 
-### Changes
+- Replace the blocked `notifications` count query with `supabase.rpc('get_critical_alert_count', { _organization_id: currentOrganizationId, _since: since })`.
+- Add `refetchInterval: 30_000` and `refetchOnWindowFocus: true` to the `useQuery` options so reactions appear without reload.
+- Leave the feedback aggregation and mutes query as-is (they're already correct).
 
-#### 1. `supabase/functions/_shared/critical-routing.ts`
-- Update `CriticalCategory` union: drop `service_failure`, add `app_failure` and `service_quality`.
-- Update `DEFAULT_CATEGORY_BUCKETS`:
-  - `app_failure: 'tech'`
-  - `service_quality: 'ops'`
-  - (everything else unchanged)
-- Update `CATEGORY_PRESENTATION` with the two new entries (Norwegian labels, emojis, colors).
-- Update `KEYWORD_CATEGORY_HINTS` so:
-  - app/login/crash patterns (`app|krasj|logge inn|innlogging|nede|outage|broken`) → `app_failure`
-  - service-quality patterns (`metallisk|lyd|skade|feilmontert|feil montert|dårlig utført|reklamasjon|ødelagt etter|skadet under`) → `service_quality`
-- Update `inferCategoryFromKeyword` fallback from `'service_failure'` to `'app_failure'` (preserves current "unknown tech-sounding keyword → tech" behavior).
-- Update doc comments.
+#### 3. `src/components/admin/TriageHealthDashboard.tsx`
 
-#### 2. `supabase/functions/send-slack-notification/index.ts` (AI triage prompt, lines 161–176)
-- Update categories list: `billing_issue, app_failure, service_quality, safety_concern, frustrated_customer, escalation_request, legal_threat, data_issue, none`.
-- Replace the rule "Reports a service not working or broken feature" with two distinct rules:
-  - "Reports the **app/website/login/payment system** is failing or broken → `app_failure`"
-  - "Reports the **physical service we delivered** had a quality problem (noise, damage, faulty installation, work poorly done) → `service_quality`"
-- Add a one-line examples block so the model has anchors:
-  - `app_failure`: "appen krasjer", "kan ikke logge inn", "betalingsside feiler"
-  - `service_quality`: "metallisk lyd etter dekkskifte", "skadet bil etter montering", "feil montert"
+Split the misleading single empty-state into two:
 
-#### 3. Backfill of existing data
-- One migration that **does not drop** any existing `service_failure` rows (forward-only):
-  - In `critical_alert_feedback`: re-label `ai_category = 'service_failure'` → `'app_failure'` (the historic default, matches today's behavior). Reactions remain attached to the right "trigger" since the migration is purely a rename of historic rows, and going forward the AI will pick the correct one of the two.
-  - This keeps the Triage Health worst/best lists meaningful and stops the legacy label from showing up in the UI.
-  - Note: rows in `notifications.data.ai_category` and `slack_integrations.critical_category_routing` will be patched in the same migration (rename `service_failure` key → `app_failure`).
+- `data.total_alerts === 0` → "Ingen kritiske varsler de siste 30 dagene." (no alerts at all)
+- `data.total_alerts > 0 && data.total_feedback === 0` → keep current "Ingen reaksjoner registrert ennå…" copy (alerts exist, just no reactions yet)
 
-#### 4. Admin UI ("Kategorier → Team" panel)
-- The panel iterates over `CATEGORY_PRESENTATION` from the shared module, so the two new rows appear automatically once #1 ships.
-- Update the example sublines for both:
-  - **App-/systemfeil** (Tech default) — examples: "appen krasjer", "kan ikke logge inn"
-  - **Tjenestekvalitet** (Ops default) — examples: "metallisk lyd", "skade etter service", "feil montert"
-- Update the helper "Tips" footer text to reference the new split (no more `billing_issue` example needed; replace with: *"Flytt Tjenestekvalitet til Tech kun hvis tekniske montørverktøy er årsaken."*).
+Today both render the same "no reactions" message regardless of whether there are zero alerts or zero reactions to those alerts, which is confusing.
 
-#### 5. No changes needed to
-- `slack-event-handler` (just stores whatever `ai_category` arrives)
-- `triage-pattern-mining` (operates on whatever categories exist; will start producing proposals for the new ones naturally)
-- `review-open-critical` (uses `inferCategoryFromKeyword` which we updated)
-- RLS / dashboard plumbing (separate fix, already approved)
+#### 4. No other files change
+
+- `slack-event-handler`, `send-slack-notification`, `triage-pattern-mining`, `backfill-critical-alert-ts` — no changes.
+- `usePatternProposals` — leave as is for this PR (can add refetch later if needed).
 
 ### Files touched
 
-- `supabase/functions/_shared/critical-routing.ts`
-- `supabase/functions/send-slack-notification/index.ts` (prompt only)
-- `src/components/admin/...` the "Kategorier → Team" panel component (label/examples/tips text only — confirmed during implementation)
-- One DB migration: rename `service_failure` → `app_failure` in `critical_alert_feedback.ai_category`, `notifications.data->>ai_category`, and `slack_integrations.critical_category_routing` JSON keys.
+- New migration: `get_critical_alert_count` security-definer function.
+- `src/hooks/useTriageHealth.ts` — RPC + refetch.
+- `src/components/admin/TriageHealthDashboard.tsx` — two-state empty handling.
 
 ### Verification
 
-1. Send a test message "appen krasjer på iPhone" → AI returns `app_failure` → header "⚙️ *App-/systemfeil*" → routed to **Tech**.
-2. Send a test message "Det kommer metallisk lyd fra hjulet etter dekkskifte" (the original screenshot case) → AI returns `service_quality` → header "🔧 *Tjenestekvalitet*" → routed to **Ops**.
-3. `/admin/integrations` → "Kategorier → Team" panel shows both new rows with the right defaults; admins can still override per-org.
-4. Triage Health dashboard shows historic `service_failure` reactions merged under "App-/systemfeil" (no orphan label).
-5. Per-org override still wins: setting `{"service_quality": "tech"}` for one org routes it to tech for that org only.
-
+1. Reload `/admin/integrations` → "Varsler sendt" shows ~134 (or current real count), not 0.
+2. "Nyttige / Falske alarmer / Dempet" reflect the 4 existing reactions (rates non-zero).
+3. React 👍 in Slack on a fresh alert → panel updates within 30s without reload.
+4. The "Ingen reaksjoner registrert ennå" banner only shows when alerts > 0 but feedback = 0; if both are 0 it shows "Ingen kritiske varsler de siste 30 dagene.".
+5. Worst/best trigger sections render once thresholds are met.
