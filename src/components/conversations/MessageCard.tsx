@@ -543,14 +543,15 @@ const MessageCardComponent = ({
                     }) && (
                       <>
                         <DropdownMenuItem
-                          onSelect={(e) => {
-                            e.preventDefault();
+                          onSelect={() => {
                             noteDebug('note_editor_open_requested', {
                               source: 'MessageCard',
                               messageId: message.id,
                               triggeredFrom: 'onSelect',
                             }, 'MessageCard');
-                            // Defer to after dropdown unmount to avoid Radix pointer-lock conflict
+                            // Let the dropdown close naturally; setTimeout defers
+                            // the state update until after Radix's close animation
+                            // starts unwinding, avoiding overlay stacking.
                             setTimeout(() => setIsEditingThisNote(true), 0);
                           }}
                         >
@@ -558,8 +559,7 @@ const MessageCardComponent = ({
                           Edit note
                         </DropdownMenuItem>
                         <DropdownMenuItem
-                          onSelect={(e) => {
-                            e.preventDefault();
+                          onSelect={() => {
                             noteDebug('delete_dialog_open_requested', {
                               source: 'MessageCard',
                               messageId: message.id,

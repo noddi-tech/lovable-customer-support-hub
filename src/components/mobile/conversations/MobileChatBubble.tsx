@@ -136,12 +136,14 @@ export const MobileChatBubble = ({ message, customerName, onRequestDeleteNote }:
                   Copy
                 </DropdownMenuItem>
                 <DropdownMenuItem
-                  onSelect={(e) => {
-                    e.preventDefault();
+                  onSelect={() => {
                     noteDebug('note_editor_open_requested', {
                       source: 'MobileChatBubble',
                       messageId: message.id,
                     }, 'MobileChatBubble');
+                    // Let the dropdown close naturally; setTimeout defers
+                    // the state update until after Radix's close animation
+                    // starts unwinding, avoiding overlay stacking.
                     setTimeout(() => setIsEditing(true), 0);
                   }}
                 >
@@ -149,8 +151,7 @@ export const MobileChatBubble = ({ message, customerName, onRequestDeleteNote }:
                   Edit note
                 </DropdownMenuItem>
                 <DropdownMenuItem
-                  onSelect={(e) => {
-                    e.preventDefault();
+                  onSelect={() => {
                     noteDebug('delete_dialog_open_requested', {
                       source: 'MobileChatBubble',
                       messageId: message.id,

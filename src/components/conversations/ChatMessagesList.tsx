@@ -264,13 +264,14 @@ export const ChatMessagesList = ({
                         }) && (
                           <>
                             <DropdownMenuItem
-                              onSelect={(e) => {
-                                e.preventDefault();
+                              onSelect={() => {
                                 noteDebug('note_editor_open_requested', {
                                   source: 'ChatMessagesList',
                                   messageId: message.id,
                                 }, 'ChatMessagesList');
-                                // Defer to after dropdown unmount to avoid Radix pointer-lock conflict
+                                // Let the dropdown close naturally; setTimeout defers
+                                // the state update until after Radix's close animation
+                                // starts unwinding, avoiding overlay stacking.
                                 setTimeout(() => setEditingNoteId(message.id), 0);
                               }}
                             >
@@ -278,8 +279,7 @@ export const ChatMessagesList = ({
                               Edit note
                             </DropdownMenuItem>
                             <DropdownMenuItem
-                              onSelect={(e) => {
-                                e.preventDefault();
+                              onSelect={() => {
                                 noteDebug('delete_dialog_open_requested', {
                                   source: 'ChatMessagesList',
                                   messageId: message.id,
