@@ -329,7 +329,14 @@ export function EmailTemplateEditor({
           id="tpl-desc"
           rows={2}
           maxLength={200}
-          {...form.register('description')}
+          emojiAutocomplete={false}
+          value={watched.description ?? ''}
+          onChange={(e) =>
+            form.setValue('description', e.target.value, {
+              shouldDirty: true,
+              shouldValidate: true,
+            })
+          }
           placeholder="Kort notat om hva malen brukes til..."
         />
         <p className="text-[11px] text-muted-foreground">
