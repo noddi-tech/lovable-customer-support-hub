@@ -1,15 +1,17 @@
 import * as React from 'react';
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect, useLayoutEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList } from '@/components/ui/command';
-import { Popover, PopoverContent, PopoverAnchor } from '@/components/ui/popover';
 import { useTeamMemberMentions, TeamMemberForMention } from '@/hooks/useTeamMemberMentions';
+import { noteDebug } from '@/utils/noteInteractionDebug';
 
 export interface MentionTextareaProps extends Omit<React.TextareaHTMLAttributes<HTMLTextAreaElement>, 'onChange'> {
   value: string;
   onChange: (value: string, mentionedUserIds: string[]) => void;
   mentionedUserIds?: string[];
+  /** Notifies parent when the mention suggestion menu opens or closes */
+  onMentionMenuOpenChange?: (open: boolean) => void;
 }
 
 interface MentionState {
@@ -18,8 +20,11 @@ interface MentionState {
   searchQuery: string;
 }
 
+const PANEL_WIDTH = 280;
+const PANEL_GAP = 4; // px below caret line
+
 const MentionTextarea = React.forwardRef<HTMLTextAreaElement, MentionTextareaProps>(
-  ({ className, value, onChange, mentionedUserIds: initialMentionedIds = [], ...props }, ref) => {
+  ({ className, value, onChange, mentionedUserIds: initialMentionedIds = [], onMentionMenuOpenChange, ...props }, ref) => {
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const [mentionState, setMentionState] = useState<MentionState>({
       isOpen: false,
@@ -27,113 +32,197 @@ const MentionTextarea = React.forwardRef<HTMLTextAreaElement, MentionTextareaPro
       searchQuery: '',
     });
     const [mentionedUserIds, setMentionedUserIds] = useState<string[]>(initialMentionedIds);
-    const [caretPosition, setCaretPosition] = useState({ top: 0, left: 0 });
-    
+    // Viewport-relative coords for the portaled panel
+    const [panelPos, setPanelPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
+    const [activeIndex, setActiveIndex] = useState(0);
+
     const { members, isLoading, searchMembers } = useTeamMemberMentions();
-    
+
     // Filter members based on search query
     const filteredMembers = React.useMemo(() => {
-      if (!mentionState.searchQuery) return members;
-      return searchMembers(mentionState.searchQuery);
+      const list = !mentionState.searchQuery ? members : searchMembers(mentionState.searchQuery);
+      return list.slice(0, 8);
     }, [members, mentionState.searchQuery, searchMembers]);
+
+    // Reset highlight when query / list changes
+    useEffect(() => {
+      setActiveIndex(0);
+    }, [mentionState.searchQuery, filteredMembers.length]);
+
+    // Notify parent when menu open state changes
+    useEffect(() => {
+      onMentionMenuOpenChange?.(mentionState.isOpen);
+      noteDebug(mentionState.isOpen ? 'mention_menu_opened' : 'mention_menu_closed', {
+        query: mentionState.searchQuery,
+        resultCount: filteredMembers.length,
+      }, 'MentionTextarea');
+    }, [mentionState.isOpen, onMentionMenuOpenChange]);
 
     // Use forwarded ref or internal ref
     const actualRef = (ref as React.RefObject<HTMLTextAreaElement>) || textareaRef;
 
-    // Calculate caret position for popover placement
-    const getCaretCoordinates = useCallback(() => {
+    // Compute viewport-relative panel position from textarea rect + caret line.
+    // Keeps panel inside viewport horizontally.
+    const computePanelPosition = useCallback(() => {
       const textarea = actualRef.current;
-      if (!textarea) return { top: 0, left: 0 };
+      if (!textarea) return;
 
+      const rect = textarea.getBoundingClientRect();
       const { selectionStart } = textarea;
       const textBeforeCaret = value.slice(0, selectionStart);
       const lines = textBeforeCaret.split('\n');
       const currentLine = lines.length - 1;
       const currentColumn = lines[lines.length - 1].length;
 
-      // Approximate position (you might need to adjust these values)
-      const lineHeight = 24;
+      // Approximate caret position inside textarea using line height + char width.
+      // These are heuristics matching the previous implementation; good enough
+      // for placing the suggestion popover near the caret.
+      const lineHeight = 20;
       const charWidth = 8;
 
-      return {
-        top: currentLine * lineHeight + 30,
-        left: Math.min(currentColumn * charWidth, textarea.offsetWidth - 200),
-      };
+      // Account for textarea scroll offset so the panel tracks the visible caret line.
+      const scrollTop = textarea.scrollTop;
+      const scrollLeft = textarea.scrollLeft;
+
+      // Top of the panel = textarea top + caret-line bottom + small gap
+      const caretLineBottomInTextarea =
+        (currentLine + 1) * lineHeight - scrollTop;
+      const top = rect.top + caretLineBottomInTextarea + PANEL_GAP;
+
+      // Left aligned to caret column, clamped to viewport.
+      const desiredLeft = rect.left + currentColumn * charWidth - scrollLeft;
+      const maxLeft = window.innerWidth - PANEL_WIDTH - 8;
+      const left = Math.max(8, Math.min(desiredLeft, maxLeft));
+
+      setPanelPos({ top, left });
     }, [value, actualRef]);
+
+    // Recompute position when menu opens, on scroll, and on resize.
+    useLayoutEffect(() => {
+      if (!mentionState.isOpen) return;
+      computePanelPosition();
+
+      const onScroll = () => computePanelPosition();
+      const onResize = () => computePanelPosition();
+      window.addEventListener('scroll', onScroll, true);
+      window.addEventListener('resize', onResize);
+      return () => {
+        window.removeEventListener('scroll', onScroll, true);
+        window.removeEventListener('resize', onResize);
+      };
+    }, [mentionState.isOpen, computePanelPosition]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
       const newValue = e.target.value;
       const cursorPosition = e.target.selectionStart;
-      
-      // Find if we're in a mention context (after @ symbol)
+
       const textBeforeCursor = newValue.slice(0, cursorPosition);
       const lastAtIndex = textBeforeCursor.lastIndexOf('@');
-      
+
       if (lastAtIndex !== -1) {
-        // Check if there's a space before @ (or it's at the start)
         const charBeforeAt = lastAtIndex > 0 ? textBeforeCursor[lastAtIndex - 1] : ' ';
         const textAfterAt = textBeforeCursor.slice(lastAtIndex + 1);
-        
-        // Only trigger mention if @ is at start or after whitespace, and no space after @
+
         if ((charBeforeAt === ' ' || charBeforeAt === '\n' || lastAtIndex === 0) && !textAfterAt.includes(' ')) {
           setMentionState({
             isOpen: true,
             triggerIndex: lastAtIndex,
             searchQuery: textAfterAt,
           });
-          setCaretPosition(getCaretCoordinates());
         } else {
-          setMentionState(prev => ({ ...prev, isOpen: false }));
+          setMentionState(prev => prev.isOpen ? { ...prev, isOpen: false } : prev);
         }
       } else {
-        setMentionState(prev => ({ ...prev, isOpen: false }));
+        setMentionState(prev => prev.isOpen ? { ...prev, isOpen: false } : prev);
       }
-      
+
       onChange(newValue, mentionedUserIds);
     };
 
     const handleSelectMember = (member: TeamMemberForMention) => {
-      const { triggerIndex } = mentionState;
+      const { triggerIndex, searchQuery } = mentionState;
       const textarea = actualRef.current;
-      if (!textarea) return;
+      noteDebug('mention_insert_started', {
+        memberId: member.user_id,
+        memberName: member.full_name,
+        triggerIndex,
+        searchQuery,
+        selectionStart: textarea?.selectionStart,
+        selectionEnd: textarea?.selectionEnd,
+      }, 'MentionTextarea');
+      if (!textarea) {
+        noteDebug('mention_insert_aborted_no_textarea', { memberId: member.user_id }, 'MentionTextarea');
+        return;
+      }
 
-      const cursorPosition = textarea.selectionStart;
+      const fallbackCursor = triggerIndex + 1 + searchQuery.length;
+      const rawCursor = textarea.selectionStart;
+      const cursorPosition =
+        typeof rawCursor === 'number' && rawCursor >= triggerIndex ? rawCursor : fallbackCursor;
       const beforeMention = value.slice(0, triggerIndex);
       const afterMention = value.slice(cursorPosition);
       const mentionText = `@[${member.full_name}] `;
-      
+
       const newValue = beforeMention + mentionText + afterMention;
-      
-      // Add user ID to mentioned list if not already present
-      const newMentionedIds = mentionedUserIds.includes(member.user_id) 
-        ? mentionedUserIds 
+
+      const newMentionedIds = mentionedUserIds.includes(member.user_id)
+        ? mentionedUserIds
         : [...mentionedUserIds, member.user_id];
-      
+
       setMentionedUserIds(newMentionedIds);
       setMentionState({ isOpen: false, triggerIndex: -1, searchQuery: '' });
-      
+
       onChange(newValue, newMentionedIds);
-      
-      // Set cursor position after the mention
+
       setTimeout(() => {
         const newCursorPos = triggerIndex + mentionText.length;
         textarea.setSelectionRange(newCursorPos, newCursorPos);
         textarea.focus();
+        noteDebug('mention_insert_finished', {
+          memberId: member.user_id,
+          newCursorPos,
+          activeElement: document.activeElement?.tagName?.toLowerCase(),
+          activeIsTextarea: document.activeElement === textarea,
+        }, 'MentionTextarea');
       }, 0);
     };
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-      if (mentionState.isOpen) {
+      if (mentionState.isOpen && filteredMembers.length > 0) {
+        if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          e.stopPropagation();
+          setActiveIndex((i) => (i + 1) % filteredMembers.length);
+          return;
+        }
+        if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          e.stopPropagation();
+          setActiveIndex((i) => (i - 1 + filteredMembers.length) % filteredMembers.length);
+          return;
+        }
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          e.stopPropagation();
+          const member = filteredMembers[activeIndex] ?? filteredMembers[0];
+          if (member) handleSelectMember(member);
+          return;
+        }
+        if (e.key === 'Tab') {
+          e.preventDefault();
+          e.stopPropagation();
+          const member = filteredMembers[activeIndex] ?? filteredMembers[0];
+          if (member) handleSelectMember(member);
+          return;
+        }
         if (e.key === 'Escape') {
           e.preventDefault();
+          e.stopPropagation();
           setMentionState(prev => ({ ...prev, isOpen: false }));
-        }
-        // Let Command handle arrow keys and Enter
-        if (['ArrowUp', 'ArrowDown', 'Enter'].includes(e.key) && filteredMembers.length > 0) {
-          // Don't prevent default for Enter if no members match
+          return;
         }
       }
-      
+
       props.onKeyDown?.(e);
     };
 
@@ -149,51 +238,72 @@ const MentionTextarea = React.forwardRef<HTMLTextAreaElement, MentionTextareaPro
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
           {...props}
+          // ensure our handler wins over any spread onKeyDown
+          onKeyDownCapture={undefined}
         />
-        
-        <Popover open={mentionState.isOpen} onOpenChange={(open) => !open && setMentionState(prev => ({ ...prev, isOpen: false }))}>
-          <PopoverAnchor asChild>
-            <div 
-              className="absolute pointer-events-none" 
-              style={{ top: caretPosition.top, left: caretPosition.left }}
-            />
-          </PopoverAnchor>
-          <PopoverContent 
-            className="w-[280px] p-0" 
-            align="start" 
-            side="bottom"
-            onOpenAutoFocus={(e) => e.preventDefault()}
-          >
-            <Command>
-              <CommandList>
-                <CommandEmpty className="py-3 text-center text-sm text-muted-foreground">
-                  {isLoading ? 'Loading team members...' : 'No team members found'}
-                </CommandEmpty>
-                <CommandGroup heading="Team Members">
-                  {filteredMembers.slice(0, 8).map((member) => (
-                    <CommandItem
-                      key={member.user_id}
-                      value={member.full_name}
-                      onSelect={() => handleSelectMember(member)}
-                      className="flex items-center gap-2 cursor-pointer"
-                    >
-                      <Avatar className="h-6 w-6">
-                        <AvatarImage src={member.avatar_url || undefined} />
-                        <AvatarFallback className="text-xs">
-                          {member.full_name?.charAt(0)?.toUpperCase() || '?'}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex flex-col">
-                        <span className="text-sm font-medium">{member.full_name}</span>
-                        <span className="text-xs text-muted-foreground">{member.email}</span>
-                      </div>
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              </CommandList>
-            </Command>
-          </PopoverContent>
-        </Popover>
+
+        {mentionState.isOpen && typeof document !== 'undefined' &&
+          createPortal(
+            <div
+              data-mention-panel="true"
+              className="fixed z-[10050] w-[280px] rounded-md border bg-popover text-popover-foreground shadow-md outline-none"
+              style={{ top: panelPos.top, left: panelPos.left }}
+              // Keep textarea focused when interacting with the panel
+              onMouseDown={(e) => e.preventDefault()}
+            >
+              <div className="py-1">
+                <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
+                  Team Members
+                </div>
+                {filteredMembers.length === 0 ? (
+                  <div className="py-3 text-center text-sm text-muted-foreground">
+                    {isLoading ? 'Loading team members...' : 'No team members found'}
+                  </div>
+                ) : (
+                  <div className="px-1">
+                    {filteredMembers.map((member, index) => (
+                      <button
+                        key={member.user_id}
+                        type="button"
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                        }}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          noteDebug('mention_item_clicked', {
+                            memberId: member.user_id,
+                            memberName: member.full_name,
+                            index,
+                          }, 'MentionTextarea');
+                          handleSelectMember(member);
+                        }}
+                        onMouseEnter={() => setActiveIndex(index)}
+                        className={cn(
+                          "flex w-full items-center gap-2 px-2 py-1.5 text-sm rounded-sm text-left",
+                          index === activeIndex
+                            ? "bg-accent text-accent-foreground"
+                            : "hover:bg-accent/50"
+                        )}
+                      >
+                        <Avatar className="h-6 w-6">
+                          <AvatarImage src={member.avatar_url || undefined} />
+                          <AvatarFallback className="text-xs">
+                            {member.full_name?.charAt(0)?.toUpperCase() || '?'}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex flex-col min-w-0">
+                          <span className="text-sm font-medium truncate">{member.full_name}</span>
+                          <span className="text-xs text-muted-foreground truncate">{member.email}</span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>,
+            document.body
+          )}
       </div>
     );
   }
