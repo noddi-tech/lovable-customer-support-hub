@@ -56,10 +56,18 @@ function resolveContent(message: NormalizedMessage): string {
 
 export const MobileChatBubble = ({ message, customerName }: MobileChatBubbleProps) => {
   const { relative: formatRelative } = useDateFormatting();
+  const [isEditing, setIsEditing] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const { canEditNote, deleteNote } = useNoteMutations();
   const isAgent = message.authorType === 'agent';
   const isSystem = message.authorType === 'system';
   const isInternal = message.isInternalNote;
   const senderName = message.from?.name || message.from?.email;
+  const conversationId = message.originalMessage?.conversation_id;
+  const canEditThisNote = isInternal && canEditNote({
+    is_internal: true,
+    sender_id: message.originalMessage?.sender_id,
+  });
 
   if (isSystem) {
     return (
