@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList } from '@/components/ui/command';
@@ -93,11 +93,15 @@ const MentionTextarea = React.forwardRef<HTMLTextAreaElement, MentionTextareaPro
     };
 
     const handleSelectMember = (member: TeamMemberForMention) => {
-      const { triggerIndex } = mentionState;
+      const { triggerIndex, searchQuery } = mentionState;
       const textarea = actualRef.current;
       if (!textarea) return;
 
-      const cursorPosition = textarea.selectionStart;
+      // Fallback if textarea lost focus and selectionStart is stale.
+      const fallbackCursor = triggerIndex + 1 + searchQuery.length;
+      const rawCursor = textarea.selectionStart;
+      const cursorPosition =
+        typeof rawCursor === 'number' && rawCursor >= triggerIndex ? rawCursor : fallbackCursor;
       const beforeMention = value.slice(0, triggerIndex);
       const afterMention = value.slice(cursorPosition);
       const mentionText = `@[${member.full_name}] `;
@@ -137,17 +141,9 @@ const MentionTextarea = React.forwardRef<HTMLTextAreaElement, MentionTextareaPro
       props.onKeyDown?.(e);
     };
 
-    // Close popover when clicking outside
-    useEffect(() => {
-      const handleClickOutside = (e: MouseEvent) => {
-        if (actualRef.current && !actualRef.current.contains(e.target as Node)) {
-          setMentionState(prev => ({ ...prev, isOpen: false }));
-        }
-      };
-
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, [actualRef]);
+    // Note: outside-click handling delegated to Radix Popover (onInteractOutside below).
+    // A manual mousedown listener would close the popover before CommandItem.onSelect fires
+    // because PopoverContent is portaled to document.body.
 
     return (
       <div className="relative">
@@ -175,6 +171,13 @@ const MentionTextarea = React.forwardRef<HTMLTextAreaElement, MentionTextareaPro
             align="start" 
             side="bottom"
             onOpenAutoFocus={(e) => e.preventDefault()}
+            onInteractOutside={(e) => {
+              // Keep popover open when interacting with the textarea (typing/clicking in it).
+              const target = e.target as Node | null;
+              if (target && actualRef.current?.contains(target)) {
+                e.preventDefault();
+              }
+            }}
           >
             <Command>
               <CommandList>
@@ -187,6 +190,7 @@ const MentionTextarea = React.forwardRef<HTMLTextAreaElement, MentionTextareaPro
                       key={member.user_id}
                       value={member.full_name}
                       onSelect={() => handleSelectMember(member)}
+                      onMouseDown={(e) => e.preventDefault()}
                       className="flex items-center gap-2 cursor-pointer"
                     >
                       <Avatar className="h-6 w-6">
