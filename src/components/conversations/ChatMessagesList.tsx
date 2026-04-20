@@ -12,11 +12,23 @@ import {
   DropdownMenuItem, 
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, Copy, Trash2, Check, CheckCheck, Paperclip, Image, Mail, AlertCircle, RefreshCw, Loader2, Lock } from 'lucide-react';
+import { MoreHorizontal, Copy, Trash2, Check, CheckCheck, Paperclip, Image, Mail, AlertCircle, RefreshCw, Loader2, Lock, Edit3 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { EmailRender } from '@/components/ui/email-render';
 import { MentionRenderer } from '@/components/ui/mention-renderer';
 import { toast } from 'sonner';
+import { InlineNoteEditor } from './InlineNoteEditor';
+import { useNoteMutations } from '@/hooks/useNoteMutations';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface ChatMessagesListProps {
   messages: NormalizedMessage[];
