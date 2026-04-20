@@ -12,11 +12,23 @@ import {
   DropdownMenuItem, 
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, Copy, Trash2, Check, CheckCheck, Paperclip, Image, Mail, AlertCircle, RefreshCw, Loader2, Lock } from 'lucide-react';
+import { MoreHorizontal, Copy, Trash2, Check, CheckCheck, Paperclip, Image, Mail, AlertCircle, RefreshCw, Loader2, Lock, Edit3 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { EmailRender } from '@/components/ui/email-render';
 import { MentionRenderer } from '@/components/ui/mention-renderer';
 import { toast } from 'sonner';
+import { InlineNoteEditor } from './InlineNoteEditor';
+import { useNoteMutations } from '@/hooks/useNoteMutations';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface ChatMessagesListProps {
   messages: NormalizedMessage[];
@@ -37,6 +49,9 @@ export const ChatMessagesList = ({
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const { canEditNote, deleteNote } = useNoteMutations();
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
@@ -239,13 +254,32 @@ export const ChatMessagesList = ({
                           <Copy className="h-4 w-4 mr-2" />
                           Copy
                         </DropdownMenuItem>
-                        {isAgent && (
+                        {/* Edit + Delete for internal notes (author or admin) */}
+                        {isInternal && canEditNote({
+                          is_internal: true,
+                          sender_id: message.originalMessage?.sender_id,
+                        }) && (
+                          <>
+                            <DropdownMenuItem onClick={() => setEditingNoteId(message.id)}>
+                              <Edit3 className="h-4 w-4 mr-2" />
+                              Edit note
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => setConfirmDeleteId(message.id)}
+                              className="text-destructive focus:text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Delete note
+                            </DropdownMenuItem>
+                          </>
+                        )}
+                        {isAgent && !isInternal && (
                           <DropdownMenuItem onClick={() => handleResendEmail(message.id)}>
                             <Mail className="h-4 w-4 mr-2" />
                             Resend Email
                           </DropdownMenuItem>
                         )}
-                        {isAgent && (message.emailStatus === 'failed' || message.emailStatus === 'retry') && (
+                        {isAgent && !isInternal && (message.emailStatus === 'failed' || message.emailStatus === 'retry') && (
                           <DropdownMenuItem 
                             onClick={() => handleDeleteMessage(message.id)}
                             className="text-destructive"
@@ -268,7 +302,31 @@ export const ChatMessagesList = ({
                         : "bg-muted text-foreground rounded-bl-md"
                   )}>
                     {isInternal ? (
-                      <MentionRenderer content={message.visibleBody} className="text-sm" />
+                      editingNoteId === message.id ? (
+                        <InlineNoteEditor
+                          messageId={message.id}
+                          initialContent={message.originalMessage?.content || message.visibleBody}
+                          conversationId={conversationId}
+                          context={{
+                            type: 'internal_note',
+                            conversation_id: conversationId,
+                            message_id: message.id,
+                          }}
+                          onCancel={() => setEditingNoteId(null)}
+                          compact
+                        />
+                      ) : (
+                        <>
+                          <MentionRenderer content={message.visibleBody} className="text-sm" />
+                          {message.originalMessage?.updated_at &&
+                            message.originalMessage?.created_at &&
+                            new Date(message.originalMessage.updated_at).getTime() -
+                              new Date(message.originalMessage.created_at).getTime() >
+                              2000 && (
+                              <span className="ml-2 text-[10px] text-muted-foreground italic">(edited)</span>
+                            )}
+                        </>
+                      )
                     ) : (
                       <EmailRender
                         content={message.visibleBody}
@@ -342,6 +400,31 @@ export const ChatMessagesList = ({
         
         <div ref={messagesEndRef} />
       </div>
+
+      <AlertDialog open={!!confirmDeleteId} onOpenChange={(o) => !o && setConfirmDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this internal note?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This cannot be undone. The note will be removed for everyone in the conversation.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                if (confirmDeleteId) {
+                  await deleteNote(confirmDeleteId, conversationId);
+                }
+                setConfirmDeleteId(null);
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </ScrollArea>
   );
 };

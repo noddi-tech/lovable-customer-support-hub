@@ -1,10 +1,29 @@
+import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useDateFormatting } from '@/hooks/useDateFormatting';
-import { CheckCheck, AlertCircle, RefreshCw, Loader2, Lock } from 'lucide-react';
+import { CheckCheck, AlertCircle, RefreshCw, Loader2, Lock, MoreHorizontal, Edit3, Trash2, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { MentionRenderer } from '@/components/ui/mention-renderer';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { InlineNoteEditor } from '@/components/conversations/InlineNoteEditor';
+import { useNoteMutations } from '@/hooks/useNoteMutations';
 import type { NormalizedMessage } from '@/lib/normalizeMessage';
 
 interface MobileChatBubbleProps {
@@ -37,10 +56,18 @@ function resolveContent(message: NormalizedMessage): string {
 
 export const MobileChatBubble = ({ message, customerName }: MobileChatBubbleProps) => {
   const { relative: formatRelative } = useDateFormatting();
+  const [isEditing, setIsEditing] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const { canEditNote, deleteNote } = useNoteMutations();
   const isAgent = message.authorType === 'agent';
   const isSystem = message.authorType === 'system';
   const isInternal = message.isInternalNote;
   const senderName = message.from?.name || message.from?.email;
+  const conversationId = message.originalMessage?.conversation_id;
+  const canEditThisNote = isInternal && canEditNote({
+    is_internal: true,
+    sender_id: message.originalMessage?.sender_id,
+  });
 
   if (isSystem) {
     return (
@@ -86,15 +113,72 @@ export const MobileChatBubble = ({ message, customerName }: MobileChatBubbleProp
 
       {/* Bubble */}
       <div className={cn(
-        "px-3 py-2 rounded-2xl text-[13px] leading-snug break-words max-w-full",
+        "px-3 py-2 rounded-2xl text-[13px] leading-snug break-words max-w-full relative group",
         isInternal
           ? "bg-yellow-50 text-foreground border border-yellow-200 rounded-br-md"
           : isAgent
             ? "bg-primary text-primary-foreground rounded-br-md"
             : "bg-muted text-foreground rounded-bl-md"
       )}>
-        {isInternal ? (
-          <MentionRenderer content={content} className="text-[13px]" />
+        {isInternal && canEditThisNote && !isEditing && (
+          <div className="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 focus-within:opacity-100 active:opacity-100 transition-opacity">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 rounded-full bg-background border shadow-sm"
+                >
+                  <MoreHorizontal className="h-3 w-3" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => {
+                  navigator.clipboard.writeText(content);
+                  toast.success('Copied');
+                }}>
+                  <Copy className="h-4 w-4 mr-2" />
+                  Copy
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setIsEditing(true)}>
+                  <Edit3 className="h-4 w-4 mr-2" />
+                  Edit note
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete note
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        )}
+        {isInternal && isEditing ? (
+          <InlineNoteEditor
+            messageId={message.id}
+            initialContent={message.originalMessage?.content || content}
+            conversationId={conversationId}
+            context={{
+              type: 'internal_note',
+              conversation_id: conversationId,
+              message_id: message.id,
+            }}
+            onCancel={() => setIsEditing(false)}
+            compact
+          />
+        ) : isInternal ? (
+          <>
+            <MentionRenderer content={content} className="text-[13px]" />
+            {message.originalMessage?.updated_at &&
+              message.originalMessage?.created_at &&
+              new Date(message.originalMessage.updated_at).getTime() -
+                new Date(message.originalMessage.created_at).getTime() >
+                2000 && (
+                <span className="ml-1 text-[9px] text-muted-foreground italic">(edited)</span>
+              )}
+          </>
         ) : isPlainText ? (
           <p className="whitespace-pre-wrap m-0">{(() => {
             const temp = document.createElement('div');
@@ -141,6 +225,29 @@ export const MobileChatBubble = ({ message, customerName }: MobileChatBubbleProp
           </Button>
         </div>
       )}
+
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this internal note?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This cannot be undone. The note will be removed for everyone in the conversation.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                await deleteNote(message.id, conversationId);
+                setShowDeleteConfirm(false);
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

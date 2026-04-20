@@ -39,6 +39,18 @@ import { stripHtml } from "@/utils/stripHtml";
 import { getSmartPreview } from "@/utils/messagePreview";
 import { logger } from "@/utils/logger";
 import { supabase } from "@/integrations/supabase/client";
+import { InlineNoteEditor } from "./InlineNoteEditor";
+import { useNoteMutations } from "@/hooks/useNoteMutations";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 // --- Helpers ---
 type Addr = { name?: string; email?: string };
@@ -181,6 +193,9 @@ const MessageCardComponent = ({
   const [showQuoted, setShowQuoted] = useState(false);
   const [copiedToClipboard, setCopiedToClipboard] = useState(false);
   const [isPinned, setIsPinned] = useState(propIsPinned ?? message.originalMessage?.is_pinned ?? false);
+  const [isEditingThisNote, setIsEditingThisNote] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const { canEditNote, deleteNote } = useNoteMutations();
   
   // Track renders
   const renderCount = useRef(0);
@@ -524,10 +539,29 @@ const MessageCardComponent = ({
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={handleEdit}>
-                      <Edit3 className="w-4 h-4 mr-2" />
-                      {t('conversation.editMessage')}
+                    <DropdownMenuItem onClick={handleCopy}>
+                      <Copy className="w-4 h-4 mr-2" />
+                      Copy
                     </DropdownMenuItem>
+                    {/* Edit + Delete for internal notes (author or admin) */}
+                    {isInternalNote && canEditNote({
+                      is_internal: true,
+                      sender_id: message.originalMessage?.sender_id,
+                    }) && (
+                      <>
+                        <DropdownMenuItem onClick={() => setIsEditingThisNote(true)}>
+                          <Edit3 className="w-4 h-4 mr-2" />
+                          Edit note
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => setShowDeleteConfirm(true)}
+                          className="text-destructive focus:text-destructive"
+                        >
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          Delete note
+                        </DropdownMenuItem>
+                      </>
+                    )}
                     {/* Pin option - only for internal notes */}
                     {isInternalNote && (
                       <DropdownMenuItem onClick={handleTogglePin}>
@@ -580,9 +614,32 @@ const MessageCardComponent = ({
           effectiveCollapsed ? "is-collapsed" : "pl-2 pr-2 pb-3 md:pl-16 md:pr-4 md:pb-4"
         )}>
           <div className="space-y-4 overflow-hidden">
-            {/* Email content or mention-aware note */}
+            {/* Email content or mention-aware note (with inline editor) */}
             {isInternalNote ? (
-              <MentionRenderer content={message.visibleBody || ''} className="text-sm" />
+              isEditingThisNote ? (
+                <InlineNoteEditor
+                  messageId={message.id}
+                  initialContent={message.originalMessage?.content || message.visibleBody || ''}
+                  conversationId={message.originalMessage?.conversation_id}
+                  context={{
+                    type: 'internal_note',
+                    conversation_id: message.originalMessage?.conversation_id,
+                    message_id: message.id,
+                  }}
+                  onCancel={() => setIsEditingThisNote(false)}
+                />
+              ) : (
+                <div>
+                  <MentionRenderer content={message.visibleBody || ''} className="text-sm" />
+                  {message.originalMessage?.updated_at &&
+                    message.originalMessage?.created_at &&
+                    new Date(message.originalMessage.updated_at).getTime() -
+                      new Date(message.originalMessage.created_at).getTime() >
+                      2000 && (
+                      <span className="ml-2 text-[10px] text-muted-foreground italic">(edited)</span>
+                    )}
+                </div>
+              )
             ) : (
               <EmailRender 
                 content={message.visibleBody || ''} 
@@ -682,6 +739,30 @@ const MessageCardComponent = ({
             {import.meta.env.VITE_UI_PROBE === '1' && <MessageDebugProbe message={message} />}
           </div>
         </div>
+
+      {/* Delete confirmation dialog (internal notes) */}
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this internal note?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This cannot be undone. The note will be removed for everyone in the conversation.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                await deleteNote(message.id, message.originalMessage?.conversation_id);
+                setShowDeleteConfirm(false);
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
