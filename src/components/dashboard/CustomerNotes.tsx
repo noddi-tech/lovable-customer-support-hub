@@ -102,17 +102,18 @@ export const CustomerNotes: React.FC<CustomerNotesProps> = ({ customerId }) => {
   };
 
   const handleDeleteConfirm = () => {
-    const idToDelete = noteToDelete;
-    // Close dialog synchronously so Radix completes focus return + body unlock
     setDeleteDialogOpen(false);
+    const idToDelete = noteToDelete;
     setNoteToDelete(null);
-    if (!idToDelete) return;
-    // Defer state mutation by one tick so the row unmount happens AFTER
-    // Radix has fully cleaned up the dialog overlay.
-    setTimeout(() => {
-      setNotes(prev => prev.filter(note => note.id !== idToDelete));
-      toast.success('Note deleted successfully');
-    }, 0);
+    if (idToDelete) {
+      // Defer row removal until after Radix finishes the dialog close animation.
+      // Unmounting the trigger row synchronously with the close leaves body
+      // pointer-events:none and freezes the page until refresh.
+      setTimeout(() => {
+        setNotes(prev => prev.filter(note => note.id !== idToDelete));
+        toast.success('Note deleted successfully');
+      }, 0);
+    }
   };
 
   const handleCancel = () => {

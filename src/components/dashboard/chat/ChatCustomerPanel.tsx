@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -59,9 +59,9 @@ export const ChatCustomerPanel: React.FC<ChatCustomerPanelProps> = ({
   const [matchingCustomers, setMatchingCustomers] = useState<any[]>([]);
   const [nameSearchLoading, setNameSearchLoading] = useState(false);
 
-  const handleUserGroupChange = (userGroupId: number) => {
+  const handleUserGroupChange = useCallback((userGroupId: number) => {
     setSelectedUserGroupId(userGroupId);
-  };
+  }, []);
 
   const handleAlternativeEmailSearch = async () => {
     if (!alternativeEmail || !customer?.id) return;

@@ -85,7 +85,7 @@ interface NoddiCustomerDetailsProps {
   selectedUserGroupId?: number;
 }
 
-export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
+const NoddiCustomerDetailsComponent: React.FC<NoddiCustomerDetailsProps> = ({
   customerId,
   customerEmail,
   customerPhone,
@@ -1193,10 +1193,12 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
         {/* Data Source */}
         <div className="pt-2 border-t text-xs text-muted-foreground">
           <p>
-            Data source: {noddiData.source === 'cache' ? 'Cached' : 'Live'} 
+            Data source: {noddiData.source === 'cache' ? 'Cached' : 'Live'}
             {data.ui_meta?.version && ` • v${data.ui_meta.version}`}
           </p>
         </div>
     </div>
   );
 };
+
+export const NoddiCustomerDetails = React.memo(NoddiCustomerDetailsComponent);
