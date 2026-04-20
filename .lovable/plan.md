@@ -1,204 +1,133 @@
 
-## Plan: Add targeted note-interaction diagnostics and clean up console noise
 
-### Goal
+## Plan: Final fix for both note bugs — eliminate the actual remaining root causes
 
-Add low-noise bug tracking so the next reproduction clearly shows why:
+### Reality check first
 
-1. clicking a team member in `@mention` suggestions fails
-2. deleting a note can leave the screen non-interactive
+The user-supplied diagnosis is partially stale (earlier rounds already removed several anti-patterns). After re-reading the current files, the real remaining causes are different from what was described, but they ARE both real. Here is what is actually happening today.
 
-This plan focuses on instrumentation first, using the project’s existing logging system instead of more raw `console.log` spam.
+### Bug 2 — Screen freeze after deleting a note (real cause)
 
-### What to build
+The freeze happens when deleting an **internal note in the conversation view**, not in `CustomerNotes`.
 
-#### 1) Clean up the existing noisy console output
-Reduce unrelated log spam so note diagnostics are actually visible.
+What the session replay shows after confirming a delete:
+- `<body data-scroll-locked="2">` stays applied
+- Multiple `data-aria-hidden="true"` siblings stay applied
+- A `data-radix-focus-guard` span stays in the DOM
 
-**Changes**
-- Replace/remove the raw polling logs in `src/contexts/ConversationViewContext.tsx`:
-  - `Fetching messages for conversation: ...`
-  - `Messages fetched: ...`
-- Route any useful remaining fetch diagnostics through `logger.debug(..., 'ConversationViewContext')` so deduplication works.
-- Replace note-related `console.error(...)` calls in `src/hooks/useNoteMutations.ts` with `logger.error(...)`.
+That is Radix's `AlertDialog` body-lock that never got cleaned up because focus return failed.
 
-**Why**
-The current 2-second message polling is flooding the console and burying the actual note interaction signals.
+Why focus return fails:
 
----
+1. In `src/components/conversations/MessageCard.tsx`, the `<AlertDialog>` (line 764) lives **inside** `MessageCard`'s own JSX. The trigger that opened it (the dropdown item in the same card, line ~553) also lives inside `MessageCard`.
+2. When the user clicks Delete, the handler does `setShowDeleteConfirm(false)` and then `await deleteNote(...)`. The mutation's `onSuccess` invalidates the messages query. React Query refetches, the deleted message disappears from the list, and `MessageCard` **unmounts entirely** — taking the AlertDialog and its focus-return target with it.
+3. Radix's cleanup runs, fails to find the original trigger element, and never removes the body lock styles. Page freezes.
+4. `MobileChatBubble.tsx` has the exact same shape (dialog at line 249 inside a per-message component that gets unmounted).
+5. `ChatMessagesList.tsx` already hoists the dialog to the list level (line 426), so it's structurally safe — but its handler also does `await deleteNote(...)` on the same tick as `setConfirmDeleteId(null)`, which still races with the cache invalidation.
+6. `CustomerNotes.tsx` is structurally already correct (dialog hoisted), but its handler runs the unmount and dialog close in the same synchronous batch.
 
-#### 2) Add a dedicated note diagnostics helper
-Create a small shared helper for targeted note debugging, gated behind an env flag.
+### Bug 1 — Cannot select a team member in @mention dropdown (real cause)
 
-**New file**
-- `src/utils/noteInteractionDebug.ts`
+The Radix Popover and the manual click-outside listener that the user described are **already gone**. Today, `MentionTextarea` renders a plain inline panel as `position: absolute` inside `<div className="relative">`, with `z-[10050]` and `onMouseDown={(e) => e.preventDefault()}`.
 
-**Behavior**
-- Only logs when a dedicated flag is enabled, e.g. `VITE_NOTE_DEBUG=1`
-- Uses the centralized logger, not raw console
-- Emits compact structured events like:
-  - `mention_menu_opened`
-  - `mention_item_mouse_down`
-  - `mention_item_clicked`
-  - `mention_insert_started`
-  - `mention_insert_finished`
-  - `note_editor_open_requested`
-  - `delete_dialog_open_requested`
-  - `delete_dialog_open_changed`
-  - `delete_confirm_clicked`
-  - `delete_mutation_started`
-  - `delete_mutation_finished`
-  - `interaction_lock_detected`
+That setup is correct for click-handling. What is breaking it today is **clipping by ancestor containers**:
 
-**Each event should include**
-- component name
-- conversation ID / message ID when available
-- active element tag/class
-- whether mention menu is open
-- whether delete dialog is open
-- filtered member count / active index for mentions
-- body lock snapshot:
-  - `document.body.style.pointerEvents`
-  - `document.body.style.overflow`
-  - remaining fixed overlays in DOM
-  - focused element after close
+- The `<div className="relative">` wrapper passes `overflow` clipping from ancestors (Card content, `ScrollArea` viewport, message bubble with `overflow-hidden`, mobile bubble flex column with `max-w-[280px]`).
+- The note composer in `MessageCard` and the inline editor in `ChatMessagesList`/`MobileChatBubble` are rendered inside elements whose `overflow:hidden` clips the absolutely-positioned panel.
+- Result: the panel either renders clipped (only the top sliver is hittable) or its hit-area is squeezed to zero in tight rows. Clicks on member names land on whatever is behind/around the clipped panel, never on the button.
 
----
+Diagnostic capture listener at lines 57-72 is harmless but noisy and should be removed.
 
-#### 3) Instrument the shared mention flow at the source
-Add precise lifecycle tracking inside `src/components/ui/mention-textarea.tsx`.
+### Fix plan
 
-**Track**
-- detection of `@` trigger and menu open/close
-- current query and result count
-- active suggestion index changes
-- `ArrowUp` / `ArrowDown` / `Enter` / `Tab` / `Escape`
-- suggestion `onMouseDown`
-- suggestion `onClick`
-- `handleSelectMember(...)` start/end
-- textarea selection start/end before and after insertion
-- focus restoration after insertion
+#### A. Restore portal-based mention panel (fixes Bug 1 properly)
 
-**Extra diagnostic hook**
-- while the mention menu is open, attach a temporary capture listener for outside pointer events and log:
-  - event target
-  - whether target was inside textarea
-  - whether target was inside the mention panel
-  - topmost element under the pointer if useful
+Edit `src/components/ui/mention-textarea.tsx`:
 
-**Why**
-If the click is being swallowed, closed early, or losing focus before insertion, this will show exactly where.
+1. Render the suggestion panel into `document.body` via `createPortal`. This eliminates ancestor `overflow:hidden` and stacking-context clipping forever.
+2. Position the portaled panel using the textarea's `getBoundingClientRect()` plus the existing caret offsets, recomputed on `scroll` and `resize` while open.
+3. Keep the existing plain `<button>` list, the `onMouseDown={e.preventDefault()}` to retain textarea focus, and the existing keyboard handlers (ArrowUp/Down/Enter/Tab/Escape).
+4. Remove the diagnostic outside-pointer capture listener (current lines 57-72) — it is no longer informative and adds work on every pointer event while open.
+5. Keep `data-mention-panel="true"` on the panel root so any future outside-click detector can opt out.
+6. No new dependencies. `createPortal` is already in `react-dom`.
 
----
+Why this fixes the bug: the panel is appended to `<body>` so no ancestor can clip it; the panel sits above all stacking contexts naturally; clicks land on the actual `<button>`; `handleSelectMember` runs.
 
-#### 4) Instrument the note editor open path
-Track how note editing is entered in all note UIs.
+#### B. Make the note-delete flow tolerate trigger unmount (fixes Bug 2 properly)
 
-**Files**
-- `src/components/conversations/MessageCard.tsx`
-- `src/components/conversations/ChatMessagesList.tsx`
-- `src/components/mobile/conversations/MobileChatBubble.tsx`
-- `src/components/conversations/InlineNoteEditor.tsx`
+Two changes per affected component, plus one shared sequencing rule.
 
-**Track**
-- dropdown action selected
-- whether edit/delete was triggered from `onClick` or `onSelect`
-- deferred `setTimeout(...)` open request
-- actual editor mount/unmount
-- actual dialog open/close
-- focus target immediately after editor opens
+**B1. Hoist the AlertDialog out of per-message components.**
 
-**Important consistency fix included with diagnostics**
-- In `MessageCard.tsx`, align “Edit note” opening with the safer deferred dropdown-close pattern already used elsewhere, then log that lifecycle.
-- This is a low-risk consistency change that prevents the diagnostics from being polluted by different open behavior across views.
+- `src/components/conversations/MessageCard.tsx`: remove the inline `<AlertDialog>` (lines 763-end). Instead, expose the request to delete via a callback prop `onRequestDeleteNote(messageId)` that the parent already wiring `MessageCard` will handle. The dropdown item simply calls `onRequestDeleteNote(message.id)`.
+- The parent that renders `MessageCard` (the message thread/list view) gets a single hoisted `<AlertDialog>` at its top level, controlled by a `confirmDeleteId` state, mirroring how `ChatMessagesList` already does it. We add the dialog and state to that parent.
+- `src/components/mobile/conversations/MobileChatBubble.tsx`: same refactor — replace the inline `<AlertDialog>` with an `onRequestDeleteNote` callback. The mobile chat list component that renders these bubbles owns one hoisted dialog.
 
----
+This guarantees that when the deleted message unmounts, the dialog and its focus-return target remain mounted at the list level, so Radix's cleanup completes and the body lock is removed.
 
-#### 5) Instrument delete flow and detect stuck interaction locks
-Add post-delete freeze diagnostics around the confirmation dialog lifecycle.
+**B2. Standard delete handler sequence everywhere.**
 
-**Files**
-- `src/components/conversations/MessageCard.tsx`
-- `src/components/conversations/ChatMessagesList.tsx`
-- `src/components/mobile/conversations/MobileChatBubble.tsx`
-- `src/hooks/useNoteMutations.ts`
+In every hoisted dialog's confirm handler (the lists for `MessageCard`/`MobileChatBubble`, the existing `ChatMessagesList`, and `CustomerNotes`), use this exact ordering:
 
-**Track**
-- delete menu item selected
-- dialog open state changes
-- confirm button click
-- dialog close before mutation
-- delete mutation start/success/failure
-- cache invalidations
-- a short post-close watchdog (for example next tick + small delayed check) that records whether the page is still locked
+```ts
+const handleConfirm = () => {
+  const idToDelete = confirmDeleteId;
+  setConfirmDeleteId(null);          // close dialog first (sync)
+  if (!idToDelete) return;
+  // Defer mutation by one tick so Radix finishes its close + focus-return
+  // BEFORE the query invalidation unmounts anything.
+  setTimeout(() => {
+    void deleteNote(idToDelete, conversationId);
+  }, 0);
+};
+```
 
-**Watchdog snapshot should capture**
-- whether any Radix overlay/content remains mounted
-- whether body styles still imply a lock
-- whether a full-screen fixed element is covering the viewport
-- current active element after dialog close
+This belt-and-suspenders ordering guarantees:
+- Dialog closes synchronously
+- React flushes the close
+- Radix completes focus-return and removes body lock
+- Then the mutation fires; its cache invalidation only unmounts rows AFTER the dialog is fully gone
 
-**Why**
-The session replay shows the dialog closes and toast appears, but the app can still behave as if an invisible layer remains. This tracking will confirm whether the freeze is a pointer-lock/overlay problem or something else.
+Apply to: `ChatMessagesList.tsx`, the parent that hoists the dialog for `MessageCard`, the parent for `MobileChatBubble`, and `CustomerNotes.tsx`.
 
----
+#### C. Audit pass for latent instances
 
-#### 6) Keep live-chat send behavior visible during mention debugging
-Add lightweight diagnostics in `src/components/conversations/ChatReplyInput.tsx` for the internal-note composer.
+Confirmed via grep already:
 
-**Track**
-- mention menu open/close received from `MentionTextarea`
-- Enter key blocked because mention menu is open
-- Enter key sent message because menu is closed
+- Manual click-outside listeners outside Radix primitives: 2 hits, both unrelated to notes/mentions and both correct in their own context (`TagMultiSelect.tsx`, `AddressSearchBlock.tsx`). No change.
+- AlertDialog inside `.map()`: only the two we are fixing (`MessageCard`, `MobileChatBubble`). `CustomerNotes` and `ChatMessagesList` are already hoisted.
 
-**Why**
-This verifies whether note mention selection is being interrupted by parent key handlers in chat-specific flows.
+#### D. Cleanup
 
-### Files touched
+- Remove the now-unused `scheduleInteractionLockWatchdog` calls from the delete paths once the freeze is gone (keep the helper file in `src/utils/noteInteractionDebug.ts` for future use, gated by `VITE_NOTE_DEBUG`).
+- Keep the `noteDebug` lifecycle logs — they are gated and quiet by default.
 
-- `src/contexts/ConversationViewContext.tsx`
-- `src/utils/noteInteractionDebug.ts` (new)
-- `src/components/ui/mention-textarea.tsx`
-- `src/components/conversations/InlineNoteEditor.tsx`
-- `src/components/conversations/ChatReplyInput.tsx`
-- `src/components/conversations/MessageCard.tsx`
-- `src/components/conversations/ChatMessagesList.tsx`
-- `src/components/mobile/conversations/MobileChatBubble.tsx`
-- `src/hooks/useNoteMutations.ts`
+### Files changed
 
-### Technical details
+- `src/components/ui/mention-textarea.tsx` — portal the panel, drop the diagnostic capture listener.
+- `src/components/conversations/MessageCard.tsx` — remove inline `<AlertDialog>`, expose `onRequestDeleteNote`.
+- `src/components/mobile/conversations/MobileChatBubble.tsx` — remove inline `<AlertDialog>`, expose `onRequestDeleteNote`.
+- The two parent components that render `MessageCard` and `MobileChatBubble` — add hoisted `<AlertDialog>` + `confirmDeleteId` state + the standard handler sequence. (Identified during implementation; confirmed they exist as the message list views in the conversation route.)
+- `src/components/conversations/ChatMessagesList.tsx` — adopt the standard handler sequence (close dialog, then `setTimeout(0)` mutation).
+- `src/components/dashboard/CustomerNotes.tsx` — adopt the standard handler sequence.
 
-- Use `logger.debug/info/warn/error`, not new raw `console.log`
-- Gate all new diagnostics behind `VITE_NOTE_DEBUG=1`
-- Keep logs structured and deduplicated
-- No database changes
-- No user-facing UI changes except safer edit opening consistency in `MessageCard`
+No DB changes. No new dependencies. No styling changes. No mention/notification logic changes.
 
 ### Verification
 
-1. Start with:
-   - `VITE_LOG_LEVEL=DEBUG`
-   - `VITE_NOTE_DEBUG=1`
-2. Reproduce mention selection in:
-   - regular note add
-   - note edit
-   - live chat internal note
-3. Confirm the console now shows:
-   - menu opened
-   - item mouse down
-   - item click
-   - insertion start/end
-   - focus after insertion
-4. Reproduce note deletion freeze in:
-   - `MessageCard`
-   - `ChatMessagesList`
-   - mobile note bubble if applicable
-5. Confirm the logs show:
-   - dropdown select
-   - dialog open
-   - confirm click
-   - dialog close
-   - delete success
-   - post-close body/overlay snapshot
-6. Use the captured sequence to identify the remaining root cause and then apply a focused fix in a follow-up step.
+1. Open a conversation with internal notes.
+2. Type `@to` in a new note in the bottom composer:
+   - Dropdown appears, fully visible, not clipped, even when composer is in a small/scrolling container.
+   - Clicking a name inserts `@[Name] `; popover closes; textarea keeps focus.
+   - Arrow keys + Enter + Tab also select; Escape closes.
+3. Open the dropdown menu on an existing internal note → Edit → type `@` → same as above.
+4. Repeat in the live chat composer (`ChatReplyInput`) — Enter while menu open does NOT send.
+5. Repeat in `CustomerNotes` (sidebar) — same behavior.
+6. Click trash on an internal note → confirm:
+   - Dialog closes, note disappears one tick later, page is fully clickable.
+   - Inspect `<body>` in DevTools: no `data-scroll-locked`, no `pointer-events:none`, no orphan `data-radix-focus-guard` siblings.
+   - Immediately click another note's trash, edit a note, navigate routes — all work.
+7. Delete the **last** internal note in a thread: list collapses cleanly, page stays interactive.
+8. Repeat the delete test on mobile (`MobileChatBubble`).
+9. Repeat the delete test in `CustomerNotes`.
 
