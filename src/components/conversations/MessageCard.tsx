@@ -539,10 +539,29 @@ const MessageCardComponent = ({
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={handleEdit}>
-                      <Edit3 className="w-4 h-4 mr-2" />
-                      {t('conversation.editMessage')}
+                    <DropdownMenuItem onClick={handleCopy}>
+                      <Copy className="w-4 h-4 mr-2" />
+                      Copy
                     </DropdownMenuItem>
+                    {/* Edit + Delete for internal notes (author or admin) */}
+                    {isInternalNote && canEditNote({
+                      is_internal: true,
+                      sender_id: message.originalMessage?.sender_id,
+                    }) && (
+                      <>
+                        <DropdownMenuItem onClick={() => setIsEditingThisNote(true)}>
+                          <Edit3 className="w-4 h-4 mr-2" />
+                          Edit note
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => setShowDeleteConfirm(true)}
+                          className="text-destructive focus:text-destructive"
+                        >
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          Delete note
+                        </DropdownMenuItem>
+                      </>
+                    )}
                     {/* Pin option - only for internal notes */}
                     {isInternalNote && (
                       <DropdownMenuItem onClick={handleTogglePin}>
