@@ -155,6 +155,8 @@ interface MessageCardProps {
   isPinned?: boolean;
   onEdit?: (messageId: string, content: string) => void;
   onDelete?: (messageId: string) => void;
+  /** Request note deletion — parent owns the confirm dialog so it survives row unmount */
+  onRequestDeleteNote?: (messageId: string) => void;
   onPin?: (messageId: string, pinned: boolean) => void;
   onSendDraft?: (messageId: string) => void;
   onEditDraft?: (messageId: string, content: string) => void;
@@ -171,6 +173,7 @@ const MessageCardComponent = ({
   isPinned: propIsPinned,
   onEdit, 
   onDelete,
+  onRequestDeleteNote,
   onPin,
   onSendDraft,
   onEditDraft,
@@ -185,8 +188,7 @@ const MessageCardComponent = ({
   const [copiedToClipboard, setCopiedToClipboard] = useState(false);
   const [isPinned, setIsPinned] = useState(propIsPinned ?? message.originalMessage?.is_pinned ?? false);
   const [isEditingThisNote, setIsEditingThisNote] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const { canEditNote, deleteNote } = useNoteMutations();
+  const { canEditNote } = useNoteMutations();
   
   // Track renders
   const renderCount = useRef(0);
@@ -562,8 +564,8 @@ const MessageCardComponent = ({
                               source: 'MessageCard',
                               messageId: message.id,
                             }, 'MessageCard');
-                            // Defer dialog open until dropdown fully closes (avoids Radix pointer-lock bug)
-                            setTimeout(() => setShowDeleteConfirm(true), 0);
+                            // Hand off to parent — its hoisted dialog survives this row unmounting
+                            setTimeout(() => onRequestDeleteNote?.(message.id), 0);
                           }}
                           className="text-destructive focus:text-destructive"
                         >
@@ -750,41 +752,7 @@ const MessageCardComponent = ({
           </div>
         </div>
 
-      {/* Delete confirmation dialog (internal notes) */}
-      <AlertDialog
-        open={showDeleteConfirm}
-        onOpenChange={(open) => {
-          noteDebug('delete_dialog_open_changed', { source: 'MessageCard', open, messageId: message.id }, 'MessageCard');
-          setShowDeleteConfirm(open);
-          if (!open) {
-            scheduleInteractionLockWatchdog('MessageCard', { phase: 'dialog_closed', messageId: message.id });
-          }
-        }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete this internal note?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This cannot be undone. The note will be removed for everyone in the conversation.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={async () => {
-                noteDebug('delete_confirm_clicked', { source: 'MessageCard', messageId: message.id }, 'MessageCard');
-                // Close dialog FIRST, then perform async delete (prevents pointer-lock freeze)
-                setShowDeleteConfirm(false);
-                await deleteNote(message.id, message.originalMessage?.conversation_id);
-                scheduleInteractionLockWatchdog('MessageCard', { phase: 'after_delete', messageId: message.id });
-              }}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* Delete confirmation dialog is hoisted to the parent list to survive row unmount */}
     </div>
   );
 };
