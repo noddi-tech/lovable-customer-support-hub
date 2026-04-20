@@ -1,19 +1,53 @@
+import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 import {
-  Activity, ThumbsUp, ThumbsDown, VolumeX, Sparkles, Check, X, Loader2, TrendingDown, TrendingUp, RefreshCw, Info,
+  Activity, ThumbsUp, ThumbsDown, VolumeX, Sparkles, Check, X, Loader2, TrendingDown, TrendingUp, Info, Send, History,
 } from 'lucide-react';
 import { useTriageHealth } from '@/hooks/useTriageHealth';
 import { usePatternProposals } from '@/hooks/usePatternProposals';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 const formatPct = (v: number) => `${Math.round(v * 100)}%`;
 
 export const TriageHealthDashboard = () => {
   const { data, isLoading } = useTriageHealth();
   const { data: proposals = [], acceptProposal, rejectProposal, runMining } = usePatternProposals();
+  const [sendingTest, setSendingTest] = useState(false);
+  const [backfilling, setBackfilling] = useState(false);
+
+  const sendTestAlert = async () => {
+    setSendingTest(true);
+    try {
+      const { data: res, error } = await supabase.functions.invoke('send-test-critical-alert', { body: {} });
+      if (error) throw error;
+      if ((res as { error?: string })?.error) throw new Error((res as { error: string }).error);
+      toast.success('Testvarsel sendt — sjekk Slack og reager 👍/👎/🔇');
+    } catch (e) {
+      toast.error(`Kunne ikke sende testvarsel: ${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      setSendingTest(false);
+    }
+  };
+
+  const runBackfill = async () => {
+    setBackfilling(true);
+    try {
+      const { data: res, error } = await supabase.functions.invoke('backfill-critical-alert-ts', { body: {} });
+      if (error) throw error;
+      if ((res as { error?: string })?.error) throw new Error((res as { error: string }).error);
+      const r = res as { patched?: number; scanned?: number } | null;
+      toast.success(`Backfill ferdig: ${r?.patched ?? 0} av ${r?.scanned ?? 0} oppdatert`);
+    } catch (e) {
+      toast.error(`Backfill feilet: ${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      setBackfilling(false);
+    }
+  };
 
   if (isLoading || !data) {
     return (
