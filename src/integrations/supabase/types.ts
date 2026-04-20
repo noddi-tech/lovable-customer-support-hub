@@ -1049,6 +1049,124 @@ export type Database = {
           },
         ]
       }
+      critical_alert_feedback: {
+        Row: {
+          ai_category: string | null
+          conversation_id: string | null
+          created_at: string
+          id: string
+          matched_keyword: string | null
+          notification_id: string | null
+          organization_id: string
+          reaction: string
+          reactor_email: string | null
+          reactor_slack_id: string
+          resolved_bucket: string | null
+          slack_channel_id: string | null
+          slack_message_ts: string | null
+          trigger_source: string
+        }
+        Insert: {
+          ai_category?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          id?: string
+          matched_keyword?: string | null
+          notification_id?: string | null
+          organization_id: string
+          reaction: string
+          reactor_email?: string | null
+          reactor_slack_id: string
+          resolved_bucket?: string | null
+          slack_channel_id?: string | null
+          slack_message_ts?: string | null
+          trigger_source: string
+        }
+        Update: {
+          ai_category?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          id?: string
+          matched_keyword?: string | null
+          notification_id?: string | null
+          organization_id?: string
+          reaction?: string
+          reactor_email?: string | null
+          reactor_slack_id?: string
+          resolved_bucket?: string | null
+          slack_channel_id?: string | null
+          slack_message_ts?: string | null
+          trigger_source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "critical_alert_feedback_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "critical_alert_feedback_notification_id_fkey"
+            columns: ["notification_id"]
+            isOneToOne: false
+            referencedRelation: "notifications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "critical_alert_feedback_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      critical_keyword_mutes: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          keyword: string
+          muted_by_id: string | null
+          muted_via: string
+          organization_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          keyword: string
+          muted_by_id?: string | null
+          muted_via?: string
+          organization_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          keyword?: string
+          muted_by_id?: string | null
+          muted_via?: string
+          organization_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "critical_keyword_mutes_muted_by_id_fkey"
+            columns: ["muted_by_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "critical_keyword_mutes_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customer_memories: {
         Row: {
           confidence: number
@@ -4105,9 +4223,11 @@ export type Database = {
           client_secret: string | null
           configuration: Json | null
           created_at: string | null
+          critical_ai_severity_thresholds: Json
           critical_category_routing: Json
           critical_channel_id: string | null
           critical_channel_name: string | null
+          critical_keyword_overrides: Json
           critical_ops_mention_mode: string | null
           critical_ops_subteam_handle: string | null
           critical_ops_subteam_id: string | null
@@ -4138,9 +4258,11 @@ export type Database = {
           client_secret?: string | null
           configuration?: Json | null
           created_at?: string | null
+          critical_ai_severity_thresholds?: Json
           critical_category_routing?: Json
           critical_channel_id?: string | null
           critical_channel_name?: string | null
+          critical_keyword_overrides?: Json
           critical_ops_mention_mode?: string | null
           critical_ops_subteam_handle?: string | null
           critical_ops_subteam_id?: string | null
@@ -4171,9 +4293,11 @@ export type Database = {
           client_secret?: string | null
           configuration?: Json | null
           created_at?: string | null
+          critical_ai_severity_thresholds?: Json
           critical_category_routing?: Json
           critical_channel_id?: string | null
           critical_channel_name?: string | null
+          critical_keyword_overrides?: Json
           critical_ops_mention_mode?: string | null
           critical_ops_subteam_handle?: string | null
           critical_ops_subteam_id?: string | null
@@ -4375,6 +4499,69 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      triage_pattern_proposals: {
+        Row: {
+          category: string | null
+          created_at: string
+          evidence_conversation_ids: string[]
+          evidence_count: number
+          id: string
+          organization_id: string
+          proposal_type: string
+          reason: string
+          reviewed_at: string | null
+          reviewed_by_id: string | null
+          status: string
+          threshold_value: number | null
+          value: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          evidence_conversation_ids?: string[]
+          evidence_count?: number
+          id?: string
+          organization_id: string
+          proposal_type: string
+          reason: string
+          reviewed_at?: string | null
+          reviewed_by_id?: string | null
+          status?: string
+          threshold_value?: number | null
+          value: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          evidence_conversation_ids?: string[]
+          evidence_count?: number
+          id?: string
+          organization_id?: string
+          proposal_type?: string
+          reason?: string
+          reviewed_at?: string | null
+          reviewed_by_id?: string | null
+          status?: string
+          threshold_value?: number | null
+          value?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "triage_pattern_proposals_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "triage_pattern_proposals_reviewed_by_id_fkey"
+            columns: ["reviewed_by_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_activity_events: {
         Row: {
