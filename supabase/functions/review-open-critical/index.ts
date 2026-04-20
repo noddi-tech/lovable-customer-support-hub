@@ -58,7 +58,7 @@ Deno.serve(async (req) => {
     // Get all orgs with active slack integrations that have critical alerts configured
     const { data: integrations, error: intError } = await supabase
       .from('slack_integrations')
-      .select('organization_id, access_token, secondary_access_token, critical_channel_id, configuration')
+      .select('*')
       .eq('is_active', true)
       .not('critical_channel_id', 'is', null);
 
