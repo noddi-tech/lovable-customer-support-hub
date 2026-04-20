@@ -1,44 +1,55 @@
 
 
-## Plan: Fix screen freeze after deleting a note
+## Plan: Replace cmdk with plain list for reliable mention selection (everywhere)
 
-### Root cause
+### Scope confirmation
 
-Two issues combine to freeze the UI after a note deletion:
+Yes — the fix lives entirely in `src/components/ui/mention-textarea.tsx`, which is the shared component used by **all** mention inputs:
 
-1. **AlertDialog rendered inside ScrollArea** (lines 404-427 inside the `<ScrollArea>` that closes at line 428). When the delete succeeds, the messages array changes, React re-renders the list, and the AlertDialog's portal overlay can become orphaned — leaving an invisible overlay that blocks all clicks.
+- Inline note editor (chat + email + mobile) — `InlineNoteEditor`
+- Customer notes — `CustomerNotes`
+- Live chat composer — `ChatReplyInput`
+- Ticket comments — `TicketCommentsList`
+- Call notes — `CallNotesSection`
+- Quick note widget and any other consumer
 
-2. **2-second polling keeps firing** during edit/delete operations (lines 62-76). This triggers re-renders while the AlertDialog or InlineNoteEditor is open, which can unmount and remount the dialog mid-transition, leaving the backdrop stuck.
+So fixing `MentionTextarea` fixes mention selection for regular (new) notes, edited notes, chat notes, customer notes, and ticket comments — all in one shot.
 
-### Fix
+### Root cause (recap)
 
-**`src/components/conversations/ChatMessagesList.tsx`**
+`MentionTextarea` wraps the suggestion list in `cmdk` (`Command` / `CommandItem`) inside a portaled Radix Popover. cmdk expects to own keyboard input via its own `CommandInput`, but here a separate `<textarea>` is the input — so `cmdk` never receives `Enter` / arrows, and its internal selection state stays inconsistent, which also makes mouse `onSelect` fire unreliably. Net effect: clicking or pressing Enter on a suggested team member silently does nothing.
 
-1. **Move AlertDialog outside ScrollArea.** Place it as a sibling after `</ScrollArea>`, wrapped in a fragment. This ensures the dialog portal lifecycle is independent of the scroll container's re-renders.
+### Fix (single file: `src/components/ui/mention-textarea.tsx`)
 
-2. **Pause polling while editing or confirming delete.** Change the 2-second interval to skip invalidation when `editingNoteId` or `confirmDeleteId` is set:
-   ```
-   if (editingNoteId || confirmDeleteId) return; // inside the interval callback
-   ```
+1. **Remove cmdk.** Drop the `Command`, `CommandList`, `CommandEmpty`, `CommandGroup`, `CommandItem` imports and JSX.
+2. **Render a plain controlled list** of suggestions inside the existing Radix `PopoverContent`:
+   - Header label "Team Members".
+   - One `<button type="button">` per member (avatar + name + email), max 8 items.
+   - Empty state: "Loading team members..." or "No team members found".
+3. **Add `activeIndex` state** for keyboard highlight. Reset to `0` whenever `mentionState.searchQuery` or `filteredMembers` changes.
+4. **Own all keys in the textarea's `onKeyDown`** while the popover is open and there are matches:
+   - `ArrowDown` → `activeIndex = (i + 1) % len`, `preventDefault` + `stopPropagation`.
+   - `ArrowUp` → `activeIndex = (i - 1 + len) % len`, `preventDefault` + `stopPropagation`.
+   - `Enter` → `handleSelectMember(filteredMembers[activeIndex])`, `preventDefault` + `stopPropagation` (so parent send/save handlers don't fire).
+   - `Escape` → close popover only, `preventDefault` + `stopPropagation`.
+   - When popover is closed, pass through to the consumer's `onKeyDown` unchanged (so Cmd/Ctrl+Enter save and chat-send shortcuts keep working).
+5. **Stable mouse selection** on each suggestion button:
+   - `onMouseDown={(e) => e.preventDefault()}` to keep the textarea focused.
+   - `onClick={() => handleSelectMember(member)}` — direct call, no library indirection.
+   - `onMouseEnter={() => setActiveIndex(index)}` for hover highlight parity with keyboard.
+6. **Keep existing pieces**: Popover anchor / caret positioning, `onInteractOutside` that ignores clicks on the textarea, `onOpenAutoFocus={(e) => e.preventDefault()}`, and the existing `handleSelectMember` insertion logic (with the `triggerIndex` fallback already in place).
 
-3. **Reset `confirmDeleteId` before the async delete, not after.** Currently the state is cleared after `await deleteNote(...)`, but the re-render from cache invalidation can race. Clear it first, then delete:
-   ```
-   const idToDelete = confirmDeleteId;
-   setConfirmDeleteId(null);
-   if (idToDelete) await deleteNote(idToDelete, conversationId);
-   ```
-
-### Files touched
-
-- `src/components/conversations/ChatMessagesList.tsx` — move AlertDialog, pause polling, fix state reset order.
-
-No database changes. No other files affected.
+No other files change. No DB changes. All consumers inherit the fix.
 
 ### Verification
 
-1. Open the conversation, click **Delete note** on an internal note.
-2. Confirm deletion in the dialog.
-3. Note disappears, screen remains fully interactive — no freeze.
-4. Edit a note with `@mentions`, confirm the suggestion popover works during editing (no polling interference).
-5. Verify normal message polling resumes after closing the editor.
+1. Open a conversation, click **Add note** (or **Edit note**).
+2. Type `@to`:
+   - **Click** "Tom Arne Danielsen" → `@[Tom Arne Danielsen] ` is inserted, popover closes, note is not saved.
+   - Or press **Enter** → same result.
+   - Or use **Arrow keys** + **Enter** → same result.
+3. Press **Escape** while menu is open → menu closes, editor stays open.
+4. Press **Cmd/Ctrl + Enter** (menu closed) → note saves as before.
+5. Repeat in **live chat composer** (plain Enter selects mention, does NOT send the chat message; Enter alone with menu closed sends as before).
+6. Repeat in **CustomerNotes**, **TicketCommentsList**, and **CallNotesSection** — selection works in all of them.
 
