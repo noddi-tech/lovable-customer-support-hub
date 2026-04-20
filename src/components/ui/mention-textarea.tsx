@@ -93,11 +93,15 @@ const MentionTextarea = React.forwardRef<HTMLTextAreaElement, MentionTextareaPro
     };
 
     const handleSelectMember = (member: TeamMemberForMention) => {
-      const { triggerIndex } = mentionState;
+      const { triggerIndex, searchQuery } = mentionState;
       const textarea = actualRef.current;
       if (!textarea) return;
 
-      const cursorPosition = textarea.selectionStart;
+      // Fallback if textarea lost focus and selectionStart is stale.
+      const fallbackCursor = triggerIndex + 1 + searchQuery.length;
+      const rawCursor = textarea.selectionStart;
+      const cursorPosition =
+        typeof rawCursor === 'number' && rawCursor >= triggerIndex ? rawCursor : fallbackCursor;
       const beforeMention = value.slice(0, triggerIndex);
       const afterMention = value.slice(cursorPosition);
       const mentionText = `@[${member.full_name}] `;
