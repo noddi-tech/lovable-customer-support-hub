@@ -12,24 +12,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 import { InlineNoteEditor } from '@/components/conversations/InlineNoteEditor';
 import { useNoteMutations } from '@/hooks/useNoteMutations';
-import { noteDebug, scheduleInteractionLockWatchdog } from '@/utils/noteInteractionDebug';
+import { noteDebug } from '@/utils/noteInteractionDebug';
 import type { NormalizedMessage } from '@/lib/normalizeMessage';
 
 interface MobileChatBubbleProps {
   message: NormalizedMessage;
   customerName?: string;
+  /** Request note deletion — parent owns the confirm dialog so it survives this bubble unmounting */
+  onRequestDeleteNote?: (messageId: string) => void;
 }
 
 /** Resolve visible content with fallback for widget/chat messages */
@@ -55,11 +47,10 @@ function resolveContent(message: NormalizedMessage): string {
   return message.visibleBody || '';
 }
 
-export const MobileChatBubble = ({ message, customerName }: MobileChatBubbleProps) => {
+export const MobileChatBubble = ({ message, customerName, onRequestDeleteNote }: MobileChatBubbleProps) => {
   const { relative: formatRelative } = useDateFormatting();
   const [isEditing, setIsEditing] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const { canEditNote, deleteNote } = useNoteMutations();
+  const { canEditNote } = useNoteMutations();
   const isAgent = message.authorType === 'agent';
   const isSystem = message.authorType === 'system';
   const isInternal = message.isInternalNote;
@@ -164,7 +155,8 @@ export const MobileChatBubble = ({ message, customerName }: MobileChatBubbleProp
                       source: 'MobileChatBubble',
                       messageId: message.id,
                     }, 'MobileChatBubble');
-                    setTimeout(() => setShowDeleteConfirm(true), 0);
+                    // Hand off to parent — its hoisted dialog survives this bubble unmounting
+                    setTimeout(() => onRequestDeleteNote?.(message.id), 0);
                   }}
                   className="text-destructive focus:text-destructive"
                 >
@@ -246,39 +238,7 @@ export const MobileChatBubble = ({ message, customerName }: MobileChatBubbleProp
         </div>
       )}
 
-      <AlertDialog
-        open={showDeleteConfirm}
-        onOpenChange={(open) => {
-          noteDebug('delete_dialog_open_changed', { source: 'MobileChatBubble', open, messageId: message.id }, 'MobileChatBubble');
-          setShowDeleteConfirm(open);
-          if (!open) {
-            scheduleInteractionLockWatchdog('MobileChatBubble', { phase: 'dialog_closed', messageId: message.id });
-          }
-        }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete this internal note?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This cannot be undone. The note will be removed for everyone in the conversation.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={async () => {
-                noteDebug('delete_confirm_clicked', { source: 'MobileChatBubble', messageId: message.id }, 'MobileChatBubble');
-                setShowDeleteConfirm(false);
-                await deleteNote(message.id, conversationId);
-                scheduleInteractionLockWatchdog('MobileChatBubble', { phase: 'after_delete', messageId: message.id });
-              }}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* Delete confirmation dialog is hoisted to the parent list to survive bubble unmount */}
     </div>
   );
 };
