@@ -160,18 +160,23 @@ async function aiCriticalTriage(
             role: 'system',
             content: `You are a customer support triage system. Analyze the conversation and determine if it's critical/urgent.
 
-Categories: billing_issue, service_failure, safety_concern, frustrated_customer, escalation_request, legal_threat, data_issue, none.
+Categories: billing_issue, app_failure, service_quality, safety_concern, frustrated_customer, escalation_request, legal_threat, data_issue, none.
 
 Return ONLY valid JSON (no markdown): { "critical": boolean, "category": string, "reason": string, "severity": number (1-5) }
 
 A message is critical (severity >= 3) if the customer:
-- Reports a payment/billing failure
-- Reports a service not working or broken feature
-- Expresses significant frustration (waiting long, no response)
-- Mentions safety concerns or damage
-- Threatens legal action or regulatory complaints
-- Reports data loss or privacy issues
-- Explicitly asks for escalation or manager
+- Reports a payment/billing failure → billing_issue
+- Reports the app/website/login/payment system is failing or broken → app_failure
+- Reports the physical service we delivered had a quality problem (noise, damage, faulty installation, work poorly done) → service_quality
+- Expresses significant frustration (waiting long, no response) → frustrated_customer
+- Mentions safety concerns or personal injury → safety_concern
+- Threatens legal action or regulatory complaints → legal_threat
+- Reports data loss or privacy issues → data_issue
+- Explicitly asks for escalation or manager → escalation_request
+
+Category examples:
+- app_failure: "appen krasjer", "kan ikke logge inn", "betalingsside feiler", "siden er nede"
+- service_quality: "metallisk lyd etter dekkskifte", "skadet bil etter montering", "feil montert", "dårlig utført jobb"
 
 Be conservative: only flag truly critical issues. Normal questions and feature requests are NOT critical.`,
           },

@@ -15,7 +15,8 @@
  */
 
 export type CriticalCategory =
-  | 'service_failure'
+  | 'app_failure'
+  | 'service_quality'
   | 'data_issue'
   | 'billing_issue'
   | 'safety_concern'
@@ -34,7 +35,8 @@ export type MentionMode = 'channel' | 'subteam' | 'user' | 'none';
  * later will fall through to `'ops'` so they remain visible.
  */
 export const DEFAULT_CATEGORY_BUCKETS: Record<string, CriticalBucket> = {
-  service_failure: 'tech',
+  app_failure: 'tech',
+  service_quality: 'ops',
   data_issue: 'tech',
   billing_issue: 'ops',
   safety_concern: 'ops',
@@ -54,7 +56,8 @@ export interface CategoryPresentation {
 }
 
 export const CATEGORY_PRESENTATION: Record<string, CategoryPresentation> = {
-  service_failure:     { emoji: '⚙️',  label: 'Tjenestefeil',      color: '#dc2626' },
+  app_failure:         { emoji: '⚙️',  label: 'App-/systemfeil',   color: '#dc2626' },
+  service_quality:     { emoji: '🔧', label: 'Tjenestekvalitet',  color: '#ea580c' },
   data_issue:          { emoji: '📊', label: 'Datafeil',          color: '#dc2626' },
   billing_issue:       { emoji: '💳', label: 'Betalingsproblem',  color: '#f59e0b' },
   safety_concern:      { emoji: '⚠️',  label: 'Sikkerhetsproblem', color: '#7c2d12' },
@@ -201,18 +204,22 @@ export function getCategoryThreshold(
 const KEYWORD_CATEGORY_HINTS: Array<{ patterns: RegExp; category: CriticalCategory }> = [
   { patterns: /\b(payment|billing|betalingsfeil|betaling feil|faktura|belastet)\b/i, category: 'billing_issue' },
   { patterns: /\b(legal|advokat|sue|stevning|forbrukerrådet)\b/i, category: 'legal_threat' },
-  { patterns: /\b(injury|skadet|safety|farlig|ulykke|brann)\b/i, category: 'safety_concern' },
+  { patterns: /\b(injury|skadet person|safety|farlig|ulykke|brann)\b/i, category: 'safety_concern' },
   { patterns: /\b(angry|frustrated|elendig|forferdelig|verste|aldri mer)\b/i, category: 'frustrated_customer' },
   { patterns: /\b(supervisor|manager|leder|escalat|eskaler)\b/i, category: 'escalation_request' },
   { patterns: /\b(wrong data|feil data|mangler|missing info)\b/i, category: 'data_issue' },
+  // App / system failures (tech): software, login, payment-page, crashes, downtime
+  { patterns: /\b(app|appen|krasj|krasjer|logge inn|innlogging|nede|outage|broken|tom side|blank side|betalingsside|innloggingsside)\b/i, category: 'app_failure' },
+  // Physical service quality (ops): noise, damage caused by service, faulty installation, poor workmanship
+  { patterns: /\b(metallisk|lyd fra|skade på|skade etter|skadet etter|skadet under|feilmontert|feil montert|dårlig utført|reklamasjon|ødelagt etter)\b/i, category: 'service_quality' },
 ];
 
 export function inferCategoryFromKeyword(keyword: string | null | undefined): CriticalCategory {
-  if (!keyword) return 'service_failure';
+  if (!keyword) return 'app_failure';
   for (const { patterns, category } of KEYWORD_CATEGORY_HINTS) {
     if (patterns.test(keyword)) return category;
   }
-  return 'service_failure';
+  return 'app_failure';
 }
 
 /** Resolve the bucket for a given category, honoring org overrides. */
