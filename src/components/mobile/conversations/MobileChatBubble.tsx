@@ -113,15 +113,72 @@ export const MobileChatBubble = ({ message, customerName }: MobileChatBubbleProp
 
       {/* Bubble */}
       <div className={cn(
-        "px-3 py-2 rounded-2xl text-[13px] leading-snug break-words max-w-full",
+        "px-3 py-2 rounded-2xl text-[13px] leading-snug break-words max-w-full relative group",
         isInternal
           ? "bg-yellow-50 text-foreground border border-yellow-200 rounded-br-md"
           : isAgent
             ? "bg-primary text-primary-foreground rounded-br-md"
             : "bg-muted text-foreground rounded-bl-md"
       )}>
-        {isInternal ? (
-          <MentionRenderer content={content} className="text-[13px]" />
+        {isInternal && canEditThisNote && !isEditing && (
+          <div className="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 focus-within:opacity-100 active:opacity-100 transition-opacity">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 rounded-full bg-background border shadow-sm"
+                >
+                  <MoreHorizontal className="h-3 w-3" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => {
+                  navigator.clipboard.writeText(content);
+                  toast.success('Copied');
+                }}>
+                  <Copy className="h-4 w-4 mr-2" />
+                  Copy
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setIsEditing(true)}>
+                  <Edit3 className="h-4 w-4 mr-2" />
+                  Edit note
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete note
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        )}
+        {isInternal && isEditing ? (
+          <InlineNoteEditor
+            messageId={message.id}
+            initialContent={message.originalMessage?.content || content}
+            conversationId={conversationId}
+            context={{
+              type: 'internal_note',
+              conversation_id: conversationId,
+              message_id: message.id,
+            }}
+            onCancel={() => setIsEditing(false)}
+            compact
+          />
+        ) : isInternal ? (
+          <>
+            <MentionRenderer content={content} className="text-[13px]" />
+            {message.originalMessage?.updated_at &&
+              message.originalMessage?.created_at &&
+              new Date(message.originalMessage.updated_at).getTime() -
+                new Date(message.originalMessage.created_at).getTime() >
+                2000 && (
+                <span className="ml-1 text-[9px] text-muted-foreground italic">(edited)</span>
+              )}
+          </>
         ) : isPlainText ? (
           <p className="whitespace-pre-wrap m-0">{(() => {
             const temp = document.createElement('div');
