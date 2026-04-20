@@ -1,48 +1,36 @@
 
 
-## Plan: Fix "non-2xx status code" on Send testvarsel — surface real error + verify routing
+## Plan: Force redeploy `send-test-critical-alert` + `backfill-critical-alert-ts`
 
-The frontend is showing the generic Supabase invoke error because `send-test-critical-alert` returns HTTP 500/4xx with the actual reason hidden in the response body (which `supabase.functions.invoke` swallows). I'll fix that and harden the test-trigger flow.
+### Root cause
 
-### 1. Always return HTTP 200 with structured `{ ok, error, stage }`
+The toast still says "Edge Function returned a non-2xx status code" because **`send-test-critical-alert` has zero edge function logs** — it was never successfully deployed despite the source file being created and registered in `config.toml`. Supabase's edge gateway returns a generic 404/non-2xx when the function isn't live, which `supabase.functions.invoke` reports as "non-2xx status code" (no body to parse). The structured `{ ok, error }` response we built can't help because the function code never runs.
 
-Refactor `supabase/functions/send-test-critical-alert/index.ts` to:
+The 👍 reaction working is unrelated — that path goes:
+- Slack → `slack-event-handler` (separate function, fully deployed) → `critical_alert_feedback` table.
 
-- Use a `respond(ok, payload)` helper that always returns `status: 200` so the client can read the body.
-- Tag every failure with an `error_stage` (`auth`, `authz`, `no_inbox`, `no_conversation`, `slack_invoke`, `slack_response`, `unexpected`).
-- Capture `console.error` with full context so the next failure shows up in edge function logs (currently only "booted" is logged).
-- Inspect the `send-slack-notification` response (`{ data, error }`) AND look for `data.success === false` / `data.error` (Slack invoke can resolve with a body-level error and still be HTTP 200).
+We just verified one row exists in `critical_alert_feedback` with `reaction='+1'` from your test 👍, so the feedback loop itself is healthy. ✅
 
-### 2. Update the client to read the structured error
+### Fix
 
-In `src/components/admin/TriageHealthDashboard.tsx` (`handleSendTest`):
+1. **Force a fresh deploy** of both new functions via `supabase--deploy_edge_functions(["send-test-critical-alert", "backfill-critical-alert-ts"])`. Auto-deploy from the `lov-write` step appears to have silently dropped these two new functions.
+2. **Smoke-test immediately** via `supabase--curl_edge_functions` against `/send-test-critical-alert` (POST `{}`) to confirm:
+   - HTTP 200 returned
+   - Body is `{ ok: true, sent: true, ... }` OR `{ ok: false, error, error_stage }` (so the structured-error handling we built actually works)
+3. **Tail logs** with `supabase--edge_function_logs` to confirm boot + execution is recorded.
+4. If step 2 returns `{ ok: false, error_stage: ... }`, fix the underlying gap (likely `no_conversation` or a Slack routing detail) — the toast on the next click will then show the precise reason instead of the generic gateway error.
 
-- Treat `res.ok === false` as the failure signal (instead of relying on `error` from invoke).
-- Show `res.error` and `res.error_stage` in the toast so we see the real cause (e.g. "no_inbox", "slack_invoke: missing channel mapping").
+### No code changes needed unless step 2 reveals a real failure stage
 
-### 3. Likely root causes the new logs/toast will pinpoint
+The function code from the previous turn is correct (always-200 + structured errors). We just need it actually running.
 
-Based on the function code, the test alert will fail at one of these stages — the new error surfacing will tell us which:
+### Verification
 
-- **`no_conversation`** — the chosen inbox has zero conversations. Mitigation: fall back to any conversation in the org regardless of inbox.
-- **`slack_invoke`** — `send-slack-notification` rejects because no Slack integration / channel routing is configured for the org, or because `event_type: 'new_conversation'` requires a real conversation that doesn't trip the keyword filter.
-- **`auth/authz`** — caller isn't admin in the chosen org (super-admin path missing).
+1. Click **Send testvarsel** in `/admin/integrations` → Triage Health card.
+2. Expected: toast either says "Testvarsel sendt — sjekk Slack…" (success) or shows a precise stage like `[no_inbox]`, `[slack_invoke: ...]`.
+3. If success: react 👍 / 🔇 on the new Slack message → confirm new row in `critical_alert_feedback` (and `critical_keyword_mutes` for 🔇 with keyword `test-trigger-please-ignore`).
 
-I'll add small fallbacks for the first two:
+### Files touched
 
-- Pick any conversation in the org (drop the `inbox_id` filter) if the inbox-scoped lookup is empty.
-- Allow `super_admin` callers (not just `admin`) to pass authz.
-- Pass an explicit `force_critical: true` flag to `send-slack-notification` so the test bypasses keyword detection if we ever change the sentinel.
-
-### 4. Files touched
-
-- `supabase/functions/send-test-critical-alert/index.ts` — structured responses, logging, fallbacks, super-admin authz.
-- `src/components/admin/TriageHealthDashboard.tsx` — read `res.ok`/`res.error`/`res.error_stage`, show in toast.
-- Deploy `send-test-critical-alert` after the change.
-
-### 5. Verification
-
-1. Click **Send testvarsel** again.
-2. If it still fails, the toast now shows a precise reason like `no_conversation` or `slack_invoke: <slack reason>`. Share the toast text and I'll fix the underlying config gap.
-3. On success: alert appears in the routed Slack channel, react 👍/🔇, confirm rows in `critical_alert_feedback` / `critical_keyword_mutes`.
+None expected. Pure deploy + smoke test. Only modify code if step 2 surfaces a configuration gap.
 
