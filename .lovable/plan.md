@@ -1,99 +1,31 @@
 
 
-## Plan: Add `updated_at` to `messages` + fix preview trigger
+## Plan: Fix team-member mention click being swallowed by outside-click handler
 
 ### Root cause
 
-`useNoteMutations.updateNote` writes `updated_at: new Date().toISOString()` to `messages`, but the `messages` table has no `updated_at` column. PostgREST returns "column not found in schema cache" and the edit fails.
+`MentionTextarea` registers a global `mousedown` listener that closes the popover whenever the click target is outside the `<textarea>` element. The Radix Popover content is portaled to `document.body`, so clicking on "Tom Arne Danielsen" in the dropdown counts as "outside" → the popover closes on `mousedown` → the `CommandItem.onSelect` (which fires on `mouseup/click`) never runs. Keyboard `Enter` works (no mousedown), which is why the original `@tom` insert in the composer worked once it was selected — but mouse clicks on suggestions silently do nothing.
 
-### Fix
+This bug exists everywhere `MentionTextarea` is used: the new `InlineNoteEditor` (chat + email + mobile), the `CustomerNotes` add/edit, and the live-chat reply composer.
 
-**1. Migration: add `updated_at` column + auto-bump trigger**
+### Fix (single file: `src/components/ui/mention-textarea.tsx`)
 
-```sql
-ALTER TABLE public.messages
-  ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT now();
+1. **Remove the buggy outside-click handler.** Radix `Popover` already closes on outside clicks via `onInteractOutside`, and we only want to keep it open while interacting with the textarea or the popover content.
+2. **Let Radix handle it.** Replace the `useEffect` mousedown listener with the controlled-popover pattern:
+   - Keep `open={mentionState.isOpen}`.
+   - Use `onOpenChange` to close (already wired).
+   - Add `onInteractOutside` on `PopoverContent` that ignores clicks targeting the textarea (so typing/clicking in the textarea doesn't close it), and otherwise allows the default close.
+3. **Prevent focus stealing on item click.** Add `onMouseDown={(e) => e.preventDefault()}` to each `CommandItem` so the textarea keeps focus through the click and the cursor-position logic in `handleSelectMember` (which reads `textarea.selectionStart`) still works.
+4. **Sanity: ensure `handleSelectMember` runs even if the textarea lost focus.** Fall back to `mentionState.triggerIndex + searchQuery.length + 1` when `selectionStart` is stale, so insertion still produces the correct `@[Full Name] ` text.
 
--- Backfill existing rows so "(edited)" badge logic (updated_at > created_at + small delta)
--- doesn't false-positive on historical messages.
-UPDATE public.messages SET updated_at = created_at WHERE updated_at IS DISTINCT FROM created_at;
-
--- BEFORE UPDATE trigger to keep updated_at fresh automatically.
-CREATE OR REPLACE FUNCTION public.set_messages_updated_at()
-RETURNS trigger
-LANGUAGE plpgsql
-AS $$
-BEGIN
-  NEW.updated_at = now();
-  RETURN NEW;
-END;
-$$;
-
-DROP TRIGGER IF EXISTS messages_set_updated_at ON public.messages;
-CREATE TRIGGER messages_set_updated_at
-BEFORE UPDATE ON public.messages
-FOR EACH ROW
-EXECUTE FUNCTION public.set_messages_updated_at();
-```
-
-**2. Fix `update_conversation_preview` (incidental cleanup)**
-
-Currently it overwrites `conversations.preview_text` / `last_message_*` on every UPDATE — including edits to old messages. Limit the preview update on UPDATE to cases where the edited message is still the latest in the thread:
-
-```sql
-CREATE OR REPLACE FUNCTION public.update_conversation_preview()
-RETURNS trigger
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path TO 'public'
-AS $$
-DECLARE
-  preview text;
-  latest_id uuid;
-BEGIN
-  -- On UPDATE, only refresh preview if this message is still the latest in the conversation.
-  IF TG_OP = 'UPDATE' THEN
-    SELECT id INTO latest_id
-    FROM public.messages
-    WHERE conversation_id = NEW.conversation_id
-    ORDER BY created_at DESC
-    LIMIT 1;
-
-    IF latest_id IS DISTINCT FROM NEW.id THEN
-      RETURN NEW;
-    END IF;
-  END IF;
-
-  preview := left(regexp_replace(NEW.content, '<[^>]+>', '', 'g'), 200);
-
-  UPDATE conversations
-  SET preview_text = preview,
-      updated_at = NEW.created_at,        -- still uses created_at → no bump on edit ✓
-      last_message_is_internal = COALESCE(NEW.is_internal, false),
-      last_message_sender_type = NEW.sender_type
-  WHERE id = NEW.conversation_id;
-
-  RETURN NEW;
-END;
-$$;
-```
-
-This preserves the timestamp integrity rule (conversation `updated_at` never moves on edit, since `NEW.created_at` is unchanged) and stops stale-preview overwrites when editing older notes.
-
-**3. No client code changes needed**
-
-`useNoteMutations.updateNote` already sets `updated_at` explicitly — that still works (BEFORE trigger overrides it with `now()`, which is what we want). The "(edited)" badge logic in `MessageCard` / `ChatMessagesList` / `MobileChatBubble` already compares `updated_at` vs `created_at`, and the backfill ensures historical rows stay clean.
-
-### Files touched
-
-- New migration in `supabase/migrations/` (timestamp + add-column + trigger + backfill + replace `update_conversation_preview`).
-- No frontend changes.
+No DB changes, no other components touched. Behavior unchanged for keyboard users; mouse clicks now insert the mention as expected.
 
 ### Verification
 
-1. After migration, reload the conversation in your screenshot.
-2. Click **Save** on the open note editor → toast says "Note updated", bubble re-renders with the `@[Tom Arne Danielsen]` chip and an `(edited)` marker.
-3. Conversation list ordering does NOT change (same `updated_at`).
-4. Edit an OLDER note in a long thread → conversation preview text does NOT get clobbered with the older note's content.
-5. Delete a note → row disappears, no errors.
+1. Open the conversation in the screenshot, click **Edit note** on the yellow bubble.
+2. Type `@to` → "Tom Arne Danielsen" appears in the popover.
+3. **Click his name with the mouse** → bubble text becomes `@[Tom Arne Danielsen] ` and popover closes.
+4. Press **⌘/Ctrl + Enter** (or click Save) → toast "Note updated", `(edited)` marker appears, mention chip renders, Tom gets a notification.
+5. Repeat with keyboard only (`@to` → `Enter`) — still works.
+6. Spot-check `CustomerNotes` add/edit and the live-chat internal-note composer — clicking a suggested name now inserts it there too.
 
