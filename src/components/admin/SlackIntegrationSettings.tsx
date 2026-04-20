@@ -583,9 +583,18 @@ export const SlackIntegrationSettings = () => {
             <Alert className="bg-destructive/5 border-destructive/20">
               <AlertTriangle className="h-4 w-4 text-destructive" />
               <AlertDescription className="text-sm">
-                Critical alerts use a hybrid detection system: <strong>keyword matching</strong> (Norwegian &amp; English) for instant detection of common issues, plus <strong>AI-powered context analysis</strong> that reads the full conversation to catch nuanced problems like frustrated customers, delayed responses, or safety concerns. Messages include <span className="font-mono text-xs bg-muted px-1 py-0.5 rounded">@channel</span> to notify everyone.
+                Critical alerts use a hybrid detection system: <strong>keyword matching</strong> (Norwegian &amp; English) for instant detection of common issues, plus <strong>AI-powered context analysis</strong> that reads the full conversation to catch nuanced problems like frustrated customers, delayed responses, or safety concerns.
               </AlertDescription>
             </Alert>
+
+            {/* Smart routing: Tech vs Ops + per-category overrides */}
+            {integration && (
+              <CriticalAlertRouting
+                integration={integration}
+                onUpdate={(updates) => updateConfiguration.mutate(updates as Parameters<typeof updateConfiguration.mutate>[0])}
+                isPending={updateConfiguration.isPending}
+              />
+            )}
           </CardContent>
         )}
       </Card>
