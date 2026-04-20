@@ -25,7 +25,11 @@ export const TriageHealthDashboard = () => {
     try {
       const { data: res, error } = await supabase.functions.invoke('send-test-critical-alert', { body: {} });
       if (error) throw error;
-      if ((res as { error?: string })?.error) throw new Error((res as { error: string }).error);
+      const r = (res ?? {}) as { ok?: boolean; error?: string; error_stage?: string };
+      if (r.ok === false) {
+        const stage = r.error_stage ? ` [${r.error_stage}]` : '';
+        throw new Error(`${r.error || 'Ukjent feil'}${stage}`);
+      }
       toast.success('Testvarsel sendt — sjekk Slack og reager 👍/👎/🔇');
     } catch (e) {
       toast.error(`Kunne ikke sende testvarsel: ${e instanceof Error ? e.message : String(e)}`);
