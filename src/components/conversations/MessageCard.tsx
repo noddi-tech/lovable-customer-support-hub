@@ -193,6 +193,9 @@ const MessageCardComponent = ({
   const [showQuoted, setShowQuoted] = useState(false);
   const [copiedToClipboard, setCopiedToClipboard] = useState(false);
   const [isPinned, setIsPinned] = useState(propIsPinned ?? message.originalMessage?.is_pinned ?? false);
+  const [isEditingThisNote, setIsEditingThisNote] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const { canEditNote, deleteNote } = useNoteMutations();
   
   // Track renders
   const renderCount = useRef(0);
