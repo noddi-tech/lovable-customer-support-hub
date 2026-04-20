@@ -13,6 +13,8 @@ export interface SlackIntegrationConfig {
   critical_alerts_enabled: boolean;
 }
 
+export type SlackMentionMode = 'channel' | 'subteam' | 'user' | 'none';
+
 export interface SlackIntegration {
   id: string;
   organization_id: string;
@@ -31,6 +33,18 @@ export interface SlackIntegration {
   secondary_team_id: string | null;
   configuration: SlackIntegrationConfig;
   setup_completed: boolean;
+  // Critical alert routing — Tech bucket
+  critical_tech_subteam_id: string | null;
+  critical_tech_subteam_handle: string | null;
+  critical_tech_user_id: string | null;
+  critical_tech_mention_mode: SlackMentionMode;
+  // Critical alert routing — Ops bucket
+  critical_ops_subteam_id: string | null;
+  critical_ops_subteam_handle: string | null;
+  critical_ops_user_id: string | null;
+  critical_ops_mention_mode: SlackMentionMode;
+  // Category → bucket override (e.g. { billing_issue: 'tech' })
+  critical_category_routing: Record<string, 'tech' | 'ops'>;
   created_at: string;
   updated_at: string;
 }
