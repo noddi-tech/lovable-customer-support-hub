@@ -2579,6 +2579,7 @@ export type Database = {
           is_pinned: boolean | null
           sender_id: string | null
           sender_type: string
+          updated_at: string
         }
         Insert: {
           assigned_to_id?: string | null
@@ -2598,6 +2599,7 @@ export type Database = {
           is_pinned?: boolean | null
           sender_id?: string | null
           sender_type: string
+          updated_at?: string
         }
         Update: {
           assigned_to_id?: string | null
@@ -2617,6 +2619,7 @@ export type Database = {
           is_pinned?: boolean | null
           sender_id?: string | null
           sender_type?: string
+          updated_at?: string
         }
         Relationships: [
           {
