@@ -213,33 +213,37 @@ export const useSlackIntegration = () => {
       critical_channel_name?: string;
       is_active?: boolean;
       configuration?: Partial<SlackIntegrationConfig>;
+      // Critical alert routing buckets
+      critical_tech_subteam_id?: string | null;
+      critical_tech_subteam_handle?: string | null;
+      critical_tech_user_id?: string | null;
+      critical_tech_mention_mode?: SlackMentionMode;
+      critical_ops_subteam_id?: string | null;
+      critical_ops_subteam_handle?: string | null;
+      critical_ops_user_id?: string | null;
+      critical_ops_mention_mode?: SlackMentionMode;
+      critical_category_routing?: Record<string, 'tech' | 'ops'>;
     }) => {
       if (!currentOrganizationId || !integration) {
         throw new Error('No integration found');
       }
 
       const updateData: Record<string, unknown> = {};
-      
-      if (updates.default_channel_id !== undefined) {
-        updateData.default_channel_id = updates.default_channel_id;
-      }
-      if (updates.default_channel_name !== undefined) {
-        updateData.default_channel_name = updates.default_channel_name;
-      }
-      if (updates.digest_channel_id !== undefined) {
-        updateData.digest_channel_id = updates.digest_channel_id;
-      }
-      if (updates.digest_channel_name !== undefined) {
-        updateData.digest_channel_name = updates.digest_channel_name;
-      }
-      if (updates.critical_channel_id !== undefined) {
-        updateData.critical_channel_id = updates.critical_channel_id;
-      }
-      if (updates.critical_channel_name !== undefined) {
-        updateData.critical_channel_name = updates.critical_channel_name;
-      }
-      if (updates.is_active !== undefined) {
-        updateData.is_active = updates.is_active;
+      const passthrough = [
+        'default_channel_id', 'default_channel_name',
+        'digest_channel_id', 'digest_channel_name',
+        'critical_channel_id', 'critical_channel_name',
+        'is_active',
+        'critical_tech_subteam_id', 'critical_tech_subteam_handle',
+        'critical_tech_user_id', 'critical_tech_mention_mode',
+        'critical_ops_subteam_id', 'critical_ops_subteam_handle',
+        'critical_ops_user_id', 'critical_ops_mention_mode',
+        'critical_category_routing',
+      ] as const;
+      for (const key of passthrough) {
+        if ((updates as Record<string, unknown>)[key] !== undefined) {
+          updateData[key] = (updates as Record<string, unknown>)[key];
+        }
       }
       if (updates.configuration) {
         updateData.configuration = {
