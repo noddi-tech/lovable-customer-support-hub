@@ -59,11 +59,12 @@ export const ChatMessagesList = ({
   }, [messages.length, customerTyping]);
 
   // Poll for new messages every 2 seconds during live chat
+  // Pause polling while editing or confirming delete to prevent re-render interference
   useEffect(() => {
     if (!conversationId) return;
     
     const interval = setInterval(() => {
-      // Invalidate message queries to trigger refetch
+      if (editingNoteId || confirmDeleteId) return;
       queryClient.invalidateQueries({ 
         queryKey: ['thread-messages', conversationId] 
       });
@@ -73,7 +74,7 @@ export const ChatMessagesList = ({
     }, 2000);
     
     return () => clearInterval(interval);
-  }, [conversationId, queryClient]);
+  }, [conversationId, queryClient, editingNoteId, confirmDeleteId]);
 
   // Sort messages by date (oldest first for chat view)
   const sortedMessages = [...messages].sort(
@@ -170,6 +171,7 @@ export const ChatMessagesList = ({
   };
 
   return (
+    <>
     <ScrollArea className="flex-1" ref={scrollAreaRef}>
       <div className="flex flex-col gap-4 p-4">
         {sortedMessages.length === 0 && (
@@ -401,6 +403,8 @@ export const ChatMessagesList = ({
         <div ref={messagesEndRef} />
       </div>
 
+    </ScrollArea>
+
       <AlertDialog open={!!confirmDeleteId} onOpenChange={(o) => !o && setConfirmDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -413,10 +417,11 @@ export const ChatMessagesList = ({
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={async () => {
-                if (confirmDeleteId) {
-                  await deleteNote(confirmDeleteId, conversationId);
-                }
+                const idToDelete = confirmDeleteId;
                 setConfirmDeleteId(null);
+                if (idToDelete) {
+                  await deleteNote(idToDelete, conversationId);
+                }
               }}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
@@ -425,6 +430,6 @@ export const ChatMessagesList = ({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </ScrollArea>
+    </>
   );
 };
