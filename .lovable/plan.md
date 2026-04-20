@@ -1,55 +1,51 @@
 
+## Plan: Fix the real root causes behind both persistent note bugs
 
-## Plan: Replace cmdk with plain list for reliable mention selection (everywhere)
+### Root causes
 
-### Scope confirmation
+There are two separate interaction-layer problems:
 
-Yes — the fix lives entirely in `src/components/ui/mention-textarea.tsx`, which is the shared component used by **all** mention inputs:
+1. **Team-member selection still fails**
+   - The shared `MentionTextarea` is improved, but it still renders the suggestions inside a Radix `Popover` portal.
+   - In note-edit flows, the editor is opened **directly from a Radix `DropdownMenuItem`** (`MessageCard`, `ChatMessagesList`, `MobileChatBubble`). That leaves focus/layer management competing with the newly mounted editor and its mention popup.
+   - The popup also uses a relatively low z-index (`z-[150]`), while dropdown content uses `z-[10002]`, so the mention list can end up visually present but not actually clickable.
+   - In live chat internal notes, `ChatReplyInput` still treats plain `Enter` as “send”, so mention selection can be interrupted even if the popup is open.
 
-- Inline note editor (chat + email + mobile) — `InlineNoteEditor`
-- Customer notes — `CustomerNotes`
-- Live chat composer — `ChatReplyInput`
-- Ticket comments — `TicketCommentsList`
-- Call notes — `CallNotesSection`
-- Quick note widget and any other consumer
+2. **Deleting a note can still freeze the screen**
+   - The delete confirm is still opened **from a Radix dropdown menu item** in multiple places.
+   - This matches a known Radix dropdown/dialog pointer-lock failure mode: after the confirm dialog closes, `body` can remain non-interactive.
+   - `MessageCard` still closes the dialog **after** the async delete finishes, which increases the chance of a stuck interaction lock during re-render.
 
-So fixing `MentionTextarea` fixes mention selection for regular (new) notes, edited notes, chat notes, customer notes, and ticket comments — all in one shot.
+### What to change
 
-### Root cause (recap)
+#### 1) Remove Radix Popover from `MentionTextarea`
+Refactor `src/components/ui/mention-textarea.tsx` so the mention menu is rendered as a **plain absolutely positioned inline panel** inside the textarea wrapper instead of using `Popover` / `PopoverContent` / portal layering.
 
-`MentionTextarea` wraps the suggestion list in `cmdk` (`Command` / `CommandItem`) inside a portaled Radix Popover. cmdk expects to own keyboard input via its own `CommandInput`, but here a separate `<textarea>` is the input — so `cmdk` never receives `Enter` / arrows, and its internal selection state stays inconsistent, which also makes mouse `onSelect` fire unreliably. Net effect: clicking or pressing Enter on a suggested team member silently does nothing.
+Implementation:
+- Replace Radix popover wrappers with:
+  - a `relative` outer container
+  - an `absolute z-[10050]` suggestion panel positioned from the computed caret coordinates
+- Keep the plain `<button>` suggestion list.
+- Preserve existing manual keyboard navigation:
+  - `ArrowUp` / `ArrowDown`
+  - `Enter`
+  - `Tab`
+  - `Escape`
+- Keep `preventDefault()` + `stopPropagation()` while the menu is open.
+- Keep focus in the textarea after selection.
 
-### Fix (single file: `src/components/ui/mention-textarea.tsx`)
+Why:
+- No portal
+- No dismissable-layer conflicts
+- No hidden overlay swallowing clicks
+- Same behavior in add-note, edit-note, customer notes, tickets, and call notes
 
-1. **Remove cmdk.** Drop the `Command`, `CommandList`, `CommandEmpty`, `CommandGroup`, `CommandItem` imports and JSX.
-2. **Render a plain controlled list** of suggestions inside the existing Radix `PopoverContent`:
-   - Header label "Team Members".
-   - One `<button type="button">` per member (avatar + name + email), max 8 items.
-   - Empty state: "Loading team members..." or "No team members found".
-3. **Add `activeIndex` state** for keyboard highlight. Reset to `0` whenever `mentionState.searchQuery` or `filteredMembers` changes.
-4. **Own all keys in the textarea's `onKeyDown`** while the popover is open and there are matches:
-   - `ArrowDown` → `activeIndex = (i + 1) % len`, `preventDefault` + `stopPropagation`.
-   - `ArrowUp` → `activeIndex = (i - 1 + len) % len`, `preventDefault` + `stopPropagation`.
-   - `Enter` → `handleSelectMember(filteredMembers[activeIndex])`, `preventDefault` + `stopPropagation` (so parent send/save handlers don't fire).
-   - `Escape` → close popover only, `preventDefault` + `stopPropagation`.
-   - When popover is closed, pass through to the consumer's `onKeyDown` unchanged (so Cmd/Ctrl+Enter save and chat-send shortcuts keep working).
-5. **Stable mouse selection** on each suggestion button:
-   - `onMouseDown={(e) => e.preventDefault()}` to keep the textarea focused.
-   - `onClick={() => handleSelectMember(member)}` — direct call, no library indirection.
-   - `onMouseEnter={() => setActiveIndex(index)}` for hover highlight parity with keyboard.
-6. **Keep existing pieces**: Popover anchor / caret positioning, `onInteractOutside` that ignores clicks on the textarea, `onOpenAutoFocus={(e) => e.preventDefault()}`, and the existing `handleSelectMember` insertion logic (with the `triggerIndex` fallback already in place).
+#### 2) Expose mention-menu open state to parents
+Extend `MentionTextarea` with an optional prop such as:
+- `onMentionMenuOpenChange?: (open: boolean) => void`
 
-No other files change. No DB changes. All consumers inherit the fix.
+Use it so parent components know when the mention menu is active.
 
-### Verification
-
-1. Open a conversation, click **Add note** (or **Edit note**).
-2. Type `@to`:
-   - **Click** "Tom Arne Danielsen" → `@[Tom Arne Danielsen] ` is inserted, popover closes, note is not saved.
-   - Or press **Enter** → same result.
-   - Or use **Arrow keys** + **Enter** → same result.
-3. Press **Escape** while menu is open → menu closes, editor stays open.
-4. Press **Cmd/Ctrl + Enter** (menu closed) → note saves as before.
-5. Repeat in **live chat composer** (plain Enter selects mention, does NOT send the chat message; Enter alone with menu closed sends as before).
-6. Repeat in **CustomerNotes**, **TicketCommentsList**, and **CallNotesSection** — selection works in all of them.
-
+Apply in:
+- `src/components/conversations/ChatReplyInput.tsx`
+- optionally `src/components/conversations/
