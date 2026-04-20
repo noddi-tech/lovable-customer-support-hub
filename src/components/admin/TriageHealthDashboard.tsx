@@ -63,7 +63,8 @@ export const TriageHealthDashboard = () => {
     );
   }
 
-  const noFeedback = data.total_feedback === 0;
+  const noAlerts = data.total_alerts === 0;
+  const noFeedback = !noAlerts && data.total_feedback === 0;
 
   return (
     <div className="space-y-4">
