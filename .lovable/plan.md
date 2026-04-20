@@ -1,36 +1,68 @@
 
 
-## Plan: Force redeploy `send-test-critical-alert` + `backfill-critical-alert-ts`
+## Plan: Edit + delete internal notes (chat & email)
 
-### Root cause
+You should be able to fix a typo'd `@mention` (or any text) in an internal note, and remove a note entirely — from both chat and email conversation views, on desktop and mobile. Right now:
 
-The toast still says "Edge Function returned a non-2xx status code" because **`send-test-critical-alert` has zero edge function logs** — it was never successfully deployed despite the source file being created and registered in `config.toml`. Supabase's edge gateway returns a generic 404/non-2xx when the function isn't live, which `supabase.functions.invoke` reports as "non-2xx status code" (no body to parse). The structured `{ ok, error }` response we built can't help because the function code never runs.
+- **Email view**: the "Edit Message" menu item dispatches state but nothing reads it, so clicking does nothing. Delete is hidden for notes (only shown for failed outgoing emails).
+- **Chat view**: notes only show "Copy" / "Resend Email" — no edit, no delete. (Matches your screenshot.)
+- **Mobile chat bubble**: no actions at all on notes.
 
-The 👍 reaction working is unrelated — that path goes:
-- Slack → `slack-event-handler` (separate function, fully deployed) → `critical_alert_feedback` table.
+### Scope (internal notes only)
 
-We just verified one row exists in `critical_alert_feedback` with `reaction='+1'` from your test 👍, so the feedback loop itself is healthy. ✅
+Edit/delete will be permitted on `is_internal === true` messages **authored by the current user** (or any note for org admins). Customer messages and successfully-sent agent emails remain protected per the existing deletion policy — only the internal-note carve-out is added.
 
-### Fix
+### What you'll see after the fix
 
-1. **Force a fresh deploy** of both new functions via `supabase--deploy_edge_functions(["send-test-critical-alert", "backfill-critical-alert-ts"])`. Auto-deploy from the `lov-write` step appears to have silently dropped these two new functions.
-2. **Smoke-test immediately** via `supabase--curl_edge_functions` against `/send-test-critical-alert` (POST `{}`) to confirm:
-   - HTTP 200 returned
-   - Body is `{ ok: true, sent: true, ... }` OR `{ ok: false, error, error_stage }` (so the structured-error handling we built actually works)
-3. **Tail logs** with `supabase--edge_function_logs` to confirm boot + execution is recorded.
-4. If step 2 returns `{ ok: false, error_stage: ... }`, fix the underlying gap (likely `no_conversation` or a Slack routing detail) — the toast on the next click will then show the precise reason instead of the generic gateway error.
+1. **Three-dot menu on any internal note** (chat bubble, email card, mobile bubble) shows:
+   - Copy
+   - **Edit note** ✨ new
+   - **Delete note** ✨ new (with confirmation)
 
-### No code changes needed unless step 2 reveals a real failure stage
+2. **Edit mode** transforms the note bubble into an inline `MentionTextarea` pre-filled with the original content, with **Save** / **Cancel** buttons. `@` autocomplete works, so you can finish the `@tom` tag, press the suggestion, and Save.
+   - Saving updates `messages.content`, recomputes mention metadata, fires notifications for **newly added** mentions only (no duplicate alerts to people already tagged), stamps `updated_at`, and shows an "(edited)" marker next to the timestamp.
 
-The function code from the previous turn is correct (always-200 + structured errors). We just need it actually running.
+3. **Delete** opens a confirm dialog ("Delete this internal note? This cannot be undone."), removes the row, and refreshes the conversation. No `updated_at` bump on the conversation (per the timestamp integrity rule).
 
-### Verification
+### Implementation map
 
-1. Click **Send testvarsel** in `/admin/integrations` → Triage Health card.
-2. Expected: toast either says "Testvarsel sendt — sjekk Slack…" (success) or shows a precise stage like `[no_inbox]`, `[slack_invoke: ...]`.
-3. If success: react 👍 / 🔇 on the new Slack message → confirm new row in `critical_alert_feedback` (and `critical_keyword_mutes` for 🔇 with keyword `test-trigger-please-ignore`).
+**New shared hook** `src/hooks/useNoteMutations.ts`
+- `updateNote({ messageId, content, mentionedUserIds })` — updates `messages` row, processes new mentions via existing `useMentionNotifications`, invalidates `conversation-messages` / `thread-messages` caches.
+- `deleteNote(messageId)` — deletes `messages` row, invalidates caches, no conversation `updated_at` change.
+- Permission check: `is_internal === true` AND (`sender_id === currentProfileId` OR caller is org admin).
 
-### Files touched
+**New inline editor** `src/components/conversations/InlineNoteEditor.tsx`
+- `MentionTextarea` + Save/Cancel buttons, pre-filled with original content + extracted mention IDs. Enter to save, Esc to cancel. Reused by all three views below.
 
-None expected. Pure deploy + smoke test. Only modify code if step 2 surfaces a configuration gap.
+**Email view — `MessageCard.tsx`**
+- Add `isEditingThisNote` local state; when true, render `InlineNoteEditor` in place of `MentionRenderer`.
+- Show "Edit note" + "Delete note" menu items when `isInternalNote && canEdit`. Remove dependency on the unused context dispatch.
+- Add small "(edited)" badge next to timestamp when `updated_at > created_at` for notes.
+
+**Chat view — `ChatMessagesList.tsx`**
+- Add "Edit note" / "Delete note" items to the dropdown when `isInternal && canEdit`.
+- Render `InlineNoteEditor` inside the yellow bubble when editing.
+- Add small AlertDialog for delete confirmation.
+
+**Mobile — `MobileChatBubble.tsx`**
+- Add long-press / three-dot trigger on internal notes that opens a sheet with Edit / Delete / Copy.
+- Reuse `InlineNoteEditor`.
+
+**Cleanup**
+- Remove the orphaned `editingMessageId` / `editText` from `ConversationViewContext` (or wire it to the new editor — we'll just remove since the new flow is local-state driven and simpler).
+
+### Permissions & safety
+
+- RLS on `messages` already restricts updates/deletes to org members. We add an app-level guard: only the note's author (`sender_id`) or an admin can see Edit/Delete.
+- Customer messages, outbound emails, and AI drafts are **unaffected** — no new delete paths for them.
+- Mention re-processing only sends notifications to user IDs added in the edit (compare new vs old mentioned IDs).
+
+### Verification steps
+
+1. In the conversation in your screenshot, hover the "vet du noe om dette @tom" note → three-dot menu → **Edit note**.
+2. Inline editor opens with the text. Type `@to` → suggestion appears → press Enter to insert `@[Tom Lastname]`. Click **Save**.
+3. Bubble shows the rendered mention chip; "(edited)" appears next to "Just now". Tom receives a mention notification.
+4. Open menu again → **Delete note** → confirm → bubble disappears.
+5. Repeat in the email-style thread view (long email conversation with an internal note) and on mobile.
+6. Confirm Edit/Delete do **not** appear on customer messages, sent agent emails, or notes authored by other users (unless you're admin).
 
