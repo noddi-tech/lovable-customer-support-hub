@@ -262,12 +262,21 @@ export const ChatMessagesList = ({
                           sender_id: message.originalMessage?.sender_id,
                         }) && (
                           <>
-                            <DropdownMenuItem onClick={() => setEditingNoteId(message.id)}>
+                            <DropdownMenuItem
+                              onSelect={(e) => {
+                                e.preventDefault();
+                                // Defer to after dropdown unmount to avoid Radix pointer-lock conflict
+                                setTimeout(() => setEditingNoteId(message.id), 0);
+                              }}
+                            >
                               <Edit3 className="h-4 w-4 mr-2" />
                               Edit note
                             </DropdownMenuItem>
                             <DropdownMenuItem
-                              onClick={() => setConfirmDeleteId(message.id)}
+                              onSelect={(e) => {
+                                e.preventDefault();
+                                setTimeout(() => setConfirmDeleteId(message.id), 0);
+                              }}
                               className="text-destructive focus:text-destructive"
                             >
                               <Trash2 className="h-4 w-4 mr-2" />

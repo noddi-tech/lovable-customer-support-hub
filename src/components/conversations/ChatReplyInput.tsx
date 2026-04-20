@@ -72,6 +72,7 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
   const [translateLoading, setTranslateLoading] = useState(false);
   const [sourceLanguage, setSourceLanguage] = useState('auto');
   const [targetLanguage, setTargetLanguage] = useState('no');
+  const [isMentionMenuOpen, setIsMentionMenuOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -341,6 +342,8 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
   }, [handleTyping, isInternalNote]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    // Don't hijack Enter while the @mention menu is open — let MentionTextarea handle selection
+    if (isMentionMenuOpen) return;
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
@@ -538,6 +541,7 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
               onBlur={stopTyping}
               disabled={isPending}
               mentionedUserIds={mentionedUserIds}
+              onMentionMenuOpenChange={setIsMentionMenuOpen}
             />
           </div>
         ) : (

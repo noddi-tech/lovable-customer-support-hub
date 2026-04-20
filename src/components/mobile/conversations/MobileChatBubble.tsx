@@ -133,19 +133,30 @@ export const MobileChatBubble = ({ message, customerName }: MobileChatBubbleProp
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => {
-                  navigator.clipboard.writeText(content);
-                  toast.success('Copied');
-                }}>
+                <DropdownMenuItem
+                  onSelect={(e) => {
+                    e.preventDefault();
+                    navigator.clipboard.writeText(content);
+                    toast.success('Copied');
+                  }}
+                >
                   <Copy className="h-4 w-4 mr-2" />
                   Copy
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setIsEditing(true)}>
+                <DropdownMenuItem
+                  onSelect={(e) => {
+                    e.preventDefault();
+                    setTimeout(() => setIsEditing(true), 0);
+                  }}
+                >
                   <Edit3 className="h-4 w-4 mr-2" />
                   Edit note
                 </DropdownMenuItem>
                 <DropdownMenuItem
-                  onClick={() => setShowDeleteConfirm(true)}
+                  onSelect={(e) => {
+                    e.preventDefault();
+                    setTimeout(() => setShowDeleteConfirm(true), 0);
+                  }}
                   className="text-destructive focus:text-destructive"
                 >
                   <Trash2 className="h-4 w-4 mr-2" />
