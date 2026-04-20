@@ -2,13 +2,14 @@ import * as React from 'react';
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Popover, PopoverContent, PopoverAnchor } from '@/components/ui/popover';
 import { useTeamMemberMentions, TeamMemberForMention } from '@/hooks/useTeamMemberMentions';
 
 export interface MentionTextareaProps extends Omit<React.TextareaHTMLAttributes<HTMLTextAreaElement>, 'onChange'> {
   value: string;
   onChange: (value: string, mentionedUserIds: string[]) => void;
   mentionedUserIds?: string[];
+  /** Notifies parent when the mention suggestion menu opens or closes */
+  onMentionMenuOpenChange?: (open: boolean) => void;
 }
 
 interface MentionState {
@@ -18,7 +19,7 @@ interface MentionState {
 }
 
 const MentionTextarea = React.forwardRef<HTMLTextAreaElement, MentionTextareaProps>(
-  ({ className, value, onChange, mentionedUserIds: initialMentionedIds = [], ...props }, ref) => {
+  ({ className, value, onChange, mentionedUserIds: initialMentionedIds = [], onMentionMenuOpenChange, ...props }, ref) => {
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const [mentionState, setMentionState] = useState<MentionState>({
       isOpen: false,
@@ -42,10 +43,15 @@ const MentionTextarea = React.forwardRef<HTMLTextAreaElement, MentionTextareaPro
       setActiveIndex(0);
     }, [mentionState.searchQuery, filteredMembers.length]);
 
+    // Notify parent when menu open state changes
+    useEffect(() => {
+      onMentionMenuOpenChange?.(mentionState.isOpen);
+    }, [mentionState.isOpen, onMentionMenuOpenChange]);
+
     // Use forwarded ref or internal ref
     const actualRef = (ref as React.RefObject<HTMLTextAreaElement>) || textareaRef;
 
-    // Calculate caret position for popover placement
+    // Calculate caret position for panel placement (relative to textarea wrapper)
     const getCaretCoordinates = useCallback(() => {
       const textarea = actualRef.current;
       if (!textarea) return { top: 0, left: 0 };
@@ -61,7 +67,7 @@ const MentionTextarea = React.forwardRef<HTMLTextAreaElement, MentionTextareaPro
 
       return {
         top: currentLine * lineHeight + 30,
-        left: Math.min(currentColumn * charWidth, textarea.offsetWidth - 200),
+        left: Math.min(currentColumn * charWidth, Math.max(0, textarea.offsetWidth - 280)),
       };
     }, [value, actualRef]);
 
@@ -84,10 +90,10 @@ const MentionTextarea = React.forwardRef<HTMLTextAreaElement, MentionTextareaPro
           });
           setCaretPosition(getCaretCoordinates());
         } else {
-          setMentionState(prev => ({ ...prev, isOpen: false }));
+          setMentionState(prev => prev.isOpen ? { ...prev, isOpen: false } : prev);
         }
       } else {
-        setMentionState(prev => ({ ...prev, isOpen: false }));
+        setMentionState(prev => prev.isOpen ? { ...prev, isOpen: false } : prev);
       }
 
       onChange(newValue, mentionedUserIds);
@@ -145,24 +151,19 @@ const MentionTextarea = React.forwardRef<HTMLTextAreaElement, MentionTextareaPro
           if (member) handleSelectMember(member);
           return;
         }
+        if (e.key === 'Tab') {
+          e.preventDefault();
+          e.stopPropagation();
+          const member = filteredMembers[activeIndex] ?? filteredMembers[0];
+          if (member) handleSelectMember(member);
+          return;
+        }
         if (e.key === 'Escape') {
           e.preventDefault();
           e.stopPropagation();
           setMentionState(prev => ({ ...prev, isOpen: false }));
           return;
         }
-        if (e.key === 'Tab') {
-          e.preventDefault();
-          const member = filteredMembers[activeIndex] ?? filteredMembers[0];
-          if (member) handleSelectMember(member);
-          return;
-        }
-      }
-
-      if (mentionState.isOpen && e.key === 'Escape') {
-        e.preventDefault();
-        setMentionState(prev => ({ ...prev, isOpen: false }));
-        return;
       }
 
       props.onKeyDown?.(e);
@@ -180,26 +181,16 @@ const MentionTextarea = React.forwardRef<HTMLTextAreaElement, MentionTextareaPro
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
           {...props}
+          // ensure our handler wins over any spread onKeyDown
+          onKeyDownCapture={undefined}
         />
 
-        <Popover open={mentionState.isOpen} onOpenChange={(open) => !open && setMentionState(prev => ({ ...prev, isOpen: false }))}>
-          <PopoverAnchor asChild>
-            <div
-              className="absolute pointer-events-none"
-              style={{ top: caretPosition.top, left: caretPosition.left }}
-            />
-          </PopoverAnchor>
-          <PopoverContent
-            className="w-[280px] p-0"
-            align="start"
-            side="bottom"
-            onOpenAutoFocus={(e) => e.preventDefault()}
-            onInteractOutside={(e) => {
-              const target = e.target as Node | null;
-              if (target && actualRef.current?.contains(target)) {
-                e.preventDefault();
-              }
-            }}
+        {mentionState.isOpen && (
+          <div
+            className="absolute z-[10050] w-[280px] rounded-md border bg-popover text-popover-foreground shadow-md outline-none"
+            style={{ top: caretPosition.top, left: caretPosition.left }}
+            // Keep textarea focused when interacting with the panel
+            onMouseDown={(e) => e.preventDefault()}
           >
             <div className="py-1">
               <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
@@ -216,7 +207,11 @@ const MentionTextarea = React.forwardRef<HTMLTextAreaElement, MentionTextareaPro
                       key={member.user_id}
                       type="button"
                       onMouseDown={(e) => e.preventDefault()}
-                      onClick={() => handleSelectMember(member)}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleSelectMember(member);
+                      }}
                       onMouseEnter={() => setActiveIndex(index)}
                       className={cn(
                         "flex w-full items-center gap-2 px-2 py-1.5 text-sm rounded-sm text-left",
@@ -240,8 +235,8 @@ const MentionTextarea = React.forwardRef<HTMLTextAreaElement, MentionTextareaPro
                 </div>
               )}
             </div>
-          </PopoverContent>
-        </Popover>
+          </div>
+        )}
       </div>
     );
   }

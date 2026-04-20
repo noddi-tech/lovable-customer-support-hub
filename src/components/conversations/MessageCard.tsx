@@ -554,7 +554,11 @@ const MessageCardComponent = ({
                           Edit note
                         </DropdownMenuItem>
                         <DropdownMenuItem
-                          onClick={() => setShowDeleteConfirm(true)}
+                          onSelect={(e) => {
+                            e.preventDefault();
+                            // Defer dialog open until dropdown fully closes (avoids Radix pointer-lock bug)
+                            setTimeout(() => setShowDeleteConfirm(true), 0);
+                          }}
                           className="text-destructive focus:text-destructive"
                         >
                           <Trash2 className="w-4 h-4 mr-2" />
@@ -753,8 +757,9 @@ const MessageCardComponent = ({
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={async () => {
-                await deleteNote(message.id, message.originalMessage?.conversation_id);
+                // Close dialog FIRST, then perform async delete (prevents pointer-lock freeze)
                 setShowDeleteConfirm(false);
+                await deleteNote(message.id, message.originalMessage?.conversation_id);
               }}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
