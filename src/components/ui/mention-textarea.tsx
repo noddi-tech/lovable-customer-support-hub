@@ -171,6 +171,13 @@ const MentionTextarea = React.forwardRef<HTMLTextAreaElement, MentionTextareaPro
             align="start" 
             side="bottom"
             onOpenAutoFocus={(e) => e.preventDefault()}
+            onInteractOutside={(e) => {
+              // Keep popover open when interacting with the textarea (typing/clicking in it).
+              const target = e.target as Node | null;
+              if (target && actualRef.current?.contains(target)) {
+                e.preventDefault();
+              }
+            }}
           >
             <Command>
               <CommandList>
@@ -183,6 +190,7 @@ const MentionTextarea = React.forwardRef<HTMLTextAreaElement, MentionTextareaPro
                       key={member.user_id}
                       value={member.full_name}
                       onSelect={() => handleSelectMember(member)}
+                      onMouseDown={(e) => e.preventDefault()}
                       className="flex items-center gap-2 cursor-pointer"
                     >
                       <Avatar className="h-6 w-6">
