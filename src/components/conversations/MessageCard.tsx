@@ -38,20 +38,10 @@ import { EmailDebugOverlay } from "./EmailDebugOverlay";
 import { stripHtml } from "@/utils/stripHtml";
 import { getSmartPreview } from "@/utils/messagePreview";
 import { logger } from "@/utils/logger";
-import { noteDebug, scheduleInteractionLockWatchdog } from "@/utils/noteInteractionDebug";
+import { noteDebug } from "@/utils/noteInteractionDebug";
 import { supabase } from "@/integrations/supabase/client";
 import { InlineNoteEditor } from "./InlineNoteEditor";
 import { useNoteMutations } from "@/hooks/useNoteMutations";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 
 // --- Helpers ---
 type Addr = { name?: string; email?: string };
