@@ -162,6 +162,12 @@ verify_jwt = false
 [functions.slack-list-channels]
 verify_jwt = true
 
+[functions.slack-list-subteams]
+verify_jwt = true
+
+[functions.slack-list-users]
+verify_jwt = true
+
 [functions.send-slack-notification]
 verify_jwt = false
 

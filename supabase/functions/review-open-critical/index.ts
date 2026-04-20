@@ -1,4 +1,12 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import {
+  resolveBucket,
+  getBucketConfig,
+  buildMentionPrefix,
+  describeRouting,
+  inferCategoryFromKeyword,
+  type IntegrationRoutingFields,
+} from '../_shared/critical-routing.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -50,7 +58,7 @@ Deno.serve(async (req) => {
     // Get all orgs with active slack integrations that have critical alerts configured
     const { data: integrations, error: intError } = await supabase
       .from('slack_integrations')
-      .select('organization_id, access_token, secondary_access_token, critical_channel_id, configuration')
+      .select('*')
       .eq('is_active', true)
       .not('critical_channel_id', 'is', null);
 
@@ -121,6 +129,7 @@ Deno.serve(async (req) => {
         // Per-inbox routing: resolve channel and token for this conversation's inbox
         let convCriticalChannelId = criticalChannelId;
         let convCriticalToken = integration.secondary_access_token || integration.access_token;
+        let inboxRoutingOverride: any = null;
 
         if (conv.inbox_id) {
           const { data: routing } = await supabase
@@ -131,6 +140,7 @@ Deno.serve(async (req) => {
             .maybeSingle();
 
           if (routing) {
+            inboxRoutingOverride = routing;
             // Check if critical alerts are disabled for this inbox
             if (routing.critical_enabled === false) {
               console.log(`🔇 Critical alerts disabled for inbox ${conv.inbox_id}, skipping`);
@@ -196,9 +206,26 @@ Deno.serve(async (req) => {
           });
         }
 
+        // Resolve Tech vs Ops bucket + mention prefix
+        const resolvedCategory = inferCategoryFromKeyword(matchedKeyword);
+        const bucket = resolveBucket(
+          resolvedCategory,
+          (integration.critical_category_routing as Record<string, string>) || {},
+        );
+        const bucketConfig = getBucketConfig(
+          bucket,
+          integration as IntegrationRoutingFields,
+          inboxRoutingOverride,
+        );
+        const mentionPrefix = buildMentionPrefix(bucketConfig);
+
         criticalBlocks.push({
           type: 'context',
           elements: [{ type: 'mrkdwn', text: `🔑 Triggered by keyword: \`${matchedKeyword}\`` }],
+        });
+        criticalBlocks.push({
+          type: 'context',
+          elements: [{ type: 'mrkdwn', text: describeRouting(bucket, bucketConfig, resolvedCategory) }],
         });
 
         const appUrl = Deno.env.get('APP_URL') || 'https://support.noddi.co';
@@ -214,6 +241,9 @@ Deno.serve(async (req) => {
 
         const critToken = convCriticalToken;
         try {
+          const fallbackText = mentionPrefix
+            ? `🚨 CRITICAL (Batch): ${title} from ${customerName} — ${conv.subject || 'No subject'} ${mentionPrefix}`
+            : `🚨 CRITICAL (Batch): ${title} from ${customerName} — ${conv.subject || 'No subject'}`;
           const criticalResponse = await fetch('https://slack.com/api/chat.postMessage', {
             method: 'POST',
             headers: {
@@ -222,7 +252,7 @@ Deno.serve(async (req) => {
             },
             body: JSON.stringify({
               channel: convCriticalChannelId,
-              text: `🚨 CRITICAL (Batch): ${title} from ${customerName} — ${conv.subject || 'No subject'}`,
+              text: fallbackText,
               attachments: [{
                 color: '#dc2626',
                 blocks: criticalBlocks,
