@@ -1,4 +1,12 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import {
+  resolveBucket,
+  getBucketConfig,
+  buildMentionPrefix,
+  describeRouting,
+  inferCategoryFromKeyword,
+  type IntegrationRoutingFields,
+} from '../_shared/critical-routing.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
