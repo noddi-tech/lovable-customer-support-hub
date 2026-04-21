@@ -1,58 +1,133 @@
 
 
-## Plan: Make Triage-helse panel show real numbers
+## Plan: Phase 2 — Rules CRUD UI for `/admin/recruitment` → "Automatisering"
 
-### Root causes (verified against DB)
+Builds the third tab on the existing `RecruitmentAdmin` page. UI-only — no schema or RPC work; backend is already shipped.
 
-1. `notifications` RLS only allows `user_id = auth.uid()`. Critical alert rows are inserted with a system sentinel `user_id`, so the dashboard's count query returns 0 even though 134 rows exist for the org in the last 30 days.
-2. `critical_alert_feedback` is correctly org-scoped, so its 4 rows ARE readable — but the percentages and worst/best sections look empty because (a) when `total_feedback = 0` on first render the panel shows the "Ingen reaksjoner" alert, and (b) there is no `refetchInterval`, so newly arrived reactions never refresh the panel without a hard reload.
+### Scope
 
-### Fix
+In: list, create, edit, delete, duplicate, toggle-active, drag-to-reorder for `recruitment_automation_rules` rows. Side sheet form with conditional trigger/action sections. Norwegian labels matching Tab 1/Tab 2 tone.
 
-#### 1. New SQL migration — security-definer count function
+Out (per spec): SMS/task action editors, dry-run, execution log view, failure banners, search/filter, presets.
 
-Create `public.get_critical_alert_count(_organization_id uuid, _since timestamptz)` returning `integer`. `security definer`, `stable`, `set search_path = public`. Body:
+Pre-existing build errors in `fetch-gmail-attachment`, `noddi-customer-lookup`, `send-reply-email` etc. are unrelated to the recruitment module and outside this task's scope — flagging only; will not be touched here.
 
-```sql
-select count(*)::int
-from notifications
-where type = 'critical_alert_sent'
-  and data->>'organization_id' = _organization_id::text
-  and created_at >= _since;
+### Files to create
+
+```
+src/components/dashboard/recruitment/admin/rules/
+  RulesTab.tsx
+  RulesList.tsx
+  RuleCard.tsx
+  RuleEditor.tsx
+  sections/
+    TriggerConfigSection.tsx
+    ActionConfigSection.tsx
+  hooks/
+    useRules.ts
+    useRuleMutations.ts
+  types.ts
 ```
 
-Grant `execute` to `authenticated`. Authorization is enforced caller-side: `useTriageHealth` only ever passes `currentOrganizationId` from `useOrganizationStore`, which is already gated to the user's verified org.
+### Files to modify
 
-#### 2. `src/hooks/useTriageHealth.ts`
+- `src/pages/admin/RecruitmentAdmin.tsx` — replace the `automation` `<TabsContent>` placeholder with `<RulesTab />` (import only; tab trigger already exists).
 
-- Replace the blocked `notifications` count query with `supabase.rpc('get_critical_alert_count', { _organization_id: currentOrganizationId, _since: since })`.
-- Add `refetchInterval: 30_000` and `refetchOnWindowFocus: true` to the `useQuery` options so reactions appear without reload.
-- Leave the feedback aggregation and mutes query as-is (they're already correct).
+### Component composition
 
-#### 3. `src/components/admin/TriageHealthDashboard.tsx`
+```text
+RulesTab
+ ├─ Header ("Automasjonsregler" + subtitle + [+ Ny regel])
+ ├─ EmptyState  (when rules.length === 0)
+ └─ RulesList
+     ├─ DndContext + SortableContext (vertical)
+     └─ RuleCard[]   (drag handle, name, badges, stats, menu)
+        └─ AlertDialog (Slett confirm; rendered inside card)
+ RuleEditor (Sheet, side=right, ~600px / full on mobile)
+   ├─ Header
+   ├─ Form (RHF + zod)
+   │   ├─ Navn (Input + register)
+   │   ├─ Beskrivelse (controlled Textarea, emojiAutocomplete={false})
+   │   ├─ Aktiv (Switch)
+   │   ├─ Separator
+   │   ├─ TriggerConfigSection   (type Select + conditional config)
+   │   ├─ Separator
+   │   └─ ActionConfigSection    (type Select + conditional config)
+   └─ Sticky footer  [Avbryt] [Lagre]
+```
 
-Split the misleading single empty-state into two:
+### Hooks
 
-- `data.total_alerts === 0` → "Ingen kritiske varsler de siste 30 dagene." (no alerts at all)
-- `data.total_alerts > 0 && data.total_feedback === 0` → keep current "Ingen reaksjoner registrert ennå…" copy (alerts exist, just no reactions yet)
+- `useRules()` — `useQuery` keyed `['recruitment-automation-rules', orgId]`, ordered by `execution_order ASC, created_at ASC`, org-scoped.
+- `useStagesForOrg()` (in `useRules.ts`) — fetches all `recruitment_pipelines` for the org, flattens `stages` JSONB, dedupes by `id`. Used in trigger config.
+- `usePositionsForOrg()` — fetches `job_positions` for the org (id, title, status). Used in trigger config.
+- `useActiveTemplatesForOrg()` — `recruitment_email_templates` filtered `is_active=true AND soft_deleted_at IS NULL`, ordered by name. Used in action config.
+- `useAssignableUsersForOrg()` — joins `profiles` with `organization_memberships` where `status='active'` and `role IN ('admin','super_admin','agent')`. Display: `full_name` + role suffix.
+- `useRuleMutations()` exposes:
+  - `createRule(values)`
+  - `updateRule(id, values)`
+  - `deleteRule(id)`
+  - `toggleActive({ id, is_active })` — optimistic, rollback on error
+  - `duplicateRule(rule)` — inserts copy with `name + ' (kopi)'`, `is_active=false`, `execution_order = max+1`
+  - `reorderRules(updates: {id, execution_order}[])` — optimistic; rollback on error; uses parallel `update` per row (no RPC needed since RLS already restricts to admins)
 
-Today both render the same "no reactions" message regardless of whether there are zero alerts or zero reactions to those alerts, which is confusing.
+All mutations invalidate `['recruitment-automation-rules', orgId]`. Toast feedback via `sonner`.
 
-#### 4. No other files change
+### Form & validation (`types.ts`)
 
-- `slack-event-handler`, `send-slack-notification`, `triage-pattern-mining`, `backfill-critical-alert-ts` — no changes.
-- `usePatternProposals` — leave as is for this PR (can add refetch later if needed).
+Use the exact `ruleFormSchema` from the spec (`zod` with `superRefine` for trigger/action config rules).
 
-### Files touched
+```ts
+export type RuleFormValues = z.infer<typeof ruleFormSchema>;
+export const NEW_RULE_DEFAULTS: RuleFormValues = {
+  name: '',
+  description: '',
+  is_active: true,
+  trigger_type: 'stage_entered',
+  trigger_config: {},
+  action_type: 'send_email',
+  action_config: {},
+};
+```
 
-- New migration: `get_critical_alert_count` security-definer function.
-- `src/hooks/useTriageHealth.ts` — RPC + refetch.
-- `src/components/admin/TriageHealthDashboard.tsx` — two-state empty handling.
+Also defines presentation maps:
+- `TRIGGER_LABELS` — `{ stage_entered: 'Søker bytter til en fase', application_created: 'Ny søknad opprettes' }`
+- `ACTION_OPTIONS` — array with `{ value, label, disabled?, comingSoon? }` for the 5 entries.
+- `formatTriggerSummary(rule, lookups)` and `formatActionSummary(rule, lookups)` — used by `RuleCard` to render the human badges (e.g. *"Når søker går til 'Kvalifisert' → Send e-post: 'Søknad mottatt'"*).
+
+### Key UI rules (matching existing tabs)
+
+- **Controlled `Textarea`** for Beskrivelse: `emojiAutocomplete={false}`, value from `form.watch('description')`, update via `form.setValue` with `shouldDirty/shouldValidate`. (The Tab 2 Beskrivelse fix.)
+- All other inputs use `form.register()` for `Input` and controlled value/`onValueChange` for `Select`/`Switch`, mirroring `EmailTemplateEditor.tsx`.
+- Disabled `SelectItem` rows for `send_sms` and `create_task` rendered with `disabled` prop + Tooltip "Kommer i en senere fase".
+- Drag uses `@dnd-kit/core` + `@dnd-kit/sortable` (`PointerSensor`, `verticalListSortingStrategy`, `arrayMove`) — same shape as `PipelineEditor` + `StageRow`.
+- Side sheet uses existing `@/components/ui/sheet` with `side="right"` and `className="w-full sm:max-w-xl overflow-y-auto"`. Footer is sticky inside the sheet.
+- Rule cards use `Card` with reduced `opacity-60` + italic "Inaktiv" pill when `!is_active`.
+- Empty state uses a centered card with `Zap` icon + Norwegian copy and `[+ Opprett første regel]` (opens editor in create mode).
+
+### Behaviour details
+
+- Sheet open state lives in `RulesTab`: `editorState: { mode: 'create' } | { mode: 'edit'; rule: Rule } | null`.
+- Form `defaultValues` are recomputed via `useMemo` from `editorState`; `useEffect` calls `form.reset(defaultValues)` when `editorState` changes (mirrors `EmailTemplateEditor`).
+- Switching `trigger_type` clears `trigger_config` to `{}` so stale keys never persist; same for `action_type` → `action_config`. This keeps the audit log entries clean.
+- Save button: `disabled={!form.formState.isValid || isSaving}`. Loading spinner inside button.
+- On success: `toast.success('Regel opprettet')` / `'Regel lagret'`, close sheet, query auto-invalidates → list refreshes.
+- Delete: `AlertDialog` with the exact Norwegian copy from the spec; on confirm, `deleteRule.mutate(id)` then toast.
+- Duplicate: reads current rule from cache (no extra fetch needed), strips `id/created_at/updated_at/execution_count/last_executed_at`, sets `name = rule.name + ' (kopi)'`, `is_active = false`, `execution_order = max(existing) + 1`, inserts.
 
 ### Verification
 
-1. Reload `/admin/integrations` → "Varsler sendt" shows ~134 (or current real count), not 0.
-2. "Nyttige / Falske alarmer / Dempet" reflect the 4 existing reactions (rates non-zero).
-3. React 👍 in Slack on a fresh alert → panel updates within 30s without reload.
-4. The "Ingen reaksjoner registrert ennå" banner only shows when alerts > 0 but feedback = 0; if both are 0 it shows "Ingen kritiske varsler de siste 30 dagene.".
-5. Worst/best trigger sections render once thresholds are met.
+All 20 checks in the spec map directly to:
+- Tabs/empty/create flow → `RulesTab` + `EmptyState` + `RuleEditor` create mode.
+- Conditional dropdowns → `TriggerConfigSection` / `ActionConfigSection` reading `form.watch('trigger_type'|'action_type')`.
+- Disabled SMS/task with tooltip → `ACTION_OPTIONS` rendering.
+- Card metadata + toggle + edit + duplicate + delete → `RuleCard` menu wired to mutations.
+- Drag-to-reorder persistence → `RulesList` `handleDragEnd` → `reorderRules.mutate`.
+- Webhook URL validation → `superRefine` block in `ruleFormSchema`; inline error under URL input.
+
+### Out of scope (will not be touched)
+
+- Pre-existing edge function build errors (`fetch-gmail-attachment`, `noddi-customer-lookup`, `send-reply-email`, etc.) — unrelated to recruitment, separate fix.
+- Any DB migration — backend already shipped.
+- Phases 3/4 features (execution log, dry-run, failure banners).
+
