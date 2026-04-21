@@ -143,8 +143,6 @@ export function useApplicantFiles(applicantId: string | undefined) {
 
 export function useUpdateApplicationStage() {
   const queryClient = useQueryClient();
-  const { currentOrganizationId } = useOrganizationStore();
-  const { profile } = useAuth();
 
   return useMutation({
     mutationFn: async (input: {
@@ -154,29 +152,23 @@ export function useUpdateApplicationStage() {
       toStageId: string;
       notify: 'email' | 'sms' | 'both' | 'skip';
     }) => {
-      if (!currentOrganizationId) throw new Error('Ingen organisasjon valgt');
-      if (!profile?.id) throw new Error('Ingen profil lastet');
-
-      const { error: updErr } = await supabase
-        .from('applications')
-        .update({ current_stage_id: input.toStageId })
-        .eq('id', input.applicationId);
-      if (updErr) throw updErr;
-
-      const { error: evtErr } = await supabase.from('application_events').insert({
-        application_id: input.applicationId,
-        applicant_id: input.applicantId,
-        organization_id: currentOrganizationId,
-        event_type: 'stage_change',
-        event_data: { from: input.fromStageId, to: input.toStageId, notify: input.notify },
-        performed_by: profile.id,
+      // Atomic move: the RPC locks the application row, validates the target
+      // stage against the position's pipeline, writes the stage_change event,
+      // and returns the updated row. Resolves auth.uid() -> profiles.id
+      // server-side so we don't need useAuth() here.
+      const { data, error } = await supabase.rpc('move_application_stage', {
+        p_application_id: input.applicationId,
+        p_to_stage_id: input.toStageId,
+        p_notify_preference: input.notify ?? 'skip',
       });
-      if (evtErr) throw evtErr;
+      if (error) throw error;
 
-      // TODO: trigger email/sms dispatch via edge function
+      // TODO: trigger email/sms dispatch via edge function (Tab 3 will wire this)
       if (input.notify !== 'skip') {
         console.log('TODO: send notification', input.notify, input.applicantId);
       }
+
+      return data;
     },
     onSuccess: (_d, vars) => {
       queryClient.invalidateQueries({ queryKey: ['applicant', vars.applicantId] });
