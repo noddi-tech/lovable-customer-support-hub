@@ -3284,45 +3284,64 @@ export type Database = {
       }
       recruitment_automation_executions: {
         Row: {
-          action_detail: Json | null
-          action_result: string
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          action_results: Json | null
           applicant_id: string | null
           application_id: string | null
           created_at: string
           duration_ms: number | null
           id: string
+          is_dry_run: boolean
           organization_id: string
+          overall_status: string
           rule_id: string | null
           rule_name: string
           trigger_context: Json
+          triggered_by: string | null
         }
         Insert: {
-          action_detail?: Json | null
-          action_result: string
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          action_results?: Json | null
           applicant_id?: string | null
           application_id?: string | null
           created_at?: string
           duration_ms?: number | null
           id?: string
+          is_dry_run?: boolean
           organization_id: string
+          overall_status: string
           rule_id?: string | null
           rule_name: string
           trigger_context: Json
+          triggered_by?: string | null
         }
         Update: {
-          action_detail?: Json | null
-          action_result?: string
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          action_results?: Json | null
           applicant_id?: string | null
           application_id?: string | null
           created_at?: string
           duration_ms?: number | null
           id?: string
+          is_dry_run?: boolean
           organization_id?: string
+          overall_status?: string
           rule_id?: string | null
           rule_name?: string
           trigger_context?: Json
+          triggered_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "recruitment_automation_executions_acknowledged_by_fkey"
+            columns: ["acknowledged_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "recruitment_automation_executions_applicant_id_fkey"
             columns: ["applicant_id"]
@@ -3351,6 +3370,87 @@ export type Database = {
             referencedRelation: "recruitment_automation_rules"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "recruitment_automation_executions_triggered_by_fkey"
+            columns: ["triggered_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recruitment_automation_queue: {
+        Row: {
+          actor_profile_id: string
+          completed_at: string | null
+          created_at: string
+          error_text: string | null
+          execution_id: string
+          id: string
+          organization_id: string
+          picked_up_at: string | null
+          rule_id: string | null
+          rule_snapshot: Json
+          status: string
+          trigger_context: Json
+        }
+        Insert: {
+          actor_profile_id: string
+          completed_at?: string | null
+          created_at?: string
+          error_text?: string | null
+          execution_id: string
+          id?: string
+          organization_id: string
+          picked_up_at?: string | null
+          rule_id?: string | null
+          rule_snapshot: Json
+          status?: string
+          trigger_context: Json
+        }
+        Update: {
+          actor_profile_id?: string
+          completed_at?: string | null
+          created_at?: string
+          error_text?: string | null
+          execution_id?: string
+          id?: string
+          organization_id?: string
+          picked_up_at?: string | null
+          rule_id?: string | null
+          rule_snapshot?: Json
+          status?: string
+          trigger_context?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recruitment_automation_queue_actor_profile_id_fkey"
+            columns: ["actor_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recruitment_automation_queue_execution_id_fkey"
+            columns: ["execution_id"]
+            isOneToOne: false
+            referencedRelation: "recruitment_automation_executions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recruitment_automation_queue_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recruitment_automation_queue_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "recruitment_automation_rules"
+            referencedColumns: ["id"]
+          },
         ]
       }
       recruitment_automation_rules: {
@@ -3360,9 +3460,11 @@ export type Database = {
           created_at: string
           created_by: string | null
           description: string | null
+          execution_count: number
           execution_order: number
           id: string
           is_active: boolean
+          last_executed_at: string | null
           name: string
           organization_id: string
           trigger_config: Json
@@ -3375,9 +3477,11 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           description?: string | null
+          execution_count?: number
           execution_order?: number
           id?: string
           is_active?: boolean
+          last_executed_at?: string | null
           name: string
           organization_id: string
           trigger_config?: Json
@@ -3390,9 +3494,11 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           description?: string | null
+          execution_count?: number
           execution_order?: number
           id?: string
           is_active?: boolean
+          last_executed_at?: string | null
           name?: string
           organization_id?: string
           trigger_config?: Json
@@ -5332,6 +5438,32 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      acknowledge_execution: {
+        Args: { p_execution_id: string }
+        Returns: {
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          action_results: Json | null
+          applicant_id: string | null
+          application_id: string | null
+          created_at: string
+          duration_ms: number | null
+          id: string
+          is_dry_run: boolean
+          organization_id: string
+          overall_status: string
+          rule_id: string | null
+          rule_name: string
+          trigger_context: Json
+          triggered_by: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "recruitment_automation_executions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       auto_abandon_inactive_chat_sessions: {
         Args: never
         Returns: {
@@ -5345,6 +5477,7 @@ export type Database = {
         }[]
       }
       calculate_sla_breach: { Args: never; Returns: undefined }
+      claim_queue_row: { Args: { p_queue_id: string }; Returns: Json }
       cleanup_old_email_ingestion_logs: { Args: never; Returns: undefined }
       count_old_audit_logs:
         | { Args: { days_old?: number }; Returns: number }
@@ -5372,7 +5505,42 @@ export type Database = {
               last_action: string
             }[]
           }
+      dispatch_action: {
+        Args: {
+          p_action_config: Json
+          p_action_type: string
+          p_actor_profile_id: string
+          p_dry_run: boolean
+          p_trigger_context: Json
+        }
+        Returns: Json
+      }
+      execute_automation_rules: {
+        Args: {
+          p_dry_run?: boolean
+          p_trigger_context: Json
+          p_trigger_type: string
+        }
+        Returns: {
+          action_results: Json
+          duration_ms: number
+          execution_id: string
+          overall_status: string
+          rule_id: string
+          rule_name: string
+        }[]
+      }
       extract_email_date: { Args: { email_headers: Json }; Returns: string }
+      finalize_queue_row: {
+        Args: {
+          p_action_results: Json
+          p_duration_ms: number
+          p_execution_id: string
+          p_final_status: string
+          p_queue_id: string
+        }
+        Returns: Json
+      }
       find_large_conversations: {
         Args: { message_threshold?: number }
         Returns: {
@@ -5726,11 +5894,31 @@ export type Database = {
         Args: {
           p_application_id: string
           p_note?: string
-          p_notify?: boolean
+          p_notify_preference?: string
           p_to_stage_id: string
         }
-        Returns: Json
+        Returns: {
+          applicant_id: string
+          applied_at: string
+          assigned_to: string | null
+          created_at: string
+          current_stage_id: string
+          id: string
+          organization_id: string
+          position_id: string
+          rejection_reason: string | null
+          score: number | null
+          score_breakdown: Json | null
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "applications"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
+      reap_stuck_queue_rows: { Args: never; Returns: number }
       reassign_applications_to_stage: {
         Args: {
           p_from_stage_id: string
@@ -5747,6 +5935,21 @@ export type Database = {
           calls_updated: number
           execution_time_ms: number
         }[]
+      }
+      render_email_template: {
+        Args: { p_application_id: string; p_template_id: string }
+        Returns: {
+          rendered_html: string
+          rendered_subject: string
+        }[]
+      }
+      rule_matches_context: {
+        Args: {
+          p_trigger_config: Json
+          p_trigger_context: Json
+          p_trigger_type: string
+        }
+        Returns: boolean
       }
       sanitize_debug_data: { Args: { data: Json }; Returns: Json }
       show_limit: { Args: never; Returns: number }
