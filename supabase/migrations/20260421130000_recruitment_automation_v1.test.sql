@@ -1,37 +1,40 @@
 -- ============================================================================
--- Phase 1 automation rules — manual test cases (REFERENCE ONLY)
+-- Automation rules — manual test cases (REFERENCE ONLY)
+-- Updated for Phase 1.5 async architecture (2026-04-21)
 -- ============================================================================
--- This file is NOT applied by migrations. Run cases manually, one at a time:
---   npx supabase db query --linked < <(sed -n 'START,ENDp' <this file>)
--- or copy-paste each block into the Supabase SQL Editor.
+-- This file is NOT applied by migrations. Run cases manually, one at a time,
+-- via the Supabase SQL Editor or `npx supabase db query --linked`.
 --
--- Placeholder IDs below are real Noddi-org IDs captured on 2026-04-21.
--- If they change, update the :set variables at the top.
+-- Architecture reminder:
+--   - Dry-run: execute_automation_rules dispatches synchronously and writes
+--     the execution row in a single call. Expect overall_status='dry_run'
+--     in the returned row.
+--   - Real run: execute_automation_rules writes a 'pending' execution row
+--     + a 'pending' queue row, returns immediately. The AFTER INSERT trigger
+--     on the queue fires the process-automation-queue edge function. The
+--     worker claims the row, dispatches, and flips execution+queue rows to
+--     their final state. Poll the execution row to see the final outcome.
 --
--- All cases assume you're impersonating a Noddi admin in the session:
+-- Placeholder IDs captured on 2026-04-21 (Noddi org). Update if seed changes.
+-- All cases impersonate the Noddi super_admin:
 --   SET LOCAL request.jwt.claims = '{"sub":"7e8f424e-5a2c-48ae-932c-39d5639b2d99"}';
--- (profile_id 55194f13-a056-4e86-99f7-c954c39d37b9 in Noddi org)
---
--- After running a case, inspect the row returned by execute_automation_rules,
--- then query recruitment_automation_executions + recruitment_automation_rules
--- to verify the expected side effects.
+--   admin profile_id: 55194f13-a056-4e86-99f7-c954c39d37b9
 -- ============================================================================
 
--- Real Noddi IDs at time of writing (adjust if seed data changes):
---   NODDI_ORG        = b9b4df82-2b89-4a64-b2a3-5e19c0e8d43b
---   NODDI_PIPELINE   = b32604e8-9385-4749-becb-04ba70761506   (Default)
---   NODDI_TEMPLATE   = f600217f-df7a-4751-a208-0a321a693f2d   (any active template)
---   NODDI_APPLICATION = b8c04b4a-6405-4c3a-936a-d3dbf924bbe0   (currently in pipeline)
---   ADMIN_USER_ID    = 7e8f424e-5a2c-48ae-932c-39d5639b2d99
---   ADMIN_PROFILE_ID = 55194f13-a056-4e86-99f7-c954c39d37b9
+-- Real Noddi IDs at time of writing:
+--   NODDI_ORG          = b9b4df82-2b89-4a64-b2a3-5e19c0e8d43b
+--   NODDI_PIPELINE     = b32604e8-9385-4749-becb-04ba70761506   (Default)
+--   NODDI_TEMPLATE     = f600217f-df7a-4751-a208-0a321a693f2d   (active template)
+--   NODDI_APPLICATION  = b8c04b4a-6405-4c3a-936a-d3dbf924bbe0   (in pipeline)
+--   ADMIN_USER_ID      = 7e8f424e-5a2c-48ae-932c-39d5639b2d99
+--   ADMIN_PROFILE_ID   = 55194f13-a056-4e86-99f7-c954c39d37b9
 
 
 -- ============================================================================
--- CASE 1 — Create a real send_email rule for 'stage_entered' on 'qualified'
+-- CASE 1 — Create a real send_email rule for stage_entered='qualified'
 -- ============================================================================
--- Expected: one row inserted into recruitment_automation_rules.
--- The audit trigger fires and writes an INSERT row to
--- recruitment_settings_audit.
+-- Expected: one row in recruitment_automation_rules. Audit trigger writes
+-- an INSERT row to recruitment_settings_audit.
 
 SET LOCAL request.jwt.claims = '{"sub":"7e8f424e-5a2c-48ae-932c-39d5639b2d99"}';
 
@@ -43,7 +46,7 @@ INSERT INTO public.recruitment_automation_rules (
 ) VALUES (
   'b9b4df82-2b89-4a64-b2a3-5e19c0e8d43b',
   'TEST: send email on qualified',
-  'Phase 1 smoke test — delete me after verifying',
+  'Phase 1.5 async smoke test — delete me after verifying',
   'stage_entered',
   jsonb_build_object('stage_id', 'qualified'),
   'send_email',
@@ -51,21 +54,19 @@ INSERT INTO public.recruitment_automation_rules (
   true, 0, '55194f13-a056-4e86-99f7-c954c39d37b9'
 )
 RETURNING id, name;
--- Save the returned rule id; we will refer to it as TEST_RULE_ID below.
 
 
 -- ============================================================================
--- CASE 2 — Execute the rule for real (live send)
+-- CASE 2 — Phase A: fire the rule (async path)
 -- ============================================================================
 -- Expected:
---   - Returns 1 row: {rule_id, rule_name, overall_status, action_results, duration_ms}
---   - overall_status = 'success' (assuming send-email returns 2xx)
---   - action_results.http_status = 200
---   - action_results.success = true
---   - A stage_change-style execution row written to
---     recruitment_automation_executions (overall_status='success',
---     is_dry_run=false, triggered_by=ADMIN_PROFILE_ID)
---   - The target rule's last_executed_at + execution_count are bumped
+--   - Returns 1 row with overall_status='pending', action_results=NULL,
+--     duration_ms=NULL, and an execution_id
+--   - A pending execution row exists in recruitment_automation_executions
+--   - A pending queue row exists in recruitment_automation_queue referencing
+--     the execution_id
+--   - The trg_automation_queue_kickoff trigger fires a net.http_post to
+--     process-automation-queue; that worker is running in the background
 
 SET LOCAL request.jwt.claims = '{"sub":"7e8f424e-5a2c-48ae-932c-39d5639b2d99"}';
 
@@ -80,35 +81,45 @@ FROM public.execute_automation_rules(
   ),
   p_dry_run         := false
 );
+-- Note the execution_id returned above; call it TEST_EXECUTION_ID.
 
 
 -- ============================================================================
--- CASE 3 — Verify the execution row was written with correct shape
+-- CASE 2 — Phase B: poll for completion (run 3-10s after Phase A)
 -- ============================================================================
--- Expected: one recent row with overall_status='success', action_results.success=true,
--- is_dry_run=false, triggered_by set to the admin's profile id.
+-- Expected: overall_status flipped to 'success' (SendGrid 2xx), action_results
+-- populated with {success:true, http_status:200, response_excerpt:"...",
+-- duration_ms:N}. is_dry_run=false. The queue row (join below) should show
+-- status='done' with completed_at populated. The rule's execution_count
+-- should have bumped from 0 to 1 and last_executed_at should be fresh.
 
 SELECT
-  rule_name,
-  overall_status,
-  is_dry_run,
-  triggered_by,
-  action_results->>'success'          AS success,
-  action_results->>'http_status'      AS http_status,
-  LEFT(action_results->>'response_excerpt', 200) AS excerpt_200,
-  duration_ms,
-  created_at
-FROM public.recruitment_automation_executions
-WHERE organization_id = 'b9b4df82-2b89-4a64-b2a3-5e19c0e8d43b'
-ORDER BY created_at DESC
+  e.overall_status,
+  e.action_results->>'success'     AS success,
+  e.action_results->>'http_status' AS http_status,
+  LEFT(e.action_results->>'response_excerpt', 200) AS excerpt_200,
+  e.duration_ms,
+  q.status        AS queue_status,
+  q.completed_at  AS queue_completed_at,
+  q.error_text
+FROM public.recruitment_automation_executions e
+LEFT JOIN public.recruitment_automation_queue q ON q.execution_id = e.id
+WHERE e.rule_name = 'TEST: send email on qualified'
+  AND e.organization_id = 'b9b4df82-2b89-4a64-b2a3-5e19c0e8d43b'
+ORDER BY e.created_at DESC
 LIMIT 1;
 
+-- If overall_status is still 'pending', wait a few more seconds and re-run.
+-- If it's been >10s and still pending, check the worker logs via the
+-- Supabase dashboard Functions view:
+--   https://supabase.com/dashboard/project/qgfaycwsangsqzpveoup/functions/process-automation-queue/logs
+
 
 -- ============================================================================
--- CASE 4 — Verify rule.last_executed_at and execution_count were updated
+-- CASE 3 — Verify rule.last_executed_at + execution_count updated
 -- ============================================================================
--- Expected: last_executed_at is within the last minute, execution_count = 1
--- (or whatever prior value + 1 if the rule has run before).
+-- Expected (after Case 2 Phase B shows 'success'): last_executed_at within
+-- the last minute, execution_count incremented.
 
 SELECT name, last_executed_at, execution_count
 FROM public.recruitment_automation_rules
@@ -117,15 +128,15 @@ WHERE name = 'TEST: send email on qualified'
 
 
 -- ============================================================================
--- CASE 5 — Dry-run the same rule
+-- CASE 4 — Dry-run (sync path, unchanged from Phase 1)
 -- ============================================================================
 -- Expected:
 --   - Returns 1 row with overall_status='dry_run'
---   - action_results.preview = 'Would send "..." to <email>'
---   - action_results.success = true
---   - A new execution row with is_dry_run=true, overall_status='dry_run'
---   - The rule's last_executed_at + execution_count are NOT bumped
---     (i.e. no change vs. what Case 4 showed)
+--   - action_results.preview contains "Would send ..." with rendered subject
+--   - action_results.success=true (preview succeeded)
+--   - An execution row is written with is_dry_run=true, overall_status='dry_run'
+--   - NO queue row is created (dry-run stays sync)
+--   - Rule stats are NOT bumped
 
 SET LOCAL request.jwt.claims = '{"sub":"7e8f424e-5a2c-48ae-932c-39d5639b2d99"}';
 
@@ -141,22 +152,33 @@ FROM public.execute_automation_rules(
   p_dry_run         := true
 );
 
--- Then re-run CASE 4's SELECT on recruitment_automation_rules: the
--- execution_count should be unchanged from the post-CASE-2 value.
+-- Sanity: confirm no queue row was created for this dry-run execution.
+-- (Look up the most recent dry_run execution and check for a queue row.)
+SELECT
+  e.overall_status,
+  e.is_dry_run,
+  (SELECT count(*) FROM recruitment_automation_queue q WHERE q.execution_id = e.id) AS queue_row_count
+FROM public.recruitment_automation_executions e
+WHERE e.rule_name = 'TEST: send email on qualified'
+  AND e.organization_id = 'b9b4df82-2b89-4a64-b2a3-5e19c0e8d43b'
+  AND e.is_dry_run = true
+ORDER BY e.created_at DESC
+LIMIT 1;
 
 
 -- ============================================================================
--- CASE 6 — Parked action surfaces as a failed execution
+-- CASE 5 — Parked action (send_sms) — Phase A: fire
 -- ============================================================================
--- Creates a rule with action_type='send_sms' (parked in v1). Expected:
+-- Creates a rule with action_type='send_sms' (parked) and fires it async.
+-- Expected Phase A:
 --   - Rule insert succeeds (CHECK allows send_sms)
---   - execute_automation_rules returns one row with
---     overall_status='failed'
---   - action_results.error contains 'dispatch_action raised: Action
---     send_sms is not implemented in v1...'
---   - An execution row is still written (is_dry_run=false,
---     overall_status='failed'), and the rule's execution_count does
---     bump (we count attempted executions whether or not they succeeded)
+--   - execute_automation_rules returns overall_status='pending'
+--   - Queue row gets inserted with status='pending'
+--   - Worker picks it up and dispatch_action raises 'send_sms not implemented'
+--   - The raised exception is caught by process_automation_queue_row and
+--     surfaces as overall_status='failed' on the execution row with
+--     action_results.error starting with "dispatch_action raised: Action
+--     send_sms is not implemented in v1..."
 
 SET LOCAL request.jwt.claims = '{"sub":"7e8f424e-5a2c-48ae-932c-39d5639b2d99"}';
 
@@ -169,7 +191,7 @@ WITH new_rule AS (
   ) VALUES (
     'b9b4df82-2b89-4a64-b2a3-5e19c0e8d43b',
     'TEST: parked send_sms rule',
-    'Verifies that parked actions surface cleanly as failed executions',
+    'Verifies that parked actions surface cleanly as failed executions (async path)',
     'stage_entered',
     jsonb_build_object('stage_id', 'disqualified'),
     'send_sms',
@@ -192,11 +214,97 @@ FROM public.execute_automation_rules(
 
 
 -- ============================================================================
+-- CASE 5 — Phase B: poll for the failure
+-- ============================================================================
+-- Run 3s after Phase A. Expected:
+--   - overall_status='failed'
+--   - action_results.success=false
+--   - action_results.error contains 'not implemented in v1'
+--   - Queue row status='failed', error_text populated
+
+SELECT
+  e.overall_status,
+  e.action_results->>'success' AS success,
+  LEFT(e.action_results->>'error', 200) AS error_200,
+  q.status       AS queue_status,
+  LEFT(q.error_text, 200) AS queue_error_200
+FROM public.recruitment_automation_executions e
+LEFT JOIN public.recruitment_automation_queue q ON q.execution_id = e.id
+WHERE e.rule_name = 'TEST: parked send_sms rule'
+  AND e.organization_id = 'b9b4df82-2b89-4a64-b2a3-5e19c0e8d43b'
+  AND e.is_dry_run = false
+ORDER BY e.created_at DESC
+LIMIT 1;
+
+
+-- ============================================================================
+-- CASE 6 — Stuck-row reaper smoke test (optional)
+-- ============================================================================
+-- Artificially mark a queue row as stuck, then call reap_stuck_queue_rows().
+-- Expected: reaper returns 1, the row flips back to 'pending', error_text
+-- has a "[reaped at ...]" annotation appended.
+
+-- Pick a recent done/failed queue row to flip (don't touch a real pending one!)
+-- DO $$
+-- DECLARE v_id uuid;
+-- BEGIN
+--   SELECT id INTO v_id FROM recruitment_automation_queue
+--   WHERE status IN ('done','failed') ORDER BY created_at DESC LIMIT 1;
+--
+--   UPDATE recruitment_automation_queue
+--   SET status='processing', picked_up_at = now() - interval '3 minutes', completed_at = NULL
+--   WHERE id = v_id;
+--
+--   RAISE NOTICE 'Flipped queue_id=% to fake-stuck; calling reaper', v_id;
+--   PERFORM reap_stuck_queue_rows();
+-- END $$;
+--
+-- Then verify the row came back to 'pending' with a reap note:
+-- SELECT id, status, error_text FROM recruitment_automation_queue
+-- WHERE status='pending' AND error_text LIKE '%reaped at%'
+-- ORDER BY created_at DESC LIMIT 1;
+
+
+-- ============================================================================
+-- CASE 7 — acknowledge_execution RPC smoke test
+-- ============================================================================
+-- Requires: at least one unacknowledged failed execution in your org
+-- (Case 5 Phase B leaves one behind).
+-- Expected:
+--   - First call: returns the updated row, acknowledged_at is set to now(),
+--     acknowledged_by = admin profile id
+--   - Second call on the same row: RAISES 'Execution ... already acknowledged ...'
+
+SET LOCAL request.jwt.claims = '{"sub":"7e8f424e-5a2c-48ae-932c-39d5639b2d99"}';
+
+-- First call (should succeed)
+SELECT id, overall_status, acknowledged_at, acknowledged_by
+FROM public.acknowledge_execution(
+  (SELECT id FROM recruitment_automation_executions
+   WHERE organization_id = 'b9b4df82-2b89-4a64-b2a3-5e19c0e8d43b'
+     AND overall_status = 'failed'
+     AND acknowledged_at IS NULL
+   ORDER BY created_at DESC LIMIT 1)
+);
+
+-- Second call on the same row (should raise)
+-- SELECT * FROM public.acknowledge_execution('<the-same-id-as-above>');
+
+
+-- ============================================================================
 -- CLEANUP — remove the two test rules
 -- ============================================================================
--- Execution rows survive on purpose (rule_id goes to NULL via FK SET NULL;
--- rule_name snapshot is preserved for audit history).
+-- recruitment_automation_executions rows STAY (rule_id -> NULL via FK SET NULL;
+-- rule_name snapshot preserved for audit history). Queue rows also stay via
+-- ON DELETE SET NULL on rule_id. To also scrub executions + queue rows from
+-- the TEST runs, see the optional cleanup below.
 
 DELETE FROM public.recruitment_automation_rules
 WHERE organization_id = 'b9b4df82-2b89-4a64-b2a3-5e19c0e8d43b'
   AND name IN ('TEST: send email on qualified', 'TEST: parked send_sms rule');
+
+-- Optional deeper cleanup (uncomment if you want test executions gone):
+-- DELETE FROM public.recruitment_automation_executions
+-- WHERE organization_id = 'b9b4df82-2b89-4a64-b2a3-5e19c0e8d43b'
+--   AND rule_name IN ('TEST: send email on qualified', 'TEST: parked send_sms rule');
+-- -- Queue rows cascade via FK ON DELETE CASCADE from executions.
