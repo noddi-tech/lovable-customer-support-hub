@@ -1,81 +1,106 @@
 
-Fix the delete-confirmation freeze in `src/components/dashboard/recruitment/admin/rules/RuleCard.tsx` using Approach A first.
+Escalate the `RuleCard` delete flow from Approach A to Approach B in `src/components/dashboard/recruitment/admin/rules/RuleCard.tsx`.
 
-### What to change
+### Scope
+Only restructure the delete-confirmation lifecycle. Do not change edit, duplicate, toggle, drag-and-drop, styling, copy, or any other behavior.
 
-#### 1. Update `handleConfirmDelete`
-Change the delete flow so the dialog closes first, then the mutation runs after the AlertDialog close animation finishes.
+### Changes to make
 
-Replace the current pattern:
-
-```ts
-deleteRule.mutate(rule.id, {
-  onSuccess: () => {
-    toast.success('Regel slettet');
-    setDeleteOpen(false);
-  },
-  ...
-});
-```
-
-with:
+#### 1. Replace the old delete dialog state
+Remove:
 
 ```ts
-setDeleteOpen(false);
-
-setTimeout(() => {
-  deleteRule.mutate(rule.id, {
-    onSuccess: () => {
-      toast.success('Regel slettet');
-    },
-    onError: (e: any) => toast.error(e?.message ?? 'Kunne ikke slette'),
-  });
-}, 150);
+const [deleteOpen, setDeleteOpen] = useState(false);
 ```
 
-This keeps the row mounted during the Radix close animation, so the overlay can clean up before the card disappears from the invalidated list.
+Add:
 
-#### 2. Keep the dialog wiring simple
-Leave the dialog controlled as:
+```ts
+const [dialogOpen, setDialogOpen] = useState(false);
+const [pendingDelete, setPendingDelete] = useState(false);
+```
+
+#### 2. Add a controlled dialog open-change handler
+Create:
+
+```ts
+const handleDialogOpenChange = (open: boolean) => {
+  setDialogOpen(open);
+
+  if (!open && pendingDelete) {
+    setTimeout(() => {
+      deleteRule.mutate(rule.id, {
+        onSuccess: () => toast.success('Regel slettet'),
+        onError: (e: any) => toast.error(e?.message ?? 'Kunne ikke slette'),
+      });
+      setPendingDelete(false);
+    }, 150);
+  }
+};
+```
+
+This makes the dialog close first, then runs the delete after Radix has had time to finish cleanup.
+
+#### 3. Replace `handleConfirmDelete`
+Change it to only mark deletion intent and close the dialog:
+
+```ts
+const handleConfirmDelete = () => {
+  setPendingDelete(true);
+  setDialogOpen(false);
+};
+```
+
+#### 4. Update the dropdown delete trigger
+Replace the delete menu item handler from:
+
+```ts
+onSelect={() => setDeleteOpen(true)}
+```
+
+to:
+
+```ts
+onSelect={() => setDialogOpen(true)}
+```
+
+#### 5. Rewire the AlertDialog
+Replace:
 
 ```tsx
 <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
 ```
 
-No full local-state/pending-delete restructure yet. Only escalate to Approach B if the freeze still reproduces after deploy.
+with:
 
-#### 3. Keep the rest of `RuleCard` unchanged
-Do not change:
-- edit flow
-- duplicate flow
-- toggle-active flow
-- DnD behavior
-- dialog copy/styling
+```tsx
+<AlertDialog open={dialogOpen} onOpenChange={handleDialogOpenChange}>
+```
 
-### Audit result to preserve
-Within `RuleCard.tsx`, only the delete path needs this lifecycle fix:
-- `Rediger` opens parent-managed editor state, no dialog close/unmount race here
-- `Dupliser` is direct mutation + toast, no Radix overlay involved
-- `toggleActive` is optimistic switch mutation, no modal lifecycle involved
+#### 6. Remove all old delete state references
+Ensure there are no remaining references to:
+- `deleteOpen`
+- `setDeleteOpen`
 
-### Expected behavior after fix
-- Clicking `Slett regel` closes the AlertDialog immediately
-- Dialog animation finishes cleanly
-- Then the DELETE mutation runs
-- Rule row disappears without leaving a blocked, unclickable page overlay
+That includes the current Approach A close-first handler.
 
-### Verification to provide after implementation
-Paste back the post-change `handleConfirmDelete` function from `RuleCard.tsx`.
+### Expected result
+- Clicking `Slett` opens the dialog normally.
+- Clicking `Slett regel` closes the dialog first.
+- After the close animation window, the delete mutation runs.
+- The rule row unmounts only after the dialog lifecycle has finished.
+- The page remains clickable with no stuck overlay.
+
+### Verification to return after implementation
+Paste back:
+1. The two new state declarations
+2. `handleDialogOpenChange`
+3. `handleConfirmDelete`
+4. The updated `AlertDialog` opening tag
 
 ### User re-test
 1. Open rule actions → `Slett`
-2. Confirm delete with `Slett regel`
-3. Dialog should close smoothly
-4. Row should disappear after the short delay
-5. Page should remain fully clickable
-
-### Fallback only if still broken
-If the freeze persists after this deploy, escalate to Approach B:
-- separate `dialogOpen` and `pendingDelete`
-- let `onOpenChange(false)` schedule the delete after animation
-- keep mutation fully outside the confirmation click itself
+2. Confirm with `Slett regel`
+3. Dialog should close cleanly
+4. Rule row should disappear after the short delay
+5. Page should remain fully interactive
