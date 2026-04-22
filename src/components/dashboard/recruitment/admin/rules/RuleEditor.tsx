@@ -75,7 +75,7 @@ export function RuleEditor({ state, onClose }: Props) {
       createRule.mutate(values, {
         onSuccess: () => {
           toast.success('Regel opprettet');
-          onClose();
+          setTimeout(() => onClose(), 0);
         },
         onError: (e: any) => toast.error(e?.message ?? 'Kunne ikke opprette regel'),
       });
@@ -85,7 +85,7 @@ export function RuleEditor({ state, onClose }: Props) {
         {
           onSuccess: () => {
             toast.success('Regel lagret');
-            onClose();
+            setTimeout(() => onClose(), 0);
           },
           onError: (e: any) => toast.error(e?.message ?? 'Kunne ikke lagre regel'),
         },
