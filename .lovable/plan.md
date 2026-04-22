@@ -1,158 +1,81 @@
 
-## Plan: Restructure `RuleEditor` to let Radix own the close lifecycle
+Fix the delete-confirmation freeze in `src/components/dashboard/recruitment/admin/rules/RuleCard.tsx` using Approach A first.
 
-### Goal
-Fix the persistent page-freeze after save by decoupling:
-- parent-owned editor payload (`state`)
-- sheet visibility / close animation (`sheetOpen`)
+### What to change
 
-This keeps the editor data available while the Sheet is animating out, and only clears parent state after the close transition has had time to finish.
+#### 1. Update `handleConfirmDelete`
+Change the delete flow so the dialog closes first, then the mutation runs after the AlertDialog close animation finishes.
 
-### File to update
-- `src/components/dashboard/recruitment/admin/rules/RuleEditor.tsx`
-
-### Changes to make
-
-#### 1. Introduce local Sheet visibility state
-At the top of `RuleEditor`, replace the derived `open = state !== null` pattern with:
-
-- import `useState`
-- add `const [sheetOpen, setSheetOpen] = useState(false);`
-
-#### 2. Open the Sheet when parent state becomes available
-Add an effect:
-
-- when `state !== null`, call `setSheetOpen(true)`
-
-This means the parent still decides which rule is being edited, but the Sheet controls when it is visually open/closed.
-
-#### 3. Keep form defaults driven by `state`
-Retain the existing `useMemo<RuleFormValues>` based on `state`, including:
-- create mode → `NEW_RULE_DEFAULTS`
-- edit mode → values from `state.rule`
-
-No change to trigger/action mapping logic.
-
-#### 4. Reset the form when the local Sheet opens
-Change the reset effect from `open` to `sheetOpen`:
+Replace the current pattern:
 
 ```ts
-useEffect(() => {
-  if (sheetOpen) form.reset(defaultValues);
-}, [sheetOpen, defaultValues]);
-```
-
-This ensures the form refreshes when the editor is opened, without tying the lifecycle to immediate parent unmounting.
-
-#### 5. Replace synchronous parent close with a controlled close handler
-Add a single close coordinator:
-
-```ts
-const handleOpenChange = (open: boolean) => {
-  setSheetOpen(open);
-  if (!open) {
-    setTimeout(() => onClose(), 150);
-  }
-};
-```
-
-Use this as the `Sheet`’s `onOpenChange`.
-
-Reason:
-- Radix gets to close first
-- parent `editorState` is cleared only after the close animation window
-- avoids the overlay staying mounted and blocking clicks
-
-#### 6. Update save success handlers
-In both mutation success callbacks:
-
-- remove `setTimeout(() => onClose(), 0)`
-- replace with `setSheetOpen(false)`
-
-So both flows become:
-
-```ts
-onSuccess: () => {
-  toast.success('Regel opprettet');
-  setSheetOpen(false);
-}
-```
-
-and
-
-```ts
-onSuccess: () => {
-  toast.success('Regel lagret');
-  setSheetOpen(false);
-}
-```
-
-This makes successful save follow the same close path as any other Sheet dismissal.
-
-#### 7. Update the Sheet props
-Replace:
-
-```tsx
-<Sheet open={open} onOpenChange={(o) => !o && onClose()}>
+deleteRule.mutate(rule.id, {
+  onSuccess: () => {
+    toast.success('Regel slettet');
+    setDeleteOpen(false);
+  },
+  ...
+});
 ```
 
 with:
 
+```ts
+setDeleteOpen(false);
+
+setTimeout(() => {
+  deleteRule.mutate(rule.id, {
+    onSuccess: () => {
+      toast.success('Regel slettet');
+    },
+    onError: (e: any) => toast.error(e?.message ?? 'Kunne ikke slette'),
+  });
+}, 150);
+```
+
+This keeps the row mounted during the Radix close animation, so the overlay can clean up before the card disappears from the invalidated list.
+
+#### 2. Keep the dialog wiring simple
+Leave the dialog controlled as:
+
 ```tsx
-<Sheet open={sheetOpen} onOpenChange={handleOpenChange}>
+<AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
 ```
 
-#### 8. Route Cancel through the same close flow
-Replace the footer cancel button handler:
+No full local-state/pending-delete restructure yet. Only escalate to Approach B if the freeze still reproduces after deploy.
 
-```tsx
-onClick={onClose}
-```
+#### 3. Keep the rest of `RuleCard` unchanged
+Do not change:
+- edit flow
+- duplicate flow
+- toggle-active flow
+- DnD behavior
+- dialog copy/styling
 
-with:
+### Audit result to preserve
+Within `RuleCard.tsx`, only the delete path needs this lifecycle fix:
+- `Rediger` opens parent-managed editor state, no dialog close/unmount race here
+- `Dupliser` is direct mutation + toast, no Radix overlay involved
+- `toggleActive` is optimistic switch mutation, no modal lifecycle involved
 
-```tsx
-onClick={() => setSheetOpen(false)}
-```
+### Expected behavior after fix
+- Clicking `Slett regel` closes the AlertDialog immediately
+- Dialog animation finishes cleanly
+- Then the DELETE mutation runs
+- Rule row disappears without leaving a blocked, unclickable page overlay
 
-This is important so cancel uses the exact same Radix-first close lifecycle as save.
-
-#### 9. Leave the rest unchanged
-Do not alter:
-- trigger/action change handlers
-- validation
-- layout
-- `SheetContent` styling
-- controlled `Textarea` pattern
-- submit button behavior
-
-### Expected final structure
-```text
-RuleEditor
- ├─ local state: sheetOpen
- ├─ effect: if parent state exists -> open sheet
- ├─ defaultValues derived from parent state
- ├─ form reset when sheetOpen becomes true
- ├─ handleOpenChange(open)
- │   ├─ setSheetOpen(open)
- │   └─ if closing -> delayed parent onClose after animation window
- ├─ onSubmit
- │   ├─ create success -> toast + setSheetOpen(false)
- │   └─ update success -> toast + setSheetOpen(false)
- └─ <Sheet open={sheetOpen} onOpenChange={handleOpenChange}>
-```
-
-### Verification after implementation
-Paste back the updated `RuleEditor.tsx` top section through the `return` opening, confirming these exact shape changes:
-1. `useState(false)` for `sheetOpen`
-2. effect opening the sheet when `state !== null`
-3. `handleOpenChange`
-4. success handlers calling `setSheetOpen(false)`
-5. `Sheet open={sheetOpen} onOpenChange={handleOpenChange}`
-6. cancel button calling `setSheetOpen(false)`
+### Verification to provide after implementation
+Paste back the post-change `handleConfirmDelete` function from `RuleCard.tsx`.
 
 ### User re-test
-1. Edit existing rule → Save → Sheet closes and page remains clickable
-2. Create rule → Save → Sheet closes and page remains clickable
-3. Click Avbryt → Sheet closes cleanly with no frozen overlay
-4. Reopen editor immediately afterward → form still initializes correctly
+1. Open rule actions → `Slett`
+2. Confirm delete with `Slett regel`
+3. Dialog should close smoothly
+4. Row should disappear after the short delay
+5. Page should remain fully clickable
+
+### Fallback only if still broken
+If the freeze persists after this deploy, escalate to Approach B:
+- separate `dialogOpen` and `pendingDelete`
+- let `onOpenChange(false)` schedule the delete after animation
+- keep mutation fully outside the confirmation click itself
