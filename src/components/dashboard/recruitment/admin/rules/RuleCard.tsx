@@ -66,7 +66,8 @@ function formatRelative(iso: string | null): string {
 export function RuleCard({ rule, lookups, onEdit }: Props) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: rule.id });
-  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState(false);
   const { toggleActive, duplicateRule, deleteRule } = useRuleMutations();
 
   const style = {
@@ -85,17 +86,23 @@ export function RuleCard({ rule, lookups, onEdit }: Props) {
     });
   };
 
-  const handleConfirmDelete = () => {
-    setDeleteOpen(false);
+  const handleDialogOpenChange = (open: boolean) => {
+    setDialogOpen(open);
 
-    setTimeout(() => {
-      deleteRule.mutate(rule.id, {
-        onSuccess: () => {
-          toast.success('Regel slettet');
-        },
-        onError: (e: any) => toast.error(e?.message ?? 'Kunne ikke slette'),
-      });
-    }, 150);
+    if (!open && pendingDelete) {
+      setTimeout(() => {
+        deleteRule.mutate(rule.id, {
+          onSuccess: () => toast.success('Regel slettet'),
+          onError: (e: any) => toast.error(e?.message ?? 'Kunne ikke slette'),
+        });
+        setPendingDelete(false);
+      }, 150);
+    }
+  };
+
+  const handleConfirmDelete = () => {
+    setPendingDelete(true);
+    setDialogOpen(false);
   };
 
   return (
@@ -157,7 +164,7 @@ export function RuleCard({ rule, lookups, onEdit }: Props) {
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
                       className="text-destructive focus:text-destructive"
-                      onSelect={() => setDeleteOpen(true)}
+                      onSelect={() => setDialogOpen(true)}
                     >
                       <Trash2 className="h-4 w-4" />
                       Slett
@@ -191,7 +198,7 @@ export function RuleCard({ rule, lookups, onEdit }: Props) {
         </div>
       </Card>
 
-      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+      <AlertDialog open={dialogOpen} onOpenChange={handleDialogOpenChange}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Slett automasjonsregel?</AlertDialogTitle>
