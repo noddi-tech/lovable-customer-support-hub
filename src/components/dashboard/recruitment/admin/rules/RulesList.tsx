@@ -21,9 +21,10 @@ interface Props {
   rules: AutomationRule[];
   lookups: RuleLookups;
   onEdit: (rule: AutomationRule) => void;
+  onRequestDelete: (rule: AutomationRule) => void;
 }
 
-export function RulesList({ rules, lookups, onEdit }: Props) {
+export function RulesList({ rules, lookups, onEdit, onRequestDelete }: Props) {
   const { reorderRules } = useRuleMutations();
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -59,6 +60,7 @@ export function RulesList({ rules, lookups, onEdit }: Props) {
               rule={rule}
               lookups={lookups}
               onEdit={() => onEdit(rule)}
+              onRequestDelete={() => onRequestDelete(rule)}
             />
           ))}
         </div>
