@@ -86,13 +86,16 @@ export function RuleCard({ rule, lookups, onEdit }: Props) {
   };
 
   const handleConfirmDelete = () => {
-    deleteRule.mutate(rule.id, {
-      onSuccess: () => {
-        toast.success('Regel slettet');
-        setDeleteOpen(false);
-      },
-      onError: (e: any) => toast.error(e?.message ?? 'Kunne ikke slette'),
-    });
+    setDeleteOpen(false);
+
+    setTimeout(() => {
+      deleteRule.mutate(rule.id, {
+        onSuccess: () => {
+          toast.success('Regel slettet');
+        },
+        onError: (e: any) => toast.error(e?.message ?? 'Kunne ikke slette'),
+      });
+    }, 150);
   };
 
   return (
