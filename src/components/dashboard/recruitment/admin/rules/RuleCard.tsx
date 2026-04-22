@@ -121,7 +121,12 @@ export function RuleCard({ rule, lookups, onEdit, onRequestDelete }: Props) {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem onSelect={onEdit}>
+                  <DropdownMenuItem
+                    onSelect={(e) => {
+                      e.preventDefault();
+                      requestAnimationFrame(() => onEdit());
+                    }}
+                  >
                     <Pencil className="h-4 w-4" />
                     Rediger
                   </DropdownMenuItem>
@@ -132,7 +137,10 @@ export function RuleCard({ rule, lookups, onEdit, onRequestDelete }: Props) {
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     className="text-destructive focus:text-destructive"
-                    onSelect={onRequestDelete}
+                    onSelect={(e) => {
+                      e.preventDefault();
+                      requestAnimationFrame(() => onRequestDelete());
+                    }}
                   >
                     <Trash2 className="h-4 w-4" />
                     Slett
