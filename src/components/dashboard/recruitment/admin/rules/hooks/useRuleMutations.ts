@@ -1,7 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useOrganizationStore } from '@/stores/organizationStore';
-import { useAuth } from '@/hooks/useAuth';
 import type { AutomationRule, RuleFormValues } from '../types';
 
 const KEY = 'recruitment-automation-rules';
@@ -9,7 +8,6 @@ const KEY = 'recruitment-automation-rules';
 export function useRuleMutations() {
   const qc = useQueryClient();
   const orgId = useOrganizationStore((s) => s.currentOrganizationId);
-  const { user } = useAuth();
 
   const invalidate = () => qc.invalidateQueries({ queryKey: [KEY, orgId] });
 
@@ -32,7 +30,7 @@ export function useRuleMutations() {
           action_config: values.action_config as any,
           is_active: values.is_active,
           execution_order: nextOrder,
-          created_by: user?.id ?? null,
+          created_by: null,
         })
         .select()
         .single();
@@ -116,7 +114,7 @@ export function useRuleMutations() {
           action_config: rule.action_config as any,
           is_active: false,
           execution_order: nextOrder,
-          created_by: user?.id ?? null,
+          created_by: null,
         })
         .select()
         .single();
