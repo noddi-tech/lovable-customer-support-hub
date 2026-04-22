@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2, Save, X } from 'lucide-react';
@@ -38,8 +38,12 @@ interface Props {
 }
 
 export function RuleEditor({ state, onClose }: Props) {
-  const open = state !== null;
+  const [sheetOpen, setSheetOpen] = useState(false);
   const { createRule, updateRule } = useRuleMutations();
+
+  useEffect(() => {
+    if (state !== null) setSheetOpen(true);
+  }, [state]);
 
   const defaultValues = useMemo<RuleFormValues>(() => {
     if (!state || state.mode === 'create') return NEW_RULE_DEFAULTS;
@@ -62,12 +66,19 @@ export function RuleEditor({ state, onClose }: Props) {
   });
 
   useEffect(() => {
-    if (open) form.reset(defaultValues);
+    if (sheetOpen) form.reset(defaultValues);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, defaultValues]);
+  }, [sheetOpen, defaultValues]);
 
   const watched = form.watch();
   const isSaving = createRule.isPending || updateRule.isPending;
+
+  const handleOpenChange = (open: boolean) => {
+    setSheetOpen(open);
+    if (!open) {
+      setTimeout(() => onClose(), 150);
+    }
+  };
 
   const onSubmit = (values: RuleFormValues) => {
     if (!state) return;
@@ -75,7 +86,7 @@ export function RuleEditor({ state, onClose }: Props) {
       createRule.mutate(values, {
         onSuccess: () => {
           toast.success('Regel opprettet');
-          setTimeout(() => onClose(), 0);
+          setSheetOpen(false);
         },
         onError: (e: any) => toast.error(e?.message ?? 'Kunne ikke opprette regel'),
       });
@@ -85,7 +96,7 @@ export function RuleEditor({ state, onClose }: Props) {
         {
           onSuccess: () => {
             toast.success('Regel lagret');
-            setTimeout(() => onClose(), 0);
+            setSheetOpen(false);
           },
           onError: (e: any) => toast.error(e?.message ?? 'Kunne ikke lagre regel'),
         },
@@ -110,7 +121,7 @@ export function RuleEditor({ state, onClose }: Props) {
     state?.mode === 'edit' ? `Rediger regel: ${state.rule.name}` : 'Ny regel';
 
   return (
-    <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
+    <Sheet open={sheetOpen} onOpenChange={handleOpenChange}>
       <SheetContent
         side="right"
         className="w-full sm:max-w-xl p-0 flex flex-col gap-0"
@@ -219,7 +230,12 @@ export function RuleEditor({ state, onClose }: Props) {
           </div>
 
           <div className="border-t bg-background px-6 py-3 flex items-center justify-end gap-2 shrink-0">
-            <Button type="button" variant="ghost" size="sm" onClick={onClose}>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setSheetOpen(false)}
+            >
               <X />
               Avbryt
             </Button>
