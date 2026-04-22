@@ -1,106 +1,183 @@
 
-Escalate the `RuleCard` delete flow from Approach A to Approach B in `src/components/dashboard/recruitment/admin/rules/RuleCard.tsx`.
+Move the delete confirmation dialog out of `RuleCard` and into a stable parent so the Radix overlay survives row removal and can clean up `body { pointer-events: none; }` correctly.
 
-### Scope
-Only restructure the delete-confirmation lifecycle. Do not change edit, duplicate, toggle, drag-and-drop, styling, copy, or any other behavior.
+### Files to update
 
-### Changes to make
-
-#### 1. Replace the old delete dialog state
-Remove:
+#### 1. `src/components/dashboard/recruitment/admin/rules/RulesTab.tsx`
+Add parent-owned delete state beside `editorState`:
 
 ```ts
-const [deleteOpen, setDeleteOpen] = useState(false);
+const [ruleToDelete, setRuleToDelete] = useState<AutomationRule | null>(null);
 ```
 
-Add:
+Import:
+- `toast` from `sonner`
+- `useRuleMutations`
+- the `AlertDialog` components from `@/components/ui/alert-dialog`
+- `AutomationRule` type if needed as a type import
+
+Initialize the delete mutation in `RulesTab`:
 
 ```ts
-const [dialogOpen, setDialogOpen] = useState(false);
-const [pendingDelete, setPendingDelete] = useState(false);
+const { deleteRule } = useRuleMutations();
 ```
 
-#### 2. Add a controlled dialog open-change handler
-Create:
-
-```ts
-const handleDialogOpenChange = (open: boolean) => {
-  setDialogOpen(open);
-
-  if (!open && pendingDelete) {
-    setTimeout(() => {
-      deleteRule.mutate(rule.id, {
-        onSuccess: () => toast.success('Regel slettet'),
-        onError: (e: any) => toast.error(e?.message ?? 'Kunne ikke slette'),
-      });
-      setPendingDelete(false);
-    }, 150);
-  }
-};
-```
-
-This makes the dialog close first, then runs the delete after Radix has had time to finish cleanup.
-
-#### 3. Replace `handleConfirmDelete`
-Change it to only mark deletion intent and close the dialog:
+Add a parent-owned confirm handler:
 
 ```ts
 const handleConfirmDelete = () => {
-  setPendingDelete(true);
-  setDialogOpen(false);
+  if (!ruleToDelete) return;
+
+  deleteRule.mutate(ruleToDelete.id, {
+    onSuccess: () => {
+      toast.success('Regel slettet');
+      setRuleToDelete(null);
+    },
+    onError: (e: any) => {
+      toast.error(e?.message ?? 'Kunne ikke slette');
+      setRuleToDelete(null);
+    },
+  });
 };
 ```
 
-#### 4. Update the dropdown delete trigger
-Replace the delete menu item handler from:
-
-```ts
-onSelect={() => setDeleteOpen(true)}
-```
-
-to:
-
-```ts
-onSelect={() => setDialogOpen(true)}
-```
-
-#### 5. Rewire the AlertDialog
-Replace:
+Pass delete intent down through `RulesList`:
 
 ```tsx
-<AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+<RulesList
+  rules={rules ?? []}
+  lookups={lookups}
+  onEdit={(rule) => setEditorState({ mode: 'edit', rule })}
+  onRequestDelete={(rule) => setRuleToDelete(rule)}
+/>
 ```
 
-with:
+Render a single shared `AlertDialog` at the `RulesTab` level, as a sibling of `RuleEditor`, controlled by:
 
 ```tsx
-<AlertDialog open={dialogOpen} onOpenChange={handleDialogOpenChange}>
+<AlertDialog
+  open={ruleToDelete !== null}
+  onOpenChange={(open) => {
+    if (!open) setRuleToDelete(null);
+  }}
+>
 ```
 
-#### 6. Remove all old delete state references
-Ensure there are no remaining references to:
-- `deleteOpen`
-- `setDeleteOpen`
+Dialog content should use `ruleToDelete?.name` and call `handleConfirmDelete` from `AlertDialogAction`.
 
-That includes the current Approach A close-first handler.
+This keeps the dialog mounted even if the selected `RuleCard` disappears from the list after delete invalidation.
+
+#### 2. `src/components/dashboard/recruitment/admin/rules/RulesList.tsx`
+Extend props:
+
+```ts
+interface Props {
+  rules: AutomationRule[];
+  lookups: RuleLookups;
+  onEdit: (rule: AutomationRule) => void;
+  onRequestDelete: (rule: AutomationRule) => void;
+}
+```
+
+Thread the callback into each card:
+
+```tsx
+<RuleCard
+  key={rule.id}
+  rule={rule}
+  lookups={lookups}
+  onEdit={() => onEdit(rule)}
+  onRequestDelete={() => onRequestDelete(rule)}
+/>
+```
+
+No other list behavior changes.
+
+#### 3. `src/components/dashboard/recruitment/admin/rules/RuleCard.tsx`
+Simplify `RuleCard` so it no longer owns delete dialog lifecycle.
+
+Update props:
+
+```ts
+interface Props {
+  rule: AutomationRule;
+  lookups: RuleLookups;
+  onEdit: () => void;
+  onRequestDelete: () => void;
+}
+```
+
+Remove:
+- `useState` import if no longer needed
+- `dialogOpen` / `setDialogOpen`
+- `pendingDelete` / `setPendingDelete`
+- `handleDialogOpenChange`
+- `handleConfirmDelete`
+- `deleteRule` from `useRuleMutations()`
+- the entire `AlertDialog` block at the bottom of the component
+- the `AlertDialog*` imports
+
+Keep `useRuleMutations()` only for the existing non-delete mutations:
+
+```ts
+const { toggleActive, duplicateRule } = useRuleMutations();
+```
+
+Update the delete menu item to delegate upward:
+
+```tsx
+<DropdownMenuItem
+  className="text-destructive focus:text-destructive"
+  onSelect={onRequestDelete}
+>
+```
+
+That is the only delete-related behavior left in `RuleCard`.
 
 ### Expected result
-- Clicking `Slett` opens the dialog normally.
-- Clicking `Slett regel` closes the dialog first.
-- After the close animation window, the delete mutation runs.
-- The rule row unmounts only after the dialog lifecycle has finished.
-- The page remains clickable with no stuck overlay.
+- The delete confirmation dialog is no longer nested inside a row that may unmount.
+- Deleting a rule removes the row without interrupting Radix cleanup.
+- `body` should not retain `pointer-events: none` after the dialog closes.
+- No other `RuleCard` flows change: edit, duplicate, toggle, and drag/drop remain untouched.
 
-### Verification to return after implementation
-Paste back:
-1. The two new state declarations
-2. `handleDialogOpenChange`
-3. `handleConfirmDelete`
-4. The updated `AlertDialog` opening tag
+### Technical notes
+Current failure mode:
+```text
+RuleCard owns AlertDialog
+-> user confirms delete
+-> mutation invalidates rules query
+-> deleted row unmounts
+-> AlertDialog unmounts mid-close
+-> Radix cleanup misses body style removal
+-> body remains pointer-events:none
+-> whole page appears frozen
+```
 
-### User re-test
-1. Open rule actions → `Slett`
-2. Confirm with `Slett regel`
-3. Dialog should close cleanly
-4. Rule row should disappear after the short delay
-5. Page should remain fully interactive
+New structure:
+```text
+RulesTab owns AlertDialog + selected rule
+RuleCard only requests delete
+-> user confirms delete in parent dialog
+-> mutation invalidates rules query
+-> deleted row unmounts
+-> parent dialog still exists long enough to finish cleanup
+-> body style is cleared correctly
+```
+
+### Verification after implementation
+1. Open rule actions for any rule and click `Slett`
+2. Confirm `Slett regel`
+3. The rule disappears
+4. Inspect `<body>` in Elements:
+   - `pointer-events: none` should not remain
+5. Confirm the page is still interactive:
+   - click another rule
+   - click `Ny regel`
+   - switch tabs
+
+### Return for verification
+After implementation, provide:
+1. The new `useState` line and `handleConfirmDelete` from `RulesTab.tsx`
+2. The updated prop signature in `RuleCard.tsx`
+3. The updated delete `onSelect` handler in `RuleCard.tsx`
+4. Confirmation that `RuleCard.tsx` no longer contains any `AlertDialog`
