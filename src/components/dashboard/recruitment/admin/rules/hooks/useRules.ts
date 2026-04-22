@@ -94,24 +94,30 @@ export function useAssignableUsersForOrg() {
   return useQuery({
     queryKey: ['recruitment-rules-users', orgId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data: memberships, error: memErr } = await supabase
         .from('organization_memberships')
-        .select('user_id, role, status, profiles:user_id(id, full_name, email)')
+        .select('user_id, role, status')
         .eq('organization_id', orgId!)
         .eq('status', 'active')
         .in('role', ['admin', 'super_admin', 'agent']);
-      if (error) throw error;
-      const list = (data ?? [])
-        .map((row: any) => {
-          const profile = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
-          if (!profile) return null;
-          return {
-            id: profile.id as string,
-            full_name: (profile.full_name as string | null) ?? (profile.email as string | null) ?? null,
-            role: row.role as string,
-          };
-        })
-        .filter(Boolean) as Array<{ id: string; full_name: string | null; role: string }>;
+      if (memErr) throw memErr;
+      if (!memberships || memberships.length === 0) return [];
+
+      const userIds = memberships.map((m) => m.user_id);
+      const roleByUserId = new Map(memberships.map((m) => [m.user_id, m.role]));
+
+      const { data: profiles, error: profErr } = await supabase
+        .from('profiles')
+        .select('id, user_id, full_name, email')
+        .in('user_id', userIds);
+
+      if (profErr) throw profErr;
+
+      const list = (profiles ?? []).map((p) => ({
+        id: p.id as string,
+        full_name: (p.full_name as string | null) ?? (p.email as string | null) ?? null,
+        role: roleByUserId.get(p.user_id) ?? 'unknown',
+      }));
       return list.sort((a, b) =>
         (a.full_name ?? '').localeCompare(b.full_name ?? '', 'nb'),
       );
