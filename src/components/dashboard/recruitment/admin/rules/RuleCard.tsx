@@ -109,7 +109,7 @@ export function RuleCard({ rule, lookups, onEdit, onRequestDelete }: Props) {
                 }
                 aria-label="Veksle aktiv"
               />
-              <DropdownMenu>
+              <DropdownMenu modal={false}>
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="ghost"
@@ -122,8 +122,7 @@ export function RuleCard({ rule, lookups, onEdit, onRequestDelete }: Props) {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem
-                    onSelect={(e) => {
-                      e.preventDefault();
+                    onSelect={() => {
                       requestAnimationFrame(() => onEdit());
                     }}
                   >
@@ -137,8 +136,7 @@ export function RuleCard({ rule, lookups, onEdit, onRequestDelete }: Props) {
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     className="text-destructive focus:text-destructive"
-                    onSelect={(e) => {
-                      e.preventDefault();
+                    onSelect={() => {
                       requestAnimationFrame(() => onRequestDelete());
                     }}
                   >
