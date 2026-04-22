@@ -1,11 +1,23 @@
 import { useMemo, useState } from 'react';
 import { Plus, Zap, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { useRules, useStagesForOrg, usePositionsForOrg, useActiveTemplatesForOrg, useAssignableUsersForOrg } from './hooks/useRules';
+import { useRuleMutations } from './hooks/useRuleMutations';
 import { RulesList } from './RulesList';
 import { RuleEditor, type EditorState } from './RuleEditor';
-import type { RuleLookups } from './types';
+import type { AutomationRule, RuleLookups } from './types';
 
 export function RulesTab() {
   const { data: rules, isLoading } = useRules();
@@ -13,7 +25,9 @@ export function RulesTab() {
   const { data: positions } = usePositionsForOrg();
   const { data: templates } = useActiveTemplatesForOrg();
   const { data: users } = useAssignableUsersForOrg();
+  const { deleteRule } = useRuleMutations();
   const [editorState, setEditorState] = useState<EditorState>(null);
+  const [ruleToDelete, setRuleToDelete] = useState<AutomationRule | null>(null);
 
   const lookups = useMemo<RuleLookups>(
     () => ({
@@ -26,6 +40,21 @@ export function RulesTab() {
   );
 
   const hasRules = (rules?.length ?? 0) > 0;
+
+  const handleConfirmDelete = () => {
+    if (!ruleToDelete) return;
+
+    deleteRule.mutate(ruleToDelete.id, {
+      onSuccess: () => {
+        toast.success('Regel slettet');
+        setRuleToDelete(null);
+      },
+      onError: (e: any) => {
+        toast.error(e?.message ?? 'Kunne ikke slette');
+        setRuleToDelete(null);
+      },
+    });
+  };
 
   return (
     <div className="space-y-4">
@@ -75,10 +104,37 @@ export function RulesTab() {
           rules={rules ?? []}
           lookups={lookups}
           onEdit={(rule) => setEditorState({ mode: 'edit', rule })}
+          onRequestDelete={(rule) => setRuleToDelete(rule)}
         />
       )}
 
       <RuleEditor state={editorState} onClose={() => setEditorState(null)} />
+
+      <AlertDialog
+        open={ruleToDelete !== null}
+        onOpenChange={(open) => {
+          if (!open) setRuleToDelete(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Slett automasjonsregel?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Dette vil slette '{ruleToDelete?.name}' permanent. Utførelseshistorikk
+              bevares for revisjonsformål.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Avbryt</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Slett regel
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
