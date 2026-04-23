@@ -21,6 +21,7 @@ import { RulesList } from './RulesList';
 import { RuleEditor, type EditorState } from './RuleEditor';
 import type { AutomationRule, RuleLookups } from './types';
 import { ExecutionLogPanel } from './executions/ExecutionLogPanel';
+import { DryRunPanel } from './dryrun/DryRunPanel';
 
 export function RulesTab() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -32,7 +33,8 @@ export function RulesTab() {
   const { deleteRule } = useRuleMutations();
   const [editorState, setEditorState] = useState<EditorState>(null);
   const [ruleToDelete, setRuleToDelete] = useState<AutomationRule | null>(null);
-  const subtab = searchParams.get('subtab') === 'log' ? 'log' : 'rules';
+  const rawSubtab = searchParams.get('subtab');
+  const subtab = rawSubtab === 'log' || rawSubtab === 'dry-run' ? rawSubtab : 'rules';
 
   const lookups = useMemo<RuleLookups>(
     () => ({
@@ -91,6 +93,7 @@ export function RulesTab() {
         <TabsList className="w-auto">
           <TabsTrigger value="rules">Regler</TabsTrigger>
           <TabsTrigger value="log">Utførelseslogg</TabsTrigger>
+          <TabsTrigger value="dry-run">Test-kjøring</TabsTrigger>
         </TabsList>
 
         <TabsContent value="rules">
@@ -130,6 +133,10 @@ export function RulesTab() {
 
         <TabsContent value="log">
           <ExecutionLogPanel />
+        </TabsContent>
+
+        <TabsContent value="dry-run">
+          <DryRunPanel />
         </TabsContent>
       </Tabs>
 
