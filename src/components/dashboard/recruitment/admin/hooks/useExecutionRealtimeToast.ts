@@ -47,7 +47,13 @@ export function useExecutionRealtimeToast() {
           ]);
         },
       )
-      .subscribe();
+      .subscribe((status, err) => {
+        console.log('[recruitment-automation-failures] channel status:', status);
+
+        if (err) {
+          console.error('[recruitment-automation-failures] channel error:', err);
+        }
+      });
 
     return () => {
       void supabase.removeChannel(channel);

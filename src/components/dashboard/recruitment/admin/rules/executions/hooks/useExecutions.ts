@@ -94,5 +94,7 @@ export function useExecutions(options: UseExecutionsOptions) {
       };
     },
     enabled: !!orgId,
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 }
