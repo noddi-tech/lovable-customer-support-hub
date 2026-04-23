@@ -1,8 +1,10 @@
 import { useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Plus, Zap, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -18,8 +20,10 @@ import { useRuleMutations } from './hooks/useRuleMutations';
 import { RulesList } from './RulesList';
 import { RuleEditor, type EditorState } from './RuleEditor';
 import type { AutomationRule, RuleLookups } from './types';
+import { ExecutionLogPanel } from './executions/ExecutionLogPanel';
 
 export function RulesTab() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const { data: rules, isLoading } = useRules();
   const { data: stages } = useStagesForOrg();
   const { data: positions } = usePositionsForOrg();
@@ -28,6 +32,7 @@ export function RulesTab() {
   const { deleteRule } = useRuleMutations();
   const [editorState, setEditorState] = useState<EditorState>(null);
   const [ruleToDelete, setRuleToDelete] = useState<AutomationRule | null>(null);
+  const subtab = searchParams.get('subtab') === 'log' ? 'log' : 'rules';
 
   const lookups = useMemo<RuleLookups>(
     () => ({
@@ -56,6 +61,13 @@ export function RulesTab() {
     });
   };
 
+  const handleSubtabChange = (value: string) => {
+    const next = new URLSearchParams(searchParams);
+    next.set('tab', 'automation');
+    next.set('subtab', value);
+    setSearchParams(next, { replace: true });
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-3">
@@ -75,38 +87,51 @@ export function RulesTab() {
         </Button>
       </div>
 
-      {isLoading ? (
-        <Card className="flex items-center justify-center min-h-[200px] text-muted-foreground">
-          <Loader2 className="h-5 w-5 animate-spin" />
-        </Card>
-      ) : !hasRules ? (
-        <Card className="flex flex-col items-center justify-center text-center min-h-[300px] gap-3 py-10">
-          <Zap className="h-10 w-10 text-muted-foreground opacity-40" />
-          <div className="space-y-1 max-w-md">
-            <h3 className="font-semibold">Ingen automasjonsregler ennå</h3>
-            <p className="text-sm text-muted-foreground">
-              Opprett regler for å automatisk sende e-post, tildele ansvarlige,
-              eller varsle eksterne systemer når søkere beveger seg gjennom
-              rekrutteringsløpet.
-            </p>
-          </div>
-          <Button
-            type="button"
-            size="sm"
-            onClick={() => setEditorState({ mode: 'create' })}
-          >
-            <Plus />
-            Opprett første regel
-          </Button>
-        </Card>
-      ) : (
-        <RulesList
-          rules={rules ?? []}
-          lookups={lookups}
-          onEdit={(rule) => setEditorState({ mode: 'edit', rule })}
-          onRequestDelete={(rule) => setRuleToDelete(rule)}
-        />
-      )}
+      <Tabs value={subtab} onValueChange={handleSubtabChange} className="w-full">
+        <TabsList className="w-auto">
+          <TabsTrigger value="rules">Regler</TabsTrigger>
+          <TabsTrigger value="log">Utførelseslogg</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="rules">
+          {isLoading ? (
+            <Card className="flex items-center justify-center min-h-[200px] text-muted-foreground">
+              <Loader2 className="h-5 w-5 animate-spin" />
+            </Card>
+          ) : !hasRules ? (
+            <Card className="flex flex-col items-center justify-center text-center min-h-[300px] gap-3 py-10">
+              <Zap className="h-10 w-10 text-muted-foreground opacity-40" />
+              <div className="space-y-1 max-w-md">
+                <h3 className="font-semibold">Ingen automasjonsregler ennå</h3>
+                <p className="text-sm text-muted-foreground">
+                  Opprett regler for å automatisk sende e-post, tildele ansvarlige,
+                  eller varsle eksterne systemer når søkere beveger seg gjennom
+                  rekrutteringsløpet.
+                </p>
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => setEditorState({ mode: 'create' })}
+              >
+                <Plus />
+                Opprett første regel
+              </Button>
+            </Card>
+          ) : (
+            <RulesList
+              rules={rules ?? []}
+              lookups={lookups}
+              onEdit={(rule) => setEditorState({ mode: 'edit', rule })}
+              onRequestDelete={(rule) => setRuleToDelete(rule)}
+            />
+          )}
+        </TabsContent>
+
+        <TabsContent value="log">
+          <ExecutionLogPanel />
+        </TabsContent>
+      </Tabs>
 
       <RuleEditor state={editorState} onClose={() => setEditorState(null)} />
 

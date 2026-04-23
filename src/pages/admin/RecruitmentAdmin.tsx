@@ -7,6 +7,8 @@ import { Workflow, Mail, Zap, Link2, History } from "lucide-react";
 import { PipelineEditor } from "@/components/dashboard/recruitment/admin/pipeline/PipelineEditor";
 import { EmailTemplatesTab } from "@/components/dashboard/recruitment/admin/templates/EmailTemplatesTab";
 import { RulesTab } from "@/components/dashboard/recruitment/admin/rules/RulesTab";
+import { FailureBanner } from "@/components/dashboard/recruitment/admin/FailureBanner";
+import { useExecutionRealtimeToast } from "@/components/dashboard/recruitment/admin/hooks/useExecutionRealtimeToast";
 
 const VALID_TABS = ["pipeline", "templates", "automation", "integrations", "audit"] as const;
 
@@ -17,8 +19,13 @@ export default function RecruitmentAdmin() {
     ? (tabParam as string)
     : "pipeline";
 
+  useExecutionRealtimeToast();
+
   const handleTabChange = (value: string) => {
-    setSearchParams({ tab: value }, { replace: true });
+    const next = new URLSearchParams(searchParams);
+    next.set('tab', value);
+    if (value !== 'automation') next.delete('subtab');
+    setSearchParams(next, { replace: true });
   };
 
   return (
@@ -31,6 +38,8 @@ export default function RecruitmentAdmin() {
           Konfigurer pipeline, e-postmaler, automatisering og integrasjoner for rekrutteringsmodulen.
         </p>
       </div>
+
+      <FailureBanner />
 
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
         <TabsList>
