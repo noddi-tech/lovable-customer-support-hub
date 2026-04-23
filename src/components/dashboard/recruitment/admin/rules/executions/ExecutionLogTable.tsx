@@ -59,6 +59,7 @@ export function ExecutionLogTable({
             <ExecutionLogRow
               key={execution.id}
               execution={execution}
+              layout="card"
               onOpen={() => onOpenExecution(execution)}
               onAcknowledge={() => onAcknowledge(execution)}
             />
