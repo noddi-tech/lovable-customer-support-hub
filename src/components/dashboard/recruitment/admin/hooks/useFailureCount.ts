@@ -20,5 +20,7 @@ export function useFailureCount() {
       return { count: count ?? 0 };
     },
     enabled: !!orgId,
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 }
