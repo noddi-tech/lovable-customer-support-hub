@@ -20,7 +20,6 @@ export interface ActionResultItem {
   http_status?: number | null;
   response_body?: string | null;
   output?: Record<string, unknown> | null;
-  [key: string]: Json | undefined;
 }
 
 export interface AutomationExecution {
