@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useOrganizationStore } from '@/stores/organizationStore';
+import type { Json } from '@/integrations/supabase/types';
 import type { DryRunRequest, DryRunResult } from '../types';
 
 export function useDryRunMutation() {
@@ -24,7 +25,7 @@ export function useDryRunMutation() {
 
       const { data, error } = await supabase.rpc('execute_automation_rules', {
         p_trigger_type: request.triggerType,
-        p_trigger_context: triggerContext,
+        p_trigger_context: triggerContext as Json,
         p_dry_run: true,
       });
 

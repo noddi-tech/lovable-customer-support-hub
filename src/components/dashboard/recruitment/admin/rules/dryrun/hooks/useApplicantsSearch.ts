@@ -7,6 +7,7 @@ import type { ApplicantSearchResult } from '../types';
 export function useApplicantsSearch(query: string) {
   const orgId = useOrganizationStore((s) => s.currentOrganizationId);
   const normalizedQuery = query.trim();
+  const db = supabase as any;
 
   return useQuery({
     queryKey: ['recruitment-automation-dry-run-applicants', orgId, normalizedQuery],
@@ -14,7 +15,7 @@ export function useApplicantsSearch(query: string) {
       const safeQuery = sanitizeForPostgrest(normalizedQuery);
       if (!safeQuery) return [];
 
-      const { data: applicants, error: applicantsError } = await supabase
+      const { data: applicants, error: applicantsError } = await db
         .from('applicants')
         .select('id, first_name, last_name, email, applications(current_stage_id)')
         .eq('organization_id', orgId!)
@@ -26,7 +27,7 @@ export function useApplicantsSearch(query: string) {
 
       const stageIds = Array.from(
         new Set(
-          (applicants ?? [])
+          ((applicants ?? []) as any[])
             .flatMap((applicant: any) => applicant.applications ?? [])
             .map((application: any) => application?.current_stage_id)
             .filter((value: unknown): value is string => typeof value === 'string' && value.length > 0),
@@ -34,7 +35,7 @@ export function useApplicantsSearch(query: string) {
       );
 
       const { data: stages, error: stagesError } = stageIds.length
-        ? await supabase
+        ? await db
             .from('recruitment_pipeline_stages')
             .select('id, name, color')
             .eq('organization_id', orgId!)
@@ -44,10 +45,10 @@ export function useApplicantsSearch(query: string) {
       if (stagesError) throw stagesError;
 
       const stageMap = new Map(
-        (stages ?? []).map((stage) => [stage.id, { name: stage.name, color: stage.color ?? null }]),
+        ((stages ?? []) as any[]).map((stage) => [stage.id, { name: stage.name, color: stage.color ?? null }]),
       );
 
-      return (applicants ?? []).map((applicant: any) => {
+      return ((applicants ?? []) as any[]).map((applicant: any) => {
         const currentStageId = applicant.applications?.[0]?.current_stage_id ?? null;
         const currentStage = currentStageId ? stageMap.get(currentStageId) : null;
 
