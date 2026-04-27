@@ -88,7 +88,7 @@ export function ExecutionDetailDrawer({ execution, onClose, onAcknowledge }: Pro
           ? supabase.from('recruitment_email_templates').select('id, name').in('id', templateIds)
           : Promise.resolve({ data: [] as Array<{ id: string; name: string }> }),
         applicationIds.length
-          ? supabase
+          ? (supabase as any)
               .from('recruitment_applications')
               .select('id, applicant:recruitment_applicants(email, first_name, last_name)')
               .in('id', applicationIds)
