@@ -80,10 +80,7 @@ export default function RecruitmentAdmin() {
           <IntegrationsTab />
         </TabsContent>
         <TabsContent value="audit">
-          <PlaceholderTab
-            title="Revisjon"
-            description="Se historikk over endringer i rekrutteringsoppsettet og søknadsbehandling."
-          />
+          <AuditTab />
         </TabsContent>
       </Tabs>
     </div>
