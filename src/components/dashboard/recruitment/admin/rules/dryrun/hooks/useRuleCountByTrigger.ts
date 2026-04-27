@@ -29,5 +29,6 @@ export function useRuleCountByTrigger() {
     },
     enabled: !!orgId,
     staleTime: 30_000,
+    refetchOnMount: 'always',
   });
 }
