@@ -11,6 +11,8 @@ export interface MatchedRule {
   action_config: Record<string, unknown>;
   is_external: boolean;
   execution_order: number;
+  template_name?: string | null;
+  user_name?: string | null;
 }
 
 export interface PendingMove {
@@ -105,8 +107,58 @@ export function useStageMoveAutomation(opts?: { onComplete?: () => void; onCance
     try {
       const ctx = buildContext(input);
       const matched = await matchRulesRpc(ctx);
-      const externalRules = matched.filter((r) => isExternalAction(r.action_type));
-      const internalRules = matched.filter((r) => !isExternalAction(r.action_type));
+
+      // Resolve UUIDs in action_config to human names so the modal can display
+      // "Send e-post: 'Søknad mottatt'" instead of raw template/user IDs.
+      const templateIds = Array.from(
+        new Set(
+          matched
+            .filter((r) => r.action_type === 'send_email')
+            .map((r) => (r.action_config as any)?.template_id)
+            .filter((id: unknown): id is string => typeof id === 'string' && id.length > 0),
+        ),
+      );
+      const userIds = Array.from(
+        new Set(
+          matched
+            .filter((r) => r.action_type === 'assign_to')
+            .map((r) => (r.action_config as any)?.user_id)
+            .filter((id: unknown): id is string => typeof id === 'string' && id.length > 0),
+        ),
+      );
+
+      const [templatesRes, usersRes] = await Promise.all([
+        templateIds.length
+          ? supabase.from('recruitment_email_templates').select('id, name').in('id', templateIds)
+          : Promise.resolve({ data: [] as Array<{ id: string; name: string }> }),
+        userIds.length
+          ? supabase.from('profiles').select('id, full_name, email').in('id', userIds)
+          : Promise.resolve({ data: [] as Array<{ id: string; full_name: string | null; email: string | null }> }),
+      ]);
+
+      const templateMap = new Map(
+        ((templatesRes.data ?? []) as Array<{ id: string; name: string }>).map((t) => [t.id, t.name]),
+      );
+      const userMap = new Map(
+        ((usersRes.data ?? []) as Array<{ id: string; full_name: string | null; email: string | null }>).map(
+          (p) => [p.id, p.full_name ?? p.email ?? null],
+        ),
+      );
+
+      const enrichedMatched: MatchedRule[] = matched.map((r) => ({
+        ...r,
+        template_name:
+          r.action_type === 'send_email'
+            ? templateMap.get((r.action_config as any)?.template_id) ?? null
+            : null,
+        user_name:
+          r.action_type === 'assign_to'
+            ? userMap.get((r.action_config as any)?.user_id) ?? null
+            : null,
+      }));
+
+      const externalRules = enrichedMatched.filter((r) => isExternalAction(r.action_type));
+      const internalRules = enrichedMatched.filter((r) => !isExternalAction(r.action_type));
 
       if (externalRules.length === 0) {
         // No confirmation needed: fire internals (if any) + move stage in parallel.
