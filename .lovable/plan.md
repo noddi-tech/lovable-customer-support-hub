@@ -1,113 +1,67 @@
+## Phase 1.5 Engine Cleanup — Three Targeted Fixes
 
-Defensively normalize `result.action_results` in `DryRunResultCard.tsx` so the card handles all three shapes the engine currently emits, without touching the engine or any other UI.
+Fix three precise bugs in the recruitment automation engine: shape mismatch (`action_results` should always be an array), broken recipient resolution in dry-run when only `applicant_id` is in trigger context, and webhook target HTTP errors silently misclassified as success.
 
-## Scope
+### What changes
 
-Edit only:
-- `src/components/dashboard/recruitment/admin/rules/dryrun/DryRunResultCard.tsx`
+#### 1. New migration: `supabase/migrations/<ts>_phase_15_engine_fixes.sql`
 
-Do not change:
-- `executions/types.ts` helpers
-- `ExecutionDetailDrawer` rendering
-- `DryRunResults` / `DryRunPanel`
-- The `DryRunResult` type (still typed as `Json` from RPC)
+Replace `public.dispatch_action(...)` with the dry-run-only version supplied in the spec:
 
-## Three shapes to support
+- Hard-fails if called with `p_dry_run = false` (real runs must go through the edge worker now).
+- Returns `jsonb_build_array(jsonb_build_object(...))` for every branch — array-shaped, one element per action, each tagged with `action_type`.
+- `send_email`: looks up recipient via `application_id` first, falls back to `applicant_id`; also resolves applicant name; sets `success = false` when no email is found and surfaces a Norwegian error (`'Søker har ingen e-postadresse'`).
+- `assign_to`: looks up profile, returns `assigned_to_name`, success = `FOUND`.
+- `webhook`: returns URL + method + success based on URL presence.
+- `send_sms` / `create_task`: raise (not implemented in v1).
+- All error strings in Norwegian for UI consistency.
+- Uses `simulated: true` inside the array element (execution-level `is_dry_run` column unchanged).
 
-1. **Array of action result objects** (regular run shape)
-   - Render exactly as today: one sub-card per action with `getSimulatedActionLabel`, details grid, error block.
+#### 2. `supabase/functions/process-automation-queue/index.ts`
 
-2. **Single object with `preview` field** (current dry-run shape)
-   ```json
-   {
-     "dry_run": true,
-     "preview": "Would send \"Subject\" to <recipient>",
-     "success": true,
-     "duration_ms": 3
-   }
-   ```
-   Render a single "Simulering" sub-card with:
-   - Header label: `Simulering`
-   - Body: the `preview` string verbatim, with light, safe English→Norwegian substitution applied (see below). If the string doesn't contain those tokens, it is shown as-is.
-   - Status badge derived from the object's `success` field:
-     - `true` → `Vellykket simulering` (success styling)
-     - `false` → `Simuleringsfeil` (destructive styling)
-   - Duration: prefer the object's `duration_ms` over `result.duration_ms` when present.
-   - If `success === false` and the object has `error` / `error_message`, render that in the same destructive error block style used for array-shape failures.
+**A. `dispatchWebhook` — parse the inner JSON body**
 
-3. **Null / undefined / empty** (no actions)
-   - Render existing empty state: `Ingen handlinger ble simulert for denne regelen.`
+Replace the current return block. The wrapper `fetch` to `dispatch-webhook` always returns 200 unless the dispatcher itself crashed; the actual target HTTP status, success, and error live inside the JSON body. Parse `bodyText` as JSON and propagate `inner.success`, `inner.http_status`, `inner.response_excerpt`, `inner.error`. Fall back to a synthetic failure result if JSON parsing throws.
 
-## Normalization logic
+**B. Wrap `result` in array with `action_type` before `finalize_queue_row`**
 
-Introduce a small discriminated normalization step at the top of the component:
+In the main handler, after `const result = await dispatch(...)`:
 
 ```ts
-type NormalizedDryRun =
-  | { kind: 'actions'; items: DryRunActionResult[] }
-  | { kind: 'preview'; preview: string; success: boolean; duration_ms: number | null; error: string | null }
-  | { kind: 'empty' };
-
-function normalize(raw: unknown): NormalizedDryRun {
-  if (Array.isArray(raw)) {
-    return raw.length === 0
-      ? { kind: 'empty' }
-      : { kind: 'actions', items: raw as DryRunActionResult[] };
-  }
-  if (raw && typeof raw === 'object') {
-    const obj = raw as Record<string, unknown>;
-    if (typeof obj.preview === 'string') {
-      return {
-        kind: 'preview',
-        preview: obj.preview,
-        success: obj.success !== false, // default true
-        duration_ms: typeof obj.duration_ms === 'number' ? obj.duration_ms : null,
-        error: typeof obj.error_message === 'string'
-          ? obj.error_message
-          : typeof obj.error === 'string' ? obj.error : null,
-      };
-    }
-  }
-  return { kind: 'empty' };
-}
+const actionResults = [{ action_type: actionType, ...result }];
 ```
 
-## Preview translation (best-effort, non-fragile)
+Pass `actionResults` (not `result`) as `p_action_results` to the `finalize_queue_row` RPC. Real-run rows now match the array shape of dry-run rows.
 
-Apply only these literal substitutions in this order; if none match, show the raw string. This is intentionally minimal so future changes to the engine string don't silently misrender:
+#### 3. `src/components/dashboard/recruitment/admin/rules/dryrun/DryRunResultCard.tsx`
 
-```
-"Would send"     → "Ville sendt"
-"to <no email>"  → "til <ingen e-post>"
-"to <recipient>" → "til <mottaker>"
-```
+Remove the Phase-4 defensive single-object `preview` branch — it becomes dead code once the engine always returns arrays:
 
-Implemented as plain `String.prototype.replaceAll` calls. No regex parsing of the rest of the string.
+- Delete `NormalizedDryRun`, `normalizeActionResults`, and `translatePreview` helpers.
+- Replace with simple `const actions: DryRunActionResult[] = Array.isArray(result.action_results) ? result.action_results : [];`.
+- Render: empty-state when `actions.length === 0`, else map over `actions` (the existing per-action card markup is kept verbatim).
+- Remove the entire `kind === 'preview'` JSX block and the now-unused `Separator` usage tied to it (kept where still needed inside the actions branch).
 
-## Render plan per kind
+`ExecutionDetailDrawer.tsx` already iterates `action_results` as an array — no change needed there; it will now render real action data for both dry-run and real executions.
 
-- `kind === 'empty'`: existing dashed-border empty state.
-- `kind === 'actions'`: existing `.map` over items (unchanged).
-- `kind === 'preview'`: one sub-card with the same outer wrapper styling as the action sub-card, containing:
-  - Left column:
-    - `<p className="font-medium">Simulering</p>`
-    - `<p className="text-xs text-muted-foreground">Forhåndsvisning fra automatiseringsmotor</p>`
-  - Right column: success/failure badge as described.
-  - Below: `<p className="text-sm whitespace-pre-wrap break-words">{translated preview}</p>`.
-  - If failed and `error` present: existing destructive error block.
-  - Footer-ish meta line: `Varighet: {formatDuration(duration_ms)}` only when it differs from the header duration, to avoid duplication.
+### Deployment
 
-The card's outer header / overall status badge / "Åpne i utførelseslogg" footer remain unchanged.
+1. Apply migration via the migration tool (auto-prompts user approval).
+2. Deploy `process-automation-queue` edge function.
+3. UI change ships with the next build.
 
-## Verification
+### Verification
 
-1. Re-run a dry-run on an email rule with the `qualified` stage trigger.
-2. The matched-rule card now renders a "Simulering" sub-card with the preview string instead of "Ingen handlinger ble simulert".
-3. A successful preview shows the green `Vellykket simulering` badge; a `success: false` object would show `Simuleringsfeil` with the error block.
-4. Existing regular-execution detail rendering (in `ExecutionDetailDrawer`) is untouched and still works for array-shape `action_results`.
-5. `npx tsc --noEmit` reports no new errors.
+- Run the SQL `execute_automation_rules('stage_entered', { applicant_id, to_stage_id: 'qualified', organization_id }, true)` from the spec → expect `action_results` to be a one-element array with `action_type: 'send_email'`, real `recipient` (e.g. `test@test.no`), `recipient_name`, `template_name`, `subject_preview`, `simulated: true`, `success: true`.
+- Reload `/admin/recruitment?tab=automation&subtab=dry-run`, run a dry-run via the form → `DryRunResultCard` shows real recipient + template metadata, no `<ingen e-post>`, no raw English preview string.
+- Old dry-run rows already in DB (single-object shape) will now show the empty-state ("Ingen handlinger ble simulert"). Acceptable per spec — historical rows are not migrated.
+- TypeScript compiles cleanly (`npx tsc --noEmit`).
+- Webhook real-run misclassification fix: code-review only this phase; live verification deferred to Phase 5 when kanban triggers real runs.
 
-## Reply after implementation
+### Reply after implementation
 
-1. Updated `DryRunResultCard.tsx` (the normalization block + the new preview render branch).
-2. Confirmation that TypeScript still compiles cleanly.
+1. The new migration filename + dispatch_action SQL
+2. Updated `dispatchWebhook` function body
+3. Updated handler block showing `actionResults` wrapping + finalize call
+4. `DryRunResultCard.tsx` cleanup diff
+5. TypeScript compile confirmation
