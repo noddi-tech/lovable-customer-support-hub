@@ -55,10 +55,10 @@ const ApplicantProfile: React.FC = () => {
   const { data: pipeline } = useApplicantPipeline();
   const { data: team } = useTeamMembers();
   const assignMut = useAssignApplication();
+  const automation = useStageMoveAutomation();
 
   const [tab, setTab] = useState('overview');
   const [logOpen, setLogOpen] = useState(false);
-  const [moveTarget, setMoveTarget] = useState<PipelineStage | null>(null);
 
   if (isLoading) {
     return (
