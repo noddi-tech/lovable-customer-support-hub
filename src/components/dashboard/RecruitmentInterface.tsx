@@ -5,7 +5,6 @@ import RecruitmentOverview from './recruitment/RecruitmentOverview';
 import RecruitmentPipeline from './recruitment/RecruitmentPipeline';
 import RecruitmentApplicants from './recruitment/RecruitmentApplicants';
 import RecruitmentPositions from './recruitment/RecruitmentPositions';
-import RecruitmentImport from './recruitment/RecruitmentImport';
 import ApplicantProfile from './recruitment/applicants/ApplicantProfile';
 import PositionDetail from './recruitment/PositionDetail';
 
@@ -16,7 +15,6 @@ const TABS = [
   { label: 'Pipeline', path: `${BASE}/pipeline` },
   { label: 'Søkere', path: `${BASE}/applicants` },
   { label: 'Stillinger', path: `${BASE}/positions` },
-  { label: 'Importer', path: `${BASE}/import` },
 ];
 
 const RecruitmentInterface: React.FC = () => {
