@@ -46,7 +46,7 @@ async function moveStageRpc(applicationId: string, toStageId: string) {
 async function matchRulesRpc(triggerContext: Record<string, unknown>): Promise<MatchedRule[]> {
   const { data, error } = await supabase.rpc('match_automation_rules', {
     p_trigger_type: 'stage_entered',
-    p_trigger_context: triggerContext,
+    p_trigger_context: triggerContext as any,
   });
   if (error) throw error;
   return ((data ?? []) as unknown) as MatchedRule[];
@@ -67,7 +67,7 @@ async function executeRulesRpc({
 }: ExecuteOpts) {
   const { data, error } = await supabase.rpc('execute_automation_rules', {
     p_trigger_type: 'stage_entered',
-    p_trigger_context: triggerContext,
+    p_trigger_context: triggerContext as any,
     p_dry_run: false,
     p_skip_external: skipExternal,
     p_skip_reason: skipReason,
