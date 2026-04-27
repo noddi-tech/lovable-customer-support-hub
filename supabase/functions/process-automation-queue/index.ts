@@ -179,11 +179,29 @@ async function dispatchWebhook(
   const bodyText = await resp.text();
   const durationMs = Math.round(performance.now() - start);
 
+  // Parse dispatch-webhook's inner JSON response — that contains the
+  // actual target HTTP status + success/error. Wrapper resp.status is
+  // always 200 unless dispatcher itself crashed.
+  let inner: {
+    success?: boolean;
+    http_status?: number | null;
+    response_excerpt?: string;
+    error?: string | null;
+  } = {};
+  try {
+    inner = JSON.parse(bodyText);
+  } catch {
+    inner = {
+      success: false,
+      error: `Invalid JSON from dispatch-webhook: ${bodyText.slice(0, 200)}`,
+    };
+  }
+
   return {
-    success: resp.ok,
-    http_status: resp.status,
-    response_excerpt: bodyText.slice(0, 2048),
-    error: resp.ok ? undefined : `dispatch-webhook returned HTTP ${resp.status}`,
+    success: inner.success ?? false,
+    http_status: inner.http_status ?? null,
+    response_excerpt: inner.response_excerpt ?? bodyText.slice(0, 2048),
+    error: inner.error ?? (inner.success ? undefined : `dispatch-webhook returned no success`),
     duration_ms: durationMs,
   };
 }
