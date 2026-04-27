@@ -76,10 +76,7 @@ export default function RecruitmentAdmin() {
           <RulesTab />
         </TabsContent>
         <TabsContent value="integrations">
-          <PlaceholderTab
-            title="Integrasjoner"
-            description="Koble til Finn.no, Meta Lead Ads og andre kilder for innkommende søknader."
-          />
+          <IntegrationsTab />
         </TabsContent>
         <TabsContent value="audit">
           <PlaceholderTab
