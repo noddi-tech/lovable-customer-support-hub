@@ -300,10 +300,17 @@ const handler = async (req: Request): Promise<Response> => {
         (result.error ? ` error="${result.error}"` : ""),
     );
 
+    // Wrap result in array with action_type — matches dry-run shape
+    // and is forward-compatible with rules having multiple actions.
+    const actionResults = [{
+      action_type: actionType,
+      ...result,
+    }];
+
     const { error: finalizeErr } = await supabase.rpc("finalize_queue_row", {
       p_queue_id: queueId,
       p_execution_id: claim.execution_id,
-      p_action_results: result,
+      p_action_results: actionResults,
       p_duration_ms: result.duration_ms,
       p_final_status: finalStatus,
     });
