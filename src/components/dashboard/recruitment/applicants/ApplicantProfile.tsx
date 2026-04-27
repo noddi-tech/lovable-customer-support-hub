@@ -30,7 +30,8 @@ import ApplicantEventTimeline from './ApplicantEventTimeline';
 import ApplicantNotesTab from './ApplicantNotesTab';
 import ApplicantFilesTab from './ApplicantFilesTab';
 import LogEventForm from './LogEventForm';
-import MoveStageDialog from './MoveStageDialog';
+import StageMoveConfirmDialog from '../pipeline/StageMoveConfirmDialog';
+import { useStageMoveAutomation } from '../pipeline/useStageMoveAutomation';
 import { useApplicantPipeline, type PipelineStage } from './useApplicants';
 import {
   useApplicantEvents,
