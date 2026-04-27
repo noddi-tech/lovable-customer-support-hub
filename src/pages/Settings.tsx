@@ -58,6 +58,17 @@ export default function Settings() {
       );
     }
 
+    if (location.pathname === '/admin/recruitment/import') {
+      const RecruitmentImport = React.lazy(
+        () => import('@/components/dashboard/recruitment/RecruitmentImport')
+      );
+      return (
+        <React.Suspense fallback={<div>Loading...</div>}>
+          <RecruitmentImport />
+        </React.Suspense>
+      );
+    }
+
     if (location.pathname.startsWith('/admin/recruitment')) {
       const RecruitmentAdmin = React.lazy(() => import('./admin/RecruitmentAdmin'));
       return (

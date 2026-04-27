@@ -72,7 +72,7 @@ export function CSVImportCard() {
             </div>
           </div>
         </div>
-        <Button size="sm" onClick={() => navigate('/recruitment/import')}>
+        <Button size="sm" onClick={() => navigate('/admin/recruitment/import')}>
           Åpne import-veiviser
           <ArrowRight />
         </Button>
