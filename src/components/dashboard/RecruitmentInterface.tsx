@@ -49,8 +49,6 @@ const RecruitmentInterface: React.FC = () => {
         return <RecruitmentApplicants />;
       case 'positions':
         return <RecruitmentPositions />;
-      case 'import':
-        return <RecruitmentImport />;
       case '':
       default:
         return <RecruitmentOverview />;
