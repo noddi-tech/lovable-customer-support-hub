@@ -3297,6 +3297,7 @@ export type Database = {
           overall_status: string
           rule_id: string | null
           rule_name: string
+          skip_reason: string | null
           trigger_context: Json
           triggered_by: string | null
         }
@@ -3314,6 +3315,7 @@ export type Database = {
           overall_status: string
           rule_id?: string | null
           rule_name: string
+          skip_reason?: string | null
           trigger_context: Json
           triggered_by?: string | null
         }
@@ -3331,6 +3333,7 @@ export type Database = {
           overall_status?: string
           rule_id?: string | null
           rule_name?: string
+          skip_reason?: string | null
           trigger_context?: Json
           triggered_by?: string | null
         }
@@ -5454,6 +5457,7 @@ export type Database = {
           overall_status: string
           rule_id: string | null
           rule_name: string
+          skip_reason: string | null
           trigger_context: Json
           triggered_by: string | null
         }
@@ -5518,6 +5522,9 @@ export type Database = {
       execute_automation_rules: {
         Args: {
           p_dry_run?: boolean
+          p_only_rule_ids?: string[]
+          p_skip_external?: boolean
+          p_skip_reason?: string
           p_trigger_context: Json
           p_trigger_type: string
         }
@@ -5843,6 +5850,10 @@ export type Database = {
           similarity: number
         }[]
       }
+      is_external_action_type: {
+        Args: { p_action_type: string }
+        Returns: boolean
+      }
       is_organization_member: { Args: { _org_id: string }; Returns: boolean }
       is_super_admin: { Args: never; Returns: boolean }
       list_conversations_optimized: {
@@ -5889,6 +5900,17 @@ export type Database = {
       mark_notification_read: {
         Args: { notification_id: string }
         Returns: undefined
+      }
+      match_automation_rules: {
+        Args: { p_trigger_context: Json; p_trigger_type: string }
+        Returns: {
+          action_config: Json
+          action_type: string
+          execution_order: number
+          is_external: boolean
+          rule_id: string
+          rule_name: string
+        }[]
       }
       move_application_stage: {
         Args: {
