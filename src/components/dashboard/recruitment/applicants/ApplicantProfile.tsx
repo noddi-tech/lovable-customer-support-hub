@@ -30,7 +30,8 @@ import ApplicantEventTimeline from './ApplicantEventTimeline';
 import ApplicantNotesTab from './ApplicantNotesTab';
 import ApplicantFilesTab from './ApplicantFilesTab';
 import LogEventForm from './LogEventForm';
-import MoveStageDialog from './MoveStageDialog';
+import StageMoveConfirmDialog from '../pipeline/StageMoveConfirmDialog';
+import { useStageMoveAutomation } from '../pipeline/useStageMoveAutomation';
 import { useApplicantPipeline, type PipelineStage } from './useApplicants';
 import {
   useApplicantEvents,
@@ -54,10 +55,10 @@ const ApplicantProfile: React.FC = () => {
   const { data: pipeline } = useApplicantPipeline();
   const { data: team } = useTeamMembers();
   const assignMut = useAssignApplication();
+  const automation = useStageMoveAutomation();
 
   const [tab, setTab] = useState('overview');
   const [logOpen, setLogOpen] = useState(false);
-  const [moveTarget, setMoveTarget] = useState<PipelineStage | null>(null);
 
   if (isLoading) {
     return (
@@ -175,7 +176,18 @@ const ApplicantProfile: React.FC = () => {
               {stages.map((s) => (
                 <DropdownMenuItem
                   key={s.id}
-                  onSelect={() => setMoveTarget(s)}
+                  onSelect={() => {
+                    if (!firstApp || !applicant) return;
+                    if (s.id === firstApp.current_stage_id) return;
+                    void automation.handleStageMove({
+                      applicationId: firstApp.id,
+                      applicantId: applicant.id,
+                      applicantName: `${applicant.first_name} ${applicant.last_name}`.trim(),
+                      fromStageId: firstApp.current_stage_id,
+                      toStageId: s.id,
+                      stageName: s.name,
+                    });
+                  }}
                   disabled={s.id === firstApp?.current_stage_id}
                 >
                   {s.name}
@@ -288,18 +300,14 @@ const ApplicantProfile: React.FC = () => {
         </TabsContent>
       </Tabs>
 
-      {moveTarget && firstApp && (
-        <MoveStageDialog
-          open={!!moveTarget}
-          onOpenChange={(o) => !o && setMoveTarget(null)}
-          applicantName={`${applicant.first_name} ${applicant.last_name}`}
-          applicantId={applicant.id}
-          applicationId={firstApp.id}
-          fromStageId={firstApp.current_stage_id}
-          toStageId={moveTarget.id}
-          toStageName={moveTarget.name}
-        />
-      )}
+      <StageMoveConfirmDialog
+        pendingMove={automation.pendingMove}
+        isSending={automation.isSending}
+        isSkipping={automation.isSkipping}
+        onConfirmSend={() => automation.confirmMoveAndSend()}
+        onConfirmSkip={(reason) => automation.confirmMoveSkipExternal(reason)}
+        onCancel={automation.cancelMove}
+      />
     </div>
   );
 };

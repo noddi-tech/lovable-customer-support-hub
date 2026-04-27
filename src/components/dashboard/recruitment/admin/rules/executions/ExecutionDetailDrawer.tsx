@@ -91,13 +91,20 @@ export function ExecutionDetailDrawer({ execution, onClose, onAcknowledge }: Pro
                   )
                 }
               />
+              {execution.overall_status === 'skipped' ? (
+                <MetaItem label="Grunn" value={execution.skip_reason ?? 'Ikke oppgitt'} />
+              ) : null}
             </dl>
           </section>
 
           <Separator className="my-5" />
 
           <section className="space-y-3">
-            <h3 className="text-sm font-semibold">Handlinger utført</h3>
+            <h3 className="text-sm font-semibold">
+              {execution.overall_status === 'skipped'
+                ? 'Handlinger som ville blitt utført'
+                : 'Handlinger utført'}
+            </h3>
             <div className="space-y-3">
               {actionResults.length === 0 ? (
                 <div className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
@@ -105,7 +112,8 @@ export function ExecutionDetailDrawer({ execution, onClose, onAcknowledge }: Pro
                 </div>
               ) : (
                 actionResults.map((action, index) => {
-                  const failed = isActionFailed(action);
+                  const isSkipped = execution.overall_status === 'skipped' || action.skipped === true;
+                  const failed = !isSkipped && isActionFailed(action);
                   return (
                     <div key={index} className="rounded-md border p-4">
                       <div className="flex items-start justify-between gap-3">
@@ -117,12 +125,14 @@ export function ExecutionDetailDrawer({ execution, onClose, onAcknowledge }: Pro
                           variant="outline"
                           className={cn(
                             'font-normal',
-                            failed
-                              ? 'border-destructive/40 bg-destructive/10 text-destructive'
-                              : 'border-success/40 bg-success/10 text-success',
+                            isSkipped
+                              ? 'border-amber-300/40 bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-300'
+                              : failed
+                                ? 'border-destructive/40 bg-destructive/10 text-destructive'
+                                : 'border-success/40 bg-success/10 text-success',
                           )}
                         >
-                          {failed ? 'Feilet' : 'Vellykket'}
+                          {isSkipped ? 'Hoppet over' : failed ? 'Feilet' : 'Vellykket'}
                         </Badge>
                       </div>
 

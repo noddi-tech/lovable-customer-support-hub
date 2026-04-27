@@ -1,67 +1,115 @@
-## Phase 1.5 Engine Cleanup — Three Targeted Fixes
+# Phase 4 — Stage-move automation orchestration
 
-Fix three precise bugs in the recruitment automation engine: shape mismatch (`action_results` should always be an array), broken recipient resolution in dry-run when only `applicant_id` is in trigger context, and webhook target HTTP errors silently misclassified as success.
+Wire the automation engine into the kanban drag-end flow. Replace the current "notify by email/SMS/skip" prompt (`MoveStageDialog`) with an automation-aware confirmation dialog that only appears when **external** rules (email, webhook) match. Skips are first-class: they write `overall_status='skipped'` execution rows with optional reason, but never count toward the failure banner.
 
-### What changes
+## Goal
 
-#### 1. New migration: `supabase/migrations/<ts>_phase_15_engine_fixes.sql`
+When an agent drags an applicant between stages:
 
-Replace `public.dispatch_action(...)` with the dry-run-only version supplied in the spec:
+- **No matching rules** → move silently, no modal, no execution rows.
+- **Internal rules only** (`assign_to`) → move silently, fire internal rules, log success.
+- **External rules present** (`send_email`, `webhook`) → show confirmation modal. User chooses send / skip / cancel.
 
-- Hard-fails if called with `p_dry_run = false` (real runs must go through the edge worker now).
-- Returns `jsonb_build_array(jsonb_build_object(...))` for every branch — array-shaped, one element per action, each tagged with `action_type`.
-- `send_email`: looks up recipient via `application_id` first, falls back to `applicant_id`; also resolves applicant name; sets `success = false` when no email is found and surfaces a Norwegian error (`'Søker har ingen e-postadresse'`).
-- `assign_to`: looks up profile, returns `assigned_to_name`, success = `FOUND`.
-- `webhook`: returns URL + method + success based on URL presence.
-- `send_sms` / `create_task`: raise (not implemented in v1).
-- All error strings in Norwegian for UI consistency.
-- Uses `simulated: true` inside the array element (execution-level `is_dry_run` column unchanged).
+## Technical plan
 
-#### 2. `supabase/functions/process-automation-queue/index.ts`
+### 1. Migration `20260427_phase4_match_and_skip.sql`
 
-**A. `dispatchWebhook` — parse the inner JSON body**
+a. **`is_external_action_type(action_type text) → boolean`** — pure SQL, returns `true` for `send_email`, `webhook`, `send_sms`; `false` for `assign_to`, `create_task`. Centralizes external/internal classification.
 
-Replace the current return block. The wrapper `fetch` to `dispatch-webhook` always returns 200 unless the dispatcher itself crashed; the actual target HTTP status, success, and error live inside the JSON body. Parse `bodyText` as JSON and propagate `inner.success`, `inner.http_status`, `inner.response_excerpt`, `inner.error`. Fall back to a synthetic failure result if JSON parsing throws.
+b. **`recruitment_automation_executions.skip_reason text`** — nullable column for the optional skip reason text from the agent.
 
-**B. Wrap `result` in array with `action_type` before `finalize_queue_row`**
+c. **`match_automation_rules(p_organization_id, p_trigger_type, p_trigger_context) → setof rule_match`** — `SECURITY DEFINER`, scoped to caller's org via membership check. Returns matching active rules (id, name, action_type, action_config, is_external) without enqueuing or executing. Reuses `rule_matches_context`. Used by the client to decide whether to show the modal.
 
-In the main handler, after `const result = await dispatch(...)`:
+d. **`execute_automation_rules` update** — add new params:
+- `p_skip_external boolean default false`
+- `p_skip_reason text default null`
+- `p_only_rule_ids uuid[] default null` (allows confirm-and-send to target the exact rules surfaced in the modal)
+
+When `p_skip_external=true`, for each matched external rule the function writes an execution row directly with `overall_status='skipped'`, `skip_reason=p_skip_reason`, `action_results=jsonb_build_array(...)` of "would-have" entries — no queue insert, no edge-function call. Internal rules still execute synchronously as today.
+
+### 2. Action metadata (frontend)
+
+`src/components/dashboard/recruitment/admin/rules/actionTypeMetadata.ts` — single source of truth used by both the kanban dialog and rule editor:
 
 ```ts
-const actionResults = [{ action_type: actionType, ...result }];
+export const EXTERNAL_ACTION_TYPES = new Set(['send_email', 'webhook', 'send_sms']);
+export const isExternalAction = (t: string) => EXTERNAL_ACTION_TYPES.has(t);
 ```
 
-Pass `actionResults` (not `result`) as `p_action_results` to the `finalize_queue_row` RPC. Real-run rows now match the array shape of dry-run rows.
+### 3. `useStageMoveAutomation` hook
 
-#### 3. `src/components/dashboard/recruitment/admin/rules/dryrun/DryRunResultCard.tsx`
+New file: `src/components/dashboard/recruitment/pipeline/useStageMoveAutomation.ts`. Three internal mutations: `match_automation_rules` RPC, `execute_automation_rules` RPC, existing `move_application_stage` RPC. Exposes:
 
-Remove the Phase-4 defensive single-object `preview` branch — it becomes dead code once the engine always returns arrays:
+- `handleStageMove(params)` — called by kanban drag-end. Calls `match_automation_rules`. If zero external rules matched → `Promise.all([moveStage, executeInternal])`, no modal. Otherwise sets `pendingMove` state and the kanban renders the new modal.
+- `pendingMove` state (applicationId, fromStageId, toStageId, applicantName, externalRules[], internalRules[], stageName).
+- `confirmMoveAndSend(skipReason?)` → executes all matched rules + moves stage.
+- `confirmMoveSkipExternal(skipReason?)` → executes with `skip_external=true` + moves stage. Skipped rows logged.
+- `cancelMove()` → clears state; kanban handles optimistic revert.
 
-- Delete `NormalizedDryRun`, `normalizeActionResults`, and `translatePreview` helpers.
-- Replace with simple `const actions: DryRunActionResult[] = Array.isArray(result.action_results) ? result.action_results : [];`.
-- Render: empty-state when `actions.length === 0`, else map over `actions` (the existing per-action card markup is kept verbatim).
-- Remove the entire `kind === 'preview'` JSX block and the now-unused `Separator` usage tied to it (kept where still needed inside the actions branch).
+### 4. `StageMoveConfirmDialog`
 
-`ExecutionDetailDrawer.tsx` already iterates `action_results` as an array — no change needed there; it will now render real action data for both dry-run and real executions.
+New file: `src/components/dashboard/recruitment/pipeline/StageMoveConfirmDialog.tsx`. Norwegian UI. Sections:
 
-### Deployment
+- Title: `Flytt {applicantName} til {stageName}?`
+- "Følgende ekstern kommunikasjon vil sendes" — list each external rule with its action label (Send e-post: 'mal', Webhook → host).
+- If internal rules also match: "I tillegg kjører følgende uansett:" — list internal actions.
+- Optional `<Textarea>` "Grunn for å hoppe over (valgfritt)" — only used by the skip button.
+- Footer buttons: `Avbryt` (cancel), `Flytt uten å sende` (skip), `Flytt og send` (primary).
 
-1. Apply migration via the migration tool (auto-prompts user approval).
-2. Deploy `process-automation-queue` edge function.
-3. UI change ships with the next build.
+### 5. `PipelineBoard` integration
 
-### Verification
+Edit `src/components/dashboard/recruitment/pipeline/PipelineBoard.tsx`:
+- Replace `MoveStageDialog` import + usage with `useStageMoveAutomation` + `StageMoveConfirmDialog`.
+- `handleDragEnd` keeps optimistic update, then calls `handleStageMove({...})` instead of opening the legacy notify dialog.
+- Cancel path invalidates query (reverts optimistic).
 
-- Run the SQL `execute_automation_rules('stage_entered', { applicant_id, to_stage_id: 'qualified', organization_id }, true)` from the spec → expect `action_results` to be a one-element array with `action_type: 'send_email'`, real `recipient` (e.g. `test@test.no`), `recipient_name`, `template_name`, `subject_preview`, `simulated: true`, `success: true`.
-- Reload `/admin/recruitment?tab=automation&subtab=dry-run`, run a dry-run via the form → `DryRunResultCard` shows real recipient + template metadata, no `<ingen e-post>`, no raw English preview string.
-- Old dry-run rows already in DB (single-object shape) will now show the empty-state ("Ingen handlinger ble simulert"). Acceptable per spec — historical rows are not migrated.
-- TypeScript compiles cleanly (`npx tsc --noEmit`).
-- Webhook real-run misclassification fix: code-review only this phase; live verification deferred to Phase 5 when kanban triggers real runs.
+### 6. Delete `MoveStageDialog`
 
-### Reply after implementation
+Remove `src/components/dashboard/recruitment/applicants/MoveStageDialog.tsx` (no other consumers — confirmed via `rg`). Existing `useUpdateApplicationStage` hook is still used inside the new orchestration hook to perform the actual stage move RPC.
 
-1. The new migration filename + dispatch_action SQL
-2. Updated `dispatchWebhook` function body
-3. Updated handler block showing `actionResults` wrapping + finalize call
-4. `DryRunResultCard.tsx` cleanup diff
-5. TypeScript compile confirmation
+### 7. Execution log updates
+
+a. `src/components/dashboard/recruitment/admin/rules/executions/types.ts` — extend `ExecutionStatus` with `'skipped' | 'pending'`. Add `skip_reason` to `AutomationExecution`. Add status meta entry:
+```
+skipped: { label: 'Hoppet over', className: 'border-amber-300/40 bg-amber-50 text-amber-700' }
+```
+
+b. `ExecutionDetailDrawer.tsx` — when `overall_status === 'skipped'`:
+- Section heading becomes "Handlinger som ville blitt utført".
+- Each action card shows label + grey "Hoppet over" indicator (no success/fail badge).
+- Metadata adds `Grunn: {skip_reason ?? 'Ikke oppgitt'}`.
+- No retry button.
+
+c. `useFailureCount.ts` — already filters `overall_status='failed'`, so skipped is naturally excluded. Verify no change needed.
+
+### 8. `process-automation-queue` edge function
+
+No code changes. Skip rows are written synchronously in `execute_automation_rules` and never enter the queue, so the worker cannot double-process them. Plan documents this and adds a Deno test asserting the worker rejects/ignores execution ids it didn't claim.
+
+## Files touched
+
+```text
+NEW   supabase/migrations/20260427_phase4_match_and_skip.sql
+NEW   src/components/dashboard/recruitment/admin/rules/actionTypeMetadata.ts
+NEW   src/components/dashboard/recruitment/pipeline/useStageMoveAutomation.ts
+NEW   src/components/dashboard/recruitment/pipeline/StageMoveConfirmDialog.tsx
+EDIT  src/components/dashboard/recruitment/pipeline/PipelineBoard.tsx
+EDIT  src/components/dashboard/recruitment/admin/rules/executions/types.ts
+EDIT  src/components/dashboard/recruitment/admin/rules/executions/ExecutionDetailDrawer.tsx
+DEL   src/components/dashboard/recruitment/applicants/MoveStageDialog.tsx
+```
+
+## Verification
+
+After implementation I will run the 22-point checklist from the request. Headline checks:
+- Drag with no rules → silent move, no rows.
+- Drag with internal-only rule → silent move, success row.
+- Drag with external rule → modal opens; send-path delivers email and logs success; skip-path logs `overall_status='skipped'` with `skip_reason`.
+- Skipped rows render with amber "Hoppet over" badge and don't increment failure banner.
+- Webhook 4xx/5xx classification (Phase 1.5 fix) verified end-to-end via httpbin/500.
+- Optimistic kanban: card moves on drag, reverts on Avbryt, stays on send/skip.
+- Body style stays clean across all modal interactions (Radix cleanup verified).
+
+## Reply
+
+After the build I'll respond with: migration contents, `actionTypeMetadata.ts`, full `useStageMoveAutomation.ts`, full `StageMoveConfirmDialog.tsx`, the kanban drag-end diff, confirmation that `MoveStageDialog.tsx` was deleted, confirmation that `process-automation-queue` needed no changes, and confirmation that `useFailureCount` already excludes `'skipped'`.

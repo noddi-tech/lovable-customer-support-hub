@@ -12,7 +12,8 @@ import {
 import { useQueryClient } from '@tanstack/react-query';
 import PipelineColumn from './PipelineColumn';
 import PipelineCard from './PipelineCard';
-import MoveStageDialog from '../applicants/MoveStageDialog';
+import StageMoveConfirmDialog from './StageMoveConfirmDialog';
+import { useStageMoveAutomation } from './useStageMoveAutomation';
 import type { PipelineApplication, PipelineFilters } from './usePipeline';
 import type { PipelineStage } from '../applicants/useApplicants';
 import { useOrganizationStore } from '@/stores/organizationStore';
@@ -23,18 +24,10 @@ interface Props {
   filters: PipelineFilters;
 }
 
-interface PendingMove {
-  app: PipelineApplication;
-  fromStageId: string;
-  toStageId: string;
-  toStageName: string;
-}
-
 const PipelineBoard: React.FC<Props> = ({ applications, stages, filters }) => {
   const queryClient = useQueryClient();
   const { currentOrganizationId } = useOrganizationStore();
   const [activeId, setActiveId] = useState<string | null>(null);
-  const [pendingMove, setPendingMove] = useState<PendingMove | null>(null);
   const snapshotRef = useRef<PipelineApplication[] | null>(null);
 
   const sensors = useSensors(
@@ -45,6 +38,18 @@ const PipelineBoard: React.FC<Props> = ({ applications, stages, filters }) => {
     () => ['pipeline-applications', currentOrganizationId, filters.positionId, filters.assignedTo],
     [currentOrganizationId, filters.positionId, filters.assignedTo]
   );
+
+  const revertOptimistic = () => {
+    queryClient.invalidateQueries({ queryKey: ['pipeline-applications'] });
+    snapshotRef.current = null;
+  };
+
+  const automation = useStageMoveAutomation({
+    onComplete: () => {
+      snapshotRef.current = null;
+    },
+    onCancel: revertOptimistic,
+  });
 
   const grouped = useMemo(() => {
     const map: Record<string, PipelineApplication[]> = {};
@@ -76,7 +81,6 @@ const PipelineBoard: React.FC<Props> = ({ applications, stages, filters }) => {
     if (!app) return;
 
     const overId = String(over.id);
-    // over.id is either a stage id (column) or an app id (card hover)
     let toStageId = overId;
     if (!stages.find((s) => s.id === overId)) {
       const overApp = applications.find((a) => a.id === overId);
@@ -89,7 +93,7 @@ const PipelineBoard: React.FC<Props> = ({ applications, stages, filters }) => {
     const toStage = stages.find((s) => s.id === toStageId);
     if (!toStage) return;
 
-    // Optimistic update
+    // Optimistic update — card visually moves immediately.
     snapshotRef.current = applications;
     queryClient.setQueryData<PipelineApplication[]>(queryKey, (old) => {
       if (!old) return old;
@@ -98,22 +102,16 @@ const PipelineBoard: React.FC<Props> = ({ applications, stages, filters }) => {
       );
     });
 
-    setPendingMove({
-      app,
+    const applicantName = `${app.applicants?.first_name ?? ''} ${app.applicants?.last_name ?? ''}`.trim();
+
+    void automation.handleStageMove({
+      applicationId: app.id,
+      applicantId: app.applicant_id,
+      applicantName,
       fromStageId: app.current_stage_id,
       toStageId,
-      toStageName: toStage.name,
+      stageName: toStage.name,
     });
-  };
-
-  const handleDialogChange = (open: boolean) => {
-    if (open) return;
-    // Dialog closed — invalidate to sync with server. If user dismissed
-    // without confirming, the server state hasn't changed so invalidation
-    // will revert the optimistic update.
-    queryClient.invalidateQueries({ queryKey: ['pipeline-applications'] });
-    setPendingMove(null);
-    snapshotRef.current = null;
   };
 
   return (
@@ -138,18 +136,14 @@ const PipelineBoard: React.FC<Props> = ({ applications, stages, filters }) => {
         </DragOverlay>
       </DndContext>
 
-      {pendingMove && (
-        <MoveStageDialog
-          open={!!pendingMove}
-          onOpenChange={handleDialogChange}
-          applicantName={`${pendingMove.app.applicants?.first_name ?? ''} ${pendingMove.app.applicants?.last_name ?? ''}`.trim()}
-          applicantId={pendingMove.app.applicant_id}
-          applicationId={pendingMove.app.id}
-          fromStageId={pendingMove.fromStageId}
-          toStageId={pendingMove.toStageId}
-          toStageName={pendingMove.toStageName}
-        />
-      )}
+      <StageMoveConfirmDialog
+        pendingMove={automation.pendingMove}
+        isSending={automation.isSending}
+        isSkipping={automation.isSkipping}
+        onConfirmSend={() => automation.confirmMoveAndSend()}
+        onConfirmSkip={(reason) => automation.confirmMoveSkipExternal(reason)}
+        onCancel={automation.cancelMove}
+      />
     </>
   );
 };

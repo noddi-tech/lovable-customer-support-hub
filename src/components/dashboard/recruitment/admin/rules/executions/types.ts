@@ -1,6 +1,6 @@
 import type { Json } from '@/integrations/supabase/types';
 
-export type ExecutionStatus = 'success' | 'partial' | 'failed' | 'dry_run';
+export type ExecutionStatus = 'success' | 'partial' | 'failed' | 'dry_run' | 'skipped' | 'pending';
 
 export interface ActionResultItem {
   action_type?: string;
@@ -20,6 +20,8 @@ export interface ActionResultItem {
   http_status?: number | null;
   response_body?: string | null;
   output?: Record<string, unknown> | null;
+  skipped?: boolean | null;
+  skip_reason?: string | null;
 }
 
 export interface AutomationExecution {
@@ -38,6 +40,7 @@ export interface AutomationExecution {
   created_at: string;
   duration_ms: number | null;
   is_dry_run: boolean;
+  skip_reason?: string | null;
   applicant_name?: string | null;
   triggered_by_name?: string | null;
   acknowledged_by_name?: string | null;
@@ -89,7 +92,17 @@ export function getExecutionStatusMeta(execution: AutomationExecution): Executio
         className: 'border-border bg-muted text-muted-foreground italic',
         italic: true,
       };
-    case 'failed':
+    case 'skipped':
+      return {
+        label: 'Hoppet over',
+        className: 'border-amber-300/40 bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-300',
+      };
+    case 'pending':
+      return {
+        label: 'I kø',
+        className: 'border-primary/40 bg-primary/10 text-primary italic',
+        italic: true,
+      };
     default:
       return {
         label: 'Feilet',
