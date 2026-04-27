@@ -3098,6 +3098,8 @@ export type Database = {
           metadata: Json | null
           name: string
           primary_color: string | null
+          recruitment_audit_last_cleanup_at: string | null
+          recruitment_audit_retention_days: number
           sender_display_name: string | null
           slug: string
           updated_at: string
@@ -3109,6 +3111,8 @@ export type Database = {
           metadata?: Json | null
           name: string
           primary_color?: string | null
+          recruitment_audit_last_cleanup_at?: string | null
+          recruitment_audit_retention_days?: number
           sender_display_name?: string | null
           slug: string
           updated_at?: string
@@ -3120,6 +3124,8 @@ export type Database = {
           metadata?: Json | null
           name?: string
           primary_color?: string | null
+          recruitment_audit_last_cleanup_at?: string | null
+          recruitment_audit_retention_days?: number
           sender_display_name?: string | null
           slug?: string
           updated_at?: string
@@ -3284,6 +3290,85 @@ export type Database = {
           row_count?: number | null
         }
         Relationships: []
+      }
+      recruitment_audit_events: {
+        Row: {
+          actor_profile_id: string | null
+          actor_role: string | null
+          applicant_id: string | null
+          context: Json | null
+          event_category: string
+          event_type: string
+          expires_at: string | null
+          id: string
+          ip_address: unknown
+          new_values: Json | null
+          occurred_at: string
+          old_values: Json | null
+          organization_id: string
+          subject_id: string | null
+          subject_table: string
+          user_agent: string | null
+        }
+        Insert: {
+          actor_profile_id?: string | null
+          actor_role?: string | null
+          applicant_id?: string | null
+          context?: Json | null
+          event_category: string
+          event_type: string
+          expires_at?: string | null
+          id?: string
+          ip_address?: unknown
+          new_values?: Json | null
+          occurred_at?: string
+          old_values?: Json | null
+          organization_id: string
+          subject_id?: string | null
+          subject_table: string
+          user_agent?: string | null
+        }
+        Update: {
+          actor_profile_id?: string | null
+          actor_role?: string | null
+          applicant_id?: string | null
+          context?: Json | null
+          event_category?: string
+          event_type?: string
+          expires_at?: string | null
+          id?: string
+          ip_address?: unknown
+          new_values?: Json | null
+          occurred_at?: string
+          old_values?: Json | null
+          organization_id?: string
+          subject_id?: string | null
+          subject_table?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recruitment_audit_events_actor_profile_id_fkey"
+            columns: ["actor_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recruitment_audit_events_applicant_id_fkey"
+            columns: ["applicant_id"]
+            isOneToOne: false
+            referencedRelation: "applicants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recruitment_audit_events_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       recruitment_automation_executions: {
         Row: {
@@ -5664,6 +5749,7 @@ export type Database = {
       }
       calculate_sla_breach: { Args: never; Returns: undefined }
       claim_queue_row: { Args: { p_queue_id: string }; Returns: Json }
+      cleanup_expired_audit_events: { Args: never; Returns: number }
       cleanup_old_email_ingestion_logs: { Args: never; Returns: undefined }
       count_old_audit_logs:
         | { Args: { days_old?: number }; Returns: number }
@@ -6077,6 +6163,10 @@ export type Database = {
           total_count: number
           updated_at: string
         }[]
+      }
+      log_audit_export: {
+        Args: { p_applicant_id: string; p_context: Json; p_event_type: string }
+        Returns: string
       }
       mark_all_notifications_read: { Args: never; Returns: undefined }
       mark_notification_read: {

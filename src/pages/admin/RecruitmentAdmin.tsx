@@ -8,6 +8,7 @@ import { PipelineEditor } from "@/components/dashboard/recruitment/admin/pipelin
 import { EmailTemplatesTab } from "@/components/dashboard/recruitment/admin/templates/EmailTemplatesTab";
 import { RulesTab } from "@/components/dashboard/recruitment/admin/rules/RulesTab";
 import { IntegrationsTab } from "@/components/dashboard/recruitment/admin/integrations/IntegrationsTab";
+import { AuditTab } from "@/components/dashboard/recruitment/admin/audit/AuditTab";
 import { FailureBanner } from "@/components/dashboard/recruitment/admin/FailureBanner";
 import { useExecutionRealtimeToast } from "@/components/dashboard/recruitment/admin/hooks/useExecutionRealtimeToast";
 
@@ -79,10 +80,7 @@ export default function RecruitmentAdmin() {
           <IntegrationsTab />
         </TabsContent>
         <TabsContent value="audit">
-          <PlaceholderTab
-            title="Revisjon"
-            description="Se historikk over endringer i rekrutteringsoppsettet og søknadsbehandling."
-          />
+          <AuditTab />
         </TabsContent>
       </Tabs>
     </div>
