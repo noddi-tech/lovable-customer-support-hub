@@ -89,8 +89,8 @@ export function ExecutionDetailDrawer({ execution, onClose, onAcknowledge }: Pro
           : Promise.resolve({ data: [] as Array<{ id: string; name: string }> }),
         applicationIds.length
           ? (supabase as any)
-              .from('recruitment_applications')
-              .select('id, applicant:recruitment_applicants(email, first_name, last_name)')
+              .from('applications')
+              .select('id, applicants(email, first_name, last_name)')
               .in('id', applicationIds)
           : Promise.resolve({ data: [] as any[] }),
       ]);
@@ -98,7 +98,7 @@ export function ExecutionDetailDrawer({ execution, onClose, onAcknowledge }: Pro
         ((templatesRes.data ?? []) as Array<{ id: string; name: string }>).map((t) => [t.id, t.name]),
       );
       const applicantEmailMap = new Map<string, string | null>(
-        ((appsRes.data ?? []) as any[]).map((a) => [a.id, a.applicant?.email ?? null]),
+        ((appsRes.data ?? []) as any[]).map((a) => [a.id, a.applicants?.email ?? null]),
       );
       return { templateMap, applicantEmailMap };
     },
