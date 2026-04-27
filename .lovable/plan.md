@@ -1,88 +1,86 @@
-# Phase 6 — Tab 4 Integrasjoner (Phase A + B)
+# Phase 8 — Applicant Edit UI
 
-Build the Integrasjoner admin tab as a unified hub with three sections plus an observability log. Lead-kilder is fully functional; Utgående and Autentisering render real "Kommer snart" cards. Lays the schema/UI foundation for the Meta Lead Ads webhook handler shipping in Phase C.
+Closes the missing edit gap from Phase 7. All edits flow through Phase 7's audit triggers automatically; no manual audit logging in mutations.
 
-## Schema migration
+## Discovery confirmations
 
-File: `supabase/migrations/<ts>_phase_6_integrations_foundation.sql`
+- `applicants` schema matches spec: all 17 listed fields exist (incl. `gdpr_consent_at`, `external_id`, `source_details`, `metadata`).
+- `applicant_notes` has `updated_at` → UPDATE/DELETE will be audit-captured.
+- `applicant_files` has NO `updated_at` → reclassify UPDATE will succeed but won't trigger audit (acceptable per spec; DELETE is captured).
+- Existing files confirmed at `src/components/dashboard/recruitment/applicants/`: `ApplicantProfile.tsx`, `ApplicantInfoCard.tsx`, `ApplicantNotesTab.tsx`, `ApplicantFilesTab.tsx`, `CreateApplicantDialog.tsx`, `useApplicantProfile.ts`.
+- `CreateApplicantDialog` uses plain `useState` — staying as-is. New `EditApplicantDialog` introduces RHF+zod (one-time pattern migration for applicant code).
+- Source options in existing dialog: `manual / referral / website / finn` (will extend to include `csv_import / meta_lead_ad / other` for editing parity).
 
-1. **`recruitment_meta_integrations`** — per-org Meta page connection (page_id, page_name, page_access_token, verify_token, status enum, last_event_at, audit cols). UNIQUE(org, page_id). RLS: org admins/super_admins via `organization_memberships`.
-2. **`recruitment_meta_form_mappings`** — form_id → position_id mappings under an integration. UNIQUE(integration_id, form_id). Same RLS.
-3. **`recruitment_lead_ingestion_log`** — observability for all inbound leads (source, external_id, status, applicant_id, error_message, raw_payload). RLS SELECT for org admins; INSERT only by service role.
-4. **`applicants.external_id`** column + partial UNIQUE index `(organization_id, external_id) WHERE external_id IS NOT NULL` for dedup.
-5. **`applicants_source_check` constraint** — verified existing constraint is missing `'other'`. Migration will `DROP` and re-`ADD` with the full enum: `manual, csv_import, meta_lead_ad, finn, website, referral, other`.
-6. **Backfill**: `UPDATE applicants SET source_details = metadata, metadata = '{}'::jsonb WHERE source != 'manual' AND metadata IS NOT NULL AND metadata != '{}' AND (source_details IS NULL OR source_details = '{}')`.
-7. `updated_at` triggers on the two new mutable tables (reuse existing `update_updated_at_column()`).
+## Files to create
 
-Note on access token: stored plain in row, RLS-restricted. Encryption-at-rest deferred to Phase D — no pgsodium/vault tonight.
+### Hooks (`applicants/hooks/`)
+- `useUpdateApplicant.ts` — `UPDATE applicants`; maps Postgres `23505` email conflict → `EMAIL_CONFLICT` error; invalidates `['applicant', id]`, `['applicants']`, `['recruitment-audit-events']`.
+- `useUpdateApplicantNote.ts` — UPDATE on `applicant_notes` + insert `application_events` row with `event_type='note_edited'`.
+- `useDeleteApplicantNote.ts` — DELETE on `applicant_notes` + insert `application_events` `event_type='note_deleted'`.
+- `useDeleteApplicantFile.ts` — Storage `.remove([storage_path])` first; if OK, DELETE row; insert `application_events` `event_type='file_deleted'` with `file_name` in `event_data`. On storage failure: surface toast, abort (prefer orphan storage over orphan row).
+- `useReclassifyApplicantFile.ts` — UPDATE `file_type` on `applicant_files`; invalidate files cache.
 
-## Code changes
+### Edit dialogs (`applicants/edit/`)
+- `schema.ts` — zod schema for editable applicant fields (introduces RHF+zod pattern to applicant code).
+- `EditApplicantDialog.tsx` — RHF+zod, all editable fields, 2-column grid, sections: Kontaktinfo / Kvalifikasjoner / Tilgjengelighet / GDPR. Read-only fields shown as muted display.
+- `GDPRRevocationDialog.tsx` — Typed-confirmation pattern, exact match `"I forstår at samtykke trekkes"` to enable Save. On confirm: `gdpr_consent=false`, `gdpr_consent_at=null`.
+- `SourceChangeWarningDialog.tsx` — Warning with from→to display + "Endre kilde" / "Avbryt".
 
-### Modify
-- **`src/pages/admin/RecruitmentAdmin.tsx`** — replace `<PlaceholderTab>` for `tab='integrations'` with `<IntegrationsTab />`.
-- **`src/components/dashboard/recruitment/import/useImport.ts`** — change applicant INSERT to write `source_details: row.metadata` instead of `metadata: row.metadata` (keep metadata unset/empty).
+### Inline edit (`applicants/inline/`)
+- `InlineEditField.tsx` — Reusable controlled input (text/number/date/select/multiselect). Enter/blur saves, Esc cancels, "Lagrer…" indicator while pending, revert on error.
+- `InlineEditableRow.tsx` — Hover reveals pencil icon; click swaps row to edit mode. Intercepts `source` (→ SourceChangeWarningDialog) and `gdpr_consent` true→false (→ GDPRRevocationDialog) before save.
 
-### Create (under `src/components/dashboard/recruitment/admin/integrations/`)
+### Notes (`applicants/notes/`)
+- `EditNoteDialog.tsx` — Textarea + `note_type` select prefilled.
+- `DeleteNoteConfirmDialog.tsx` — AlertDialog confirm.
 
-```text
-integrations/
-  IntegrationsTab.tsx               // header + 3 sections + log panel
-  types.ts                          // MetaIntegration, FormMapping, LeadIngestionLogEntry
-  sections/
-    LeadSourcesSection.tsx          // CSV + Meta + Finn (coming soon)
-    OutboundSection.tsx             // Slack, Teams, Calendar, ATS — coming soon
-    AuthenticationSection.tsx       // Google SSO, Entra ID — coming soon
-  cards/
-    CSVImportCard.tsx               // stats + link to /recruitment/import
-    MetaLeadAdsCard.tsx             // 2 states (not configured / configured)
-    ComingSoonCard.tsx              // reusable placeholder
-  meta/
-    MetaConnectionDialog.tsx        // create/edit; webhook URL + verify_token display
-    MetaFormMappingDialog.tsx       // CRUD form_id↔position mappings
-  log/
-    LeadIngestionLogPanel.tsx       // paginated table, empty state
-    LeadIngestionLogRow.tsx
-  hooks/
-    useMetaIntegration.ts           // refetchOnMount: 'always'
-    useFormPositionMappings.ts
-    useLeadIngestionLog.ts          // refetchOnMount: 'always', staleTime 30s
-```
+### Files (`applicants/files/`)
+- `DeleteFileConfirmDialog.tsx` — AlertDialog with file name displayed.
+- `ReclassifyFileDialog.tsx` — Select for new `file_type` (cv / cover_letter / certificate / id_doc / other).
 
-## UI behaviour highlights
+## Files to modify
 
-- **CSVImportCard**: shows count of `applicants` where `source IN ('csv_import','meta_lead_ad')` and most-recent `created_at`. Button navigates to existing `/recruitment/import` wizard.
-- **MetaLeadAdsCard**:
-  - No row → "Ikke koblet" + "+ Koble til Meta-side".
-  - Row exists → status badge maps `configured`→amber "Klar for kobling", `connected`→green, `disconnected`→gray, `error`→red. Stats from ingestion log. Buttons: "Administrer skjemaer", "Vis tilkoblingsdetaljer".
-- **MetaConnectionDialog**: Sheet (right slide), parent-mounted. Fields: page_name, page_id (numeric), page_access_token (masked), read-only webhook URL `${SUPABASE_URL}/functions/v1/meta-lead-webhook`, read-only verify_token (UUID generated client-side on first save, "Regenerer" button). Norwegian collapsible setup instructions for Meta Developer Portal.
-- **MetaFormMappingDialog**: Sheet, parent-mounted. List of mappings; each row editable form_name/form_id/position select (open positions only)/active toggle/delete. "+ Legg til skjema".
-- **LeadIngestionLogPanel**: Table (Kilde, Status, Søker, Tidspunkt, Feilmelding). 50/page pagination. Empty state copy: "Ingen leads mottatt ennå. Når Meta Lead Ads er tilkoblet, vil leads vises her." Applicant names enriched in-memory from a single `applicants` query (no nested PostgREST — Phase 3/4 pattern).
-- **Coming-soon cards**: render real `Card` with disabled CTA and `IntegrationStatusBadge status="not-configured"`.
+- `ApplicantProfile.tsx` — Add "Rediger søker" button in header; mount `EditApplicantDialog` at parent level (state: `editDialogOpen`).
+- `ApplicantInfoCard.tsx` — Wrap editable rows in `InlineEditableRow`. Static rows: `external_id`, `source_details`, `created_at`, `updated_at`, `id`, `organization_id`.
+- `ApplicantNotesTab.tsx` — Per-note hover Edit/Delete actions; mount `EditNoteDialog` + `DeleteNoteConfirmDialog` at parent level with `selectedNote` state.
+- `ApplicantFilesTab.tsx` — Per-file `DropdownMenu` (Last ned / Endre type / Slett); use `modal={false}` on DropdownMenu (Phase 2 lesson); mount `ReclassifyFileDialog` + `DeleteFileConfirmDialog` at parent level.
 
-## Stability/regression rules applied
+## Landmine handling
 
-- All dialogs mounted at the parent component (Phase 2 lesson) — open/close handlers passed down.
-- Any `DropdownMenu` inside dialogs uses `modal={false}`.
-- All new query hooks use `refetchOnMount: 'always'` (Phase 3/5b cache lesson) so admins see fresh state on tab navigation.
-- Foreign-key joins avoided in queries; in-memory enrichment with separate `applicants` lookup (Phase 4/5b lesson).
-- `useImport.ts` retains existing batch/dedup/event behaviour — only the destination column changes.
+| Landmine | Handling |
+|---|---|
+| Email uniqueness (23505) | Catch in `useUpdateApplicant`, throw `EMAIL_CONFLICT`, dialog/inline shows toast `"E-post er allerede i bruk på en annen søker"` |
+| Source change | `InlineEditableRow` and `EditApplicantDialog` intercept submit when `source` differs → `SourceChangeWarningDialog` → confirm proceeds |
+| GDPR true→false | Intercept toggle/submit → `GDPRRevocationDialog` typed-confirmation → save sets `gdpr_consent_at=null` |
+| `applicant_files` reclassify not audit-captured | Accepted; metadata-only change |
+| Storage delete failure | Toast error, do NOT delete DB row |
 
-## Verification (post-build)
+## Stability rules applied
 
-1. Migration applies; three new tables present; `applicants.external_id` + partial unique index present; updated source CHECK includes `other`.
-2. Backfill row count reported (`UPDATE … RETURNING` count or follow-up `SELECT count(*)`).
-3. `/admin/recruitment?tab=integrations` renders new hub; all three sections visible; coming-soon cards render with proper titles.
-4. CSVImportCard stats match DB; button navigates to `/recruitment/import`.
-5. Meta create flow: open dialog → fill → save → card flips to "Klar for kobling" amber. Reload preserves state.
-6. Form mapping dialog: add mapping with form_id "12345" + open position → persists across reload.
-7. LeadIngestionLogPanel renders empty state with zero rows.
-8. New CSV import writes row data into `source_details` (not `metadata`).
-9. TypeScript compiles cleanly; no body-style leaks after dialog open/close cycles.
+- All dialogs mounted at parent level (Phase 2 regression lesson).
+- DropdownMenu in `ApplicantFilesTab` uses `modal={false}`.
+- All applicant mutations invalidate `['recruitment-audit-events']` so Tab 5 timeline reflects changes.
+- Inline edit uses controlled-input pattern (RHF overkill for single-field edits).
+- `CreateApplicantDialog` not refactored (separate cleanup later).
 
-## Out of scope (deferred to Phase C)
+## Verification (post-implementation)
 
-- `meta-lead-webhook` edge function (HMAC verify, Graph API fetch, applicant upsert)
-- Meta app review submission
-- Live Meta ingestion testing
-- Field mapping UI for Meta custom questions
-- Token encryption-at-rest (Phase D)
+Run through 17-point checklist from spec:
+1–8: EditApplicantDialog flow (open, edit phone, save, audit captured, source change warning, validation disabled save, email conflict toast).
+9–12: Inline edit (hover pencil, click→edit, Enter saves, Esc cancels).
+13–15: GDPR revocation (typed confirm, exact match, consent_at cleared, audit captured).
+16–17: Notes edit/delete; Files reclassify/delete (storage + DB).
+Body style regression: open/close every dialog, verify no stuck `pointer-events: none`.
+
+`npx tsc --noEmit` must pass clean.
+
+## Reply after implementation
+
+1. New files list
+2. Modified files list
+3. Full code: `EditApplicantDialog.tsx`
+4. Full code: `GDPRRevocationDialog.tsx`
+5. Full code: `useUpdateApplicant.ts`
+6. TypeScript clean confirmation
+7. Confirmation all dialogs parent-mounted
+8. Confirmation `modal={false}` on files DropdownMenu

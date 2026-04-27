@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { nb } from 'date-fns/locale';
-import { Loader2, MessageSquare } from 'lucide-react';
+import { Loader2, MessageSquare, MoreVertical } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -14,8 +14,16 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
-import { useAddApplicantNote, useApplicantNotes } from './useApplicantProfile';
+import { useAddApplicantNote, useApplicantNotes, type ApplicantNote } from './useApplicantProfile';
+import EditNoteDialog from './notes/EditNoteDialog';
+import DeleteNoteConfirmDialog from './notes/DeleteNoteConfirmDialog';
 
 interface Props {
   applicantId: string;
@@ -38,6 +46,8 @@ const ApplicantNotesTab: React.FC<Props> = ({ applicantId, applicationId }) => {
   const addMut = useAddApplicantNote();
   const [content, setContent] = useState('');
   const [type, setType] = useState('internal');
+  const [editNote, setEditNote] = useState<ApplicantNote | null>(null);
+  const [deleteNote, setDeleteNote] = useState<ApplicantNote | null>(null);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -103,7 +113,7 @@ const ApplicantNotesTab: React.FC<Props> = ({ applicantId, applicationId }) => {
       ) : (
         <div className="space-y-3">
           {notes.map((note) => (
-            <Card key={note.id}>
+            <Card key={note.id} className="group">
               <CardContent className="pt-4 space-y-2">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
@@ -121,12 +131,37 @@ const ApplicantNotesTab: React.FC<Props> = ({ applicantId, applicationId }) => {
                       {NOTE_TYPE_LABEL[note.note_type] ?? note.note_type}
                     </Badge>
                   </div>
-                  <span className="text-xs text-muted-foreground">
-                    {formatDistanceToNow(new Date(note.created_at), {
-                      addSuffix: true,
-                      locale: nb,
-                    })}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">
+                      {formatDistanceToNow(new Date(note.created_at), {
+                        addSuffix: true,
+                        locale: nb,
+                      })}
+                    </span>
+                    <DropdownMenu modal={false}>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                          aria-label="Handlinger"
+                        >
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onSelect={() => setEditNote(note)}>
+                          Rediger
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onSelect={() => setDeleteNote(note)}
+                          className="text-destructive focus:text-destructive"
+                        >
+                          Slett
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
                 </div>
                 <p className="text-sm text-foreground whitespace-pre-wrap">{note.content}</p>
               </CardContent>
@@ -134,6 +169,21 @@ const ApplicantNotesTab: React.FC<Props> = ({ applicantId, applicationId }) => {
           ))}
         </div>
       )}
+
+      <EditNoteDialog
+        open={!!editNote}
+        onOpenChange={(o) => {
+          if (!o) setEditNote(null);
+        }}
+        note={editNote}
+      />
+      <DeleteNoteConfirmDialog
+        open={!!deleteNote}
+        onOpenChange={(o) => {
+          if (!o) setDeleteNote(null);
+        }}
+        note={deleteNote}
+      />
     </div>
   );
 };

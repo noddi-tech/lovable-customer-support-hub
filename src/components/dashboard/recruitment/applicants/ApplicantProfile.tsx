@@ -5,6 +5,7 @@ import {
   ChevronDown,
   Mail,
   MapPin,
+  Pencil,
   Phone,
   Plus,
   UserCheck,
@@ -39,6 +40,7 @@ import {
   useAssignApplication,
 } from './useApplicantProfile';
 import { useTeamMembers } from '@/hooks/useTeamMembers';
+import EditApplicantDialog from './edit/EditApplicantDialog';
 
 const ApplicantProfile: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -59,6 +61,7 @@ const ApplicantProfile: React.FC = () => {
 
   const [tab, setTab] = useState('overview');
   const [logOpen, setLogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   if (isLoading) {
     return (
@@ -161,6 +164,10 @@ const ApplicantProfile: React.FC = () => {
                 Ring
               </span>
             )}
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setEditDialogOpen(true)}>
+            <Pencil />
+            Rediger søker
           </Button>
 
           <DropdownMenu>
@@ -307,6 +314,12 @@ const ApplicantProfile: React.FC = () => {
         onConfirmSend={() => automation.confirmMoveAndSend()}
         onConfirmSkip={(reason) => automation.confirmMoveSkipExternal(reason)}
         onCancel={automation.cancelMove}
+      />
+
+      <EditApplicantDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        applicant={applicant}
       />
     </div>
   );
