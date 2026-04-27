@@ -315,6 +315,12 @@ const ApplicantProfile: React.FC = () => {
         onConfirmSkip={(reason) => automation.confirmMoveSkipExternal(reason)}
         onCancel={automation.cancelMove}
       />
+
+      <EditApplicantDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        applicant={applicant}
+      />
     </div>
   );
 };
