@@ -23,6 +23,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { TRIGGER_LABELS } from '../types';
 import { useApplicantsSearch } from './hooks/useApplicantsSearch';
+import { useRuleCountByTrigger } from './hooks/useRuleCountByTrigger';
 import { useStages } from './hooks/useStages';
 import type { ApplicantSearchResult, DryRunTriggerType } from './types';
 import { getApplicantDisplayName } from './types';
@@ -70,6 +71,7 @@ export function DryRunForm({
   const [searchQuery, setSearchQuery] = useState('');
   const { data: stages, isLoading: stagesLoading } = useStages();
   const { data: applicants, isLoading: applicantsLoading } = useApplicantsSearch(searchQuery);
+  const { data: ruleCounts = {} } = useRuleCountByTrigger();
 
   useEffect(() => {
     if (!searchOpen) {
@@ -96,11 +98,17 @@ export function DryRunForm({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {(Object.keys(TRIGGER_LABELS) as DryRunTriggerType[]).map((key) => (
-                <SelectItem key={key} value={key}>
-                  {TRIGGER_LABELS[key]}
-                </SelectItem>
-              ))}
+              {(Object.keys(TRIGGER_LABELS) as DryRunTriggerType[]).map((key) => {
+                const count = ruleCounts[key] ?? 0;
+                return (
+                  <SelectItem key={key} value={key}>
+                    {TRIGGER_LABELS[key]}
+                    <span className="ml-2 text-sm text-muted-foreground">
+                      ({count} {count === 1 ? 'regel' : 'regler'})
+                    </span>
+                  </SelectItem>
+                );
+              })}
             </SelectContent>
           </Select>
         </div>
