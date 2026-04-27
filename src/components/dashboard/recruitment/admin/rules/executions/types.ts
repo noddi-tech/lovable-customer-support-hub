@@ -1,6 +1,6 @@
 import type { Json } from '@/integrations/supabase/types';
 
-export type ExecutionStatus = 'success' | 'partial' | 'failed' | 'dry_run';
+export type ExecutionStatus = 'success' | 'partial' | 'failed' | 'dry_run' | 'skipped' | 'pending';
 
 export interface ActionResultItem {
   action_type?: string;
@@ -20,6 +20,8 @@ export interface ActionResultItem {
   http_status?: number | null;
   response_body?: string | null;
   output?: Record<string, unknown> | null;
+  skipped?: boolean | null;
+  skip_reason?: string | null;
 }
 
 export interface AutomationExecution {
@@ -38,6 +40,7 @@ export interface AutomationExecution {
   created_at: string;
   duration_ms: number | null;
   is_dry_run: boolean;
+  skip_reason?: string | null;
   applicant_name?: string | null;
   triggered_by_name?: string | null;
   acknowledged_by_name?: string | null;
