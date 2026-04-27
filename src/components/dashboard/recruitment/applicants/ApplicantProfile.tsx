@@ -5,6 +5,7 @@ import {
   ChevronDown,
   Mail,
   MapPin,
+  Pencil,
   Phone,
   Plus,
   UserCheck,
@@ -39,6 +40,7 @@ import {
   useAssignApplication,
 } from './useApplicantProfile';
 import { useTeamMembers } from '@/hooks/useTeamMembers';
+import EditApplicantDialog from './edit/EditApplicantDialog';
 
 const ApplicantProfile: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -59,6 +61,7 @@ const ApplicantProfile: React.FC = () => {
 
   const [tab, setTab] = useState('overview');
   const [logOpen, setLogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   if (isLoading) {
     return (
