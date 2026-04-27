@@ -345,6 +345,7 @@ export type Database = {
           created_at: string
           drivers_license_classes: string[]
           email: string
+          external_id: string | null
           first_name: string
           gdpr_consent: boolean
           gdpr_consent_at: string | null
@@ -368,6 +369,7 @@ export type Database = {
           created_at?: string
           drivers_license_classes?: string[]
           email: string
+          external_id?: string | null
           first_name: string
           gdpr_consent?: boolean
           gdpr_consent_at?: string | null
@@ -391,6 +393,7 @@ export type Database = {
           created_at?: string
           drivers_license_classes?: string[]
           email?: string
+          external_id?: string | null
           first_name?: string
           gdpr_consent?: boolean
           gdpr_consent_at?: string | null
@@ -3568,6 +3571,185 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "recruitment_email_templates_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recruitment_lead_ingestion_log: {
+        Row: {
+          applicant_id: string | null
+          created_at: string
+          error_message: string | null
+          external_id: string | null
+          id: string
+          integration_id: string | null
+          organization_id: string
+          raw_payload: Json | null
+          source: string
+          status: string
+        }
+        Insert: {
+          applicant_id?: string | null
+          created_at?: string
+          error_message?: string | null
+          external_id?: string | null
+          id?: string
+          integration_id?: string | null
+          organization_id: string
+          raw_payload?: Json | null
+          source: string
+          status: string
+        }
+        Update: {
+          applicant_id?: string | null
+          created_at?: string
+          error_message?: string | null
+          external_id?: string | null
+          id?: string
+          integration_id?: string | null
+          organization_id?: string
+          raw_payload?: Json | null
+          source?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recruitment_lead_ingestion_log_applicant_id_fkey"
+            columns: ["applicant_id"]
+            isOneToOne: false
+            referencedRelation: "applicants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recruitment_lead_ingestion_log_integration_id_fkey"
+            columns: ["integration_id"]
+            isOneToOne: false
+            referencedRelation: "recruitment_meta_integrations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recruitment_lead_ingestion_log_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recruitment_meta_form_mappings: {
+        Row: {
+          created_at: string
+          form_id: string
+          form_name: string | null
+          id: string
+          integration_id: string
+          is_active: boolean
+          organization_id: string
+          position_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          form_id: string
+          form_name?: string | null
+          id?: string
+          integration_id: string
+          is_active?: boolean
+          organization_id: string
+          position_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          form_id?: string
+          form_name?: string | null
+          id?: string
+          integration_id?: string
+          is_active?: boolean
+          organization_id?: string
+          position_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recruitment_meta_form_mappings_integration_id_fkey"
+            columns: ["integration_id"]
+            isOneToOne: false
+            referencedRelation: "recruitment_meta_integrations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recruitment_meta_form_mappings_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recruitment_meta_form_mappings_position_id_fkey"
+            columns: ["position_id"]
+            isOneToOne: false
+            referencedRelation: "job_positions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recruitment_meta_integrations: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          last_event_at: string | null
+          organization_id: string
+          page_access_token: string | null
+          page_id: string
+          page_name: string
+          status: string
+          status_message: string | null
+          updated_at: string
+          verify_token: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          last_event_at?: string | null
+          organization_id: string
+          page_access_token?: string | null
+          page_id: string
+          page_name: string
+          status?: string
+          status_message?: string | null
+          updated_at?: string
+          verify_token: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          last_event_at?: string | null
+          organization_id?: string
+          page_access_token?: string | null
+          page_id?: string
+          page_name?: string
+          status?: string
+          status_message?: string | null
+          updated_at?: string
+          verify_token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recruitment_meta_integrations_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recruitment_meta_integrations_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"

@@ -78,7 +78,8 @@ export function useBulkCreateApplicants() {
               gdpr_consent_at: input.gdprConfirmed ? new Date().toISOString() : null,
               drivers_license_classes: row.drivers_license_classes,
               years_experience: row.years_experience,
-              metadata: row.metadata,
+              source_details: row.metadata,
+              metadata: {},
             })
             .select('id')
             .single();

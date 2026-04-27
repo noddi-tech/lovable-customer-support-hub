@@ -7,6 +7,7 @@ import { Workflow, Mail, Zap, Link2, History } from "lucide-react";
 import { PipelineEditor } from "@/components/dashboard/recruitment/admin/pipeline/PipelineEditor";
 import { EmailTemplatesTab } from "@/components/dashboard/recruitment/admin/templates/EmailTemplatesTab";
 import { RulesTab } from "@/components/dashboard/recruitment/admin/rules/RulesTab";
+import { IntegrationsTab } from "@/components/dashboard/recruitment/admin/integrations/IntegrationsTab";
 import { FailureBanner } from "@/components/dashboard/recruitment/admin/FailureBanner";
 import { useExecutionRealtimeToast } from "@/components/dashboard/recruitment/admin/hooks/useExecutionRealtimeToast";
 
@@ -75,10 +76,7 @@ export default function RecruitmentAdmin() {
           <RulesTab />
         </TabsContent>
         <TabsContent value="integrations">
-          <PlaceholderTab
-            title="Integrasjoner"
-            description="Koble til Finn.no, Meta Lead Ads og andre kilder for innkommende søknader."
-          />
+          <IntegrationsTab />
         </TabsContent>
         <TabsContent value="audit">
           <PlaceholderTab
