@@ -1,234 +1,147 @@
+Fix the two dry-run hooks that query a non-existent table (`recruitment_pipeline_stages`). Stages live as a JSONB array on `recruitment_pipelines.stages` for the org's default pipeline.
 
-Implement Phase 4 by adding a third Automation sub-tab, `Test-kjøring`, with a form-driven dry-run flow that calls the existing `execute_automation_rules(..., p_dry_run=true)` RPC and renders inline simulation results without side effects.
+## Files to modify
 
-## What will be built
+- `src/components/dashboard/recruitment/admin/rules/dryrun/hooks/useStages.ts`
+- `src/components/dashboard/recruitment/admin/rules/dryrun/hooks/useApplicantsSearch.ts`
 
-### 1. Extend Automation sub-tabs in `RulesTab`
-Update the existing URL-driven sub-tab logic to support:
+## Fix 1: `useStages.ts`
 
-- `rules`
-- `log`
-- `dry-run`
+Replace the table query with a JSONB extraction.
 
-Changes:
-- add a third trigger: `Test-kjøring`
-- preserve existing `tab=automation`
-- keep unrelated search params intact
-- render `DryRunPanel` when `subtab=dry-run`
-- deep-linking to `?tab=automation&subtab=dry-run` should open the dry-run UI directly
+```ts
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useOrganizationStore } from '@/stores/organizationStore';
+import type { StageOption } from '../types';
 
-### 2. New `dryrun/` feature folder
-Create:
+export function useStages() {
+  const orgId = useOrganizationStore((s) => s.currentOrganizationId);
+  const db = supabase as any;
 
-```text
-src/components/dashboard/recruitment/admin/rules/dryrun/
-  DryRunPanel.tsx
-  DryRunForm.tsx
-  DryRunResults.tsx
-  DryRunResultCard.tsx
-  hooks/
-    useDryRunMutation.ts
-    useApplicantsSearch.ts
-    useStages.ts
-  types.ts
+  return useQuery({
+    queryKey: ['recruitment-automation-dry-run-stages', orgId],
+    queryFn: async (): Promise<StageOption[]> => {
+      const { data, error } = await db
+        .from('recruitment_pipelines')
+        .select('stages')
+        .eq('organization_id', orgId!)
+        .eq('is_default', true)
+        .maybeSingle();
+
+      if (error) throw error;
+      if (!data?.stages || !Array.isArray(data.stages)) return [];
+
+      return (data.stages as any[])
+        .slice()
+        .sort((a, b) => (a?.order ?? 0) - (b?.order ?? 0))
+        .map((stage) => ({
+          id: String(stage.id),
+          name: String(stage.name ?? ''),
+          color: stage.color ?? null,
+          order_index: Number(stage.order ?? 0),
+        })) as StageOption[];
+    },
+    enabled: !!orgId,
+    staleTime: 1000 * 60 * 5,
+  });
+}
 ```
 
-### 3. `DryRunPanel` container
-This component will own all user-facing state:
+Notes:
+- `.maybeSingle()` instead of `.single()` so missing default pipeline returns null without throwing.
+- Sort defensively by `order` field (the JSONB stage shape).
+- Map to existing `StageOption` interface (`id`, `name`, `color`, `order_index`).
 
-- `triggerType` defaulting to `stage_entered`
-- `stageId`
-- `applicantId`
-- selected applicant object for display in the combobox
-- latest results from the RPC
-- cleared/idle/success/error flow handling
+## Fix 2: `useApplicantsSearch.ts`
 
-Layout:
-- title
-- short explanation that this simulates automation with no side effects
-- note that results are also written to `Utførelseslogg` with `Test-kjøring` badge
-- `DryRunForm`
-- `DryRunResults`
+Replace the second `recruitment_pipeline_stages` lookup with a single fetch of the org's default pipeline's `stages` JSONB, then build an in-memory id → {name, color} map for enrichment.
 
-Behavior:
-- preserve form values after each run
-- `Tøm` resets inputs and clears results
-- rerunning replaces previous results with new results
+```ts
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useOrganizationStore } from '@/stores/organizationStore';
+import { sanitizeForPostgrest } from '@/utils/queryUtils';
+import type { ApplicantSearchResult } from '../types';
 
-### 4. `DryRunForm` inputs
-Build a compact form with:
+export function useApplicantsSearch(query: string) {
+  const orgId = useOrganizationStore((s) => s.currentOrganizationId);
+  const normalizedQuery = query.trim();
+  const db = supabase as any;
 
-#### Trigger type
-Use the same labels already defined in recruitment automation types for consistency:
-- `Søker bytter til en fase`
-- `Ny søknad opprettes`
+  return useQuery({
+    queryKey: ['recruitment-automation-dry-run-applicants', orgId, normalizedQuery],
+    queryFn: async (): Promise<ApplicantSearchResult[]> => {
+      const safeQuery = sanitizeForPostgrest(normalizedQuery);
+      if (!safeQuery) return [];
 
-#### Conditional stage picker
-Only show when trigger type is `stage_entered`.
-- load real stages from DB
-- required only in this trigger mode
+      const { data: applicants, error: applicantsError } = await db
+        .from('applicants')
+        .select('id, first_name, last_name, email, applications(current_stage_id)')
+        .eq('organization_id', orgId!)
+        .or(`first_name.ilike.%${safeQuery}%,last_name.ilike.%${safeQuery}%,email.ilike.%${safeQuery}%`)
+        .order('created_at', { ascending: false })
+        .limit(20);
 
-#### Applicant searchable picker
-Use the existing `Popover + Command` pattern from the UI library:
-- search opens in a popover
-- query starts searching at 2+ characters
-- results show applicant name, email, and current stage
-- selected value remains visible after run
-- applicant is required
+      if (applicantsError) throw applicantsError;
 
-#### Buttons
-- `Kjør test`: disabled while pending or missing required fields
-- `Tøm`: clears form and results
+      const { data: pipeline, error: pipelineError } = await db
+        .from('recruitment_pipelines')
+        .select('stages')
+        .eq('organization_id', orgId!)
+        .eq('is_default', true)
+        .maybeSingle();
 
-### 5. `useApplicantsSearch`
-Create a search hook for the applicant combobox.
+      if (pipelineError) throw pipelineError;
 
-Query behavior:
-- search `applicants` by `first_name`, `last_name`, and `email`
-- scope by current organization
-- limit to 20
-- only run when org exists and query length >= 2
-- override query freshness for search UX:
-  - `staleTime: 30_000`
-  - `refetchOnMount: 'always'`
+      const stageMap = new Map<string, { name: string; color: string | null }>();
+      if (pipeline?.stages && Array.isArray(pipeline.stages)) {
+        (pipeline.stages as any[]).forEach((stage) => {
+          if (stage?.id) {
+            stageMap.set(String(stage.id), {
+              name: String(stage.name ?? ''),
+              color: stage.color ?? null,
+            });
+          }
+        });
+      }
 
-To show current stage labels:
-- fetch matching applicants first
-- collect distinct `current_stage_id` values from `applications`
-- fetch matching rows from `recruitment_pipeline_stages`
-- map stage names/colors in memory
-- return a typed list ready for the combobox UI
+      return ((applicants ?? []) as any[]).map((applicant: any) => {
+        const currentStageId = applicant.applications?.[0]?.current_stage_id ?? null;
+        const currentStage = currentStageId ? stageMap.get(String(currentStageId)) : null;
 
-### 6. `useStages`
-Create a small hook for the conditional stage dropdown:
-- query `recruitment_pipeline_stages`
-- order by `order_index`
-- scope by current organization
-- use longer cache lifetime since stages change rarely
+        return {
+          id: applicant.id,
+          first_name: applicant.first_name ?? null,
+          last_name: applicant.last_name ?? null,
+          email: applicant.email ?? null,
+          current_stage_id: currentStageId,
+          current_stage_name: currentStage?.name ?? null,
+          current_stage_color: currentStage?.color ?? null,
+        } satisfies ApplicantSearchResult;
+      });
+    },
+    enabled: !!orgId && normalizedQuery.length >= 2,
+    staleTime: 30_000,
+    refetchOnMount: 'always',
+  });
+}
+```
 
-### 7. `useDryRunMutation`
-Wrap the RPC call in a mutation.
-
-RPC contract to use:
-- `p_trigger_type`
-- `p_trigger_context`
-- `p_dry_run: true`
-
-Trigger context payload:
-- always include `organization_id`
-- always include `applicant_id`
-- include `to_stage_id` only for `stage_entered`
-
-On success:
-- return typed result rows
-- invalidate `['recruitment-automation-executions', orgId]` so log tab can pick up new dry-run rows
-- do not invalidate failure count
-
-On error:
-- surface the error back to the panel/results UI
-
-### 8. Inline results rendering
-`DryRunResults` will support five states:
-
-1. Idle:
-   - subtle placeholder or no output
-
-2. Pending:
-   - spinner + `Kjører test...`
-
-3. Error:
-   - destructive alert with backend error text
-
-4. Success with 0 rows:
-   - info state:
-   - `Ingen regler matchet dette scenariet`
-
-5. Success with 1+ rows:
-   - render one `DryRunResultCard` per matched rule
-
-### 9. `DryRunResultCard`
-Render each matched rule as a standalone card, mirroring the structure of the execution detail UI where practical.
-
-Show:
-- rule name
-- overall status badge
-- duration in ms
-- action-by-action breakdown from `action_results`
-
-Language should clearly indicate simulation:
-- `Ville sendt e-post`
-- `Ville tildelt ansvarlig`
-- `Ville kalt webhook`
-
-If the engine returns actual failure states during dry-run, display them faithfully:
-- status badge should reflect returned `overall_status`
-- per-action failures should show the error message
-
-Footer action:
-- `Åpne i utførelseslogg`
-- link to `?tab=automation&subtab=log`
-- no row-highlighting dependency required for v1
-
-## Design/behavior constraints
-
-- Preserve Phase 3 execution-log behavior unchanged.
-- Failure banner must continue excluding dry-run rows; current `useFailureCount` already filters `is_dry_run = false`.
-- Avoid stacked modal overlays.
-- For applicant search, use `Popover`/`Command`, not `DropdownMenu`.
-- No `modal={false}` change should be necessary in this phase because:
-  - `Popover` is already the intended non-stacked pattern here
-  - no drawer/dialog is mounted from inside the popover flow
-
-## Technical details
-
-### Existing patterns to reuse
-- Trigger labels already exist in `src/components/dashboard/recruitment/admin/rules/types.ts`
-- Execution status rendering helpers already exist under `rules/executions/types.ts`
-- The app already uses React Query with local persistence, so hook-level freshness overrides should be applied where interactive search needs it
-- `FailureBanner` already excludes dry-run rows via:
-  - `overall_status = 'failed'`
-  - `is_dry_run = false`
-  - `acknowledged_at IS NULL`
-
-### RPC typing
-The generated Supabase types already define:
-- `execute_automation_rules`
-- args:
-  - `p_trigger_type: string`
-  - `p_trigger_context: Json`
-  - `p_dry_run?: boolean`
-- returns rows with:
-  - `rule_id`
-  - `rule_name`
-  - `overall_status`
-  - `action_results`
-  - `duration_ms`
-  - `execution_id`
-
-### Data shape considerations
-`applications.current_stage_id` is stored on the `applications` table, not `applicants`, so applicant search should enrich applicant rows with current stage info via a second step rather than assuming a direct applicant column.
+Notes:
+- Single pipeline fetch per applicant search (small JSONB blob, fine).
+- Removes the broken `.in('id', stageIds)` against the non-existent table.
+- Stage id comparison done as strings to match slug shape (`"qualified"` etc.).
 
 ## Verification
 
-1. Automatisering shows three sub-tabs: `Regler | Utførelseslogg | Test-kjøring`
-2. `?tab=automation&subtab=dry-run` opens the dry-run panel
-3. Trigger picker shows the Norwegian labels already used elsewhere
-4. Stage field appears only for `stage_entered`
-5. Stage field loads real DB stages
-6. Applicant search opens, filters at 2+ chars, and shows name + email + current stage
-7. `Kjør test` stays disabled until required fields are present
-8. Dry-run results render inline after execution
-9. 0-match state shows `Ingen regler matchet dette scenariet`
-10. Matched rules render as individual cards with clear `Ville ...` wording
-11. `Tøm` clears both form and results
-12. New dry-run rows appear in `Utførelseslogg`
-13. Failure banner count remains unchanged by dry-run activity
-14. Body styles remain clean during select/popover interactions
+1. `Hvilken fase` dropdown lists all default-pipeline stages in `order` ascending.
+2. Applicant typeahead shows correct stage badges with Norwegian names + colors.
+3. Selecting a stage and running dry-run completes without errors.
+4. TypeScript compiles cleanly (uses existing `StageOption` and `ApplicantSearchResult` types unchanged; `db = supabase as any` keeps PostgREST typing relaxed as elsewhere in the file).
 
 ## Reply after implementation
-Return exactly:
-1. File tree under `dryrun/`
-2. The `useDryRunMutation` hook
-3. The `useApplicantsSearch` hook
-4. Confirmation that failure banner count does not include dry_run rows
-5. Confirmation of Radix overlay pattern used in this phase
+
+1. Updated `useStages.ts` contents
+2. Updated stage-enrichment portion of `useApplicantsSearch.ts`
+3. Confirmation TypeScript compiles cleanly

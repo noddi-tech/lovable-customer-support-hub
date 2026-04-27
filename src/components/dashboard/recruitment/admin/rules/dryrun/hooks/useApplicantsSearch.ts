@@ -25,32 +25,31 @@ export function useApplicantsSearch(query: string) {
 
       if (applicantsError) throw applicantsError;
 
-      const stageIds = Array.from(
-        new Set(
-          ((applicants ?? []) as any[])
-            .flatMap((applicant: any) => applicant.applications ?? [])
-            .map((application: any) => application?.current_stage_id)
-            .filter((value: unknown): value is string => typeof value === 'string' && value.length > 0),
-        ),
-      );
+      // Stages live as a JSONB array on recruitment_pipelines.stages, not a separate table.
+      const { data: pipeline, error: pipelineError } = await db
+        .from('recruitment_pipelines')
+        .select('stages')
+        .eq('organization_id', orgId!)
+        .eq('is_default', true)
+        .maybeSingle();
 
-      const { data: stages, error: stagesError } = stageIds.length
-        ? await db
-            .from('recruitment_pipeline_stages')
-            .select('id, name, color')
-            .eq('organization_id', orgId!)
-            .in('id', stageIds)
-        : { data: [], error: null };
+      if (pipelineError) throw pipelineError;
 
-      if (stagesError) throw stagesError;
-
-      const stageMap = new Map(
-        ((stages ?? []) as any[]).map((stage) => [stage.id, { name: stage.name, color: stage.color ?? null }]),
-      );
+      const stageMap = new Map<string, { name: string; color: string | null }>();
+      if (pipeline?.stages && Array.isArray(pipeline.stages)) {
+        (pipeline.stages as any[]).forEach((stage) => {
+          if (stage?.id) {
+            stageMap.set(String(stage.id), {
+              name: String(stage.name ?? ''),
+              color: stage.color ?? null,
+            });
+          }
+        });
+      }
 
       return ((applicants ?? []) as any[]).map((applicant: any) => {
         const currentStageId = applicant.applications?.[0]?.current_stage_id ?? null;
-        const currentStage = currentStageId ? stageMap.get(currentStageId) : null;
+        const currentStage = currentStageId ? stageMap.get(String(currentStageId)) : null;
 
         return {
           id: applicant.id,

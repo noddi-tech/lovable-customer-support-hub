@@ -11,13 +11,24 @@ export function useStages() {
     queryKey: ['recruitment-automation-dry-run-stages', orgId],
     queryFn: async (): Promise<StageOption[]> => {
       const { data, error } = await db
-        .from('recruitment_pipeline_stages')
-        .select('id, name, color, order_index')
+        .from('recruitment_pipelines')
+        .select('stages')
         .eq('organization_id', orgId!)
-        .order('order_index', { ascending: true });
+        .eq('is_default', true)
+        .maybeSingle();
 
       if (error) throw error;
-      return (data ?? []) as unknown as StageOption[];
+      if (!data?.stages || !Array.isArray(data.stages)) return [];
+
+      return (data.stages as any[])
+        .slice()
+        .sort((a, b) => (a?.order ?? 0) - (b?.order ?? 0))
+        .map((stage) => ({
+          id: String(stage.id),
+          name: String(stage.name ?? ''),
+          color: stage.color ?? null,
+          order_index: Number(stage.order ?? 0),
+        })) as StageOption[];
     },
     enabled: !!orgId,
     staleTime: 1000 * 60 * 5,
