@@ -1,115 +1,78 @@
-# Phase 4 — Stage-move automation orchestration
+# Phase 5b — Recruitment automation polish
 
-Wire the automation engine into the kanban drag-end flow. Replace the current "notify by email/SMS/skip" prompt (`MoveStageDialog`) with an automation-aware confirmation dialog that only appears when **external** rules (email, webhook) match. Skips are first-class: they write `overall_status='skipped'` execution rows with optional reason, but never count toward the failure banner.
+Four independent improvements: resolve UUIDs to human names, capture "would-have" context on skip, surface rule counts on dry-run, and verify structured dry-run rendering.
 
-## Goal
+## Item 1 — Resolve UUIDs in StageMoveConfirmDialog
 
-When an agent drags an applicant between stages:
+**Problem:** When `action_config` only stores IDs (`template_id`, `user_id`), the modal shows raw UUIDs ("Send e-post: 'f600217f…'", "Tildel til 55194f13…").
 
-- **No matching rules** → move silently, no modal, no execution rows.
-- **Internal rules only** (`assign_to`) → move silently, fire internal rules, log success.
-- **External rules present** (`send_email`, `webhook`) → show confirmation modal. User chooses send / skip / cancel.
+**Fix in `src/components/dashboard/recruitment/pipeline/useStageMoveAutomation.ts`:**
+- Extend `MatchedRule` with optional `template_name` and `user_name` fields.
+- After `matchRulesRpc(ctx)` in `handleStageMove`, collect distinct `template_id`s (from `send_email` rules) and `user_id`s (from `assign_to` rules), run two parallel queries:
+  - `recruitment_email_templates` → `select('id, name').in('id', templateIds)`
+  - `profiles` → `select('id, full_name, email').in('id', userIds)`
+- Build maps and produce `enrichedMatched` with resolved names attached. Split that into `externalRules` / `internalRules`.
 
-## Technical plan
+**Fix in `src/components/dashboard/recruitment/pipeline/StageMoveConfirmDialog.tsx`:**
+- Update `describeAction`:
+  - `send_email` → use `rule.template_name`; fall back to plain `'Send e-post'` (no UUID).
+  - `assign_to` → use `rule.user_name`; fall back to `'Tildel ansvarlig'`.
 
-### 1. Migration `20260427_phase4_match_and_skip.sql`
+## Item 2 — Capture "would-have" context on skip
 
-a. **`is_external_action_type(action_type text) → boolean`** — pure SQL, returns `true` for `send_email`, `webhook`, `send_sms`; `false` for `assign_to`, `create_task`. Centralizes external/internal classification.
+**Problem:** Skipped executions log only `{skipped, skip_reason, action_type}` so the detail drawer shows URL/HTTP/Respons as "—".
 
-b. **`recruitment_automation_executions.skip_reason text`** — nullable column for the optional skip reason text from the agent.
+**New migration `supabase/migrations/<ts>_phase_5b_skip_context.sql`:**
+- Recreate `execute_automation_rules` (same signature) replacing the skip-array build with action-type-aware JSONB:
+  - `send_email`: `template_id`, `would_send_to_application_id`
+  - `webhook`: `url`, `method` (default `POST`)
+  - `send_sms`: `phone_template_id`
+  - All include `action_type`, `skipped:true`, `skip_reason`, `success:null`.
+- Keep the row-level `skip_reason` column for fast filtering. No backfill of legacy rows.
 
-c. **`match_automation_rules(p_organization_id, p_trigger_type, p_trigger_context) → setof rule_match`** — `SECURITY DEFINER`, scoped to caller's org via membership check. Returns matching active rules (id, name, action_type, action_config, is_external) without enqueuing or executing. Reuses `rule_matches_context`. Used by the client to decide whether to show the modal.
+**Fix in `src/components/dashboard/recruitment/admin/rules/executions/types.ts`:**
+- Extend `ActionResultItem` with optional `method`, `would_send_to_application_id`, `phone_template_id`.
 
-d. **`execute_automation_rules` update** — add new params:
-- `p_skip_external boolean default false`
-- `p_skip_reason text default null`
-- `p_only_rule_ids uuid[] default null` (allows confirm-and-send to target the exact rules surfaced in the modal)
+**Fix in `src/components/dashboard/recruitment/admin/rules/executions/ExecutionDetailDrawer.tsx`:**
+- When `execution.overall_status === 'skipped'` (or `action.skipped === true`), render an alternate `DetailGrid` per action type using the configured fields:
+  - `webhook` → `Ville kalt URL`, `Metode`
+  - `send_email` → `Mal` (resolved from `template_id`), `Mottaker` (applicant email if available)
+  - `assign_to` → `Ville tildelt` (resolved name)
+- Add a small `useQuery` inside the drawer to resolve `template_name` (from `recruitment_email_templates`) and `user_name` (from `profiles`) for the IDs present in `action_results` when the drawer opens.
+- Legacy skipped rows fall back to "—" gracefully.
 
-When `p_skip_external=true`, for each matched external rule the function writes an execution row directly with `overall_status='skipped'`, `skip_reason=p_skip_reason`, `action_results=jsonb_build_array(...)` of "would-have" entries — no queue insert, no edge-function call. Internal rules still execute synchronously as today.
+## Item 3 — Rule count next to trigger types in dry-run picker
 
-### 2. Action metadata (frontend)
+**New hook `src/components/dashboard/recruitment/admin/rules/dryrun/hooks/useRuleCountByTrigger.ts`:**
+- Query `recruitment_automation_rules` filtered by current organization and `is_active=true`, group counts by `trigger_type`. Returns `Record<string, number>`. `staleTime: 30_000`.
 
-`src/components/dashboard/recruitment/admin/rules/actionTypeMetadata.ts` — single source of truth used by both the kanban dialog and rule editor:
+**Fix in `src/components/dashboard/recruitment/admin/rules/dryrun/DryRunForm.tsx`:**
+- Use the hook and append `(N regel | regler)` to each `SelectItem` label. Norwegian pluralization: `1 → 'regel'`, else `'regler'`.
 
-```ts
-export const EXTERNAL_ACTION_TYPES = new Set(['send_email', 'webhook', 'send_sms']);
-export const isExternalAction = (t: string) => EXTERNAL_ACTION_TYPES.has(t);
-```
+## Item 4 — Verify structured dispatch_action rendering
 
-### 3. `useStageMoveAutomation` hook
+`DryRunResultCard.tsx` already reads from structured fields (`recipient`, `template_name`, `url`, `method`). Will run `rg "\.preview" src/components/dashboard/recruitment` to confirm no string-concat code paths remain. Expected outcome: **no fix needed**, just confirmation in reply. If anything turns up, replace with structured field reads using `getActionLabel` from `executions/types.ts`.
 
-New file: `src/components/dashboard/recruitment/pipeline/useStageMoveAutomation.ts`. Three internal mutations: `match_automation_rules` RPC, `execute_automation_rules` RPC, existing `move_application_stage` RPC. Exposes:
+## Files
 
-- `handleStageMove(params)` — called by kanban drag-end. Calls `match_automation_rules`. If zero external rules matched → `Promise.all([moveStage, executeInternal])`, no modal. Otherwise sets `pendingMove` state and the kanban renders the new modal.
-- `pendingMove` state (applicationId, fromStageId, toStageId, applicantName, externalRules[], internalRules[], stageName).
-- `confirmMoveAndSend(skipReason?)` → executes all matched rules + moves stage.
-- `confirmMoveSkipExternal(skipReason?)` → executes with `skip_external=true` + moves stage. Skipped rows logged.
-- `cancelMove()` → clears state; kanban handles optimistic revert.
+**New:**
+- `supabase/migrations/<ts>_phase_5b_skip_context.sql`
+- `src/components/dashboard/recruitment/admin/rules/dryrun/hooks/useRuleCountByTrigger.ts`
 
-### 4. `StageMoveConfirmDialog`
+**Edit:**
+- `src/components/dashboard/recruitment/pipeline/useStageMoveAutomation.ts`
+- `src/components/dashboard/recruitment/pipeline/StageMoveConfirmDialog.tsx`
+- `src/components/dashboard/recruitment/admin/rules/executions/ExecutionDetailDrawer.tsx`
+- `src/components/dashboard/recruitment/admin/rules/executions/types.ts`
+- `src/components/dashboard/recruitment/admin/rules/dryrun/DryRunForm.tsx`
 
-New file: `src/components/dashboard/recruitment/pipeline/StageMoveConfirmDialog.tsx`. Norwegian UI. Sections:
+## Out of scope
 
-- Title: `Flytt {applicantName} til {stageName}?`
-- "Følgende ekstern kommunikasjon vil sendes" — list each external rule with its action label (Send e-post: 'mal', Webhook → host).
-- If internal rules also match: "I tillegg kjører følgende uansett:" — list internal actions.
-- Optional `<Textarea>` "Grunn for å hoppe over (valgfritt)" — only used by the skip button.
-- Footer buttons: `Avbryt` (cancel), `Flytt uten å sende` (skip), `Flytt og send` (primary).
-
-### 5. `PipelineBoard` integration
-
-Edit `src/components/dashboard/recruitment/pipeline/PipelineBoard.tsx`:
-- Replace `MoveStageDialog` import + usage with `useStageMoveAutomation` + `StageMoveConfirmDialog`.
-- `handleDragEnd` keeps optimistic update, then calls `handleStageMove({...})` instead of opening the legacy notify dialog.
-- Cancel path invalidates query (reverts optimistic).
-
-### 6. Delete `MoveStageDialog`
-
-Remove `src/components/dashboard/recruitment/applicants/MoveStageDialog.tsx` (no other consumers — confirmed via `rg`). Existing `useUpdateApplicationStage` hook is still used inside the new orchestration hook to perform the actual stage move RPC.
-
-### 7. Execution log updates
-
-a. `src/components/dashboard/recruitment/admin/rules/executions/types.ts` — extend `ExecutionStatus` with `'skipped' | 'pending'`. Add `skip_reason` to `AutomationExecution`. Add status meta entry:
-```
-skipped: { label: 'Hoppet over', className: 'border-amber-300/40 bg-amber-50 text-amber-700' }
-```
-
-b. `ExecutionDetailDrawer.tsx` — when `overall_status === 'skipped'`:
-- Section heading becomes "Handlinger som ville blitt utført".
-- Each action card shows label + grey "Hoppet over" indicator (no success/fail badge).
-- Metadata adds `Grunn: {skip_reason ?? 'Ikke oppgitt'}`.
-- No retry button.
-
-c. `useFailureCount.ts` — already filters `overall_status='failed'`, so skipped is naturally excluded. Verify no change needed.
-
-### 8. `process-automation-queue` edge function
-
-No code changes. Skip rows are written synchronously in `execute_automation_rules` and never enter the queue, so the worker cannot double-process them. Plan documents this and adds a Deno test asserting the worker rejects/ignores execution ids it didn't claim.
-
-## Files touched
-
-```text
-NEW   supabase/migrations/20260427_phase4_match_and_skip.sql
-NEW   src/components/dashboard/recruitment/admin/rules/actionTypeMetadata.ts
-NEW   src/components/dashboard/recruitment/pipeline/useStageMoveAutomation.ts
-NEW   src/components/dashboard/recruitment/pipeline/StageMoveConfirmDialog.tsx
-EDIT  src/components/dashboard/recruitment/pipeline/PipelineBoard.tsx
-EDIT  src/components/dashboard/recruitment/admin/rules/executions/types.ts
-EDIT  src/components/dashboard/recruitment/admin/rules/executions/ExecutionDetailDrawer.tsx
-DEL   src/components/dashboard/recruitment/applicants/MoveStageDialog.tsx
-```
+- No engine schema changes beyond skip-context capture.
+- No new pages/RPCs.
+- No multi-action support.
+- No backfill of pre-Phase-5b skipped rows.
 
 ## Verification
 
-After implementation I will run the 22-point checklist from the request. Headline checks:
-- Drag with no rules → silent move, no rows.
-- Drag with internal-only rule → silent move, success row.
-- Drag with external rule → modal opens; send-path delivers email and logs success; skip-path logs `overall_status='skipped'` with `skip_reason`.
-- Skipped rows render with amber "Hoppet over" badge and don't increment failure banner.
-- Webhook 4xx/5xx classification (Phase 1.5 fix) verified end-to-end via httpbin/500.
-- Optimistic kanban: card moves on drag, reverts on Avbryt, stays on send/skip.
-- Body style stays clean across all modal interactions (Radix cleanup verified).
-
-## Reply
-
-After the build I'll respond with: migration contents, `actionTypeMetadata.ts`, full `useStageMoveAutomation.ts`, full `StageMoveConfirmDialog.tsx`, the kanban drag-end diff, confirmation that `MoveStageDialog.tsx` was deleted, confirmation that `process-automation-queue` needed no changes, and confirmation that `useFailureCount` already excludes `'skipped'`.
+Will run the 8-check list from the request after implementation, then `npx tsc --noEmit` to confirm clean compile.
