@@ -1,147 +1,113 @@
-Fix the two dry-run hooks that query a non-existent table (`recruitment_pipeline_stages`). Stages live as a JSONB array on `recruitment_pipelines.stages` for the org's default pipeline.
 
-## Files to modify
+Defensively normalize `result.action_results` in `DryRunResultCard.tsx` so the card handles all three shapes the engine currently emits, without touching the engine or any other UI.
 
-- `src/components/dashboard/recruitment/admin/rules/dryrun/hooks/useStages.ts`
-- `src/components/dashboard/recruitment/admin/rules/dryrun/hooks/useApplicantsSearch.ts`
+## Scope
 
-## Fix 1: `useStages.ts`
+Edit only:
+- `src/components/dashboard/recruitment/admin/rules/dryrun/DryRunResultCard.tsx`
 
-Replace the table query with a JSONB extraction.
+Do not change:
+- `executions/types.ts` helpers
+- `ExecutionDetailDrawer` rendering
+- `DryRunResults` / `DryRunPanel`
+- The `DryRunResult` type (still typed as `Json` from RPC)
+
+## Three shapes to support
+
+1. **Array of action result objects** (regular run shape)
+   - Render exactly as today: one sub-card per action with `getSimulatedActionLabel`, details grid, error block.
+
+2. **Single object with `preview` field** (current dry-run shape)
+   ```json
+   {
+     "dry_run": true,
+     "preview": "Would send \"Subject\" to <recipient>",
+     "success": true,
+     "duration_ms": 3
+   }
+   ```
+   Render a single "Simulering" sub-card with:
+   - Header label: `Simulering`
+   - Body: the `preview` string verbatim, with light, safe English→Norwegian substitution applied (see below). If the string doesn't contain those tokens, it is shown as-is.
+   - Status badge derived from the object's `success` field:
+     - `true` → `Vellykket simulering` (success styling)
+     - `false` → `Simuleringsfeil` (destructive styling)
+   - Duration: prefer the object's `duration_ms` over `result.duration_ms` when present.
+   - If `success === false` and the object has `error` / `error_message`, render that in the same destructive error block style used for array-shape failures.
+
+3. **Null / undefined / empty** (no actions)
+   - Render existing empty state: `Ingen handlinger ble simulert for denne regelen.`
+
+## Normalization logic
+
+Introduce a small discriminated normalization step at the top of the component:
 
 ```ts
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useOrganizationStore } from '@/stores/organizationStore';
-import type { StageOption } from '../types';
+type NormalizedDryRun =
+  | { kind: 'actions'; items: DryRunActionResult[] }
+  | { kind: 'preview'; preview: string; success: boolean; duration_ms: number | null; error: string | null }
+  | { kind: 'empty' };
 
-export function useStages() {
-  const orgId = useOrganizationStore((s) => s.currentOrganizationId);
-  const db = supabase as any;
-
-  return useQuery({
-    queryKey: ['recruitment-automation-dry-run-stages', orgId],
-    queryFn: async (): Promise<StageOption[]> => {
-      const { data, error } = await db
-        .from('recruitment_pipelines')
-        .select('stages')
-        .eq('organization_id', orgId!)
-        .eq('is_default', true)
-        .maybeSingle();
-
-      if (error) throw error;
-      if (!data?.stages || !Array.isArray(data.stages)) return [];
-
-      return (data.stages as any[])
-        .slice()
-        .sort((a, b) => (a?.order ?? 0) - (b?.order ?? 0))
-        .map((stage) => ({
-          id: String(stage.id),
-          name: String(stage.name ?? ''),
-          color: stage.color ?? null,
-          order_index: Number(stage.order ?? 0),
-        })) as StageOption[];
-    },
-    enabled: !!orgId,
-    staleTime: 1000 * 60 * 5,
-  });
+function normalize(raw: unknown): NormalizedDryRun {
+  if (Array.isArray(raw)) {
+    return raw.length === 0
+      ? { kind: 'empty' }
+      : { kind: 'actions', items: raw as DryRunActionResult[] };
+  }
+  if (raw && typeof raw === 'object') {
+    const obj = raw as Record<string, unknown>;
+    if (typeof obj.preview === 'string') {
+      return {
+        kind: 'preview',
+        preview: obj.preview,
+        success: obj.success !== false, // default true
+        duration_ms: typeof obj.duration_ms === 'number' ? obj.duration_ms : null,
+        error: typeof obj.error_message === 'string'
+          ? obj.error_message
+          : typeof obj.error === 'string' ? obj.error : null,
+      };
+    }
+  }
+  return { kind: 'empty' };
 }
 ```
 
-Notes:
-- `.maybeSingle()` instead of `.single()` so missing default pipeline returns null without throwing.
-- Sort defensively by `order` field (the JSONB stage shape).
-- Map to existing `StageOption` interface (`id`, `name`, `color`, `order_index`).
+## Preview translation (best-effort, non-fragile)
 
-## Fix 2: `useApplicantsSearch.ts`
+Apply only these literal substitutions in this order; if none match, show the raw string. This is intentionally minimal so future changes to the engine string don't silently misrender:
 
-Replace the second `recruitment_pipeline_stages` lookup with a single fetch of the org's default pipeline's `stages` JSONB, then build an in-memory id → {name, color} map for enrichment.
-
-```ts
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useOrganizationStore } from '@/stores/organizationStore';
-import { sanitizeForPostgrest } from '@/utils/queryUtils';
-import type { ApplicantSearchResult } from '../types';
-
-export function useApplicantsSearch(query: string) {
-  const orgId = useOrganizationStore((s) => s.currentOrganizationId);
-  const normalizedQuery = query.trim();
-  const db = supabase as any;
-
-  return useQuery({
-    queryKey: ['recruitment-automation-dry-run-applicants', orgId, normalizedQuery],
-    queryFn: async (): Promise<ApplicantSearchResult[]> => {
-      const safeQuery = sanitizeForPostgrest(normalizedQuery);
-      if (!safeQuery) return [];
-
-      const { data: applicants, error: applicantsError } = await db
-        .from('applicants')
-        .select('id, first_name, last_name, email, applications(current_stage_id)')
-        .eq('organization_id', orgId!)
-        .or(`first_name.ilike.%${safeQuery}%,last_name.ilike.%${safeQuery}%,email.ilike.%${safeQuery}%`)
-        .order('created_at', { ascending: false })
-        .limit(20);
-
-      if (applicantsError) throw applicantsError;
-
-      const { data: pipeline, error: pipelineError } = await db
-        .from('recruitment_pipelines')
-        .select('stages')
-        .eq('organization_id', orgId!)
-        .eq('is_default', true)
-        .maybeSingle();
-
-      if (pipelineError) throw pipelineError;
-
-      const stageMap = new Map<string, { name: string; color: string | null }>();
-      if (pipeline?.stages && Array.isArray(pipeline.stages)) {
-        (pipeline.stages as any[]).forEach((stage) => {
-          if (stage?.id) {
-            stageMap.set(String(stage.id), {
-              name: String(stage.name ?? ''),
-              color: stage.color ?? null,
-            });
-          }
-        });
-      }
-
-      return ((applicants ?? []) as any[]).map((applicant: any) => {
-        const currentStageId = applicant.applications?.[0]?.current_stage_id ?? null;
-        const currentStage = currentStageId ? stageMap.get(String(currentStageId)) : null;
-
-        return {
-          id: applicant.id,
-          first_name: applicant.first_name ?? null,
-          last_name: applicant.last_name ?? null,
-          email: applicant.email ?? null,
-          current_stage_id: currentStageId,
-          current_stage_name: currentStage?.name ?? null,
-          current_stage_color: currentStage?.color ?? null,
-        } satisfies ApplicantSearchResult;
-      });
-    },
-    enabled: !!orgId && normalizedQuery.length >= 2,
-    staleTime: 30_000,
-    refetchOnMount: 'always',
-  });
-}
+```
+"Would send"     → "Ville sendt"
+"to <no email>"  → "til <ingen e-post>"
+"to <recipient>" → "til <mottaker>"
 ```
 
-Notes:
-- Single pipeline fetch per applicant search (small JSONB blob, fine).
-- Removes the broken `.in('id', stageIds)` against the non-existent table.
-- Stage id comparison done as strings to match slug shape (`"qualified"` etc.).
+Implemented as plain `String.prototype.replaceAll` calls. No regex parsing of the rest of the string.
+
+## Render plan per kind
+
+- `kind === 'empty'`: existing dashed-border empty state.
+- `kind === 'actions'`: existing `.map` over items (unchanged).
+- `kind === 'preview'`: one sub-card with the same outer wrapper styling as the action sub-card, containing:
+  - Left column:
+    - `<p className="font-medium">Simulering</p>`
+    - `<p className="text-xs text-muted-foreground">Forhåndsvisning fra automatiseringsmotor</p>`
+  - Right column: success/failure badge as described.
+  - Below: `<p className="text-sm whitespace-pre-wrap break-words">{translated preview}</p>`.
+  - If failed and `error` present: existing destructive error block.
+  - Footer-ish meta line: `Varighet: {formatDuration(duration_ms)}` only when it differs from the header duration, to avoid duplication.
+
+The card's outer header / overall status badge / "Åpne i utførelseslogg" footer remain unchanged.
 
 ## Verification
 
-1. `Hvilken fase` dropdown lists all default-pipeline stages in `order` ascending.
-2. Applicant typeahead shows correct stage badges with Norwegian names + colors.
-3. Selecting a stage and running dry-run completes without errors.
-4. TypeScript compiles cleanly (uses existing `StageOption` and `ApplicantSearchResult` types unchanged; `db = supabase as any` keeps PostgREST typing relaxed as elsewhere in the file).
+1. Re-run a dry-run on an email rule with the `qualified` stage trigger.
+2. The matched-rule card now renders a "Simulering" sub-card with the preview string instead of "Ingen handlinger ble simulert".
+3. A successful preview shows the green `Vellykket simulering` badge; a `success: false` object would show `Simuleringsfeil` with the error block.
+4. Existing regular-execution detail rendering (in `ExecutionDetailDrawer`) is untouched and still works for array-shape `action_results`.
+5. `npx tsc --noEmit` reports no new errors.
 
 ## Reply after implementation
 
-1. Updated `useStages.ts` contents
-2. Updated stage-enrichment portion of `useApplicantsSearch.ts`
-3. Confirmation TypeScript compiles cleanly
+1. Updated `DryRunResultCard.tsx` (the normalization block + the new preview render branch).
+2. Confirmation that TypeScript still compiles cleanly.
