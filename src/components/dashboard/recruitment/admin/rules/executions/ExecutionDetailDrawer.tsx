@@ -198,27 +198,67 @@ export function ExecutionDetailDrawer({ execution, onClose, onAcknowledge }: Pro
                         ) : null}
 
                         {action.action_type === 'send_email' ? (
-                          <DetailGrid
-                            items={[
-                              ['Mottaker', action.recipient ?? action.recipient_email ?? '—'],
-                              ['Mal', action.template_name ?? action.template_id ?? '—'],
-                              ['SendGrid-ID', action.sendgrid_message_id ?? '—'],
-                            ]}
-                          />
+                          isSkipped ? (
+                            <DetailGrid
+                              items={[
+                                [
+                                  'Mal',
+                                  action.template_name ??
+                                    (action.template_id
+                                      ? nameMaps?.templateMap.get(action.template_id) ?? '—'
+                                      : '—'),
+                                ],
+                                [
+                                  'Ville sendt til',
+                                  action.recipient ??
+                                    action.recipient_email ??
+                                    (action.would_send_to_application_id
+                                      ? nameMaps?.applicantEmailMap.get(
+                                          action.would_send_to_application_id,
+                                        ) ?? '—'
+                                      : '—'),
+                                ],
+                              ]}
+                            />
+                          ) : (
+                            <DetailGrid
+                              items={[
+                                ['Mottaker', action.recipient ?? action.recipient_email ?? '—'],
+                                ['Mal', action.template_name ?? action.template_id ?? '—'],
+                                ['SendGrid-ID', action.sendgrid_message_id ?? '—'],
+                              ]}
+                            />
+                          )
                         ) : null}
 
                         {action.action_type === 'assign_to' ? (
-                          <DetailGrid items={[['Tildelt', action.assigned_to_name ?? action.assigned_to ?? '—']]} />
+                          <DetailGrid
+                            items={[
+                              [
+                                isSkipped ? 'Ville tildelt' : 'Tildelt',
+                                action.assigned_to_name ?? action.assigned_to ?? '—',
+                              ],
+                            ]}
+                          />
                         ) : null}
 
                         {action.action_type === 'webhook' ? (
-                          <DetailGrid
-                            items={[
-                              ['URL', maskWebhookUrl(action.url)],
-                              ['HTTP-status', action.http_status?.toString() ?? '—'],
-                              ['Respons', truncateText(action.response_body)],
-                            ]}
-                          />
+                          isSkipped ? (
+                            <DetailGrid
+                              items={[
+                                ['Ville kalt URL', maskWebhookUrl(action.url)],
+                                ['Metode', action.method ?? 'POST'],
+                              ]}
+                            />
+                          ) : (
+                            <DetailGrid
+                              items={[
+                                ['URL', maskWebhookUrl(action.url)],
+                                ['HTTP-status', action.http_status?.toString() ?? '—'],
+                                ['Respons', truncateText(action.response_body)],
+                              ]}
+                            />
+                          )
                         ) : null}
                       </div>
                     </div>
