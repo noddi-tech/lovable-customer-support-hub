@@ -43,10 +43,10 @@ function actionIcon(actionType: string) {
 function describeAction(rule: MatchedRule): string {
   const cfg = rule.action_config ?? {};
   switch (rule.action_type) {
-    case 'send_email': {
-      const tpl = (cfg as any).template_name ?? (cfg as any).template_id;
-      return tpl ? `Send e-post: '${tpl}'` : 'Send e-post';
-    }
+    case 'send_email':
+      return rule.template_name
+        ? `Send e-post: '${rule.template_name}'`
+        : 'Send e-post';
     case 'webhook': {
       const url = (cfg as any).url as string | undefined;
       try {
@@ -57,10 +57,8 @@ function describeAction(rule: MatchedRule): string {
     }
     case 'send_sms':
       return 'Send SMS';
-    case 'assign_to': {
-      const name = (cfg as any).user_name ?? (cfg as any).user_id;
-      return name ? `Tildel til ${name}` : 'Tildel ansvarlig';
-    }
+    case 'assign_to':
+      return rule.user_name ? `Tildel til ${rule.user_name}` : 'Tildel ansvarlig';
     case 'create_task':
       return 'Opprett oppgave';
     default:

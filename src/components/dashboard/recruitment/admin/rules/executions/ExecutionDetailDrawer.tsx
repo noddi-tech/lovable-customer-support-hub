@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Check, ChevronDown, ChevronUp, ExternalLink, AlertTriangle } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from '@/components/ui/sheet';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
 import type { AutomationExecution } from './types';
 import {
   formatAbsoluteNbNo,
@@ -49,6 +51,58 @@ export function ExecutionDetailDrawer({ execution, onClose, onAcknowledge }: Pro
     () => (execution ? getActionResults(execution.action_results) : []),
     [execution],
   );
+
+  // For skipped rows, resolve template_id / would_send_to_application_id to
+  // human-readable names so the drawer shows "Mal: Søknad mottatt" instead of UUIDs.
+  const isSkippedExecution = execution?.overall_status === 'skipped';
+  const templateIds = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          actionResults
+            .map((a) => a.template_id ?? a.phone_template_id)
+            .filter((id): id is string => typeof id === 'string' && id.length > 0),
+        ),
+      ),
+    [actionResults],
+  );
+  const applicationIds = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          actionResults
+            .map((a) => a.would_send_to_application_id)
+            .filter((id): id is string => typeof id === 'string' && id.length > 0),
+        ),
+      ),
+    [actionResults],
+  );
+
+  const { data: nameMaps } = useQuery({
+    queryKey: ['execution-drawer-resolution', execution?.id, templateIds, applicationIds],
+    enabled: !!execution && isSkippedExecution && (templateIds.length > 0 || applicationIds.length > 0),
+    staleTime: 60_000,
+    queryFn: async () => {
+      const [templatesRes, appsRes] = await Promise.all([
+        templateIds.length
+          ? supabase.from('recruitment_email_templates').select('id, name').in('id', templateIds)
+          : Promise.resolve({ data: [] as Array<{ id: string; name: string }> }),
+        applicationIds.length
+          ? (supabase as any)
+              .from('recruitment_applications')
+              .select('id, applicant:recruitment_applicants(email, first_name, last_name)')
+              .in('id', applicationIds)
+          : Promise.resolve({ data: [] as any[] }),
+      ]);
+      const templateMap = new Map(
+        ((templatesRes.data ?? []) as Array<{ id: string; name: string }>).map((t) => [t.id, t.name]),
+      );
+      const applicantEmailMap = new Map<string, string | null>(
+        ((appsRes.data ?? []) as any[]).map((a) => [a.id, a.applicant?.email ?? null]),
+      );
+      return { templateMap, applicantEmailMap };
+    },
+  });
 
   if (!execution || !status) return null;
 
@@ -144,27 +198,67 @@ export function ExecutionDetailDrawer({ execution, onClose, onAcknowledge }: Pro
                         ) : null}
 
                         {action.action_type === 'send_email' ? (
-                          <DetailGrid
-                            items={[
-                              ['Mottaker', action.recipient ?? action.recipient_email ?? '—'],
-                              ['Mal', action.template_name ?? action.template_id ?? '—'],
-                              ['SendGrid-ID', action.sendgrid_message_id ?? '—'],
-                            ]}
-                          />
+                          isSkipped ? (
+                            <DetailGrid
+                              items={[
+                                [
+                                  'Mal',
+                                  action.template_name ??
+                                    (action.template_id
+                                      ? nameMaps?.templateMap.get(action.template_id) ?? '—'
+                                      : '—'),
+                                ],
+                                [
+                                  'Ville sendt til',
+                                  action.recipient ??
+                                    action.recipient_email ??
+                                    (action.would_send_to_application_id
+                                      ? nameMaps?.applicantEmailMap.get(
+                                          action.would_send_to_application_id,
+                                        ) ?? '—'
+                                      : '—'),
+                                ],
+                              ]}
+                            />
+                          ) : (
+                            <DetailGrid
+                              items={[
+                                ['Mottaker', action.recipient ?? action.recipient_email ?? '—'],
+                                ['Mal', action.template_name ?? action.template_id ?? '—'],
+                                ['SendGrid-ID', action.sendgrid_message_id ?? '—'],
+                              ]}
+                            />
+                          )
                         ) : null}
 
                         {action.action_type === 'assign_to' ? (
-                          <DetailGrid items={[['Tildelt', action.assigned_to_name ?? action.assigned_to ?? '—']]} />
+                          <DetailGrid
+                            items={[
+                              [
+                                isSkipped ? 'Ville tildelt' : 'Tildelt',
+                                action.assigned_to_name ?? action.assigned_to ?? '—',
+                              ],
+                            ]}
+                          />
                         ) : null}
 
                         {action.action_type === 'webhook' ? (
-                          <DetailGrid
-                            items={[
-                              ['URL', maskWebhookUrl(action.url)],
-                              ['HTTP-status', action.http_status?.toString() ?? '—'],
-                              ['Respons', truncateText(action.response_body)],
-                            ]}
-                          />
+                          isSkipped ? (
+                            <DetailGrid
+                              items={[
+                                ['Ville kalt URL', maskWebhookUrl(action.url)],
+                                ['Metode', action.method ?? 'POST'],
+                              ]}
+                            />
+                          ) : (
+                            <DetailGrid
+                              items={[
+                                ['URL', maskWebhookUrl(action.url)],
+                                ['HTTP-status', action.http_status?.toString() ?? '—'],
+                                ['Respons', truncateText(action.response_body)],
+                              ]}
+                            />
+                          )
                         ) : null}
                       </div>
                     </div>

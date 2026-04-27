@@ -17,11 +17,14 @@ export interface ActionResultItem {
   assigned_to?: string | null;
   assigned_to_name?: string | null;
   url?: string | null;
+  method?: string | null;
   http_status?: number | null;
   response_body?: string | null;
   output?: Record<string, unknown> | null;
   skipped?: boolean | null;
   skip_reason?: string | null;
+  would_send_to_application_id?: string | null;
+  phone_template_id?: string | null;
 }
 
 export interface AutomationExecution {
