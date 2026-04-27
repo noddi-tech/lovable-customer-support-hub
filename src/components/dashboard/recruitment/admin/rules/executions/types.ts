@@ -92,7 +92,17 @@ export function getExecutionStatusMeta(execution: AutomationExecution): Executio
         className: 'border-border bg-muted text-muted-foreground italic',
         italic: true,
       };
-    case 'failed':
+    case 'skipped':
+      return {
+        label: 'Hoppet over',
+        className: 'border-amber-300/40 bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-300',
+      };
+    case 'pending':
+      return {
+        label: 'I kø',
+        className: 'border-primary/40 bg-primary/10 text-primary italic',
+        italic: true,
+      };
     default:
       return {
         label: 'Feilet',
