@@ -176,7 +176,18 @@ const ApplicantProfile: React.FC = () => {
               {stages.map((s) => (
                 <DropdownMenuItem
                   key={s.id}
-                  onSelect={() => setMoveTarget(s)}
+                  onSelect={() => {
+                    if (!firstApp || !applicant) return;
+                    if (s.id === firstApp.current_stage_id) return;
+                    void automation.handleStageMove({
+                      applicationId: firstApp.id,
+                      applicantId: applicant.id,
+                      applicantName: `${applicant.first_name} ${applicant.last_name}`.trim(),
+                      fromStageId: firstApp.current_stage_id,
+                      toStageId: s.id,
+                      stageName: s.name,
+                    });
+                  }}
                   disabled={s.id === firstApp?.current_stage_id}
                 >
                   {s.name}
