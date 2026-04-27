@@ -91,6 +91,9 @@ export function ExecutionDetailDrawer({ execution, onClose, onAcknowledge }: Pro
                   )
                 }
               />
+              {execution.overall_status === 'skipped' ? (
+                <MetaItem label="Grunn" value={execution.skip_reason ?? 'Ikke oppgitt'} />
+              ) : null}
             </dl>
           </section>
 
