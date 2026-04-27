@@ -300,18 +300,14 @@ const ApplicantProfile: React.FC = () => {
         </TabsContent>
       </Tabs>
 
-      {moveTarget && firstApp && (
-        <MoveStageDialog
-          open={!!moveTarget}
-          onOpenChange={(o) => !o && setMoveTarget(null)}
-          applicantName={`${applicant.first_name} ${applicant.last_name}`}
-          applicantId={applicant.id}
-          applicationId={firstApp.id}
-          fromStageId={firstApp.current_stage_id}
-          toStageId={moveTarget.id}
-          toStageName={moveTarget.name}
-        />
-      )}
+      <StageMoveConfirmDialog
+        pendingMove={automation.pendingMove}
+        isSending={automation.isSending}
+        isSkipping={automation.isSkipping}
+        onConfirmSend={() => automation.confirmMoveAndSend()}
+        onConfirmSkip={(reason) => automation.confirmMoveSkipExternal(reason)}
+        onCancel={automation.cancelMove}
+      />
     </div>
   );
 };
