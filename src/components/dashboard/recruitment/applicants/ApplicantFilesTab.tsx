@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { format } from 'date-fns';
 import { nb } from 'date-fns/locale';
-import { Download, FileText, Loader2, Upload } from 'lucide-react';
+import { Download, FileText, Loader2, MoreVertical, Upload } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -14,11 +14,23 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useTeamMembers } from '@/hooks/useTeamMembers';
-import { useApplicantFiles, useUploadApplicantFile } from './useApplicantProfile';
+import {
+  useApplicantFiles,
+  useUploadApplicantFile,
+  type ApplicantFile,
+} from './useApplicantProfile';
+import ReclassifyFileDialog from './files/ReclassifyFileDialog';
+import DeleteFileConfirmDialog from './files/DeleteFileConfirmDialog';
 
 interface Props {
   applicantId: string;
@@ -53,6 +65,8 @@ const ApplicantFilesTab: React.FC<Props> = ({ applicantId, applicationId }) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const [fileType, setFileType] = useState('resume');
   const [dragOver, setDragOver] = useState(false);
+  const [reclassifyFile, setReclassifyFile] = useState<ApplicantFile | null>(null);
+  const [deleteFile, setDeleteFile] = useState<ApplicantFile | null>(null);
 
   const teamMap = new Map((team ?? []).map((m) => [m.id, m.full_name]));
 
@@ -154,7 +168,7 @@ const ApplicantFilesTab: React.FC<Props> = ({ applicantId, applicationId }) => {
       ) : (
         <div className="border rounded-md divide-y">
           {files.map((f) => (
-            <div key={f.id} className="flex items-center gap-3 p-3">
+            <div key={f.id} className="group flex items-center gap-3 p-3">
               <FileText className="h-5 w-5 text-muted-foreground shrink-0" />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-foreground truncate">{f.file_name}</p>
@@ -168,18 +182,50 @@ const ApplicantFilesTab: React.FC<Props> = ({ applicantId, applicationId }) => {
                 </p>
               </div>
               <Badge variant="secondary">{FILE_TYPE_LABEL[f.file_type] ?? f.file_type}</Badge>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => download(f.storage_path)}
-                aria-label="Last ned"
-              >
-                <Download />
-              </Button>
+              <DropdownMenu modal={false}>
+                <DropdownMenuTrigger asChild>
+                  <Button size="icon" variant="ghost" aria-label="Handlinger" className="h-8 w-8">
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onSelect={() => download(f.storage_path)}>
+                    <Download className="h-4 w-4 mr-2" />
+                    Last ned
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => setReclassifyFile(f)}>
+                    Endre type
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onSelect={() => setDeleteFile(f)}
+                    className="text-destructive focus:text-destructive"
+                  >
+                    Slett
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           ))}
         </div>
       )}
+
+      <ReclassifyFileDialog
+        open={!!reclassifyFile}
+        onOpenChange={(o) => {
+          if (!o) setReclassifyFile(null);
+        }}
+        applicantId={applicantId}
+        file={reclassifyFile}
+      />
+      <DeleteFileConfirmDialog
+        open={!!deleteFile}
+        onOpenChange={(o) => {
+          if (!o) setDeleteFile(null);
+        }}
+        applicantId={applicantId}
+        applicationId={applicationId}
+        file={deleteFile}
+      />
     </div>
   );
 };
