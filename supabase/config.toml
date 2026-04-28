@@ -263,3 +263,8 @@ verify_jwt = true
 
 [functions.backfill-critical-alert-ts]
 verify_jwt = true
+
+# PUBLIC: Meta Lead Ads webhook — Meta does not send Supabase auth headers.
+# Security via HMAC SHA-256 signature (META_APP_SECRET) + verify_token lookup.
+[functions.meta-lead-webhook]
+verify_jwt = false
