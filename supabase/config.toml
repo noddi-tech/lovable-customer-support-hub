@@ -268,3 +268,6 @@ verify_jwt = true
 # Security via HMAC SHA-256 signature (META_APP_SECRET) + verify_token lookup.
 [functions.meta-lead-webhook]
 verify_jwt = false
+
+[functions.test-meta-webhook-signer]
+verify_jwt = false
