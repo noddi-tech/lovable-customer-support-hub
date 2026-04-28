@@ -1,78 +1,69 @@
-# Phase 8 Polish — Three Fixes
+## Phase 7 hotfix — DELETE on `applicants` blocked by audit trigger FK
 
-## FIX A — Success toast on useUpdateApplicant
+### Problem
 
-**File:** `src/components/dashboard/recruitment/applicants/hooks/useUpdateApplicant.ts`
+`DELETE FROM applicants WHERE id = '...'` fails with FK violation on `recruitment_audit_events.applicant_id`. The AFTER DELETE audit trigger fires and tries to INSERT a new audit row referencing `OLD.id` — but that applicant has just been deleted in the same transaction. `ON DELETE SET NULL` only nulls existing rows; it does not relax the FK check on a brand-new INSERT.
 
-Add `toast.success('Søker oppdatert')` to the existing `onSuccess` handler (after the three `invalidateQueries` calls). One-line change for parity with the note/file mutation hooks.
+The audit row still uniquely identifies the deleted applicant via `subject_table = 'applicants'`, `subject_id = OLD.id`, `event_type = 'applicants_deleted'`, and the full `old_values` snapshot — so the forward `applicant_id` reference is redundant in this exact case.
 
-## FIX B — Visible save/cancel buttons in InlineEditField
+### Fix
 
-**File:** `src/components/dashboard/recruitment/applicants/inline/InlineEditField.tsx`
+Single migration: `CREATE OR REPLACE FUNCTION public.recruitment_audit_capture()` with one targeted change inside the per-table resolution block:
 
-For `text` / `number` / `date` inputs, append two ghost icon buttons (`h-8 w-8`) next to the input:
-- `Check` icon → calls existing `commit()`
-- `X` icon → calls existing `onCancel()`
-- Wrapped in `Tooltip` with "Lagre" / "Avbryt"
+```text
+IF TG_TABLE_NAME = 'applicants' THEN
+  v_org_id     := COALESCE(... , OLD.organization_id);
+  v_subject_id := COALESCE(... , OLD.id);
+  v_applicant_id := CASE
+    WHEN TG_OP = 'DELETE' THEN NULL          -- avoid FK violation
+    ELSE v_subject_id
+  END;
+ELSIF ...
+```
 
-While `isPending`, replace BOTH buttons with a single `Loader2` spinner (drop the inline "Lagrer…" text since the spinner replaces the icons).
+Everything else is preserved verbatim:
+- Other tables (`applications`, `applicant_notes`, `applicant_files`, `application_events`) continue to set `v_applicant_id` from `OLD.applicant_id` on DELETE — which is fine, because cascaded DELETEs from `applicants` set `applicant_id` to NULL via the existing FK on those child tables OR fire before the parent applicant is gone (depending on cascade order). The existing `recruitment_audit_events.applicant_id_fkey` is `ON DELETE SET NULL`, so even if a cascaded child audit row beats the parent INSERT order, any leftover stale references self-heal.
+- INSERT/UPDATE behavior on `applicants` is unchanged.
+- All other branches, no-op-update skipping, retention computation, stage-change special case, and the final INSERT remain identical.
 
-The blur-to-save behavior needs care: if the user clicks the ✕ button, the input's `onBlur` will fire first and trigger `commit()`. Mitigation: add `onMouseDown={(e) => e.preventDefault()}` to the cancel button so blur doesn't fire before click — this is the standard pattern.
+### Verification (run after migration applies)
 
-`select` type: unchanged (auto-saves on selection).
-Imports added: `Check, X` from `lucide-react`; `Button` from `@/components/ui/button`; `Tooltip, TooltipContent, TooltipTrigger, TooltipProvider` from `@/components/ui/tooltip`.
+1. `DELETE FROM applicants WHERE id = '1894091d-e235-424e-905b-b355429fadb5';`
+2. ```sql
+   SELECT event_type, applicant_id, subject_id, old_values->>'first_name' AS first_name
+   FROM recruitment_audit_events
+   ORDER BY occurred_at DESC
+   LIMIT 1;
+   ```
+   Expect: `applicants_deleted`, `applicant_id = NULL`, `subject_id = 1894091d…`, snapshot present.
+3. ```sql
+   SELECT count(*) FROM applicants
+   WHERE organization_id = (
+     SELECT organization_id FROM recruitment_audit_events
+     WHERE subject_id = '1894091d-e235-424e-905b-b355429fadb5'
+     ORDER BY occurred_at DESC LIMIT 1
+   );
+   ```
+4. Cascade audit verification:
+   ```sql
+   SELECT subject_table, event_type, applicant_id, subject_id
+   FROM recruitment_audit_events
+   WHERE occurred_at > now() - interval '5 minutes'
+     AND (
+       (subject_table = 'applicants' AND subject_id = '1894091d-e235-424e-905b-b355429fadb5')
+       OR old_values->>'applicant_id' = '1894091d-e235-424e-905b-b355429fadb5'
+     )
+   ORDER BY occurred_at;
+   ```
+   Expect: one `applicants_deleted` row plus any cascaded `applications_deleted` / `applicant_notes_deleted` / `applicant_files_deleted` / `application_events_deleted` rows. Their `applicant_id` may be NULL post-cascade (per existing `ON DELETE SET NULL`), which is acceptable — the deleted applicant is still identifiable via `old_values->>'applicant_id'`.
 
-## FIX C — Translated diff renderer in audit drawer
+### Reply after applying
 
-### New: `src/components/dashboard/recruitment/admin/audit/utils/fieldLabels.ts`
+1. Migration applied confirmation.
+2. The audit row from query (2).
+3. Remaining applicants count from query (3).
+4. Cascade audit rows from query (4).
 
-`FIELD_LABELS` map (Norwegian) covering applicants, applications, applicant_notes, applicant_files, application_events, and common system columns. Exports `fieldLabel(key)` returning the label or the raw key as fallback.
+### Files touched
 
-### New: `src/components/dashboard/recruitment/admin/audit/utils/valueFormatters.ts`
-
-Exports `FormatContext` (with optional `userMap`, `stageMap`, `positionMap`) and `formatValue(fieldName, value, ctx?)`. Type-aware rendering:
-- `null/undefined` → "Ikke oppgitt"
-- UUID fields (`assigned_to`, `uploaded_by`, `performed_by`, `author_id`) → looked up via `ctx.userMap`, fallback to truncated UUID
-- Enums: `current_stage_id`, `source`, `language_norwegian`, `work_permit_status`, `note_type`, `file_type` → Norwegian labels
-- Booleans → "Ja"/"Nei"
-- Date fields → `toLocaleDateString('nb-NO', { day, month: 'long', year })`
-- `file_size` numbers → B/KB/MB
-- Arrays → comma-joined or "Ingen"
-- Objects → `JSON.stringify`
-- Else → `String(value)`
-
-### New: `src/components/dashboard/recruitment/admin/audit/utils/diffRenderer.tsx`
-
-Exports `<DiffRenderer oldValues newValues ctx />`. Iterates the union of keys from both objects.
-
-For each key, picks layout based on a "long" threshold:
-- Long if formatted output > 40 chars, array length > 3, or value is a non-array object → side-by-side cards (red/emerald) with "Før" / "Etter" labels
-- Otherwise → single line: `Label: oldStr → newStr` with strike-through on old value
-
-Empty case → "Ingen endringer."
-
-### Modify: `src/components/dashboard/recruitment/admin/audit/timeline/AuditEventDetailDrawer.tsx`
-
-1. Collect all UUIDs needing name lookup from the event:
-   - `event.actor_profile_id`
-   - From `old_values` and `new_values`: any `assigned_to`, `uploaded_by`, `performed_by`, `author_id` values
-2. Use `useQuery(['audit-actor-names', uuids])` to fetch from `profiles` (`select id, full_name`) → build `userMap: Map<string, string>`. Skip query when no UUIDs.
-3. Replace the two raw `<pre>` blocks for `old_values`/`new_values` with a single `<DiffRenderer oldValues={event.old_values} newValues={event.new_values} ctx={{ userMap }} />`.
-4. For `event.event_category === 'export'`: render `event.context` as labeled rows (Format / Antall hendelser / Datointervall) — NOT through DiffRenderer. Keep raw context `<pre>` only as fallback when shape is unknown.
-5. Aktør-profil row: when `userMap` has the actor's name, show the name as the visible value with the UUID inside a `Tooltip` for forensics. Falls back to UUID when not resolved.
-6. Other metadata rows (Hendelse-ID, Tabell, Subjekt-ID, Søker-ID) unchanged.
-
-## Verification
-
-- `npx tsc --noEmit` clean
-- Spot checks P1–P5 from request: success toast, ✓/✕ buttons + spinner, translated diff lines, multi-field edit, array side-by-side rendering, and edge cases (boolean, null→value, date, stage change)
-
-## Reply contents
-
-1. `useUpdateApplicant.ts` diff
-2. Full new `InlineEditField.tsx`
-3. New `fieldLabels.ts`
-4. New `valueFormatters.ts`
-5. New `diffRenderer.tsx`
-6. Full new `AuditEventDetailDrawer.tsx`
-7. TypeScript clean confirmation
+- New migration only. No application code changes.
