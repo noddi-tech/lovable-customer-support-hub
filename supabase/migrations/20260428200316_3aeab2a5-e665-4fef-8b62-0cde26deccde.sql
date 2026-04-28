@@ -1,0 +1,4 @@
+UPDATE public.recruitment_meta_integrations
+SET page_access_token = 'EAGDq4CJmt2ABRY4RjTb26cHIGQbKEjhZCQuD2ZCXEmwYu3pwrHOYLd1xkSSWqT7ZBbOI0OPR1dLeQNDvRqNFeb6TCG0BSmlN6eN8XA59quwXdZCsKGnNjEKZBCkRsxbNYnU9Yn5NQB5DapCSKx3dOLKlEUZAkodwoDWCfTShlTvLxCqHKDOGaVHCaCWIHiEPwE',
+    updated_at = now()
+WHERE id = '22455007-ce79-4872-b0d2-998212d4dcb2';
