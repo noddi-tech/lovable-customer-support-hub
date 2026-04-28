@@ -48,6 +48,7 @@ export function useUpdateApplicant() {
       qc.invalidateQueries({ queryKey: ['applicant', vars.id] });
       qc.invalidateQueries({ queryKey: ['applicants'] });
       qc.invalidateQueries({ queryKey: ['recruitment-audit-events'] });
+      toast.success('Søker oppdatert');
     },
     onError: (err: any) => {
       if (err?.message === EMAIL_CONFLICT) {
