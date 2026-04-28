@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Loader2 } from 'lucide-react';
+import { Check, Loader2, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import {
   Select,
   SelectContent,
@@ -8,6 +9,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 export type InlineFieldType = 'text' | 'number' | 'date' | 'select';
 
@@ -35,6 +42,8 @@ const InlineEditField: React.FC<Props> = ({
 }) => {
   const [value, setValue] = useState(initialValue);
   const inputRef = useRef<HTMLInputElement>(null);
+  // Track whether a button is being mouse-pressed so blur doesn't double-handle.
+  const suppressBlurRef = useRef(false);
 
   useEffect(() => {
     if (type !== 'select') inputRef.current?.focus();
@@ -78,32 +87,76 @@ const InlineEditField: React.FC<Props> = ({
   }
 
   return (
-    <div className="flex items-center gap-2">
-      <Input
-        ref={inputRef}
-        type={type === 'number' ? 'number' : type === 'date' ? 'date' : 'text'}
-        value={value}
-        disabled={isPending}
-        onChange={(e) => setValue(e.target.value)}
-        onBlur={commit}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') {
-            e.preventDefault();
+    <TooltipProvider delayDuration={150}>
+      <div className="flex items-center gap-1">
+        <Input
+          ref={inputRef}
+          type={type === 'number' ? 'number' : type === 'date' ? 'date' : 'text'}
+          value={value}
+          disabled={isPending}
+          onChange={(e) => setValue(e.target.value)}
+          onBlur={() => {
+            if (suppressBlurRef.current) {
+              suppressBlurRef.current = false;
+              return;
+            }
             commit();
-          } else if (e.key === 'Escape') {
-            e.preventDefault();
-            onCancel();
-          }
-        }}
-        className="h-8"
-      />
-      {isPending && (
-        <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-          <Loader2 className="h-3 w-3 animate-spin" />
-          Lagrer…
-        </span>
-      )}
-    </div>
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              commit();
+            } else if (e.key === 'Escape') {
+              e.preventDefault();
+              onCancel();
+            }
+          }}
+          className="h-8"
+        />
+        {isPending ? (
+          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground mx-1" />
+        ) : (
+          <>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onMouseDown={() => {
+                    suppressBlurRef.current = true;
+                  }}
+                  onClick={commit}
+                  aria-label="Lagre"
+                >
+                  <Check className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Lagre</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onMouseDown={() => {
+                    suppressBlurRef.current = true;
+                  }}
+                  onClick={onCancel}
+                  aria-label="Avbryt"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Avbryt</TooltipContent>
+            </Tooltip>
+          </>
+        )}
+      </div>
+    </TooltipProvider>
   );
 };
 

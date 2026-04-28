@@ -1,86 +1,78 @@
-# Phase 8 — Applicant Edit UI
+# Phase 8 Polish — Three Fixes
 
-Closes the missing edit gap from Phase 7. All edits flow through Phase 7's audit triggers automatically; no manual audit logging in mutations.
+## FIX A — Success toast on useUpdateApplicant
 
-## Discovery confirmations
+**File:** `src/components/dashboard/recruitment/applicants/hooks/useUpdateApplicant.ts`
 
-- `applicants` schema matches spec: all 17 listed fields exist (incl. `gdpr_consent_at`, `external_id`, `source_details`, `metadata`).
-- `applicant_notes` has `updated_at` → UPDATE/DELETE will be audit-captured.
-- `applicant_files` has NO `updated_at` → reclassify UPDATE will succeed but won't trigger audit (acceptable per spec; DELETE is captured).
-- Existing files confirmed at `src/components/dashboard/recruitment/applicants/`: `ApplicantProfile.tsx`, `ApplicantInfoCard.tsx`, `ApplicantNotesTab.tsx`, `ApplicantFilesTab.tsx`, `CreateApplicantDialog.tsx`, `useApplicantProfile.ts`.
-- `CreateApplicantDialog` uses plain `useState` — staying as-is. New `EditApplicantDialog` introduces RHF+zod (one-time pattern migration for applicant code).
-- Source options in existing dialog: `manual / referral / website / finn` (will extend to include `csv_import / meta_lead_ad / other` for editing parity).
+Add `toast.success('Søker oppdatert')` to the existing `onSuccess` handler (after the three `invalidateQueries` calls). One-line change for parity with the note/file mutation hooks.
 
-## Files to create
+## FIX B — Visible save/cancel buttons in InlineEditField
 
-### Hooks (`applicants/hooks/`)
-- `useUpdateApplicant.ts` — `UPDATE applicants`; maps Postgres `23505` email conflict → `EMAIL_CONFLICT` error; invalidates `['applicant', id]`, `['applicants']`, `['recruitment-audit-events']`.
-- `useUpdateApplicantNote.ts` — UPDATE on `applicant_notes` + insert `application_events` row with `event_type='note_edited'`.
-- `useDeleteApplicantNote.ts` — DELETE on `applicant_notes` + insert `application_events` `event_type='note_deleted'`.
-- `useDeleteApplicantFile.ts` — Storage `.remove([storage_path])` first; if OK, DELETE row; insert `application_events` `event_type='file_deleted'` with `file_name` in `event_data`. On storage failure: surface toast, abort (prefer orphan storage over orphan row).
-- `useReclassifyApplicantFile.ts` — UPDATE `file_type` on `applicant_files`; invalidate files cache.
+**File:** `src/components/dashboard/recruitment/applicants/inline/InlineEditField.tsx`
 
-### Edit dialogs (`applicants/edit/`)
-- `schema.ts` — zod schema for editable applicant fields (introduces RHF+zod pattern to applicant code).
-- `EditApplicantDialog.tsx` — RHF+zod, all editable fields, 2-column grid, sections: Kontaktinfo / Kvalifikasjoner / Tilgjengelighet / GDPR. Read-only fields shown as muted display.
-- `GDPRRevocationDialog.tsx` — Typed-confirmation pattern, exact match `"I forstår at samtykke trekkes"` to enable Save. On confirm: `gdpr_consent=false`, `gdpr_consent_at=null`.
-- `SourceChangeWarningDialog.tsx` — Warning with from→to display + "Endre kilde" / "Avbryt".
+For `text` / `number` / `date` inputs, append two ghost icon buttons (`h-8 w-8`) next to the input:
+- `Check` icon → calls existing `commit()`
+- `X` icon → calls existing `onCancel()`
+- Wrapped in `Tooltip` with "Lagre" / "Avbryt"
 
-### Inline edit (`applicants/inline/`)
-- `InlineEditField.tsx` — Reusable controlled input (text/number/date/select/multiselect). Enter/blur saves, Esc cancels, "Lagrer…" indicator while pending, revert on error.
-- `InlineEditableRow.tsx` — Hover reveals pencil icon; click swaps row to edit mode. Intercepts `source` (→ SourceChangeWarningDialog) and `gdpr_consent` true→false (→ GDPRRevocationDialog) before save.
+While `isPending`, replace BOTH buttons with a single `Loader2` spinner (drop the inline "Lagrer…" text since the spinner replaces the icons).
 
-### Notes (`applicants/notes/`)
-- `EditNoteDialog.tsx` — Textarea + `note_type` select prefilled.
-- `DeleteNoteConfirmDialog.tsx` — AlertDialog confirm.
+The blur-to-save behavior needs care: if the user clicks the ✕ button, the input's `onBlur` will fire first and trigger `commit()`. Mitigation: add `onMouseDown={(e) => e.preventDefault()}` to the cancel button so blur doesn't fire before click — this is the standard pattern.
 
-### Files (`applicants/files/`)
-- `DeleteFileConfirmDialog.tsx` — AlertDialog with file name displayed.
-- `ReclassifyFileDialog.tsx` — Select for new `file_type` (cv / cover_letter / certificate / id_doc / other).
+`select` type: unchanged (auto-saves on selection).
+Imports added: `Check, X` from `lucide-react`; `Button` from `@/components/ui/button`; `Tooltip, TooltipContent, TooltipTrigger, TooltipProvider` from `@/components/ui/tooltip`.
 
-## Files to modify
+## FIX C — Translated diff renderer in audit drawer
 
-- `ApplicantProfile.tsx` — Add "Rediger søker" button in header; mount `EditApplicantDialog` at parent level (state: `editDialogOpen`).
-- `ApplicantInfoCard.tsx` — Wrap editable rows in `InlineEditableRow`. Static rows: `external_id`, `source_details`, `created_at`, `updated_at`, `id`, `organization_id`.
-- `ApplicantNotesTab.tsx` — Per-note hover Edit/Delete actions; mount `EditNoteDialog` + `DeleteNoteConfirmDialog` at parent level with `selectedNote` state.
-- `ApplicantFilesTab.tsx` — Per-file `DropdownMenu` (Last ned / Endre type / Slett); use `modal={false}` on DropdownMenu (Phase 2 lesson); mount `ReclassifyFileDialog` + `DeleteFileConfirmDialog` at parent level.
+### New: `src/components/dashboard/recruitment/admin/audit/utils/fieldLabels.ts`
 
-## Landmine handling
+`FIELD_LABELS` map (Norwegian) covering applicants, applications, applicant_notes, applicant_files, application_events, and common system columns. Exports `fieldLabel(key)` returning the label or the raw key as fallback.
 
-| Landmine | Handling |
-|---|---|
-| Email uniqueness (23505) | Catch in `useUpdateApplicant`, throw `EMAIL_CONFLICT`, dialog/inline shows toast `"E-post er allerede i bruk på en annen søker"` |
-| Source change | `InlineEditableRow` and `EditApplicantDialog` intercept submit when `source` differs → `SourceChangeWarningDialog` → confirm proceeds |
-| GDPR true→false | Intercept toggle/submit → `GDPRRevocationDialog` typed-confirmation → save sets `gdpr_consent_at=null` |
-| `applicant_files` reclassify not audit-captured | Accepted; metadata-only change |
-| Storage delete failure | Toast error, do NOT delete DB row |
+### New: `src/components/dashboard/recruitment/admin/audit/utils/valueFormatters.ts`
 
-## Stability rules applied
+Exports `FormatContext` (with optional `userMap`, `stageMap`, `positionMap`) and `formatValue(fieldName, value, ctx?)`. Type-aware rendering:
+- `null/undefined` → "Ikke oppgitt"
+- UUID fields (`assigned_to`, `uploaded_by`, `performed_by`, `author_id`) → looked up via `ctx.userMap`, fallback to truncated UUID
+- Enums: `current_stage_id`, `source`, `language_norwegian`, `work_permit_status`, `note_type`, `file_type` → Norwegian labels
+- Booleans → "Ja"/"Nei"
+- Date fields → `toLocaleDateString('nb-NO', { day, month: 'long', year })`
+- `file_size` numbers → B/KB/MB
+- Arrays → comma-joined or "Ingen"
+- Objects → `JSON.stringify`
+- Else → `String(value)`
 
-- All dialogs mounted at parent level (Phase 2 regression lesson).
-- DropdownMenu in `ApplicantFilesTab` uses `modal={false}`.
-- All applicant mutations invalidate `['recruitment-audit-events']` so Tab 5 timeline reflects changes.
-- Inline edit uses controlled-input pattern (RHF overkill for single-field edits).
-- `CreateApplicantDialog` not refactored (separate cleanup later).
+### New: `src/components/dashboard/recruitment/admin/audit/utils/diffRenderer.tsx`
 
-## Verification (post-implementation)
+Exports `<DiffRenderer oldValues newValues ctx />`. Iterates the union of keys from both objects.
 
-Run through 17-point checklist from spec:
-1–8: EditApplicantDialog flow (open, edit phone, save, audit captured, source change warning, validation disabled save, email conflict toast).
-9–12: Inline edit (hover pencil, click→edit, Enter saves, Esc cancels).
-13–15: GDPR revocation (typed confirm, exact match, consent_at cleared, audit captured).
-16–17: Notes edit/delete; Files reclassify/delete (storage + DB).
-Body style regression: open/close every dialog, verify no stuck `pointer-events: none`.
+For each key, picks layout based on a "long" threshold:
+- Long if formatted output > 40 chars, array length > 3, or value is a non-array object → side-by-side cards (red/emerald) with "Før" / "Etter" labels
+- Otherwise → single line: `Label: oldStr → newStr` with strike-through on old value
 
-`npx tsc --noEmit` must pass clean.
+Empty case → "Ingen endringer."
 
-## Reply after implementation
+### Modify: `src/components/dashboard/recruitment/admin/audit/timeline/AuditEventDetailDrawer.tsx`
 
-1. New files list
-2. Modified files list
-3. Full code: `EditApplicantDialog.tsx`
-4. Full code: `GDPRRevocationDialog.tsx`
-5. Full code: `useUpdateApplicant.ts`
-6. TypeScript clean confirmation
-7. Confirmation all dialogs parent-mounted
-8. Confirmation `modal={false}` on files DropdownMenu
+1. Collect all UUIDs needing name lookup from the event:
+   - `event.actor_profile_id`
+   - From `old_values` and `new_values`: any `assigned_to`, `uploaded_by`, `performed_by`, `author_id` values
+2. Use `useQuery(['audit-actor-names', uuids])` to fetch from `profiles` (`select id, full_name`) → build `userMap: Map<string, string>`. Skip query when no UUIDs.
+3. Replace the two raw `<pre>` blocks for `old_values`/`new_values` with a single `<DiffRenderer oldValues={event.old_values} newValues={event.new_values} ctx={{ userMap }} />`.
+4. For `event.event_category === 'export'`: render `event.context` as labeled rows (Format / Antall hendelser / Datointervall) — NOT through DiffRenderer. Keep raw context `<pre>` only as fallback when shape is unknown.
+5. Aktør-profil row: when `userMap` has the actor's name, show the name as the visible value with the UUID inside a `Tooltip` for forensics. Falls back to UUID when not resolved.
+6. Other metadata rows (Hendelse-ID, Tabell, Subjekt-ID, Søker-ID) unchanged.
+
+## Verification
+
+- `npx tsc --noEmit` clean
+- Spot checks P1–P5 from request: success toast, ✓/✕ buttons + spinner, translated diff lines, multi-field edit, array side-by-side rendering, and edge cases (boolean, null→value, date, stage change)
+
+## Reply contents
+
+1. `useUpdateApplicant.ts` diff
+2. Full new `InlineEditField.tsx`
+3. New `fieldLabels.ts`
+4. New `valueFormatters.ts`
+5. New `diffRenderer.tsx`
+6. Full new `AuditEventDetailDrawer.tsx`
+7. TypeScript clean confirmation
