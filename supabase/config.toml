@@ -269,5 +269,5 @@ verify_jwt = true
 [functions.meta-lead-webhook]
 verify_jwt = false
 
-[functions._test-meta-webhook-signer]
+[functions.test-meta-webhook-signer]
 verify_jwt = false
