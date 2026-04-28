@@ -7,7 +7,7 @@
 // ingestion log, never via HTTP status (Meta retries aggressively).
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { createHmac } from 'https://deno.land/std@0.190.0/node/crypto.ts';
+import { createHmac } from 'node:crypto';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
