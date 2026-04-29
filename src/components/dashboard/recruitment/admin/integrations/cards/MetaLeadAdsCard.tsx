@@ -1,10 +1,38 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Facebook, Plus, Settings, Eye } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { Facebook, Plus, KeyRound, Trash2, Pencil } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useOrganizationStore } from '@/stores/organizationStore';
+import { useToast } from '@/hooks/use-toast';
+import { useFormPositionMappings } from '../hooks/useFormPositionMappings';
+import { useMetaIntegration } from '../hooks/useMetaIntegration';
+import { useJobPositions } from '@/components/dashboard/recruitment/positions/usePositions';
+import { MetaHealthTab } from '../MetaHealthTab';
 import type { MetaIntegration } from '../types';
 import { formatDistanceToNow } from 'date-fns';
 import { nb } from 'date-fns/locale';
@@ -12,8 +40,8 @@ import { nb } from 'date-fns/locale';
 interface Props {
   integration: MetaIntegration | null;
   onConnect: () => void;
-  onManageForms: () => void;
-  onViewDetails: () => void;
+  onEdit: () => void;
+  onRefreshToken: () => void;
 }
 
 function statusBadge(status: MetaIntegration['status']) {
@@ -41,8 +69,176 @@ function statusBadge(status: MetaIntegration['status']) {
   }
 }
 
-export function MetaLeadAdsCard({ integration, onConnect, onManageForms, onViewDetails }: Props) {
+function FormMappingsInline({ integrationId }: { integrationId: string }) {
+  const { toast } = useToast();
+  const { mappings, createMapping, updateMapping, deleteMapping } =
+    useFormPositionMappings(integrationId);
+  const { data: positions } = useJobPositions();
+  const openPositions = (positions ?? []).filter((p) => p.status === 'open');
+
+  const [newFormId, setNewFormId] = useState('');
+  const [newFormName, setNewFormName] = useState('');
+  const [newPositionId, setNewPositionId] = useState('');
+
+  const handleAdd = async () => {
+    if (!newFormId.trim()) {
+      toast({ title: 'Form ID er påkrevd', variant: 'destructive' });
+      return;
+    }
+    try {
+      await createMapping.mutateAsync({
+        form_id: newFormId.trim(),
+        form_name: newFormName.trim() || null,
+        position_id: newPositionId || null,
+      });
+      setNewFormId('');
+      setNewFormName('');
+      setNewPositionId('');
+      toast({ title: 'Skjema lagt til' });
+    } catch (e: any) {
+      toast({ title: 'Kunne ikke legge til', description: e?.message, variant: 'destructive' });
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <h4 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          Mappinger ({mappings.length})
+        </h4>
+        {mappings.length === 0 ? (
+          <p className="text-sm text-muted-foreground rounded-md border bg-muted/30 px-3 py-4 text-center">
+            Ingen skjemaer mappet ennå.
+          </p>
+        ) : (
+          <div className="space-y-2">
+            {mappings.map((m) => (
+              <div key={m.id} className="rounded-md border p-3 space-y-2">
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Form name</Label>
+                    <Input
+                      value={m.form_name ?? ''}
+                      placeholder="(uten navn)"
+                      onChange={(e) =>
+                        updateMapping.mutate({ id: m.id, form_name: e.target.value || null })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Form ID</Label>
+                    <Input value={m.form_id} readOnly className="font-mono text-xs" />
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Stilling</Label>
+                  <Select
+                    value={m.position_id ?? ''}
+                    onValueChange={(v) =>
+                      updateMapping.mutate({ id: m.id, position_id: v || null })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Velg stilling" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {openPositions.map((p) => (
+                        <SelectItem key={p.id} value={p.id}>
+                          {p.title}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex items-center justify-between pt-1">
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      checked={m.is_active}
+                      onCheckedChange={(v) => updateMapping.mutate({ id: m.id, is_active: v })}
+                    />
+                    <Label className="text-xs">Aktiv</Label>
+                  </div>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Slett
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Slett skjema-mapping?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Innkommende leads fra dette skjemaet vil ikke lenger opprettes som søkere.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Avbryt</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => deleteMapping.mutate(m.id)}>
+                          Slett
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="space-y-3 rounded-md border bg-muted/30 p-3">
+        <h4 className="text-sm font-medium">Legg til skjema</h4>
+        <div className="grid grid-cols-2 gap-2">
+          <div className="space-y-1">
+            <Label className="text-xs">Form name (valgfritt)</Label>
+            <Input
+              value={newFormName}
+              onChange={(e) => setNewFormName(e.target.value)}
+              placeholder="Sommer-kampanje 2026"
+            />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Form ID</Label>
+            <Input
+              value={newFormId}
+              onChange={(e) => setNewFormId(e.target.value)}
+              placeholder="123456789012345"
+            />
+          </div>
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">Stilling</Label>
+          <Select value={newPositionId} onValueChange={setNewPositionId}>
+            <SelectTrigger>
+              <SelectValue placeholder="Velg stilling" />
+            </SelectTrigger>
+            <SelectContent>
+              {openPositions.map((p) => (
+                <SelectItem key={p.id} value={p.id}>
+                  {p.title}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <Button size="sm" onClick={handleAdd} disabled={createMapping.isPending}>
+          <Plus className="h-4 w-4 mr-2" />
+          Legg til skjema
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+export function MetaLeadAdsCard({ integration, onConnect, onEdit, onRefreshToken }: Props) {
   const { currentOrganizationId } = useOrganizationStore();
+  const { toast } = useToast();
+  const { deleteIntegration } = useMetaIntegration();
 
   const { data: leadCount } = useQuery({
     queryKey: ['meta-lead-count', currentOrganizationId],
@@ -81,13 +277,22 @@ export function MetaLeadAdsCard({ integration, onConnect, onManageForms, onViewD
         </CardHeader>
         <CardContent>
           <Button size="sm" onClick={onConnect}>
-            <Plus />
+            <Plus className="h-4 w-4 mr-2" />
             Koble til Meta-side
           </Button>
         </CardContent>
       </Card>
     );
   }
+
+  const handleDelete = async () => {
+    try {
+      await deleteIntegration.mutateAsync(integration.id);
+      toast({ title: 'Tilkobling slettet' });
+    } catch (e: any) {
+      toast({ title: 'Sletting feilet', description: e?.message, variant: 'destructive' });
+    }
+  };
 
   return (
     <Card>
@@ -110,34 +315,86 @@ export function MetaLeadAdsCard({ integration, onConnect, onManageForms, onViewD
           {statusBadge(integration.status)}
         </div>
       </CardHeader>
-      <CardContent className="space-y-3">
-        <div className="grid grid-cols-2 gap-3 text-sm">
-          <div className="rounded-md border bg-muted/30 px-3 py-2">
-            <div className="text-xs text-muted-foreground">Søknader mottatt</div>
-            <div className="font-semibold">{leadCount ?? 0}</div>
-          </div>
-          <div className="rounded-md border bg-muted/30 px-3 py-2">
-            <div className="text-xs text-muted-foreground">Sist mottatt</div>
-            <div className="font-semibold">
-              {integration.last_event_at
-                ? formatDistanceToNow(new Date(integration.last_event_at), { addSuffix: true, locale: nb })
-                : 'Aldri'}
+      <CardContent>
+        <Tabs defaultValue="connection">
+          <TabsList>
+            <TabsTrigger value="connection">Tilkobling</TabsTrigger>
+            <TabsTrigger value="forms">Skjemaer</TabsTrigger>
+            <TabsTrigger value="health">Helse</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="connection" className="space-y-3">
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div className="rounded-md border bg-muted/30 px-3 py-2">
+                <div className="text-xs text-muted-foreground">Søknader mottatt</div>
+                <div className="font-semibold">{leadCount ?? 0}</div>
+              </div>
+              <div className="rounded-md border bg-muted/30 px-3 py-2">
+                <div className="text-xs text-muted-foreground">Sist mottatt</div>
+                <div className="font-semibold">
+                  {integration.last_event_at
+                    ? formatDistanceToNow(new Date(integration.last_event_at), {
+                        addSuffix: true,
+                        locale: nb,
+                      })
+                    : 'Aldri'}
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button size="sm" variant="outline" onClick={onManageForms}>
-            <Settings />
-            Administrer skjemaer
-          </Button>
-          <Button size="sm" variant="outline" onClick={onViewDetails}>
-            <Eye />
-            Vis tilkoblingsdetaljer
-          </Button>
-        </div>
-        {integration.status_message ? (
-          <p className="text-xs text-muted-foreground">{integration.status_message}</p>
-        ) : null}
+            {integration.status_message ? (
+              <p className="text-xs text-muted-foreground">{integration.status_message}</p>
+            ) : null}
+            <div className="flex flex-wrap gap-2 pt-1">
+              <Button size="sm" variant="outline" onClick={onEdit}>
+                <Pencil className="h-4 w-4 mr-2" />
+                Rediger tilkobling
+              </Button>
+              <Button size="sm" variant="outline" onClick={onRefreshToken}>
+                <KeyRound className="h-4 w-4 mr-2" />
+                Forny token
+              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Slett tilkobling
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Slett Meta-tilkobling?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Webhook fra Meta vil slutte å motta nye leads. Eksisterende søkere som
+                      allerede er importert beholdes. Skjema-mappinger og logg-historikk for denne
+                      tilkoblingen slettes også.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Avbryt</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleDelete}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      Slett tilkobling
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="forms">
+            <FormMappingsInline integrationId={integration.id} />
+          </TabsContent>
+
+          <TabsContent value="health">
+            <MetaHealthTab integration={integration} onRefreshToken={onRefreshToken} />
+          </TabsContent>
+        </Tabs>
       </CardContent>
     </Card>
   );

@@ -7,15 +7,15 @@ import type { MetaIntegration } from '../types';
 interface Props {
   metaIntegration: MetaIntegration | null;
   onMetaConnect: () => void;
-  onMetaManageForms: () => void;
-  onMetaViewDetails: () => void;
+  onMetaEdit: () => void;
+  onMetaRefreshToken: () => void;
 }
 
 export function LeadSourcesSection({
   metaIntegration,
   onMetaConnect,
-  onMetaManageForms,
-  onMetaViewDetails,
+  onMetaEdit,
+  onMetaRefreshToken,
 }: Props) {
   return (
     <section className="space-y-3">
@@ -32,8 +32,8 @@ export function LeadSourcesSection({
         <MetaLeadAdsCard
           integration={metaIntegration}
           onConnect={onMetaConnect}
-          onManageForms={onMetaManageForms}
-          onViewDetails={onMetaViewDetails}
+          onEdit={onMetaEdit}
+          onRefreshToken={onMetaRefreshToken}
         />
         <ComingSoonCard
           title="Finn.no"

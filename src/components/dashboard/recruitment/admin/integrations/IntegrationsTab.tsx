@@ -6,7 +6,7 @@ import { OutboundSection } from './sections/OutboundSection';
 import { AuthenticationSection } from './sections/AuthenticationSection';
 import { LeadIngestionLogPanel } from './log/LeadIngestionLogPanel';
 import { MetaConnectionDialog } from './meta/MetaConnectionDialog';
-import { MetaFormMappingDialog } from './meta/MetaFormMappingDialog';
+import { MetaTokenRefreshDialog } from './MetaTokenRefreshDialog';
 import { useMetaIntegration } from './hooks/useMetaIntegration';
 
 export function IntegrationsTab() {
@@ -14,7 +14,7 @@ export function IntegrationsTab() {
 
   const [connectionOpen, setConnectionOpen] = useState(false);
   const [connectionMode, setConnectionMode] = useState<'edit' | 'view'>('edit');
-  const [mappingsOpen, setMappingsOpen] = useState(false);
+  const [tokenRefreshOpen, setTokenRefreshOpen] = useState(false);
 
   return (
     <>
@@ -34,11 +34,11 @@ export function IntegrationsTab() {
             setConnectionMode('edit');
             setConnectionOpen(true);
           }}
-          onMetaManageForms={() => setMappingsOpen(true)}
-          onMetaViewDetails={() => {
-            setConnectionMode('view');
+          onMetaEdit={() => {
+            setConnectionMode('edit');
             setConnectionOpen(true);
           }}
+          onMetaRefreshToken={() => setTokenRefreshOpen(true)}
         />
 
         <Separator />
@@ -51,19 +51,25 @@ export function IntegrationsTab() {
 
         <Separator />
 
-        <LeadIngestionLogPanel />
+        <div id="lead-ingestion-log">
+          <LeadIngestionLogPanel />
+        </div>
       </div>
 
-      {/* Dialogs mounted at parent (Phase 2 lesson) */}
+      {/* Dialogs mounted at parent */}
       <MetaConnectionDialog
         open={connectionOpen}
         onOpenChange={setConnectionOpen}
         integration={integration}
         initialMode={connectionMode}
+        onRequestTokenRefresh={() => {
+          setConnectionOpen(false);
+          setTokenRefreshOpen(true);
+        }}
       />
-      <MetaFormMappingDialog
-        open={mappingsOpen}
-        onOpenChange={setMappingsOpen}
+      <MetaTokenRefreshDialog
+        open={tokenRefreshOpen}
+        onOpenChange={setTokenRefreshOpen}
         integration={integration}
       />
     </>
