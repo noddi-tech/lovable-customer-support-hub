@@ -280,9 +280,9 @@ export function MetaHealthTab({ integration, onRefreshToken }: Props) {
             }
             return (
               <StatusRow
-                ok={result.lead_retrieval.can_fetch_forms}
+                ok={result.lead_retrieval.can_fetch_leads}
                 label={
-                  result.lead_retrieval.can_fetch_forms
+                  result.lead_retrieval.can_fetch_leads
                     ? 'Sist mottatte lead kunne hentes på nytt'
                     : 'Klarte ikke hente leads fra Meta'
                 }

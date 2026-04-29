@@ -34,7 +34,7 @@ interface HealthResult {
     error?: string | null;
   };
   lead_retrieval: {
-    can_fetch_forms: boolean;
+    can_fetch_leads: boolean;
     last_success_at: string | null;
     last_error: string | null;
     tested_lead_id?: string | null;
@@ -127,7 +127,7 @@ Deno.serve(async (req) => {
         auth: { valid: false, is_page_token: false, page_id_match: false, owner_id: null, owner_name: null,
                 scopes_present: [], scopes_missing: REQUIRED_SCOPES, error: 'Ingen page access token lagret' },
         webhook: { subscription_active: false, last_event_at: integration.last_event_at, events_24h: { success: 0, failed: 0, duplicate: 0, invalid: 0 } },
-        lead_retrieval: { can_fetch_forms: false, last_success_at: null, last_error: 'Ingen token', tested_lead_id: null },
+        lead_retrieval: { can_fetch_leads: false, last_success_at: null, last_error: 'Ingen token', tested_lead_id: null },
         subscription: { leadgen_subscribed: false },
         token_expires_at: null,
         overall_status: 'broken',
@@ -217,7 +217,7 @@ Deno.serve(async (req) => {
       .limit(1);
     const recentLead = recentLeads?.[0];
     let lead_retrieval = {
-      can_fetch_forms: false,
+      can_fetch_leads: false,
       last_success_at: null as string | null,
       last_error: null as string | null,
       tested_lead_id: recentLead?.external_id ?? null,
@@ -226,13 +226,13 @@ Deno.serve(async (req) => {
       const r = await fetchJson(
         `${GRAPH}/${recentLead.external_id}?fields=id,created_time,form_id&access_token=${encodeURIComponent(TOKEN)}`
       );
-      lead_retrieval.can_fetch_forms = r.ok;
+      lead_retrieval.can_fetch_leads = r.ok;
       lead_retrieval.last_success_at = r.ok ? new Date().toISOString() : null;
       lead_retrieval.last_error = r.ok ? null : (r.error ?? `HTTP ${r.status}`);
     } else {
       // No leads ingested yet — can't probe lead retrieval, but that's not a failure state.
       lead_retrieval.last_error = 'Ingen tidligere mottatte leads å teste mot ennå';
-      lead_retrieval.can_fetch_forms = true; // not tested != broken
+      lead_retrieval.can_fetch_leads = true; // not tested != broken
     }
 
     // F + G. event stats (24h) + last event
