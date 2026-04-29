@@ -268,3 +268,28 @@ verify_jwt = true
 # Security via HMAC SHA-256 signature (META_APP_SECRET) + verify_token lookup.
 [functions.meta-lead-webhook]
 verify_jwt = false
+
+# Meta OAuth wizard
+[functions.meta-oauth-init]
+verify_jwt = true
+
+# PUBLIC: Meta calls this from the browser redirect; security via state nonce + HMAC of token exchange.
+[functions.meta-oauth-callback]
+verify_jwt = false
+
+[functions.meta-oauth-list-pages]
+verify_jwt = true
+
+[functions.meta-oauth-finalize]
+verify_jwt = true
+
+[functions.meta-integration-subscribe-webhook]
+verify_jwt = true
+
+# PUBLIC: Meta deauthorize webhook; security via signed_request HMAC verification.
+[functions.meta-deauthorize]
+verify_jwt = false
+
+# PUBLIC: Meta data-deletion webhook; security via signed_request HMAC verification.
+[functions.meta-data-deletion]
+verify_jwt = false
