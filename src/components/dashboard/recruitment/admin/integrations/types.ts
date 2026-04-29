@@ -21,7 +21,7 @@ export interface MetaHealthCheckResult {
     can_fetch_forms: boolean;
     last_success_at: string | null;
     last_error: string | null;
-    tested_form_id?: string | null;
+    tested_lead_id?: string | null;
   };
   subscription: { leadgen_subscribed: boolean };
   token_expires_at: string | null;

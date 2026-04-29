@@ -1,31 +1,73 @@
-# Fix: source Meta scopes from `debug_token`, not `/me/permissions`
+# Fix lead_retrieval probe to mirror runtime behavior
 
-`/me/permissions` returns Graph error 100 on **page** access tokens, which makes the health check falsely report all required scopes as missing and flag the integration as `broken`. The page token actually works (`can_fetch_forms: true` proves it). `debug_token` returns the granted scopes for both user and page tokens.
+The current health probe hits `/{form_id}/leads` (list endpoint), which requires `pages_manage_ads` — a scope page tokens often lack. Runtime ingestion only ever fetches individual leads by ID, which works with `leads_retrieval`. Switch the probe to match.
 
 ## Changes
 
 ### 1. `supabase/functions/meta-integration-health-check/index.ts`
 
-- Drop `permsRes` from the `Promise.all` parallel block (keep `meRes`, `debugRes`, `subsRes`).
-- Replace the entire "Auth section" (lines ~157–167) with the debug_token-sourced version:
-  - `authValid` ← `debugRes.data.data.is_valid === true`
-  - `scopes_present` / `scopes_missing` derived from `debugRes.data.data.scopes` (string array)
-  - `authError` ← `debugRes.data.data.error?.message` when invalid, or `debugRes.error` if the call itself failed
-- Everything else (owner id/name from `meRes`, expiry from `debugRes`, subscription from `subsRes`, lead retrieval, event stats, overall status logic) stays unchanged.
+**Replace the form-mappings query (lines 207–212)** with a lookup of the most recent successfully-ingested lead:
 
-### 2. `supabase/functions/meta-integration-test-token/index.ts`
+```ts
+const { data: recentLeads } = await admin
+  .from('recruitment_lead_ingestion_log')
+  .select('external_id, created_at')
+  .eq('integration_id', integrationId)
+  .eq('status', 'success')
+  .not('external_id', 'is', null)
+  .order('created_at', { ascending: false })
+  .limit(1);
+const recentLead = recentLeads?.[0];
+```
 
-- Add `META_APP_ID` / `META_APP_SECRET` reads at the top of the handler (env vars).
-- Replace the parallel `permsRes` + `meRes` block with: `meRes` in parallel with a new `debugRes` against `debug_token` using `${META_APP_ID}|${META_APP_SECRET}` as the app access token.
-- Build `granted` from `debugRes.data.data.scopes` if present; otherwise fall back to a sequential `/me/permissions` call (handles older user tokens where `debug_token` may omit scopes).
-- Compute `scopes_present` / `scopes_missing` from that `granted` set. Keep the rest of the response shape, ownership check, and error summary logic unchanged.
+**Replace the lead_retrieval probe block (lines 213–229)** with a lead-by-id fetch:
 
-## Deploy & verify
+```ts
+let lead_retrieval = {
+  can_fetch_forms: false,
+  last_success_at: null as string | null,
+  last_error: null as string | null,
+  tested_lead_id: recentLead?.external_id ?? null,
+};
+if (recentLead?.external_id) {
+  const r = await fetchJson(
+    `${GRAPH}/${recentLead.external_id}?fields=id,created_time,form_id&access_token=${encodeURIComponent(TOKEN)}`
+  );
+  lead_retrieval.can_fetch_forms = r.ok;
+  lead_retrieval.last_success_at = r.ok ? new Date().toISOString() : null;
+  lead_retrieval.last_error = r.ok ? null : (r.error ?? `HTTP ${r.status}`);
+} else {
+  lead_retrieval.last_error = 'Ingen tidligere mottatte leads å teste mot ennå';
+  lead_retrieval.can_fetch_forms = true; // not tested != broken
+}
+```
 
-1. Deploy both functions (`meta-integration-health-check`, `meta-integration-test-token`).
-2. From the **Helse** tab, run the health check against integration `22455007-ce79-4872-b0d2-998212d4dcb2`.
-3. Paste the returned JSON. Expectation: `overall_status: "healthy"`, `auth.scopes_missing: []`, `auth.valid: true`, `lead_retrieval.can_fetch_forms: true`.
+**Update the `HealthResult` interface (line 40)**: rename `tested_form_id?: string | null` → `tested_lead_id?: string | null`.
 
-## Out of scope
+**Update the no-token early-return block (line 130)**: the `lead_retrieval` literal there also needs to satisfy the new shape (add `tested_lead_id: null`).
 
-No UI changes, no schema changes, no secret changes (`META_APP_ID` and `META_APP_SECRET` are already configured).
+### 2. `src/components/dashboard/recruitment/admin/integrations/types.ts`
+
+In `MetaHealthCheckResult.lead_retrieval`, rename `tested_form_id?: string | null` → `tested_lead_id?: string | null`.
+
+### 3. `src/components/dashboard/recruitment/admin/integrations/MetaHealthTab.tsx`
+
+In the "Lead-henting" section:
+- Success label: `"Sist mottatte lead kunne hentes på nytt"` (replaces `"Kan hente leads fra Meta"`).
+- Failure label: keep `"Klarte ikke hente leads fra Meta"`.
+- When `lead_retrieval.last_error` equals the no-leads sentinel, show: `"Ingen tidligere mottatte leads å teste mot — venter på første lead via webhook"` instead of the raw error string, and treat the row as neutral (use the `warn` style rather than red).
+
+### 4. Deploy + verify
+
+- Redeploy `meta-integration-health-check`.
+- Run health check from Helse tab against integration `22455007-ce79-4872-b0d2-998212d4dcb2`.
+- Confirm response: `overall_status: "healthy"`, `lead_retrieval.can_fetch_forms: true`, `lead_retrieval.tested_lead_id` matches Erdal's `external_id` (`964413816123015`).
+- Paste the JSON response back for verification.
+
+## Files touched
+
+- `supabase/functions/meta-integration-health-check/index.ts`
+- `src/components/dashboard/recruitment/admin/integrations/types.ts`
+- `src/components/dashboard/recruitment/admin/integrations/MetaHealthTab.tsx`
+
+`meta-integration-test-token` is unchanged — it doesn't probe lead retrieval.
