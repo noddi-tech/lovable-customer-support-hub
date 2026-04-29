@@ -44,6 +44,7 @@ import AuditLogAnalytics from "./pages/AuditLogAnalytics";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
 import NotFound from "./pages/NotFound";
+import DataDeletionStatus from "./pages/DataDeletionStatus";
 import SuperAdminImport from "./pages/SuperAdminImport";
 import SearchPage from "./pages/SearchPage";
 import BulkOutreach from "./pages/BulkOutreach";
@@ -85,6 +86,7 @@ const AppContent = () => {
     <URLSanitizer>
     <Routes>
       <Route path="/auth" element={<Auth />} />
+      <Route path="/data-deletion-status/:code" element={<DataDeletionStatus />} />
       
       {/* Root redirect to default section */}
       <Route path="/" element={<Navigate to="/home" replace />} />
