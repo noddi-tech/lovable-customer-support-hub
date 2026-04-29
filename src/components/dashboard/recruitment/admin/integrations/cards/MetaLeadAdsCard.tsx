@@ -243,7 +243,7 @@ function FormMappingsInline({ integrationId }: { integrationId: string }) {
   );
 }
 
-export function MetaLeadAdsCard({ integration, onConnect, onEdit, onRefreshToken }: Props) {
+export function MetaLeadAdsCard({ integration, onConnect, onEdit, onReconnect, onRefreshToken }: Props) {
   const { currentOrganizationId } = useOrganizationStore();
   const { toast } = useToast();
   const { deleteIntegration } = useMetaIntegration();
@@ -357,10 +357,36 @@ export function MetaLeadAdsCard({ integration, onConnect, onEdit, onRefreshToken
                 <Pencil className="h-4 w-4 mr-2" />
                 Rediger tilkobling
               </Button>
-              <Button size="sm" variant="outline" onClick={onRefreshToken}>
-                <KeyRound className="h-4 w-4 mr-2" />
-                Forny token
-              </Button>
+              <DropdownMenu modal={false}>
+                <DropdownMenuTrigger asChild>
+                  <Button size="sm" variant="outline">
+                    <KeyRound className="h-4 w-4 mr-2" />
+                    Forny token
+                    <ChevronDown className="h-3.5 w-3.5 ml-1 opacity-70" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-64">
+                  <DropdownMenuItem onClick={onReconnect}>
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    <div className="flex flex-col items-start">
+                      <span>Koble til på nytt (anbefalt)</span>
+                      <span className="text-[10px] text-muted-foreground">
+                        Logg inn med Facebook
+                      </span>
+                    </div>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={onRefreshToken}>
+                    <KeyRound className="h-4 w-4 mr-2" />
+                    <div className="flex flex-col items-start">
+                      <span>Skriv inn manuelt</span>
+                      <span className="text-[10px] text-muted-foreground">
+                        Lim inn nytt Page Access Token
+                      </span>
+                    </div>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button
