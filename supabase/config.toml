@@ -286,6 +286,9 @@ verify_jwt = true
 [functions.meta-integration-subscribe-webhook]
 verify_jwt = true
 
+[functions.meta-list-leadgen-forms]
+verify_jwt = true
+
 # PUBLIC: Meta deauthorize webhook; security via signed_request HMAC verification.
 [functions.meta-deauthorize]
 verify_jwt = false
