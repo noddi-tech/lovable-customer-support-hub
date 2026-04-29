@@ -83,12 +83,29 @@ Deno.serve(async (req) => {
       });
     }
 
-    const [permsRes, meRes] = await Promise.all([
-      fetchJson(`${GRAPH}/me/permissions?access_token=${encodeURIComponent(candidateToken)}`),
+    // Try debug_token first (works for both user and page tokens).
+    const APP_ACCESS = `${Deno.env.get('META_APP_ID')}|${Deno.env.get('META_APP_SECRET')}`;
+    const [meRes, debugRes] = await Promise.all([
       fetchJson(`${GRAPH}/me?fields=id,name&access_token=${encodeURIComponent(candidateToken)}`),
+      fetchJson(`${GRAPH}/debug_token?input_token=${encodeURIComponent(candidateToken)}&access_token=${encodeURIComponent(APP_ACCESS)}`),
     ]);
 
-    if (!meRes.ok || !permsRes.ok) {
+    let granted = new Set<string>();
+    if (debugRes.ok && Array.isArray(debugRes.data?.data?.scopes)) {
+      granted = new Set<string>(debugRes.data.data.scopes);
+    } else {
+      // Fallback for older tokens where debug_token may not include scopes
+      const permsRes = await fetchJson(
+        `${GRAPH}/me/permissions?access_token=${encodeURIComponent(candidateToken)}`
+      );
+      if (permsRes.ok && Array.isArray(permsRes.data?.data)) {
+        for (const p of permsRes.data.data) {
+          if (p.status === 'granted') granted.add(p.permission);
+        }
+      }
+    }
+
+    if (!meRes.ok) {
       return new Response(JSON.stringify({
         valid: false,
         is_page_token: false,
@@ -97,7 +114,7 @@ Deno.serve(async (req) => {
         owner_name: meRes.data?.name ?? null,
         scopes_present: [],
         scopes_missing: REQUIRED_SCOPES,
-        error_summary: meRes.error ?? permsRes.error ?? 'Token kunne ikke valideres',
+        error_summary: meRes.error ?? 'Token kunne ikke valideres',
       }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
@@ -106,11 +123,6 @@ Deno.serve(async (req) => {
     const page_id_match = !!owner_id && String(owner_id) === String(integration.page_id);
     const is_page_token = page_id_match;
 
-    const granted = new Set(
-      (permsRes.data?.data ?? [])
-        .filter((p: any) => p.status === 'granted')
-        .map((p: any) => p.permission)
-    );
     const scopes_present = REQUIRED_SCOPES.filter((s) => granted.has(s));
     const scopes_missing = REQUIRED_SCOPES.filter((s) => !granted.has(s));
 
