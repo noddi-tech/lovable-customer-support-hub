@@ -3724,6 +3724,47 @@ export type Database = {
           },
         ]
       }
+      recruitment_meta_data_deletion_requests: {
+        Row: {
+          completed_at: string | null
+          confirmation_code: string
+          created_at: string
+          details: Json | null
+          id: string
+          oauth_user_id: string
+          organization_id: string | null
+          status: string
+        }
+        Insert: {
+          completed_at?: string | null
+          confirmation_code: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          oauth_user_id: string
+          organization_id?: string | null
+          status?: string
+        }
+        Update: {
+          completed_at?: string | null
+          confirmation_code?: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          oauth_user_id?: string
+          organization_id?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recruitment_meta_data_deletion_requests_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       recruitment_meta_form_mappings: {
         Row: {
           created_at: string
@@ -3784,12 +3825,16 @@ export type Database = {
       }
       recruitment_meta_integrations: {
         Row: {
+          connected_via: string
           created_at: string
           created_by: string | null
+          deauthorized_at: string | null
           id: string
           last_event_at: string | null
           last_health_check_at: string | null
           last_health_check_result: Json | null
+          oauth_user_id: string | null
+          oauth_user_name: string | null
           organization_id: string
           page_access_token: string | null
           page_id: string
@@ -3798,15 +3843,21 @@ export type Database = {
           status_message: string | null
           token_expires_at: string | null
           updated_at: string
+          user_access_token: string | null
+          user_token_expires_at: string | null
           verify_token: string
         }
         Insert: {
+          connected_via?: string
           created_at?: string
           created_by?: string | null
+          deauthorized_at?: string | null
           id?: string
           last_event_at?: string | null
           last_health_check_at?: string | null
           last_health_check_result?: Json | null
+          oauth_user_id?: string | null
+          oauth_user_name?: string | null
           organization_id: string
           page_access_token?: string | null
           page_id: string
@@ -3815,15 +3866,21 @@ export type Database = {
           status_message?: string | null
           token_expires_at?: string | null
           updated_at?: string
+          user_access_token?: string | null
+          user_token_expires_at?: string | null
           verify_token: string
         }
         Update: {
+          connected_via?: string
           created_at?: string
           created_by?: string | null
+          deauthorized_at?: string | null
           id?: string
           last_event_at?: string | null
           last_health_check_at?: string | null
           last_health_check_result?: Json | null
+          oauth_user_id?: string | null
+          oauth_user_name?: string | null
           organization_id?: string
           page_access_token?: string | null
           page_id?: string
@@ -3832,6 +3889,8 @@ export type Database = {
           status_message?: string | null
           token_expires_at?: string | null
           updated_at?: string
+          user_access_token?: string | null
+          user_token_expires_at?: string | null
           verify_token?: string
         }
         Relationships: [
@@ -3844,6 +3903,72 @@ export type Database = {
           },
           {
             foreignKeyName: "recruitment_meta_integrations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recruitment_meta_oauth_states: {
+        Row: {
+          consumed_at: string | null
+          created_at: string
+          existing_integration_id: string | null
+          expires_at: string
+          id: string
+          long_lived_user_token: string | null
+          mode: string
+          nonce: string
+          oauth_user_id: string | null
+          oauth_user_name: string | null
+          organization_id: string
+          origin: string
+          token_expires_at: string | null
+          user_id: string
+        }
+        Insert: {
+          consumed_at?: string | null
+          created_at?: string
+          existing_integration_id?: string | null
+          expires_at: string
+          id?: string
+          long_lived_user_token?: string | null
+          mode?: string
+          nonce: string
+          oauth_user_id?: string | null
+          oauth_user_name?: string | null
+          organization_id: string
+          origin: string
+          token_expires_at?: string | null
+          user_id: string
+        }
+        Update: {
+          consumed_at?: string | null
+          created_at?: string
+          existing_integration_id?: string | null
+          expires_at?: string
+          id?: string
+          long_lived_user_token?: string | null
+          mode?: string
+          nonce?: string
+          oauth_user_id?: string | null
+          oauth_user_name?: string | null
+          organization_id?: string
+          origin?: string
+          token_expires_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recruitment_meta_oauth_states_existing_integration_id_fkey"
+            columns: ["existing_integration_id"]
+            isOneToOne: false
+            referencedRelation: "recruitment_meta_integrations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recruitment_meta_oauth_states_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
