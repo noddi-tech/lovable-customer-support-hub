@@ -86,6 +86,7 @@ const AppContent = () => {
     <URLSanitizer>
     <Routes>
       <Route path="/auth" element={<Auth />} />
+      <Route path="/data-deletion-status/:code" element={<DataDeletionStatus />} />
       
       {/* Root redirect to default section */}
       <Route path="/" element={<Navigate to="/home" replace />} />
