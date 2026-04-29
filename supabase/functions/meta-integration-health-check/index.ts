@@ -37,7 +37,7 @@ interface HealthResult {
     can_fetch_forms: boolean;
     last_success_at: string | null;
     last_error: string | null;
-    tested_form_id?: string | null;
+    tested_lead_id?: string | null;
   };
   subscription: { leadgen_subscribed: boolean };
   token_expires_at: string | null;
@@ -127,7 +127,7 @@ Deno.serve(async (req) => {
         auth: { valid: false, is_page_token: false, page_id_match: false, owner_id: null, owner_name: null,
                 scopes_present: [], scopes_missing: REQUIRED_SCOPES, error: 'Ingen page access token lagret' },
         webhook: { subscription_active: false, last_event_at: integration.last_event_at, events_24h: { success: 0, failed: 0, duplicate: 0, invalid: 0 } },
-        lead_retrieval: { can_fetch_forms: false, last_success_at: null, last_error: 'Ingen token' },
+        lead_retrieval: { can_fetch_forms: false, last_success_at: null, last_error: 'Ingen token', tested_lead_id: null },
         subscription: { leadgen_subscribed: false },
         token_expires_at: null,
         overall_status: 'broken',
@@ -203,29 +203,36 @@ Deno.serve(async (req) => {
       }
     }
 
-    // E. Lead retrieval test against first active form mapping
-    const { data: mappings } = await admin
-      .from('recruitment_meta_form_mappings')
-      .select('form_id, form_name, is_active')
+    // E. Lead retrieval test — fetch most recent successfully ingested lead by ID.
+    // This matches runtime behavior (webhook handler fetches single leads by ID),
+    // and only requires `leads_retrieval` scope. The list endpoint /{form_id}/leads
+    // requires `pages_manage_ads`, which page tokens routinely lack.
+    const { data: recentLeads } = await admin
+      .from('recruitment_lead_ingestion_log')
+      .select('external_id, created_at')
       .eq('integration_id', integrationId)
-      .eq('is_active', true)
+      .eq('status', 'success')
+      .not('external_id', 'is', null)
+      .order('created_at', { ascending: false })
       .limit(1);
-    const firstForm = mappings?.[0];
+    const recentLead = recentLeads?.[0];
     let lead_retrieval = {
       can_fetch_forms: false,
       last_success_at: null as string | null,
       last_error: null as string | null,
-      tested_form_id: firstForm?.form_id ?? null,
+      tested_lead_id: recentLead?.external_id ?? null,
     };
-    if (firstForm?.form_id) {
+    if (recentLead?.external_id) {
       const r = await fetchJson(
-        `${GRAPH}/${firstForm.form_id}/leads?limit=1&access_token=${encodeURIComponent(TOKEN)}`
+        `${GRAPH}/${recentLead.external_id}?fields=id,created_time,form_id&access_token=${encodeURIComponent(TOKEN)}`
       );
       lead_retrieval.can_fetch_forms = r.ok;
       lead_retrieval.last_success_at = r.ok ? new Date().toISOString() : null;
       lead_retrieval.last_error = r.ok ? null : (r.error ?? `HTTP ${r.status}`);
     } else {
-      lead_retrieval.last_error = 'Ingen aktive skjema-mappinger å teste mot';
+      // No leads ingested yet — can't probe lead retrieval, but that's not a failure state.
+      lead_retrieval.last_error = 'Ingen tidligere mottatte leads å teste mot ennå';
+      lead_retrieval.can_fetch_forms = true; // not tested != broken
     }
 
     // F + G. event stats (24h) + last event

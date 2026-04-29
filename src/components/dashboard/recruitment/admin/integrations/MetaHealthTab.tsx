@@ -266,15 +266,30 @@ export function MetaHealthTab({ integration, onRefreshToken }: Props) {
           Lead-henting
         </div>
         <div className="space-y-1.5">
-          <StatusRow
-            ok={result.lead_retrieval.can_fetch_forms}
-            label={
-              result.lead_retrieval.can_fetch_forms
-                ? 'Kan hente leads fra Meta'
-                : 'Klarte ikke hente leads fra Meta'
+          {(() => {
+            const noLeadsYet =
+              result.lead_retrieval.last_error === 'Ingen tidligere mottatte leads å teste mot ennå';
+            if (noLeadsYet) {
+              return (
+                <StatusRow
+                  ok={false}
+                  warn
+                  label="Ingen tidligere mottatte leads å teste mot — venter på første lead via webhook"
+                />
+              );
             }
-            detail={result.lead_retrieval.last_error}
-          />
+            return (
+              <StatusRow
+                ok={result.lead_retrieval.can_fetch_forms}
+                label={
+                  result.lead_retrieval.can_fetch_forms
+                    ? 'Sist mottatte lead kunne hentes på nytt'
+                    : 'Klarte ikke hente leads fra Meta'
+                }
+                detail={result.lead_retrieval.last_error}
+              />
+            );
+          })()}
           {result.lead_retrieval.last_success_at && (
             <div className="text-sm text-muted-foreground">
               Sist vellykket henting: {relative(result.lead_retrieval.last_success_at)}
