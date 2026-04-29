@@ -71,7 +71,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const userId = claims.claims.sub as string;
+    const userId = userData.user.id;
     const { data: profile } = await admin
       .from('profiles')
       .select('organization_id')
