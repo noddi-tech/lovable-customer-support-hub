@@ -116,7 +116,7 @@ export function MetaTokenRefreshDialog({ open, onOpenChange, integration }: Prop
                 className={
                   'font-mono text-xs min-h-[120px] ' + (show ? '' : 'text-security-disc')
                 }
-                style={!show ? { WebkitTextSecurity: 'disc' as any } : undefined}
+                style={!show ? ({ WebkitTextSecurity: 'disc' } as React.CSSProperties) : undefined}
               />
               <button
                 type="button"
