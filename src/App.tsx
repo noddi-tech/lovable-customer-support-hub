@@ -44,6 +44,7 @@ import AuditLogAnalytics from "./pages/AuditLogAnalytics";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
 import NotFound from "./pages/NotFound";
+import DataDeletionStatus from "./pages/DataDeletionStatus";
 import SuperAdminImport from "./pages/SuperAdminImport";
 import SearchPage from "./pages/SearchPage";
 import BulkOutreach from "./pages/BulkOutreach";
