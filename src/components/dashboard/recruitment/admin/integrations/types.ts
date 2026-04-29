@@ -18,7 +18,7 @@ export interface MetaHealthCheckResult {
     error?: string | null;
   };
   lead_retrieval: {
-    can_fetch_forms: boolean;
+    can_fetch_leads: boolean;
     last_success_at: string | null;
     last_error: string | null;
     tested_lead_id?: string | null;
