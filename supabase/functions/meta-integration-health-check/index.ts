@@ -144,26 +144,33 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify(result), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    // A. /me/permissions  + B. /me  + C. debug_token  + D. subscribed_apps  in parallel
+    // B. /me  + C. debug_token  + D. subscribed_apps  in parallel
+    // Note: /me/permissions is NOT used — it returns Graph error 100 on Page Access Tokens.
+    // Scopes are sourced from debug_token.data.scopes (works for both user and page tokens).
     const APP_ACCESS = `${META_APP_ID}|${META_APP_SECRET}`;
-    const [permsRes, meRes, debugRes, subsRes] = await Promise.all([
-      fetchJson(`${GRAPH}/me/permissions?access_token=${encodeURIComponent(TOKEN)}`),
+    const [meRes, debugRes, subsRes] = await Promise.all([
       fetchJson(`${GRAPH}/me?fields=id,name&access_token=${encodeURIComponent(TOKEN)}`),
       fetchJson(`${GRAPH}/debug_token?input_token=${encodeURIComponent(TOKEN)}&access_token=${encodeURIComponent(APP_ACCESS)}`),
       fetchJson(`${GRAPH}/${integration.page_id}/subscribed_apps?access_token=${encodeURIComponent(TOKEN)}`),
     ]);
 
-    // Auth section
+    // Auth section — source scopes from debug_token (works for page tokens; /me/permissions does not).
     let scopes_present: string[] = [];
     let scopes_missing: string[] = [...REQUIRED_SCOPES];
-    let authValid = permsRes.ok;
-    let authError: string | null = permsRes.error ?? null;
-    if (permsRes.ok && Array.isArray(permsRes.data?.data)) {
-      const granted = new Set(
-        permsRes.data.data.filter((p: any) => p.status === 'granted').map((p: any) => p.permission)
-      );
+    let authValid = false;
+    let authError: string | null = null;
+    if (debugRes.ok && debugRes.data?.data) {
+      const dt = debugRes.data.data;
+      authValid = dt.is_valid === true;
+      const grantedScopes: string[] = Array.isArray(dt.scopes) ? dt.scopes : [];
+      const granted = new Set(grantedScopes);
       scopes_present = REQUIRED_SCOPES.filter((s) => granted.has(s));
       scopes_missing = REQUIRED_SCOPES.filter((s) => !granted.has(s));
+      if (!authValid) {
+        authError = dt.error?.message ?? 'Token er ikke gyldig (debug_token)';
+      }
+    } else {
+      authError = debugRes.error ?? 'debug_token-kall feilet';
     }
 
     const owner_id = meRes.ok ? (meRes.data?.id ?? null) : null;
