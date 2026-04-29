@@ -77,13 +77,23 @@ Deno.serve(async (req) => {
       });
     }
 
-    const r = await fetch(
-      `${GRAPH}/me/accounts?fields=id,name,access_token,tasks&limit=200&access_token=${encodeURIComponent(state.long_lived_user_token)}`
-    );
-    const data = await r.json().catch(() => ({}));
-    if (!r.ok) {
+    const META_APP_ID = Deno.env.get('META_APP_ID')!;
+    const META_APP_SECRET = Deno.env.get('META_APP_SECRET')!;
+    const appAccessToken = `${META_APP_ID}|${META_APP_SECRET}`;
+
+    // Run /me/accounts and debug_token in parallel for snappier UX.
+    const [pagesRes, debugRes] = await Promise.all([
+      fetch(
+        `${GRAPH}/me/accounts?fields=id,name,access_token,tasks&limit=200&access_token=${encodeURIComponent(state.long_lived_user_token)}`
+      ),
+      fetch(
+        `${GRAPH}/debug_token?input_token=${encodeURIComponent(state.long_lived_user_token)}&access_token=${encodeURIComponent(appAccessToken)}`
+      ),
+    ]);
+    const data = await pagesRes.json().catch(() => ({}));
+    if (!pagesRes.ok) {
       return new Response(JSON.stringify({
-        error: data?.error?.message ?? `HTTP ${r.status}`,
+        error: data?.error?.message ?? `HTTP ${pagesRes.status}`,
       }), {
         status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -95,8 +105,18 @@ Deno.serve(async (req) => {
       can_manage: Array.isArray(p.tasks) && p.tasks.includes('MANAGE'),
     }));
 
+    let granted_scopes: string[] = [];
+    try {
+      const debugData = await debugRes.json();
+      const scopes = debugData?.data?.scopes;
+      if (Array.isArray(scopes)) granted_scopes = scopes.map((s: any) => String(s));
+    } catch {
+      // Non-fatal — wizard will fall back to "expected" rendering if empty.
+    }
+
     return new Response(JSON.stringify({
       pages,
+      granted_scopes,
       oauth_user_id: state.oauth_user_id,
       oauth_user_name: state.oauth_user_name,
       token_expires_at: state.token_expires_at,
