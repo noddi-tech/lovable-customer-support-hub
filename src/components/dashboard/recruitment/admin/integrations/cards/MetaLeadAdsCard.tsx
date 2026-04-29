@@ -25,7 +25,14 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { Facebook, Plus, KeyRound, Trash2, Pencil } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Facebook, Plus, KeyRound, Trash2, Pencil, ChevronDown, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useOrganizationStore } from '@/stores/organizationStore';
 import { useToast } from '@/hooks/use-toast';
@@ -41,6 +48,7 @@ interface Props {
   integration: MetaIntegration | null;
   onConnect: () => void;
   onEdit: () => void;
+  onReconnect: () => void;
   onRefreshToken: () => void;
 }
 
