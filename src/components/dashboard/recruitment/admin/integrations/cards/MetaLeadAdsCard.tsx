@@ -426,7 +426,7 @@ export function MetaLeadAdsCard({ integration, onConnect, onEdit, onReconnect, o
           </TabsContent>
 
           <TabsContent value="health">
-            <MetaHealthTab integration={integration} onRefreshToken={onRefreshToken} />
+            <MetaHealthTab integration={integration} onRefreshToken={onRefreshToken} onReconnect={onReconnect} />
           </TabsContent>
         </Tabs>
       </CardContent>

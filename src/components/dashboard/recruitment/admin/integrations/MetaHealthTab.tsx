@@ -21,6 +21,7 @@ import type { MetaIntegration } from './types';
 interface Props {
   integration: MetaIntegration;
   onRefreshToken: () => void;
+  onReconnect?: () => void;
 }
 
 function StatusRow({
@@ -81,7 +82,7 @@ function overallBadge(status: 'healthy' | 'degraded' | 'broken' | undefined) {
   }
 }
 
-export function MetaHealthTab({ integration, onRefreshToken }: Props) {
+export function MetaHealthTab({ integration, onRefreshToken, onReconnect }: Props) {
   const { toast } = useToast();
   const { data, isLoading } = useMetaIntegrationHealth(integration.id);
   const runHealth = useTestMetaConnection(integration.id);
