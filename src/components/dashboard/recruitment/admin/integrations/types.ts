@@ -46,6 +46,8 @@ export interface MetaIntegration {
   organization_id: string;
   page_id: string;
   page_name: string;
+  // page_access_token is intentionally returned by select('*') today, but treat
+  // as opaque server-only material — never display or log it client-side.
   page_access_token: string | null;
   verify_token: string;
   status: MetaIntegrationStatus;
@@ -54,6 +56,13 @@ export interface MetaIntegration {
   last_health_check_at: string | null;
   last_health_check_result: MetaHealthCheckResult | null;
   token_expires_at: string | null;
+  // OAuth metadata. user_access_token is deliberately omitted — it lives in the
+  // DB column for server-side use only and must never be referenced in frontend code.
+  user_token_expires_at: string | null;
+  connected_via: 'manual' | 'oauth' | null;
+  oauth_user_id: string | null;
+  oauth_user_name: string | null;
+  deauthorized_at: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;

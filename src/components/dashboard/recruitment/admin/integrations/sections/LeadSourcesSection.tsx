@@ -8,6 +8,7 @@ interface Props {
   metaIntegration: MetaIntegration | null;
   onMetaConnect: () => void;
   onMetaEdit: () => void;
+  onMetaReconnect: () => void;
   onMetaRefreshToken: () => void;
 }
 
@@ -15,6 +16,7 @@ export function LeadSourcesSection({
   metaIntegration,
   onMetaConnect,
   onMetaEdit,
+  onMetaReconnect,
   onMetaRefreshToken,
 }: Props) {
   return (
@@ -33,6 +35,7 @@ export function LeadSourcesSection({
           integration={metaIntegration}
           onConnect={onMetaConnect}
           onEdit={onMetaEdit}
+          onReconnect={onMetaReconnect}
           onRefreshToken={onMetaRefreshToken}
         />
         <ComingSoonCard

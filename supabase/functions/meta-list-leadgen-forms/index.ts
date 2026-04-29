@@ -1,7 +1,8 @@
-// meta-oauth-list-pages
-// Authenticated. Returns the FB pages the OAuth user manages, using the
-// long-lived user token stashed on the oauth_states row. Page tokens are
-// NOT returned to the client.
+// meta-list-leadgen-forms
+// Authenticated. Returns lead-gen forms for a configured integration's page,
+// using the server-side page_access_token. The token is never sent to the client.
+// On pages_manage_ads scope error returns { forms: null, scope_missing: true } so
+// the wizard can render a graceful fallback.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 
 const corsHeaders = {
@@ -54,79 +55,68 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json().catch(() => ({}));
-    const stateId = body?.state_id;
-    if (!stateId) {
-      return new Response(JSON.stringify({ error: 'state_id required' }), {
+    const integrationId = body?.integration_id as string | undefined;
+    if (!integrationId) {
+      return new Response(JSON.stringify({ error: 'integration_id required' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    const { data: state } = await admin
-      .from('recruitment_meta_oauth_states')
-      .select('id, organization_id, long_lived_user_token, oauth_user_id, oauth_user_name, token_expires_at, mode, existing_integration_id')
-      .eq('id', stateId)
+    const { data: integration } = await admin
+      .from('recruitment_meta_integrations')
+      .select('id, organization_id, page_id, page_access_token')
+      .eq('id', integrationId)
       .maybeSingle();
-    if (!state || state.organization_id !== profile.organization_id) {
-      return new Response(JSON.stringify({ error: 'State not found' }), {
+    if (!integration || integration.organization_id !== profile.organization_id) {
+      return new Response(JSON.stringify({ error: 'Integration not found' }), {
         status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
-    if (!state.long_lived_user_token) {
-      return new Response(JSON.stringify({ error: 'OAuth not completed' }), {
+    if (!integration.page_access_token) {
+      return new Response(JSON.stringify({ error: 'Mangler page access token' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    const META_APP_ID = Deno.env.get('META_APP_ID')!;
-    const META_APP_SECRET = Deno.env.get('META_APP_SECRET')!;
-    const appAccessToken = `${META_APP_ID}|${META_APP_SECRET}`;
+    const r = await fetch(
+      `${GRAPH}/${integration.page_id}/leadgen_forms?fields=id,name,status,created_time&limit=200&access_token=${encodeURIComponent(integration.page_access_token)}`
+    );
+    const data = await r.json().catch(() => ({}));
 
-    // Run /me/accounts and debug_token in parallel for snappier UX.
-    const [pagesRes, debugRes] = await Promise.all([
-      fetch(
-        `${GRAPH}/me/accounts?fields=id,name,access_token,tasks&limit=200&access_token=${encodeURIComponent(state.long_lived_user_token)}`
-      ),
-      fetch(
-        `${GRAPH}/debug_token?input_token=${encodeURIComponent(state.long_lived_user_token)}&access_token=${encodeURIComponent(appAccessToken)}`
-      ),
-    ]);
-    const data = await pagesRes.json().catch(() => ({}));
-    if (!pagesRes.ok) {
-      return new Response(JSON.stringify({
-        error: data?.error?.message ?? `HTTP ${pagesRes.status}`,
-      }), {
+    if (!r.ok) {
+      const msg: string = data?.error?.message ?? `HTTP ${r.status}`;
+      const code = data?.error?.code;
+      const sub = data?.error?.error_subcode;
+      const looksLikeScope =
+        /pages_manage_ads/i.test(msg) ||
+        /permission/i.test(msg) ||
+        code === 200 || code === 10 || code === 100 || sub === 33;
+      if (looksLikeScope) {
+        return new Response(JSON.stringify({
+          forms: null,
+          scope_missing: true,
+          error_message: msg,
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      return new Response(JSON.stringify({ error: msg }), {
         status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    const pages = (data?.data ?? []).map((p: any) => ({
-      id: String(p.id),
-      name: String(p.name ?? ''),
-      can_manage: Array.isArray(p.tasks) && p.tasks.includes('MANAGE'),
+    const forms = (data?.data ?? []).map((f: any) => ({
+      id: String(f.id),
+      name: String(f.name ?? ''),
+      status: String(f.status ?? ''),
+      created_time: f.created_time ?? null,
     }));
 
-    let granted_scopes: string[] = [];
-    try {
-      const debugData = await debugRes.json();
-      const scopes = debugData?.data?.scopes;
-      if (Array.isArray(scopes)) granted_scopes = scopes.map((s: any) => String(s));
-    } catch {
-      // Non-fatal — wizard will fall back to "expected" rendering if empty.
-    }
-
-    return new Response(JSON.stringify({
-      pages,
-      granted_scopes,
-      oauth_user_id: state.oauth_user_id,
-      oauth_user_name: state.oauth_user_name,
-      token_expires_at: state.token_expires_at,
-      mode: state.mode,
-      existing_integration_id: state.existing_integration_id,
-    }), {
+    return new Response(JSON.stringify({ forms, scope_missing: false }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (e: any) {
-    console.error('[meta-oauth-list-pages] error', e);
+    console.error('[meta-list-leadgen-forms] error', e);
     return new Response(JSON.stringify({ error: e?.message ?? 'Internal error' }), {
       status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

@@ -25,7 +25,14 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { Facebook, Plus, KeyRound, Trash2, Pencil } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Facebook, Plus, KeyRound, Trash2, Pencil, ChevronDown, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useOrganizationStore } from '@/stores/organizationStore';
 import { useToast } from '@/hooks/use-toast';
@@ -41,6 +48,7 @@ interface Props {
   integration: MetaIntegration | null;
   onConnect: () => void;
   onEdit: () => void;
+  onReconnect: () => void;
   onRefreshToken: () => void;
 }
 
@@ -235,7 +243,7 @@ function FormMappingsInline({ integrationId }: { integrationId: string }) {
   );
 }
 
-export function MetaLeadAdsCard({ integration, onConnect, onEdit, onRefreshToken }: Props) {
+export function MetaLeadAdsCard({ integration, onConnect, onEdit, onReconnect, onRefreshToken }: Props) {
   const { currentOrganizationId } = useOrganizationStore();
   const { toast } = useToast();
   const { deleteIntegration } = useMetaIntegration();
@@ -349,10 +357,36 @@ export function MetaLeadAdsCard({ integration, onConnect, onEdit, onRefreshToken
                 <Pencil className="h-4 w-4 mr-2" />
                 Rediger tilkobling
               </Button>
-              <Button size="sm" variant="outline" onClick={onRefreshToken}>
-                <KeyRound className="h-4 w-4 mr-2" />
-                Forny token
-              </Button>
+              <DropdownMenu modal={false}>
+                <DropdownMenuTrigger asChild>
+                  <Button size="sm" variant="outline">
+                    <KeyRound className="h-4 w-4 mr-2" />
+                    Forny token
+                    <ChevronDown className="h-3.5 w-3.5 ml-1 opacity-70" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-64">
+                  <DropdownMenuItem onClick={onReconnect}>
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    <div className="flex flex-col items-start">
+                      <span>Koble til på nytt (anbefalt)</span>
+                      <span className="text-[10px] text-muted-foreground">
+                        Logg inn med Facebook
+                      </span>
+                    </div>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={onRefreshToken}>
+                    <KeyRound className="h-4 w-4 mr-2" />
+                    <div className="flex flex-col items-start">
+                      <span>Skriv inn manuelt</span>
+                      <span className="text-[10px] text-muted-foreground">
+                        Lim inn nytt Page Access Token
+                      </span>
+                    </div>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button
@@ -392,7 +426,7 @@ export function MetaLeadAdsCard({ integration, onConnect, onEdit, onRefreshToken
           </TabsContent>
 
           <TabsContent value="health">
-            <MetaHealthTab integration={integration} onRefreshToken={onRefreshToken} />
+            <MetaHealthTab integration={integration} onRefreshToken={onRefreshToken} onReconnect={onReconnect} />
           </TabsContent>
         </Tabs>
       </CardContent>
