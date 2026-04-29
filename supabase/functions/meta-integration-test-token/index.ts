@@ -62,7 +62,7 @@ Deno.serve(async (req) => {
     const admin = createClient(SUPABASE_URL, SERVICE);
     const { data: integration } = await admin
       .from('recruitment_meta_integrations')
-      .select('id, page_id, page_name, organization_id')
+      .select('id, page_id, page_name, organization_id, user_token_expires_at, connected_via')
       .eq('id', integrationId)
       .maybeSingle();
     if (!integration) {
