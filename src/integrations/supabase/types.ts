@@ -3788,12 +3788,15 @@ export type Database = {
           created_by: string | null
           id: string
           last_event_at: string | null
+          last_health_check_at: string | null
+          last_health_check_result: Json | null
           organization_id: string
           page_access_token: string | null
           page_id: string
           page_name: string
           status: string
           status_message: string | null
+          token_expires_at: string | null
           updated_at: string
           verify_token: string
         }
@@ -3802,12 +3805,15 @@ export type Database = {
           created_by?: string | null
           id?: string
           last_event_at?: string | null
+          last_health_check_at?: string | null
+          last_health_check_result?: Json | null
           organization_id: string
           page_access_token?: string | null
           page_id: string
           page_name: string
           status?: string
           status_message?: string | null
+          token_expires_at?: string | null
           updated_at?: string
           verify_token: string
         }
@@ -3816,12 +3822,15 @@ export type Database = {
           created_by?: string | null
           id?: string
           last_event_at?: string | null
+          last_health_check_at?: string | null
+          last_health_check_result?: Json | null
           organization_id?: string
           page_access_token?: string | null
           page_id?: string
           page_name?: string
           status?: string
           status_message?: string | null
+          token_expires_at?: string | null
           updated_at?: string
           verify_token?: string
         }
