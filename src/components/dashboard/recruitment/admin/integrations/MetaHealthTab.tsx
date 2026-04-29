@@ -209,9 +209,16 @@ export function MetaHealthTab({ integration, onRefreshToken, onReconnect }: Prop
           />
         </div>
         {(!result.auth.valid || !result.auth.is_page_token || result.auth.scopes_missing.length > 0) && (
-          <Button size="sm" variant="outline" className="mt-2" onClick={onRefreshToken}>
-            Forny token
-          </Button>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {onReconnect && (
+              <Button size="sm" variant="outline" onClick={onReconnect}>
+                Koble til på nytt
+              </Button>
+            )}
+            <Button size="sm" variant="outline" onClick={onRefreshToken}>
+              Forny token
+            </Button>
+          </div>
         )}
       </section>
 
