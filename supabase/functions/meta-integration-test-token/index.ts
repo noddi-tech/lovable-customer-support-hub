@@ -134,6 +134,18 @@ Deno.serve(async (req) => {
     } else if (scopes_missing.length > 0) {
       valid = false;
       error_summary = `Tokenet mangler nødvendige tilganger: ${scopes_missing.join(', ')}`;
+    } else {
+      // OAuth-derived tokens carry an expiry. Surface a soft warning when
+      // <7 days remain so the operator can re-run the wizard proactively.
+      const connectedVia = (body?.connected_via as string | undefined) ?? null;
+      const expiresAt = (integration as any).user_token_expires_at as string | null | undefined;
+      if (connectedVia === 'oauth' && expiresAt) {
+        const ms = new Date(expiresAt).getTime() - Date.now();
+        const days = Math.floor(ms / (24 * 60 * 60 * 1000));
+        if (days < 7) {
+          error_summary = `Token utløper om ${Math.max(0, days)} dager — du kan oppdatere ved å koble til på nytt via wizardet.`;
+        }
+      }
     }
 
     return new Response(JSON.stringify({
