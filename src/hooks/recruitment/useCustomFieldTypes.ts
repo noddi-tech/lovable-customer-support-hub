@@ -31,7 +31,7 @@ export function useUpdateCustomFieldType() {
       const { id, ...patch } = input;
       const { data, error } = await supabase
         .from('recruitment_custom_field_types')
-        .update(patch)
+        .update(patch as any)
         .eq('id', id)
         .select('*')
         .single();
