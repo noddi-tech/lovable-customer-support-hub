@@ -147,6 +147,16 @@ const AdminSidebar = () => {
       title: 'Audit Logs',
       url: '/super-admin/audit-logs',
       icon: ScrollText
+    },
+    {
+      title: 'Rekruttering: feltyper',
+      url: '/super-admin/recruitment/field-types',
+      icon: Briefcase
+    },
+    {
+      title: 'Rekruttering: maler',
+      url: '/super-admin/recruitment/templates',
+      icon: ScrollText
     }
   ];
 
