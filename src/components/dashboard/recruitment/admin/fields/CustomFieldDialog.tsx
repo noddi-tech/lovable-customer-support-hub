@@ -57,6 +57,7 @@ export function CustomFieldDialog({
   onOpenChange,
   field,
   defaultDisplayName,
+  metaQuestion,
   onCreated,
 }: Props) {
   const { toast } = useToast();
