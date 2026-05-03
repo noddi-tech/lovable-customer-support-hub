@@ -375,6 +375,24 @@ export function FormMappingEditor({ formMappingId, formName, onReconnectClick }:
           }
         }}
       />
+
+      <ApplyTemplatePreviewDialog
+        open={!!previewTemplateId}
+        templateId={previewTemplateId}
+        rows={rows}
+        customFields={customFields}
+        onClose={() => setPreviewTemplateId(null)}
+        onApply={(updates) => {
+          setRows((prev) => {
+            const next = { ...prev };
+            for (const u of updates) {
+              if (next[u.qid]) next[u.qid] = { ...next[u.qid], ...u.patch };
+            }
+            return next;
+          });
+          setPreviewTemplateId(null);
+        }}
+      />
     </div>
   );
 }
