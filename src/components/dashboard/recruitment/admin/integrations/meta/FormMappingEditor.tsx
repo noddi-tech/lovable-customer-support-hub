@@ -479,6 +479,7 @@ function ApplyTemplatePreviewDialog({
   open,
   templateId,
   rows,
+  questions,
   customFields,
   onClose,
   onApply,
@@ -486,7 +487,8 @@ function ApplyTemplatePreviewDialog({
   open: boolean;
   templateId: string | null;
   rows: Record<string, RowState>;
-  customFields: Array<{ id: string; field_key: string }>;
+  questions: MetaFormQuestion[];
+  customFields: CustomFieldWithType[];
   onClose: () => void;
   onApply: (updates: Array<{ qid: string; patch: Partial<RowState> }>) => void;
 }) {
