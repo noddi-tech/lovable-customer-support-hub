@@ -69,6 +69,17 @@ export default function Settings() {
       );
     }
 
+    if (/^\/admin\/recruitment\/templates\/[^/]+/.test(location.pathname)) {
+      const OrgTemplateEditorPage = React.lazy(
+        () => import('./admin/recruitment/OrgTemplateEditorPage')
+      );
+      return (
+        <React.Suspense fallback={<div>Loading...</div>}>
+          <OrgTemplateEditorPage />
+        </React.Suspense>
+      );
+    }
+
     if (location.pathname.startsWith('/admin/recruitment')) {
       const RecruitmentAdmin = React.lazy(() => import('./admin/RecruitmentAdmin'));
       return (
