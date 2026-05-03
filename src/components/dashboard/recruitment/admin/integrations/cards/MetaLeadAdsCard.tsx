@@ -195,7 +195,24 @@ function FormMappingsInline({ integrationId, onReconnectClick }: { integrationId
                       </AlertDialogFooter>
                     </AlertDialogContent>
                   </AlertDialog>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setExpandedId(expandedId === m.id ? null : m.id)}
+                  >
+                    <ChevronRight className={`h-4 w-4 mr-1 transition-transform ${expandedId === m.id ? 'rotate-90' : ''}`} />
+                    {expandedId === m.id ? 'Skjul felt-tilordninger' : 'Tilordne skjemafelt'}
+                  </Button>
                 </div>
+                {expandedId === m.id && (
+                  <div className="pt-3 border-t">
+                    <FormMappingEditor
+                      formMappingId={m.id}
+                      formName={m.form_name}
+                      onReconnectClick={onReconnectClick}
+                    />
+                  </div>
+                )}
               </div>
             ))}
           </div>
