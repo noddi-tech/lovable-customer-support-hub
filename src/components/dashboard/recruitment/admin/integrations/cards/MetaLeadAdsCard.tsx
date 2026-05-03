@@ -32,7 +32,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Facebook, Plus, KeyRound, Trash2, Pencil, ChevronDown, RefreshCw } from 'lucide-react';
+import { Facebook, Plus, KeyRound, Trash2, Pencil, ChevronDown, RefreshCw, ChevronRight, Download } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useOrganizationStore } from '@/stores/organizationStore';
 import { useToast } from '@/hooks/use-toast';
@@ -40,6 +40,8 @@ import { useFormPositionMappings } from '../hooks/useFormPositionMappings';
 import { useMetaIntegration } from '../hooks/useMetaIntegration';
 import { useJobPositions } from '@/components/dashboard/recruitment/positions/usePositions';
 import { MetaHealthTab } from '../MetaHealthTab';
+import { FormMappingEditor } from '../meta/FormMappingEditor';
+import { BulkImportDialog } from '../meta/BulkImportDialog';
 import type { MetaIntegration } from '../types';
 import { formatDistanceToNow } from 'date-fns';
 import { nb } from 'date-fns/locale';
