@@ -104,14 +104,21 @@ export function CustomFieldDialog({
       setFieldKey(initial ? slugify(initial) : '');
       setKeyTouched(false);
       setDescription('');
-      setTypeId('');
+      // Pre-fill type from Meta question (only when creating, never when editing)
+      const inferredFamily = inferFieldTypeKeyFromMeta(metaQuestion);
+      const matchedType = inferredFamily
+        ? types.find((t) => t.type_key === inferredFamily)
+        : null;
+      setTypeId(matchedType?.id ?? '');
       setIsRequired(false);
       setShowOnCard(false);
       setShowOnProfile(true);
-      setOptions([]);
+      // Pre-fill options from Meta question shape
+      const metaOpts = inferredFamily ? extractMetaOptions(metaQuestion) : [];
+      setOptions(metaOpts.map((o) => ({ value: o.value, label_no: o.label })));
       setValidationOverrides('');
     }
-  }, [open, field, defaultDisplayName]);
+  }, [open, field, defaultDisplayName, metaQuestion, types]);
 
   useEffect(() => {
     if (!field && !keyTouched) {
