@@ -110,6 +110,7 @@ export function FormMappingEditor({ formMappingId, formName, onReconnectClick }:
   const [createFieldOpen, setCreateFieldOpen] = useState(false);
   const [createFieldDefault, setCreateFieldDefault] = useState<string>('');
   const [pendingFieldRowKey, setPendingFieldRowKey] = useState<string | null>(null);
+  const [previewTemplateId, setPreviewTemplateId] = useState<string | null>(null);
 
   const customFields = customFieldsQ.data ?? [];
   const questions: MetaFormQuestion[] = questionsQ.data?.questions ?? [];
