@@ -62,6 +62,10 @@ export default function RecruitmentAdmin() {
             <Link2 className="h-4 w-4" />
             Integrasjoner
           </TabsTrigger>
+          <TabsTrigger value="fields">
+            <FormInput className="h-4 w-4" />
+            Søknadsskjema-felter
+          </TabsTrigger>
           <TabsTrigger value="audit">
             <History className="h-4 w-4" />
             Revisjon
