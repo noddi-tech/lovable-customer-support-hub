@@ -267,6 +267,7 @@ export function MetaLeadAdsCard({ integration, onConnect, onEdit, onReconnect, o
   const { currentOrganizationId } = useOrganizationStore();
   const { toast } = useToast();
   const { deleteIntegration } = useMetaIntegration();
+  const [bulkImportOpen, setBulkImportOpen] = useState(false);
 
   const { data: leadCount } = useQuery({
     queryKey: ['meta-lead-count', currentOrganizationId],
