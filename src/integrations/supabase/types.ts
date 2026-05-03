@@ -350,6 +350,9 @@ export type Database = {
           gdpr_consent: boolean
           gdpr_consent_at: string | null
           id: string
+          import_status: string | null
+          imported_via: string | null
+          imported_via_bulk_import_id: string | null
           language_norwegian: string
           last_name: string
           location: string | null
@@ -374,6 +377,9 @@ export type Database = {
           gdpr_consent?: boolean
           gdpr_consent_at?: string | null
           id?: string
+          import_status?: string | null
+          imported_via?: string | null
+          imported_via_bulk_import_id?: string | null
           language_norwegian?: string
           last_name: string
           location?: string | null
@@ -398,6 +404,9 @@ export type Database = {
           gdpr_consent?: boolean
           gdpr_consent_at?: string | null
           id?: string
+          import_status?: string | null
+          imported_via?: string | null
+          imported_via_bulk_import_id?: string | null
           language_norwegian?: string
           last_name?: string
           location?: string | null
@@ -412,6 +421,13 @@ export type Database = {
           years_experience?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "applicants_imported_via_bulk_import_id_fkey"
+            columns: ["imported_via_bulk_import_id"]
+            isOneToOne: false
+            referencedRelation: "recruitment_bulk_imports"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "applicants_organization_id_fkey"
             columns: ["organization_id"]
@@ -3291,6 +3307,51 @@ export type Database = {
         }
         Relationships: []
       }
+      recruitment_applicant_field_values: {
+        Row: {
+          applicant_id: string
+          created_at: string
+          field_id: string
+          id: string
+          raw_value: string | null
+          updated_at: string
+          value: Json
+        }
+        Insert: {
+          applicant_id: string
+          created_at?: string
+          field_id: string
+          id?: string
+          raw_value?: string | null
+          updated_at?: string
+          value: Json
+        }
+        Update: {
+          applicant_id?: string
+          created_at?: string
+          field_id?: string
+          id?: string
+          raw_value?: string | null
+          updated_at?: string
+          value?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recruitment_applicant_field_values_applicant_id_fkey"
+            columns: ["applicant_id"]
+            isOneToOne: false
+            referencedRelation: "applicants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recruitment_applicant_field_values_field_id_fkey"
+            columns: ["field_id"]
+            isOneToOne: false
+            referencedRelation: "recruitment_custom_fields"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       recruitment_audit_events: {
         Row: {
           actor_profile_id: string | null
@@ -3613,6 +3674,257 @@ export type Database = {
           },
         ]
       }
+      recruitment_bulk_import_lead_log: {
+        Row: {
+          applicant_id: string | null
+          bulk_import_id: string
+          created_at: string
+          error_message: string | null
+          form_mapping_id: string
+          id: string
+          meta_lead_id: string
+          status: string
+        }
+        Insert: {
+          applicant_id?: string | null
+          bulk_import_id: string
+          created_at?: string
+          error_message?: string | null
+          form_mapping_id: string
+          id?: string
+          meta_lead_id: string
+          status: string
+        }
+        Update: {
+          applicant_id?: string | null
+          bulk_import_id?: string
+          created_at?: string
+          error_message?: string | null
+          form_mapping_id?: string
+          id?: string
+          meta_lead_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recruitment_bulk_import_lead_log_applicant_id_fkey"
+            columns: ["applicant_id"]
+            isOneToOne: false
+            referencedRelation: "applicants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recruitment_bulk_import_lead_log_bulk_import_id_fkey"
+            columns: ["bulk_import_id"]
+            isOneToOne: false
+            referencedRelation: "recruitment_bulk_imports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recruitment_bulk_imports: {
+        Row: {
+          approval_mode: string
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          error_message: string | null
+          form_mapping_ids: string[]
+          id: string
+          imported_pipeline_stage_id: string | null
+          integration_id: string
+          organization_id: string
+          since_date: string
+          started_at: string | null
+          status: string
+          total_leads_failed: number
+          total_leads_found: number | null
+          total_leads_imported: number
+          total_leads_skipped_duplicate: number
+          total_leads_skipped_unmapped: number
+          until_date: string
+          updated_at: string
+        }
+        Insert: {
+          approval_mode?: string
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          error_message?: string | null
+          form_mapping_ids: string[]
+          id?: string
+          imported_pipeline_stage_id?: string | null
+          integration_id: string
+          organization_id: string
+          since_date: string
+          started_at?: string | null
+          status?: string
+          total_leads_failed?: number
+          total_leads_found?: number | null
+          total_leads_imported?: number
+          total_leads_skipped_duplicate?: number
+          total_leads_skipped_unmapped?: number
+          until_date: string
+          updated_at?: string
+        }
+        Update: {
+          approval_mode?: string
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          error_message?: string | null
+          form_mapping_ids?: string[]
+          id?: string
+          imported_pipeline_stage_id?: string | null
+          integration_id?: string
+          organization_id?: string
+          since_date?: string
+          started_at?: string | null
+          status?: string
+          total_leads_failed?: number
+          total_leads_found?: number | null
+          total_leads_imported?: number
+          total_leads_skipped_duplicate?: number
+          total_leads_skipped_unmapped?: number
+          until_date?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recruitment_bulk_imports_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recruitment_bulk_imports_integration_id_fkey"
+            columns: ["integration_id"]
+            isOneToOne: false
+            referencedRelation: "recruitment_meta_integrations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recruitment_bulk_imports_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recruitment_custom_field_types: {
+        Row: {
+          created_at: string
+          display_name_en: string
+          display_name_no: string
+          id: string
+          supports_options: boolean
+          type_key: string
+          ui_component: string
+          updated_at: string
+          validation_schema: Json
+        }
+        Insert: {
+          created_at?: string
+          display_name_en: string
+          display_name_no: string
+          id?: string
+          supports_options?: boolean
+          type_key: string
+          ui_component: string
+          updated_at?: string
+          validation_schema?: Json
+        }
+        Update: {
+          created_at?: string
+          display_name_en?: string
+          display_name_no?: string
+          id?: string
+          supports_options?: boolean
+          type_key?: string
+          ui_component?: string
+          updated_at?: string
+          validation_schema?: Json
+        }
+        Relationships: []
+      }
+      recruitment_custom_fields: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          display_name: string
+          display_order: number
+          field_key: string
+          id: string
+          is_required: boolean
+          options: Json | null
+          organization_id: string
+          show_on_card: boolean
+          show_on_profile: boolean
+          type_id: string
+          updated_at: string
+          validation_overrides: Json | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          display_name: string
+          display_order?: number
+          field_key: string
+          id?: string
+          is_required?: boolean
+          options?: Json | null
+          organization_id: string
+          show_on_card?: boolean
+          show_on_profile?: boolean
+          type_id: string
+          updated_at?: string
+          validation_overrides?: Json | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          display_name?: string
+          display_order?: number
+          field_key?: string
+          id?: string
+          is_required?: boolean
+          options?: Json | null
+          organization_id?: string
+          show_on_card?: boolean
+          show_on_profile?: boolean
+          type_id?: string
+          updated_at?: string
+          validation_overrides?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recruitment_custom_fields_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recruitment_custom_fields_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recruitment_custom_fields_type_id_fkey"
+            columns: ["type_id"]
+            isOneToOne: false
+            referencedRelation: "recruitment_custom_field_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       recruitment_email_templates: {
         Row: {
           body: string
@@ -3659,6 +3971,152 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recruitment_field_mapping_template_items: {
+        Row: {
+          created_at: string
+          display_order: number
+          id: string
+          meta_question_pattern: string
+          target_custom_field_key: string | null
+          target_custom_field_type_key: string | null
+          target_kind: string
+          target_standard_field: string | null
+          template_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          meta_question_pattern: string
+          target_custom_field_key?: string | null
+          target_custom_field_type_key?: string | null
+          target_kind: string
+          target_standard_field?: string | null
+          template_id: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          meta_question_pattern?: string
+          target_custom_field_key?: string | null
+          target_custom_field_type_key?: string | null
+          target_kind?: string
+          target_standard_field?: string | null
+          template_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recruitment_field_mapping_template_items_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "recruitment_field_mapping_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recruitment_field_mapping_templates: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_system: boolean | null
+          name: string
+          organization_id: string | null
+          target_role_hint: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_system?: boolean | null
+          name: string
+          organization_id?: string | null
+          target_role_hint?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_system?: boolean | null
+          name?: string
+          organization_id?: string | null
+          target_role_hint?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recruitment_field_mapping_templates_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recruitment_field_mapping_templates_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recruitment_form_field_mappings: {
+        Row: {
+          created_at: string
+          display_order: number
+          form_mapping_id: string
+          id: string
+          meta_question_id: string
+          meta_question_text: string
+          target_custom_field_id: string | null
+          target_kind: string
+          target_standard_field: string | null
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          form_mapping_id: string
+          id?: string
+          meta_question_id: string
+          meta_question_text: string
+          target_custom_field_id?: string | null
+          target_kind: string
+          target_standard_field?: string | null
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          form_mapping_id?: string
+          id?: string
+          meta_question_id?: string
+          meta_question_text?: string
+          target_custom_field_id?: string | null
+          target_kind?: string
+          target_standard_field?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recruitment_form_field_mappings_form_mapping_id_fkey"
+            columns: ["form_mapping_id"]
+            isOneToOne: false
+            referencedRelation: "recruitment_meta_form_mappings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recruitment_form_field_mappings_target_custom_field_id_fkey"
+            columns: ["target_custom_field_id"]
+            isOneToOne: false
+            referencedRelation: "recruitment_custom_fields"
             referencedColumns: ["id"]
           },
         ]
@@ -6355,6 +6813,26 @@ export type Database = {
           p_to_stage_id: string
         }
         Returns: Json
+      }
+      recruitment_applicant_in_user_org: {
+        Args: { _applicant_id: string }
+        Returns: boolean
+      }
+      recruitment_bulk_import_in_user_org: {
+        Args: { _bulk_import_id: string }
+        Returns: boolean
+      }
+      recruitment_form_mapping_in_user_org: {
+        Args: { _form_mapping_id: string }
+        Returns: boolean
+      }
+      recruitment_template_accessible: {
+        Args: { _template_id: string }
+        Returns: boolean
+      }
+      recruitment_template_writable: {
+        Args: { _template_id: string }
+        Returns: boolean
       }
       relink_calls_to_customers: {
         Args: never
