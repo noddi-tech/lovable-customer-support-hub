@@ -572,21 +572,30 @@ function ApplyTemplatePreviewDialog({
           </p>
         ) : (
           <ul className="space-y-2 max-h-80 overflow-y-auto">
-            {proposed.map((p) => (
-              <li key={p.qid} className="flex items-start gap-3 rounded-md border p-3">
-                <Checkbox
-                  checked={!!checked[p.qid]}
-                  onCheckedChange={(v) => setChecked((c) => ({ ...c, [p.qid]: !!v }))}
-                  className="mt-1"
-                />
-                <div className="flex-1 space-y-1">
-                  <div className="text-sm font-medium">{p.question_text}</div>
-                  <div className="text-xs text-muted-foreground">
-                    matchet mønster «{p.template_pattern}» {p.description}
+            {proposed.map((p) => {
+              const q =
+                questions.find((qq) => (qq.id ?? qq.key ?? qq.label) === p.qid) ?? null;
+              const cf =
+                p.patch.target_kind === 'custom' && p.patch.target_custom_field_id
+                  ? customFields.find((f) => f.id === p.patch.target_custom_field_id) ?? null
+                  : null;
+              return (
+                <li key={p.qid} className="flex items-start gap-3 rounded-md border p-3">
+                  <Checkbox
+                    checked={!!checked[p.qid]}
+                    onCheckedChange={(v) => setChecked((c) => ({ ...c, [p.qid]: !!v }))}
+                    className="mt-1"
+                  />
+                  <div className="flex-1 space-y-1">
+                    <div className="text-sm font-medium">{p.question_text}</div>
+                    <div className="text-xs text-muted-foreground">
+                      matchet mønster «{p.template_pattern}» {p.description}
+                    </div>
+                    {q && cf && <OptionMismatchNotice question={q} field={cf} />}
                   </div>
-                </div>
-              </li>
-            ))}
+                </li>
+              );
+            })}
           </ul>
         )}
         <DialogFooter>
