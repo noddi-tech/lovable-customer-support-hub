@@ -516,13 +516,17 @@ function ApplyTemplatePreviewDialog({
     return out;
   }, [items, rows, customFields]);
 
+  const proposedRef = React.useRef(proposed);
+  proposedRef.current = proposed;
   React.useEffect(() => {
+    if (!open) return;
     const init: Record<string, boolean> = {};
-    proposed.forEach((p) => {
+    proposedRef.current.forEach((p) => {
       init[p.qid] = true;
     });
     setChecked(init);
-  }, [proposed]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, templateId, items?.length]);
 
   const handleApply = () => {
     const updates = proposed.filter((p) => checked[p.qid]).map((p) => ({ qid: p.qid, patch: p.patch }));
