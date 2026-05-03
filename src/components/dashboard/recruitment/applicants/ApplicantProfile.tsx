@@ -41,6 +41,7 @@ import {
 } from './useApplicantProfile';
 import { useTeamMembers } from '@/hooks/useTeamMembers';
 import EditApplicantDialog from './edit/EditApplicantDialog';
+import { ApplicantFieldValuesSection } from './ApplicantFieldValuesSection';
 
 const ApplicantProfile: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -278,8 +279,9 @@ const ApplicantProfile: React.FC = () => {
               </Card>
             </div>
 
-            <div className="lg:col-span-1">
+            <div className="lg:col-span-1 space-y-6">
               <ApplicantInfoCard applicant={applicant} />
+              <ApplicantFieldValuesSection applicantId={applicant.id} />
             </div>
           </div>
         </TabsContent>

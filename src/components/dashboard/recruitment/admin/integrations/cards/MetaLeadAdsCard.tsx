@@ -32,7 +32,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Facebook, Plus, KeyRound, Trash2, Pencil, ChevronDown, RefreshCw } from 'lucide-react';
+import { Facebook, Plus, KeyRound, Trash2, Pencil, ChevronDown, RefreshCw, ChevronRight, Download } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useOrganizationStore } from '@/stores/organizationStore';
 import { useToast } from '@/hooks/use-toast';
@@ -40,6 +40,8 @@ import { useFormPositionMappings } from '../hooks/useFormPositionMappings';
 import { useMetaIntegration } from '../hooks/useMetaIntegration';
 import { useJobPositions } from '@/components/dashboard/recruitment/positions/usePositions';
 import { MetaHealthTab } from '../MetaHealthTab';
+import { FormMappingEditor } from '../meta/FormMappingEditor';
+import { BulkImportDialog } from '../meta/BulkImportDialog';
 import type { MetaIntegration } from '../types';
 import { formatDistanceToNow } from 'date-fns';
 import { nb } from 'date-fns/locale';
@@ -77,12 +79,13 @@ function statusBadge(status: MetaIntegration['status']) {
   }
 }
 
-function FormMappingsInline({ integrationId }: { integrationId: string }) {
+function FormMappingsInline({ integrationId, onReconnectClick }: { integrationId: string; onReconnectClick?: () => void }) {
   const { toast } = useToast();
   const { mappings, createMapping, updateMapping, deleteMapping } =
     useFormPositionMappings(integrationId);
   const { data: positions } = useJobPositions();
   const openPositions = (positions ?? []).filter((p) => p.status === 'open');
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const [newFormId, setNewFormId] = useState('');
   const [newFormName, setNewFormName] = useState('');
@@ -192,7 +195,24 @@ function FormMappingsInline({ integrationId }: { integrationId: string }) {
                       </AlertDialogFooter>
                     </AlertDialogContent>
                   </AlertDialog>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setExpandedId(expandedId === m.id ? null : m.id)}
+                  >
+                    <ChevronRight className={`h-4 w-4 mr-1 transition-transform ${expandedId === m.id ? 'rotate-90' : ''}`} />
+                    {expandedId === m.id ? 'Skjul felt-tilordninger' : 'Tilordne skjemafelt'}
+                  </Button>
                 </div>
+                {expandedId === m.id && (
+                  <div className="pt-3 border-t">
+                    <FormMappingEditor
+                      formMappingId={m.id}
+                      formName={m.form_name}
+                      onReconnectClick={onReconnectClick}
+                    />
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -247,6 +267,7 @@ export function MetaLeadAdsCard({ integration, onConnect, onEdit, onReconnect, o
   const { currentOrganizationId } = useOrganizationStore();
   const { toast } = useToast();
   const { deleteIntegration } = useMetaIntegration();
+  const [bulkImportOpen, setBulkImportOpen] = useState(false);
 
   const { data: leadCount } = useQuery({
     queryKey: ['meta-lead-count', currentOrganizationId],
@@ -421,8 +442,14 @@ export function MetaLeadAdsCard({ integration, onConnect, onEdit, onReconnect, o
             </div>
           </TabsContent>
 
-          <TabsContent value="forms">
-            <FormMappingsInline integrationId={integration.id} />
+          <TabsContent value="forms" className="space-y-3">
+            <div className="flex justify-end">
+              <Button size="sm" variant="outline" onClick={() => setBulkImportOpen(true)}>
+                <Download className="h-4 w-4 mr-2" />
+                Importer historikk
+              </Button>
+            </div>
+            <FormMappingsInline integrationId={integration.id} onReconnectClick={onReconnect} />
           </TabsContent>
 
           <TabsContent value="health">
@@ -430,6 +457,11 @@ export function MetaLeadAdsCard({ integration, onConnect, onEdit, onReconnect, o
           </TabsContent>
         </Tabs>
       </CardContent>
+      <BulkImportDialog
+        open={bulkImportOpen}
+        onOpenChange={setBulkImportOpen}
+        integrationId={integration.id}
+      />
     </Card>
   );
 }

@@ -3,16 +3,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Heading } from "@/components/ui/heading";
 import { useSearchParams } from "react-router-dom";
-import { Workflow, Mail, Zap, Link2, History } from "lucide-react";
+import { Workflow, Mail, Zap, Link2, History, FormInput } from "lucide-react";
 import { PipelineEditor } from "@/components/dashboard/recruitment/admin/pipeline/PipelineEditor";
 import { EmailTemplatesTab } from "@/components/dashboard/recruitment/admin/templates/EmailTemplatesTab";
 import { RulesTab } from "@/components/dashboard/recruitment/admin/rules/RulesTab";
 import { IntegrationsTab } from "@/components/dashboard/recruitment/admin/integrations/IntegrationsTab";
 import { AuditTab } from "@/components/dashboard/recruitment/admin/audit/AuditTab";
+import { FieldsTab } from "@/components/dashboard/recruitment/admin/fields/FieldsTab";
 import { FailureBanner } from "@/components/dashboard/recruitment/admin/FailureBanner";
 import { useExecutionRealtimeToast } from "@/components/dashboard/recruitment/admin/hooks/useExecutionRealtimeToast";
 
-const VALID_TABS = ["pipeline", "templates", "automation", "integrations", "audit"] as const;
+const VALID_TABS = ["pipeline", "templates", "automation", "integrations", "fields", "audit"] as const;
 
 export default function RecruitmentAdmin() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -61,6 +62,10 @@ export default function RecruitmentAdmin() {
             <Link2 className="h-4 w-4" />
             Integrasjoner
           </TabsTrigger>
+          <TabsTrigger value="fields">
+            <FormInput className="h-4 w-4" />
+            Søknadsskjema-felter
+          </TabsTrigger>
           <TabsTrigger value="audit">
             <History className="h-4 w-4" />
             Revisjon
@@ -78,6 +83,9 @@ export default function RecruitmentAdmin() {
         </TabsContent>
         <TabsContent value="integrations">
           <IntegrationsTab />
+        </TabsContent>
+        <TabsContent value="fields">
+          <FieldsTab />
         </TabsContent>
         <TabsContent value="audit">
           <AuditTab />

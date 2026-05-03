@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { Search } from 'lucide-react';
+import { Search, ShieldQuestion } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import {
   Select,
   SelectContent,
@@ -101,6 +102,18 @@ const ApplicantsFilterBar: React.FC<Props> = ({ value, onChange }) => {
           ))}
         </SelectContent>
       </Select>
+
+      <Button
+        type="button"
+        size="sm"
+        variant={value.pendingReviewOnly ? 'default' : 'outline'}
+        onClick={() =>
+          onChange({ ...value, pendingReviewOnly: !value.pendingReviewOnly })
+        }
+      >
+        <ShieldQuestion className="h-4 w-4 mr-1.5" />
+        Importert (avventer godkjenning)
+      </Button>
     </div>
   );
 };
