@@ -41,6 +41,7 @@ import {
 } from './useApplicantProfile';
 import { useTeamMembers } from '@/hooks/useTeamMembers';
 import EditApplicantDialog from './edit/EditApplicantDialog';
+import { ApplicantFieldValuesSection } from './ApplicantFieldValuesSection';
 
 const ApplicantProfile: React.FC = () => {
   const { id } = useParams<{ id: string }>();
