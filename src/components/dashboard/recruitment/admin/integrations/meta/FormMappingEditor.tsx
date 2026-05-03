@@ -229,7 +229,7 @@ export function FormMappingEditor({ formMappingId, formName, onReconnectClick }:
           {questions.length} spørsmål · automatisk forslag basert på spørsmålstekst
         </div>
         <div className="flex gap-2">
-          <ApplyTemplateButton rows={rows} setRows={setRows} customFields={customFields} />
+          <ApplyTemplateButton onSelectTemplate={setPreviewTemplateId} />
           <SaveAsTemplateButton rows={Object.values(rows)} formName={formName} customFields={customFields} />
           <Button
             size="sm"
