@@ -239,10 +239,7 @@ function FormMappingsInline({ integrationId, onReconnectClick }: { integrationId
           </div>
         </SheetContent>
       </Sheet>
-            ))}
-          </div>
-        )}
-      </div>
+
 
       <div className="space-y-3 rounded-md border bg-muted/30 p-3">
         <h4 className="text-sm font-medium">Legg til skjema</h4>
