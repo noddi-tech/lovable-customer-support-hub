@@ -189,6 +189,9 @@ const AppContent = () => {
       <Route path="/super-admin/audit-logs" element={<ProtectedRoute><SuperAdminRoute><AuditLogs /></SuperAdminRoute></ProtectedRoute>} />
       <Route path="/super-admin/audit-logs/analytics" element={<ProtectedRoute><SuperAdminRoute><AuditLogAnalytics /></SuperAdminRoute></ProtectedRoute>} />
       <Route path="/super-admin/analytics" element={<ProtectedRoute><SuperAdminRoute><SystemAnalytics /></SuperAdminRoute></ProtectedRoute>} />
+      <Route path="/super-admin/recruitment/field-types" element={<ProtectedRoute><SuperAdminRoute><FieldTypesPage /></SuperAdminRoute></ProtectedRoute>} />
+      <Route path="/super-admin/recruitment/templates" element={<ProtectedRoute><SuperAdminRoute><SystemTemplatesPage /></SuperAdminRoute></ProtectedRoute>} />
+      <Route path="/super-admin/recruitment/templates/:id" element={<ProtectedRoute><SuperAdminRoute><SystemTemplateEditorPage /></SuperAdminRoute></ProtectedRoute>} />
       
       {/* Static Pages */}
       <Route path="/privacy" element={<ProtectedRoute><Privacy /></ProtectedRoute>} />
