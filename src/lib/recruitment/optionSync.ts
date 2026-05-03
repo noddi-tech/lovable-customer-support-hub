@@ -33,7 +33,7 @@ export function extractMetaOptions(
     let value = '';
     let label = '';
     if (typeof raw === 'string') {
-      value = raw.trim();
+      value = (raw as string).trim();
       label = value;
     } else if (raw && typeof raw === 'object') {
       const o = raw as Record<string, unknown>;
