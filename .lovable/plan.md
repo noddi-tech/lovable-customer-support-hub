@@ -1,25 +1,29 @@
-# Deploy 5 missing B3 edge functions
+# Flytt "Tilordne skjemafelt" inn i en Sheet
 
-## Verified
+## Problem
+Inline-utvidelsen av FormMappingEditor under hver mapping-rad gjør at UI-en føles knust: dropdowns (mål/felt-velgere, "Bruk mal"), preview-dialog og Radix-overlays kolliderer i den smale kortbredden, layouten hopper, og horisontal/innebygd nesting gjør det vanskelig å bruke. En Sheet gir full bredde og isolert overlay-kontekst.
 
-- All 5 source files exist under `supabase/functions/`:
-  - `meta-list-form-fields/index.ts`
-  - `recruitment-bulk-import-start/index.ts`
-  - `recruitment-bulk-import-execute/index.ts`
-  - `recruitment-bulk-import-status/index.ts`
-  - `recruitment-quarantine-approve/index.ts`
-- `supabase/config.toml` already has all 5 entries with `verify_jwt = true` (under the "Phase B3 — Field mapping + bulk import" section).
-- No code changes needed.
+## Endringer
 
-## Actions on approval
+### `MetaLeadAdsCard.tsx` — `FormMappingsInline`
+1. Fjern `expandedId` state og inline `<FormMappingEditor>`-renderen under hver rad.
+2. Legg til ny state `editingMapping: { id: string; formName: string | null } | null`.
+3. Erstatt "Tilordne skjemafelt / Skjul felt-tilordninger" knappen med én knapp **"Tilordne skjemafelt"** (ChevronRight ikon) som setter `editingMapping`.
+4. Mount én `<Sheet>` på toppnivå i komponenten (sibling til mapping-listen, IKKE inni `.map()`):
+   - `open={!!editingMapping}` / `onOpenChange={(o) => !o && setEditingMapping(null)}`
+   - `<SheetContent side="right" className="w-full sm:max-w-3xl overflow-y-auto">`
+   - Header: `SheetTitle` = "Tilordne skjemafelt", `SheetDescription` = form name eller form ID
+   - Body: `<FormMappingEditor formMappingId={editingMapping.id} formName={editingMapping.formName} onReconnectClick={onReconnectClick} />`
+5. Bredere sheet (`sm:max-w-3xl`) gir plass til de to-kolonne mål/felt velgerne uten trunkering.
 
-1. Deploy all 5 functions in one batch via `supabase--deploy_edge_functions` with:
-   `["meta-list-form-fields", "recruitment-bulk-import-start", "recruitment-bulk-import-execute", "recruitment-bulk-import-status", "recruitment-quarantine-approve"]`
-2. Verify by calling `meta-list-form-fields` via `supabase--curl_edge_functions` with body `{ "form_mapping_id": "a1404740-3128-4ab7-a032-faf247e9fc3a" }` and confirm response is either `{ questions: [...] }` or `{ scope_missing: true }` (not 404 / "function not found").
-3. Spot-check `recruitment-bulk-import-status` with a dummy id to confirm it responds (expect 404 "Not found", which proves it's deployed).
-4. Check `supabase--edge_function_logs` for `meta-list-form-fields` if the test call errors, to surface the real cause.
+### Ingen endringer nødvendig i:
+- `FormMappingEditor.tsx` — fungerer som ren child. Den eksisterende Radix-fixen (modal={false} på "Bruk mal" dropdown, hoisted preview dialog) er fortsatt riktig og spiller fint med Sheet-konteksten.
+- Hooks, edge functions, types.
 
-Note: `npx supabase functions list` requires a personal access token in this sandbox, which isn't available. I'll use `curl_edge_functions` instead — a successful response (or a structured 4xx from the function itself) proves ACTIVE status more reliably than the CLI listing.
+## Tekniske detaljer
+- `Sheet` bruker `Radix Dialog` under panseret. Siden FormMappingEditor allerede har `modal={false}` på sin "Bruk mal" dropdown og hoisted preview dialog, vil ikke nestede pointer-events kollidere.
+- Kun ÉN sheet mountes (på parent-nivå), ikke én per rad — unngår N stk Radix portaler.
+- TypeScript clean: ingen nye typer.
 
-## No code changes
-Pure deploy + verification. If any function fails to deploy, I'll pull logs and report back before touching source.
+## Filer endret
+- `src/components/dashboard/recruitment/admin/integrations/cards/MetaLeadAdsCard.tsx`

@@ -32,7 +32,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Facebook, Plus, KeyRound, Trash2, Pencil, ChevronDown, RefreshCw, ChevronRight, Download } from 'lucide-react';
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
+import { Facebook, Plus, KeyRound, Trash2, Pencil, ChevronDown, RefreshCw, ChevronRight, Download, Settings2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useOrganizationStore } from '@/stores/organizationStore';
 import { useToast } from '@/hooks/use-toast';
