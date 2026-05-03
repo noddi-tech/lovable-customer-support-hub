@@ -279,8 +279,9 @@ const ApplicantProfile: React.FC = () => {
               </Card>
             </div>
 
-            <div className="lg:col-span-1">
+            <div className="lg:col-span-1 space-y-6">
               <ApplicantInfoCard applicant={applicant} />
+              <ApplicantFieldValuesSection applicantId={applicant.id} />
             </div>
           </div>
         </TabsContent>
