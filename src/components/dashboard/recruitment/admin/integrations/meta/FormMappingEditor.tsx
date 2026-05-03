@@ -330,34 +330,43 @@ export function FormMappingEditor({ formMappingId, formName, onReconnectClick }:
                       </SelectContent>
                     </Select>
                   ) : r.target_kind === 'custom' ? (
-                    <div className="flex gap-1">
-                      <Select
-                        value={r.target_custom_field_id ?? ''}
-                        onValueChange={(v) => updateRow(qid, { target_custom_field_id: v })}
-                      >
-                        <SelectTrigger className="flex-1">
-                          <SelectValue placeholder="Velg egendefinert felt" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {customFields.map((f) => (
-                            <SelectItem key={f.id} value={f.id}>
-                              {f.display_name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        title="Opprett nytt felt"
-                        onClick={() => {
-                          setCreateFieldDefault(q.label);
-                          setPendingFieldRowKey(qid);
-                          setCreateFieldOpen(true);
-                        }}
-                      >
-                        <Plus className="h-3.5 w-3.5" />
-                      </Button>
+                    <div className="space-y-2">
+                      <div className="flex gap-1">
+                        <Select
+                          value={r.target_custom_field_id ?? ''}
+                          onValueChange={(v) => updateRow(qid, { target_custom_field_id: v })}
+                        >
+                          <SelectTrigger className="flex-1">
+                            <SelectValue placeholder="Velg egendefinert felt" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {customFields.map((f) => (
+                              <SelectItem key={f.id} value={f.id}>
+                                {f.display_name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          title="Opprett nytt felt"
+                          onClick={() => {
+                            setCreateFieldDefault(q.label);
+                            setPendingFieldRowKey(qid);
+                            setPendingMetaQuestion(q);
+                            setCreateFieldOpen(true);
+                          }}
+                        >
+                          <Plus className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                      {r.target_custom_field_id && (
+                        <OptionMismatchNotice
+                          question={q}
+                          field={customFields.find((f) => f.id === r.target_custom_field_id) ?? null}
+                        />
+                      )}
                     </div>
                   ) : (
                     <div className="text-xs text-muted-foreground italic h-9 flex items-center">
