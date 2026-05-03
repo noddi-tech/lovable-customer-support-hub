@@ -530,7 +530,7 @@ function ApplyTemplatePreviewDialog({
   };
 
   return (
-    <Dialog open onOpenChange={(o) => !o && onClose()}>
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>Bruk mal</DialogTitle>
