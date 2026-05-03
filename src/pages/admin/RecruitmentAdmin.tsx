@@ -84,6 +84,9 @@ export default function RecruitmentAdmin() {
         <TabsContent value="integrations">
           <IntegrationsTab />
         </TabsContent>
+        <TabsContent value="fields">
+          <FieldsTab />
+        </TabsContent>
         <TabsContent value="audit">
           <AuditTab />
         </TabsContent>
