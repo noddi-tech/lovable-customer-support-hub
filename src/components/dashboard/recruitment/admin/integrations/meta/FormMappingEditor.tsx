@@ -715,3 +715,82 @@ function SaveAsTemplateButton({
     </>
   );
 }
+
+// ─── Option mismatch notice ───────────────────────────────────────────
+
+function OptionMismatchNotice({
+  question,
+  field,
+}: {
+  question: MetaFormQuestion;
+  field: CustomFieldWithType | null;
+}) {
+  const { toast } = useToast();
+  const update = useUpdateCustomField();
+
+  if (!field) return null;
+  const metaFamily = inferFieldTypeKeyFromMeta(question);
+  if (!metaFamily) return null;
+
+  const fieldFamily: SelectFamily | null =
+    field.type_key === 'single_select' || field.type_key === 'multi_select'
+      ? (field.type_key as SelectFamily)
+      : null;
+
+  // Field isn't a select type at all — let the parent's existing UI handle it; nothing to warn here.
+  if (!fieldFamily) return null;
+
+  // Type-level mismatch (e.g. multi_select field for a RADIO question). Informational only.
+  if (fieldFamily !== metaFamily) {
+    const msg =
+      fieldFamily === 'multi_select'
+        ? 'Feltet er flervalg, men Meta-spørsmålet er enkeltvalg'
+        : 'Feltet er enkeltvalg, men Meta-spørsmålet er flervalg';
+    return (
+      <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1.5 text-xs text-amber-700 dark:text-amber-400 flex items-start gap-1.5">
+        <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+        <span>{msg}</span>
+      </div>
+    );
+  }
+
+  const missing = findMissingOptions(field, question);
+  if (missing.length === 0) return null;
+
+  const handleSync = async () => {
+    try {
+      await update.mutateAsync({
+        id: field.id,
+        options: mergeOptions(field.options, missing),
+      });
+      toast({ title: 'Alternativer synkronisert' });
+    } catch (e: any) {
+      toast({
+        title: 'Synkronisering feilet',
+        description: e?.message,
+        variant: 'destructive',
+      });
+    }
+  };
+
+  return (
+    <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1.5 text-xs text-amber-700 dark:text-amber-400 space-y-1.5">
+      <div className="flex items-start gap-1.5">
+        <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+        <span>
+          Feltet mangler {missing.map((m) => m.value).join(', ')} som finnes i Meta-skjemaet
+        </span>
+      </div>
+      <Button
+        size="sm"
+        variant="outline"
+        className="h-6 text-[11px]"
+        onClick={handleSync}
+        disabled={update.isPending}
+      >
+        Synkroniser alternativer
+      </Button>
+    </div>
+  );
+}
+
