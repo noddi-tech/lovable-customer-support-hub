@@ -32,7 +32,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Facebook, Plus, KeyRound, Trash2, Pencil, ChevronDown, RefreshCw, ChevronRight, Download } from 'lucide-react';
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
+import { Facebook, Plus, KeyRound, Trash2, Pencil, ChevronDown, RefreshCw, ChevronRight, Download, Settings2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useOrganizationStore } from '@/stores/organizationStore';
 import { useToast } from '@/hooks/use-toast';
@@ -85,7 +92,7 @@ function FormMappingsInline({ integrationId, onReconnectClick }: { integrationId
     useFormPositionMappings(integrationId);
   const { data: positions } = useJobPositions();
   const openPositions = (positions ?? []).filter((p) => p.status === 'open');
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [editingMapping, setEditingMapping] = useState<{ id: string; formName: string | null; formId: string } | null>(null);
 
   const [newFormId, setNewFormId] = useState('');
   const [newFormName, setNewFormName] = useState('');
@@ -197,27 +204,42 @@ function FormMappingsInline({ integrationId, onReconnectClick }: { integrationId
                   </AlertDialog>
                   <Button
                     size="sm"
-                    variant="ghost"
-                    onClick={() => setExpandedId(expandedId === m.id ? null : m.id)}
+                    variant="outline"
+                    onClick={() => setEditingMapping({ id: m.id, formName: m.form_name, formId: m.form_id })}
                   >
-                    <ChevronRight className={`h-4 w-4 mr-1 transition-transform ${expandedId === m.id ? 'rotate-90' : ''}`} />
-                    {expandedId === m.id ? 'Skjul felt-tilordninger' : 'Tilordne skjemafelt'}
+                    <Settings2 className="h-4 w-4 mr-2" />
+                    Tilordne skjemafelt
                   </Button>
                 </div>
-                {expandedId === m.id && (
-                  <div className="pt-3 border-t">
-                    <FormMappingEditor
-                      formMappingId={m.id}
-                      formName={m.form_name}
-                      onReconnectClick={onReconnectClick}
-                    />
-                  </div>
-                )}
               </div>
             ))}
           </div>
         )}
       </div>
+
+      <Sheet
+        open={!!editingMapping}
+        onOpenChange={(o) => { if (!o) setEditingMapping(null); }}
+      >
+        <SheetContent side="right" className="w-full sm:max-w-3xl overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Tilordne skjemafelt</SheetTitle>
+            <SheetDescription>
+              {editingMapping?.formName || `Form ID: ${editingMapping?.formId ?? ''}`}
+            </SheetDescription>
+          </SheetHeader>
+          <div className="py-4">
+            {editingMapping && (
+              <FormMappingEditor
+                formMappingId={editingMapping.id}
+                formName={editingMapping.formName}
+                onReconnectClick={onReconnectClick}
+              />
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
+
 
       <div className="space-y-3 rounded-md border bg-muted/30 p-3">
         <h4 className="text-sm font-medium">Legg til skjema</h4>
