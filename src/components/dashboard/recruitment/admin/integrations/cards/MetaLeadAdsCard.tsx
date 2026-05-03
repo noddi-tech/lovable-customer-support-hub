@@ -442,8 +442,14 @@ export function MetaLeadAdsCard({ integration, onConnect, onEdit, onReconnect, o
             </div>
           </TabsContent>
 
-          <TabsContent value="forms">
-            <FormMappingsInline integrationId={integration.id} />
+          <TabsContent value="forms" className="space-y-3">
+            <div className="flex justify-end">
+              <Button size="sm" variant="outline" onClick={() => setBulkImportOpen(true)}>
+                <Download className="h-4 w-4 mr-2" />
+                Importer historikk
+              </Button>
+            </div>
+            <FormMappingsInline integrationId={integration.id} onReconnectClick={onReconnect} />
           </TabsContent>
 
           <TabsContent value="health">
