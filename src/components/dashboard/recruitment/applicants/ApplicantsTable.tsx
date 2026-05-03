@@ -101,7 +101,7 @@ const ApplicantsTable: React.FC<Props> = ({
             {selectionEnabled && (
               <TableHead className="w-10">
                 <Checkbox
-                  checked={allChecked || (someChecked && 'indeterminate')}
+                  checked={allChecked ? true : someChecked ? 'indeterminate' : false}
                   onCheckedChange={(v) => onToggleSelectAll?.(allIds, !!v)}
                   aria-label="Velg alle"
                 />
