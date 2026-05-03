@@ -79,12 +79,13 @@ function statusBadge(status: MetaIntegration['status']) {
   }
 }
 
-function FormMappingsInline({ integrationId }: { integrationId: string }) {
+function FormMappingsInline({ integrationId, onReconnectClick }: { integrationId: string; onReconnectClick?: () => void }) {
   const { toast } = useToast();
   const { mappings, createMapping, updateMapping, deleteMapping } =
     useFormPositionMappings(integrationId);
   const { data: positions } = useJobPositions();
   const openPositions = (positions ?? []).filter((p) => p.status === 'open');
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const [newFormId, setNewFormId] = useState('');
   const [newFormName, setNewFormName] = useState('');
