@@ -35,7 +35,7 @@ import {
   useFormFieldMappings,
   useUpsertFormFieldMappings,
 } from '@/hooks/recruitment/useFormFieldMappings';
-import { useCustomFields } from '@/hooks/recruitment/useCustomFields';
+import { useCustomFields, useUpdateCustomField, type CustomFieldWithType } from '@/hooks/recruitment/useCustomFields';
 import {
   useFieldMappingTemplates,
   useFieldMappingTemplateItems,
@@ -43,6 +43,13 @@ import {
   useCreateTemplateItem,
 } from '@/hooks/recruitment/useFieldMappingTemplates';
 import { findBestMatch } from '@/lib/recruitment/fuzzyMatch';
+import {
+  extractMetaOptions,
+  findMissingOptions,
+  inferFieldTypeKeyFromMeta,
+  mergeOptions,
+  type SelectFamily,
+} from '@/lib/recruitment/optionSync';
 import { CustomFieldDialog } from '../../fields/CustomFieldDialog';
 import type {
   FormFieldMapping,
