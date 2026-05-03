@@ -29,7 +29,8 @@ export function extractMetaOptions(
   if (!question?.options || !Array.isArray(question.options)) return [];
   const out: Array<{ value: string; label: string }> = [];
   const seen = new Set<string>();
-  for (const raw of question.options) {
+  for (const rawAny of question.options as unknown[]) {
+    const raw = rawAny as unknown;
     let value = '';
     let label = '';
     if (typeof raw === 'string') {
