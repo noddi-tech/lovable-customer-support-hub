@@ -457,6 +457,11 @@ export function MetaLeadAdsCard({ integration, onConnect, onEdit, onReconnect, o
           </TabsContent>
         </Tabs>
       </CardContent>
+      <BulkImportDialog
+        open={bulkImportOpen}
+        onOpenChange={setBulkImportOpen}
+        integrationId={integration.id}
+      />
     </Card>
   );
 }
