@@ -13,6 +13,8 @@ export interface ApplicantRow {
   phone: string | null;
   source: string;
   created_at: string;
+  import_status?: string | null;
+  imported_via?: string | null;
   applications: {
     id: string;
     current_stage_id: string;
@@ -29,6 +31,7 @@ export interface ApplicantsFilters {
   source: string;
   positionId: string;
   stageId: string;
+  pendingReviewOnly?: boolean;
 }
 
 export interface PipelineStage {
