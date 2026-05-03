@@ -43,10 +43,10 @@ export interface PipelineStage {
 
 export function useApplicants(filters: ApplicantsFilters) {
   const { currentOrganizationId } = useOrganizationStore();
-  const { search, source, positionId, stageId } = filters;
+  const { search, source, positionId, stageId, pendingReviewOnly } = filters;
 
   return useQuery({
-    queryKey: ['applicants', currentOrganizationId, search, source, positionId, stageId],
+    queryKey: ['applicants', currentOrganizationId, search, source, positionId, stageId, pendingReviewOnly],
     queryFn: async () => {
       const useInner = positionId !== 'all' || stageId !== 'all';
       const select = useInner
@@ -61,6 +61,7 @@ export function useApplicants(filters: ApplicantsFilters) {
       if (source !== 'all') q = q.eq('source', source);
       if (positionId !== 'all') q = q.eq('applications.position_id', positionId);
       if (stageId !== 'all') q = q.eq('applications.current_stage_id', stageId);
+      if (pendingReviewOnly) q = q.eq('import_status' as any, 'pending_review');
 
       if (search.trim()) {
         const safe = sanitizeForPostgrest(search.trim());
