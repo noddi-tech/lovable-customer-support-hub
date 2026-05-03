@@ -27,12 +27,15 @@ import {
   useUpdateCustomField,
   type CustomFieldWithType,
 } from '@/hooks/recruitment/useCustomFields';
+import type { MetaFormQuestion } from '../integrations/types';
+import { extractMetaOptions, inferFieldTypeKeyFromMeta } from '@/lib/recruitment/optionSync';
 
 interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   field?: CustomFieldWithType | null;
   defaultDisplayName?: string;
+  metaQuestion?: MetaFormQuestion | null;
   onCreated?: (created: { id: string; field_key: string; display_name: string }) => void;
 }
 
