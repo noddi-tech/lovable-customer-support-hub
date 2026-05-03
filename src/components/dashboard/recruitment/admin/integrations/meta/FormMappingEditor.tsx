@@ -245,6 +245,7 @@ export function FormMappingEditor({ formMappingId, formName, onReconnectClick }:
             onClick={() => {
               setCreateFieldDefault('');
               setPendingFieldRowKey(null);
+              setPendingMetaQuestion(null);
               setCreateFieldOpen(true);
             }}
           >
