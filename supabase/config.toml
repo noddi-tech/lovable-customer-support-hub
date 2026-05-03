@@ -296,3 +296,19 @@ verify_jwt = false
 # PUBLIC: Meta data-deletion webhook; security via signed_request HMAC verification.
 [functions.meta-data-deletion]
 verify_jwt = false
+
+# Phase B3 — Field mapping + bulk import
+[functions.meta-list-form-fields]
+verify_jwt = true
+
+[functions.recruitment-bulk-import-start]
+verify_jwt = true
+
+[functions.recruitment-bulk-import-execute]
+verify_jwt = true
+
+[functions.recruitment-bulk-import-status]
+verify_jwt = true
+
+[functions.recruitment-quarantine-approve]
+verify_jwt = true

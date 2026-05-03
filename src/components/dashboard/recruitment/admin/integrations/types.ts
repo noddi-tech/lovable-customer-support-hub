@@ -96,3 +96,118 @@ export interface LeadIngestionLogEntry {
   // enriched in-memory:
   applicant_name?: string | null;
 }
+
+// ─── Phase B3: field mapping + bulk import ───────────────────────
+
+export type TargetKind = 'standard' | 'custom' | 'metadata_only';
+export type StandardField = 'full_name' | 'email' | 'phone_number';
+export type ApprovalMode = 'direct' | 'quarantine';
+export type BulkImportStatus = 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
+export type BulkImportLeadStatus = 'pending' | 'imported' | 'duplicate' | 'unmapped' | 'failed';
+
+export interface CustomFieldType {
+  id: string;
+  type_key: string;
+  display_name_en: string;
+  display_name_no: string;
+  supports_options: boolean;
+  validation_schema: Record<string, unknown>;
+  ui_component: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CustomField {
+  id: string;
+  organization_id: string;
+  field_key: string;
+  display_name: string;
+  description: string | null;
+  type_id: string;
+  options: Array<{ value: string; label_no?: string; label_en?: string }> | null;
+  validation_overrides: Record<string, unknown> | null;
+  is_required: boolean;
+  show_on_card: boolean;
+  show_on_profile: boolean;
+  display_order: number;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ApplicantFieldValue {
+  id: string;
+  applicant_id: string;
+  field_id: string;
+  value: unknown;
+  raw_value: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface FieldMappingTemplate {
+  id: string;
+  organization_id: string | null;
+  name: string;
+  description: string | null;
+  is_system: boolean;
+  target_role_hint: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface FieldMappingTemplateItem {
+  id: string;
+  template_id: string;
+  meta_question_pattern: string;
+  target_kind: TargetKind;
+  target_standard_field: StandardField | null;
+  target_custom_field_key: string | null;
+  target_custom_field_type_key: string | null;
+  display_order: number;
+  created_at: string;
+}
+
+export interface FormFieldMapping {
+  id: string;
+  form_mapping_id: string;
+  meta_question_id: string;
+  meta_question_text: string;
+  target_kind: TargetKind;
+  target_standard_field: StandardField | null;
+  target_custom_field_id: string | null;
+  display_order: number;
+  created_at: string;
+}
+
+export interface BulkImport {
+  id: string;
+  organization_id: string;
+  integration_id: string;
+  form_mapping_ids: string[];
+  since_date: string;
+  until_date: string;
+  status: BulkImportStatus;
+  approval_mode: ApprovalMode;
+  imported_pipeline_stage_id: string | null;
+  total_leads_found: number | null;
+  total_leads_imported: number;
+  total_leads_skipped_duplicate: number;
+  total_leads_skipped_unmapped: number;
+  total_leads_failed: number;
+  error_message: string | null;
+  started_at: string | null;
+  completed_at: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MetaFormQuestion {
+  id?: string;
+  key?: string;
+  type?: string;
+  label: string;
+  options?: Array<{ key?: string; value?: string; label?: string }>;
+}
