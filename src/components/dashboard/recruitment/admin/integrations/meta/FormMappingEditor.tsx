@@ -400,68 +400,50 @@ export function FormMappingEditor({ formMappingId, formName, onReconnectClick }:
 // ─── Apply template (with preview) ─────────────────────────────────────
 
 function ApplyTemplateButton({
-  rows,
-  setRows,
-  customFields,
+  onSelectTemplate,
 }: {
-  rows: Record<string, RowState>;
-  setRows: React.Dispatch<React.SetStateAction<Record<string, RowState>>>;
-  customFields: Array<{ id: string; field_key: string }>;
+  onSelectTemplate: (id: string) => void;
 }) {
   const tplsQ = useFieldMappingTemplates('all');
-  const [previewTemplateId, setPreviewTemplateId] = useState<string | null>(null);
 
   return (
-    <>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button size="sm" variant="outline">
-            <FileText className="h-3.5 w-3.5 mr-1" />
-            Bruk mal
-            <ChevronDown className="h-3.5 w-3.5 ml-1 opacity-70" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-72">
-          <DropdownMenuLabel>Velg mal</DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          {(tplsQ.data ?? []).length === 0 ? (
-            <div className="px-2 py-1.5 text-xs text-muted-foreground">
-              Ingen maler tilgjengelig
-            </div>
-          ) : (
-            (tplsQ.data ?? []).map((t) => (
-              <DropdownMenuItem key={t.id} onSelect={() => setPreviewTemplateId(t.id)}>
-                <span className="flex-1">{t.name}</span>
-                {t.is_system && (
-                  <Badge variant="secondary" className="text-[10px]">
-                    System
-                  </Badge>
-                )}
-              </DropdownMenuItem>
-            ))
-          )}
-        </DropdownMenuContent>
-      </DropdownMenu>
-
-      {previewTemplateId && (
-        <ApplyTemplatePreviewDialog
-          templateId={previewTemplateId}
-          rows={rows}
-          customFields={customFields}
-          onClose={() => setPreviewTemplateId(null)}
-          onApply={(updates) => {
-            setRows((prev) => {
-              const next = { ...prev };
-              for (const u of updates) {
-                if (next[u.qid]) next[u.qid] = { ...next[u.qid], ...u.patch };
-              }
-              return next;
-            });
-            setPreviewTemplateId(null);
-          }}
-        />
-      )}
-    </>
+    <DropdownMenu modal={false}>
+      <DropdownMenuTrigger asChild>
+        <Button size="sm" variant="outline">
+          <FileText className="h-3.5 w-3.5 mr-1" />
+          Bruk mal
+          <ChevronDown className="h-3.5 w-3.5 ml-1 opacity-70" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-72">
+        <DropdownMenuLabel>Velg mal</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        {(tplsQ.data ?? []).length === 0 ? (
+          <div className="px-2 py-1.5 text-xs text-muted-foreground">
+            Ingen maler tilgjengelig
+          </div>
+        ) : (
+          (tplsQ.data ?? []).map((t) => (
+            <DropdownMenuItem
+              key={t.id}
+              onSelect={(e) => {
+                e.preventDefault();
+                const id = t.id;
+                // Defer until after dropdown close cycle to avoid body-lock collision
+                setTimeout(() => onSelectTemplate(id), 0);
+              }}
+            >
+              <span className="flex-1">{t.name}</span>
+              {t.is_system && (
+                <Badge variant="secondary" className="text-[10px]">
+                  System
+                </Badge>
+              )}
+            </DropdownMenuItem>
+          ))
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
@@ -474,19 +456,21 @@ interface ProposedAssignment {
 }
 
 function ApplyTemplatePreviewDialog({
+  open,
   templateId,
   rows,
   customFields,
   onClose,
   onApply,
 }: {
-  templateId: string;
+  open: boolean;
+  templateId: string | null;
   rows: Record<string, RowState>;
   customFields: Array<{ id: string; field_key: string }>;
   onClose: () => void;
   onApply: (updates: Array<{ qid: string; patch: Partial<RowState> }>) => void;
 }) {
-  const itemsQ = useFieldMappingTemplateItems(templateId);
+  const itemsQ = useFieldMappingTemplateItems(open ? templateId : null);
   const items = itemsQ.data ?? [];
   const [checked, setChecked] = useState<Record<string, boolean>>({});
 
