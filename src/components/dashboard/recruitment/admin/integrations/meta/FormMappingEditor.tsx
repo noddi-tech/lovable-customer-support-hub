@@ -384,6 +384,7 @@ export function FormMappingEditor({ formMappingId, formName, onReconnectClick }:
         open={createFieldOpen}
         onOpenChange={setCreateFieldOpen}
         defaultDisplayName={createFieldDefault}
+        metaQuestion={pendingMetaQuestion}
         onCreated={(created) => {
           if (pendingFieldRowKey) {
             updateRow(pendingFieldRowKey, {
@@ -398,6 +399,7 @@ export function FormMappingEditor({ formMappingId, formName, onReconnectClick }:
         open={!!previewTemplateId}
         templateId={previewTemplateId}
         rows={rows}
+        questions={questions}
         customFields={customFields}
         onClose={() => setPreviewTemplateId(null)}
         onApply={(updates) => {
