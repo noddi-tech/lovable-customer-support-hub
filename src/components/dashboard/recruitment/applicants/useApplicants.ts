@@ -61,7 +61,7 @@ export function useApplicants(filters: ApplicantsFilters) {
       if (source !== 'all') q = q.eq('source', source);
       if (positionId !== 'all') q = q.eq('applications.position_id', positionId);
       if (stageId !== 'all') q = q.eq('applications.current_stage_id', stageId);
-      if (pendingReviewOnly) q = q.eq('import_status' as any, 'pending_review');
+      if (pendingReviewOnly) q = (q as any).eq('import_status', 'pending_review');
 
       if (search.trim()) {
         const safe = sanitizeForPostgrest(search.trim());
