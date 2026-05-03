@@ -92,7 +92,7 @@ function FormMappingsInline({ integrationId, onReconnectClick }: { integrationId
     useFormPositionMappings(integrationId);
   const { data: positions } = useJobPositions();
   const openPositions = (positions ?? []).filter((p) => p.status === 'open');
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [editingMapping, setEditingMapping] = useState<{ id: string; formName: string | null; formId: string } | null>(null);
 
   const [newFormId, setNewFormId] = useState('');
   const [newFormName, setNewFormName] = useState('');
