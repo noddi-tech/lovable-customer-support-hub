@@ -1,29 +1,59 @@
-# Flytt "Tilordne skjemafelt" inn i en Sheet
+## Adjust option-sync to match real Meta API shape
 
-## Problem
-Inline-utvidelsen av FormMappingEditor under hver mapping-rad gjør at UI-en føles knust: dropdowns (mål/felt-velgere, "Bruk mal"), preview-dialog og Radix-overlays kolliderer i den smale kortbredden, layouten hopper, og horisontal/innebygd nesting gjør det vanskelig å bruke. En Sheet gir full bredde og isolert overlay-kontekst.
+Meta's form-builder questions arrive as `type: "CUSTOM"` with an `options` array of `{key, value}`. Update `src/lib/recruitment/optionSync.ts` only — no other files affected.
 
-## Endringer
+### `inferFieldTypeKeyFromMeta`
 
-### `MetaLeadAdsCard.tsx` — `FormMappingsInline`
-1. Fjern `expandedId` state og inline `<FormMappingEditor>`-renderen under hver rad.
-2. Legg til ny state `editingMapping: { id: string; formName: string | null } | null`.
-3. Erstatt "Tilordne skjemafelt / Skjul felt-tilordninger" knappen med én knapp **"Tilordne skjemafelt"** (ChevronRight ikon) som setter `editingMapping`.
-4. Mount én `<Sheet>` på toppnivå i komponenten (sibling til mapping-listen, IKKE inni `.map()`):
-   - `open={!!editingMapping}` / `onOpenChange={(o) => !o && setEditingMapping(null)}`
-   - `<SheetContent side="right" className="w-full sm:max-w-3xl overflow-y-auto">`
-   - Header: `SheetTitle` = "Tilordne skjemafelt", `SheetDescription` = form name eller form ID
-   - Body: `<FormMappingEditor formMappingId={editingMapping.id} formName={editingMapping.formName} onReconnectClick={onReconnectClick} />`
-5. Bredere sheet (`sm:max-w-3xl`) gir plass til de to-kolonne mål/felt velgerne uten trunkering.
+Add a standard-field guard and a CUSTOM/has-options heuristic on top of the existing canonical map.
 
-### Ingen endringer nødvendig i:
-- `FormMappingEditor.tsx` — fungerer som ren child. Den eksisterende Radix-fixen (modal={false} på "Bruk mal" dropdown, hoisted preview dialog) er fortsatt riktig og spiller fint med Sheet-konteksten.
-- Hooks, edge functions, types.
+```ts
+const META_STANDARD_TYPES = new Set([
+  'email', 'full_name', 'first_name', 'last_name', 'phone', 'phone_number',
+]);
 
-## Tekniske detaljer
-- `Sheet` bruker `Radix Dialog` under panseret. Siden FormMappingEditor allerede har `modal={false}` på sin "Bruk mal" dropdown og hoisted preview dialog, vil ikke nestede pointer-events kollidere.
-- Kun ÉN sheet mountes (på parent-nivå), ikke én per rad — unngår N stk Radix portaler.
-- TypeScript clean: ingen nye typer.
+export function inferFieldTypeKeyFromMeta(question) {
+  const hasOptions =
+    !!question?.options && Array.isArray(question.options) && question.options.length > 0;
+  if (!question?.type) return hasOptions ? 'single_select' : null;
+  const t = String(question.type).toLowerCase();
+  if (META_STANDARD_TYPES.has(t)) return null;        // standard field, not custom
+  const mapped = META_TYPE_TO_FIELD_TYPE_KEY[t];     // RADIO/CHECKBOX/etc.
+  if (mapped) return mapped;
+  // CUSTOM (or any unknown) + options → default single_select; user can flip to multi in dialog.
+  return hasOptions ? 'single_select' : null;
+}
+```
 
-## Filer endret
-- `src/components/dashboard/recruitment/admin/integrations/cards/MetaLeadAdsCard.tsx`
+Existing `META_TYPE_TO_FIELD_TYPE_KEY` (radio/dropdown/checkbox/…) stays for future-proofing.
+
+### `extractMetaOptions`
+
+Meta canonical shape is `{key: <slug>, value: <human text>}`. Webhook lead payloads send the slug, so our internal `value` must be the slug and the label is the human text.
+
+Update the object branch:
+
+```ts
+const key = get('key');
+const val = get('value');
+const lbl = get('label');
+if (key !== undefined) {
+  // Meta canonical: key = slug → our value; value = human label
+  value = key.trim();
+  label = (lbl ?? val ?? key).trim();
+} else {
+  // Legacy {value,label} shape
+  value = (val ?? '').trim();
+  label = (lbl ?? val ?? '').trim();
+}
+```
+
+Plain-string and dedupe logic unchanged.
+
+### Untouched
+
+- `findMissingOptions`, `mergeOptions` — still operate on `value` equality, which now correctly compares slugs.
+- `CustomFieldDialog.tsx`, `FormMappingEditor.tsx` — no API changes; consume the same helper signatures.
+
+### Validation
+
+`bunx tsc --noEmit` clean. No runtime behavior change for forms that still return RADIO/CHECKBOX enums; CUSTOM-typed forms now correctly pre-fill as single_select with slug-based values.

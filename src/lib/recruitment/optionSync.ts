@@ -2,8 +2,20 @@ import type { MetaFormQuestion } from '@/components/dashboard/recruitment/admin/
 
 export type SelectFamily = 'single_select' | 'multi_select';
 
-// Case-insensitive lookup. Meta's Graph API has shifted over the years
-// between uppercase enums and lowercase keys — normalize to lower for lookup.
+// Standard-field types Meta returns for built-in questions. These are never
+// custom fields — they map to standard_field targets in our editor.
+const META_STANDARD_TYPES = new Set([
+  'email',
+  'full_name',
+  'first_name',
+  'last_name',
+  'phone',
+  'phone_number',
+]);
+
+// Case-insensitive lookup. Meta historically returned canonical enums
+// (RADIO/DROPDOWN/CHECKBOX) for some forms; keep as fallback. Modern
+// form-builder questions arrive as type === "CUSTOM" with an options array.
 const META_TYPE_TO_FIELD_TYPE_KEY: Record<string, SelectFamily> = {
   radio: 'single_select',
   dropdown: 'single_select',
@@ -18,11 +30,29 @@ const META_TYPE_TO_FIELD_TYPE_KEY: Record<string, SelectFamily> = {
 export function inferFieldTypeKeyFromMeta(
   question: MetaFormQuestion | null | undefined,
 ): SelectFamily | null {
-  if (!question?.type) return null;
-  return META_TYPE_TO_FIELD_TYPE_KEY[String(question.type).toLowerCase()] ?? null;
+  const hasOptions =
+    !!question?.options && Array.isArray(question.options) && question.options.length > 0;
+  if (!question?.type) return hasOptions ? 'single_select' : null;
+  const t = String(question.type).toLowerCase();
+  if (META_STANDARD_TYPES.has(t)) return null;
+  const mapped = META_TYPE_TO_FIELD_TYPE_KEY[t];
+  if (mapped) return mapped;
+  // CUSTOM (or any unknown type) with options → default to single_select; user
+  // can switch to multi_select in the dialog if their form is multi-select.
+  return hasOptions ? 'single_select' : null;
 }
 
-/** Extract options from a Meta question, handling string | {key,value} | {value,label} shapes (case-insensitive keys). */
+/**
+ * Extract options from a Meta question.
+ *
+ * Meta canonical shape is `{key, value}` where:
+ *   - key   = snake_case slug Meta normalizes from the answer. The lead
+ *             webhook payload sends THIS slug as the answer value, so it
+ *             must become our internal `value`.
+ *   - value = human-readable answer text → becomes the label.
+ *
+ * Also handles legacy `{value,label}` and plain string shapes for resilience.
+ */
 export function extractMetaOptions(
   question: MetaFormQuestion | null | undefined,
 ): Array<{ value: string; label: string }> {
@@ -38,7 +68,6 @@ export function extractMetaOptions(
       label = value;
     } else if (raw && typeof raw === 'object') {
       const o = raw as Record<string, unknown>;
-      // Normalize keys case-insensitively
       const get = (k: string): string | undefined => {
         for (const key of Object.keys(o)) {
           if (key.toLowerCase() === k) {
@@ -48,9 +77,18 @@ export function extractMetaOptions(
         }
         return undefined;
       };
-      // Prefer explicit value, then key. Prefer label, then value.
-      value = (get('value') ?? get('key') ?? '').trim();
-      label = (get('label') ?? get('value') ?? get('key') ?? '').trim();
+      const key = get('key');
+      const val = get('value');
+      const lbl = get('label');
+      if (key !== undefined) {
+        // Meta canonical: key = slug (our value), value = human label
+        value = key.trim();
+        label = (lbl ?? val ?? key).trim();
+      } else {
+        // Legacy {value,label} shape
+        value = (val ?? '').trim();
+        label = (lbl ?? val ?? '').trim();
+      }
     }
     if (!value) continue;
     if (seen.has(value)) continue;
@@ -59,6 +97,7 @@ export function extractMetaOptions(
   }
   return out;
 }
+
 
 /** Returns Meta options whose `value` is missing from the custom field's options. */
 export function findMissingOptions(
