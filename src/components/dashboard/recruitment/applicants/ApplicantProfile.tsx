@@ -26,7 +26,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import ApplicantSourceBadge from './ApplicantSourceBadge';
 import ApplicantStageBadge from './ApplicantStageBadge';
 import ScoreCircle from './ScoreCircle';
-import ApplicantInfoCard from './ApplicantInfoCard';
+import ApplicantInfoSidebar from './ApplicantInfoSidebar';
 import ApplicantEventTimeline from './ApplicantEventTimeline';
 import ApplicantNotesTab from './ApplicantNotesTab';
 import ApplicantFilesTab from './ApplicantFilesTab';
@@ -280,7 +280,7 @@ const ApplicantProfile: React.FC = () => {
             </div>
 
             <div className="lg:col-span-1 space-y-6">
-              <ApplicantInfoCard applicant={applicant} />
+              <ApplicantInfoSidebar applicant={applicant} />
               <ApplicantFieldValuesSection applicantId={applicant.id} />
             </div>
           </div>

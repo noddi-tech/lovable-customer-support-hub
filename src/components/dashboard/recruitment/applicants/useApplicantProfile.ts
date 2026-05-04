@@ -35,6 +35,8 @@ export interface ApplicantProfileData {
   own_vehicle: boolean | null;
   gdpr_consent: boolean;
   gdpr_consent_at: string | null;
+  imported_via: string | null;
+  imported_via_bulk_import_id: string | null;
   metadata: any;
   created_at: string;
   updated_at: string;
