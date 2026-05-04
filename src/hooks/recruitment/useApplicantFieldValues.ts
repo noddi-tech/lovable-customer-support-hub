@@ -11,21 +11,27 @@ export interface ApplicantFieldValueRow {
   field_key: string;
   display_name: string;
   display_order: number;
+  show_on_card: boolean;
   show_on_profile: boolean;
   type_key: string;
   options: Array<{ value: string; label_no?: string }> | null;
 }
 
-export function useApplicantFieldValues(applicantId: string | null | undefined) {
+export type ApplicantFieldValuesFilter = 'card' | 'profile' | 'all';
+
+export function useApplicantFieldValues(
+  applicantId: string | null | undefined,
+  filter: ApplicantFieldValuesFilter = 'profile',
+) {
   return useQuery({
-    queryKey: ['applicant-field-values', applicantId],
+    queryKey: ['applicant-field-values', applicantId, filter],
     enabled: !!applicantId,
     staleTime: 30_000,
     queryFn: async (): Promise<ApplicantFieldValueRow[]> => {
       const { data, error } = await supabase
         .from('recruitment_applicant_field_values')
         .select(
-          '*, recruitment_custom_fields!inner(field_key, display_name, display_order, show_on_profile, options, recruitment_custom_field_types!inner(type_key))'
+          '*, recruitment_custom_fields!inner(field_key, display_name, display_order, show_on_card, show_on_profile, options, recruitment_custom_field_types!inner(type_key))'
         )
         .eq('applicant_id', applicantId!);
       if (error) throw error;
@@ -39,13 +45,20 @@ export function useApplicantFieldValues(applicantId: string | null | undefined) 
         field_key: r.recruitment_custom_fields?.field_key,
         display_name: r.recruitment_custom_fields?.display_name,
         display_order: r.recruitment_custom_fields?.display_order ?? 0,
+        show_on_card: r.recruitment_custom_fields?.show_on_card ?? false,
         show_on_profile: r.recruitment_custom_fields?.show_on_profile ?? true,
         type_key: r.recruitment_custom_fields?.recruitment_custom_field_types?.type_key ?? 'text',
         options: r.recruitment_custom_fields?.options ?? null,
       })) as ApplicantFieldValueRow[];
-      return rows
-        .filter((r) => r.show_on_profile)
-        .sort((a, b) => a.display_order - b.display_order);
+
+      const filtered = rows.filter((r) => {
+        if (filter === 'all') return true;
+        if (filter === 'card') return r.show_on_card === true;
+        // 'profile': show on profile but not on card (avoid sidebar duplication)
+        return r.show_on_profile === true && r.show_on_card !== true;
+      });
+
+      return filtered.sort((a, b) => a.display_order - b.display_order);
     },
   });
 }
