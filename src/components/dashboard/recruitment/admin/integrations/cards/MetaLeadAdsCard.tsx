@@ -61,29 +61,87 @@ interface Props {
   onRefreshToken: () => void;
 }
 
-function statusBadge(status: MetaIntegration['status']) {
-  switch (status) {
+function TokenStatusBadge({ integration }: { integration: MetaIntegration }) {
+  const expiresAt = integration.user_token_expires_at;
+  const neverExpires =
+    expiresAt === 'infinity' ||
+    (typeof expiresAt === 'string' && expiresAt.startsWith('infinity'));
+  const expiresDate = !neverExpires && expiresAt ? new Date(expiresAt) : null;
+  const tooltip = (() => {
+    if (neverExpires) return 'Tokenet utløper aldri.';
+    if (expiresDate && !isNaN(expiresDate.getTime())) {
+      return `Utløper ${format(expiresDate, "d. MMMM yyyy 'kl.' HH:mm", { locale: nb })}`;
+    }
+    return integration.status_message ?? 'Ingen utløpsinformasjon tilgjengelig.';
+  })();
+
+  let badge: JSX.Element;
+  switch (integration.status) {
     case 'configured':
-      return (
+      badge = (
         <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-500/30">
           Klar for kobling
         </Badge>
       );
+      break;
     case 'connected':
-      return (
+      badge = (
         <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/30">
-          Tilkoblet
+          {neverExpires ? 'Tilkoblet · utløper aldri' : 'Tilkoblet'}
         </Badge>
       );
+      break;
+    case 'expiring_soon':
+      badge = (
+        <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-500/30">
+          Utløper snart
+        </Badge>
+      );
+      break;
+    case 'expiring_critical':
+      badge = (
+        <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/30">
+          Utløper snart
+        </Badge>
+      );
+      break;
+    case 'expired':
+      badge = (
+        <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/30">
+          Utløpt
+        </Badge>
+      );
+      break;
+    case 'broken':
+      badge = (
+        <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/30">
+          Mangler tilganger
+        </Badge>
+      );
+      break;
     case 'disconnected':
-      return <Badge variant="secondary">Frakoblet</Badge>;
+      badge = <Badge variant="secondary">Frakoblet</Badge>;
+      break;
     case 'error':
-      return (
+    default:
+      badge = (
         <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/30">
           Feil
         </Badge>
       );
+      break;
   }
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span>{badge}</span>
+      </TooltipTrigger>
+      <TooltipContent side="bottom" className="max-w-xs text-xs">
+        {tooltip}
+      </TooltipContent>
+    </Tooltip>
+  );
 }
 
 function FormMappingsInline({ integrationId, onReconnectClick }: { integrationId: string; onReconnectClick?: () => void }) {
