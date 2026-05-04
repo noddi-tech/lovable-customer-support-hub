@@ -50,7 +50,8 @@ import { MetaHealthTab } from '../MetaHealthTab';
 import { FormMappingEditor } from '../meta/FormMappingEditor';
 import { BulkImportDialog } from '../meta/BulkImportDialog';
 import type { MetaIntegration } from '../types';
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow, format } from 'date-fns';
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { nb } from 'date-fns/locale';
 
 interface Props {
@@ -451,7 +452,7 @@ export function MetaLeadAdsCard({ integration, onConnect, onEdit, onReconnect, o
               </CardDescription>
             </div>
           </div>
-          {statusBadge(integration.status)}
+          <TooltipProvider><TokenStatusBadge integration={integration} /></TooltipProvider>
         </div>
       </CardHeader>
       <CardContent>
