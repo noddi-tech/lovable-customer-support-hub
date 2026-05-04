@@ -4077,6 +4077,7 @@ export type Database = {
           form_mapping_id: string
           id: string
           meta_question_id: string
+          meta_question_key: string | null
           meta_question_text: string
           target_custom_field_id: string | null
           target_kind: string
@@ -4088,6 +4089,7 @@ export type Database = {
           form_mapping_id: string
           id?: string
           meta_question_id: string
+          meta_question_key?: string | null
           meta_question_text: string
           target_custom_field_id?: string | null
           target_kind: string
@@ -4099,6 +4101,7 @@ export type Database = {
           form_mapping_id?: string
           id?: string
           meta_question_id?: string
+          meta_question_key?: string | null
           meta_question_text?: string
           target_custom_field_id?: string | null
           target_kind?: string
