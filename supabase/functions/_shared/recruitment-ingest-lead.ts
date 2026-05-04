@@ -11,6 +11,7 @@ export interface FormFieldMappingRow {
   id: string;
   form_mapping_id: string;
   meta_question_id: string;
+  meta_question_key: string | null;
   meta_question_text: string;
   target_kind: TargetKind;
   target_standard_field: StandardField | null;
@@ -102,9 +103,15 @@ export async function ingestLead(
     return { status: 'duplicate', applicantId: existing.id };
   }
 
-  // Build mapping index: meta_question_id -> mapping
-  const mappingByQid = new Map<string, FormFieldMappingRow>();
-  for (const m of fieldMappings) mappingByQid.set(m.meta_question_id, m);
+  // Build mapping indexes: prefer match by meta_question_key (the slug Meta sends
+  // in webhook field_data[].name), fall back to meta_question_id (legacy rows
+  // saved before the key column existed).
+  const mappingByKey = new Map<string, FormFieldMappingRow>();
+  const mappingById = new Map<string, FormFieldMappingRow>();
+  for (const m of fieldMappings) {
+    if (m.meta_question_key) mappingByKey.set(m.meta_question_key, m);
+    if (m.meta_question_id) mappingById.set(m.meta_question_id, m);
+  }
 
   // If there are no mappings at all, treat as unmapped
   if (fieldMappings.length === 0) {
