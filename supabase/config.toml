@@ -312,3 +312,14 @@ verify_jwt = true
 
 [functions.recruitment-quarantine-approve]
 verify_jwt = true
+
+# Phase B4 — Meta token management
+[functions.meta-token-exchange-long-lived]
+verify_jwt = true
+
+[functions.meta-token-paste-system-user]
+verify_jwt = true
+
+# Called by pg_cron daily; secured via service-role internal logic only.
+[functions.meta-token-health-check]
+verify_jwt = false
