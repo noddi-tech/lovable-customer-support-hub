@@ -127,7 +127,7 @@ export async function ingestLead(
 
   for (const fd of lead.field_data) {
     const raw = (fd.values?.[0] ?? '').toString();
-    const mapping = mappingByQid.get(fd.name);
+    const mapping = mappingByKey.get(fd.name) ?? mappingById.get(fd.name);
     if (!mapping) {
       // Try fallback: standard meta keys
       if (fd.name === 'full_name' || fd.name === 'name') fullName = fullName || raw;
