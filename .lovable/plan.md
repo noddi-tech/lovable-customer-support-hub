@@ -1,59 +1,38 @@
-## Adjust option-sync to match real Meta API shape
+# Add progress feedback to bulk import flow
 
-Meta's form-builder questions arrive as `type: "CUSTOM"` with an `options` array of `{key, value}`. Update `src/lib/recruitment/optionSync.ts` only — no other files affected.
+## Problem
 
-### `inferFieldTypeKeyFromMeta`
+In the `BulkImportDialog`, when the user clicks **"Start import"** on step 2 (Bekreft), the button awaits the `recruitment-bulk-import-execute` edge function before advancing to step 3. During that window — and during the first ~2s of step 3 before the status poll returns — there is no visual indication that anything is happening. The dialog appears frozen.
 
-Add a standard-field guard and a CUSTOM/has-options heuristic on top of the existing canonical map.
+## Fix
 
-```ts
-const META_STANDARD_TYPES = new Set([
-  'email', 'full_name', 'first_name', 'last_name', 'phone', 'phone_number',
-]);
+Two small changes to `src/components/dashboard/recruitment/admin/integrations/meta/BulkImportDialog.tsx`:
 
-export function inferFieldTypeKeyFromMeta(question) {
-  const hasOptions =
-    !!question?.options && Array.isArray(question.options) && question.options.length > 0;
-  if (!question?.type) return hasOptions ? 'single_select' : null;
-  const t = String(question.type).toLowerCase();
-  if (META_STANDARD_TYPES.has(t)) return null;        // standard field, not custom
-  const mapped = META_TYPE_TO_FIELD_TYPE_KEY[t];     // RADIO/CHECKBOX/etc.
-  if (mapped) return mapped;
-  // CUSTOM (or any unknown) + options → default single_select; user can flip to multi in dialog.
-  return hasOptions ? 'single_select' : null;
-}
-```
+### 1. Show "Starter…" feedback on the Start import button
 
-Existing `META_TYPE_TO_FIELD_TYPE_KEY` (radio/dropdown/checkbox/…) stays for future-proofing.
+While `execute.isPending` is true, show a spinner + "Starter import…" label inside the button so the click is acknowledged immediately.
 
-### `extractMetaOptions`
+### 2. Improve step 3's initial loading state
 
-Meta canonical shape is `{key: <slug>, value: <human text>}`. Webhook lead payloads send the slug, so our internal `value` must be the slug and the label is the human text.
+Replace the flat `Skeleton` shown when `status.data` is undefined with a proper "starting" state that includes:
+- A spinning loader icon
+- Text: "Starter import… henter leads fra Meta"
+- An indeterminate-looking progress bar (e.g. `Progress` at a low pulsing value, or `value={undefined}` styling) so the user sees motion
 
-Update the object branch:
+Also render the progress section even before the first status poll resolves — using `dryRun.total_leads_found` as the denominator and 0 as numerator — so the bar appears immediately on entering step 3 instead of after the first poll round-trip.
 
-```ts
-const key = get('key');
-const val = get('value');
-const lbl = get('label');
-if (key !== undefined) {
-  // Meta canonical: key = slug → our value; value = human label
-  value = key.trim();
-  label = (lbl ?? val ?? key).trim();
-} else {
-  // Legacy {value,label} shape
-  value = (val ?? '').trim();
-  label = (lbl ?? val ?? '').trim();
-}
-```
+### 3. (Optional polish) Advance to step 3 optimistically
 
-Plain-string and dedupe logic unchanged.
+Currently `setStep(3)` runs only after `execute.mutateAsync` resolves. Switch to optimistic transition: call `setStep(3)` immediately on click, set `bulkImportId` from `dryRun.bulk_import_id`, and fire the execute mutation in the background. If it errors, toast the error and set step back to 2. This way the user sees the progress UI within ~50ms instead of waiting on a network round-trip.
 
-### Untouched
+## Technical details
 
-- `findMissingOptions`, `mergeOptions` — still operate on `value` equality, which now correctly compares slugs.
-- `CustomFieldDialog.tsx`, `FormMappingEditor.tsx` — no API changes; consume the same helper signatures.
+- File: `src/components/dashboard/recruitment/admin/integrations/meta/BulkImportDialog.tsx`
+- Use `Loader2` from `lucide-react` (already imported elsewhere in the project) for spinners
+- No backend, hook, or type changes required
+- No new dependencies
 
-### Validation
+## Out of scope
 
-`bunx tsc --noEmit` clean. No runtime behavior change for forms that still return RADIO/CHECKBOX enums; CUSTOM-typed forms now correctly pre-fill as single_select with slug-based values.
+- Changes to the actual import speed or backend behavior
+- Changes to the CSV import progress UI (`ImportProgressStep.tsx`) — already has good feedback

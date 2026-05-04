@@ -22,7 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { AlertTriangle, CheckCircle2, X } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Loader2, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { StepIndicator } from './wizard/StepIndicator';
@@ -142,12 +142,16 @@ export function BulkImportDialog({ open, onOpenChange, integrationId }: Props) {
       toast({ title: 'Mangler import-ID', variant: 'destructive' });
       return;
     }
+    // Optimistically advance to step 3 so the user immediately sees progress UI
+    const id = dryRun.bulk_import_id;
+    setBulkImportId(id);
+    setStep(3);
     try {
-      await execute.mutateAsync({ bulk_import_id: dryRun.bulk_import_id });
-      setBulkImportId(dryRun.bulk_import_id);
-      setStep(3);
+      await execute.mutateAsync({ bulk_import_id: id });
     } catch (e: any) {
       toast({ title: 'Kjøring feilet', description: e?.message, variant: 'destructive' });
+      setBulkImportId(null);
+      setStep(2);
     }
   };
 
@@ -348,12 +352,28 @@ export function BulkImportDialog({ open, onOpenChange, integrationId }: Props) {
         {step === 3 && (
           <div className="space-y-3">
             {!status.data ? (
-              <Skeleton className="h-32 w-full" />
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                  <span>Starter import… henter leads fra Meta</span>
+                </div>
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span>Forbereder…</span>
+                    <span className="font-mono">0 / {totalFound}</span>
+                  </div>
+                  <Progress value={5} className="animate-pulse" />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Dette kan ta noen sekunder. Du kan trygt lukke dialogen — importen fortsetter i bakgrunnen.
+                </p>
+              </div>
             ) : (
               <>
                 <div className="space-y-1">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">
+                  <div className="flex items-center gap-2 text-sm">
+                    {!isFinished && <Loader2 className="h-4 w-4 animate-spin text-primary" />}
+                    <span className="text-muted-foreground flex-1">
                       {isFinished
                         ? importStatus === 'completed'
                           ? 'Import fullført'
@@ -432,7 +452,14 @@ export function BulkImportDialog({ open, onOpenChange, integrationId }: Props) {
                   (hasUnmapped && !confirmedUnmapped)
                 }
               >
-                Start import
+                {execute.isPending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Starter import…
+                  </>
+                ) : (
+                  'Start import'
+                )}
               </Button>
             </>
           )}
