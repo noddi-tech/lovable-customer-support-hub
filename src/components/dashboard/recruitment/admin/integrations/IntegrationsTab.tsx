@@ -5,7 +5,9 @@ import { LeadSourcesSection } from './sections/LeadSourcesSection';
 import { OutboundSection } from './sections/OutboundSection';
 import { AuthenticationSection } from './sections/AuthenticationSection';
 import { LeadIngestionLogPanel } from './log/LeadIngestionLogPanel';
-import { MetaTokenRefreshDialog } from './MetaTokenRefreshDialog';
+import { MetaTokenRefreshWizard } from './meta/MetaTokenRefreshWizard';
+import { MetaTokenHelpCard } from './meta/MetaTokenHelpCard';
+import { AdminAlertsBanner } from './AdminAlertsBanner';
 import { MetaConnectionWizard, type WizardMode, type WizardStep } from './meta/wizard/MetaConnectionWizard';
 import { useMetaIntegration } from './hooks/useMetaIntegration';
 import { useToast } from '@/hooks/use-toast';
@@ -49,8 +51,6 @@ export function IntegrationsTab() {
       setWizardExistingId(null);
       setWizardOpen(true);
     } else if (stateParam) {
-      // We don't yet know if this is create or reconnect — Step2's useMetaPageList
-      // returns mode + existing_integration_id for accuracy; we default to create here.
       setWizardMode('create');
       setWizardInitialStep(2);
       setWizardInitialStateId(stateParam);
@@ -58,7 +58,6 @@ export function IntegrationsTab() {
       setWizardOpen(true);
     }
 
-    // Clean URL so refresh doesn't re-trigger.
     url.searchParams.delete('meta_oauth_state');
     url.searchParams.delete('meta_oauth_error');
     window.history.replaceState({}, '', url.toString());
@@ -81,6 +80,14 @@ export function IntegrationsTab() {
     setWizardOpen(true);
   };
 
+  // Banner-driven refresh: scopes to a specific integration_id when provided.
+  // Currently we have a single-integration model per org, so the integration prop
+  // resolves to the alert's integration. If/when multi-integration lands, swap
+  // this to look up by integration_id.
+  const openTokenRefresh = (_integrationId: string | null) => {
+    setTokenRefreshOpen(true);
+  };
+
   return (
     <>
       <div className="space-y-8">
@@ -93,6 +100,8 @@ export function IntegrationsTab() {
           </p>
         </header>
 
+        <AdminAlertsBanner onRefreshToken={openTokenRefresh} />
+
         <LeadSourcesSection
           metaIntegration={integration}
           onMetaConnect={openWizardCreate}
@@ -100,6 +109,8 @@ export function IntegrationsTab() {
           onMetaReconnect={openWizardReconnect}
           onMetaRefreshToken={() => setTokenRefreshOpen(true)}
         />
+
+        <MetaTokenHelpCard />
 
         <Separator />
 
@@ -124,10 +135,11 @@ export function IntegrationsTab() {
         initialStateId={wizardInitialStateId}
         existingIntegrationId={wizardExistingId}
       />
-      <MetaTokenRefreshDialog
+      <MetaTokenRefreshWizard
         open={tokenRefreshOpen}
         onOpenChange={setTokenRefreshOpen}
         integration={integration}
+        onUseOAuth={openWizardReconnect}
       />
     </>
   );
