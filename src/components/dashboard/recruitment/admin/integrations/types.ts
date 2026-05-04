@@ -1,4 +1,30 @@
-export type MetaIntegrationStatus = 'configured' | 'connected' | 'disconnected' | 'error';
+export type MetaIntegrationStatus =
+  | 'configured'
+  | 'connected'
+  | 'disconnected'
+  | 'error'
+  | 'expiring_soon'
+  | 'expiring_critical'
+  | 'expired'
+  | 'broken';
+
+export type RecruitmentAdminAlertType =
+  | 'token_expiring_soon'
+  | 'token_expiring_critical'
+  | 'token_expired'
+  | 'integration_broken';
+
+export interface RecruitmentAdminAlert {
+  id: string;
+  organization_id: string;
+  integration_id: string | null;
+  alert_type: RecruitmentAdminAlertType;
+  severity: 'info' | 'warning' | 'critical';
+  message: string;
+  resolved_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
 
 export interface MetaHealthCheckResult {
   auth: {

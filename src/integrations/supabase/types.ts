@@ -3307,6 +3307,57 @@ export type Database = {
         }
         Relationships: []
       }
+      recruitment_admin_alerts: {
+        Row: {
+          alert_type: string
+          created_at: string
+          id: string
+          integration_id: string | null
+          message: string
+          organization_id: string
+          resolved_at: string | null
+          severity: string
+          updated_at: string
+        }
+        Insert: {
+          alert_type: string
+          created_at?: string
+          id?: string
+          integration_id?: string | null
+          message: string
+          organization_id: string
+          resolved_at?: string | null
+          severity: string
+          updated_at?: string
+        }
+        Update: {
+          alert_type?: string
+          created_at?: string
+          id?: string
+          integration_id?: string | null
+          message?: string
+          organization_id?: string
+          resolved_at?: string | null
+          severity?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recruitment_admin_alerts_integration_id_fkey"
+            columns: ["integration_id"]
+            isOneToOne: false
+            referencedRelation: "recruitment_meta_integrations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recruitment_admin_alerts_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       recruitment_applicant_field_values: {
         Row: {
           applicant_id: string
