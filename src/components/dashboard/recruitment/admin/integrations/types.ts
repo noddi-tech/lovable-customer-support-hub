@@ -173,6 +173,7 @@ export interface FormFieldMapping {
   id: string;
   form_mapping_id: string;
   meta_question_id: string;
+  meta_question_key: string | null;
   meta_question_text: string;
   target_kind: TargetKind;
   target_standard_field: StandardField | null;
