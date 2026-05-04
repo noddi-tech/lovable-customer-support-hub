@@ -290,6 +290,7 @@ export function MetaLeadAdsCard({ integration, onConnect, onEdit, onReconnect, o
   const { toast } = useToast();
   const { deleteIntegration } = useMetaIntegration();
   const [bulkImportOpen, setBulkImportOpen] = useState(false);
+  const [backfillRunning, setBackfillRunning] = useState(false);
 
   const { data: leadCount } = useQuery({
     queryKey: ['meta-lead-count', currentOrganizationId],
@@ -306,6 +307,35 @@ export function MetaLeadAdsCard({ integration, onConnect, onEdit, onReconnect, o
       return count ?? 0;
     },
   });
+
+  const handleBackfill = async () => {
+    setBackfillRunning(true);
+    try {
+      const { data, error } = await supabase.functions.invoke(
+        'recruitment-backfill-form-field-keys',
+        { body: { organization_id: currentOrganizationId } },
+      );
+      if (error) {
+        toast({
+          title: 'Backfill feilet',
+          description: error.message ?? 'Ukjent feil',
+          variant: 'destructive',
+        });
+        return;
+      }
+      const alreadySet = (data as any)?.rows_already_set ?? 0;
+      const updated = (data as any)?.rows_updated ?? 0;
+      const skipped = (data as any)?.rows_skipped ?? 0;
+      toast({
+        title: 'Backfill ferdig',
+        description: `${alreadySet} mappings allerede oppdatert, ${updated} nye oppdatert, ${skipped} hoppet over (kunne ikke matche).`,
+      });
+    } catch (e: any) {
+      toast({ title: 'Backfill feilet', description: e?.message, variant: 'destructive' });
+    } finally {
+      setBackfillRunning(false);
+    }
+  };
 
   if (!integration) {
     return (
@@ -465,7 +495,17 @@ export function MetaLeadAdsCard({ integration, onConnect, onEdit, onReconnect, o
           </TabsContent>
 
           <TabsContent value="forms" className="space-y-3">
-            <div className="flex justify-end">
+            <div className="flex justify-end gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleBackfill}
+                disabled={backfillRunning}
+                title="Henter spørsmåls-nøkler fra Meta og fyller inn manglende meta_question_key på lagrede tilordninger. Trygt å kjøre flere ganger."
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${backfillRunning ? 'animate-spin' : ''}`} />
+                Kjør backfill
+              </Button>
               <Button size="sm" variant="outline" onClick={() => setBulkImportOpen(true)}>
                 <Download className="h-4 w-4 mr-2" />
                 Importer historikk
