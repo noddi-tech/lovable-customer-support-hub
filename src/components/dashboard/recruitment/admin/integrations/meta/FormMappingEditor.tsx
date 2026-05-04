@@ -67,6 +67,7 @@ interface Props {
 
 interface RowState {
   meta_question_id: string;
+  meta_question_key: string | null;
   meta_question_text: string;
   target_kind: TargetKind;
   target_standard_field: StandardField | null;
@@ -132,10 +133,12 @@ export function FormMappingEditor({ formMappingId, formName, onReconnectClick }:
     const out: Record<string, RowState> = {};
     for (const q of questions) {
       const qid = q.id ?? q.key ?? q.label;
+      const qkey = q.key ?? null;
       const e = existingByQ.get(qid);
       if (e) {
         out[qid] = {
           meta_question_id: qid,
+          meta_question_key: qkey ?? e.meta_question_key ?? null,
           meta_question_text: q.label,
           target_kind: e.target_kind,
           target_standard_field: e.target_standard_field,
@@ -145,6 +148,7 @@ export function FormMappingEditor({ formMappingId, formName, onReconnectClick }:
         const sug = autoSuggest(q.label, customFields);
         out[qid] = {
           meta_question_id: qid,
+          meta_question_key: qkey,
           meta_question_text: q.label,
           target_kind: (sug.target_kind ?? 'metadata_only') as TargetKind,
           target_standard_field: sug.target_standard_field ?? null,
@@ -174,6 +178,7 @@ export function FormMappingEditor({ formMappingId, formName, onReconnectClick }:
         Object.values(rows).map((r, idx) => ({
           form_mapping_id: formMappingId,
           meta_question_id: r.meta_question_id,
+          meta_question_key: r.meta_question_key,
           meta_question_text: r.meta_question_text,
           target_kind: r.target_kind,
           target_standard_field:

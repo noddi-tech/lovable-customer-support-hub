@@ -24,6 +24,7 @@ export function useFormFieldMappings(formMappingId: string | null) {
 export interface UpsertFieldMappingInput {
   form_mapping_id: string;
   meta_question_id: string;
+  meta_question_key?: string | null;
   meta_question_text: string;
   target_kind: 'standard' | 'custom' | 'metadata_only';
   target_standard_field?: 'full_name' | 'email' | 'phone_number' | null;
