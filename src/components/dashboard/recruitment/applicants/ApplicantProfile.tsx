@@ -303,6 +303,34 @@ const ApplicantProfile: React.FC = () => {
 
             <div className="lg:col-span-1 space-y-6">
               <ApplicantInfoSidebar applicant={applicant} />
+              {followups && followups.length > 0 && (
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm">Påminnelser</CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    <ul className="divide-y">
+                      {followups.map((f) => (
+                        <li key={f.id} className="px-4 py-2.5 text-sm flex items-center gap-2">
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium">{dateTime(f.snoozed_to ?? f.scheduled_for)}</div>
+                            {f.note && <div className="text-xs text-muted-foreground truncate">{f.note}</div>}
+                          </div>
+                          <Button size="icon" variant="ghost" onClick={() => completeFu.mutate(f.id)} title="Fullført">
+                            <Check />
+                          </Button>
+                          <Button size="icon" variant="ghost" onClick={() => setSnoozeId(f.id)} title="Utsett">
+                            <Clock />
+                          </Button>
+                          <Button size="icon" variant="ghost" onClick={() => deleteFu.mutate(f.id)} title="Slett">
+                            <Trash2 />
+                          </Button>
+                        </li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                </Card>
+              )}
               <ApplicantFieldValuesSection applicantId={applicant.id} />
             </div>
           </div>
