@@ -37,8 +37,9 @@ export interface OversiktMetrics {
     todays_followups: Array<FollowupItem>;
   };
   pipeline_summary: {
-    stages: Array<{ id: string; name: string; color: string; count: number }>;
+    stages: Array<{ id: string; name: string; color: string; count: number; is_terminal: boolean }>;
     total_active_applicants: number;
+    total_all_applicants: number;
   };
   metrics: {
     new_applicants_count: number;
