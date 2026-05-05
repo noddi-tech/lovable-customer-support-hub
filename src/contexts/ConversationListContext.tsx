@@ -589,6 +589,8 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
       
       const matchesPriority = state.priorityFilter === "all" || conversation.priority === state.priorityFilter;
       const matchesInbox = !effectiveInboxId || conversation.inbox_id === effectiveInboxId;
+      const convPurpose = (conversation.conversation_type === 'recruitment') ? 'recruitment' : 'support';
+      const matchesPurpose = state.purposeFilter === 'all' || convPurpose === state.purposeFilter;
       
       const matchesTab = (() => {
         const isSnoozedActive = !!conversation.snooze_until && new Date(conversation.snooze_until) > new Date();
