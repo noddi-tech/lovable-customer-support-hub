@@ -19,6 +19,7 @@ export interface BulkActionPayload {
   assignee_id?: string | null;
   reason?: string;
   template_id?: string;
+  inbox_id?: string;
   tag_ids?: string[];
 }
 

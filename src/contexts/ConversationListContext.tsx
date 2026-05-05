@@ -55,6 +55,9 @@ export interface Conversation {
   metadata?: Record<string, any>;
   last_message_is_internal?: boolean;
   last_message_sender_type?: string;
+  conversation_type?: 'support' | 'recruitment' | string;
+  applicant_id?: string | null;
+  applicant?: { id: string; first_name?: string | null; last_name?: string | null; email?: string | null } | null;
 }
 
 interface ArchiveDialogState {

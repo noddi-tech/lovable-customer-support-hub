@@ -41,6 +41,7 @@ interface InboxData {
   updated_at: string;
   conversation_count: number;
   sender_display_name: string | null;
+  purpose: 'support' | 'recruitment';
 }
 
 interface Department {
@@ -77,7 +78,8 @@ export function InboxManagementContent() {
     color: '#3B82F6',
     is_default: false,
     auto_assignment_rules: {},
-    sender_display_name: ''
+    sender_display_name: '',
+    purpose: 'support' as 'support' | 'recruitment',
   });
 
   // Sending/Receiving address edit state
@@ -187,7 +189,8 @@ export function InboxManagementContent() {
         color: '#3B82F6',
         is_default: false,
         auto_assignment_rules: {},
-        sender_display_name: ''
+        sender_display_name: '',
+        purpose: 'support',
       });
       toast.success('Inbox created successfully');
     },
@@ -403,6 +406,22 @@ export function InboxManagementContent() {
                 />
                 <p className="text-xs text-muted-foreground mt-1">
                   Override the organization-level sender name for this inbox
+                </p>
+              </div>
+              <div>
+                <Label htmlFor="purpose">Purpose</Label>
+                <Select
+                  value={newInboxData.purpose}
+                  onValueChange={(v: 'support' | 'recruitment') => setNewInboxData(prev => ({ ...prev, purpose: v }))}
+                >
+                  <SelectTrigger id="purpose"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="support">Support</SelectItem>
+                    <SelectItem value="recruitment">Recruitment</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Recruitment inboxes auto-link inbound emails to applicants by email.
                 </p>
               </div>
               <div className="flex items-center space-x-2">
@@ -651,6 +670,19 @@ export function InboxManagementContent() {
                 <p className="text-xs text-muted-foreground mt-1">
                   Override the organization-level sender name for this inbox
                 </p>
+              </div>
+              <div>
+                <Label htmlFor="edit-purpose">Purpose</Label>
+                <Select
+                  value={editingInbox.purpose || 'support'}
+                  onValueChange={(v: 'support' | 'recruitment') => setEditingInbox(prev => prev ? { ...prev, purpose: v } : null)}
+                >
+                  <SelectTrigger id="edit-purpose"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="support">Support</SelectItem>
+                    <SelectItem value="recruitment">Recruitment</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="flex items-center space-x-2">
                 <Switch

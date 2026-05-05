@@ -149,10 +149,11 @@ export function RejectBulkDialog({
 
 export function SendEmailBulkDialog({
   open, N, onClose, onConfirm, loading,
-}: BaseProps & { onConfirm: (templateId: string) => void }) {
+}: BaseProps & { onConfirm: (templateId: string, inboxId: string) => void }) {
   const { currentOrganizationId } = useOrganizationStore();
   const [templateId, setTemplateId] = useState<string>('');
-  useEffect(() => { if (!open) setTemplateId(''); }, [open]);
+  const [inboxId, setInboxId] = useState<string>('');
+  useEffect(() => { if (!open) { setTemplateId(''); setInboxId(''); } }, [open]);
   const { data: templates } = useQuery({
     queryKey: ['recruitment-email-templates-active', currentOrganizationId],
     enabled: !!currentOrganizationId && open,
@@ -168,29 +169,66 @@ export function SendEmailBulkDialog({
       return data ?? [];
     },
   });
+  const { data: inboxes } = useQuery({
+    queryKey: ['recruitment-inboxes-bulk', currentOrganizationId],
+    enabled: !!currentOrganizationId && open,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('inboxes')
+        .select('id, name, is_default')
+        .eq('organization_id', currentOrganizationId!)
+        .eq('is_active', true)
+        .eq('purpose', 'recruitment')
+        .order('is_default', { ascending: false })
+        .order('name');
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+  useEffect(() => {
+    if (open && !inboxId && inboxes && inboxes.length > 0) setInboxId(inboxes[0].id);
+  }, [open, inboxes, inboxId]);
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o && !loading) onClose(); }}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Send e-post til {N} søkere?</DialogTitle>
           <DialogDescription>
-            Velg mal. Søkere uten samtykke (GDPR) hoppes over automatisk.
+            Velg innboks og mal. Søkere uten samtykke (GDPR) hoppes over automatisk.
           </DialogDescription>
         </DialogHeader>
-        <div className="py-2">
-          <Label className="mb-1.5 block">E-postmal</Label>
-          <Select value={templateId} onValueChange={setTemplateId}>
-            <SelectTrigger><SelectValue placeholder="Velg mal..." /></SelectTrigger>
-            <SelectContent>
-              {(templates ?? []).map((t: any) => (
-                <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <div className="py-2 space-y-3">
+          <div>
+            <Label className="mb-1.5 block">Rekrutterings-innboks</Label>
+            <Select value={inboxId} onValueChange={setInboxId}>
+              <SelectTrigger><SelectValue placeholder="Velg innboks..." /></SelectTrigger>
+              <SelectContent>
+                {(inboxes ?? []).map((i: any) => (
+                  <SelectItem key={i.id} value={i.id}>{i.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {(inboxes?.length ?? 0) === 0 && (
+              <p className="text-xs text-destructive mt-1">
+                Ingen rekrutterings-innboks. Opprett én i Admin → Innbokser.
+              </p>
+            )}
+          </div>
+          <div>
+            <Label className="mb-1.5 block">E-postmal</Label>
+            <Select value={templateId} onValueChange={setTemplateId}>
+              <SelectTrigger><SelectValue placeholder="Velg mal..." /></SelectTrigger>
+              <SelectContent>
+                {(templates ?? []).map((t: any) => (
+                  <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={loading}>Avbryt</Button>
-          <Button onClick={() => onConfirm(templateId)} disabled={!templateId || loading}>
+          <Button onClick={() => onConfirm(templateId, inboxId)} disabled={!templateId || !inboxId || loading}>
             Send e-post
           </Button>
         </DialogFooter>

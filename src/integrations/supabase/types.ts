@@ -6943,8 +6943,11 @@ export type Database = {
         | {
             Args: { inbox_uuid?: string; include_deleted?: boolean }
             Returns: {
+              applicant: Json
+              applicant_id: string
               assigned_to: Json
               channel: string
+              conversation_type: string
               customer: Json
               first_response_at: string
               id: string
@@ -7020,6 +7023,7 @@ export type Database = {
           is_active: boolean
           is_default: boolean
           name: string
+          purpose: string
           sender_display_name: string
           updated_at: string
         }[]

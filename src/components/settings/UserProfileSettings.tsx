@@ -20,6 +20,7 @@ export const UserProfileSettings = () => {
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [fullName, setFullName] = useState(profile?.full_name || '');
+  const [emailDisplayName, setEmailDisplayName] = useState((profile as any)?.email_display_name || '');
   const [isSaving, setIsSaving] = useState(false);
   const [isLinkingGoogle, setIsLinkingGoogle] = useState(false);
 
@@ -90,7 +91,10 @@ export const UserProfileSettings = () => {
     try {
       const { error } = await supabase
         .from('profiles')
-        .update({ full_name: fullName })
+        .update({
+          full_name: fullName,
+          email_display_name: emailDisplayName.trim() || null,
+        })
         .eq('user_id', user.id);
 
       if (error) throw error;
@@ -273,9 +277,22 @@ export const UserProfileSettings = () => {
             </p>
           </div>
 
+          <div className="space-y-2">
+            <Label htmlFor="emailDisplayName">Email display name (optional)</Label>
+            <Input
+              id="emailDisplayName"
+              value={emailDisplayName}
+              onChange={(e) => setEmailDisplayName(e.target.value)}
+              placeholder="e.g. Anna fra Noddi rekruttering"
+            />
+            <p className="text-xs text-muted-foreground">
+              Used as the From name when you send recruitment emails. Falls back to your full name.
+            </p>
+          </div>
+
           <Button
             onClick={handleSaveProfile}
-            disabled={isSaving || fullName === profile.full_name}
+            disabled={isSaving || (fullName === profile.full_name && emailDisplayName === ((profile as any).email_display_name || ''))}
           >
             {isSaving ? (
               <>
