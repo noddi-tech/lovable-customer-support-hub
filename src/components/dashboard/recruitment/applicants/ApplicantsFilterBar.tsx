@@ -104,6 +104,14 @@ const ApplicantsFilterBar: React.FC<Props> = ({ value, onChange }) => {
         </SelectContent>
       </Select>
 
+      <TagPicker
+        value={value.tagIds ?? []}
+        onChange={(ids) => onChange({ ...value, tagIds: ids })}
+        size="sm"
+        showSelected={false}
+        triggerLabel={value.tagIds?.length ? `Etiketter (${value.tagIds.length})` : 'Etikett'}
+      />
+
       <Button
         type="button"
         size="sm"
