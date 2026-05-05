@@ -41,6 +41,7 @@ interface InboxData {
   updated_at: string;
   conversation_count: number;
   sender_display_name: string | null;
+  purpose: 'support' | 'recruitment';
 }
 
 interface Department {
@@ -77,7 +78,8 @@ export function InboxManagementContent() {
     color: '#3B82F6',
     is_default: false,
     auto_assignment_rules: {},
-    sender_display_name: ''
+    sender_display_name: '',
+    purpose: 'support' as 'support' | 'recruitment',
   });
 
   // Sending/Receiving address edit state
