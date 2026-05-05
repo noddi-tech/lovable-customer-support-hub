@@ -90,6 +90,7 @@ type ConversationListAction =
   | { type: 'SET_SEARCH_QUERY'; payload: string }
   | { type: 'SET_STATUS_FILTER'; payload: string }
   | { type: 'SET_PRIORITY_FILTER'; payload: string }
+  | { type: 'SET_PURPOSE_FILTER'; payload: PurposeFilter }
   | { type: 'SET_SORT_BY'; payload: SortBy }
   | { type: 'TOGGLE_FILTERS' }
   | { type: 'OPEN_DELETE_DIALOG'; payload: string }
@@ -103,10 +104,22 @@ type ConversationListAction =
   | { type: 'SET_PAGE_SIZE'; payload: number }
   | { type: 'SET_CURRENT_PAGE'; payload: number };
 
+const PURPOSE_FILTER_STORAGE_KEY = 'conversationList.purposeFilter.v1';
+
+function loadPurposeFilter(): PurposeFilter {
+  if (typeof window === 'undefined') return 'all';
+  try {
+    const v = window.localStorage.getItem(PURPOSE_FILTER_STORAGE_KEY);
+    if (v === 'support' || v === 'recruitment' || v === 'all') return v;
+  } catch {}
+  return 'all';
+}
+
 const initialState: ConversationListState = {
   searchQuery: '',
   statusFilter: 'all',
   priorityFilter: 'all',
+  purposeFilter: loadPurposeFilter(),
   sortBy: 'latest',
   deleteDialogOpen: false,
   conversationToDelete: null,
