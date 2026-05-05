@@ -331,3 +331,17 @@ verify_jwt = true
 # Phase B5b — Bulk applicant actions
 [functions.bulk-applicant-action]
 verify_jwt = true
+
+# Phase B6 — Recruitment email integration
+[functions.send-recruitment-email]
+verify_jwt = true
+
+[functions.attach-conversation-to-applicant]
+verify_jwt = true
+
+[functions.detach-conversation-from-applicant]
+verify_jwt = true
+
+# Cron-driven; called via pg_cron with anon key. JWT off, internal logic only acts via service role.
+[functions.process-scheduled-emails]
+verify_jwt = false
