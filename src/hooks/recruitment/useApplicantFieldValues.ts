@@ -27,6 +27,7 @@ export function useApplicantFieldValues(
     queryKey: ['applicant-field-values', applicantId, filter],
     enabled: !!applicantId,
     staleTime: 30_000,
+    refetchOnMount: 'always',
     queryFn: async (): Promise<ApplicantFieldValueRow[]> => {
       const { data, error } = await supabase
         .from('recruitment_applicant_field_values')
