@@ -373,6 +373,26 @@ const ApplicantProfile: React.FC = () => {
         onOpenChange={setEditDialogOpen}
         applicant={applicant}
       />
+
+      <ScheduleFollowupDialog
+        open={followupOpen}
+        onOpenChange={setFollowupOpen}
+        applicantId={applicant.id}
+        applicationId={firstApp?.id ?? null}
+      />
+
+      {snoozeId && (
+        <SnoozeFollowupDialog
+          open={!!snoozeId}
+          onOpenChange={(o) => !o && setSnoozeId(null)}
+          followupId={snoozeId}
+        />
+      )}
+    </div>
+  );
+};
+
+export default ApplicantProfile;
     </div>
   );
 };
