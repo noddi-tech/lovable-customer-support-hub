@@ -184,6 +184,10 @@ const ApplicantProfile: React.FC = () => {
               </span>
             )}
           </Button>
+          <Button variant="outline" size="sm" onClick={() => setFollowupOpen(true)}>
+            <Bell />
+            Påminn meg
+          </Button>
           <Button variant="outline" size="sm" onClick={() => setEditDialogOpen(true)}>
             <Pencil />
             Rediger søker
