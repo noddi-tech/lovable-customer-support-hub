@@ -1,12 +1,3 @@
-## Root cause
-
-Last migration patched a function named `tg_audit_applicant_tag`, but the trigger on `recruitment_applicant_tags` actually executes `recruitment_applicant_tag_audit` (verified via `pg_trigger` + `pg_get_functiondef`). That function still inserts `event_category = 'applicant'`, which violates the `event_category IN ('write','export','auth','system')` CHECK — hence all 3 bulk inserts still fail.
-
-## Fix
-
-Run a migration that replaces `public.recruitment_applicant_tag_audit` with the same body but `event_category = 'write'` for both INSERT and DELETE branches. No constraint or type changes needed; matches the existing taxonomy used by every other recruitment trigger.
-
-```sql
 CREATE OR REPLACE FUNCTION public.recruitment_applicant_tag_audit()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -49,10 +40,3 @@ BEGIN
   RETURN NULL;
 END;
 $function$;
-```
-
-## Verify after apply
-
-1. Bulk add "Dekkhotell" tag to 3 applicants → toast "3 av 3 søkere fått etiketter".
-2. `SELECT event_type, event_category, count(*) FROM recruitment_audit_events WHERE event_type IN ('tag_added','tag_removed') GROUP BY 1,2;` → categories = `'write'`.
-3. Bulk remove → 3 `tag_removed` rows logged.
