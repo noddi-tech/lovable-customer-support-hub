@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { forwardRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Check, ChevronDown, X, Tag as TagIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -126,45 +126,49 @@ export function TagPicker({
   );
 }
 
-export function TagChip({
-  tag,
-  onRemove,
-  size = 'default',
-}: {
+interface TagChipProps extends React.HTMLAttributes<HTMLSpanElement> {
   tag: Pick<RecruitmentTag, 'id' | 'name' | 'color'>;
   onRemove?: () => void;
   size?: 'default' | 'sm';
-}) {
-  return (
-    <span
-      className={cn(
-        'inline-flex items-center gap-1.5 rounded-full border font-medium',
-        size === 'sm' ? 'text-[10px] px-1.5 py-0.5' : 'text-xs px-2 py-0.5'
-      )}
-      style={{
-        borderColor: tag.color,
-        backgroundColor: `${tag.color}1A`,
-        color: tag.color,
-      }}
-    >
-      <span
-        className="h-1.5 w-1.5 rounded-full"
-        style={{ backgroundColor: tag.color }}
-      />
-      <span className="truncate max-w-[120px]">{tag.name}</span>
-      {onRemove && (
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onRemove();
-          }}
-          className="hover:opacity-70"
-          aria-label={`Fjern ${tag.name}`}
-        >
-          <X className="h-3 w-3" />
-        </button>
-      )}
-    </span>
-  );
 }
+
+export const TagChip = forwardRef<HTMLSpanElement, TagChipProps>(
+  ({ tag, onRemove, size = 'default', className, ...rest }, ref) => {
+    return (
+      <span
+        ref={ref}
+        className={cn(
+          'inline-flex items-center gap-1.5 rounded-full border font-medium',
+          size === 'sm' ? 'text-[10px] px-1.5 py-0.5' : 'text-xs px-2 py-0.5',
+          className
+        )}
+        style={{
+          borderColor: tag.color,
+          backgroundColor: `${tag.color}1A`,
+          color: tag.color,
+        }}
+        {...rest}
+      >
+        <span
+          className="h-1.5 w-1.5 rounded-full"
+          style={{ backgroundColor: tag.color }}
+        />
+        <span className="truncate max-w-[120px]">{tag.name}</span>
+        {onRemove && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onRemove();
+            }}
+            className="hover:opacity-70"
+            aria-label={`Fjern ${tag.name}`}
+          >
+            <X className="h-3 w-3" />
+          </button>
+        )}
+      </span>
+    );
+  }
+);
+TagChip.displayName = 'TagChip';
