@@ -146,6 +146,45 @@ export function StageEditDialog({ open, stage, mode, existingIds, onClose, onSav
             </div>
           </div>
 
+          <div className="space-y-3 rounded-md border p-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <Label className="text-sm">SLA-varsler</Label>
+                <p className="text-xs text-muted-foreground">
+                  Varsle hvis fastlåst i dette steget
+                </p>
+              </div>
+              <Switch
+                checked={slaEnabled}
+                onCheckedChange={(v) => {
+                  setSlaEnabled(v);
+                  setSlaError(null);
+                }}
+              />
+            </div>
+            {slaEnabled && (
+              <div className="space-y-1.5">
+                <Label htmlFor="sla-hours" className="text-xs">Varsle etter X timer</Label>
+                <Input
+                  id="sla-hours"
+                  type="number"
+                  min={1}
+                  max={720}
+                  value={slaHours}
+                  onChange={(e) => {
+                    setSlaHours(e.target.value);
+                    setSlaError(null);
+                  }}
+                  placeholder="f.eks. 72"
+                />
+                {slaError && <p className="text-xs text-destructive">{slaError}</p>}
+                <p className="text-xs text-muted-foreground">
+                  Søkere som har vært i dette steget lenger enn X timer dukker opp i "Trenger oppmerksomhet" på Oversikt.
+                </p>
+              </div>
+            )}
+          </div>
+
           <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen}>
             <CollapsibleTrigger asChild>
               <Button variant="ghost" size="sm" className="px-0 hover:bg-transparent">
