@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/select';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useJobPositions } from '../positions/usePositions';
+import { TagPicker } from './TagPicker';
 import type { ApplicantsFilters } from './useApplicants';
 
 interface Props {
@@ -102,6 +103,14 @@ const ApplicantsFilterBar: React.FC<Props> = ({ value, onChange }) => {
           ))}
         </SelectContent>
       </Select>
+
+      <TagPicker
+        value={value.tagIds ?? []}
+        onChange={(ids) => onChange({ ...value, tagIds: ids })}
+        size="sm"
+        showSelected={false}
+        triggerLabel={value.tagIds?.length ? `Etiketter (${value.tagIds.length})` : 'Etikett'}
+      />
 
       <Button
         type="button"

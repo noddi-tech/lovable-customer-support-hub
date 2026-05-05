@@ -32,6 +32,7 @@ export interface ApplicantsFilters {
   positionId: string;
   stageId: string;
   pendingReviewOnly?: boolean;
+  tagIds?: string[];
 }
 
 export interface PipelineStage {
@@ -43,11 +44,24 @@ export interface PipelineStage {
 
 export function useApplicants(filters: ApplicantsFilters) {
   const { currentOrganizationId } = useOrganizationStore();
-  const { search, source, positionId, stageId, pendingReviewOnly } = filters;
+  const { search, source, positionId, stageId, pendingReviewOnly, tagIds } = filters;
+  const tagKey = (tagIds ?? []).slice().sort().join(',');
 
   return useQuery({
-    queryKey: ['applicants', currentOrganizationId, search, source, positionId, stageId, pendingReviewOnly],
+    queryKey: ['applicants', currentOrganizationId, search, source, positionId, stageId, pendingReviewOnly, tagKey],
     queryFn: async () => {
+      // If filtering by tags, first fetch matching applicant_ids (OR semantics)
+      let tagFilteredIds: string[] | null = null;
+      if (tagIds && tagIds.length > 0) {
+        const { data: links, error: linkErr } = await supabase
+          .from('recruitment_applicant_tags')
+          .select('applicant_id')
+          .in('tag_id', tagIds);
+        if (linkErr) throw linkErr;
+        tagFilteredIds = Array.from(new Set((links ?? []).map((l: any) => l.applicant_id as string)));
+        if (tagFilteredIds.length === 0) return [] as ApplicantRow[];
+      }
+
       const useInner = positionId !== 'all' || stageId !== 'all';
       const select = useInner
         ? '*, applications!inner(id, current_stage_id, score, assigned_to, applied_at, position_id, job_positions(id, title))'
@@ -62,6 +76,7 @@ export function useApplicants(filters: ApplicantsFilters) {
       if (positionId !== 'all') q = q.eq('applications.position_id', positionId);
       if (stageId !== 'all') q = q.eq('applications.current_stage_id', stageId);
       if (pendingReviewOnly) q = (q as any).eq('import_status', 'pending_review');
+      if (tagFilteredIds) q = q.in('id', tagFilteredIds);
 
       if (search.trim()) {
         const safe = sanitizeForPostgrest(search.trim());
