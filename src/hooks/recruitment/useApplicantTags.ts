@@ -28,6 +28,7 @@ export function useApplicantTags(applicantId: string | undefined) {
     queryKey: ['applicant-tags', applicantId],
     enabled: !!applicantId,
     staleTime: 30_000,
+    refetchOnMount: 'always',
     queryFn: async (): Promise<ApplicantTagLink[]> => {
       const { data, error } = await supabase
         .from('recruitment_applicant_tags')
