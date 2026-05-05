@@ -188,6 +188,13 @@ export const ConversationListItem = memo<ConversationListItemProps>(({
               Unread
             </Badge>
           )}
+          {(conversation as any).conversation_type === 'recruitment' && (
+            <Badge variant="outline" className="px-1.5 py-0 text-[10px] shrink-0 border-purple-300 text-purple-700 dark:text-purple-300">
+              {(conversation as any).applicant
+                ? `Søker: ${[(conversation as any).applicant.first_name, (conversation as any).applicant.last_name].filter(Boolean).join(' ')}`
+                : 'Rekruttering'}
+            </Badge>
+          )}
           {computedValues.isLiveChat && (
             <Badge className="bg-green-500 text-white px-1.5 py-0 text-xs shrink-0 animate-pulse">
               LIVE
