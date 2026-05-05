@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import {
   Collapsible,
   CollapsibleContent,
@@ -34,6 +35,9 @@ export function StageEditDialog({ open, stage, mode, existingIds, onClose, onSav
   const [color, setColor] = useState<string>(PRESET_COLORS[0].value);
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [generatedId, setGeneratedId] = useState('');
+  const [slaEnabled, setSlaEnabled] = useState(false);
+  const [slaHours, setSlaHours] = useState<string>('');
+  const [slaError, setSlaError] = useState<string | null>(null);
 
   useEffect(() => {
     if (open && stage) {
@@ -42,6 +46,10 @@ export function StageEditDialog({ open, stage, mode, existingIds, onClose, onSav
       setColor(stage.color || PRESET_COLORS[0].value);
       setGeneratedId(stage.id);
       setAdvancedOpen(false);
+      const enabled = stage.sla_hours != null && (stage.sla_enabled ?? true);
+      setSlaEnabled(enabled);
+      setSlaHours(stage.sla_hours != null ? String(stage.sla_hours) : '');
+      setSlaError(null);
     }
   }, [open, stage]);
 
@@ -60,6 +68,10 @@ export function StageEditDialog({ open, stage, mode, existingIds, onClose, onSav
 
   const handleSubmit = () => {
     if (!valid || !stage) return;
+    if (slaEnabled && (!slaHours || Number(slaHours) < 1 || Number(slaHours) > 720)) {
+      setSlaError('Skriv inn timer (1–720)');
+      return;
+    }
     const finalId = isCreate
       ? generatedId ||
         ensureUniqueStageId(
@@ -73,6 +85,8 @@ export function StageEditDialog({ open, stage, mode, existingIds, onClose, onSav
       name: trimmedName,
       description: description.trim() || undefined,
       color,
+      sla_hours: slaEnabled ? Number(slaHours) : null,
+      sla_enabled: slaEnabled,
     });
   };
 
@@ -130,6 +144,45 @@ export function StageEditDialog({ open, stage, mode, existingIds, onClose, onSav
                 </button>
               ))}
             </div>
+          </div>
+
+          <div className="space-y-3 rounded-md border p-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <Label className="text-sm">SLA-varsler</Label>
+                <p className="text-xs text-muted-foreground">
+                  Varsle hvis fastlåst i dette steget
+                </p>
+              </div>
+              <Switch
+                checked={slaEnabled}
+                onCheckedChange={(v) => {
+                  setSlaEnabled(v);
+                  setSlaError(null);
+                }}
+              />
+            </div>
+            {slaEnabled && (
+              <div className="space-y-1.5">
+                <Label htmlFor="sla-hours" className="text-xs">Varsle etter X timer</Label>
+                <Input
+                  id="sla-hours"
+                  type="number"
+                  min={1}
+                  max={720}
+                  value={slaHours}
+                  onChange={(e) => {
+                    setSlaHours(e.target.value);
+                    setSlaError(null);
+                  }}
+                  placeholder="f.eks. 72"
+                />
+                {slaError && <p className="text-xs text-destructive">{slaError}</p>}
+                <p className="text-xs text-muted-foreground">
+                  Søkere som har vært i dette steget lenger enn X timer dukker opp i "Trenger oppmerksomhet" på Oversikt.
+                </p>
+              </div>
+            )}
           </div>
 
           <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen}>

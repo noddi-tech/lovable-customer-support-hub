@@ -506,9 +506,11 @@ export type Database = {
         Row: {
           applicant_id: string
           applied_at: string
+          assigned_at: string | null
           assigned_to: string | null
           created_at: string
           current_stage_id: string
+          entered_stage_at: string | null
           id: string
           organization_id: string
           position_id: string
@@ -520,9 +522,11 @@ export type Database = {
         Insert: {
           applicant_id: string
           applied_at?: string
+          assigned_at?: string | null
           assigned_to?: string | null
           created_at?: string
           current_stage_id?: string
+          entered_stage_at?: string | null
           id?: string
           organization_id: string
           position_id: string
@@ -534,9 +538,11 @@ export type Database = {
         Update: {
           applicant_id?: string
           applied_at?: string
+          assigned_at?: string | null
           assigned_to?: string | null
           created_at?: string
           current_stage_id?: string
+          entered_stage_at?: string | null
           id?: string
           organization_id?: string
           position_id?: string
@@ -4121,6 +4127,97 @@ export type Database = {
           },
         ]
       }
+      recruitment_followups: {
+        Row: {
+          applicant_id: string
+          application_id: string | null
+          assigned_to: string | null
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          created_by: string
+          id: string
+          note: string | null
+          organization_id: string
+          scheduled_for: string
+          snoozed_to: string | null
+          updated_at: string
+        }
+        Insert: {
+          applicant_id: string
+          application_id?: string | null
+          assigned_to?: string | null
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          created_by: string
+          id?: string
+          note?: string | null
+          organization_id: string
+          scheduled_for: string
+          snoozed_to?: string | null
+          updated_at?: string
+        }
+        Update: {
+          applicant_id?: string
+          application_id?: string | null
+          assigned_to?: string | null
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          created_by?: string
+          id?: string
+          note?: string | null
+          organization_id?: string
+          scheduled_for?: string
+          snoozed_to?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recruitment_followups_applicant_id_fkey"
+            columns: ["applicant_id"]
+            isOneToOne: false
+            referencedRelation: "applicants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recruitment_followups_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recruitment_followups_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recruitment_followups_completed_by_fkey"
+            columns: ["completed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recruitment_followups_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recruitment_followups_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       recruitment_form_field_mappings: {
         Row: {
           created_at: string
@@ -6401,6 +6498,7 @@ export type Database = {
         | { Args: { days_old?: number }; Returns: number }
         | { Args: { p_age?: string }; Returns: number }
       create_test_notification: { Args: never; Returns: undefined }
+      current_profile_id: { Args: never; Returns: string }
       delete_email_account: { Args: { account_id: string }; Returns: undefined }
       detect_suspicious_audit_activity:
         | {
@@ -6768,6 +6866,8 @@ export type Database = {
         Args: { p_action_type: string }
         Returns: boolean
       }
+      is_org_admin: { Args: { _org_id: string }; Returns: boolean }
+      is_org_member: { Args: { _org_id: string }; Returns: boolean }
       is_organization_member: { Args: { _org_id: string }; Returns: boolean }
       is_super_admin: { Args: never; Returns: boolean }
       list_conversations_optimized: {
@@ -6840,9 +6940,11 @@ export type Database = {
         Returns: {
           applicant_id: string
           applied_at: string
+          assigned_at: string | null
           assigned_to: string | null
           created_at: string
           current_stage_id: string
+          entered_stage_at: string | null
           id: string
           organization_id: string
           position_id: string

@@ -2,14 +2,26 @@ import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeft,
+  Bell,
+  Check,
   ChevronDown,
+  Clock,
   Mail,
   MapPin,
   Pencil,
   Phone,
   Plus,
+  Trash2,
   UserCheck,
 } from 'lucide-react';
+import ScheduleFollowupDialog from './ScheduleFollowupDialog';
+import SnoozeFollowupDialog from './SnoozeFollowupDialog';
+import {
+  useApplicantFollowups,
+  useCompleteFollowup,
+  useDeleteFollowup,
+} from '@/hooks/recruitment/useFollowups';
+import { useDateFormatting } from '@/hooks/useDateFormatting';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -63,6 +75,12 @@ const ApplicantProfile: React.FC = () => {
   const [tab, setTab] = useState('overview');
   const [logOpen, setLogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [followupOpen, setFollowupOpen] = useState(false);
+  const [snoozeId, setSnoozeId] = useState<string | null>(null);
+  const { data: followups } = useApplicantFollowups(id);
+  const completeFu = useCompleteFollowup();
+  const deleteFu = useDeleteFollowup();
+  const { dateTime } = useDateFormatting();
 
   if (isLoading) {
     return (
@@ -165,6 +183,10 @@ const ApplicantProfile: React.FC = () => {
                 Ring
               </span>
             )}
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setFollowupOpen(true)}>
+            <Bell />
+            Påminn meg
           </Button>
           <Button variant="outline" size="sm" onClick={() => setEditDialogOpen(true)}>
             <Pencil />
@@ -281,6 +303,34 @@ const ApplicantProfile: React.FC = () => {
 
             <div className="lg:col-span-1 space-y-6">
               <ApplicantInfoSidebar applicant={applicant} />
+              {followups && followups.length > 0 && (
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm">Påminnelser</CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    <ul className="divide-y">
+                      {followups.map((f) => (
+                        <li key={f.id} className="px-4 py-2.5 text-sm flex items-center gap-2">
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium">{dateTime(f.snoozed_to ?? f.scheduled_for)}</div>
+                            {f.note && <div className="text-xs text-muted-foreground truncate">{f.note}</div>}
+                          </div>
+                          <Button size="icon" variant="ghost" onClick={() => completeFu.mutate(f.id)} title="Fullført">
+                            <Check />
+                          </Button>
+                          <Button size="icon" variant="ghost" onClick={() => setSnoozeId(f.id)} title="Utsett">
+                            <Clock />
+                          </Button>
+                          <Button size="icon" variant="ghost" onClick={() => deleteFu.mutate(f.id)} title="Slett">
+                            <Trash2 />
+                          </Button>
+                        </li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                </Card>
+              )}
               <ApplicantFieldValuesSection applicantId={applicant.id} />
             </div>
           </div>
@@ -323,6 +373,21 @@ const ApplicantProfile: React.FC = () => {
         onOpenChange={setEditDialogOpen}
         applicant={applicant}
       />
+
+      <ScheduleFollowupDialog
+        open={followupOpen}
+        onOpenChange={setFollowupOpen}
+        applicantId={applicant.id}
+        applicationId={firstApp?.id ?? null}
+      />
+
+      {snoozeId && (
+        <SnoozeFollowupDialog
+          open={!!snoozeId}
+          onOpenChange={(o) => !o && setSnoozeId(null)}
+          followupId={snoozeId}
+        />
+      )}
     </div>
   );
 };
