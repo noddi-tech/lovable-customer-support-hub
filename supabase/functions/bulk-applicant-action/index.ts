@@ -352,6 +352,10 @@ Deno.serve(async (req) => {
     if (!templateId || !UUID_RE.test(templateId)) {
       return jsonRes({ error: 'template_id påkrevd' }, 400);
     }
+    const inboxId = payload.inbox_id as string | undefined;
+    if (!inboxId || !UUID_RE.test(inboxId)) {
+      return jsonRes({ error: 'inbox_id påkrevd (rekrutterings-innboks)' }, 400);
+    }
     const { data: tpl } = await adminClient
       .from('recruitment_email_templates')
       .select('id, subject, body, name')
@@ -360,16 +364,8 @@ Deno.serve(async (req) => {
       .maybeSingle();
     if (!tpl) return jsonRes({ error: 'Mal ikke funnet' }, 404);
 
-    const { data: org } = await adminClient
-      .from('organizations')
-      .select('name')
-      .eq('id', orgId)
-      .maybeSingle();
-    const orgName = org?.name ?? '';
-
     for (const id of validIds) {
       const a = ownedMap.get(id);
-      // Skip applicants without GDPR consent
       if (a.gdpr_consent === false) {
         skipped++;
         skippedReasons.push({ applicant_id: id, reason: 'no_consent' });
@@ -377,31 +373,25 @@ Deno.serve(async (req) => {
         continue;
       }
       try {
-        const vars = {
-          first_name: a.first_name ?? '',
-          last_name: a.last_name ?? '',
-          full_name: `${a.first_name ?? ''} ${a.last_name ?? ''}`.trim(),
-          email: a.email ?? '',
-          organization_name: orgName,
-        };
-        const subject = substituteTemplate(tpl.subject ?? '', vars);
-        const html = substituteTemplate(tpl.body ?? '', vars);
-
-        const { error: sendErr } = await adminClient.functions.invoke('send-email', {
-          body: {
-            to: a.email,
-            subject,
-            html,
-            from_name: orgName || 'Rekruttering',
+        const { data: sendData, error: sendErr } = await adminClient.functions.invoke(
+          'send-recruitment-email',
+          {
+            body: {
+              applicant_id: id,
+              inbox_id: inboxId,
+              subject: tpl.subject ?? '',
+              body_html: tpl.body ?? '',
+            },
+            headers: { Authorization: req.headers.get('Authorization') || '' },
           },
-        });
-        if (sendErr) throw new Error(sendErr.message || 'send-email feilet');
-        await audit(id, 'email_sent', { template_id: templateId, template_name: tpl.name, subject });
+        );
+        if (sendErr) throw new Error(sendErr.message || 'send-recruitment-email feilet');
+        if ((sendData as any)?.error) throw new Error((sendData as any).error);
+        await audit(id, 'email_sent', { template_id: templateId, template_name: tpl.name, inbox_id: inboxId });
         results.push({ applicant_id: id, ok: true });
       } catch (e: any) {
         results.push({ applicant_id: id, ok: false, message: e.message });
       }
-      // Defensive rate limit: 200ms between sends
       await sleep(200);
     }
   }
