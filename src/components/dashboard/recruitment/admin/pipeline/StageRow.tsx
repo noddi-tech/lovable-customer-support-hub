@@ -55,6 +55,11 @@ export function StageRow({ stage, applicationCount, onEdit, onDelete }: Props) {
               System
             </Badge>
           )}
+          {stage.sla_enabled && stage.sla_hours != null && (
+            <Badge variant="outline" className="text-xs">
+              ⏱ {stage.sla_hours}t SLA
+            </Badge>
+          )}
         </div>
       </div>
 
