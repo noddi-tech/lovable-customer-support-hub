@@ -2,9 +2,13 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDraggable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
+import { Tag as TagIcon } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
+import { useApplicantTags } from '@/hooks/recruitment/useApplicantTags';
+import { TagChip } from '../applicants/TagPicker';
 import { daysSince, type PipelineApplication } from './usePipeline';
 
 interface Props {
@@ -45,6 +49,8 @@ const PipelineCard: React.FC<Props> = ({ app, isOverlay }) => {
   const source = app.applicants?.source ?? 'manual';
   const src = SOURCE_ABBR[source] ?? SOURCE_ABBR.manual;
   const assigned = app.profiles;
+  const { data: tagLinks } = useApplicantTags(app.applicant_id);
+  const tags = (tagLinks ?? []).map((l) => l.recruitment_tags).filter(Boolean) as Array<{ id: string; name: string; color: string }>;
 
   const style: React.CSSProperties = {
     transform: CSS.Translate.toString(transform),
@@ -92,6 +98,25 @@ const PipelineCard: React.FC<Props> = ({ app, isOverlay }) => {
           {days} d
         </span>
         <div className="flex items-center gap-1.5">
+          {tags.length > 0 && (
+            <TooltipProvider delayDuration={200}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground border rounded px-1 py-0.5">
+                    <TagIcon className="h-3 w-3" />
+                    {tags.length}
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <div className="flex flex-wrap gap-1 max-w-[200px]">
+                    {tags.map((t) => (
+                      <TagChip key={t.id} tag={t} size="sm" />
+                    ))}
+                  </div>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
           {assigned ? (
             <Avatar className="h-5 w-5">
               {assigned.avatar_url && <AvatarImage src={assigned.avatar_url} />}
