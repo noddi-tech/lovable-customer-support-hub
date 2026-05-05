@@ -35,6 +35,9 @@ export function StageEditDialog({ open, stage, mode, existingIds, onClose, onSav
   const [color, setColor] = useState<string>(PRESET_COLORS[0].value);
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [generatedId, setGeneratedId] = useState('');
+  const [slaEnabled, setSlaEnabled] = useState(false);
+  const [slaHours, setSlaHours] = useState<string>('');
+  const [slaError, setSlaError] = useState<string | null>(null);
 
   useEffect(() => {
     if (open && stage) {
