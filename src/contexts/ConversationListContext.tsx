@@ -67,10 +67,13 @@ interface ArchiveDialogState {
   totalCount: number;
 }
 
+export type PurposeFilter = 'all' | 'support' | 'recruitment';
+
 interface ConversationListState {
   searchQuery: string;
   statusFilter: string;
   priorityFilter: string;
+  purposeFilter: PurposeFilter;
   sortBy: SortBy;
   deleteDialogOpen: boolean;
   conversationToDelete: string | null;
