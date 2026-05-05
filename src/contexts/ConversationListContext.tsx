@@ -715,7 +715,7 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
           return bTime - aTime;
       }
     });
-  }, [conversations, state.searchQuery, state.statusFilter, state.priorityFilter, state.sortBy, state.tableSort, selectedTab, selectedInboxId, effectiveInboxId]);
+  }, [conversations, state.searchQuery, state.statusFilter, state.priorityFilter, state.purposeFilter, state.sortBy, state.tableSort, selectedTab, selectedInboxId, effectiveInboxId]);
 
   // Comprehensive debug logging
   logger.debug('Filter state', {
