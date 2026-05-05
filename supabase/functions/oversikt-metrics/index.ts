@@ -230,19 +230,19 @@ Deno.serve(async (req) => {
   overdue_followups.sort((a, b) => b.days_overdue - a.days_overdue);
   todays_followups.sort((a, b) => +new Date(a.scheduled_for) - +new Date(b.scheduled_for));
 
-  // 4. Pipeline summary
+  // 4. Pipeline summary (include terminal stages with is_terminal flag)
   const stageCounts = new Map<string, number>();
-  for (const a of activeApps) stageCounts.set(a.current_stage_id, (stageCounts.get(a.current_stage_id) ?? 0) + 1);
+  for (const a of allApps) stageCounts.set(a.current_stage_id, (stageCounts.get(a.current_stage_id) ?? 0) + 1);
   const pipeline_summary = {
-    stages: stages
-      .filter((s) => !isTerminal(s.id))
-      .map((s) => ({
-        id: s.id,
-        name: s.name,
-        color: s.color,
-        count: stageCounts.get(s.id) ?? 0,
-      })),
+    stages: stages.map((s) => ({
+      id: s.id,
+      name: s.name,
+      color: s.color,
+      count: stageCounts.get(s.id) ?? 0,
+      is_terminal: isTerminal(s.id) === true,
+    })),
     total_active_applicants: activeApps.length,
+    total_all_applicants: allApps.length,
   };
 
   // 5. Metrics over time window
