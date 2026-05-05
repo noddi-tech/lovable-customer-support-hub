@@ -7,6 +7,8 @@ export interface Stage {
   auto_sms: boolean;
   is_system?: boolean;
   description?: string;
+  sla_hours?: number | null;
+  sla_enabled?: boolean;
 }
 
 export const SYSTEM_STAGE_IDS = ['not_reviewed', 'hired', 'disqualified'] as const;
