@@ -930,10 +930,12 @@ export type Database = {
       }
       conversations: {
         Row: {
+          applicant_id: string | null
           assigned_to_id: string | null
           auto_close_days: number | null
           call_id: string | null
           channel: Database["public"]["Enums"]["communication_channel"]
+          conversation_type: string
           created_at: string
           customer_id: string | null
           deleted_at: string | null
@@ -961,10 +963,12 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          applicant_id?: string | null
           assigned_to_id?: string | null
           auto_close_days?: number | null
           call_id?: string | null
           channel: Database["public"]["Enums"]["communication_channel"]
+          conversation_type?: string
           created_at?: string
           customer_id?: string | null
           deleted_at?: string | null
@@ -992,10 +996,12 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          applicant_id?: string | null
           assigned_to_id?: string | null
           auto_close_days?: number | null
           call_id?: string | null
           channel?: Database["public"]["Enums"]["communication_channel"]
+          conversation_type?: string
           created_at?: string
           customer_id?: string | null
           deleted_at?: string | null
@@ -1023,6 +1029,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "conversations_applicant_id_fkey"
+            columns: ["applicant_id"]
+            isOneToOne: false
+            referencedRelation: "applicants"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "conversations_assigned_to_id_fkey"
             columns: ["assigned_to_id"]
@@ -1869,6 +1882,7 @@ export type Database = {
           is_default: boolean | null
           name: string
           organization_id: string
+          purpose: string
           sender_display_name: string | null
           updated_at: string
         }
@@ -1884,6 +1898,7 @@ export type Database = {
           is_default?: boolean | null
           name: string
           organization_id: string
+          purpose?: string
           sender_display_name?: string | null
           updated_at?: string
         }
@@ -1899,6 +1914,7 @@ export type Database = {
           is_default?: boolean | null
           name?: string
           organization_id?: string
+          purpose?: string
           sender_display_name?: string | null
           updated_at?: string
         }
@@ -3115,6 +3131,7 @@ export type Database = {
       organizations: {
         Row: {
           created_at: string
+          default_attachment_expiry_days: number
           id: string
           logo_url: string | null
           metadata: Json | null
@@ -3128,6 +3145,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          default_attachment_expiry_days?: number
           id?: string
           logo_url?: string | null
           metadata?: Json | null
@@ -3141,6 +3159,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          default_attachment_expiry_days?: number
           id?: string
           logo_url?: string | null
           metadata?: Json | null
@@ -3216,6 +3235,7 @@ export type Database = {
           created_at: string
           department_id: string | null
           email: string
+          email_display_name: string | null
           full_name: string
           id: string
           is_active: boolean | null
@@ -3235,6 +3255,7 @@ export type Database = {
           created_at?: string
           department_id?: string | null
           email: string
+          email_display_name?: string | null
           full_name: string
           id?: string
           is_active?: boolean | null
@@ -3254,6 +3275,7 @@ export type Database = {
           created_at?: string
           department_id?: string | null
           email?: string
+          email_display_name?: string | null
           full_name?: string
           id?: string
           is_active?: boolean | null
@@ -4665,6 +4687,121 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "recruitment_pipelines_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recruitment_scheduled_emails: {
+        Row: {
+          applicant_id: string | null
+          attachments: Json | null
+          attempts: number
+          body_html: string
+          body_text: string | null
+          conversation_id: string | null
+          created_at: string
+          created_by: string
+          error_message: string | null
+          id: string
+          inbox_id: string
+          message_id: string | null
+          next_attempt_at: string | null
+          organization_id: string
+          scheduled_for: string
+          sent_at: string | null
+          status: string
+          subject: string
+          to_email: string
+          to_name: string | null
+          updated_at: string
+        }
+        Insert: {
+          applicant_id?: string | null
+          attachments?: Json | null
+          attempts?: number
+          body_html: string
+          body_text?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          created_by: string
+          error_message?: string | null
+          id?: string
+          inbox_id: string
+          message_id?: string | null
+          next_attempt_at?: string | null
+          organization_id: string
+          scheduled_for: string
+          sent_at?: string | null
+          status?: string
+          subject: string
+          to_email: string
+          to_name?: string | null
+          updated_at?: string
+        }
+        Update: {
+          applicant_id?: string | null
+          attachments?: Json | null
+          attempts?: number
+          body_html?: string
+          body_text?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          created_by?: string
+          error_message?: string | null
+          id?: string
+          inbox_id?: string
+          message_id?: string | null
+          next_attempt_at?: string | null
+          organization_id?: string
+          scheduled_for?: string
+          sent_at?: string | null
+          status?: string
+          subject?: string
+          to_email?: string
+          to_name?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recruitment_scheduled_emails_applicant_id_fkey"
+            columns: ["applicant_id"]
+            isOneToOne: false
+            referencedRelation: "applicants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recruitment_scheduled_emails_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recruitment_scheduled_emails_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recruitment_scheduled_emails_inbox_id_fkey"
+            columns: ["inbox_id"]
+            isOneToOne: false
+            referencedRelation: "inboxes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recruitment_scheduled_emails_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recruitment_scheduled_emails_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
