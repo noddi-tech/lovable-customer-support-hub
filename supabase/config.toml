@@ -327,3 +327,7 @@ verify_jwt = false
 # Phase B5a — Recruitment Oversikt aggregated metrics
 [functions.oversikt-metrics]
 verify_jwt = true
+
+# Phase B5b — Bulk applicant actions
+[functions.bulk-applicant-action]
+verify_jwt = true
