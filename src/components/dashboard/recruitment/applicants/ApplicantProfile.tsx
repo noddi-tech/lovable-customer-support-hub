@@ -54,6 +54,7 @@ import {
 import { useTeamMembers } from '@/hooks/useTeamMembers';
 import EditApplicantDialog from './edit/EditApplicantDialog';
 import { ApplicantFieldValuesSection } from './ApplicantFieldValuesSection';
+import { ApplicantTagsSection } from './ApplicantTagsSection';
 
 const ApplicantProfile: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -164,6 +165,8 @@ const ApplicantProfile: React.FC = () => {
           )}
           <ScoreCircle score={firstApp?.score ?? null} />
         </div>
+
+        <ApplicantTagsSection applicantId={applicant.id} />
 
         {/* Quick actions */}
         <div className="flex flex-wrap gap-2 pt-1">
