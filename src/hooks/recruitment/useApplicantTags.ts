@@ -46,6 +46,7 @@ export function useApplicantTagsByIds(applicantIds: string[]) {
     queryKey: ['applicant-tags-batch', [...applicantIds].sort().join(',')],
     enabled: applicantIds.length > 0,
     staleTime: 30_000,
+    refetchOnMount: 'always',
     queryFn: async () => {
       const { data, error } = await supabase
         .from('recruitment_applicant_tags')
