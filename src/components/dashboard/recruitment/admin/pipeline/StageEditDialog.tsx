@@ -46,6 +46,10 @@ export function StageEditDialog({ open, stage, mode, existingIds, onClose, onSav
       setColor(stage.color || PRESET_COLORS[0].value);
       setGeneratedId(stage.id);
       setAdvancedOpen(false);
+      const enabled = stage.sla_hours != null && (stage.sla_enabled ?? true);
+      setSlaEnabled(enabled);
+      setSlaHours(stage.sla_hours != null ? String(stage.sla_hours) : '');
+      setSlaError(null);
     }
   }, [open, stage]);
 
