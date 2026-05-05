@@ -75,6 +75,12 @@ const ApplicantProfile: React.FC = () => {
   const [tab, setTab] = useState('overview');
   const [logOpen, setLogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [followupOpen, setFollowupOpen] = useState(false);
+  const [snoozeId, setSnoozeId] = useState<string | null>(null);
+  const { data: followups } = useApplicantFollowups(id);
+  const completeFu = useCompleteFollowup();
+  const deleteFu = useDeleteFollowup();
+  const { dateTime } = useDateFormatting();
 
   if (isLoading) {
     return (
