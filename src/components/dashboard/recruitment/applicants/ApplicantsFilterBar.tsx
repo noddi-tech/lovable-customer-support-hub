@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/select';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useJobPositions } from '../positions/usePositions';
+import { TagPicker } from './TagPicker';
 import type { ApplicantsFilters } from './useApplicants';
 
 interface Props {
