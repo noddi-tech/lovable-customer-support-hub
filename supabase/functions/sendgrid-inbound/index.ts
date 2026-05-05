@@ -413,6 +413,38 @@ Deno.serve(async (req: Request) => {
 
     if (!conversation_id) {
       console.log(`[SendGrid-Inbound] Creating new conversation - Thread: ${threadKey}, Subject: ${subject}`);
+
+      // Phase B6: Purpose-aware conversation typing + applicant auto-link.
+      // Only fires when the inbox is explicitly marked as recruitment — support flow unchanged.
+      let conversationType: 'support' | 'recruitment' = 'support';
+      let applicantIdForConv: string | null = null;
+      if (inbox_id) {
+        const { data: inboxRow } = await supabase
+          .from('inboxes')
+          .select('purpose')
+          .eq('id', inbox_id)
+          .maybeSingle();
+        if (inboxRow?.purpose === 'recruitment') {
+          conversationType = 'recruitment';
+          if (fromEmail) {
+            const { data: matches } = await supabase
+              .from('applicants')
+              .select('id')
+              .eq('organization_id', organization_id)
+              .ilike('email', fromEmail)
+              .limit(2);
+            if (matches && matches.length === 1) {
+              applicantIdForConv = matches[0].id as string;
+              console.log(`[SendGrid-Inbound] Recruitment auto-link: ${fromEmail} -> applicant ${applicantIdForConv}`);
+            } else if (matches && matches.length === 0) {
+              console.log(`[SendGrid-Inbound] Recruitment: no applicant match for ${fromEmail}`);
+            } else {
+              console.log(`[SendGrid-Inbound] Recruitment: multiple applicant matches for ${fromEmail} — manual review`);
+            }
+          }
+        }
+      }
+
       const { data: convIns, error: convErr } = await supabase
         .from("conversations")
         .insert({
@@ -423,12 +455,14 @@ Deno.serve(async (req: Request) => {
           customer_id,
           external_id: threadKey,
           received_at: new Date().toISOString(),
+          conversation_type: conversationType,
+          applicant_id: applicantIdForConv,
         })
         .select("id")
         .single();
       if (convErr) throw convErr;
       conversation_id = convIns.id;
-      console.log(`[SendGrid-Inbound] Created conversation with ID: ${conversation_id}`);
+      console.log(`[SendGrid-Inbound] Created conversation with ID: ${conversation_id} (type=${conversationType})`);
     } else {
       isNewConversation = false;
       console.log(`[SendGrid-Inbound] Found existing conversation with ID: ${conversation_id}`);

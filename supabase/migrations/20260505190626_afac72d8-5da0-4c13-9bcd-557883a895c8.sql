@@ -1,0 +1,1 @@
+UPDATE public.inboxes SET purpose = 'recruitment' WHERE id = '0a4a06a4-498d-4d4b-97e3-87b5bb636ec7';
