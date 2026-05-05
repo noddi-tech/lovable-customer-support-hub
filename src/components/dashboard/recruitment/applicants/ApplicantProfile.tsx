@@ -393,8 +393,3 @@ const ApplicantProfile: React.FC = () => {
 };
 
 export default ApplicantProfile;
-    </div>
-  );
-};
-
-export default ApplicantProfile;
