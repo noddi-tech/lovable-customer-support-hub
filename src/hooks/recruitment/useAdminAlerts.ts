@@ -11,6 +11,7 @@ export function useAdminAlerts() {
     queryKey: ['recruitment-admin-alerts', currentOrganizationId],
     enabled: !!currentOrganizationId,
     staleTime: 30_000,
+    refetchOnMount: 'always',
     refetchInterval: 60_000,
     queryFn: async (): Promise<RecruitmentAdminAlert[]> => {
       if (!currentOrganizationId) return [];

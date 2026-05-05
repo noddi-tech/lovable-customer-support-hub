@@ -33,6 +33,7 @@ export function useTags(opts: { includeArchived?: boolean } = {}) {
     queryKey: ['recruitment-tags', currentOrganizationId, opts.includeArchived ?? false],
     enabled: !!currentOrganizationId,
     staleTime: 60_000,
+    refetchOnMount: 'always',
     queryFn: async (): Promise<RecruitmentTag[]> => {
       let q = supabase
         .from('recruitment_tags')

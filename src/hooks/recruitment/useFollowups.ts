@@ -35,6 +35,7 @@ export function useApplicantFollowups(applicantId: string | undefined) {
     queryKey: ['applicant-followups', applicantId],
     enabled: !!applicantId,
     staleTime: 30_000,
+    refetchOnMount: 'always',
     queryFn: async (): Promise<Followup[]> => {
       const { data, error } = await supabase
         .from('recruitment_followups' as any)
