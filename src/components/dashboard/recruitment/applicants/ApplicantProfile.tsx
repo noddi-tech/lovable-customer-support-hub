@@ -2,14 +2,26 @@ import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeft,
+  Bell,
+  Check,
   ChevronDown,
+  Clock,
   Mail,
   MapPin,
   Pencil,
   Phone,
   Plus,
+  Trash2,
   UserCheck,
 } from 'lucide-react';
+import ScheduleFollowupDialog from './ScheduleFollowupDialog';
+import SnoozeFollowupDialog from './SnoozeFollowupDialog';
+import {
+  useApplicantFollowups,
+  useCompleteFollowup,
+  useDeleteFollowup,
+} from '@/hooks/recruitment/useFollowups';
+import { useDateFormatting } from '@/hooks/useDateFormatting';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
