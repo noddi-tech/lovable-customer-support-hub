@@ -68,6 +68,10 @@ export function StageEditDialog({ open, stage, mode, existingIds, onClose, onSav
 
   const handleSubmit = () => {
     if (!valid || !stage) return;
+    if (slaEnabled && (!slaHours || Number(slaHours) < 1 || Number(slaHours) > 720)) {
+      setSlaError('Skriv inn timer (1–720)');
+      return;
+    }
     const finalId = isCreate
       ? generatedId ||
         ensureUniqueStageId(
@@ -81,6 +85,8 @@ export function StageEditDialog({ open, stage, mode, existingIds, onClose, onSav
       name: trimmedName,
       description: description.trim() || undefined,
       color,
+      sla_hours: slaEnabled ? Number(slaHours) : null,
+      sla_enabled: slaEnabled,
     });
   };
 
