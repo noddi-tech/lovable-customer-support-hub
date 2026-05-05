@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Textarea } from '@/components/ui/textarea';
+import { EmailTemplateTipTap } from '../admin/templates/EmailTemplateTipTap';
 import { Loader2, Paperclip, Calendar as CalendarIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -204,12 +204,10 @@ export const ComposeRecruitmentEmailDialog: React.FC<Props> = ({ open, onOpenCha
 
           <div>
             <Label className="mb-1.5 block">Innhold</Label>
-            <Textarea
+            <EmailTemplateTipTap
               value={bodyHtml}
-              onChange={(e) => setBodyHtml(e.target.value)}
-              rows={10}
-              placeholder="Skriv meldingen… (HTML støttet)"
-              className="font-mono text-sm"
+              onChange={setBodyHtml}
+              placeholder="Skriv meldingen…"
             />
             <p className="text-xs text-muted-foreground mt-1">
               Flettefelt: {'{{first_name}}'}, {'{{last_name}}'}, {'{{recruiter_name}}'}, {'{{application_link}}'}

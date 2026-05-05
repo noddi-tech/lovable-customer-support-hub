@@ -67,10 +67,13 @@ interface ArchiveDialogState {
   totalCount: number;
 }
 
+export type PurposeFilter = 'all' | 'support' | 'recruitment';
+
 interface ConversationListState {
   searchQuery: string;
   statusFilter: string;
   priorityFilter: string;
+  purposeFilter: PurposeFilter;
   sortBy: SortBy;
   deleteDialogOpen: boolean;
   conversationToDelete: string | null;
@@ -87,6 +90,7 @@ type ConversationListAction =
   | { type: 'SET_SEARCH_QUERY'; payload: string }
   | { type: 'SET_STATUS_FILTER'; payload: string }
   | { type: 'SET_PRIORITY_FILTER'; payload: string }
+  | { type: 'SET_PURPOSE_FILTER'; payload: PurposeFilter }
   | { type: 'SET_SORT_BY'; payload: SortBy }
   | { type: 'TOGGLE_FILTERS' }
   | { type: 'OPEN_DELETE_DIALOG'; payload: string }
@@ -100,10 +104,22 @@ type ConversationListAction =
   | { type: 'SET_PAGE_SIZE'; payload: number }
   | { type: 'SET_CURRENT_PAGE'; payload: number };
 
+const PURPOSE_FILTER_STORAGE_KEY = 'conversationList.purposeFilter.v1';
+
+function loadPurposeFilter(): PurposeFilter {
+  if (typeof window === 'undefined') return 'all';
+  try {
+    const v = window.localStorage.getItem(PURPOSE_FILTER_STORAGE_KEY);
+    if (v === 'support' || v === 'recruitment' || v === 'all') return v;
+  } catch {}
+  return 'all';
+}
+
 const initialState: ConversationListState = {
   searchQuery: '',
   statusFilter: 'all',
   priorityFilter: 'all',
+  purposeFilter: loadPurposeFilter(),
   sortBy: 'latest',
   deleteDialogOpen: false,
   conversationToDelete: null,
@@ -122,6 +138,9 @@ function conversationListReducer(state: ConversationListState, action: Conversat
       return { ...state, searchQuery: action.payload, currentPage: 1 };
     case 'SET_STATUS_FILTER':
       return { ...state, statusFilter: action.payload, currentPage: 1 };
+    case 'SET_PURPOSE_FILTER':
+      try { window.localStorage.setItem(PURPOSE_FILTER_STORAGE_KEY, action.payload); } catch {}
+      return { ...state, purposeFilter: action.payload, currentPage: 1 };
     case 'SET_PRIORITY_FILTER':
       return { ...state, priorityFilter: action.payload, currentPage: 1 };
     case 'SET_SORT_BY':
@@ -570,6 +589,8 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
       
       const matchesPriority = state.priorityFilter === "all" || conversation.priority === state.priorityFilter;
       const matchesInbox = !effectiveInboxId || conversation.inbox_id === effectiveInboxId;
+      const convPurpose = (conversation.conversation_type === 'recruitment') ? 'recruitment' : 'support';
+      const matchesPurpose = state.purposeFilter === 'all' || convPurpose === state.purposeFilter;
       
       const matchesTab = (() => {
         const isSnoozedActive = !!conversation.snooze_until && new Date(conversation.snooze_until) > new Date();
@@ -630,7 +651,7 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
         }
       })();
 
-      return matchesSearch && matchesStatus && matchesPriority && matchesInbox && matchesTab;
+      return matchesSearch && matchesStatus && matchesPriority && matchesInbox && matchesPurpose && matchesTab;
     });
 
     // Apply table sorting if a column is sorted
@@ -694,7 +715,7 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
           return bTime - aTime;
       }
     });
-  }, [conversations, state.searchQuery, state.statusFilter, state.priorityFilter, state.sortBy, state.tableSort, selectedTab, selectedInboxId, effectiveInboxId]);
+  }, [conversations, state.searchQuery, state.statusFilter, state.priorityFilter, state.purposeFilter, state.sortBy, state.tableSort, selectedTab, selectedInboxId, effectiveInboxId]);
 
   // Comprehensive debug logging
   logger.debug('Filter state', {

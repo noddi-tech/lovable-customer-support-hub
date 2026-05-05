@@ -211,6 +211,27 @@ export const ConversationListHeader = ({
 
         {/* Right side: Filters + Sort */}
         <div className="flex items-center gap-1 ml-auto flex-shrink-0">
+          {/* Purpose filter chips: Alle / Kundesupport / Rekruttering */}
+          <div className="hidden sm:flex items-center rounded-md border border-input bg-background overflow-hidden">
+            {([
+              { v: 'all', label: 'Alle' },
+              { v: 'support', label: 'Kundesupport' },
+              { v: 'recruitment', label: 'Rekruttering' },
+            ] as const).map((opt) => (
+              <button
+                key={opt.v}
+                type="button"
+                onClick={() => dispatch({ type: 'SET_PURPOSE_FILTER', payload: opt.v })}
+                className={`px-2 h-7 text-[10px] transition-colors ${
+                  state.purposeFilter === opt.v
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-muted-foreground hover:bg-muted'
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
           {/* Filters */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
