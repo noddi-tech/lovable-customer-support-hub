@@ -189,7 +189,8 @@ export function InboxManagementContent() {
         color: '#3B82F6',
         is_default: false,
         auto_assignment_rules: {},
-        sender_display_name: ''
+        sender_display_name: '',
+        purpose: 'support',
       });
       toast.success('Inbox created successfully');
     },
