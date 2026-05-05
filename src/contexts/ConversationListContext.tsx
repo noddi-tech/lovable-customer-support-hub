@@ -138,6 +138,9 @@ function conversationListReducer(state: ConversationListState, action: Conversat
       return { ...state, searchQuery: action.payload, currentPage: 1 };
     case 'SET_STATUS_FILTER':
       return { ...state, statusFilter: action.payload, currentPage: 1 };
+    case 'SET_PURPOSE_FILTER':
+      try { window.localStorage.setItem(PURPOSE_FILTER_STORAGE_KEY, action.payload); } catch {}
+      return { ...state, purposeFilter: action.payload, currentPage: 1 };
     case 'SET_PRIORITY_FILTER':
       return { ...state, priorityFilter: action.payload, currentPage: 1 };
     case 'SET_SORT_BY':
