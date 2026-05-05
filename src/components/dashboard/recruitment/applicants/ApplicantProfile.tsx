@@ -55,6 +55,7 @@ import { useTeamMembers } from '@/hooks/useTeamMembers';
 import EditApplicantDialog from './edit/EditApplicantDialog';
 import { ApplicantFieldValuesSection } from './ApplicantFieldValuesSection';
 import { ApplicantTagsSection } from './ApplicantTagsSection';
+import ApplicantEmailTab from './ApplicantEmailTab';
 
 const ApplicantProfile: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -354,11 +355,14 @@ const ApplicantProfile: React.FC = () => {
         </TabsContent>
 
         <TabsContent value="email" className="mt-4">
-          <Card>
-            <CardContent className="pt-6 text-center text-sm text-muted-foreground">
-              E-postkommunikasjon kobles til i fase 6
-            </CardContent>
-          </Card>
+          <ApplicantEmailTab
+            applicant={{
+              id: applicant.id,
+              first_name: applicant.first_name,
+              last_name: applicant.last_name,
+              email: applicant.email,
+            }}
+          />
         </TabsContent>
       </Tabs>
 
