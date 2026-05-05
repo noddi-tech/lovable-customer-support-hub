@@ -651,7 +651,7 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
         }
       })();
 
-      return matchesSearch && matchesStatus && matchesPriority && matchesInbox && matchesTab;
+      return matchesSearch && matchesStatus && matchesPriority && matchesInbox && matchesPurpose && matchesTab;
     });
 
     // Apply table sorting if a column is sorted
