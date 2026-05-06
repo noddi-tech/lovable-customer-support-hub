@@ -178,11 +178,36 @@ export const ComposeRecruitmentEmailDialog: React.FC<Props> = ({ open, onOpenCha
                 ))}
               </SelectContent>
             </Select>
-            {!inboxesLoading && (inboxes?.length ?? 0) === 0 && (
-              <p className="text-xs text-destructive mt-1">
-                Ingen rekrutterings-innboks. Opprett én under Admin → Innbokser med formål «recruitment».
-              </p>
-            )}
+            {(() => {
+              const selectedInbox: any = (inboxes ?? []).find((i: any) => i.id === inboxId);
+              const activeRoutes = (selectedInbox?.inbound_routes ?? []).filter((r: any) => r.is_active);
+              activeRoutes.sort((a: any, b: any) => (b.created_at || '').localeCompare(a.created_at || ''));
+              const route = activeRoutes[0];
+              const senderEmail = route?.group_email || route?.address;
+              const displayName = profile?.email_display_name || profile?.full_name || route?.sender_display_name || selectedInbox?.name || 'Recruitment';
+              if (!inboxesLoading && (inboxes?.length ?? 0) === 0) {
+                return (
+                  <p className="text-xs text-destructive mt-1">
+                    Ingen rekrutterings-innboks. Opprett én under Admin → Innbokser med formål «recruitment».
+                  </p>
+                );
+              }
+              if (selectedInbox && !senderEmail) {
+                return (
+                  <p className="text-xs text-destructive mt-1">
+                    Innboksen mangler aktiv sender-adresse.
+                  </p>
+                );
+              }
+              if (selectedInbox && senderEmail) {
+                return (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Sender som: {displayName} &lt;{senderEmail}&gt;
+                  </p>
+                );
+              }
+              return null;
+            })()}
           </div>
 
           <div>
