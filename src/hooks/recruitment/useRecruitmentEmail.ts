@@ -71,7 +71,7 @@ export function useRecruitmentInboxes() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('inboxes')
-        .select('id, name, color, is_default, purpose')
+        .select('id, name, color, is_default, purpose, inbound_routes(group_email, address, sender_display_name, is_active, created_at)')
         .eq('organization_id', currentOrganizationId!)
         .eq('is_active', true)
         .eq('purpose', 'recruitment')
