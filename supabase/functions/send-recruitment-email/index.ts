@@ -152,25 +152,57 @@ Deno.serve(async (req) => {
       bodyHtml = bodyHtml || tmpl.body || '';
     }
 
-    // 7. Variable substitution
+    // 7. Variable substitution — fetch org name + most recent application's position
+    const { data: orgRow } = await supabase
+      .from('organizations')
+      .select('name, default_attachment_expiry_days')
+      .eq('id', inbox.organization_id)
+      .maybeSingle();
+
+    let positionTitle = '';
+    if (applicantId) {
+      const { data: app } = await supabase
+        .from('applications')
+        .select('position_id')
+        .eq('applicant_id', applicantId)
+        .eq('organization_id', inbox.organization_id)
+        .order('applied_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (app?.position_id) {
+        const { data: pos } = await supabase
+          .from('job_positions')
+          .select('title')
+          .eq('id', app.position_id)
+          .maybeSingle();
+        positionTitle = pos?.title || '';
+      }
+    }
+
+    const appBaseUrl = Deno.env.get('PUBLIC_APP_URL') || 'https://support.noddi.co';
+    const applicationLink = applicantId
+      ? `${appBaseUrl}/operations/recruitment/applicants/${applicantId}`
+      : '';
+
+    const recruiterName = callerProfile.email_display_name || callerProfile.full_name || '';
     const vars: Record<string, string> = {
       applicant_first_name: applicant?.first_name || '',
       applicant_last_name: applicant?.last_name || '',
       applicant_name: applicant ? `${applicant.first_name || ''} ${applicant.last_name || ''}`.trim() : '',
-      recruiter_name: callerProfile.email_display_name || callerProfile.full_name || '',
       first_name: applicant?.first_name || '',
       last_name: applicant?.last_name || '',
+      recruiter_name: recruiterName,
+      recruiter_email: callerProfile.email || '',
+      recruiter_signature: '',
+      position_title: positionTitle,
+      company_name: orgRow?.name || '',
+      application_link: applicationLink,
     };
     subject = substituteVars(subject, vars);
     bodyHtml = substituteVars(bodyHtml, vars);
 
     // 8. Build attachments (signed URLs)
-    const { data: org } = await supabase
-      .from('organizations')
-      .select('default_attachment_expiry_days')
-      .eq('id', inbox.organization_id)
-      .maybeSingle();
-    const expiryDays = org?.default_attachment_expiry_days ?? 7;
+    const expiryDays = orgRow?.default_attachment_expiry_days ?? 7;
     const expirySeconds = expiryDays * 24 * 60 * 60;
     const expiresAtIso = new Date(Date.now() + expirySeconds * 1000).toISOString();
 
