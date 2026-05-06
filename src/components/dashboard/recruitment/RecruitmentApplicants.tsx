@@ -134,7 +134,7 @@ const RecruitmentApplicants: React.FC = () => {
         N={N}
         loading={bulkMut.isPending}
         onClose={closeDialog}
-        onConfirm={(template_id) => runBulk('send_email', { template_id })}
+        onConfirm={(template_id, inbox_id) => runBulk('send_email', { template_id, inbox_id })}
       />
       <TagsBulkDialog
         open={activeDialog === 'add_tags' || activeDialog === 'remove_tags'}
