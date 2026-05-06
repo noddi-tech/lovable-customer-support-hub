@@ -17,6 +17,7 @@ export interface UserProfile {
   department_id: string | null;
   is_active: boolean;
   avatar_url: string | null;
+  email_display_name?: string | null;
   created_at: string;
 }
 
