@@ -86,10 +86,11 @@ Deno.serve(async (req) => {
 
     // Verify caller is org member
     const { data: orgMember } = await supabase
-      .from('organization_members')
-      .select('role')
+      .from('organization_memberships')
+      .select('role, status')
       .eq('user_id', authUserId)
       .eq('organization_id', inbox.organization_id)
+      .eq('status', 'active')
       .maybeSingle();
     if (!orgMember) return json({ error: 'Not a member of this organization' }, 403);
 
