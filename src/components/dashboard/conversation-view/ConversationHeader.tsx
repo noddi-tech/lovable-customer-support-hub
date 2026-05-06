@@ -94,7 +94,12 @@ onClick={() => {
           
           <div className="flex items-center space-x-2 md:space-x-3 min-w-0 flex-1">
             <Avatar className="h-8 w-8 md:h-10 md:w-10 flex-shrink-0">
-              <AvatarFallback>{conversation.customer?.full_name?.[0] || 'C'}</AvatarFallback>
+              <AvatarFallback>{(() => {
+                const ap: any = (conversation as any).applicant;
+                const apName = ap ? [ap.first_name, ap.last_name].filter(Boolean).join(' ').trim() : '';
+                const name = conversation.customer?.full_name || apName || ap?.email || conversation.customer?.email;
+                return (name?.[0] || 'C').toUpperCase();
+              })()}</AvatarFallback>
             </Avatar>
             <div className="min-w-0 flex-1">
               <h2 className="font-semibold text-sm md:text-base line-clamp-1 mb-1">
