@@ -191,7 +191,7 @@ export const ConversationViewProvider = ({ children, conversationId, conversatio
       if (!conversationId) return null;
       const { data, error } = await supabase
         .from('conversations')
-        .select('*, customer:customers(*)')
+        .select('*, customer:customers(*), applicant:applicants(id, first_name, last_name, email)')
         .eq('id', conversationId)
         .single();
       if (error) throw error;
