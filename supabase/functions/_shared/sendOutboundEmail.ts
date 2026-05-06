@@ -77,11 +77,16 @@ function stripHtml(html: string): string {
     .trim();
 }
 
-// Substitute {{token}} in a template body. Unknown tokens left as-is.
+// Substitute {{token}} in a template body. Unknown tokens replaced with ''
+// (so recipients never see raw {{var}}). Logs unknown tokens for drift detection.
 export function substituteVars(template: string, values: Record<string, string>): string {
-  return template.replace(/\{\{\s*([a-z_]+)\s*\}\}/gi, (m, t) => {
+  return template.replace(/\{\{\s*([a-z_]+)\s*\}\}/gi, (_m, t) => {
     const k = t.toLowerCase();
-    return Object.prototype.hasOwnProperty.call(values, k) ? values[k] : m;
+    if (Object.prototype.hasOwnProperty.call(values, k)) {
+      return values[k] ?? '';
+    }
+    console.debug(`[substituteVars] unknown token: {{${k}}}`);
+    return '';
   });
 }
 
