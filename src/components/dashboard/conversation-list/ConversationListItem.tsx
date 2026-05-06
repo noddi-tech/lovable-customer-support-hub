@@ -68,17 +68,28 @@ export const ConversationListItem = memo<ConversationListItemProps>(({
     // Check if this is a live chat conversation (widget channel with active session)
     const isLiveChat = (conversation.channel as string) === 'widget' && 
       (conversation as any).metadata?.chatSessionStatus === 'active';
-    
+
+    const applicant = (conversation as any).applicant;
+    const applicantName = applicant
+      ? [applicant.first_name, applicant.last_name].filter(Boolean).join(' ').trim()
+      : '';
+    const displayName =
+      conversation.customer?.full_name ||
+      applicantName ||
+      applicant?.email ||
+      conversation.customer?.email ||
+      'Unknown';
+
     return {
       ChannelIcon: channelIcons[conversation.channel] || MessageCircle,
       isSnoozed: conversation.snooze_until && new Date(conversation.snooze_until) > new Date(),
-      customerName: conversation.customer?.full_name || 'Unknown',
-      customerEmail: conversation.customer?.email,
+      customerName: displayName,
+      customerEmail: conversation.customer?.email || applicant?.email,
       statusLabel: t(`conversation.${conversation.status}`, conversation.status),
       priorityLabel: t(`conversation.${conversation.priority}`, conversation.priority),
       subjectText: conversation.subject || t('dashboard.conversation.noSubject', 'No Subject'),
       formattedTime: formatConversationTime(conversation.updated_at),
-      customerInitial: conversation.customer?.full_name?.[0] || 'C',
+      customerInitial: (displayName?.[0] || 'C').toUpperCase(),
       inboxName: conversation.inbox_id ? inboxes.find(i => i.id === conversation.inbox_id)?.name || 'Unknown Inbox' : 'No Inbox',
       inboxColor: conversation.inbox_id ? inboxes.find(i => i.id === conversation.inbox_id)?.color || '#6B7280' : '#6B7280',
       // Strip HTML from preview text as a safety measure (database should already handle this)
@@ -100,6 +111,7 @@ export const ConversationListItem = memo<ConversationListItemProps>(({
     conversation.updated_at,
     conversation.preview_text,
     (conversation as any).metadata,
+    (conversation as any).applicant,
     t,
     formatConversationTime,
     conversation.inbox_id,

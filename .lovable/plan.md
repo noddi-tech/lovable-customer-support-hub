@@ -1,35 +1,53 @@
-## Diagnosis summary
+## Goal
 
-**Bug 1 (scheduled email not firing): NOT A BUG.**
-Cron jobid 16 runs every 5 min and all recent runs succeeded. The email scheduled for 17:47 UTC (19:47 Oslo) was sent at 17:50:02 UTC by the next cron tick (status=`sent`, conversation `be8063c4...` created). The other recent row was cancelled by the user; a third is scheduled for tomorrow. No code change needed — likely the user inspected the row between 17:47 and 17:50 before the next cron cycle, or looked at the cancelled/future row.
+When a conversation is a recruitment thread (no `customer_id`, but has `applicant_id`), show the applicant's name (or email fallback) in place of "Unknown" — same priority as the Noddi inbox: full name → email → "Unknown".
 
-**Bug 2 (bulk send_email missing inbox_id): CONFIRMED.**
-`RecruitmentApplicants.tsx` only forwards `template_id`. The dialog already collects and passes `inboxId`; the parent drops it.
+The RPC already returns `applicant: { id, first_name, last_name, email }` and `conversation_type`. We just need the UI to use it.
 
-**Bug 3 (replies to work@noddi.no not appearing): NOT A CODE BUG.**
-- MX/SendGrid Inbound Parse for `inbound.noddi.no` works — sister addresses (`hei@`, `bedrift@`) received customer messages today.
-- `inbound_routes` row exists for `work@noddi.no` → `work@inbound.noddi.no` → recruitment inbox.
-- `sendgrid-inbound` has zero recent invocations and there are zero customer-type messages for the recruitment inbox.
-- Per the Inbound Pipeline memory (Google Group → SendGrid MX → Edge Function), the missing piece is the Google Group `work@noddi.no` not being configured to forward to `work@inbound.noddi.no`. This is a Google Workspace config the admin must do (add `work@inbound.noddi.no` as an external member of the group), same as was done for `hei@`, `bedrift@`, `tronderdekk@`.
+## Changes
 
-## Code change (Bug 2 only)
+### 1. `src/components/dashboard/conversation-list/ConversationListItem.tsx`
 
-**File:** `src/components/dashboard/recruitment/applicants/RecruitmentApplicants.tsx`
+Replace the `customerName` / `customerInitial` derivation with a recruitment-aware resolver:
 
-Update `SendEmailBulkDialog.onConfirm`:
-```tsx
-onConfirm={(template_id, inbox_id) =>
-  runBulk('send_email', { template_id, inbox_id })}
+```ts
+const applicant = (conversation as any).applicant;
+const applicantName = applicant
+  ? [applicant.first_name, applicant.last_name].filter(Boolean).join(' ').trim()
+  : '';
+
+const displayName =
+  conversation.customer?.full_name ||
+  applicantName ||
+  applicant?.email ||
+  conversation.customer?.email ||
+  'Unknown';
+
+const displayInitial = (displayName?.[0] || 'C').toUpperCase();
 ```
 
-That's the only file touched. `BulkActionPayload.inbox_id` already exists; the bulk-applicant-action edge function already validates it (returns the 400 we saw).
+Use `displayName` / `displayInitial` for the avatar fallback and the bold name in the row. Add `applicant` to the `useMemo` deps.
 
-## Action items for user (no code)
+The existing purple "Søker: …" badge stays as-is (it's redundant with the name now, but we keep it as the explicit recruitment marker — can be revisited later).
 
-1. **Bug 1**: None — system worked. Re-test by waiting at least one full 5-min cron tick past `scheduled_for` before checking status.
-2. **Bug 3**: In Google Workspace admin, open the `work@noddi.no` group and add `work@inbound.noddi.no` as an allowed external member (mirror the setup of `hei@noddi.no`). After that, send a test email from Gmail to `work@noddi.no` and confirm `sendgrid-inbound` logs a hit and a customer message appears in the recruitment inbox.
+### 2. `src/components/dashboard/conversation-view/ConversationHeader.tsx`
 
-## Verification after Bug 2 fix
+Same fallback for the avatar fallback letter on line 97 (and any name rendering nearby — verify in the same pass): use applicant first/last/email when `conversation.customer` is absent.
 
-- Open recruitment applicants list, select 2+ applicants, choose "Send e-post", pick inbox + template, confirm.
-- Expect success toast and rows in `recruitment_scheduled_emails` (or sent messages) for each recipient with the correct `inbox_id`.
+### 3. No DB / RPC changes
+
+`get_conversations_with_session_recovery` (2-arg) already returns `applicant` jsonb and `conversation_type`. Confirmed in migration `20260505192429`.
+
+The single-conversation view loader (used by `ConversationHeader` / `CustomerSidePanel`) needs to also expose `applicant` if it doesn't already. Will check `data/interactions.ts` and the conversation detail loader during implementation; if missing, extend the select to include `applicant_id, applicants(id, first_name, last_name, email)` and surface it on the conversation object the same shape as the list RPC.
+
+## Out of scope
+
+- Google Group external-member setting (user is flipping this manually).
+- Reply-To header rewrite (parked).
+- Replacing the "Søker: …" badge.
+
+## Verification
+
+1. Open the recruitment inbox — list rows now show applicant name (e.g., "Ola Nordmann") instead of "Unknown", avatar initial uses first letter of that name.
+2. Open the conversation — header avatar fallback shows the right initial; "Søker: …" badge still present.
+3. Regular support conversations (with `customer_id`) are unchanged.
