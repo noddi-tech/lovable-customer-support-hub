@@ -111,6 +111,7 @@ export const ConversationListItem = memo<ConversationListItemProps>(({
     conversation.updated_at,
     conversation.preview_text,
     (conversation as any).metadata,
+    (conversation as any).applicant,
     t,
     formatConversationTime,
     conversation.inbox_id,
