@@ -89,7 +89,7 @@ export const ApplicantEmailTab: React.FC<Props> = ({ applicant }) => {
               {conversations!.map((c) => (
                 <li key={c.id} className="p-3 hover:bg-muted/40 flex items-center gap-3">
                   <Link
-                    to={`/conversations/${c.id}`}
+                    to={`/interactions/text/conversations/${c.id}`}
                     className="flex-1 min-w-0"
                   >
                     <div className="text-sm font-medium truncate">
