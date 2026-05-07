@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Mail, Plus, Link2, X, Clock } from 'lucide-react';
+import { Mail, Plus, Link2, X, Clock, ChevronDown, ChevronRight, ExternalLink } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { cn } from '@/lib/utils';
 import {
   useApplicantConversations,
   useApplicantScheduledEmails,
@@ -12,6 +13,7 @@ import {
 } from '@/hooks/recruitment/useRecruitmentEmail';
 import { ComposeRecruitmentEmailDialog } from './ComposeRecruitmentEmailDialog';
 import { AttachToApplicantDialog } from './AttachToApplicantDialog';
+import { InlineEmailThread } from './InlineEmailThread';
 import { useDateFormatting } from '@/hooks/useDateFormatting';
 
 interface Props {
@@ -26,6 +28,7 @@ interface Props {
 export const ApplicantEmailTab: React.FC<Props> = ({ applicant }) => {
   const [composeOpen, setComposeOpen] = useState(false);
   const [attachOpen, setAttachOpen] = useState(false);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const { data: conversations, isLoading } = useApplicantConversations(applicant.id);
   const { data: scheduled } = useApplicantScheduledEmails(applicant.id);
   const detachMut = useDetachConversationFromApplicant();
@@ -86,35 +89,70 @@ export const ApplicantEmailTab: React.FC<Props> = ({ applicant }) => {
             </div>
           ) : (
             <ul className="divide-y">
-              {conversations!.map((c) => (
-                <li key={c.id} className="p-3 hover:bg-muted/40 flex items-center gap-3">
-                  <Link
-                    to={`/interactions/text/conversations/${c.id}`}
-                    className="flex-1 min-w-0"
-                  >
-                    <div className="text-sm font-medium truncate">
-                      {c.subject || '(uten emne)'}
+              {conversations!.map((c) => {
+                const isExpanded = expandedId === c.id;
+                return (
+                  <li key={c.id} className="bg-background">
+                    <div
+                      className={cn(
+                        'flex items-center gap-3 p-3 hover:bg-muted/40 cursor-pointer transition-colors',
+                        isExpanded && 'bg-muted/30'
+                      )}
+                      onClick={() => setExpandedId(isExpanded ? null : c.id)}
+                    >
+                      {isExpanded ? (
+                        <ChevronDown className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium truncate">
+                          {c.subject || '(uten emne)'}
+                        </div>
+                        <div className="text-xs text-muted-foreground line-clamp-2 break-words">
+                          {(c.preview_text || '').replace(/^>+\s?.*$/gm, '').trim() || '—'}
+                        </div>
+                        <div className="text-[11px] text-muted-foreground mt-0.5">
+                          {dateTime(c.updated_at)} • {c.status}
+                        </div>
+                      </div>
+                      <Badge variant="outline" className="text-[10px]">
+                        {c.last_message_sender_type || 'agent'}
+                      </Badge>
+                      <Link
+                        to={`/interactions/text/conversations/${c.id}`}
+                        onClick={(e) => e.stopPropagation()}
+                        title="Åpne i fullvisning"
+                      >
+                        <Button size="sm" variant="ghost" className="h-7 w-7 p-0">
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        </Button>
+                      </Link>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 w-7 p-0"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          detachMut.mutate({ conversation_id: c.id });
+                        }}
+                        title="Frakoble denne samtalen"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </Button>
                     </div>
-                    <div className="text-xs text-muted-foreground truncate">
-                      {c.preview_text || ''}
-                    </div>
-                    <div className="text-[11px] text-muted-foreground mt-0.5">
-                      {dateTime(c.updated_at)} • {c.status}
-                    </div>
-                  </Link>
-                  <Badge variant="outline" className="text-[10px]">
-                    {c.last_message_sender_type || 'agent'}
-                  </Badge>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => detachMut.mutate({ conversation_id: c.id })}
-                    title="Frakoble denne samtalen"
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </Button>
-                </li>
-              ))}
+                    {isExpanded && (
+                      <InlineEmailThread
+                        conversationId={c.id}
+                        applicantId={applicant.id}
+                        inboxId={c.inbox_id}
+                        applicant={applicant}
+                        subjectHint={c.subject}
+                      />
+                    )}
+                  </li>
+                );
+              })}
             </ul>
           )}
         </CardContent>
