@@ -36,10 +36,13 @@ interface MessageItemProps {
 export const MessageItem = ({ message, conversation, onEdit, onDelete }: MessageItemProps) => {
   const { dateTime } = useDateFormatting();
   const { t } = useTranslation();
-  
-  // never show quoted blocks (even if present)
-  const SHOW_QUOTED = import.meta.env.VITE_QUOTED_SEGMENTATION === '1' && false;
-  
+  const [showQuoted, setShowQuoted] = useState(false);
+
+  const hasQuoted = !!message.quotedBlocks && message.quotedBlocks.length > 0;
+  const quotedHtml = hasQuoted
+    ? message.quotedBlocks!.map(b => b.raw || '').filter(Boolean).join('\n<hr/>\n')
+    : '';
+
   const isFromCustomer = message.authorType === 'customer';
   
   // Get attachments from original message
@@ -146,12 +149,28 @@ export const MessageItem = ({ message, conversation, onEdit, onDelete }: Message
           messageId={message.id}
         />
         
-        {/* Quoted content toggle - only show if feature flag is enabled */}
-        {SHOW_QUOTED && message.quotedBlocks && message.quotedBlocks.length > 0 && (
-          <div className="mt-3 pt-3 border-t border-border">
-            <div className="text-xs text-muted-foreground">
-              Thread-aware view: Quoted content hidden
-            </div>
+        {/* Quoted history toggle */}
+        {hasQuoted && (
+          <div className="mt-3 pt-2 border-t border-border">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 px-2 text-xs text-muted-foreground"
+              onClick={() => setShowQuoted(v => !v)}
+            >
+              {showQuoted ? <ChevronUp className="h-3 w-3 mr-1" /> : <ChevronDown className="h-3 w-3 mr-1" />}
+              {showQuoted ? t('conversation.hideQuoted', 'Skjul sitert historikk') : t('conversation.showQuoted', 'Vis sitert historikk')}
+            </Button>
+            {showQuoted && (
+              <div className="mt-2 pl-3 border-l-2 border-border opacity-80">
+                <EmailRender
+                  content={quotedHtml}
+                  contentType={message.originalMessage?.content_type || 'text/html'}
+                  attachments={[]}
+                  messageId={`${message.id}-quoted`}
+                />
+              </div>
+            )}
           </div>
         )}
         
