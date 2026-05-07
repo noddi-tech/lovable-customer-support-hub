@@ -197,3 +197,39 @@ export function useCancelScheduledEmail() {
     onError: (e: any) => toast.error(e?.message || 'Kunne ikke avbryte'),
   });
 }
+
+/**
+ * Fetch full message thread for a conversation, normalized for inline display.
+ * No realtime subscription — manual refresh only (v1).
+ */
+export function useApplicantConversationMessages(conversationId: string | undefined) {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: ['applicant-conversation-messages', conversationId],
+    enabled: !!conversationId,
+    refetchOnMount: 'always',
+    staleTime: 10_000,
+    queryFn: async (): Promise<NormalizedMessage[]> => {
+      const { data, error } = await supabase
+        .from('messages')
+        .select(`
+          id, content, content_type, sender_type, sender_id,
+          is_internal, attachments, created_at, email_subject, email_headers,
+          external_id, email_message_id, email_status
+        `)
+        .eq('conversation_id', conversationId!)
+        .order('created_at', { ascending: true });
+      if (error) throw error;
+
+      const ctx = createNormalizationContext({
+        currentUserEmail: user?.email || undefined,
+        agentEmails: [],
+        agentPhones: [],
+      });
+
+      return (data ?? []).map((r: any) =>
+        normalizeMessage({ ...r, sender_type: r.sender_type }, ctx)
+      );
+    },
+  });
+}
