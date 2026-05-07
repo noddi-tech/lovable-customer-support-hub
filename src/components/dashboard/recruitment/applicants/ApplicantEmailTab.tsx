@@ -15,6 +15,7 @@ import { ComposeRecruitmentEmailDialog } from './ComposeRecruitmentEmailDialog';
 import { AttachToApplicantDialog } from './AttachToApplicantDialog';
 import { InlineEmailThread } from './InlineEmailThread';
 import { useDateFormatting } from '@/hooks/useDateFormatting';
+import { cleanEmailPreview } from '@/utils/emailPreviewClean';
 
 interface Props {
   applicant: {
@@ -110,7 +111,7 @@ export const ApplicantEmailTab: React.FC<Props> = ({ applicant }) => {
                           {c.subject || '(uten emne)'}
                         </div>
                         <div className="text-xs text-muted-foreground line-clamp-2 break-words">
-                          {(c.preview_text || '').replace(/^>+\s?.*$/gm, '').trim() || '—'}
+                          {cleanEmailPreview(c.preview_text) || '—'}
                         </div>
                         <div className="text-[11px] text-muted-foreground mt-0.5">
                           {dateTime(c.updated_at)} • {c.status}
