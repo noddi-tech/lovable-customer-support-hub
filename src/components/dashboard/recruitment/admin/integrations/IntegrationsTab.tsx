@@ -3,6 +3,7 @@ import { Separator } from '@/components/ui/separator';
 import { Heading } from '@/components/ui/heading';
 import { LeadSourcesSection } from './sections/LeadSourcesSection';
 import { OutboundSection } from './sections/OutboundSection';
+import { SmsSection } from './sections/SmsSection';
 import { AuthenticationSection } from './sections/AuthenticationSection';
 import { LeadIngestionLogPanel } from './log/LeadIngestionLogPanel';
 import { MetaTokenRefreshWizard } from './meta/MetaTokenRefreshWizard';
@@ -115,6 +116,10 @@ export function IntegrationsTab() {
         <Separator />
 
         <OutboundSection />
+
+        <Separator />
+
+        <SmsSection />
 
         <Separator />
 
