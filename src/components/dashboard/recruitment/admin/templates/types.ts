@@ -10,6 +10,7 @@ export interface EmailTemplate {
   stage_trigger: string | null;
   is_active: boolean;
   soft_deleted_at: string | null;
+  type: 'email' | 'sms';
   created_at: string;
   updated_at: string;
 }
