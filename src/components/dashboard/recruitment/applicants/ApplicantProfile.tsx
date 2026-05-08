@@ -56,6 +56,7 @@ import EditApplicantDialog from './edit/EditApplicantDialog';
 import { ApplicantFieldValuesSection } from './ApplicantFieldValuesSection';
 import { ApplicantTagsSection } from './ApplicantTagsSection';
 import ApplicantEmailTab from './ApplicantEmailTab';
+import ApplicantSmsTab from './ApplicantSmsTab';
 
 const ApplicantProfile: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -275,6 +276,7 @@ const ApplicantProfile: React.FC = () => {
           <TabsTrigger value="notes">Notater</TabsTrigger>
           <TabsTrigger value="files">Filer</TabsTrigger>
           <TabsTrigger value="email">E-post</TabsTrigger>
+          <TabsTrigger value="sms">SMS</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="mt-4">
@@ -361,6 +363,17 @@ const ApplicantProfile: React.FC = () => {
               first_name: applicant.first_name,
               last_name: applicant.last_name,
               email: applicant.email,
+            }}
+          />
+        </TabsContent>
+
+        <TabsContent value="sms" className="mt-4">
+          <ApplicantSmsTab
+            applicant={{
+              id: applicant.id,
+              first_name: applicant.first_name,
+              last_name: applicant.last_name,
+              phone: applicant.phone,
             }}
           />
         </TabsContent>
