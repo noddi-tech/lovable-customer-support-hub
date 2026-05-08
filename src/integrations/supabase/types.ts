@@ -172,6 +172,7 @@ export type Database = {
       applicant_conversations: {
         Row: {
           applicant_id: string
+          channel: string
           conversation_id: string
           created_at: string
           id: string
@@ -179,6 +180,7 @@ export type Database = {
         }
         Insert: {
           applicant_id: string
+          channel?: string
           conversation_id: string
           created_at?: string
           id?: string
@@ -186,6 +188,7 @@ export type Database = {
         }
         Update: {
           applicant_id?: string
+          channel?: string
           conversation_id?: string
           created_at?: string
           id?: string
@@ -1884,6 +1887,10 @@ export type Database = {
           organization_id: string
           purpose: string
           sender_display_name: string | null
+          sms_enabled: boolean
+          sms_provider: string | null
+          sms_provider_metadata: Json | null
+          sms_provider_phone_number: string | null
           updated_at: string
         }
         Insert: {
@@ -1900,6 +1907,10 @@ export type Database = {
           organization_id: string
           purpose?: string
           sender_display_name?: string | null
+          sms_enabled?: boolean
+          sms_provider?: string | null
+          sms_provider_metadata?: Json | null
+          sms_provider_phone_number?: string | null
           updated_at?: string
         }
         Update: {
@@ -1916,6 +1927,10 @@ export type Database = {
           organization_id?: string
           purpose?: string
           sender_display_name?: string | null
+          sms_enabled?: boolean
+          sms_provider?: string | null
+          sms_provider_metadata?: Json | null
+          sms_provider_phone_number?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -2620,6 +2635,10 @@ export type Database = {
           is_pinned: boolean | null
           sender_id: string | null
           sender_type: string
+          sms_provider: string | null
+          sms_provider_message_id: string | null
+          sms_segments: number | null
+          sms_status: string | null
           updated_at: string
         }
         Insert: {
@@ -2640,6 +2659,10 @@ export type Database = {
           is_pinned?: boolean | null
           sender_id?: string | null
           sender_type: string
+          sms_provider?: string | null
+          sms_provider_message_id?: string | null
+          sms_segments?: number | null
+          sms_status?: string | null
           updated_at?: string
         }
         Update: {
@@ -2660,6 +2683,10 @@ export type Database = {
           is_pinned?: boolean | null
           sender_id?: string | null
           sender_type?: string
+          sms_provider?: string | null
+          sms_provider_message_id?: string | null
+          sms_segments?: number | null
+          sms_status?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -4065,6 +4092,7 @@ export type Database = {
           soft_deleted_at: string | null
           stage_trigger: string | null
           subject: string
+          type: string
           updated_at: string
         }
         Insert: {
@@ -4078,6 +4106,7 @@ export type Database = {
           soft_deleted_at?: string | null
           stage_trigger?: string | null
           subject: string
+          type?: string
           updated_at?: string
         }
         Update: {
@@ -4091,6 +4120,7 @@ export type Database = {
           soft_deleted_at?: string | null
           stage_trigger?: string | null
           subject?: string
+          type?: string
           updated_at?: string
         }
         Relationships: [
@@ -4808,6 +4838,75 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      recruitment_scheduled_sms: {
+        Row: {
+          applicant_id: string | null
+          attempts: number
+          body: string
+          conversation_id: string | null
+          created_at: string
+          created_by: string
+          error_message: string | null
+          id: string
+          inbox_id: string
+          message_id: string | null
+          next_attempt_at: string | null
+          organization_id: string
+          scheduled_for: string
+          sent_at: string | null
+          sms_provider: string | null
+          sms_provider_message_id: string | null
+          status: string
+          to_name: string | null
+          to_phone: string
+          updated_at: string
+        }
+        Insert: {
+          applicant_id?: string | null
+          attempts?: number
+          body: string
+          conversation_id?: string | null
+          created_at?: string
+          created_by: string
+          error_message?: string | null
+          id?: string
+          inbox_id: string
+          message_id?: string | null
+          next_attempt_at?: string | null
+          organization_id: string
+          scheduled_for: string
+          sent_at?: string | null
+          sms_provider?: string | null
+          sms_provider_message_id?: string | null
+          status?: string
+          to_name?: string | null
+          to_phone: string
+          updated_at?: string
+        }
+        Update: {
+          applicant_id?: string | null
+          attempts?: number
+          body?: string
+          conversation_id?: string | null
+          created_at?: string
+          created_by?: string
+          error_message?: string | null
+          id?: string
+          inbox_id?: string
+          message_id?: string | null
+          next_attempt_at?: string | null
+          organization_id?: string
+          scheduled_for?: string
+          sent_at?: string | null
+          sms_provider?: string | null
+          sms_provider_message_id?: string | null
+          status?: string
+          to_name?: string | null
+          to_phone?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       recruitment_settings: {
         Row: {
@@ -7324,6 +7423,7 @@ export type Database = {
         | "whatsapp"
         | "other"
         | "widget"
+        | "sms"
       service_ticket_category:
         | "tire_issue"
         | "service_complaint"
@@ -7513,6 +7613,7 @@ export const Constants = {
         "whatsapp",
         "other",
         "widget",
+        "sms",
       ],
       service_ticket_category: [
         "tire_issue",

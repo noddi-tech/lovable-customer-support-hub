@@ -345,3 +345,18 @@ verify_jwt = true
 # Cron-driven; called via pg_cron with anon key. JWT off, internal logic only acts via service role.
 [functions.process-scheduled-emails]
 verify_jwt = false
+
+# Phase 8 — Recruitment SMS (provider-agnostic, Messente v1)
+[functions.send-recruitment-sms]
+verify_jwt = true
+
+# Public webhooks from SMS providers — signature validated in code.
+[functions.sms-inbound]
+verify_jwt = false
+
+[functions.sms-status-callback]
+verify_jwt = false
+
+# Cron-driven scheduled SMS dispatch.
+[functions.process-scheduled-sms]
+verify_jwt = false
