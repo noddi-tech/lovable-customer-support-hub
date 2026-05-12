@@ -18,7 +18,7 @@ import {
   useScoringBaselines,
   type ScoringRubric,
 } from '@/hooks/recruitment/useScoringBaselines';
-import { RubricBuilder, emptyRubric } from '../../admin/scoring/RubricBuilder';
+import { RubricBuilder, emptyRubric } from '../admin/scoring/RubricBuilder';
 
 interface Props {
   positionId: string;
