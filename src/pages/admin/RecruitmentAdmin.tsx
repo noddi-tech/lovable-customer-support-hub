@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Heading } from "@/components/ui/heading";
 import { useSearchParams } from "react-router-dom";
-import { Workflow, Mail, Zap, Link2, History, FormInput, Tag } from "lucide-react";
+import { Workflow, Mail, Zap, Link2, History, FormInput, Tag, Sparkles, ListChecks } from "lucide-react";
 import { PipelineEditor } from "@/components/dashboard/recruitment/admin/pipeline/PipelineEditor";
 import { EmailTemplatesTab } from "@/components/dashboard/recruitment/admin/templates/EmailTemplatesTab";
 import { RulesTab } from "@/components/dashboard/recruitment/admin/rules/RulesTab";
@@ -11,10 +11,12 @@ import { IntegrationsTab } from "@/components/dashboard/recruitment/admin/integr
 import { AuditTab } from "@/components/dashboard/recruitment/admin/audit/AuditTab";
 import { FieldsTab } from "@/components/dashboard/recruitment/admin/fields/FieldsTab";
 import { TagsTab } from "@/components/dashboard/recruitment/admin/tags/TagsTab";
+import { ScoringBaselinesTab } from "@/components/dashboard/recruitment/admin/scoring/ScoringBaselinesTab";
+import { StageFieldRequirementsTab } from "@/components/dashboard/recruitment/admin/scoring/StageFieldRequirementsTab";
 import { FailureBanner } from "@/components/dashboard/recruitment/admin/FailureBanner";
 import { useExecutionRealtimeToast } from "@/components/dashboard/recruitment/admin/hooks/useExecutionRealtimeToast";
 
-const VALID_TABS = ["pipeline", "tags", "templates", "automation", "integrations", "fields", "audit"] as const;
+const VALID_TABS = ["pipeline", "tags", "templates", "automation", "integrations", "fields", "scoring", "stage-fields", "audit"] as const;
 
 export default function RecruitmentAdmin() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -70,6 +72,14 @@ export default function RecruitmentAdmin() {
           <TabsTrigger value="fields">
             <FormInput className="h-4 w-4" />
             Søknadsskjema-felter
+          </TabsTrigger>
+          <TabsTrigger value="scoring">
+            <Sparkles className="h-4 w-4" />
+            Scoring
+          </TabsTrigger>
+          <TabsTrigger value="stage-fields">
+            <ListChecks className="h-4 w-4" />
+            Trinn-krav
           </TabsTrigger>
           <TabsTrigger value="audit">
             <History className="h-4 w-4" />
