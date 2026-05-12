@@ -105,6 +105,12 @@ export default function RecruitmentAdmin() {
         <TabsContent value="fields">
           <FieldsTab />
         </TabsContent>
+        <TabsContent value="scoring">
+          <ScoringBaselinesTab />
+        </TabsContent>
+        <TabsContent value="stage-fields">
+          <StageFieldRequirementsTab />
+        </TabsContent>
         <TabsContent value="audit">
           <AuditTab />
         </TabsContent>
