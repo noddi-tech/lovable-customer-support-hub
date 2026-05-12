@@ -222,34 +222,52 @@ export type Database = {
         Row: {
           applicant_id: string
           created_at: string
+          extracted_at: string | null
+          extracted_text: string | null
+          extraction_attempts: number
+          extraction_error: string | null
+          extraction_status: string
           file_name: string
           file_size: number | null
           file_type: string
           id: string
           organization_id: string
           storage_path: string
+          updated_at: string
           uploaded_by: string | null
         }
         Insert: {
           applicant_id: string
           created_at?: string
+          extracted_at?: string | null
+          extracted_text?: string | null
+          extraction_attempts?: number
+          extraction_error?: string | null
+          extraction_status?: string
           file_name: string
           file_size?: number | null
           file_type?: string
           id?: string
           organization_id: string
           storage_path: string
+          updated_at?: string
           uploaded_by?: string | null
         }
         Update: {
           applicant_id?: string
           created_at?: string
+          extracted_at?: string | null
+          extracted_text?: string | null
+          extraction_attempts?: number
+          extraction_error?: string | null
+          extraction_status?: string
           file_name?: string
           file_size?: number | null
           file_type?: string
           id?: string
           organization_id?: string
           storage_path?: string
+          updated_at?: string
           uploaded_by?: string | null
         }
         Relationships: [
@@ -337,6 +355,82 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      applicant_score_history: {
+        Row: {
+          application_id: string
+          concerns: string[] | null
+          created_at: string
+          explanation: string | null
+          id: string
+          input_snapshot: Json | null
+          model: string
+          organization_id: string
+          per_criterion: Json | null
+          score: number
+          stage_id: string | null
+          strengths: string[] | null
+          token_usage: Json | null
+          trigger_reason: string
+          triggered_by: string | null
+        }
+        Insert: {
+          application_id: string
+          concerns?: string[] | null
+          created_at?: string
+          explanation?: string | null
+          id?: string
+          input_snapshot?: Json | null
+          model: string
+          organization_id: string
+          per_criterion?: Json | null
+          score: number
+          stage_id?: string | null
+          strengths?: string[] | null
+          token_usage?: Json | null
+          trigger_reason: string
+          triggered_by?: string | null
+        }
+        Update: {
+          application_id?: string
+          concerns?: string[] | null
+          created_at?: string
+          explanation?: string | null
+          id?: string
+          input_snapshot?: Json | null
+          model?: string
+          organization_id?: string
+          per_criterion?: Json | null
+          score?: number
+          stage_id?: string | null
+          strengths?: string[] | null
+          token_usage?: Json | null
+          trigger_reason?: string
+          triggered_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "applicant_score_history_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "applicant_score_history_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "applicant_score_history_triggered_by_fkey"
+            columns: ["triggered_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -505,6 +599,73 @@ export type Database = {
           },
         ]
       }
+      application_scoring_queue: {
+        Row: {
+          application_id: string
+          attempts: number
+          created_at: string
+          error_message: string | null
+          id: string
+          next_attempt_at: string | null
+          organization_id: string
+          status: string
+          trigger_reason: string
+          triggered_at_stage_id: string | null
+          triggered_by: string | null
+          updated_at: string
+        }
+        Insert: {
+          application_id: string
+          attempts?: number
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          next_attempt_at?: string | null
+          organization_id: string
+          status?: string
+          trigger_reason: string
+          triggered_at_stage_id?: string | null
+          triggered_by?: string | null
+          updated_at?: string
+        }
+        Update: {
+          application_id?: string
+          attempts?: number
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          next_attempt_at?: string | null
+          organization_id?: string
+          status?: string
+          trigger_reason?: string
+          triggered_at_stage_id?: string | null
+          triggered_by?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "application_scoring_queue_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "application_scoring_queue_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "application_scoring_queue_triggered_by_fkey"
+            columns: ["triggered_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       applications: {
         Row: {
           applicant_id: string
@@ -520,6 +681,17 @@ export type Database = {
           rejection_reason: string | null
           score: number | null
           score_breakdown: Json | null
+          score_concerns: string[] | null
+          score_explanation: string | null
+          score_model: string | null
+          score_stage_id: string | null
+          score_status: string
+          score_strengths: string[] | null
+          score_updated_at: string | null
+          stage_block_overridden_at: string | null
+          stage_block_overridden_by: string | null
+          stage_block_override_reason: string | null
+          stage_blocked_by_missing_fields: boolean
           updated_at: string
         }
         Insert: {
@@ -536,6 +708,17 @@ export type Database = {
           rejection_reason?: string | null
           score?: number | null
           score_breakdown?: Json | null
+          score_concerns?: string[] | null
+          score_explanation?: string | null
+          score_model?: string | null
+          score_stage_id?: string | null
+          score_status?: string
+          score_strengths?: string[] | null
+          score_updated_at?: string | null
+          stage_block_overridden_at?: string | null
+          stage_block_overridden_by?: string | null
+          stage_block_override_reason?: string | null
+          stage_blocked_by_missing_fields?: boolean
           updated_at?: string
         }
         Update: {
@@ -552,6 +735,17 @@ export type Database = {
           rejection_reason?: string | null
           score?: number | null
           score_breakdown?: Json | null
+          score_concerns?: string[] | null
+          score_explanation?: string | null
+          score_model?: string | null
+          score_stage_id?: string | null
+          score_status?: string
+          score_strengths?: string[] | null
+          score_updated_at?: string | null
+          stage_block_overridden_at?: string | null
+          stage_block_overridden_by?: string | null
+          stage_block_override_reason?: string | null
+          stage_blocked_by_missing_fields?: boolean
           updated_at?: string
         }
         Relationships: [
@@ -581,6 +775,13 @@ export type Database = {
             columns: ["position_id"]
             isOneToOne: false
             referencedRelation: "job_positions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "applications_stage_block_overridden_by_fkey"
+            columns: ["stage_block_overridden_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -2116,6 +2317,9 @@ export type Database = {
           requirements: Json
           salary_range_max: number | null
           salary_range_min: number | null
+          scoring_enabled: boolean
+          scoring_global_baseline_id: string | null
+          scoring_rubric: Json | null
           status: string
           title: string
           updated_at: string
@@ -2136,6 +2340,9 @@ export type Database = {
           requirements?: Json
           salary_range_max?: number | null
           salary_range_min?: number | null
+          scoring_enabled?: boolean
+          scoring_global_baseline_id?: string | null
+          scoring_rubric?: Json | null
           status?: string
           title: string
           updated_at?: string
@@ -2156,6 +2363,9 @@ export type Database = {
           requirements?: Json
           salary_range_max?: number | null
           salary_range_min?: number | null
+          scoring_enabled?: boolean
+          scoring_global_baseline_id?: string | null
+          scoring_rubric?: Json | null
           status?: string
           title?: string
           updated_at?: string
@@ -2173,6 +2383,13 @@ export type Database = {
             columns: ["pipeline_id"]
             isOneToOne: false
             referencedRelation: "recruitment_pipelines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_positions_scoring_baseline_fk"
+            columns: ["scoring_global_baseline_id"]
+            isOneToOne: false
+            referencedRelation: "org_scoring_baselines"
             referencedColumns: ["id"]
           },
         ]
@@ -3096,6 +3313,57 @@ export type Database = {
         }
         Relationships: []
       }
+      org_scoring_baselines: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          is_default: boolean
+          name: string
+          organization_id: string
+          rubric: Json
+          soft_deleted_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_default?: boolean
+          name: string
+          organization_id: string
+          rubric: Json
+          soft_deleted_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_default?: boolean
+          name?: string
+          organization_id?: string
+          rubric?: Json
+          soft_deleted_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_scoring_baselines_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_scoring_baselines_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organization_memberships: {
         Row: {
           created_at: string
@@ -3199,6 +3467,77 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      pipeline_stage_field_requirements: {
+        Row: {
+          block_stage_progression: boolean
+          created_at: string
+          custom_field_id: string
+          display_order: number
+          id: string
+          organization_id: string
+          pipeline_id: string
+          position_id: string | null
+          requirement_type: string
+          stage_id: string
+          updated_at: string
+        }
+        Insert: {
+          block_stage_progression?: boolean
+          created_at?: string
+          custom_field_id: string
+          display_order?: number
+          id?: string
+          organization_id: string
+          pipeline_id: string
+          position_id?: string | null
+          requirement_type: string
+          stage_id: string
+          updated_at?: string
+        }
+        Update: {
+          block_stage_progression?: boolean
+          created_at?: string
+          custom_field_id?: string
+          display_order?: number
+          id?: string
+          organization_id?: string
+          pipeline_id?: string
+          position_id?: string | null
+          requirement_type?: string
+          stage_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pipeline_stage_field_requirements_custom_field_id_fkey"
+            columns: ["custom_field_id"]
+            isOneToOne: false
+            referencedRelation: "recruitment_custom_fields"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pipeline_stage_field_requirements_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pipeline_stage_field_requirements_pipeline_id_fkey"
+            columns: ["pipeline_id"]
+            isOneToOne: false
+            referencedRelation: "recruitment_pipelines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pipeline_stage_field_requirements_position_id_fkey"
+            columns: ["position_id"]
+            isOneToOne: false
+            referencedRelation: "job_positions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       preference_pairs: {
         Row: {
@@ -7294,6 +7633,17 @@ export type Database = {
           rejection_reason: string | null
           score: number | null
           score_breakdown: Json | null
+          score_concerns: string[] | null
+          score_explanation: string | null
+          score_model: string | null
+          score_stage_id: string | null
+          score_status: string
+          score_strengths: string[] | null
+          score_updated_at: string | null
+          stage_block_overridden_at: string | null
+          stage_block_overridden_by: string | null
+          stage_block_override_reason: string | null
+          stage_blocked_by_missing_fields: boolean
           updated_at: string
         }[]
         SetofOptions: {
