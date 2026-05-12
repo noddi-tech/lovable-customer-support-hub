@@ -360,3 +360,19 @@ verify_jwt = false
 # Cron-driven scheduled SMS dispatch.
 [functions.process-scheduled-sms]
 verify_jwt = false
+
+# Phase 11A — Recruitment auto-scoring (LLM via OpenAI gpt-5)
+[functions.score-application]
+verify_jwt = true
+
+# Cron-driven; processes the scoring queue. Service-role internal logic only.
+[functions.process-scoring-queue]
+verify_jwt = false
+
+# Cron-driven; extracts text from uploaded PDF/DOCX applicant files.
+[functions.process-file-extraction-queue]
+verify_jwt = false
+
+# Phase 11B — Stage-aware data requirement validation
+[functions.validate-stage-progression]
+verify_jwt = true
