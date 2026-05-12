@@ -18,6 +18,8 @@ import {
 
 import PositionStatusBadge from './positions/PositionStatusBadge';
 import CreatePositionDialog from './positions/CreatePositionDialog';
+import PositionScoringConfig from './positions/PositionScoringConfig';
+import PositionStageFieldRequirements from './positions/PositionStageFieldRequirements';
 import {
   useJobPosition,
   useUpdateJobPositionStatus,
@@ -171,6 +173,8 @@ const PositionDetail: React.FC = () => {
         <TabsList>
           <TabsTrigger value="details">Detaljer</TabsTrigger>
           <TabsTrigger value="applicants">Søkere</TabsTrigger>
+          <TabsTrigger value="scoring">Scoring</TabsTrigger>
+          <TabsTrigger value="stage-fields">Trinn-krav</TabsTrigger>
         </TabsList>
 
         <TabsContent value="details" className="space-y-4 mt-4">
@@ -275,6 +279,14 @@ const PositionDetail: React.FC = () => {
               </p>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="scoring" className="mt-4">
+          <PositionScoringConfig positionId={position.id} />
+        </TabsContent>
+
+        <TabsContent value="stage-fields" className="mt-4">
+          <PositionStageFieldRequirements positionId={position.id} />
         </TabsContent>
       </Tabs>
 
