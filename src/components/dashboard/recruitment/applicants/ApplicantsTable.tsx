@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils';
 import ApplicantSourceBadge from './ApplicantSourceBadge';
 import ApplicantStageBadge from './ApplicantStageBadge';
 import { TagChip } from './TagPicker';
+import { scoreTier, TIER_PILL, TIER_LABEL } from './scoreTier';
 import { useApplicants, useApplicantPipeline, type ApplicantsFilters, type ApplicantRow } from './useApplicants';
 import { useApplicantTagsByIds } from '@/hooks/recruitment/useApplicantTags';
 
@@ -39,12 +40,6 @@ const HEADERS: { key: Exclude<SortCol, null> | 'tags' | 'source' | 'phone'; labe
   { key: 'score', label: 'Poeng', sortable: true },
   { key: 'applied', label: 'Søkt', sortable: true },
 ];
-
-function scoreClass(score: number) {
-  if (score < 30) return 'text-red-600';
-  if (score <= 60) return 'text-amber-600';
-  return 'text-green-600';
-}
 
 function getValue(a: ApplicantRow, col: Exclude<SortCol, null>): string | number {
   const first = a.applications?.[0];
