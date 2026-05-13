@@ -22,13 +22,6 @@ import {
   useUpdateJobPositionStatus,
 } from './positions/usePositions';
 
-const EMPLOYMENT_LABELS: Record<string, string> = {
-  full_time: 'Heltid',
-  part_time: 'Deltid',
-  contract: 'Vikariat',
-  seasonal: 'Sesong',
-};
-
 interface StatusTransition {
   label: string;
   status: string;
@@ -47,33 +40,25 @@ const TRANSITIONS: Record<string, StatusTransition[]> = {
   closed: [{ label: 'Gjenåpne', status: 'open' }],
 };
 
-const formatDate = (iso: string | null) =>
-  iso ? format(new Date(iso), 'd. MMM yyyy', { locale: nb }) : '—';
-
-const formatSalary = (min: number | null, max: number | null) => {
-  if (min == null && max == null) return 'Ikke spesifisert';
-  const fmt = (n: number) => `NOK ${n.toLocaleString('nb-NO')}`;
-  if (min != null && max != null) return `${fmt(min)} — ${fmt(max)} per år`;
-  if (min != null) return `Fra ${fmt(min)} per år`;
-  return `Opptil ${fmt(max!)} per år`;
-};
-
-const Row: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
-  <div className="grid grid-cols-[160px_1fr] gap-4 py-2 border-b border-border/50 last:border-b-0">
-    <dt className="text-sm text-muted-foreground">{label}</dt>
-    <dd className="text-sm text-foreground">{children}</dd>
-  </div>
-);
-
-const Muted: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <span className="text-muted-foreground">{children}</span>
-);
+const VALID_TABS = ['details', 'applicants', 'scoring', 'stage-fields'] as const;
+type TabValue = (typeof VALID_TABS)[number];
 
 const PositionDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { data: position, isLoading } = useJobPosition(id);
   const updateStatusMut = useUpdateJobPositionStatus();
-  const [editOpen, setEditOpen] = useState(false);
+
+  const [searchParams, setSearchParams] = useSearchParams();
+  const rawTab = searchParams.get('tab');
+  const tab: TabValue = (VALID_TABS as readonly string[]).includes(rawTab ?? '')
+    ? (rawTab as TabValue)
+    : 'details';
+  const setTab = (next: string) => {
+    const sp = new URLSearchParams(searchParams);
+    if (next === 'details') sp.delete('tab');
+    else sp.set('tab', next);
+    setSearchParams(sp, { replace: true });
+  };
 
   const backLink = (
     <Link
