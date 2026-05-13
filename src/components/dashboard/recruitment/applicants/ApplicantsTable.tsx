@@ -232,7 +232,15 @@ const ApplicantsTable: React.FC<Props> = ({
                 </TableCell>
                 <TableCell>
                   {score != null ? (
-                    <span className={cn('font-medium', scoreClass(score))}>{score}</span>
+                    <span
+                      className={cn(
+                        'inline-flex items-center justify-center min-w-[32px] h-6 px-2 rounded-full border text-xs font-semibold',
+                        TIER_PILL[scoreTier(score)],
+                      )}
+                      title={`${score}/10 — ${TIER_LABEL[scoreTier(score)]}`}
+                    >
+                      {score}
+                    </span>
                   ) : (<span className="text-muted-foreground">—</span>)}
                 </TableCell>
                 <TableCell className="text-muted-foreground">
