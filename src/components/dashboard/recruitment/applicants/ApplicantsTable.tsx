@@ -66,8 +66,16 @@ const ApplicantsTable: React.FC<Props> = ({
 
   const sorted = useMemo(() => {
     if (!data) return data;
-    if (!sortCol) return data;
-    const arr = [...data];
+    const tierFilter = filters.scoreTier ?? 'all';
+    let arr = data;
+    if (tierFilter !== 'all') {
+      arr = arr.filter((a) => {
+        const s = a.applications?.[0]?.score;
+        return scoreTier(s ?? null) === tierFilter;
+      });
+    }
+    if (!sortCol) return arr;
+    arr = [...arr];
     arr.sort((a, b) => {
       const va = getValue(a, sortCol);
       const vb = getValue(b, sortCol);
@@ -76,7 +84,7 @@ const ApplicantsTable: React.FC<Props> = ({
       return 0;
     });
     return arr;
-  }, [data, sortCol, sortDir]);
+  }, [data, sortCol, sortDir, filters.scoreTier]);
 
   const toggleSort = (col: Exclude<SortCol, null>) => {
     if (sortCol !== col) { setSortCol(col); setSortDir('asc'); return; }
