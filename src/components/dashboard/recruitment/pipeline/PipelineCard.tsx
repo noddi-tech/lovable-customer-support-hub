@@ -25,12 +25,6 @@ const SOURCE_ABBR: Record<string, { letter: string; className: string }> = {
   csv_import: { letter: 'C', className: 'bg-indigo-100 text-indigo-700' },
 };
 
-function scoreColor(score: number | null) {
-  if (score == null) return 'bg-muted';
-  if (score < 30) return 'bg-red-500';
-  if (score <= 60) return 'bg-amber-500';
-  return 'bg-green-500';
-}
 
 function initials(name: string | null | undefined) {
   if (!name) return '?';
