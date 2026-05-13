@@ -77,12 +77,27 @@ const PipelineCard: React.FC<Props> = ({ app, isOverlay }) => {
         {app.job_positions?.title ?? '—'}
       </div>
       <div className="flex items-center justify-between gap-2 mt-3">
-        <div className="flex items-center gap-1.5">
-          <span className={cn('h-2 w-2 rounded-full', scoreColor(app.score))} />
-          <span className="text-xs font-medium">
-            {app.score ?? '—'}
-          </span>
-        </div>
+        <TooltipProvider delayDuration={200}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span
+                className={cn(
+                  'inline-flex items-center justify-center min-w-[28px] h-5 px-1.5 rounded-full border text-[11px] font-semibold',
+                  TIER_PILL[scoreTier(app.score)],
+                )}
+              >
+                {app.score ?? '—'}
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>
+              <div className="text-xs">
+                {app.score == null
+                  ? 'Ingen poeng ennå'
+                  : `Poeng: ${app.score}/10 — ${TIER_LABEL[scoreTier(app.score)]}`}
+              </div>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
         <span
           className={cn(
             'text-xs',
