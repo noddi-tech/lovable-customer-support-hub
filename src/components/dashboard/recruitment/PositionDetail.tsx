@@ -1,13 +1,10 @@
-import React, { useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, Pencil, ChevronDown } from 'lucide-react';
-import { format } from 'date-fns';
-import { nb } from 'date-fns/locale';
+import React from 'react';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { ArrowLeft, ChevronDown } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   DropdownMenu,
@@ -17,7 +14,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 import PositionStatusBadge from './positions/PositionStatusBadge';
-import CreatePositionDialog from './positions/CreatePositionDialog';
+import PositionForm from './positions/PositionForm';
 import PositionScoringConfig from './positions/PositionScoringConfig';
 import PositionStageFieldRequirements from './positions/PositionStageFieldRequirements';
 import {
