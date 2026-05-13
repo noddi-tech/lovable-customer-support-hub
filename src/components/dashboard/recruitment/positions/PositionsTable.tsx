@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Briefcase } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { nb } from 'date-fns/locale';
@@ -17,6 +17,7 @@ import { useJobPositions } from './usePositions';
 
 const PositionsTable: React.FC = () => {
   const { data, isLoading } = useJobPositions();
+  const navigate = useNavigate();
 
   if (isLoading) {
     return (
@@ -78,14 +79,13 @@ const PositionsTable: React.FC = () => {
           {data.map((p) => {
             const count = p.applications?.[0]?.count ?? 0;
             return (
-              <TableRow key={p.id}>
+              <TableRow
+                key={p.id}
+                onClick={() => navigate(`/operations/recruitment/positions/${p.id}`)}
+                className="cursor-pointer hover:bg-muted/50"
+              >
                 <TableCell>
-                  <Link
-                    to={`/operations/recruitment/positions/${p.id}`}
-                    className="font-semibold text-foreground hover:underline"
-                  >
-                    {p.title}
-                  </Link>
+                  <span className="font-semibold text-foreground">{p.title}</span>
                 </TableCell>
                 <TableCell className="text-foreground">
                   {p.location || <span className="text-muted-foreground">—</span>}

@@ -1,13 +1,10 @@
-import React, { useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, Pencil, ChevronDown } from 'lucide-react';
-import { format } from 'date-fns';
-import { nb } from 'date-fns/locale';
+import React from 'react';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { ArrowLeft, ChevronDown } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   DropdownMenu,
@@ -17,20 +14,13 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 import PositionStatusBadge from './positions/PositionStatusBadge';
-import CreatePositionDialog from './positions/CreatePositionDialog';
+import PositionForm from './positions/PositionForm';
 import PositionScoringConfig from './positions/PositionScoringConfig';
 import PositionStageFieldRequirements from './positions/PositionStageFieldRequirements';
 import {
   useJobPosition,
   useUpdateJobPositionStatus,
 } from './positions/usePositions';
-
-const EMPLOYMENT_LABELS: Record<string, string> = {
-  full_time: 'Heltid',
-  part_time: 'Deltid',
-  contract: 'Vikariat',
-  seasonal: 'Sesong',
-};
 
 interface StatusTransition {
   label: string;
@@ -50,33 +40,25 @@ const TRANSITIONS: Record<string, StatusTransition[]> = {
   closed: [{ label: 'Gjenåpne', status: 'open' }],
 };
 
-const formatDate = (iso: string | null) =>
-  iso ? format(new Date(iso), 'd. MMM yyyy', { locale: nb }) : '—';
-
-const formatSalary = (min: number | null, max: number | null) => {
-  if (min == null && max == null) return 'Ikke spesifisert';
-  const fmt = (n: number) => `NOK ${n.toLocaleString('nb-NO')}`;
-  if (min != null && max != null) return `${fmt(min)} — ${fmt(max)} per år`;
-  if (min != null) return `Fra ${fmt(min)} per år`;
-  return `Opptil ${fmt(max!)} per år`;
-};
-
-const Row: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
-  <div className="grid grid-cols-[160px_1fr] gap-4 py-2 border-b border-border/50 last:border-b-0">
-    <dt className="text-sm text-muted-foreground">{label}</dt>
-    <dd className="text-sm text-foreground">{children}</dd>
-  </div>
-);
-
-const Muted: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <span className="text-muted-foreground">{children}</span>
-);
+const VALID_TABS = ['details', 'applicants', 'scoring', 'stage-fields'] as const;
+type TabValue = (typeof VALID_TABS)[number];
 
 const PositionDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { data: position, isLoading } = useJobPosition(id);
   const updateStatusMut = useUpdateJobPositionStatus();
-  const [editOpen, setEditOpen] = useState(false);
+
+  const [searchParams, setSearchParams] = useSearchParams();
+  const rawTab = searchParams.get('tab');
+  const tab: TabValue = (VALID_TABS as readonly string[]).includes(rawTab ?? '')
+    ? (rawTab as TabValue)
+    : 'details';
+  const setTab = (next: string) => {
+    const sp = new URLSearchParams(searchParams);
+    if (next === 'details') sp.delete('tab');
+    else sp.set('tab', next);
+    setSearchParams(sp, { replace: true });
+  };
 
   const backLink = (
     <Link
@@ -113,16 +95,6 @@ const PositionDetail: React.FC = () => {
   }
 
   const transitions = TRANSITIONS[position.status] ?? [];
-  const req = (position.requirements ?? {}) as {
-    drivers_license?: string[];
-    min_experience_years?: number | null;
-    certifications?: string[];
-  };
-  const licenses = Array.isArray(req.drivers_license) ? req.drivers_license : [];
-  const certs = Array.isArray(req.certifications) ? req.certifications : [];
-  const minYears = req.min_experience_years;
-  const noRequirements =
-    licenses.length === 0 && certs.length === 0 && (minYears == null || minYears === 0);
 
   const handleStatusChange = (status: string) => {
     updateStatusMut.mutate({
@@ -142,10 +114,6 @@ const PositionDetail: React.FC = () => {
           <PositionStatusBadge status={position.status} />
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={() => setEditOpen(true)}>
-            <Pencil className="h-4 w-4" />
-            Rediger
-          </Button>
           {transitions.length > 0 && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -169,7 +137,7 @@ const PositionDetail: React.FC = () => {
         </div>
       </div>
 
-      <Tabs defaultValue="details" className="w-full">
+      <Tabs value={tab} onValueChange={setTab} className="w-full">
         <TabsList>
           <TabsTrigger value="details">Detaljer</TabsTrigger>
           <TabsTrigger value="applicants">Søkere</TabsTrigger>
@@ -180,93 +148,10 @@ const PositionDetail: React.FC = () => {
         <TabsContent value="details" className="space-y-4 mt-4">
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Generelt</CardTitle>
+              <CardTitle className="text-base">Detaljer</CardTitle>
             </CardHeader>
             <CardContent>
-              <dl>
-                <Row label="Tittel">{position.title}</Row>
-                <Row label="Beskrivelse">
-                  {position.description ? (
-                    <span className="whitespace-pre-wrap">{position.description}</span>
-                  ) : (
-                    <Muted>Ingen beskrivelse</Muted>
-                  )}
-                </Row>
-                <Row label="Sted">{position.location || <Muted>—</Muted>}</Row>
-                <Row label="Kampanje">{position.campaign || <Muted>—</Muted>}</Row>
-                <Row label="Ansettelsestype">
-                  {EMPLOYMENT_LABELS[position.employment_type] ?? position.employment_type}
-                </Row>
-                <Row label="Lønnsspenn">
-                  {formatSalary(position.salary_range_min, position.salary_range_max)}
-                </Row>
-                <Row label="Pipeline">
-                  {position.recruitment_pipelines?.name || <Muted>—</Muted>}
-                </Row>
-                <Row label="Finn.no lenke">
-                  {position.finn_listing_url ? (
-                    <a
-                      href={position.finn_listing_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-primary underline hover:no-underline"
-                    >
-                      {position.finn_listing_url}
-                    </a>
-                  ) : (
-                    <Muted>—</Muted>
-                  )}
-                </Row>
-                <Row label="Publisert">{formatDate(position.published_at)}</Row>
-                <Row label="Lukkes">{formatDate(position.closes_at)}</Row>
-              </dl>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Krav</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {noRequirements ? (
-                <p className="text-sm text-muted-foreground">Ingen krav spesifisert</p>
-              ) : (
-                <dl>
-                  <Row label="Førerkortklasser">
-                    {licenses.length > 0 ? (
-                      <div className="flex flex-wrap gap-1.5">
-                        {licenses.map((l) => (
-                          <Badge key={l} variant="secondary">
-                            {l}
-                          </Badge>
-                        ))}
-                      </div>
-                    ) : (
-                      <Muted>—</Muted>
-                    )}
-                  </Row>
-                  <Row label="Minimum erfaring">
-                    {minYears != null && minYears > 0 ? (
-                      `${minYears} år`
-                    ) : (
-                      <Muted>Ikke spesifisert</Muted>
-                    )}
-                  </Row>
-                  <Row label="Sertifiseringer">
-                    {certs.length > 0 ? (
-                      <div className="flex flex-wrap gap-1.5">
-                        {certs.map((c) => (
-                          <Badge key={c} variant="secondary">
-                            {c}
-                          </Badge>
-                        ))}
-                      </div>
-                    ) : (
-                      <Muted>—</Muted>
-                    )}
-                  </Row>
-                </dl>
-              )}
+              <PositionForm mode="edit" position={position} embedded />
             </CardContent>
           </Card>
         </TabsContent>
@@ -289,12 +174,6 @@ const PositionDetail: React.FC = () => {
           <PositionStageFieldRequirements positionId={position.id} />
         </TabsContent>
       </Tabs>
-
-      <CreatePositionDialog
-        open={editOpen}
-        onOpenChange={setEditOpen}
-        position={position}
-      />
     </div>
   );
 };
