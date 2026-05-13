@@ -188,7 +188,7 @@ export function useUpdateJobPosition() {
     onSuccess: (_data, vars) => {
       queryClient.invalidateQueries({ queryKey: ['job-position', vars.id] });
       queryClient.invalidateQueries({ queryKey: ['job-positions'] });
-      toast.success('Stilling oppdatert');
+      toast.success('Lagret');
     },
     onError: (error: any) => {
       toast.error(error?.message || 'Kunne ikke oppdatere stilling');
