@@ -9,6 +9,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { cn } from '@/lib/utils';
 import { useApplicantTags } from '@/hooks/recruitment/useApplicantTags';
 import { TagChip } from '../applicants/TagPicker';
+import { scoreTier, TIER_LABEL, TIER_PILL } from '../applicants/scoreTier';
 import { daysSince, type PipelineApplication } from './usePipeline';
 
 interface Props {
