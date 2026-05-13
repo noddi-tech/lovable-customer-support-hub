@@ -150,7 +150,10 @@ function buildJsonSchema(rubric: ScoringRubric) {
   };
 }
 
-export async function scoreApplicant(input: ScoringInput): Promise<ScoringResult> {
+export async function scoreApplicant(
+  input: ScoringInput,
+  opts?: { signal?: AbortSignal },
+): Promise<ScoringResult> {
   const apiKey = Deno.env.get('OPENAI_API_KEY');
   if (!apiKey) throw new Error('OPENAI_API_KEY not configured');
 
@@ -159,6 +162,7 @@ export async function scoreApplicant(input: ScoringInput): Promise<ScoringResult
 
   const res = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
+    signal: opts?.signal,
     headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
       model: MODEL,

@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils';
 import ApplicantSourceBadge from './ApplicantSourceBadge';
 import ApplicantStageBadge from './ApplicantStageBadge';
 import { TagChip } from './TagPicker';
+import { scoreTier, TIER_PILL, TIER_LABEL } from './scoreTier';
 import { useApplicants, useApplicantPipeline, type ApplicantsFilters, type ApplicantRow } from './useApplicants';
 import { useApplicantTagsByIds } from '@/hooks/recruitment/useApplicantTags';
 
@@ -40,12 +41,6 @@ const HEADERS: { key: Exclude<SortCol, null> | 'tags' | 'source' | 'phone'; labe
   { key: 'applied', label: 'Søkt', sortable: true },
 ];
 
-function scoreClass(score: number) {
-  if (score < 30) return 'text-red-600';
-  if (score <= 60) return 'text-amber-600';
-  return 'text-green-600';
-}
-
 function getValue(a: ApplicantRow, col: Exclude<SortCol, null>): string | number {
   const first = a.applications?.[0];
   switch (col) {
@@ -71,8 +66,16 @@ const ApplicantsTable: React.FC<Props> = ({
 
   const sorted = useMemo(() => {
     if (!data) return data;
-    if (!sortCol) return data;
-    const arr = [...data];
+    const tierFilter = filters.scoreTier ?? 'all';
+    let arr = data;
+    if (tierFilter !== 'all') {
+      arr = arr.filter((a) => {
+        const s = a.applications?.[0]?.score;
+        return scoreTier(s ?? null) === tierFilter;
+      });
+    }
+    if (!sortCol) return arr;
+    arr = [...arr];
     arr.sort((a, b) => {
       const va = getValue(a, sortCol);
       const vb = getValue(b, sortCol);
@@ -81,7 +84,7 @@ const ApplicantsTable: React.FC<Props> = ({
       return 0;
     });
     return arr;
-  }, [data, sortCol, sortDir]);
+  }, [data, sortCol, sortDir, filters.scoreTier]);
 
   const toggleSort = (col: Exclude<SortCol, null>) => {
     if (sortCol !== col) { setSortCol(col); setSortDir('asc'); return; }
@@ -237,7 +240,15 @@ const ApplicantsTable: React.FC<Props> = ({
                 </TableCell>
                 <TableCell>
                   {score != null ? (
-                    <span className={cn('font-medium', scoreClass(score))}>{score}</span>
+                    <span
+                      className={cn(
+                        'inline-flex items-center justify-center min-w-[32px] h-6 px-2 rounded-full border text-xs font-semibold',
+                        TIER_PILL[scoreTier(score)],
+                      )}
+                      title={`${score}/10 — ${TIER_LABEL[scoreTier(score)]}`}
+                    >
+                      {score}
+                    </span>
                   ) : (<span className="text-muted-foreground">—</span>)}
                 </TableCell>
                 <TableCell className="text-muted-foreground">

@@ -6,9 +6,11 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const BATCH_SIZE = 5;
+const BATCH_SIZE = 3; // small to avoid edge runtime walltime risk for slow gpt-5 calls
 const MAX_ATTEMPTS = 3;
 const BACKOFF_MINUTES = [1, 5, 15];
+const PER_ROW_TIMEOUT_MS = 90_000;
+const STUCK_PROCESSING_MINUTES = 3;
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
@@ -17,17 +19,26 @@ Deno.serve(async (req) => {
   const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
   const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-  const results = { processed: 0, succeeded: 0, failed: 0, errors: [] as string[] };
+  const results = {
+    processed: 0,
+    succeeded: 0,
+    failed: 0,
+    reclaimed: 0,
+    errors: [] as string[],
+  };
 
   try {
-    // Atomic claim using a CTE
+    // 1. Reclaim rows stuck in 'processing' from a prior interrupted run.
+    const reclaimed = await reclaimStuckProcessing(admin);
+    results.reclaimed = reclaimed;
+
+    // 2. Claim a small batch (atomic RPC if available, fallback otherwise).
+    let queueIds: string[] = [];
     const { data: claimed, error: claimErr } = await admin.rpc('claim_scoring_queue_batch', {
       p_batch_size: BATCH_SIZE,
     });
 
     if (claimErr) {
-      // Fallback if RPC doesn't exist yet — do a non-atomic claim
-      console.warn('[process-scoring-queue] claim RPC missing, using fallback:', claimErr.message);
       const { data: rows } = await admin
         .from('application_scoring_queue')
         .select('id')
@@ -35,20 +46,19 @@ Deno.serve(async (req) => {
         .or(`next_attempt_at.is.null,next_attempt_at.lte.${new Date().toISOString()}`)
         .order('created_at', { ascending: true })
         .limit(BATCH_SIZE);
-      const ids = (rows || []).map((r: any) => r.id);
-      if (ids.length === 0) {
-        return new Response(JSON.stringify(results), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      queueIds = (rows || []).map((r: any) => r.id);
+      if (queueIds.length > 0) {
+        await admin
+          .from('application_scoring_queue')
+          .update({ status: 'processing' })
+          .in('id', queueIds);
       }
-      await admin.from('application_scoring_queue').update({ status: 'processing' }).in('id', ids);
-      for (const id of ids) {
-        await processOne(admin, id, results);
-      }
-      return new Response(JSON.stringify(results), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    } else {
+      queueIds = ((claimed as any[]) || []).map((r) => r.id);
     }
 
-    const queueIds = (claimed as any[])?.map((r) => r.id) ?? [];
     for (const id of queueIds) {
-      await processOne(admin, id, results);
+      await processOneSafe(admin, id, results);
     }
 
     return new Response(JSON.stringify(results), {
@@ -63,15 +73,98 @@ Deno.serve(async (req) => {
   }
 });
 
-async function processOne(admin: any, queueId: string, results: any) {
+async function reclaimStuckProcessing(admin: any): Promise<number> {
+  const cutoff = new Date(Date.now() - STUCK_PROCESSING_MINUTES * 60_000).toISOString();
+  const { data: stuck, error } = await admin
+    .from('application_scoring_queue')
+    .select('id, attempts')
+    .eq('status', 'processing')
+    .lt('updated_at', cutoff);
+  if (error) {
+    console.warn('[process-scoring-queue] reclaim query failed:', error.message);
+    return 0;
+  }
+  const rows = (stuck as any[]) || [];
+  if (rows.length === 0) return 0;
+
+  for (const r of rows) {
+    await admin
+      .from('application_scoring_queue')
+      .update({
+        status: 'pending',
+        attempts: (r.attempts ?? 0) + 1,
+        error_message: 'Auto-recovered from stuck processing',
+        next_attempt_at: null,
+      })
+      .eq('id', r.id);
+  }
+  console.log(`[process-scoring-queue] reclaimed ${rows.length} stuck rows`);
+  return rows.length;
+}
+
+/** Wraps processOne with timeout + try/finally guarantee that the row never
+ *  remains in 'processing' once this returns, regardless of how processOne exits. */
+async function processOneSafe(admin: any, queueId: string, results: any) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => {
+    controller.abort(new Error(`Per-row timeout after ${PER_ROW_TIMEOUT_MS}ms`));
+  }, PER_ROW_TIMEOUT_MS);
+
+  try {
+    await processOne(admin, queueId, results, controller.signal);
+  } catch (err: any) {
+    // processOne handles its own errors; this is a final safety net.
+    console.error('[process-scoring-queue] uncaught processOne error', queueId, err);
+    results.failed++;
+    results.errors.push(`${queueId}: uncaught ${err?.message || err}`);
+  } finally {
+    clearTimeout(timeoutId);
+    // Final safety net: ensure no row remains in 'processing' regardless of code path.
+    await ensureNotProcessing(admin, queueId);
+  }
+}
+
+async function ensureNotProcessing(admin: any, queueId: string) {
+  try {
+    const { data: row } = await admin
+      .from('application_scoring_queue')
+      .select('id, status, attempts')
+      .eq('id', queueId)
+      .maybeSingle();
+    if (!row) return;
+    if (row.status !== 'processing') return;
+
+    const attempts = (row.attempts ?? 0) + 1;
+    const willRetry = attempts < MAX_ATTEMPTS;
+    const nextAttemptAt = willRetry
+      ? new Date(Date.now() + BACKOFF_MINUTES[Math.min(attempts - 1, BACKOFF_MINUTES.length - 1)] * 60_000).toISOString()
+      : null;
+    await admin
+      .from('application_scoring_queue')
+      .update({
+        status: willRetry ? 'pending' : 'failed',
+        attempts,
+        next_attempt_at: nextAttemptAt,
+        error_message: 'Recovered from stuck processing in finally guard',
+      })
+      .eq('id', queueId);
+  } catch (e: any) {
+    console.warn('[process-scoring-queue] ensureNotProcessing failed', queueId, e?.message);
+  }
+}
+
+async function processOne(admin: any, queueId: string, results: any, signal: AbortSignal) {
   results.processed++;
   let queueRow: any;
   try {
-    const { data } = await admin.from('application_scoring_queue').select('*').eq('id', queueId).single();
+    const { data } = await admin
+      .from('application_scoring_queue')
+      .select('*')
+      .eq('id', queueId)
+      .single();
     queueRow = data;
     if (!queueRow) return;
 
-    // Load application + position + applicant
     const { data: app } = await admin
       .from('applications')
       .select('id, organization_id, applicant_id, position_id, current_stage_id')
@@ -92,7 +185,6 @@ async function processOne(admin: any, queueId: string, results: any) {
       return;
     }
 
-    // Resolve effective rubric: position rubric > baseline > none
     let rubric: ScoringRubric | null = position.scoring_rubric as ScoringRubric | null;
     if (!rubric && position.scoring_global_baseline_id) {
       const { data: baseline } = await admin
@@ -103,7 +195,6 @@ async function processOne(admin: any, queueId: string, results: any) {
       rubric = (baseline?.rubric as ScoringRubric) || null;
     }
     if (!rubric) {
-      // No rubric set; fall back to the org default if one exists
       const { data: defaultBaseline } = await admin
         .from('org_scoring_baselines')
         .select('rubric')
@@ -119,7 +210,6 @@ async function processOne(admin: any, queueId: string, results: any) {
       return;
     }
 
-    // Load applicant
     const { data: applicant } = await admin
       .from('applicants')
       .select('first_name,last_name,email,phone,location,years_experience,certifications,drivers_license_classes,language_norwegian,work_permit_status,availability_date')
@@ -127,7 +217,6 @@ async function processOne(admin: any, queueId: string, results: any) {
       .single();
     if (!applicant) throw new Error('Applicant not found');
 
-    // Load custom field values + field defs
     const { data: fieldValues } = await admin
       .from('recruitment_applicant_field_values')
       .select('value, raw_value, field_id, recruitment_custom_fields!inner(display_name, type_id, recruitment_custom_field_types(key))')
@@ -139,7 +228,6 @@ async function processOne(admin: any, queueId: string, results: any) {
       value: v.value ?? v.raw_value,
     }));
 
-    // Load extracted text from files
     const { data: files } = await admin
       .from('applicant_files')
       .select('file_name, extracted_text, extraction_status')
@@ -152,7 +240,6 @@ async function processOne(admin: any, queueId: string, results: any) {
       extracted_text: f.extracted_text,
     }));
 
-    // Resolve current stage name from pipeline
     let stageInfo: { name: string; description?: string | null } | null = null;
     const { data: pipeline } = await admin
       .from('recruitment_pipelines')
@@ -171,9 +258,9 @@ async function processOne(admin: any, queueId: string, results: any) {
       stage: stageInfo,
     };
 
-    const result = await scoreApplicant(input);
+    if (signal.aborted) throw new Error('Aborted before LLM call');
+    const result = await scoreApplicant(input, { signal });
 
-    // Persist on application
     await admin
       .from('applications')
       .update({
@@ -189,7 +276,6 @@ async function processOne(admin: any, queueId: string, results: any) {
       })
       .eq('id', app.id);
 
-    // Insert immutable history row
     await admin.from('applicant_score_history').insert({
       application_id: app.id,
       organization_id: app.organization_id,
@@ -206,7 +292,6 @@ async function processOne(admin: any, queueId: string, results: any) {
       token_usage: result.token_usage,
     });
 
-    // Audit
     await admin.from('recruitment_audit_events').insert({
       organization_id: app.organization_id,
       event_type: 'application_scored',
@@ -222,13 +307,14 @@ async function processOne(admin: any, queueId: string, results: any) {
     await markDone(admin, queueId);
     results.succeeded++;
   } catch (err: any) {
-    console.error('[process-scoring-queue] item error', queueId, err);
+    const isAbort = err?.name === 'AbortError' || /timeout|aborted/i.test(String(err?.message || ''));
+    console.error('[process-scoring-queue] item error', queueId, err?.message || err);
     results.failed++;
     results.errors.push(`${queueId}: ${err?.message}`);
     const attempts = (queueRow?.attempts ?? 0) + 1;
     const willRetry = attempts < MAX_ATTEMPTS;
     const nextAttemptAt = willRetry
-      ? new Date(Date.now() + BACKOFF_MINUTES[attempts - 1] * 60_000).toISOString()
+      ? new Date(Date.now() + BACKOFF_MINUTES[Math.min(attempts - 1, BACKOFF_MINUTES.length - 1)] * 60_000).toISOString()
       : null;
     await admin
       .from('application_scoring_queue')
@@ -236,7 +322,7 @@ async function processOne(admin: any, queueId: string, results: any) {
         status: willRetry ? 'pending' : 'failed',
         attempts,
         next_attempt_at: nextAttemptAt,
-        error_message: String(err?.message || err).slice(0, 1000),
+        error_message: (isAbort ? 'TIMEOUT: ' : '') + String(err?.message || err).slice(0, 1000),
       })
       .eq('id', queueId);
     if (!willRetry && queueRow?.application_id) {
@@ -257,5 +343,8 @@ async function processOne(admin: any, queueId: string, results: any) {
 }
 
 async function markDone(admin: any, queueId: string) {
-  await admin.from('application_scoring_queue').update({ status: 'done' }).eq('id', queueId);
+  await admin
+    .from('application_scoring_queue')
+    .update({ status: 'done', error_message: null })
+    .eq('id', queueId);
 }

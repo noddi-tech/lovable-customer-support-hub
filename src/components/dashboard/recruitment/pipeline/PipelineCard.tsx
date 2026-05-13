@@ -9,6 +9,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { cn } from '@/lib/utils';
 import { useApplicantTags } from '@/hooks/recruitment/useApplicantTags';
 import { TagChip } from '../applicants/TagPicker';
+import { scoreTier, TIER_LABEL, TIER_PILL } from '../applicants/scoreTier';
 import { daysSince, type PipelineApplication } from './usePipeline';
 
 interface Props {
@@ -25,12 +26,6 @@ const SOURCE_ABBR: Record<string, { letter: string; className: string }> = {
   csv_import: { letter: 'C', className: 'bg-indigo-100 text-indigo-700' },
 };
 
-function scoreColor(score: number | null) {
-  if (score == null) return 'bg-muted';
-  if (score < 30) return 'bg-red-500';
-  if (score <= 60) return 'bg-amber-500';
-  return 'bg-green-500';
-}
 
 function initials(name: string | null | undefined) {
   if (!name) return '?';
@@ -83,12 +78,27 @@ const PipelineCard: React.FC<Props> = ({ app, isOverlay }) => {
         {app.job_positions?.title ?? '—'}
       </div>
       <div className="flex items-center justify-between gap-2 mt-3">
-        <div className="flex items-center gap-1.5">
-          <span className={cn('h-2 w-2 rounded-full', scoreColor(app.score))} />
-          <span className="text-xs font-medium">
-            {app.score ?? '—'}
-          </span>
-        </div>
+        <TooltipProvider delayDuration={200}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span
+                className={cn(
+                  'inline-flex items-center justify-center min-w-[28px] h-5 px-1.5 rounded-full border text-[11px] font-semibold',
+                  TIER_PILL[scoreTier(app.score)],
+                )}
+              >
+                {app.score ?? '—'}
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>
+              <div className="text-xs">
+                {app.score == null
+                  ? 'Ingen poeng ennå'
+                  : `Poeng: ${app.score}/10 — ${TIER_LABEL[scoreTier(app.score)]}`}
+              </div>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
         <span
           className={cn(
             'text-xs',
