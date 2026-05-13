@@ -95,16 +95,6 @@ const PositionDetail: React.FC = () => {
   }
 
   const transitions = TRANSITIONS[position.status] ?? [];
-  const req = (position.requirements ?? {}) as {
-    drivers_license?: string[];
-    min_experience_years?: number | null;
-    certifications?: string[];
-  };
-  const licenses = Array.isArray(req.drivers_license) ? req.drivers_license : [];
-  const certs = Array.isArray(req.certifications) ? req.certifications : [];
-  const minYears = req.min_experience_years;
-  const noRequirements =
-    licenses.length === 0 && certs.length === 0 && (minYears == null || minYears === 0);
 
   const handleStatusChange = (status: string) => {
     updateStatusMut.mutate({
@@ -124,10 +114,6 @@ const PositionDetail: React.FC = () => {
           <PositionStatusBadge status={position.status} />
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={() => setEditOpen(true)}>
-            <Pencil className="h-4 w-4" />
-            Rediger
-          </Button>
           {transitions.length > 0 && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -151,7 +137,7 @@ const PositionDetail: React.FC = () => {
         </div>
       </div>
 
-      <Tabs defaultValue="details" className="w-full">
+      <Tabs value={tab} onValueChange={setTab} className="w-full">
         <TabsList>
           <TabsTrigger value="details">Detaljer</TabsTrigger>
           <TabsTrigger value="applicants">Søkere</TabsTrigger>
@@ -162,93 +148,10 @@ const PositionDetail: React.FC = () => {
         <TabsContent value="details" className="space-y-4 mt-4">
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Generelt</CardTitle>
+              <CardTitle className="text-base">Detaljer</CardTitle>
             </CardHeader>
             <CardContent>
-              <dl>
-                <Row label="Tittel">{position.title}</Row>
-                <Row label="Beskrivelse">
-                  {position.description ? (
-                    <span className="whitespace-pre-wrap">{position.description}</span>
-                  ) : (
-                    <Muted>Ingen beskrivelse</Muted>
-                  )}
-                </Row>
-                <Row label="Sted">{position.location || <Muted>—</Muted>}</Row>
-                <Row label="Kampanje">{position.campaign || <Muted>—</Muted>}</Row>
-                <Row label="Ansettelsestype">
-                  {EMPLOYMENT_LABELS[position.employment_type] ?? position.employment_type}
-                </Row>
-                <Row label="Lønnsspenn">
-                  {formatSalary(position.salary_range_min, position.salary_range_max)}
-                </Row>
-                <Row label="Pipeline">
-                  {position.recruitment_pipelines?.name || <Muted>—</Muted>}
-                </Row>
-                <Row label="Finn.no lenke">
-                  {position.finn_listing_url ? (
-                    <a
-                      href={position.finn_listing_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-primary underline hover:no-underline"
-                    >
-                      {position.finn_listing_url}
-                    </a>
-                  ) : (
-                    <Muted>—</Muted>
-                  )}
-                </Row>
-                <Row label="Publisert">{formatDate(position.published_at)}</Row>
-                <Row label="Lukkes">{formatDate(position.closes_at)}</Row>
-              </dl>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Krav</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {noRequirements ? (
-                <p className="text-sm text-muted-foreground">Ingen krav spesifisert</p>
-              ) : (
-                <dl>
-                  <Row label="Førerkortklasser">
-                    {licenses.length > 0 ? (
-                      <div className="flex flex-wrap gap-1.5">
-                        {licenses.map((l) => (
-                          <Badge key={l} variant="secondary">
-                            {l}
-                          </Badge>
-                        ))}
-                      </div>
-                    ) : (
-                      <Muted>—</Muted>
-                    )}
-                  </Row>
-                  <Row label="Minimum erfaring">
-                    {minYears != null && minYears > 0 ? (
-                      `${minYears} år`
-                    ) : (
-                      <Muted>Ikke spesifisert</Muted>
-                    )}
-                  </Row>
-                  <Row label="Sertifiseringer">
-                    {certs.length > 0 ? (
-                      <div className="flex flex-wrap gap-1.5">
-                        {certs.map((c) => (
-                          <Badge key={c} variant="secondary">
-                            {c}
-                          </Badge>
-                        ))}
-                      </div>
-                    ) : (
-                      <Muted>—</Muted>
-                    )}
-                  </Row>
-                </dl>
-              )}
+              <PositionForm mode="edit" position={position} embedded />
             </CardContent>
           </Card>
         </TabsContent>
@@ -271,12 +174,6 @@ const PositionDetail: React.FC = () => {
           <PositionStageFieldRequirements positionId={position.id} />
         </TabsContent>
       </Tabs>
-
-      <CreatePositionDialog
-        open={editOpen}
-        onOpenChange={setEditOpen}
-        position={position}
-      />
     </div>
   );
 };
