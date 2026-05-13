@@ -9,6 +9,13 @@ export interface ApplicantProfileApplication {
   current_stage_id: string;
   score: number | null;
   score_breakdown: any;
+  score_status: string | null;
+  score_explanation: string | null;
+  score_strengths: string[] | null;
+  score_concerns: string[] | null;
+  score_updated_at: string | null;
+  score_stage_id: string | null;
+  score_model: string | null;
   assigned_to: string | null;
   applied_at: string;
   rejection_reason: string | null;
@@ -84,7 +91,7 @@ export function useApplicantProfile(id: string | undefined) {
       const { data, error } = await supabase
         .from('applicants')
         .select(
-          '*, applications(id, current_stage_id, score, score_breakdown, assigned_to, applied_at, rejection_reason, position_id, job_positions(id, title))'
+          '*, applications(id, current_stage_id, score, score_breakdown, score_status, score_explanation, score_strengths, score_concerns, score_updated_at, score_stage_id, score_model, assigned_to, applied_at, rejection_reason, position_id, job_positions(id, title))'
         )
         .eq('id', id!)
         .maybeSingle();
