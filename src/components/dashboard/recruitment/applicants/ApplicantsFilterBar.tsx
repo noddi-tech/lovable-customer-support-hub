@@ -12,6 +12,7 @@ import {
 import { useDebounce } from '@/hooks/useDebounce';
 import { useJobPositions } from '../positions/usePositions';
 import { TagPicker } from './TagPicker';
+import { SCORE_FILTER_OPTIONS } from './scoreTier';
 import type { ApplicantsFilters } from './useApplicants';
 
 interface Props {
@@ -92,11 +93,27 @@ const ApplicantsFilterBar: React.FC<Props> = ({ value, onChange }) => {
       </Select>
 
       <Select value={value.stageId} onValueChange={(v) => onChange({ ...value, stageId: v })}>
-        <SelectTrigger className="w-[220px]">
+        <SelectTrigger className="w-[200px]">
           <SelectValue placeholder="Status" />
         </SelectTrigger>
         <SelectContent>
           {STAGE_OPTIONS.map((o) => (
+            <SelectItem key={o.value} value={o.value}>
+              {o.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
+      <Select
+        value={value.scoreTier ?? 'all'}
+        onValueChange={(v) => onChange({ ...value, scoreTier: v as any })}
+      >
+        <SelectTrigger className="w-[180px]">
+          <SelectValue placeholder="Poeng" />
+        </SelectTrigger>
+        <SelectContent>
+          {SCORE_FILTER_OPTIONS.map((o) => (
             <SelectItem key={o.value} value={o.value}>
               {o.label}
             </SelectItem>

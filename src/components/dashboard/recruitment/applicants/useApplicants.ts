@@ -31,6 +31,7 @@ export interface ApplicantsFilters {
   source: string;
   positionId: string;
   stageId: string;
+  scoreTier?: 'all' | 'unscored' | 'low' | 'weak' | 'maybe' | 'strong';
   pendingReviewOnly?: boolean;
   tagIds?: string[];
 }
