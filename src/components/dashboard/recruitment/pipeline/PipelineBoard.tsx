@@ -13,6 +13,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import PipelineColumn from './PipelineColumn';
 import PipelineCard from './PipelineCard';
 import StageMoveConfirmDialog from './StageMoveConfirmDialog';
+import StageRequiredFieldsModal from '../applicants/StageRequiredFieldsModal';
 import { useStageMoveAutomation } from './useStageMoveAutomation';
 import type { PipelineApplication, PipelineFilters } from './usePipeline';
 import type { PipelineStage } from '../applicants/useApplicants';
