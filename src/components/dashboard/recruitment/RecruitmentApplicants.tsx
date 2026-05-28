@@ -6,6 +6,7 @@ import ApplicantsTable from './applicants/ApplicantsTable';
 import CreateApplicantDialog from './applicants/CreateApplicantDialog';
 import { QuarantineToolbar } from './applicants/QuarantineToolbar';
 import BulkActionToolbar from './applicants/BulkActionToolbar';
+import BulkRescoreDialog from './applicants/BulkRescoreDialog';
 import {
   type ActiveBulkDialog,
   ConfirmBulkDialog,
