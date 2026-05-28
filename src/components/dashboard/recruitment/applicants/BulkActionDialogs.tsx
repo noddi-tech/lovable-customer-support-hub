@@ -18,7 +18,7 @@ import { useOrganizationStore } from '@/stores/organizationStore';
 
 export type ActiveBulkDialog =
   | null | 'move_stage' | 'assign' | 'reject' | 'hire'
-  | 'send_email' | 'add_tags' | 'remove_tags' | 'export_csv' | 'delete';
+  | 'send_email' | 'rescore' | 'add_tags' | 'remove_tags' | 'export_csv' | 'delete';
 
 interface BaseProps {
   open: boolean;
