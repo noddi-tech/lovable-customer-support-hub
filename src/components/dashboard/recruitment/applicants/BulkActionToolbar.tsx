@@ -105,6 +105,7 @@ export function BulkActionToolbar({ selectedIds, onClear, onOpenAction }: Props)
             <DropdownMenuItem onSelect={() => openDeferred('reject')}>Avvis</DropdownMenuItem>
             <DropdownMenuItem onSelect={() => openDeferred('hire')}>Ansatt</DropdownMenuItem>
             <DropdownMenuItem onSelect={() => openDeferred('send_email')}>Send e-post</DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => openDeferred('rescore')}>Re-score</DropdownMenuItem>
             <DropdownMenuItem onSelect={() => openDeferred('add_tags')}>Legg til etiketter</DropdownMenuItem>
             <DropdownMenuItem onSelect={() => openDeferred('remove_tags')}>Fjern etiketter</DropdownMenuItem>
             <DropdownMenuItem onSelect={() => openDeferred('export_csv')}>Eksporter CSV</DropdownMenuItem>
