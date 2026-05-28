@@ -7209,6 +7209,10 @@ export type Database = {
         }
         Returns: Json
       }
+      enqueue_initial_scoring_for_position: {
+        Args: { p_position_id: string }
+        Returns: undefined
+      }
       execute_automation_rules: {
         Args: {
           p_dry_run?: boolean
@@ -7652,6 +7656,10 @@ export type Database = {
           isOneToOne: false
           isSetofReturn: true
         }
+      }
+      position_has_resolvable_rubric: {
+        Args: { p_position_id: string }
+        Returns: boolean
       }
       reap_stuck_queue_rows: { Args: never; Returns: number }
       reassign_applications_to_stage: {
