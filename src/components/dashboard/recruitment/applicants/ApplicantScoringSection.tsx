@@ -41,6 +41,7 @@ const StateShell: React.FC<{ children: React.ReactNode; tone?: 'default' | 'mute
 
 const ApplicantScoringSection: React.FC<Props> = ({ applicationId, positionTitle }) => {
   const { data, isLoading } = useApplicationScore(applicationId);
+  const { criterionMap, rubric } = useEffectiveRubric(applicationId);
   const trigger = useTriggerScore();
   const { dateTime } = useDateFormatting();
   const [historyOpen, setHistoryOpen] = useState(false);
