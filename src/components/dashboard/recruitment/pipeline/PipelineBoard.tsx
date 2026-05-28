@@ -151,6 +151,20 @@ const PipelineBoard: React.FC<Props> = ({ applications, stages, filters }) => {
         onConfirmSkip={(reason) => automation.confirmMoveSkipExternal(reason)}
         onCancel={automation.cancelMove}
       />
+
+      {/* Stage-gate modal — page-mounted per memory #3 so Radix cleanup
+          doesn't race with the kanban column re-renders. */}
+      {automation.gateBlocked && (
+        <StageRequiredFieldsModal
+          open={!!automation.gateBlocked}
+          onOpenChange={(o) => !o && automation.clearGate()}
+          applicantId={automation.gateBlocked.applicantId}
+          applicationId={automation.gateBlocked.applicationId}
+          targetStageId={automation.gateBlocked.toStageId}
+          targetStageName={automation.gateBlocked.stageName}
+          onProceed={() => automation.resumeAfterGate()}
+        />
+      )}
     </>
   );
 };
