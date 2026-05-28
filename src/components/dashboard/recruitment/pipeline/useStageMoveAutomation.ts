@@ -294,9 +294,30 @@ export function useStageMoveAutomation(opts?: { onComplete?: () => void; onCance
     opts?.onCancel?.();
   };
 
+  const clearGate = () => setGateBlocked(null);
+  const resumeAfterGate = () => {
+    const g = gateBlocked;
+    if (!g) return;
+    setGateBlocked(null);
+    void handleStageMove(
+      {
+        applicationId: g.applicationId,
+        applicantId: g.applicantId,
+        applicantName: g.applicantName,
+        fromStageId: g.fromStageId,
+        toStageId: g.toStageId,
+        stageName: g.stageName,
+      },
+      { skipValidation: true },
+    );
+  };
+
   return {
     handleStageMove,
     pendingMove,
+    gateBlocked,
+    clearGate,
+    resumeAfterGate,
     busy,
     confirmMoveAndSend: (skipReasonIgnored?: string) => confirmMoveAndSend.mutateAsync(),
     confirmMoveSkipExternal: (skipReason?: string) => confirmMoveSkipExternal.mutateAsync(skipReason ?? null),
@@ -305,3 +326,4 @@ export function useStageMoveAutomation(opts?: { onComplete?: () => void; onCance
     isSkipping: confirmMoveSkipExternal.isPending,
   };
 }
+
