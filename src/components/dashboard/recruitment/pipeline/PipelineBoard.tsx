@@ -41,7 +41,13 @@ const PipelineBoard: React.FC<Props> = ({ applications, stages, filters }) => {
   );
 
   const revertOptimistic = () => {
-    queryClient.invalidateQueries({ queryKey: ['pipeline-applications'] });
+    // Restore the pre-drag snapshot synchronously so the card animates back
+    // to its original column instead of flashing through a refetch.
+    if (snapshotRef.current) {
+      queryClient.setQueryData<PipelineApplication[]>(queryKey, snapshotRef.current);
+    } else {
+      queryClient.invalidateQueries({ queryKey: ['pipeline-applications'] });
+    }
     snapshotRef.current = null;
   };
 
