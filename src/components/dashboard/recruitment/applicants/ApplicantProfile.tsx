@@ -348,6 +348,15 @@ const ApplicantProfile: React.FC = () => {
                   </CardContent>
                 </Card>
               )}
+              <StageFieldsSection
+                applicantId={applicant.id}
+                pipelineId={pipeline?.id ?? null}
+                stageId={firstApp?.current_stage_id ?? null}
+                positionId={firstApp?.position_id ?? null}
+                stageName={
+                  stages.find((s) => s.id === firstApp?.current_stage_id)?.name ?? null
+                }
+              />
               <ApplicantFieldValuesSection applicantId={applicant.id} />
             </div>
           </div>
