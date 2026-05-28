@@ -408,6 +408,32 @@ const ApplicantProfile: React.FC = () => {
         onCancel={automation.cancelMove}
       />
 
+      {/* Page-mounted (memory #3): stays mounted independent of dropdown
+          state so Radix cleanup races don't strand body pointer-events. */}
+      {firstApp && pendingStageMove && (
+        <StageRequiredFieldsModal
+          open={!!pendingStageMove}
+          onOpenChange={(o) => !o && setPendingStageMove(null)}
+          applicantId={applicant.id}
+          applicationId={firstApp.id}
+          targetStageId={pendingStageMove.stageId}
+          targetStageName={pendingStageMove.stageName}
+          onProceed={() => {
+            const move = pendingStageMove;
+            setPendingStageMove(null);
+            if (!move) return;
+            void automation.handleStageMove({
+              applicationId: firstApp.id,
+              applicantId: applicant.id,
+              applicantName: `${applicant.first_name} ${applicant.last_name}`.trim(),
+              fromStageId: firstApp.current_stage_id,
+              toStageId: move.stageId,
+              stageName: move.stageName,
+            });
+          }}
+        />
+      )}
+
       <EditApplicantDialog
         open={editDialogOpen}
         onOpenChange={setEditDialogOpen}
