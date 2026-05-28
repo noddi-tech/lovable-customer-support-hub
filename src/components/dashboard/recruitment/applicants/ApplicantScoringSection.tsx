@@ -278,12 +278,13 @@ const ApplicantScoringSection: React.FC<Props> = ({ applicationId, positionTitle
                 <div className="mt-3 space-y-1.5">
                   {breakdownEntries.map(([crit, val]) => {
                     const t = scoreTier(typeof val === 'number' ? val : null);
+                    const label = criterionMap.get(crit)?.name ?? crit;
                     return (
                       <div
                         key={crit}
                         className="flex items-center justify-between gap-3 text-sm"
                       >
-                        <span className="text-muted-foreground truncate">{crit}</span>
+                        <span className="text-muted-foreground truncate" title={label !== crit ? crit : undefined}>{label}</span>
                         <span className={cn('font-medium tabular-nums', TIER_TEXT[t])}>
                           {typeof val === 'number' ? val.toFixed(1) : '–'}
                         </span>
