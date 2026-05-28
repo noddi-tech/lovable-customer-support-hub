@@ -221,14 +221,12 @@ const ApplicantProfile: React.FC = () => {
                   onSelect={() => {
                     if (!firstApp || !applicant) return;
                     if (s.id === firstApp.current_stage_id) return;
-                    void automation.handleStageMove({
-                      applicationId: firstApp.id,
-                      applicantId: applicant.id,
-                      applicantName: `${applicant.first_name} ${applicant.last_name}`.trim(),
-                      fromStageId: firstApp.current_stage_id,
-                      toStageId: s.id,
-                      stageName: s.name,
-                    });
+                    // Defer modal open so the dropdown can finish closing
+                    // (memory #3: Radix dropdown→dialog freeze pattern).
+                    setTimeout(
+                      () => setPendingStageMove({ stageId: s.id, stageName: s.name }),
+                      0,
+                    );
                   }}
                   disabled={s.id === firstApp?.current_stage_id}
                 >
