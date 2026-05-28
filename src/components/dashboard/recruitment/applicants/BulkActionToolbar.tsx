@@ -1,6 +1,6 @@
 import {
   X, ChevronDown, Move, UserPlus, XCircle, CheckCircle, Mail,
-  Tag as TagIcon, Download, Trash2,
+  Tag as TagIcon, Download, Trash2, Sparkles,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -66,6 +66,9 @@ export function BulkActionToolbar({ selectedIds, onClear, onOpenAction }: Props)
         <Button size="sm" variant="outline" onClick={() => onOpenAction('send_email')}>
           <Mail className="h-3.5 w-3.5" /> Send e-post
         </Button>
+        <Button size="sm" variant="outline" onClick={() => onOpenAction('rescore')}>
+          <Sparkles className="h-3.5 w-3.5" /> Re-score
+        </Button>
         <DropdownMenu modal={false}>
           <DropdownMenuTrigger asChild>
             <Button size="sm" variant="outline">
@@ -102,6 +105,7 @@ export function BulkActionToolbar({ selectedIds, onClear, onOpenAction }: Props)
             <DropdownMenuItem onSelect={() => openDeferred('reject')}>Avvis</DropdownMenuItem>
             <DropdownMenuItem onSelect={() => openDeferred('hire')}>Ansatt</DropdownMenuItem>
             <DropdownMenuItem onSelect={() => openDeferred('send_email')}>Send e-post</DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => openDeferred('rescore')}>Re-score</DropdownMenuItem>
             <DropdownMenuItem onSelect={() => openDeferred('add_tags')}>Legg til etiketter</DropdownMenuItem>
             <DropdownMenuItem onSelect={() => openDeferred('remove_tags')}>Fjern etiketter</DropdownMenuItem>
             <DropdownMenuItem onSelect={() => openDeferred('export_csv')}>Eksporter CSV</DropdownMenuItem>

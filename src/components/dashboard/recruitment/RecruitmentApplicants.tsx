@@ -6,6 +6,7 @@ import ApplicantsTable from './applicants/ApplicantsTable';
 import CreateApplicantDialog from './applicants/CreateApplicantDialog';
 import { QuarantineToolbar } from './applicants/QuarantineToolbar';
 import BulkActionToolbar from './applicants/BulkActionToolbar';
+import BulkRescoreDialog from './applicants/BulkRescoreDialog';
 import {
   type ActiveBulkDialog,
   ConfirmBulkDialog,
@@ -135,6 +136,14 @@ const RecruitmentApplicants: React.FC = () => {
         loading={bulkMut.isPending}
         onClose={closeDialog}
         onConfirm={(template_id, inbox_id) => runBulk('send_email', { template_id, inbox_id })}
+      />
+      <BulkRescoreDialog
+        open={activeDialog === 'rescore'}
+        applicantIds={selectedIds}
+        onClose={() => {
+          setActiveDialog(null);
+          setTimeout(() => setSelectedIds([]), 0);
+        }}
       />
       <TagsBulkDialog
         open={activeDialog === 'add_tags' || activeDialog === 'remove_tags'}

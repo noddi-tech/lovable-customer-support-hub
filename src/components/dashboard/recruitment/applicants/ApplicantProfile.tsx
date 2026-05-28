@@ -57,6 +57,9 @@ import { ApplicantFieldValuesSection } from './ApplicantFieldValuesSection';
 import { ApplicantTagsSection } from './ApplicantTagsSection';
 import ApplicantEmailTab from './ApplicantEmailTab';
 import ApplicantSmsTab from './ApplicantSmsTab';
+import ApplicantScoringSection from './ApplicantScoringSection';
+import StageFieldsSection from './StageFieldsSection';
+import StageRequiredFieldsModal from './StageRequiredFieldsModal';
 
 const ApplicantProfile: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -80,6 +83,10 @@ const ApplicantProfile: React.FC = () => {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [followupOpen, setFollowupOpen] = useState(false);
   const [snoozeId, setSnoozeId] = useState<string | null>(null);
+  const [pendingStageMove, setPendingStageMove] = useState<{
+    stageId: string;
+    stageName: string;
+  } | null>(null);
   const { data: followups } = useApplicantFollowups(id);
   const completeFu = useCompleteFollowup();
   const deleteFu = useDeleteFollowup();
@@ -214,14 +221,12 @@ const ApplicantProfile: React.FC = () => {
                   onSelect={() => {
                     if (!firstApp || !applicant) return;
                     if (s.id === firstApp.current_stage_id) return;
-                    void automation.handleStageMove({
-                      applicationId: firstApp.id,
-                      applicantId: applicant.id,
-                      applicantName: `${applicant.first_name} ${applicant.last_name}`.trim(),
-                      fromStageId: firstApp.current_stage_id,
-                      toStageId: s.id,
-                      stageName: s.name,
-                    });
+                    // Defer modal open so the dropdown can finish closing
+                    // (memory #3: Radix dropdown→dialog freeze pattern).
+                    setTimeout(
+                      () => setPendingStageMove({ stageId: s.id, stageName: s.name }),
+                      0,
+                    );
                   }}
                   disabled={s.id === firstApp?.current_stage_id}
                 >
@@ -279,7 +284,13 @@ const ApplicantProfile: React.FC = () => {
           <TabsTrigger value="sms">SMS</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="overview" className="mt-4">
+        <TabsContent value="overview" className="mt-4 space-y-6">
+          {/* Prominent scoring section — first thing recruiters see. */}
+          <ApplicantScoringSection
+            applicationId={firstApp?.id ?? null}
+            positionTitle={firstApp?.job_positions?.title ?? null}
+          />
+
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2">
               <Card>
@@ -337,6 +348,15 @@ const ApplicantProfile: React.FC = () => {
                   </CardContent>
                 </Card>
               )}
+              <StageFieldsSection
+                applicantId={applicant.id}
+                pipelineId={pipeline?.id ?? null}
+                stageId={firstApp?.current_stage_id ?? null}
+                positionId={firstApp?.position_id ?? null}
+                stageName={
+                  stages.find((s) => s.id === firstApp?.current_stage_id)?.name ?? null
+                }
+              />
               <ApplicantFieldValuesSection applicantId={applicant.id} />
             </div>
           </div>
@@ -387,6 +407,32 @@ const ApplicantProfile: React.FC = () => {
         onConfirmSkip={(reason) => automation.confirmMoveSkipExternal(reason)}
         onCancel={automation.cancelMove}
       />
+
+      {/* Page-mounted (memory #3): stays mounted independent of dropdown
+          state so Radix cleanup races don't strand body pointer-events. */}
+      {firstApp && pendingStageMove && (
+        <StageRequiredFieldsModal
+          open={!!pendingStageMove}
+          onOpenChange={(o) => !o && setPendingStageMove(null)}
+          applicantId={applicant.id}
+          applicationId={firstApp.id}
+          targetStageId={pendingStageMove.stageId}
+          targetStageName={pendingStageMove.stageName}
+          onProceed={() => {
+            const move = pendingStageMove;
+            setPendingStageMove(null);
+            if (!move) return;
+            void automation.handleStageMove({
+              applicationId: firstApp.id,
+              applicantId: applicant.id,
+              applicantName: `${applicant.first_name} ${applicant.last_name}`.trim(),
+              fromStageId: firstApp.current_stage_id,
+              toStageId: move.stageId,
+              stageName: move.stageName,
+            });
+          }}
+        />
+      )}
 
       <EditApplicantDialog
         open={editDialogOpen}

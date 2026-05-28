@@ -82,7 +82,7 @@ Deno.serve(async (req) => {
     // Resolve requirements (position-specific overrides org-wide)
     const { data: reqRows } = await admin
       .from('pipeline_stage_field_requirements')
-      .select('id, custom_field_id, position_id, requirement_type, block_stage_progression, recruitment_custom_fields!inner(display_name, type_id, recruitment_custom_field_types(key))')
+      .select('id, custom_field_id, position_id, requirement_type, block_stage_progression, recruitment_custom_fields!inner(display_name, type_id, recruitment_custom_field_types(type_key))')
       .eq('pipeline_id', pipelineId)
       .eq('stage_id', target_stage_id)
       .or(`position_id.is.null,position_id.eq.${app.position_id}`);
@@ -128,7 +128,7 @@ Deno.serve(async (req) => {
       const field: MissingField = {
         field_id: r.custom_field_id,
         field_name: r.recruitment_custom_fields?.display_name || 'felt',
-        field_type: r.recruitment_custom_fields?.recruitment_custom_field_types?.key || 'text',
+        field_type: r.recruitment_custom_fields?.recruitment_custom_field_types?.type_key || 'text',
         requirement_type: r.requirement_type,
         block_stage_progression: r.block_stage_progression,
       };
