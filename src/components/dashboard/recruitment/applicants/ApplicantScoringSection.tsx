@@ -162,7 +162,15 @@ const ApplicantScoringSection: React.FC<Props> = ({ applicationId, positionTitle
   const strengths = data.score_strengths ?? [];
   const concerns = data.score_concerns ?? [];
   const breakdown = (data.score_breakdown ?? {}) as Record<string, number>;
-  const breakdownEntries = Object.entries(breakdown);
+  const rawEntries = Object.entries(breakdown);
+  // Order by the rubric's criterion order when available; unknown ids fall to the end.
+  const orderIndex = new Map<string, number>();
+  (rubric?.criteria ?? []).forEach((c, i) => orderIndex.set(c.id, i));
+  const breakdownEntries = [...rawEntries].sort(([a], [b]) => {
+    const ai = orderIndex.has(a) ? (orderIndex.get(a) as number) : Number.MAX_SAFE_INTEGER;
+    const bi = orderIndex.has(b) ? (orderIndex.get(b) as number) : Number.MAX_SAFE_INTEGER;
+    return ai - bi;
+  });
 
   return (
     <>
