@@ -128,7 +128,7 @@ Deno.serve(async (req) => {
       const field: MissingField = {
         field_id: r.custom_field_id,
         field_name: r.recruitment_custom_fields?.display_name || 'felt',
-        field_type: r.recruitment_custom_fields?.recruitment_custom_field_types?.key || 'text',
+        field_type: r.recruitment_custom_fields?.recruitment_custom_field_types?.type_key || 'text',
         requirement_type: r.requirement_type,
         block_stage_progression: r.block_stage_progression,
       };
