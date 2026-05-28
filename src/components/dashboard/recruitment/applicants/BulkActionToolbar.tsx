@@ -1,6 +1,6 @@
 import {
   X, ChevronDown, Move, UserPlus, XCircle, CheckCircle, Mail,
-  Tag as TagIcon, Download, Trash2,
+  Tag as TagIcon, Download, Trash2, Sparkles,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
