@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useApplicationScore } from '@/hooks/recruitment/useApplicationScore';
 import { useTriggerScore } from '@/hooks/recruitment/useTriggerScore';
+import { useEffectiveRubric } from '@/hooks/recruitment/useEffectiveRubric';
 import { useDateFormatting } from '@/hooks/useDateFormatting';
 import { toast } from 'sonner';
 import { scoreTier, TIER_LABEL, TIER_SOLID_BG, TIER_TEXT } from './scoreTier';
