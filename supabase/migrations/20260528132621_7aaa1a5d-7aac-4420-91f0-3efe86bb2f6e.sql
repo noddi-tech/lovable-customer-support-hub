@@ -1,0 +1,1 @@
+UPDATE public.job_positions SET scoring_enabled = true WHERE scoring_enabled IS NOT TRUE;
