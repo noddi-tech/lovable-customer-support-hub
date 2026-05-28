@@ -137,6 +137,14 @@ const RecruitmentApplicants: React.FC = () => {
         onClose={closeDialog}
         onConfirm={(template_id, inbox_id) => runBulk('send_email', { template_id, inbox_id })}
       />
+      <BulkRescoreDialog
+        open={activeDialog === 'rescore'}
+        applicantIds={selectedIds}
+        onClose={() => {
+          setActiveDialog(null);
+          setTimeout(() => setSelectedIds([]), 0);
+        }}
+      />
       <TagsBulkDialog
         open={activeDialog === 'add_tags' || activeDialog === 'remove_tags'}
         mode={activeDialog === 'remove_tags' ? 'remove' : 'add'}
