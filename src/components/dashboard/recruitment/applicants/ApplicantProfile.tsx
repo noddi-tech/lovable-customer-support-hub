@@ -83,6 +83,10 @@ const ApplicantProfile: React.FC = () => {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [followupOpen, setFollowupOpen] = useState(false);
   const [snoozeId, setSnoozeId] = useState<string | null>(null);
+  const [pendingStageMove, setPendingStageMove] = useState<{
+    stageId: string;
+    stageName: string;
+  } | null>(null);
   const { data: followups } = useApplicantFollowups(id);
   const completeFu = useCompleteFollowup();
   const deleteFu = useDeleteFollowup();
