@@ -80,10 +80,21 @@ async function executeRulesRpc({
   return data;
 }
 
+export interface GateBlocked {
+  applicationId: string;
+  applicantId: string;
+  applicantName: string;
+  fromStageId: string;
+  toStageId: string;
+  stageName: string;
+}
+
 export function useStageMoveAutomation(opts?: { onComplete?: () => void; onCancel?: () => void }) {
   const queryClient = useQueryClient();
   const [pendingMove, setPendingMove] = useState<PendingMove | null>(null);
+  const [gateBlocked, setGateBlocked] = useState<GateBlocked | null>(null);
   const [busy, setBusy] = useState(false);
+  const validate = useStageProgressionValidation();
 
   const buildContext = (i: HandleStageMoveInput) => ({
     application_id: i.applicationId,
@@ -102,10 +113,42 @@ export function useStageMoveAutomation(opts?: { onComplete?: () => void; onCance
     queryClient.invalidateQueries({ queryKey: ['recruitment-automation-failure-count'] });
   };
 
-  const handleStageMove = async (input: HandleStageMoveInput) => {
+  const handleStageMove = async (
+    input: HandleStageMoveInput,
+    options?: { skipValidation?: boolean },
+  ) => {
     if (input.fromStageId === input.toStageId) return;
     setBusy(true);
     try {
+      // Stage-progression gate — single source of truth for both kanban
+      // drag-drop and profile dropdown. Skipped when the caller has just
+      // satisfied/overridden requirements via StageRequiredFieldsModal.
+      if (!options?.skipValidation) {
+        try {
+          const res = await validate.mutateAsync({
+            application_id: input.applicationId,
+            target_stage_id: input.toStageId,
+          });
+          if (!res.can_progress) {
+            setGateBlocked({
+              applicationId: input.applicationId,
+              applicantId: input.applicantId,
+              applicantName: input.applicantName,
+              fromStageId: input.fromStageId,
+              toStageId: input.toStageId,
+              stageName: input.stageName,
+            });
+            // Tell the caller to revert any optimistic UI (kanban card snaps back).
+            opts?.onCancel?.();
+            return;
+          }
+        } catch (e: any) {
+          toast.error(e?.message ?? 'Kunne ikke validere fase-krav');
+          opts?.onCancel?.();
+          return;
+        }
+      }
+
       const ctx = buildContext(input);
       const matched = await matchRulesRpc(ctx);
 
