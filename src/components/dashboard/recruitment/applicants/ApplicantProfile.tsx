@@ -57,6 +57,9 @@ import { ApplicantFieldValuesSection } from './ApplicantFieldValuesSection';
 import { ApplicantTagsSection } from './ApplicantTagsSection';
 import ApplicantEmailTab from './ApplicantEmailTab';
 import ApplicantSmsTab from './ApplicantSmsTab';
+import ApplicantScoringSection from './ApplicantScoringSection';
+import StageFieldsSection from './StageFieldsSection';
+import StageRequiredFieldsModal from './StageRequiredFieldsModal';
 
 const ApplicantProfile: React.FC = () => {
   const { id } = useParams<{ id: string }>();
