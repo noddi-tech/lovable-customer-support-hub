@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useApplicationScore } from '@/hooks/recruitment/useApplicationScore';
 import { useTriggerScore } from '@/hooks/recruitment/useTriggerScore';
+import { useEffectiveRubric } from '@/hooks/recruitment/useEffectiveRubric';
 import { useDateFormatting } from '@/hooks/useDateFormatting';
 import { toast } from 'sonner';
 import { scoreTier, TIER_LABEL, TIER_SOLID_BG, TIER_TEXT } from './scoreTier';
@@ -40,6 +41,7 @@ const StateShell: React.FC<{ children: React.ReactNode; tone?: 'default' | 'mute
 
 const ApplicantScoringSection: React.FC<Props> = ({ applicationId, positionTitle }) => {
   const { data, isLoading } = useApplicationScore(applicationId);
+  const { criterionMap, rubric } = useEffectiveRubric(applicationId);
   const trigger = useTriggerScore();
   const { dateTime } = useDateFormatting();
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -160,7 +162,15 @@ const ApplicantScoringSection: React.FC<Props> = ({ applicationId, positionTitle
   const strengths = data.score_strengths ?? [];
   const concerns = data.score_concerns ?? [];
   const breakdown = (data.score_breakdown ?? {}) as Record<string, number>;
-  const breakdownEntries = Object.entries(breakdown);
+  const rawEntries = Object.entries(breakdown);
+  // Order by the rubric's criterion order when available; unknown ids fall to the end.
+  const orderIndex = new Map<string, number>();
+  (rubric?.criteria ?? []).forEach((c, i) => orderIndex.set(c.id, i));
+  const breakdownEntries = [...rawEntries].sort(([a], [b]) => {
+    const ai = orderIndex.has(a) ? (orderIndex.get(a) as number) : Number.MAX_SAFE_INTEGER;
+    const bi = orderIndex.has(b) ? (orderIndex.get(b) as number) : Number.MAX_SAFE_INTEGER;
+    return ai - bi;
+  });
 
   return (
     <>
@@ -268,12 +278,13 @@ const ApplicantScoringSection: React.FC<Props> = ({ applicationId, positionTitle
                 <div className="mt-3 space-y-1.5">
                   {breakdownEntries.map(([crit, val]) => {
                     const t = scoreTier(typeof val === 'number' ? val : null);
+                    const label = criterionMap.get(crit)?.name ?? crit;
                     return (
                       <div
                         key={crit}
                         className="flex items-center justify-between gap-3 text-sm"
                       >
-                        <span className="text-muted-foreground truncate">{crit}</span>
+                        <span className="text-muted-foreground truncate" title={label !== crit ? crit : undefined}>{label}</span>
                         <span className={cn('font-medium tabular-nums', TIER_TEXT[t])}>
                           {typeof val === 'number' ? val.toFixed(1) : '–'}
                         </span>

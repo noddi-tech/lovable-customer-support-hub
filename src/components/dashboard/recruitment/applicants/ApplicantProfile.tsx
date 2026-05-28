@@ -422,14 +422,19 @@ const ApplicantProfile: React.FC = () => {
             const move = pendingStageMove;
             setPendingStageMove(null);
             if (!move) return;
-            void automation.handleStageMove({
-              applicationId: firstApp.id,
-              applicantId: applicant.id,
-              applicantName: `${applicant.first_name} ${applicant.last_name}`.trim(),
-              fromStageId: firstApp.current_stage_id,
-              toStageId: move.stageId,
-              stageName: move.stageName,
-            });
+            // Modal already validated/overrode; skip the gate to avoid a
+            // second round-trip (and to honor admin override).
+            void automation.handleStageMove(
+              {
+                applicationId: firstApp.id,
+                applicantId: applicant.id,
+                applicantName: `${applicant.first_name} ${applicant.last_name}`.trim(),
+                fromStageId: firstApp.current_stage_id,
+                toStageId: move.stageId,
+                stageName: move.stageName,
+              },
+              { skipValidation: true },
+            );
           }}
         />
       )}

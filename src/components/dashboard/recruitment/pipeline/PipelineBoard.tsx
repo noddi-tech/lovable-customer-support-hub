@@ -13,6 +13,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import PipelineColumn from './PipelineColumn';
 import PipelineCard from './PipelineCard';
 import StageMoveConfirmDialog from './StageMoveConfirmDialog';
+import StageRequiredFieldsModal from '../applicants/StageRequiredFieldsModal';
 import { useStageMoveAutomation } from './useStageMoveAutomation';
 import type { PipelineApplication, PipelineFilters } from './usePipeline';
 import type { PipelineStage } from '../applicants/useApplicants';
@@ -40,7 +41,13 @@ const PipelineBoard: React.FC<Props> = ({ applications, stages, filters }) => {
   );
 
   const revertOptimistic = () => {
-    queryClient.invalidateQueries({ queryKey: ['pipeline-applications'] });
+    // Restore the pre-drag snapshot synchronously so the card animates back
+    // to its original column instead of flashing through a refetch.
+    if (snapshotRef.current) {
+      queryClient.setQueryData<PipelineApplication[]>(queryKey, snapshotRef.current);
+    } else {
+      queryClient.invalidateQueries({ queryKey: ['pipeline-applications'] });
+    }
     snapshotRef.current = null;
   };
 
@@ -144,6 +151,20 @@ const PipelineBoard: React.FC<Props> = ({ applications, stages, filters }) => {
         onConfirmSkip={(reason) => automation.confirmMoveSkipExternal(reason)}
         onCancel={automation.cancelMove}
       />
+
+      {/* Stage-gate modal — page-mounted per memory #3 so Radix cleanup
+          doesn't race with the kanban column re-renders. */}
+      {automation.gateBlocked && (
+        <StageRequiredFieldsModal
+          open={!!automation.gateBlocked}
+          onOpenChange={(o) => !o && automation.clearGate()}
+          applicantId={automation.gateBlocked.applicantId}
+          applicationId={automation.gateBlocked.applicationId}
+          targetStageId={automation.gateBlocked.toStageId}
+          targetStageName={automation.gateBlocked.stageName}
+          onProceed={() => automation.resumeAfterGate()}
+        />
+      )}
     </>
   );
 };
