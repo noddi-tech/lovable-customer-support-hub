@@ -52,6 +52,7 @@ import SystemTemplateEditorPage from "./pages/super-admin/recruitment/SystemTemp
 import SearchPage from "./pages/SearchPage";
 import BulkOutreach from "./pages/BulkOutreach";
 import HomePage from "./pages/HomePage";
+import CandidateFormPage from "./pages/candidate/CandidateFormPage";
 import "@/lib/i18n";
 import "@/styles/controls.css";
 
@@ -90,6 +91,7 @@ const AppContent = () => {
     <Routes>
       <Route path="/auth" element={<Auth />} />
       <Route path="/data-deletion-status/:code" element={<DataDeletionStatus />} />
+      <Route path="/apply/form/:token" element={<CandidateFormPage />} />
       
       {/* Root redirect to default section */}
       <Route path="/" element={<Navigate to="/home" replace />} />
