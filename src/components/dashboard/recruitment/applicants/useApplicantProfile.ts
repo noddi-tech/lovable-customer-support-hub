@@ -99,6 +99,7 @@ export function useApplicantProfile(id: string | undefined) {
       return (data as unknown as ApplicantProfileData | null);
     },
     enabled: !!id,
+    refetchOnMount: 'always',
     refetchOnWindowFocus: 'always',
     staleTime: 0,
   });
@@ -117,6 +118,7 @@ export function useApplicantEvents(applicantId: string | undefined) {
       return (data ?? []) as unknown as ApplicantEvent[];
     },
     enabled: !!applicantId,
+    refetchOnMount: 'always',
     refetchOnWindowFocus: 'always',
     staleTime: 0,
   });
@@ -135,6 +137,7 @@ export function useApplicantNotes(applicantId: string | undefined) {
       return (data ?? []) as unknown as ApplicantNote[];
     },
     enabled: !!applicantId,
+    refetchOnMount: 'always',
     refetchOnWindowFocus: 'always',
     staleTime: 0,
   });
@@ -153,6 +156,7 @@ export function useApplicantFiles(applicantId: string | undefined) {
       return (data ?? []) as unknown as ApplicantFile[];
     },
     enabled: !!applicantId,
+    refetchOnMount: 'always',
     refetchOnWindowFocus: 'always',
     staleTime: 0,
   });
