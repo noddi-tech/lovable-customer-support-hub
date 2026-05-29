@@ -48,6 +48,33 @@ export function useUpdateApplicant() {
       qc.invalidateQueries({ queryKey: ['applicant', vars.id] });
       qc.invalidateQueries({ queryKey: ['applicants'] });
       qc.invalidateQueries({ queryKey: ['recruitment-audit-events'] });
+
+      // Bug B: server-side trigger flips applications.score_status -> 'pending' on
+      // scoring-relevant edits. The right-rail ApplicantScoringSection reads from
+      // ['application-score', appId] which is not invalidated by the applicant patch,
+      // so polling never restarts and the user gets no "Vurderer..." feedback.
+      // Resolve the application id from the cached applicant profile and:
+      //  1) optimistically flip its cached score_status to 'pending' (only if currently
+      //     terminal — never overwrite an in-flight 'scoring'/'pending')
+      //  2) invalidate the query so polling kicks in immediately.
+      try {
+        const profile = qc.getQueryData<any>(['applicant', vars.id]);
+        const apps: any[] = profile?.applications ?? [];
+        for (const app of apps) {
+          if (!app?.id) continue;
+          const key = ['application-score', app.id];
+          qc.setQueryData<any>(key, (prev) => {
+            if (!prev) return prev;
+            const s = prev.score_status;
+            if (s === 'pending' || s === 'scoring') return prev; // don't clobber in-flight
+            return { ...prev, score_status: 'pending' };
+          });
+          qc.invalidateQueries({ queryKey: key });
+        }
+      } catch {
+        // best-effort optimistic update; failure is non-fatal
+      }
+
       toast.success('Søker oppdatert');
     },
     onError: (err: any) => {
