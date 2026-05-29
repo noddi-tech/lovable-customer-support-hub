@@ -6,6 +6,7 @@ export interface PipelineApplication {
   id: string;
   current_stage_id: string;
   score: number | null;
+  score_status: string | null;
   assigned_to: string | null;
   applied_at: string;
   created_at: string;
@@ -39,7 +40,7 @@ export function usePipelineApplications(filters: PipelineFilters) {
       let q = supabase
         .from('applications')
         .select(
-          'id, current_stage_id, score, assigned_to, applied_at, created_at, updated_at, applicant_id, position_id, applicants(id, first_name, last_name, email, phone, source), job_positions(id, title), profiles:assigned_to(id, full_name, avatar_url)'
+          'id, current_stage_id, score, score_status, assigned_to, applied_at, created_at, updated_at, applicant_id, position_id, applicants(id, first_name, last_name, email, phone, source), job_positions(id, title), profiles:assigned_to(id, full_name, avatar_url)'
         )
         .order('created_at', { ascending: false });
 
