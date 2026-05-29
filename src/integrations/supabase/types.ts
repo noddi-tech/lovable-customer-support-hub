@@ -1021,6 +1021,108 @@ export type Database = {
           },
         ]
       }
+      candidate_form_tokens: {
+        Row: {
+          applicant_id: string
+          application_id: string
+          attempts: number
+          channel: string
+          created_at: string
+          created_by: string | null
+          expires_at: string
+          id: string
+          last_attempt_at: string | null
+          last_attempt_ip: string | null
+          opened_at: string | null
+          organization_id: string
+          revoked_at: string | null
+          revoked_by: string | null
+          submitted_at: string | null
+          submitted_ip: string | null
+          submitted_user_agent: string | null
+          token: string
+          used_at: string | null
+        }
+        Insert: {
+          applicant_id: string
+          application_id: string
+          attempts?: number
+          channel: string
+          created_at?: string
+          created_by?: string | null
+          expires_at: string
+          id?: string
+          last_attempt_at?: string | null
+          last_attempt_ip?: string | null
+          opened_at?: string | null
+          organization_id: string
+          revoked_at?: string | null
+          revoked_by?: string | null
+          submitted_at?: string | null
+          submitted_ip?: string | null
+          submitted_user_agent?: string | null
+          token: string
+          used_at?: string | null
+        }
+        Update: {
+          applicant_id?: string
+          application_id?: string
+          attempts?: number
+          channel?: string
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string
+          id?: string
+          last_attempt_at?: string | null
+          last_attempt_ip?: string | null
+          opened_at?: string | null
+          organization_id?: string
+          revoked_at?: string | null
+          revoked_by?: string | null
+          submitted_at?: string | null
+          submitted_ip?: string | null
+          submitted_user_agent?: string | null
+          token?: string
+          used_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "candidate_form_tokens_applicant_id_fkey"
+            columns: ["applicant_id"]
+            isOneToOne: false
+            referencedRelation: "applicants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "candidate_form_tokens_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "candidate_form_tokens_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "candidate_form_tokens_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "candidate_form_tokens_revoked_by_fkey"
+            columns: ["revoked_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chat_typing_indicators: {
         Row: {
           conversation_id: string | null
@@ -2303,6 +2405,8 @@ export type Database = {
       job_positions: {
         Row: {
           campaign: string | null
+          candidate_form_enabled: boolean
+          candidate_form_intro_text: string | null
           closes_at: string | null
           created_at: string
           description: string | null
@@ -2326,6 +2430,8 @@ export type Database = {
         }
         Insert: {
           campaign?: string | null
+          candidate_form_enabled?: boolean
+          candidate_form_intro_text?: string | null
           closes_at?: string | null
           created_at?: string
           description?: string | null
@@ -2349,6 +2455,8 @@ export type Database = {
         }
         Update: {
           campaign?: string | null
+          candidate_form_enabled?: boolean
+          candidate_form_intro_text?: string | null
           closes_at?: string | null
           created_at?: string
           description?: string | null
@@ -3425,6 +3533,9 @@ export type Database = {
       }
       organizations: {
         Row: {
+          candidate_form_brand_color: string | null
+          candidate_form_default_expiry_days: number
+          candidate_form_logo_url: string | null
           created_at: string
           default_attachment_expiry_days: number
           id: string
@@ -3439,6 +3550,9 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          candidate_form_brand_color?: string | null
+          candidate_form_default_expiry_days?: number
+          candidate_form_logo_url?: string | null
           created_at?: string
           default_attachment_expiry_days?: number
           id?: string
@@ -3453,6 +3567,9 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          candidate_form_brand_color?: string | null
+          candidate_form_default_expiry_days?: number
+          candidate_form_logo_url?: string | null
           created_at?: string
           default_attachment_expiry_days?: number
           id?: string

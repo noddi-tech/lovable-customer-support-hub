@@ -376,3 +376,24 @@ verify_jwt = false
 # Phase 11B — Stage-aware data requirement validation
 [functions.validate-stage-progression]
 verify_jwt = true
+
+# Phase 11C — Candidate self-service forms
+[functions.generate-candidate-form-token]
+verify_jwt = true
+
+[functions.revoke-candidate-form-token]
+verify_jwt = true
+
+# PUBLIC: candidate-facing endpoints — security via token + phone-last-4 identity check.
+[functions.validate-candidate-form-token]
+verify_jwt = false
+
+[functions.get-candidate-form-fields]
+verify_jwt = false
+
+[functions.submit-candidate-form]
+verify_jwt = false
+
+# Cron-driven daily; expires + hard-deletes old tokens. Service-role internal logic only.
+[functions.cleanup-expired-form-tokens]
+verify_jwt = false
