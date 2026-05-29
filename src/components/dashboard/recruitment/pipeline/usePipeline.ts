@@ -55,6 +55,7 @@ export function usePipelineApplications(filters: PipelineFilters) {
     refetchOnMount: 'always',
     refetchOnWindowFocus: 'always',
     staleTime: 0,
+    staleTime: 0,
   });
 }
 
