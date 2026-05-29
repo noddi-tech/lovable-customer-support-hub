@@ -137,6 +137,7 @@ export function useApplicantNotes(applicantId: string | undefined) {
       return (data ?? []) as unknown as ApplicantNote[];
     },
     enabled: !!applicantId,
+    refetchOnMount: 'always',
     refetchOnWindowFocus: 'always',
     staleTime: 0,
   });
