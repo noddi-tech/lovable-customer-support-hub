@@ -59,6 +59,7 @@ import ApplicantEmailTab from './ApplicantEmailTab';
 import ApplicantSmsTab from './ApplicantSmsTab';
 import ApplicantScoringSection from './ApplicantScoringSection';
 import StageFieldsSection from './StageFieldsSection';
+import ScoringBuiltinFieldsSection from './ScoringBuiltinFieldsSection';
 import StageRequiredFieldsModal from './StageRequiredFieldsModal';
 
 const ApplicantProfile: React.FC = () => {
@@ -357,6 +358,7 @@ const ApplicantProfile: React.FC = () => {
                   stages.find((s) => s.id === firstApp?.current_stage_id)?.name ?? null
                 }
               />
+              <ScoringBuiltinFieldsSection applicant={applicant} />
               <ApplicantFieldValuesSection applicantId={applicant.id} />
             </div>
           </div>
