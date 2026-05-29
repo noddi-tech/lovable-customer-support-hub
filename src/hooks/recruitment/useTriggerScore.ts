@@ -16,6 +16,8 @@ export function useTriggerScore() {
     },
     onSuccess: (_d, vars) => {
       qc.invalidateQueries({ queryKey: ['application-score', vars.application_id] });
+      qc.invalidateQueries({ queryKey: ['applicant-queue-position', vars.application_id] });
+      qc.invalidateQueries({ queryKey: ['position-scoring-queue'] });
     },
   });
 }

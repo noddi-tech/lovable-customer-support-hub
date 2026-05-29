@@ -48,6 +48,7 @@ export function useUpdatePositionScoringConfig() {
     onSuccess: (_d, vars) => {
       qc.invalidateQueries({ queryKey: ['position-scoring-config', vars.id] });
       qc.invalidateQueries({ queryKey: ['job-positions'] });
+      qc.invalidateQueries({ queryKey: ['position-scoring-queue', vars.id] });
     },
   });
 }
