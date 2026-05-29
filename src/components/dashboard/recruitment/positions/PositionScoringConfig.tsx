@@ -157,7 +157,7 @@ const PositionScoringConfig: React.FC<Props> = ({ positionId }) => {
                   : 'border-muted bg-muted/30 text-muted-foreground')
               }
             >
-              <span className="flex items-center gap-2">
+              <span className="flex items-center gap-2 flex-wrap">
                 {copy.tone === 'active' ? (
                   <CheckCircle2 className="h-4 w-4" />
                 ) : copy.tone === 'off' ? (
@@ -165,7 +165,15 @@ const PositionScoringConfig: React.FC<Props> = ({ positionId }) => {
                 ) : (
                   <AlertCircle className="h-4 w-4" />
                 )}
-                {copy.label}
+                <span>{copy.label}</span>
+                {copy.tone === 'active' && queueStatus && queueStatus.queueCount > 0 && (
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800">
+                    {queueStatus.processingCount > 0 && (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    )}
+                    {queueStatus.queueCount} søker{queueStatus.queueCount === 1 ? '' : 'e'} i kø · {queueStatus.etaLabel}
+                  </span>
+                )}
               </span>
               {copy.tone === 'off' && (
                 <Button
