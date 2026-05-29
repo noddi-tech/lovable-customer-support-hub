@@ -111,6 +111,28 @@ export function useStageMoveAutomation(opts?: { onComplete?: () => void; onCance
     queryClient.invalidateQueries({ queryKey: ['applicants'] });
     queryClient.invalidateQueries({ queryKey: ['recruitment-automation-executions'] });
     queryClient.invalidateQueries({ queryKey: ['recruitment-automation-failure-count'] });
+    // Defensive: stage rename/recolor/reorder races would leave
+    // ApplicantStageBadge resolving an old label (e.g. "Diskvalifisert")
+    // until the next manual refresh. Refresh the pipeline lookup table too.
+    queryClient.invalidateQueries({ queryKey: ['recruitment-pipeline-default'] });
+
+    // Server-side trigger flips applications.score_status -> 'pending' on
+    // stage entry (per-stage scoring rules). Invalidate each application's
+    // score query so the right-rail ApplicantScoringSection flips to
+    // "Vurderer..." immediately instead of waiting for its 5s poll.
+    // Best-effort: cache may be undefined on first move after page load,
+    // or applications[] may be missing; iteration must not throw.
+    try {
+      const profile = queryClient.getQueryData<any>(['applicant', applicantId]);
+      const apps: any[] = Array.isArray(profile?.applications) ? profile.applications : [];
+      for (const app of apps) {
+        if (!app?.id) continue;
+        queryClient.invalidateQueries({ queryKey: ['application-score', app.id] });
+      }
+    } catch {
+      // non-fatal — the ['applicant', id] invalidate above will eventually
+      // hydrate downstream consumers on refetch.
+    }
   };
 
   const handleStageMove = async (
