@@ -144,10 +144,10 @@ const CandidateFormPage: React.FC = () => {
       const v = values[`cf:${f.field_id}`];
       if (!isEmpty(v)) custom_field_values[f.field_id] = v;
     }
-    const builtin_values: Record<string, any> = {};
+    const builtin_columns: Record<string, any> = {};
     for (const b of spec.builtin_columns) {
       const v = values[`bi:${b.key}`];
-      if (!isEmpty(v)) builtin_values[b.key] = v;
+      if (!isEmpty(v)) builtin_columns[b.key] = v;
     }
 
     const { data, error } = await supabase.functions.invoke('submit-candidate-form', {
@@ -155,7 +155,7 @@ const CandidateFormPage: React.FC = () => {
         token,
         phone_last_4: last4,
         custom_field_values,
-        builtin_values,
+        builtin_columns,
       },
     });
     if (error) {
