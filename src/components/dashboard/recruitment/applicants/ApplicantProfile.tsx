@@ -357,6 +357,7 @@ const ApplicantProfile: React.FC = () => {
                   stages.find((s) => s.id === firstApp?.current_stage_id)?.name ?? null
                 }
               />
+              <ScoringBuiltinFieldsSection applicant={applicant} />
               <ApplicantFieldValuesSection applicantId={applicant.id} />
             </div>
           </div>
