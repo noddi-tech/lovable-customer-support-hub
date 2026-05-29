@@ -59,6 +59,7 @@ import ApplicantEmailTab from './ApplicantEmailTab';
 import ApplicantSmsTab from './ApplicantSmsTab';
 import ApplicantScoringSection from './ApplicantScoringSection';
 import StageFieldsSection from './StageFieldsSection';
+import ScoringBuiltinFieldsSection from './ScoringBuiltinFieldsSection';
 import StageRequiredFieldsModal from './StageRequiredFieldsModal';
 
 const ApplicantProfile: React.FC = () => {
