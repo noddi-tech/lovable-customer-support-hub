@@ -153,6 +153,8 @@ export function useApplicantFiles(applicantId: string | undefined) {
       return (data ?? []) as unknown as ApplicantFile[];
     },
     enabled: !!applicantId,
+    refetchOnWindowFocus: 'always',
+    staleTime: 0,
   });
 }
 
