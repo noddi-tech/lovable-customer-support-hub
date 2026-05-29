@@ -62,6 +62,7 @@ const PositionScoringConfig: React.FC<Props> = ({ positionId }) => {
   const { data: config, isLoading } = usePositionScoringConfig(positionId);
   const { data: baselines } = useScoringBaselines();
   const { data: status } = usePositionRubricStatus(positionId);
+  const { data: queueStatus } = usePositionScoringQueueStatus(positionId);
   const update = useUpdatePositionScoringConfig();
   const { toast } = useToast();
 
