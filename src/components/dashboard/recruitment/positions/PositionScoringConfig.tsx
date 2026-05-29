@@ -14,8 +14,9 @@ import {
   Collapsible, CollapsibleContent, CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import {
-  Sparkles, AlertCircle, CheckCircle2, CircleSlash, ChevronDown, ChevronRight,
+  Sparkles, AlertCircle, CheckCircle2, CircleSlash, ChevronDown, ChevronRight, Loader2,
 } from 'lucide-react';
+import { usePositionScoringQueueStatus } from '@/hooks/recruitment/usePositionScoringQueueStatus';
 import { useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import {
