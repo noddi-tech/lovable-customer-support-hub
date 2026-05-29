@@ -99,6 +99,7 @@ export function useApplicantProfile(id: string | undefined) {
       return (data as unknown as ApplicantProfileData | null);
     },
     enabled: !!id,
+    refetchOnMount: 'always',
     refetchOnWindowFocus: 'always',
     staleTime: 0,
   });
