@@ -183,6 +183,10 @@ export function useUpdateApplicationStage() {
       queryClient.invalidateQueries({ queryKey: ['applicant', vars.applicantId] });
       queryClient.invalidateQueries({ queryKey: ['applicant-events', vars.applicantId] });
       queryClient.invalidateQueries({ queryKey: ['applicants'] });
+      // Mirror useStageMoveAutomation.invalidate() so this hook is safe
+      // if/when re-wired: stage moves must fan out to pipeline + lookup table.
+      queryClient.invalidateQueries({ queryKey: ['pipeline-applications'] });
+      queryClient.invalidateQueries({ queryKey: ['recruitment-pipeline-default'] });
     },
     onError: (err: any) => {
       toast.error(err?.message || 'Kunne ikke endre status');
