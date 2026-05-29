@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDraggable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
-import { Tag as TagIcon } from 'lucide-react';
+import { Tag as TagIcon, Loader2 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -83,16 +83,21 @@ const PipelineCard: React.FC<Props> = ({ app, isOverlay }) => {
             <TooltipTrigger asChild>
               <span
                 className={cn(
-                  'inline-flex items-center justify-center min-w-[28px] h-5 px-1.5 rounded-full border text-[11px] font-semibold',
+                  'inline-flex items-center justify-center gap-1 min-w-[28px] h-5 px-1.5 rounded-full border text-[11px] font-semibold',
                   TIER_PILL[scoreTier(app.score)],
                 )}
               >
+                {(app.score_status === 'pending' || app.score_status === 'scoring') && (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                )}
                 {app.score ?? '—'}
               </span>
             </TooltipTrigger>
             <TooltipContent>
               <div className="text-xs">
-                {app.score == null
+                {app.score_status === 'pending' || app.score_status === 'scoring'
+                  ? 'AI vurderer søkeren...'
+                  : app.score == null
                   ? 'Ingen poeng ennå'
                   : `Poeng: ${app.score}/10 — ${TIER_LABEL[scoreTier(app.score)]}`}
               </div>
