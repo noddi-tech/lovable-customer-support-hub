@@ -103,20 +103,34 @@ const ApplicantScoringSection: React.FC<Props> = ({ applicationId, positionTitle
 
   // ----- SCORING IN PROGRESS -----
   if (status === 'pending' || status === 'scoring') {
+    const isProcessing = queuePos?.status === 'processing' || status === 'scoring';
+    let title = 'AI vurderer søkeren...';
+    let subtitle = 'Dette tar vanligvis under ett minutt. Oppdateres automatisk.';
+    if (isProcessing) {
+      title = 'AI vurderer søkeren nå...';
+      subtitle = 'Oppdateres automatisk når ferdig.';
+    } else if (queuePos?.inQueue) {
+      if (queuePos.ahead === 0) {
+        title = 'Neste i kø...';
+        subtitle = 'Vurdering starter om kort tid.';
+      } else {
+        title = `I kø bak ${queuePos.ahead} andre søker${queuePos.ahead === 1 ? '' : 'e'}`;
+        subtitle = `Vurderer ca. ${queuePos.etaLabel}. Oppdateres automatisk.`;
+      }
+    }
     return (
       <StateShell>
         <div className="flex items-center gap-3">
           <Loader2 className="h-5 w-5 animate-spin text-primary" />
           <div>
-            <div className="font-medium text-sm">AI vurderer søkeren...</div>
-            <div className="text-xs text-muted-foreground">
-              Dette tar vanligvis under ett minutt. Oppdateres automatisk.
-            </div>
+            <div className="font-medium text-sm">{title}</div>
+            <div className="text-xs text-muted-foreground">{subtitle}</div>
           </div>
         </div>
       </StateShell>
     );
   }
+
 
   // ----- FAILED -----
   if (status === 'failed') {
