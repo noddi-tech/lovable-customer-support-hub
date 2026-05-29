@@ -1,0 +1,1 @@
+UPDATE public.applicants SET location = 'Oslo' WHERE id = '01b89c12-0285-4f5b-b6ad-dff4e2fe6afe';
