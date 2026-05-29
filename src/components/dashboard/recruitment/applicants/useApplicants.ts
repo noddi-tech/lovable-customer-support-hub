@@ -120,6 +120,8 @@ export function useApplicantPipeline() {
     },
     enabled: !!currentOrganizationId,
     refetchOnMount: 'always',
+    refetchOnWindowFocus: 'always',
+    staleTime: 0,
   });
 }
 
