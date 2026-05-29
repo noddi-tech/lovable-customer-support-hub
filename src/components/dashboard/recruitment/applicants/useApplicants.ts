@@ -94,6 +94,8 @@ export function useApplicants(filters: ApplicantsFilters) {
     },
     enabled: !!currentOrganizationId,
     refetchOnMount: 'always',
+    refetchOnWindowFocus: 'always',
+    staleTime: 0,
   });
 }
 
@@ -118,6 +120,8 @@ export function useApplicantPipeline() {
     },
     enabled: !!currentOrganizationId,
     refetchOnMount: 'always',
+    refetchOnWindowFocus: 'always',
+    staleTime: 0,
   });
 }
 

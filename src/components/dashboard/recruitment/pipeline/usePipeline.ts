@@ -53,6 +53,8 @@ export function usePipelineApplications(filters: PipelineFilters) {
     enabled: !!currentOrganizationId,
     placeholderData: keepPreviousData,
     refetchOnMount: 'always',
+    refetchOnWindowFocus: 'always',
+    staleTime: 0,
   });
 }
 

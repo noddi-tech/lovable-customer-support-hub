@@ -27,6 +27,8 @@ export function useApplicationScore(applicationId: string | null | undefined) {
     queryKey: ['application-score', applicationId],
     enabled: !!applicationId,
     refetchOnMount: 'always',
+    refetchOnWindowFocus: 'always',
+    staleTime: 0,
     refetchInterval: (q) => {
       const d = q.state.data as ApplicationScore | undefined;
       if (d?.score_status === 'pending' || d?.score_status === 'scoring') return 5000;
