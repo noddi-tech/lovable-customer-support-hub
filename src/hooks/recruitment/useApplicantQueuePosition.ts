@@ -36,14 +36,15 @@ export function useApplicantQueuePosition(applicationId: string | null | undefin
     refetchInterval: 15000,
     queryFn: async (): Promise<ApplicantQueuePosition> => {
       // 1. Get this app's queue row (if any) + position_id.
-      const { data: self, error: selfErr } = await supabase
+      const selfQ: any = supabase
         .from('application_scoring_queue')
-        .select('id, status, created_at, applications!inner(position_id)' as any)
+        .select('id, status, created_at, applications!inner(position_id)')
         .eq('application_id', applicationId!)
         .in('status', ['pending', 'processing'])
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
+      const { data: self, error: selfErr } = await selfQ;
       if (selfErr) throw selfErr;
       if (!self) return EMPTY;
 
@@ -53,12 +54,13 @@ export function useApplicantQueuePosition(applicationId: string | null | undefin
       if (!positionId) return { ...EMPTY, inQueue: true, status };
 
       // 2. Count rows ahead (older pending/processing on same position).
-      const { count, error: countErr } = await supabase
+      const countQ: any = supabase
         .from('application_scoring_queue')
-        .select('id, applications!inner(position_id)' as any, { count: 'exact', head: true })
+        .select('id, applications!inner(position_id)', { count: 'exact', head: true })
         .in('status', ['pending', 'processing'])
-        .eq('applications.position_id' as any, positionId)
+        .eq('applications.position_id', positionId)
         .lt('created_at', createdAt);
+      const { count, error: countErr } = await countQ;
       if (countErr) throw countErr;
 
       const ahead = count ?? 0;

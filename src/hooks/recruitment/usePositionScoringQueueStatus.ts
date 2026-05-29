@@ -28,13 +28,14 @@ export function usePositionScoringQueueStatus(positionId: string | null | undefi
     staleTime: 0,
     refetchInterval: 15000,
     queryFn: async (): Promise<PositionScoringQueueStatus> => {
-      const { data, error } = await supabase
+      const q: any = supabase
         .from('application_scoring_queue')
-        .select('id, status, applications!inner(position_id)' as any)
+        .select('id, status, applications!inner(position_id)')
         .in('status', ['pending', 'processing'])
-        .eq('applications.position_id' as any, positionId!);
+        .eq('applications.position_id', positionId!);
+      const { data, error } = await q;
       if (error) throw error;
-      const rows = (data ?? []) as Array<{ status: string }>;
+      const rows = ((data ?? []) as any[]) as Array<{ status: string }>;
       const pendingCount = rows.filter((r) => r.status === 'pending').length;
       const processingCount = rows.filter((r) => r.status === 'processing').length;
       const queueCount = rows.length;
