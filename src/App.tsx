@@ -52,6 +52,7 @@ import SystemTemplateEditorPage from "./pages/super-admin/recruitment/SystemTemp
 import SearchPage from "./pages/SearchPage";
 import BulkOutreach from "./pages/BulkOutreach";
 import HomePage from "./pages/HomePage";
+import CandidateFormPage from "./pages/candidate/CandidateFormPage";
 import "@/lib/i18n";
 import "@/styles/controls.css";
 
