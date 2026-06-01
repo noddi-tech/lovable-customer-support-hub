@@ -213,3 +213,91 @@ export function buildFormUrl(token: string): string {
   const publicBase = Deno.env.get('PUBLIC_APP_URL') ?? 'https://support.noddi.co';
   return `${publicBase}/apply/form/${token}`;
 }
+
+/**
+ * Dispatch a candidate-form invite via email/SMS using a recruiter's JWT
+ * (delegates to send-recruitment-email / send-recruitment-sms for proper
+ * threading + attribution). Auto-revokes the token on failure.
+ *
+ * Caller still owns the token — pass token_id back so it can be revoked
+ * on outer-level failures.
+ */
+export async function dispatchCandidateFormInvite(
+  supabase: any,
+  args: {
+    token_id: string;
+    url: string;
+    expires_at: string;
+    channel: 'email' | 'sms';
+    inbox_id?: string;
+    custom_message?: string;
+    applicant: { id: string; first_name: string | null };
+    position: { title: string };
+    auth_header: string;
+    revoked_by_profile_id: string | null;
+  },
+): Promise<
+  | { ok: true; dispatch: any }
+  | { ok: false; status: number; error: string; message?: string }
+> {
+  const customHtml = args.custom_message?.trim()
+    ? `<p>${args.custom_message.trim().replace(/</g, '&lt;').replace(/\n/g, '<br>')}</p>`
+    : '';
+  const customText = args.custom_message?.trim() ? `${args.custom_message.trim()}\n\n` : '';
+  const firstName = args.applicant.first_name ?? '';
+  const expiresHuman = new Date(args.expires_at).toLocaleDateString('nb-NO');
+
+  if (args.channel === 'email') {
+    if (!args.inbox_id) {
+      await revokeCandidateFormToken(supabase, args.token_id, args.revoked_by_profile_id, 'missing_inbox_id');
+      return { ok: false, status: 400, error: 'inbox_id required for email channel' };
+    }
+    const subject = `Vi trenger litt mer info – ${args.position.title}`;
+    const bodyHtml = `
+      <p>Hei ${firstName},</p>
+      <p>Vi trenger litt mer info for søknaden din til <strong>${args.position.title}</strong>.</p>
+      ${customHtml}
+      <p>Vennligst fyll ut skjemaet innen ${expiresHuman}:</p>
+      <p><a href="${args.url}" style="display:inline-block;padding:12px 20px;background:#2563eb;color:#fff;text-decoration:none;border-radius:6px;">Åpne skjema</a></p>
+      <p>Eller åpne lenken direkte:<br><a href="${args.url}">${args.url}</a></p>
+      <p>Du vil bli bedt om å bekrefte de siste 4 sifrene i telefonnummeret ditt.</p>
+    `;
+    const { data, error } = await supabase.functions.invoke('send-recruitment-email', {
+      headers: { Authorization: args.auth_header },
+      body: {
+        applicant_id: args.applicant.id,
+        inbox_id: args.inbox_id,
+        subject,
+        body_html: bodyHtml,
+      },
+    });
+    if (error || (data as any)?.error) {
+      const msg = error?.message ?? (data as any)?.error ?? 'Email dispatch failed';
+      await revokeCandidateFormToken(supabase, args.token_id, args.revoked_by_profile_id, `email_dispatch_failed: ${msg}`);
+      return { ok: false, status: 502, error: 'email_dispatch_failed', message: msg };
+    }
+    return { ok: true, dispatch: data };
+  }
+
+  // SMS
+  const smsBody = `Hei ${firstName}! ${customText}Fyll ut skjemaet for ${args.position.title}: ${args.url} (utløper ${expiresHuman})`;
+  const { data, error } = await supabase.functions.invoke('send-recruitment-sms', {
+    headers: { Authorization: args.auth_header },
+    body: {
+      applicant_id: args.applicant.id,
+      inbox_id: args.inbox_id,
+      body: smsBody,
+    },
+  });
+  if (error || (data as any)?.error) {
+    const msg = error?.message ?? (data as any)?.error ?? 'SMS dispatch failed';
+    await revokeCandidateFormToken(supabase, args.token_id, args.revoked_by_profile_id, `sms_dispatch_failed: ${msg}`);
+    return {
+      ok: false,
+      status: 502,
+      error: 'sms_dispatch_failed',
+      message: 'SMS-utsending feilet. Sjekk at Messente er konfigurert.',
+    };
+  }
+  return { ok: true, dispatch: data };
+}
