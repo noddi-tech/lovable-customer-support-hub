@@ -112,6 +112,24 @@ export const ruleFormSchema = z
         }
       }
     }
+    if (data.action_type === 'send_candidate_form') {
+      const ch = data.action_config.channel;
+      if (ch && ch !== 'email') {
+        ctx.addIssue({
+          path: ['action_config', 'channel'],
+          code: 'custom',
+          message: 'Bare e-post støttes i automatisering for nå',
+        });
+      }
+      const exp = Number(data.action_config.expiry_days ?? 7);
+      if (!Number.isFinite(exp) || exp < 1 || exp > 14) {
+        ctx.addIssue({
+          path: ['action_config', 'expiry_days'],
+          code: 'custom',
+          message: 'Gyldighet må være 1–14 dager',
+        });
+      }
+    }
   });
 
 export type RuleFormValues = z.infer<typeof ruleFormSchema>;
