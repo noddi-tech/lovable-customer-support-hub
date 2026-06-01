@@ -61,6 +61,8 @@ import ApplicantScoringSection from './ApplicantScoringSection';
 import StageFieldsSection from './StageFieldsSection';
 import ScoringBuiltinFieldsSection from './ScoringBuiltinFieldsSection';
 import StageRequiredFieldsModal from './StageRequiredFieldsModal';
+import SendCandidateFormDialog from './SendCandidateFormDialog';
+import CandidateFormHistorySection from './CandidateFormHistorySection';
 
 const ApplicantProfile: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -88,6 +90,7 @@ const ApplicantProfile: React.FC = () => {
     stageId: string;
     stageName: string;
   } | null>(null);
+  const [sendFormOpen, setSendFormOpen] = useState(false);
   const { data: followups } = useApplicantFollowups(id);
   const completeFu = useCompleteFollowup();
   const deleteFu = useDeleteFollowup();
@@ -360,6 +363,11 @@ const ApplicantProfile: React.FC = () => {
               />
               <ScoringBuiltinFieldsSection applicant={applicant} />
               <ApplicantFieldValuesSection applicantId={applicant.id} />
+              <CandidateFormHistorySection
+                applicantId={applicant.id}
+                canSend={!!firstApp}
+                onSendForm={() => setSendFormOpen(true)}
+              />
             </div>
           </div>
         </TabsContent>
