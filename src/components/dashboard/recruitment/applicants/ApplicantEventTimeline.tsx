@@ -67,6 +67,10 @@ const EVENT_CONFIG: Record<
   assigned: { icon: UserCheck, bg: 'bg-teal-100', text: 'text-teal-600' },
   sms_sent: { icon: Smartphone, bg: 'bg-yellow-100', text: 'text-yellow-700' },
   score_calculated: { icon: BarChart, bg: 'bg-purple-100', text: 'text-purple-600' },
+  candidate_form_sent: { icon: Send, bg: 'bg-blue-100', text: 'text-blue-600' },
+  candidate_form_opened: { icon: FileText, bg: 'bg-amber-100', text: 'text-amber-700' },
+  candidate_form_submitted: { icon: ClipboardCheck, bg: 'bg-green-100', text: 'text-green-600' },
+  candidate_form_revoked: { icon: X, bg: 'bg-muted', text: 'text-muted-foreground' },
 };
 
 function stageName(id: string | undefined, pipeline: Props['pipeline']): string {
