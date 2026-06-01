@@ -39,6 +39,7 @@ export const ACTION_OPTIONS: Array<{
   { value: 'send_email', label: 'Send e-post' },
   { value: 'assign_to', label: 'Tildel ansvarlig' },
   { value: 'webhook', label: 'Send webhook' },
+  { value: 'send_candidate_form', label: 'Send kandidatskjema' },
   { value: 'send_sms', label: 'Send SMS', disabled: true, comingSoon: true },
   { value: 'create_task', label: 'Opprett oppgave', disabled: true, comingSoon: true },
 ];
@@ -47,6 +48,7 @@ export const ACTION_LABELS: Record<string, string> = {
   send_email: 'Send e-post',
   assign_to: 'Tildel ansvarlig',
   webhook: 'Send webhook',
+  send_candidate_form: 'Send kandidatskjema',
   send_sms: 'Send SMS',
   create_task: 'Opprett oppgave',
 };
@@ -58,7 +60,7 @@ export const ruleFormSchema = z
     is_active: z.boolean(),
     trigger_type: z.enum(['stage_entered', 'application_created']),
     trigger_config: z.record(z.unknown()).default({}),
-    action_type: z.enum(['send_email', 'assign_to', 'webhook']),
+    action_type: z.enum(['send_email', 'assign_to', 'webhook', 'send_candidate_form']),
     action_config: z.record(z.unknown()).default({}),
   })
   .superRefine((data, ctx) => {
