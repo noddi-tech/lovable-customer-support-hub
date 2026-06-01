@@ -179,7 +179,7 @@ const CandidateFormPage: React.FC = () => {
     }
     const reason = d?.reason ?? 'server_error';
     // Terminal token-state failures → fatal error screen (form is no longer submittable).
-    if (['invalid_or_expired', 'too_many_attempts'].includes(reason)) {
+    if (FATAL_REASONS.has(reason)) {
       setFatalError(ERROR_COPY[reason]);
       setStep('error');
       return;
