@@ -9,6 +9,7 @@ export type BulkAction =
   | 'reject'
   | 'hire'
   | 'send_email'
+  | 'send_form'
   | 'add_tags'
   | 'remove_tags'
   | 'delete'
@@ -21,6 +22,9 @@ export interface BulkActionPayload {
   template_id?: string;
   inbox_id?: string;
   tag_ids?: string[];
+  channel?: 'email' | 'sms';
+  expiry_days?: number;
+  custom_message?: string;
 }
 
 export interface BulkActionResult {
