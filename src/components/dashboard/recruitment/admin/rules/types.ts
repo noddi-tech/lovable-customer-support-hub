@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 export type TriggerType = 'stage_entered' | 'application_created';
-export type ActionType = 'send_email' | 'assign_to' | 'webhook';
+export type ActionType = 'send_email' | 'assign_to' | 'webhook' | 'send_candidate_form';
 export type ActionTypeAll =
   | ActionType
   | 'send_sms'
