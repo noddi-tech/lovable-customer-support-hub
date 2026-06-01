@@ -14,6 +14,7 @@ import {
   AssignBulkDialog,
   RejectBulkDialog,
   SendEmailBulkDialog,
+  SendFormBulkDialog,
   TagsBulkDialog,
   DeleteBulkDialog,
 } from './applicants/BulkActionDialogs';
