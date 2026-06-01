@@ -147,12 +147,23 @@ export async function validateTokenAndIdentity(
   return { ok: true, token, applicant };
 }
 
+// User-visible candidate-form lifecycle events also get mirrored into
+// application_events so the Hendelser timeline (Oversikt tab) renders them.
+// Internal/noise types (id_check_failed, auto_revoked) stay audit-only.
+const TIMELINE_MIRRORED_EVENTS = new Set([
+  'candidate_form_sent',
+  'candidate_form_opened',
+  'candidate_form_submitted',
+  'candidate_form_revoked',
+]);
+
 export async function logAudit(
   supabase: any,
-  token: Pick<TokenRow, 'organization_id' | 'applicant_id' | 'id'>,
+  token: Pick<TokenRow, 'organization_id' | 'applicant_id' | 'id'> & { application_id?: string },
   eventType: string,
   clientIp: string | null,
   context: Record<string, unknown> | null,
+  opts?: { performed_by?: string | null; application_id?: string },
 ) {
   await supabase.from('recruitment_audit_events').insert({
     organization_id: token.organization_id,
@@ -164,6 +175,20 @@ export async function logAudit(
     ip_address: clientIp,
     context: context ?? null,
   });
+
+  if (TIMELINE_MIRRORED_EVENTS.has(eventType)) {
+    const applicationId = opts?.application_id ?? (token as any).application_id;
+    if (applicationId) {
+      await supabase.from('application_events').insert({
+        organization_id: token.organization_id,
+        application_id: applicationId,
+        applicant_id: token.applicant_id,
+        event_type: eventType,
+        event_data: { ...(context ?? {}), token_id: token.id },
+        performed_by: opts?.performed_by ?? null,
+      });
+    }
+  }
 }
 
 export function getClientIp(req: Request): string | null {
