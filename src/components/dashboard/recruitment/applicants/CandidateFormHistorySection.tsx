@@ -107,7 +107,7 @@ function TokenRowCard({ token, onRevoke }: { token: CandidateFormTokenRow; onRev
         {status === 'opened' && token.opened_at && <> · Åpnet {fmt(token.opened_at)}</>}
         {status === 'revoked' && token.revoked_at && <> · {fmt(token.revoked_at)}</>}
         {(status === 'sent' || status === 'opened') && <> · Utløper {fmt(token.expires_at)}</>}
-        {token.attempts > 0 && status !== 'submitted' && status !== 'revoked' && (
+        {(status === 'sent' || status === 'opened') && (
           <> · {token.attempts} av 5 forsøk brukt</>
         )}
       </div>
