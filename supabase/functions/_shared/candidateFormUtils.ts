@@ -126,7 +126,7 @@ export async function validateTokenAndIdentity(
 
     return {
       ok: false,
-      status: 401,
+      status: 200,
       body: {
         valid: false,
         reason: newAttempts >= MAX_ATTEMPTS ? 'too_many_attempts' : 'identity_check_failed',
