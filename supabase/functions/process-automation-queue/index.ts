@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createCandidateFormToken } from "../_shared/sendCandidateForm.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -207,6 +208,123 @@ async function dispatchWebhook(
 }
 
 // =============================================================================
+// send_candidate_form — issue a candidate-form token + send invite email
+// (email-only in v1; SMS via automation deferred until system-callable SMS)
+// =============================================================================
+async function dispatchSendCandidateForm(
+  supabase: SupabaseClient,
+  actionConfig: Record<string, unknown>,
+  triggerContext: Record<string, unknown>,
+  ruleSnapshot: { id: string; name: string; [k: string]: unknown },
+): Promise<ActionResult> {
+  const start = performance.now();
+
+  const channel = (actionConfig.channel as string | undefined) ?? "email";
+  if (channel !== "email") {
+    return {
+      success: false,
+      error: "send_candidate_form: only channel='email' is supported in v1 automation",
+      duration_ms: Math.round(performance.now() - start),
+    };
+  }
+  const applicationId = triggerContext.application_id as string | undefined;
+  if (!applicationId) {
+    return {
+      success: false,
+      error: "send_candidate_form requires application_id",
+      duration_ms: Math.round(performance.now() - start),
+    };
+  }
+  const expiryDays = Math.max(1, Math.min(14, Number(actionConfig.expiry_days ?? 7)));
+
+  // 1. Create token (system actor = null)
+  const created = await createCandidateFormToken(supabase, {
+    application_id: applicationId,
+    channel: "email",
+    expiry_days: expiryDays,
+    created_by_profile_id: null,
+  });
+  if (!created.ok) {
+    return {
+      success: false,
+      error: `token: ${created.error}${created.message ? ` — ${created.message}` : ""}`,
+      duration_ms: Math.round(performance.now() - start),
+    };
+  }
+
+  // 2. Tag the audit row with the rule name so history shows attribution
+  await supabase
+    .from("recruitment_audit_events")
+    .update({
+      context: {
+        triggered_by_rule_id: ruleSnapshot.id,
+        triggered_by_rule_name: ruleSnapshot.name,
+        channel: "email",
+        expires_at: created.expires_at,
+      },
+    })
+    .eq("event_type", "candidate_form_sent")
+    .eq("subject_id", created.token_id);
+
+  // 3. Resolve recipient
+  if (!created.applicant.email) {
+    return {
+      success: false,
+      error: "Applicant has no email address",
+      duration_ms: Math.round(performance.now() - start),
+    };
+  }
+
+  // 4. Build email + send via send-email (service role)
+  const firstName = created.applicant.first_name ?? "";
+  const expiresHuman = new Date(created.expires_at).toLocaleDateString("nb-NO");
+  const subject = `Vi trenger litt mer info – ${created.position.title}`;
+  const html = `
+    <p>Hei ${firstName},</p>
+    <p>Vi trenger litt mer info for søknaden din til <strong>${created.position.title}</strong>.</p>
+    <p>Vennligst fyll ut skjemaet innen ${expiresHuman}:</p>
+    <p><a href="${created.url}" style="display:inline-block;padding:12px 20px;background:#2563eb;color:#fff;text-decoration:none;border-radius:6px;">Åpne skjema</a></p>
+    <p>Eller åpne lenken direkte:<br><a href="${created.url}">${created.url}</a></p>
+    <p>Du vil bli bedt om å bekrefte de siste 4 sifrene i telefonnummeret ditt.</p>
+  `;
+  const resp = await fetch(`${SUPABASE_URL}/functions/v1/send-email`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ to: created.applicant.email, subject, html }),
+  });
+  const text = await resp.text();
+  const duration_ms = Math.round(performance.now() - start);
+
+  if (!resp.ok) {
+    // Auto-revoke on dispatch failure
+    await supabase
+      .from("candidate_form_tokens")
+      .update({ revoked_at: new Date().toISOString() })
+      .eq("id", created.token_id)
+      .is("revoked_at", null)
+      .is("used_at", null);
+    return {
+      success: false,
+      http_status: resp.status,
+      response_excerpt: text.slice(0, 2048),
+      error: `send-email returned HTTP ${resp.status}`,
+      duration_ms,
+    };
+  }
+
+  return {
+    success: true,
+    http_status: resp.status,
+    response_excerpt: text.slice(0, 2048),
+    preview: `Sendte skjema-lenke til ${created.applicant.email} (utløper ${expiresHuman})`,
+    duration_ms,
+  };
+}
+
+// =============================================================================
 // Single-action dispatch switch
 // =============================================================================
 async function dispatch(
@@ -223,6 +341,8 @@ async function dispatch(
       return dispatchAssignTo(supabase, actionConfig, triggerContext);
     case "webhook":
       return dispatchWebhook(actionConfig, triggerContext, ruleSnapshot);
+    case "send_candidate_form":
+      return dispatchSendCandidateForm(supabase, actionConfig, triggerContext, ruleSnapshot);
     case "send_sms":
       return { success: false, error: "send_sms is not implemented in v1", duration_ms: 0 };
     case "create_task":

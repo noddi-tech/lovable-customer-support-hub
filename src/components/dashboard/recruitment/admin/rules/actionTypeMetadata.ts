@@ -9,6 +9,7 @@ export const EXTERNAL_ACTION_TYPES = new Set<string>([
   'send_email',
   'webhook',
   'send_sms',
+  'send_candidate_form',
 ]);
 
 export function isExternalAction(actionType: string | null | undefined): boolean {

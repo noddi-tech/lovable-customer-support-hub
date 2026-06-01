@@ -14,6 +14,7 @@ import {
   AssignBulkDialog,
   RejectBulkDialog,
   SendEmailBulkDialog,
+  SendFormBulkDialog,
   TagsBulkDialog,
   DeleteBulkDialog,
 } from './applicants/BulkActionDialogs';
@@ -136,6 +137,13 @@ const RecruitmentApplicants: React.FC = () => {
         loading={bulkMut.isPending}
         onClose={closeDialog}
         onConfirm={(template_id, inbox_id) => runBulk('send_email', { template_id, inbox_id })}
+      />
+      <SendFormBulkDialog
+        open={activeDialog === 'send_form'}
+        N={N}
+        loading={bulkMut.isPending}
+        onClose={closeDialog}
+        onConfirm={(p) => runBulk('send_form', p)}
       />
       <BulkRescoreDialog
         open={activeDialog === 'rescore'}

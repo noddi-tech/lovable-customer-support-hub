@@ -9,6 +9,8 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Slider } from '@/components/ui/slider';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useApplicantPipeline, type PipelineStage } from './useApplicants';
 import { useTeamMembers } from '@/hooks/useTeamMembers';
 import { TagPicker } from './TagPicker';
@@ -18,7 +20,7 @@ import { useOrganizationStore } from '@/stores/organizationStore';
 
 export type ActiveBulkDialog =
   | null | 'move_stage' | 'assign' | 'reject' | 'hire'
-  | 'send_email' | 'rescore' | 'add_tags' | 'remove_tags' | 'export_csv' | 'delete';
+  | 'send_email' | 'send_form' | 'rescore' | 'add_tags' | 'remove_tags' | 'export_csv' | 'delete';
 
 interface BaseProps {
   open: boolean;
@@ -290,6 +292,93 @@ export function DeleteBulkDialog({
           <Button variant="outline" onClick={onClose} disabled={loading}>Avbryt</Button>
           <Button variant="destructive" onClick={onConfirm} disabled={!ok || loading}>
             Slett permanent
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export function SendFormBulkDialog({
+  open, N, onClose, onConfirm, loading,
+}: BaseProps & {
+  onConfirm: (payload: { channel: 'email' | 'sms'; inbox_id: string; expiry_days: number; custom_message?: string }) => void;
+}) {
+  const { currentOrganizationId } = useOrganizationStore();
+  const [channel, setChannel] = useState<'email' | 'sms'>('email');
+  const [inboxId, setInboxId] = useState<string>('');
+  const [expiryDays, setExpiryDays] = useState(7);
+  const [customMessage, setCustomMessage] = useState('');
+  useEffect(() => {
+    if (!open) { setInboxId(''); setExpiryDays(7); setCustomMessage(''); setChannel('email'); }
+  }, [open]);
+  const { data: inboxes } = useQuery({
+    queryKey: ['recruitment-inboxes-bulk-form', currentOrganizationId, channel],
+    enabled: !!currentOrganizationId && open,
+    queryFn: async () => {
+      let q = supabase.from('inboxes').select('id, name, sms_enabled')
+        .eq('organization_id', currentOrganizationId!).eq('is_active', true).eq('purpose', 'recruitment');
+      if (channel === 'sms') q = q.eq('sms_enabled', true);
+      const { data, error } = await q.order('name');
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+  useEffect(() => {
+    if (open && inboxes && inboxes.length > 0 && !inboxes.find((i: any) => i.id === inboxId)) {
+      setInboxId(inboxes[0].id);
+    }
+  }, [open, inboxes, inboxId]);
+  return (
+    <Dialog open={open} onOpenChange={(o) => { if (!o && !loading) onClose(); }}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Send kandidatskjema til {N} søkere?</DialogTitle>
+          <DialogDescription>
+            Hver søker får en personlig lenke. Søkere uten kontaktinfo for valgt kanal hoppes over.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3 py-2">
+          <div>
+            <Label className="mb-1.5 block">Kanal</Label>
+            <RadioGroup value={channel} onValueChange={(v) => setChannel(v as any)} className="flex gap-4">
+              <label className="flex items-center gap-2 text-sm"><RadioGroupItem value="email" /> E-post</label>
+              <label className="flex items-center gap-2 text-sm"><RadioGroupItem value="sms" /> SMS</label>
+            </RadioGroup>
+          </div>
+          <div>
+            <Label className="mb-1.5 block">Innboks</Label>
+            <Select value={inboxId} onValueChange={setInboxId}>
+              <SelectTrigger><SelectValue placeholder="Velg innboks..." /></SelectTrigger>
+              <SelectContent>
+                {(inboxes ?? []).map((i: any) => (<SelectItem key={i.id} value={i.id}>{i.name}</SelectItem>))}
+              </SelectContent>
+            </Select>
+            {(inboxes?.length ?? 0) === 0 && (
+              <p className="text-xs text-amber-600 mt-1">
+                {channel === 'sms' ? 'Ingen innboks med SMS aktivert.' : 'Ingen rekrutterings-innboks.'}
+              </p>
+            )}
+          </div>
+          <div>
+            <div className="flex items-center justify-between">
+              <Label>Gyldighet</Label>
+              <span className="text-xs text-muted-foreground">{expiryDays} dag{expiryDays === 1 ? '' : 'er'}</span>
+            </div>
+            <Slider value={[expiryDays]} onValueChange={(v) => setExpiryDays(v[0])} min={1} max={14} step={1} />
+          </div>
+          <div>
+            <Label className="mb-1.5 block">Egen melding (valgfritt)</Label>
+            <Textarea value={customMessage} onChange={(e) => setCustomMessage(e.target.value)} rows={2} maxLength={500} />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={loading}>Avbryt</Button>
+          <Button
+            onClick={() => onConfirm({ channel, inbox_id: inboxId, expiry_days: expiryDays, custom_message: customMessage.trim() || undefined })}
+            disabled={!inboxId || loading}
+          >
+            Send skjema
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -1,8 +1,12 @@
-// Bulk applicant action — supports 8 actions on selected applicants.
-// Actions: move_stage, assign, reject, hire, send_email, add_tags,
+// Bulk applicant action — supports 9 actions on selected applicants.
+// Actions: move_stage, assign, reject, hire, send_email, send_form, add_tags,
 // remove_tags, delete (admin), export_csv.
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import {
+  createCandidateFormToken,
+  dispatchCandidateFormInvite,
+} from '../_shared/sendCandidateForm.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -32,7 +36,7 @@ interface PerResult {
 }
 
 const VALID_ACTIONS = new Set([
-  'move_stage','assign','reject','hire','send_email','add_tags','remove_tags','delete','export_csv',
+  'move_stage','assign','reject','hire','send_email','send_form','add_tags','remove_tags','delete','export_csv',
 ]);
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -395,6 +399,87 @@ Deno.serve(async (req) => {
       await sleep(200);
     }
   }
+
+  if (action === 'send_form') {
+    const channel = (payload.channel as 'email' | 'sms') ?? 'email';
+    if (!['email', 'sms'].includes(channel)) {
+      return jsonRes({ error: 'channel must be email or sms' }, 400);
+    }
+    const inboxId = payload.inbox_id as string | undefined;
+    if (!inboxId || !UUID_RE.test(inboxId)) {
+      return jsonRes({ error: 'inbox_id påkrevd' }, 400);
+    }
+    const expiryDays = Math.max(1, Math.min(14, Number(payload.expiry_days ?? 7)));
+    const customMessage = (payload.custom_message as string | undefined)?.slice(0, 500);
+
+    // Resolve latest application per applicant
+    const { data: apps } = await adminClient
+      .from('applications')
+      .select('id, applicant_id, applied_at')
+      .in('applicant_id', validIds)
+      .eq('organization_id', orgId)
+      .order('applied_at', { ascending: false });
+    const appByApplicant = new Map<string, string>();
+    for (const a of (apps ?? []) as any[]) {
+      if (!appByApplicant.has(a.applicant_id)) appByApplicant.set(a.applicant_id, a.id);
+    }
+
+    for (const id of validIds) {
+      const a = ownedMap.get(id);
+      const reqChannel = channel;
+      // Skip missing-contact based on channel
+      if (reqChannel === 'email' && !a?.email) {
+        skipped++;
+        skippedReasons.push({ applicant_id: id, reason: 'missing_email' });
+        results.push({ applicant_id: id, ok: false, skipped_reason: 'missing_email', message: 'Mangler e-post' });
+        continue;
+      }
+      if (reqChannel === 'sms' && !a?.phone) {
+        skipped++;
+        skippedReasons.push({ applicant_id: id, reason: 'missing_phone' });
+        results.push({ applicant_id: id, ok: false, skipped_reason: 'missing_phone', message: 'Mangler telefon' });
+        continue;
+      }
+      const appId = appByApplicant.get(id);
+      if (!appId) {
+        results.push({ applicant_id: id, ok: false, message: 'Ingen aktiv søknad' });
+        continue;
+      }
+      try {
+        const created = await createCandidateFormToken(adminClient, {
+          application_id: appId,
+          channel: reqChannel,
+          expiry_days: expiryDays,
+          created_by_profile_id: actorProfileId,
+        });
+        if (!created.ok) {
+          results.push({ applicant_id: id, ok: false, message: created.message ?? created.error });
+          continue;
+        }
+        const dispatch = await dispatchCandidateFormInvite(adminClient, {
+          token_id: created.token_id,
+          url: created.url,
+          expires_at: created.expires_at,
+          channel: reqChannel,
+          inbox_id: inboxId,
+          custom_message: customMessage,
+          applicant: created.applicant,
+          position: created.position,
+          auth_header: req.headers.get('Authorization') || '',
+          revoked_by_profile_id: actorProfileId,
+        });
+        if (!dispatch.ok) {
+          results.push({ applicant_id: id, ok: false, message: dispatch.message ?? dispatch.error });
+          continue;
+        }
+        results.push({ applicant_id: id, ok: true });
+      } catch (e: any) {
+        results.push({ applicant_id: id, ok: false, message: e.message });
+      }
+      await sleep(150);
+    }
+  }
+
 
   if (action === 'delete') {
     for (const id of validIds) {

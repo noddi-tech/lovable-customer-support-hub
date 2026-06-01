@@ -61,6 +61,7 @@ const ACTION_LABELS: Record<string, string> = {
   send_email: 'Send e-post',
   assign_to: 'Tildel ansvarlig',
   webhook: 'Webhook',
+  send_candidate_form: 'Send kandidatskjema',
 };
 
 export function getActionLabel(actionType?: string | null) {
