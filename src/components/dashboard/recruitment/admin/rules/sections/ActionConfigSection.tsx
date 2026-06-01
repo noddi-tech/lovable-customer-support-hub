@@ -321,6 +321,31 @@ export function ActionConfigSection({
           </div>
         </div>
       )}
+
+      {actionType === 'send_candidate_form' && (
+        <div className="space-y-3">
+          <p className="text-xs text-muted-foreground">
+            Søkeren får en e-post med lenke til kandidatskjemaet. Lenken er
+            personlig og krever bekreftelse av telefonnummer.
+          </p>
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium">Gyldighet (dager)</Label>
+            <Input
+              type="number"
+              min={1}
+              max={14}
+              value={(actionConfig.expiry_days as number | undefined) ?? 7}
+              onChange={(e) => {
+                const v = Number(e.target.value);
+                setConfigField('expiry_days', Number.isFinite(v) ? Math.max(1, Math.min(14, v)) : 7);
+              }}
+            />
+            <p className="text-[11px] text-muted-foreground">
+              Mellom 1 og 14 dager. Lenken kan kun brukes én gang.
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
