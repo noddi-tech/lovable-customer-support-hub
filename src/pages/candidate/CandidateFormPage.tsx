@@ -116,7 +116,7 @@ const CandidateFormPage: React.FC = () => {
         if (typeof d?.attempts_remaining === 'number') {
           setAttemptsRemaining(d.attempts_remaining);
         }
-        if (['invalid_or_expired', 'already_submitted', 'too_many_attempts'].includes(reason)) {
+        if (FATAL_REASONS.has(reason)) {
           setFatalError(ERROR_COPY[reason]);
           setStep('error');
         }
