@@ -41,7 +41,7 @@ Deno.serve(async (req) => {
 
   const { data: tokenRow } = await supabase
     .from('candidate_form_tokens')
-    .select('id, organization_id, applicant_id, used_at, revoked_at')
+    .select('id, organization_id, applicant_id, application_id, used_at, revoked_at')
     .eq('id', body.token_id)
     .maybeSingle();
 
@@ -73,7 +73,10 @@ Deno.serve(async (req) => {
 
   if (updateErr) return json({ error: 'Failed to revoke', details: updateErr.message }, 500);
 
-  await logAudit(supabase, tokenRow, 'candidate_form_revoked', null, null);
+  await logAudit(supabase, tokenRow, 'candidate_form_revoked', null, null, {
+    performed_by: profile?.id ?? null,
+    application_id: tokenRow.application_id,
+  });
 
   return json({ success: true });
 });

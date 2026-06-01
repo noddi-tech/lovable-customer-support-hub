@@ -151,6 +151,7 @@ export async function createCandidateFormToken(
       id: tokenRow.id,
       organization_id: application.organization_id,
       applicant_id: application.applicant_id,
+      application_id: application.id,
     },
     'candidate_form_sent',
     null,
@@ -159,6 +160,7 @@ export async function createCandidateFormToken(
       expires_at: expiresAt,
       created_by_profile_id: input.created_by_profile_id,
     },
+    { performed_by: input.created_by_profile_id, application_id: application.id },
   );
 
   return {
