@@ -36,7 +36,7 @@ interface PerResult {
 }
 
 const VALID_ACTIONS = new Set([
-  'move_stage','assign','reject','hire','send_email','add_tags','remove_tags','delete','export_csv',
+  'move_stage','assign','reject','hire','send_email','send_form','add_tags','remove_tags','delete','export_csv',
 ]);
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
