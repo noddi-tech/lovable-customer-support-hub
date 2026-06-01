@@ -119,6 +119,16 @@ function describeEvent(event: ApplicantEvent, pipeline: Props['pipeline']): stri
       return `SMS sendt${d.preview ? `: ${d.preview}` : ''}`;
     case 'score_calculated':
       return `Poengsum beregnet${d.score != null ? `: ${d.score}` : ''}`;
+    case 'candidate_form_sent': {
+      const ch = d.channel === 'sms' ? 'SMS' : d.channel === 'email' ? 'e-post' : 'manuell';
+      return `Kandidatskjema sendt (${ch})`;
+    }
+    case 'candidate_form_opened':
+      return 'Kandidat åpnet skjemaet';
+    case 'candidate_form_submitted':
+      return 'Kandidat sendte inn skjemaet';
+    case 'candidate_form_revoked':
+      return 'Skjemalenke trukket tilbake';
     default:
       return event.event_type;
   }
