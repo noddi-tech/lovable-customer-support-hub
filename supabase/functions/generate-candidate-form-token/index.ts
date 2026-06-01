@@ -87,79 +87,44 @@ Deno.serve(async (req) => {
   }
 
   const { token_id, url, expires_at, applicant, position } = result;
-  const customMessageHtml = body.custom_message?.trim()
-    ? `<p>${body.custom_message.trim().replace(/</g, '&lt;').replace(/\n/g, '<br>')}</p>`
-    : '';
-  const customMessageText = body.custom_message?.trim() ? `${body.custom_message.trim()}\n\n` : '';
 
-  // Dispatch via channel. Failure → auto-revoke so we don't leave orphan live tokens.
-  let dispatchResult: any = null;
+  if (body.channel === 'manual') {
+    return json({
+      token_id,
+      token: result.token,
+      url,
+      expires_at,
+      channel: result.channel,
+      dispatch: null,
+    });
+  }
+
   try {
-    if (body.channel === 'email') {
-      if (!body.inbox_id) {
-        await revokeCandidateFormToken(supabase, token_id, profile?.id ?? null, 'missing_inbox_id');
-        return json({ error: 'inbox_id required for email channel' }, 400);
-      }
-      const firstName = applicant.first_name ?? '';
-      const subject = `Vi trenger litt mer info – ${position.title}`;
-      const bodyHtml = `
-        <p>Hei ${firstName},</p>
-        <p>Vi trenger litt mer info for søknaden din til <strong>${position.title}</strong>.</p>
-        ${customMessageHtml}
-        <p>Vennligst fyll ut skjemaet innen ${new Date(expires_at).toLocaleDateString('nb-NO')}:</p>
-        <p><a href="${url}" style="display:inline-block;padding:12px 20px;background:#2563eb;color:#fff;text-decoration:none;border-radius:6px;">Åpne skjema</a></p>
-        <p>Eller åpne lenken direkte:<br><a href="${url}">${url}</a></p>
-        <p>Du vil bli bedt om å bekrefte de siste 4 sifrene i telefonnummeret ditt.</p>
-      `;
-      const { data: sendData, error: sendErr } = await supabase.functions.invoke('send-recruitment-email', {
-        headers: { Authorization: authHeader },
-        body: {
-          applicant_id: applicant.id,
-          inbox_id: body.inbox_id,
-          subject,
-          body_html: bodyHtml,
-        },
-      });
-      if (sendErr || (sendData as any)?.error) {
-        const msg = sendErr?.message ?? (sendData as any)?.error ?? 'Email dispatch failed';
-        await revokeCandidateFormToken(supabase, token_id, profile?.id ?? null, `email_dispatch_failed: ${msg}`);
-        return json({ error: 'email_dispatch_failed', message: msg }, 502);
-      }
-      dispatchResult = sendData;
-    } else if (body.channel === 'sms') {
-      const firstName = applicant.first_name ?? '';
-      const smsBody = `Hei ${firstName}! ${customMessageText}Fyll ut skjemaet for ${position.title}: ${url} (utløper ${new Date(expires_at).toLocaleDateString('nb-NO')})`;
-      const { data: sendData, error: sendErr } = await supabase.functions.invoke('send-recruitment-sms', {
-        headers: { Authorization: authHeader },
-        body: {
-          applicant_id: applicant.id,
-          inbox_id: body.inbox_id, // required by send-recruitment-sms
-          body: smsBody,
-        },
-      });
-      if (sendErr || (sendData as any)?.error) {
-        const msg = sendErr?.message ?? (sendData as any)?.error ?? 'SMS dispatch failed';
-        await revokeCandidateFormToken(supabase, token_id, profile?.id ?? null, `sms_dispatch_failed: ${msg}`);
-        return json({
-          error: 'sms_dispatch_failed',
-          message: 'SMS-utsending feilet. Sjekk at Messente er konfigurert.',
-          details: msg,
-        }, 502);
-      }
-      dispatchResult = sendData;
+    const dispatch = await dispatchCandidateFormInvite(supabase, {
+      token_id,
+      url,
+      expires_at,
+      channel: body.channel,
+      inbox_id: body.inbox_id,
+      custom_message: body.custom_message,
+      applicant,
+      position,
+      auth_header: authHeader,
+      revoked_by_profile_id: profile?.id ?? null,
+    });
+    if (!dispatch.ok) {
+      return json({ error: dispatch.error, message: dispatch.message }, dispatch.status);
     }
-    // manual: nothing to dispatch — caller gets URL back
+    return json({
+      token_id,
+      token: result.token,
+      url,
+      expires_at,
+      channel: result.channel,
+      dispatch: dispatch.dispatch,
+    });
   } catch (e: any) {
     await revokeCandidateFormToken(supabase, token_id, profile?.id ?? null, `unexpected: ${e?.message ?? e}`);
     return json({ error: 'dispatch_failed', message: e?.message ?? String(e) }, 500);
   }
-
-  return json({
-    token_id,
-    token: result.token,
-    url,
-    expires_at,
-    channel: result.channel,
-    dispatch: dispatchResult,
-  });
 });
