@@ -49,7 +49,10 @@ Deno.serve(async (req) => {
   );
 
   if (!result.ok) {
-    return json(result.body, result.status);
+    // Surface terminal/recoverable reasons with HTTP 200 so the candidate UI's
+    // invoke() exposes the body. Pure server errors keep their status.
+    const passthroughStatus = result.status >= 500 ? result.status : 200;
+    return json({ success: false, ...result.body }, passthroughStatus);
   }
 
   const tokenRow = result.token;
