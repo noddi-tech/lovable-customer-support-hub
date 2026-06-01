@@ -455,6 +455,18 @@ const ApplicantProfile: React.FC = () => {
         applicant={applicant}
       />
 
+      {firstApp && (
+        <SendCandidateFormDialog
+          open={sendFormOpen}
+          onOpenChange={setSendFormOpen}
+          applicationId={firstApp.id}
+          applicantId={applicant.id}
+          applicantName={`${applicant.first_name ?? ''} ${applicant.last_name ?? ''}`.trim() || 'søkeren'}
+          hasEmail={!!applicant.email}
+          hasPhone={!!applicant.phone}
+        />
+      )}
+
       <ScheduleFollowupDialog
         open={followupOpen}
         onOpenChange={setFollowupOpen}
