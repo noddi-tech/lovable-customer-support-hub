@@ -1,8 +1,12 @@
-// Bulk applicant action — supports 8 actions on selected applicants.
-// Actions: move_stage, assign, reject, hire, send_email, add_tags,
+// Bulk applicant action — supports 9 actions on selected applicants.
+// Actions: move_stage, assign, reject, hire, send_email, send_form, add_tags,
 // remove_tags, delete (admin), export_csv.
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import {
+  createCandidateFormToken,
+  dispatchCandidateFormInvite,
+} from '../_shared/sendCandidateForm.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
