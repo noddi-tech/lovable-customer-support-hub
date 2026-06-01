@@ -186,6 +186,10 @@ export function formatActionSummary(rule: AutomationRule, lookups: RuleLookups):
         return 'Webhook';
       }
     }
+    case 'send_candidate_form': {
+      const days = Number(rule.action_config?.expiry_days ?? 7);
+      return `Send kandidatskjema (e-post, ${days} dag${days === 1 ? '' : 'er'})`;
+    }
     default:
       return ACTION_LABELS[rule.action_type] ?? rule.action_type;
   }
