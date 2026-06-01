@@ -79,15 +79,23 @@ export async function validateTokenAndIdentity(
     return { ok: false, status: 404, body: { valid: false, reason: 'invalid_or_expired' } };
   }
 
+  // Terminal/recoverable states: return HTTP 200 with { valid: false, reason }
+  // so supabase.functions.invoke() exposes the body in `data` instead of
+  // collapsing into a generic `error` (memory #4).
+  // Token-state checks take precedence over identity check — a revoked or
+  // expired token must NOT show "wrong digits" even with correct input.
   const now = new Date();
   if (token.used_at) {
-    return { ok: false, status: 410, body: { valid: false, reason: 'already_submitted' } };
+    return { ok: false, status: 200, body: { valid: false, reason: 'already_submitted' } };
   }
-  if (token.revoked_at || new Date(token.expires_at) <= now) {
-    return { ok: false, status: 410, body: { valid: false, reason: 'invalid_or_expired' } };
+  if (token.revoked_at) {
+    return { ok: false, status: 200, body: { valid: false, reason: 'revoked' } };
+  }
+  if (new Date(token.expires_at) <= now) {
+    return { ok: false, status: 200, body: { valid: false, reason: 'invalid_or_expired' } };
   }
   if (token.attempts >= MAX_ATTEMPTS) {
-    return { ok: false, status: 423, body: { valid: false, reason: 'too_many_attempts' } };
+    return { ok: false, status: 200, body: { valid: false, reason: 'too_many_attempts' } };
   }
 
   const { data: applicant, error: applicantErr } = await supabase
