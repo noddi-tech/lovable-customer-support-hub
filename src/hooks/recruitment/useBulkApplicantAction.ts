@@ -59,6 +59,7 @@ const ACTION_LABELS: Record<BulkAction, string> = {
   reject: 'avvist',
   hire: 'ansatt',
   send_email: 'sendt e-post',
+  send_form: 'sendt skjema',
   add_tags: 'fått etiketter',
   remove_tags: 'fjernet etiketter fra',
   delete: 'slettet',
