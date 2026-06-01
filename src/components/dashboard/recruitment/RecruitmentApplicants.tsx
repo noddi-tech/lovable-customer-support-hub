@@ -138,6 +138,13 @@ const RecruitmentApplicants: React.FC = () => {
         onClose={closeDialog}
         onConfirm={(template_id, inbox_id) => runBulk('send_email', { template_id, inbox_id })}
       />
+      <SendFormBulkDialog
+        open={activeDialog === 'send_form'}
+        N={N}
+        loading={bulkMut.isPending}
+        onClose={closeDialog}
+        onConfirm={(p) => runBulk('send_form', p)}
+      />
       <BulkRescoreDialog
         open={activeDialog === 'rescore'}
         applicantIds={selectedIds}
