@@ -6,14 +6,18 @@ import {
   BarChart,
   Calendar,
   CheckCircle,
+  ClipboardCheck,
+  FileText,
   Mail,
   MailOpen,
   MessageSquare,
   Paperclip,
   Phone,
+  Send,
   Smartphone,
   UserCheck,
   UserPlus,
+  X,
   Activity,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
