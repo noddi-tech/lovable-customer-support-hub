@@ -51,13 +51,21 @@ const BUILTIN_LABELS: Record<string, { label: string; type: string; placeholder?
 };
 
 const ERROR_COPY: Record<string, string> = {
-  invalid_or_expired: 'Lenken er ugyldig eller har utløpt. Kontakt arbeidsgiveren for en ny lenke.',
+  invalid_or_expired: 'Denne lenken er ikke lenger gyldig.',
+  revoked: 'Denne lenken er ikke lenger gyldig. Kontakt rekruttereren din hvis du trenger en ny.',
   already_submitted: 'Skjemaet er allerede sendt inn. Takk!',
-  too_many_attempts: 'For mange forsøk. Kontakt arbeidsgiveren for hjelp.',
+  too_many_attempts: 'For mange forsøk. Lenken er låst. Kontakt arbeidsgiveren for hjelp.',
   identity_check_failed: 'Tallene stemmer ikke. Prøv igjen.',
   invalid_input: 'Ugyldig input. Sjekk at du skrev inn 4 sifre.',
   server_error: 'Noe gikk galt. Prøv igjen om litt.',
 };
+
+const FATAL_REASONS = new Set([
+  'invalid_or_expired',
+  'revoked',
+  'already_submitted',
+  'too_many_attempts',
+]);
 
 const CandidateFormPage: React.FC = () => {
   const { token } = useParams<{ token: string }>();
