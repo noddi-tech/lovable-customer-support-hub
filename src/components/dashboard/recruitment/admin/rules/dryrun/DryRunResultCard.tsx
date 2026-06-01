@@ -35,6 +35,8 @@ function getSimulatedActionLabel(action: DryRunActionResult) {
       return 'Ville tildelt ansvarlig';
     case 'webhook':
       return 'Ville kalt webhook';
+    case 'send_candidate_form':
+      return 'Ville sendt kandidatskjema (e-post)';
     default:
       return `Ville ${getActionLabel(action.action_type)?.toLowerCase() ?? 'utført handling'}`;
   }
@@ -53,6 +55,11 @@ function getActionDetails(action: DryRunActionResult): Array<[string, string]> {
       return [
         ['URL', maskWebhookUrl(action.url)],
         ['Metode', action.method ?? action.http_method ?? 'POST'],
+      ];
+    case 'send_candidate_form':
+      return [
+        ['Kanal', 'E-post'],
+        ['Gyldighet', `${(action as any).expiry_days ?? 7} dager`],
       ];
     default:
       return [];
