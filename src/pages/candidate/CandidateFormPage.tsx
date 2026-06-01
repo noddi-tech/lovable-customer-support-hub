@@ -164,13 +164,21 @@ const CandidateFormPage: React.FC = () => {
       return;
     }
     const d = data as any;
-    if (!d?.ok) {
-      const reason = d?.reason ?? 'server_error';
-      setSubmitError(ERROR_COPY[reason] ?? ERROR_COPY.server_error);
-      setStep('form');
+    // Treat both fresh success and already-submitted (race / re-submit) as terminal success.
+    if (d?.success === true || d?.reason === 'already_submitted') {
+      setStep('success');
       return;
     }
-    setStep('success');
+    const reason = d?.reason ?? 'server_error';
+    // Terminal token-state failures → fatal error screen (form is no longer submittable).
+    if (['invalid_or_expired', 'too_many_attempts'].includes(reason)) {
+      setFatalError(ERROR_COPY[reason]);
+      setStep('error');
+      return;
+    }
+    // Recoverable (e.g. identity_check_failed, invalid_input, server_error) → inline retry.
+    setSubmitError(ERROR_COPY[reason] ?? ERROR_COPY.server_error);
+    setStep('form');
   };
 
   if (!token) {
