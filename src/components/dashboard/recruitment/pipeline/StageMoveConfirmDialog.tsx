@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Loader2, Mail, Webhook, MessageSquare, UserCheck, ListTodo } from 'lucide-react';
+import { Loader2, Mail, Webhook, MessageSquare, UserCheck, ListTodo, FileText } from 'lucide-react';
+import { ACTION_LABELS } from '@/components/dashboard/recruitment/admin/rules/types';
 import {
   Dialog,
   DialogContent,
