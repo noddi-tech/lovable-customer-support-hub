@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Loader2, Mail, MessageSquare, Send, Copy, ShieldAlert } from 'lucide-react';
+import { Loader2, Mail, MessageSquare, Send, Copy, ShieldAlert, Info, ExternalLink } from 'lucide-react';
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
@@ -14,9 +14,14 @@ import {
 import { useRecruitmentInboxes } from '@/hooks/recruitment/useRecruitmentEmail';
 import { useSmsRecruitmentInboxes } from '@/hooks/recruitment/useRecruitmentSms';
 import { useSendCandidateForm } from '@/hooks/recruitment/useCandidateFormTokens';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useOrganizationStore } from '@/stores/organizationStore';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { nb } from 'date-fns/locale';
+
+
 
 interface Props {
   open: boolean;
