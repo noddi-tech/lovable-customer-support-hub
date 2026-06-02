@@ -48,6 +48,7 @@ import DataDeletionStatus from "./pages/DataDeletionStatus";
 import SuperAdminImport from "./pages/SuperAdminImport";
 import FieldTypesPage from "./pages/super-admin/recruitment/FieldTypesPage";
 import SystemTemplatesPage from "./pages/super-admin/recruitment/SystemTemplatesPage";
+import GdprDashboardPage from "./pages/admin/gdpr/GdprDashboardPage";
 import SystemTemplateEditorPage from "./pages/super-admin/recruitment/SystemTemplateEditorPage";
 import SearchPage from "./pages/SearchPage";
 import BulkOutreach from "./pages/BulkOutreach";
