@@ -221,13 +221,17 @@ export const ComposeRecruitmentEmailDialog: React.FC<Props> = ({ open, onOpenCha
           <div>
             <Label className="mb-1.5 block">Mal (valgfri)</Label>
             <Select value={templateId} onValueChange={handleTemplateChange}>
-              <SelectTrigger><SelectValue placeholder="Velg mal eller skriv fritt" /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder={templatesLoading ? 'Laster maler…' : 'Velg mal eller skriv fritt'} /></SelectTrigger>
               <SelectContent>
                 {(templates ?? []).map((t: any) => (
                   <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
+            <p className="text-xs text-muted-foreground mt-1 flex items-start gap-1.5">
+              <InfoIcon className="h-3.5 w-3.5 mt-0.5 shrink-0 text-muted-foreground/70" />
+              <span>Kandidatskjema-invitasjoner sendes via «Send skjema»-knappen.</span>
+            </p>
           </div>
 
           <div>
