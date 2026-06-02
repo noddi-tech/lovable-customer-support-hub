@@ -405,6 +405,7 @@ const ApplicantProfile: React.FC = () => {
                 canSend={!!firstApp}
                 onSendForm={() => setSendFormOpen(true)}
               />
+              {isAdmin && <GdprRequestsHistorySection applicantId={applicant.id} />}
             </div>
           </div>
         </TabsContent>
