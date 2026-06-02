@@ -73,10 +73,34 @@ const SendCandidateFormDialog: React.FC<Props> = ({
     [expiryDays],
   );
 
+  // Template that will fire on the server. Name is hardcoded in
+  // supabase/functions/_shared/sendCandidateForm.ts; we resolve the id so the
+  // "Rediger" link can deep-link to the admin template editor.
+  const { currentOrganizationId } = useOrganizationStore();
+  const tplName = channel === 'email'
+    ? 'Kandidatskjema – invitasjon'
+    : 'Kandidatskjema – invitasjon (SMS)';
+  const { data: tplRow } = useQuery({
+    queryKey: ['candidate-form-template-lookup', currentOrganizationId, channel],
+    enabled: !!currentOrganizationId && open,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('recruitment_email_templates')
+        .select('id, name')
+        .eq('organization_id', currentOrganizationId!)
+        .eq('type', channel)
+        .eq('name', tplName)
+        .is('soft_deleted_at', null)
+        .maybeSingle();
+      return data;
+    },
+  });
+
   const canSubmit =
     !send.isPending &&
     ((channel === 'email' && hasEmail && !!inboxId) ||
       (channel === 'sms' && hasPhone && smsConfigured && !!inboxId));
+
 
   const handleSend = async () => {
     try {
