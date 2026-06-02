@@ -16,6 +16,103 @@
 // the system/automation path posts directly to send-email with service role.
 
 import { logAudit } from './candidateFormUtils.ts';
+import { substituteVars } from './sendOutboundEmail.ts';
+
+const NEUTRAL_BRAND_COLOR = '#111827';
+
+function formatOsloDate(iso: string): string {
+  try {
+    return new Intl.DateTimeFormat('nb-NO', {
+      dateStyle: 'long',
+      timeStyle: 'short',
+      timeZone: 'Europe/Oslo',
+    }).format(new Date(iso));
+  } catch {
+    return new Date(iso).toLocaleDateString('nb-NO');
+  }
+}
+
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+interface TemplateLookup {
+  subject: string;
+  body: string;
+  found: boolean;
+}
+
+async function loadInvitationTemplate(
+  supabase: any,
+  organizationId: string,
+  channel: 'email' | 'sms',
+): Promise<TemplateLookup> {
+  const name =
+    channel === 'email'
+      ? 'Kandidatskjema – invitasjon'
+      : 'Kandidatskjema – invitasjon (SMS)';
+  const { data, error } = await supabase
+    .from('recruitment_email_templates')
+    .select('subject, body, is_active, soft_deleted_at')
+    .eq('organization_id', organizationId)
+    .eq('name', name)
+    .eq('type', channel)
+    .is('soft_deleted_at', null)
+    .maybeSingle();
+  if (error) {
+    console.warn('[candidateForm] template lookup error', error.message);
+    return { subject: '', body: '', found: false };
+  }
+  if (!data || data.is_active === false) {
+    if (data && data.is_active === false) {
+      console.warn(
+        `[candidateForm] template inactive, falling back: org=${organizationId} channel=${channel}`,
+      );
+    } else {
+      console.warn(
+        `[candidateForm] template missing, falling back: org=${organizationId} channel=${channel}`,
+      );
+    }
+    return { subject: '', body: '', found: false };
+  }
+  return { subject: data.subject ?? '', body: data.body ?? '', found: true };
+}
+
+async function loadOrgBranding(
+  supabase: any,
+  organizationId: string,
+): Promise<{ name: string; brand_color: string }> {
+  const { data } = await supabase
+    .from('organizations')
+    .select('name, primary_color, candidate_form_brand_color')
+    .eq('id', organizationId)
+    .maybeSingle();
+  return {
+    name: data?.name ?? '',
+    brand_color:
+      data?.candidate_form_brand_color ||
+      data?.primary_color ||
+      NEUTRAL_BRAND_COLOR,
+  };
+}
+
+async function loadRecruiterName(
+  supabase: any,
+  profileId: string | null,
+): Promise<string> {
+  if (!profileId) return '';
+  const { data } = await supabase
+    .from('profiles')
+    .select('full_name')
+    .eq('id', profileId)
+    .maybeSingle();
+  return data?.full_name ?? '';
+}
 
 export interface CreateTokenInput {
   application_id: string;
