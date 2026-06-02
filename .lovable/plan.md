@@ -1,53 +1,150 @@
-## Goal
+## Fix: avif uploads + abort-on-upload-failure in reply send
 
-When a conversation is a recruitment thread (no `customer_id`, but has `applicant_id`), show the applicant's name (or email fallback) in place of "Unknown" — same priority as the Noddi inbox: full name → email → "Unknown".
+Two-part change. Bucket allowlist gets `image/avif`. The reply mutation in `ConversationViewContext.tsx` stops swallowing per-file upload failures — any failure aborts before `messages.insert` and before invoking `send-reply-email`, so a partial-attachment reply can never go out.
 
-The RPC already returns `applicant: { id, first_name, last_name, email }` and `conversation_type`. We just need the UI to use it.
+### Guardrail audit (done)
+- `pg_constraint` check on `event_category IN ('write','export','auth','system')` exists on `public.recruitment_audit_events`, **not** on any trigger fired from `messages`.
+- Triggers on `public.messages` INSERT: `messages_maintain_preview`, `trigger_notify_customer_reply`, `trigger_notify_mentions`, `trigger_send_email_on_message_insert`, `trigger_send_note_edit_notification`, `trigger_set_first_response`, `trigger_slack_new_message`. None write to `recruitment_audit_events`. No event_category constraint risk on this path.
 
-## Changes
+---
 
-### 1. `src/components/dashboard/conversation-list/ConversationListItem.tsx`
+### Part 1 — Migration: add `image/avif` to `message-attachments`
 
-Replace the `customerName` / `customerInitial` derivation with a recruitment-aware resolver:
+Single statement, preserves all existing MIME types (incl. `image/webp` and `image/svg+xml`) and the 50 MiB `file_size_limit`:
 
-```ts
-const applicant = (conversation as any).applicant;
-const applicantName = applicant
-  ? [applicant.first_name, applicant.last_name].filter(Boolean).join(' ').trim()
-  : '';
-
-const displayName =
-  conversation.customer?.full_name ||
-  applicantName ||
-  applicant?.email ||
-  conversation.customer?.email ||
-  'Unknown';
-
-const displayInitial = (displayName?.[0] || 'C').toUpperCase();
+```sql
+UPDATE storage.buckets
+SET allowed_mime_types = allowed_mime_types || ARRAY['image/avif']::text[]
+WHERE id = 'message-attachments'
+  AND NOT ('image/avif' = ANY(allowed_mime_types));
 ```
 
-Use `displayName` / `displayInitial` for the avatar fallback and the bold name in the row. Add `applicant` to the `useMemo` deps.
+Idempotent. Other buckets untouched. `chat-attachments` bucket (used by `ChatReplyInput.tsx`) is not modified.
 
-The existing purple "Søker: …" badge stays as-is (it's redundant with the name now, but we keep it as the explicit recruitment marker — can be revisited later).
+---
 
-### 2. `src/components/dashboard/conversation-view/ConversationHeader.tsx`
+### Part 2 — Diff: `src/contexts/ConversationViewContext.tsx` (lines 300–334)
 
-Same fallback for the avatar fallback letter on line 97 (and any name rendering nearby — verify in the same pass): use applicant first/last/email when `conversation.customer` is absent.
+Only the upload loop inside `sendReplyMutation.mutationFn` changes. Everything outside this block (messages.insert, response_tracking, status update, send-reply-email invoke, onSuccess refetch/invalidate behavior) is untouched, so `refetchOnMount:'always'` and cross-invalidation of conversation/message query keys are preserved by construction.
 
-### 3. No DB / RPC changes
+```diff
+   mutationFn: async ({ content, isInternal, status, files, replyAll }: { ... }) => {
+     if (!conversationId) throw new Error('No conversation ID');
 
-`get_conversations_with_session_recovery` (2-arg) already returns `applicant` jsonb and `conversation_type`. Confirmed in migration `20260505192429`.
+-    // Upload attachments to storage if any
+-    let attachmentsMeta: any[] | null = null;
+-    if (files && files.length > 0) {
+-      const orgId = conversation?.organization_id;
+-      if (!orgId) throw new Error('No organization ID for file upload');
+-
+-      attachmentsMeta = [];
+-      for (const file of files) {
+-        const uniqueName = `${crypto.randomUUID()}_${file.name}`;
+-        const storagePath = `${orgId}/${conversationId}/${uniqueName}`;
+-
+-        const { error: uploadError } = await supabase.storage
+-          .from('message-attachments')
+-          .upload(storagePath, file);
+-
+-        if (uploadError) {
+-          logger.warn('Failed to upload attachment', uploadError, 'ConversationViewProvider');
+-          toast.error(`Failed to upload ${file.name}`);
+-          continue;
+-        }
+-
+-        attachmentsMeta.push({
+-          filename: file.name,
+-          mimeType: file.type || 'application/octet-stream',
+-          size: file.size,
+-          storageKey: storagePath,
+-          isInline: false,
+-        });
+-      }
+-      if (attachmentsMeta.length === 0) attachmentsMeta = null;
+-    }
++    // Upload attachments to storage if any.
++    // ABORT on any failure — never send a reply that's missing its attachments.
++    let attachmentsMeta: any[] | null = null;
++    if (files && files.length > 0) {
++      const orgId = conversation?.organization_id;
++      if (!orgId) throw new Error('No organization ID for file upload');
++
++      const uploaded: { meta: any; storagePath: string }[] = [];
++      for (const file of files) {
++        const uniqueName = `${crypto.randomUUID()}_${file.name}`;
++        const storagePath = `${orgId}/${conversationId}/${uniqueName}`;
++
++        const { error: uploadError } = await supabase.storage
++          .from('message-attachments')
++          .upload(storagePath, file);
++
++        if (uploadError) {
++          logger.warn('Failed to upload attachment', uploadError, 'ConversationViewProvider');
++          // Best-effort rollback of any files already uploaded in this attempt
++          if (uploaded.length > 0) {
++            await supabase.storage
++              .from('message-attachments')
++              .remove(uploaded.map((u) => u.storagePath))
++              .catch(() => undefined);
++          }
++          // Throw → mutation rejects → no insert, no send-reply-email,
++          // composer content preserved (see onError below).
++          throw new Error(
++            `Couldn't upload ${file.name} — reply not sent, your text is kept`
++          );
++        }
++
++        uploaded.push({
++          storagePath,
++          meta: {
++            filename: file.name,
++            mimeType: file.type || 'application/octet-stream',
++            size: file.size,
++            storageKey: storagePath,
++            isInline: false,
++          },
++        });
++      }
++      attachmentsMeta = uploaded.length > 0 ? uploaded.map((u) => u.meta) : null;
++    }
 
-The single-conversation view loader (used by `ConversationHeader` / `CustomerSidePanel`) needs to also expose `applicant` if it doesn't already. Will check `data/interactions.ts` and the conversation detail loader during implementation; if missing, extend the select to include `applicant_id, applicants(id, first_name, last_name, email)` and surface it on the conversation object the same shape as the list RPC.
+     const { data: message, error: insertError } = await supabase
+       .from('messages')
+       .insert({ ... });
+```
 
-## Out of scope
+And add a paired `onError` to surface the message and keep the composer text (the existing `onSuccess` clears `replyText` — we must not clear on error):
 
-- Google Group external-member setting (user is flipping this manually).
-- Reply-To header rewrite (parked).
-- Replacing the "Søker: …" badge.
+```diff
+   },
++  onError: (err: any) => {
++    toast.error(err?.message || 'Failed to send reply');
++    // Do NOT dispatch SET_REPLY_TEXT '' — composer content is preserved
++    // so the agent can retry without retyping.
++  },
+   onSuccess: (newMessage) => {
+     dispatch({ type: 'SET_REPLY_TEXT', payload: '' });
+     ...
+   },
+```
 
-## Verification
+Happy-path behavior (all uploads succeed) is byte-identical to today: same `attachmentsMeta` shape, same insert payload, same downstream invocation, same `onSuccess` cache writes and refetches.
 
-1. Open the recruitment inbox — list rows now show applicant name (e.g., "Ola Nordmann") instead of "Unknown", avatar initial uses first letter of that name.
-2. Open the conversation — header avatar fallback shows the right initial; "Søker: …" badge still present.
-3. Regular support conversations (with `customer_id`) are unchanged.
+`ChatReplyInput.tsx` and the `chat-attachments` bucket are not touched.
+
+---
+
+### Verification (run before declaring done)
+
+1. **avif happy path.** Paste a screenshot (Chrome → `image/avif`) into the email reply composer on an open conversation. Expect: storage POST returns 200, attachment chip stays, message row inserts with `attachments[0].mimeType = 'image/avif'`, `send-reply-email` is invoked, recipient receives the file. Confirm via browser Network panel + `SELECT attachments FROM messages WHERE id = '<new id>'`.
+
+2. **forced-failure abort path.** Temporarily attach a disallowed type (e.g. an `.exe` renamed to `image/x-msdownload`, or just a fresh `.heic` which is not in the allowlist) alongside text. Expect: toast `"Couldn't upload <name> — reply not sent, your text is kept"`; **no** new row in `messages` for that conversation in the last minute; **no** `send-reply-email` invocation in edge-function logs in that window; composer text still present. Confirm:
+   ```sql
+   SELECT id, content, created_at FROM messages
+   WHERE conversation_id = '<test conv>' AND created_at > now() - interval '2 minutes';
+   ```
+   and `supabase--edge_function_logs send-reply-email` over the same window.
+
+3. **Regression check on succeed-after-fail retry.** After (2), remove the bad file, keep the composer text, click Send. Expect normal send. Confirm one new row appears.
+
+Not done until all three pass.
