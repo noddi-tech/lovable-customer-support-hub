@@ -399,7 +399,7 @@ export async function dispatchCandidateFormInvite(
       <p>Vennligst fyll ut skjemaet innen ${expiresHuman}:</p>
       <p><a href="${args.url}" style="display:inline-block;padding:12px 20px;background:${branding.brand_color};color:#ffffff;text-decoration:none;border-radius:6px;font-weight:600;">Åpne skjema</a></p>
       <p>Eller åpne lenken direkte:<br><a href="${args.url}">${args.url}</a></p>
-      <p>You vil bli bedt om å bekrefte de siste 4 sifrene i telefonnummeret ditt.</p>
+      <p>Du vil bli bedt om å bekrefte de siste 4 sifrene i telefonnummeret ditt.</p>
     `;
 
     const tplCtx = {
