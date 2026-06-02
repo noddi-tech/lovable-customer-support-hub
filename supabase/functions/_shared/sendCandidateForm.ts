@@ -332,6 +332,9 @@ export async function dispatchCandidateFormInvite(
     recruiter_profile_id: string | null;
     inbox_id?: string;
     custom_message?: string;
+    template_id?: string;
+    subject_override?: string;
+    body_html_override?: string;
     applicant: { id: string; first_name: string | null };
     position: { title: string };
     auth_header: string;
@@ -348,11 +351,30 @@ export async function dispatchCandidateFormInvite(
   const firstName = args.applicant.first_name ?? '';
   const expiresHuman = formatOsloDate(args.expires_at);
 
-  const [tpl, branding, recruiterName] = await Promise.all([
+  // Template lookup: explicit template_id wins over hardcoded name.
+  const loadTemplateById = async (): Promise<TemplateLookup> => {
+    if (!args.template_id) return { subject: '', body: '', found: false };
+    const { data } = await supabase
+      .from('recruitment_email_templates')
+      .select('subject, body, is_active, soft_deleted_at')
+      .eq('id', args.template_id)
+      .eq('organization_id', args.organization_id)
+      .is('soft_deleted_at', null)
+      .maybeSingle();
+    if (!data || data.is_active === false) {
+      console.warn(`[candidateForm] template_id ${args.template_id} missing or inactive — falling back`);
+      return { subject: '', body: '', found: false };
+    }
+    return { subject: data.subject ?? '', body: data.body ?? '', found: true };
+  };
+
+  const [tplById, tplByName, branding, recruiterName] = await Promise.all([
+    loadTemplateById(),
     loadInvitationTemplate(supabase, args.organization_id, args.channel),
     loadOrgBranding(supabase, args.organization_id),
     loadRecruiterName(supabase, args.recruiter_profile_id),
   ]);
+  const tpl = tplById.found ? tplById : tplByName;
 
   const baseVars: Record<string, string> = {
     first_name: firstName,
@@ -380,9 +402,22 @@ export async function dispatchCandidateFormInvite(
       <p>Du vil bli bedt om å bekrefte de siste 4 sifrene i telefonnummeret ditt.</p>
     `;
 
-    const tplCtx = { caller: 'dispatchCandidateFormInvite:email', template_name: 'Kandidatskjema – invitasjon', organization_id: args.organization_id };
-    const subject = tpl.found ? substituteVars(tpl.subject, baseVars, tplCtx) : fallbackSubject;
-    let bodyHtml = tpl.found ? substituteVars(tpl.body, baseVars, tplCtx) : fallbackBody;
+    const tplCtx = {
+      caller: 'dispatchCandidateFormInvite:email',
+      template_name: tplById.found ? `id:${args.template_id}` : 'Kandidatskjema – invitasjon',
+      organization_id: args.organization_id,
+    };
+    // Subject: override > template (via tpl) > fallback. Always substituted.
+    const subjectRaw = args.subject_override?.trim()
+      ? args.subject_override
+      : (tpl.found ? tpl.subject : fallbackSubject);
+    const subject = substituteVars(subjectRaw, baseVars, tplCtx);
+    // Body: override > template > fallback. Always substituted.
+    const bodyRaw = args.body_html_override?.trim()
+      ? args.body_html_override
+      : (tpl.found ? tpl.body : fallbackBody);
+    let bodyHtml = substituteVars(bodyRaw, baseVars, tplCtx);
+
     if (customHtml) {
       // Insert recruiter's optional custom note right above the CTA (before first <a>).
       const ctaIdx = bodyHtml.search(/<p>\s*<a\s+href=/i);
@@ -391,6 +426,16 @@ export async function dispatchCandidateFormInvite(
       } else {
         bodyHtml += customHtml;
       }
+    }
+
+    // Safety net: guarantee the form URL reaches the candidate even if the
+    // selected template / edited body omits {{form_url}} and the CTA placeholder.
+    const hasFormUrl =
+      /\/apply\/form\//.test(bodyHtml) ||
+      /\{\{\s*form_url\s*\}\}/i.test(bodyHtml) ||
+      /\{\{\s*cta_button\s*:[^:}]+:\s*form_url\s*\}\}/i.test(bodyHtml);
+    if (!hasFormUrl) {
+      bodyHtml += `<p style="margin-top:16px">Skjemalenke: <a href="${args.url}">${args.url}</a></p>`;
     }
 
     const { data, error } = await supabase.functions.invoke('send-recruitment-email', {

@@ -15,6 +15,9 @@ interface Body {
   expiry_days?: number;
   inbox_id?: string; // required for email channel (recruitment inbox)
   custom_message?: string;
+  template_id?: string;
+  subject_override?: string;
+  body_html_override?: string;
 }
 
 function json(body: unknown, status = 200) {
@@ -109,6 +112,9 @@ Deno.serve(async (req) => {
       recruiter_profile_id: profile?.id ?? null,
       inbox_id: body.inbox_id,
       custom_message: body.custom_message,
+      template_id: body.template_id,
+      subject_override: body.subject_override,
+      body_html_override: body.body_html_override,
       applicant,
       position,
       auth_header: authHeader,

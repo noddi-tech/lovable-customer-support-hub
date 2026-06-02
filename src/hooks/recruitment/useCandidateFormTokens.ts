@@ -114,6 +114,9 @@ export function useSendCandidateForm() {
       expiry_days: number;
       inbox_id?: string;
       custom_message?: string;
+      template_id?: string;
+      subject_override?: string;
+      body_html_override?: string;
     }) => {
       const { data, error } = await supabase.functions.invoke('generate-candidate-form-token', {
         body: {
@@ -122,6 +125,9 @@ export function useSendCandidateForm() {
           expiry_days: input.expiry_days,
           inbox_id: input.inbox_id,
           custom_message: input.custom_message,
+          template_id: input.template_id,
+          subject_override: input.subject_override,
+          body_html_override: input.body_html_override,
         },
       });
       // Memory: check { error } from invoke directly — doesn't throw on 5xx.
