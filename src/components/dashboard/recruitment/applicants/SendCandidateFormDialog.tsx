@@ -1,10 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Loader2, Mail, MessageSquare, Send, Copy, ShieldAlert, Info, ExternalLink } from 'lucide-react';
+import { Loader2, Mail, MessageSquare, Send, ShieldAlert, Info, ExternalLink } from 'lucide-react';
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Slider } from '@/components/ui/slider';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -17,11 +18,12 @@ import { useSendCandidateForm } from '@/hooks/recruitment/useCandidateFormTokens
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useOrganizationStore } from '@/stores/organizationStore';
+import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { nb } from 'date-fns/locale';
-
-
+import { EmailTemplateTipTap } from '../admin/templates/EmailTemplateTipTap';
+import { substituteMergeFields } from '../admin/templates/mergeFields';
 
 interface Props {
   open: boolean;
@@ -34,6 +36,9 @@ interface Props {
   hasPhone: boolean;
 }
 
+const DEFAULT_TPL_NAME = 'Kandidatskjema – invitasjon';
+const SMS_TPL_NAME = 'Kandidatskjema – invitasjon (SMS)';
+
 const SendCandidateFormDialog: React.FC<Props> = ({
   open, onOpenChange, applicationId, applicantId, applicantName, hasEmail, hasPhone,
 }) => {
@@ -41,17 +46,46 @@ const SendCandidateFormDialog: React.FC<Props> = ({
   const [expiryDays, setExpiryDays] = useState(7);
   const [inboxId, setInboxId] = useState<string>('');
   const [customMessage, setCustomMessage] = useState('');
+
+  const [templateId, setTemplateId] = useState<string>('');
+  const [subject, setSubject] = useState<string>('');
+  const [bodyHtml, setBodyHtml] = useState<string>('');
+
   const send = useSendCandidateForm();
+  const { profile } = useAuth();
+  const { currentOrganizationId } = useOrganizationStore();
 
   const { data: emailInboxes } = useRecruitmentInboxes();
   const { data: smsInboxes } = useSmsRecruitmentInboxes();
+
+  // Fetch the data needed for variable interpolation in preview.
+  const { data: ctx } = useQuery({
+    queryKey: ['send-skjema-context', applicationId],
+    enabled: !!applicationId && open,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('applications')
+        .select(`
+          id, organization_id,
+          applicants:applicant_id(first_name, last_name),
+          job_positions:position_id(title),
+          organization:organization_id(name)
+        `)
+        .eq('id', applicationId)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
 
   // Reset state when reopened
   useEffect(() => {
     if (open) {
       setExpiryDays(7);
       setCustomMessage('');
-      // Pick channel based on what's available
+      setTemplateId('');
+      setSubject('');
+      setBodyHtml('');
       if (hasEmail) setChannel('email');
       else if (hasPhone) setChannel('sms');
     }
@@ -72,35 +106,103 @@ const SendCandidateFormDialog: React.FC<Props> = ({
     () => new Date(Date.now() + expiryDays * 24 * 60 * 60 * 1000),
     [expiryDays],
   );
+  const expiresHuman = useMemo(
+    () => format(expiresAt, "d. MMMM yyyy 'kl.' HH:mm", { locale: nb }),
+    [expiresAt],
+  );
 
-  // Template that will fire on the server. Name is hardcoded in
-  // supabase/functions/_shared/sendCandidateForm.ts; we resolve the id so the
-  // "Rediger" link can deep-link to the admin template editor.
-  const { currentOrganizationId } = useOrganizationStore();
-  const tplName = channel === 'email'
-    ? 'Kandidatskjema – invitasjon'
-    : 'Kandidatskjema – invitasjon (SMS)';
-  const { data: tplRow } = useQuery({
-    queryKey: ['candidate-form-template-lookup', currentOrganizationId, channel],
-    enabled: !!currentOrganizationId && open,
+  // Email templates (all active, non-deleted email templates — including form-CTA ones).
+  const { data: emailTemplates } = useQuery({
+    queryKey: ['recruitment-email-templates-for-form', currentOrganizationId],
+    enabled: !!currentOrganizationId && open && channel === 'email',
+    refetchOnMount: 'always',
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('recruitment_email_templates')
+        .select('id, name, subject, body')
+        .eq('organization_id', currentOrganizationId!)
+        .eq('type', 'email')
+        .eq('is_active', true)
+        .is('soft_deleted_at', null)
+        .order('name');
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  // SMS template id resolved for "Rediger" deep-link (SMS keeps current minimal UI).
+  const { data: smsTplRow } = useQuery({
+    queryKey: ['candidate-form-sms-template-lookup', currentOrganizationId],
+    enabled: !!currentOrganizationId && open && channel === 'sms',
     queryFn: async () => {
       const { data } = await supabase
         .from('recruitment_email_templates')
         .select('id, name')
         .eq('organization_id', currentOrganizationId!)
-        .eq('type', channel)
-        .eq('name', tplName)
+        .eq('type', 'sms')
+        .eq('name', SMS_TPL_NAME)
         .is('soft_deleted_at', null)
         .maybeSingle();
       return data;
     },
   });
 
+  const vars = useMemo<Record<string, string>>(() => {
+    const applicant = (ctx as any)?.applicants ?? {};
+    const position = (ctx as any)?.job_positions ?? {};
+    const org = (ctx as any)?.organization ?? {};
+    return {
+      first_name: applicant.first_name || '',
+      last_name: applicant.last_name || '',
+      position_title: position.title || '',
+      company_name: org.name || '',
+      organization_name: org.name || '',
+      recruiter_name: profile?.full_name || '',
+      recruiter_email: profile?.email || '',
+      application_link: typeof window !== 'undefined'
+        ? `${window.location.origin}/operations/recruitment/applicants/${applicantId}`
+        : '',
+      // form_url + brand_color left as placeholders — filled server-side at send.
+      expires_at: expiresHuman,
+    };
+  }, [ctx, profile, applicantId, expiresHuman]);
+
+  // Auto-select default template once email templates load, prefill fields.
+  useEffect(() => {
+    if (channel !== 'email') return;
+    if (!emailTemplates?.length) return;
+    if (templateId) return;
+    const def =
+      emailTemplates.find((t: any) => t.name === DEFAULT_TPL_NAME) ?? emailTemplates[0];
+    if (def) {
+      setTemplateId(def.id);
+      setSubject(substituteMergeFields(def.subject || '', vars));
+      setBodyHtml(substituteMergeFields(def.body || '', vars));
+    }
+  }, [channel, emailTemplates, templateId, vars]);
+
+  const handleTemplateChange = (id: string) => {
+    setTemplateId(id);
+    const tpl = (emailTemplates ?? []).find((t: any) => t.id === id);
+    if (tpl) {
+      setSubject(substituteMergeFields(tpl.subject || '', vars));
+      setBodyHtml(substituteMergeFields(tpl.body || '', vars));
+      toast.info('Innhold byttet ut');
+    }
+  };
+
+  const selectedTpl = (emailTemplates ?? []).find((t: any) => t.id === templateId);
+  const editLink =
+    channel === 'email' && selectedTpl
+      ? `/admin/recruitment/templates/${selectedTpl.id}`
+      : channel === 'sms' && smsTplRow?.id
+        ? `/admin/recruitment/templates/${smsTplRow.id}`
+        : null;
+
   const canSubmit =
     !send.isPending &&
-    ((channel === 'email' && hasEmail && !!inboxId) ||
+    ((channel === 'email' && hasEmail && !!inboxId && !!subject.trim() && !!bodyHtml.trim()) ||
       (channel === 'sms' && hasPhone && smsConfigured && !!inboxId));
-
 
   const handleSend = async () => {
     try {
@@ -111,9 +213,11 @@ const SendCandidateFormDialog: React.FC<Props> = ({
         expiry_days: expiryDays,
         inbox_id: inboxId || undefined,
         custom_message: customMessage.trim() || undefined,
+        template_id: channel === 'email' ? templateId || undefined : undefined,
+        subject_override: channel === 'email' ? subject.trim() || undefined : undefined,
+        body_html_override: channel === 'email' ? bodyHtml.trim() || undefined : undefined,
       });
       toast.success(`Skjema sendt til ${applicantName}`);
-      // Defer close to let Radix release focus/body locks cleanly.
       onOpenChange(false);
     } catch {
       // toast handled in hook
@@ -122,7 +226,7 @@ const SendCandidateFormDialog: React.FC<Props> = ({
 
   return (
     <Dialog open={open} onOpenChange={(o) => !send.isPending && onOpenChange(o)}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Send className="h-4 w-4" />
@@ -144,28 +248,8 @@ const SendCandidateFormDialog: React.FC<Props> = ({
             </p>
           </div>
 
-          <div className="space-y-1.5">
-            <Label>Mal</Label>
-            <div className="flex items-center justify-between gap-2 rounded-md border bg-background px-3 py-2 text-sm">
-              <span className="truncate">{tplName}</span>
-              {tplRow?.id ? (
-                <a
-                  href={`/admin/recruitment/templates/${tplRow.id}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-1 text-xs text-primary hover:underline whitespace-nowrap"
-                >
-                  Rediger <ExternalLink className="h-3 w-3" />
-                </a>
-              ) : (
-                <span className="text-xs text-muted-foreground whitespace-nowrap">Standardmal</span>
-              )}
-            </div>
-          </div>
-
           <div className="space-y-2">
             <Label>Kanal</Label>
-
             <RadioGroup
               value={channel}
               onValueChange={(v) => setChannel(v as 'email' | 'sms')}
@@ -223,18 +307,69 @@ const SendCandidateFormDialog: React.FC<Props> = ({
           </div>
 
           {channel === 'email' && (
-            <div className="space-y-1.5">
-              <Label>Rekrutterings-innboks</Label>
-              <Select value={inboxId} onValueChange={setInboxId}>
-                <SelectTrigger><SelectValue placeholder="Velg innboks..." /></SelectTrigger>
-                <SelectContent>
-                  {(emailInboxes ?? []).map((i: any) => (
-                    <SelectItem key={i.id} value={i.id}>{i.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <>
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between gap-2">
+                  <Label>Mal</Label>
+                  {editLink && (
+                    <a
+                      href={editLink}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                    >
+                      Rediger valgt mal <ExternalLink className="h-3 w-3" />
+                    </a>
+                  )}
+                </div>
+                <Select value={templateId} onValueChange={handleTemplateChange}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Velg mal..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(emailTemplates ?? []).map((t: any) => (
+                      <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Skjemalenken legges automatisk til hvis malen ikke inneholder den.
+                </p>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label>Rekrutterings-innboks</Label>
+                <Select value={inboxId} onValueChange={setInboxId}>
+                  <SelectTrigger><SelectValue placeholder="Velg innboks..." /></SelectTrigger>
+                  <SelectContent>
+                    {(emailInboxes ?? []).map((i: any) => (
+                      <SelectItem key={i.id} value={i.id}>{i.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="form-subject">Emne</Label>
+                <Input
+                  id="form-subject"
+                  value={subject}
+                  onChange={(e) => setSubject(e.target.value)}
+                  placeholder="Emne..."
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label>Innhold</Label>
+                <EmailTemplateTipTap
+                  value={bodyHtml}
+                  onChange={setBodyHtml}
+                  placeholder="Innhold..."
+                />
+              </div>
+            </>
           )}
+
           {channel === 'sms' && smsConfigured && (smsInboxes?.length ?? 0) > 1 && (
             <div className="space-y-1.5">
               <Label>SMS-innboks</Label>
@@ -246,6 +381,27 @@ const SendCandidateFormDialog: React.FC<Props> = ({
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+          )}
+
+          {channel === 'sms' && (
+            <div className="space-y-1.5">
+              <Label>Mal</Label>
+              <div className="flex items-center justify-between gap-2 rounded-md border bg-background px-3 py-2 text-sm">
+                <span className="truncate">{SMS_TPL_NAME}</span>
+                {smsTplRow?.id ? (
+                  <a
+                    href={`/admin/recruitment/templates/${smsTplRow.id}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 text-xs text-primary hover:underline whitespace-nowrap"
+                  >
+                    Rediger <ExternalLink className="h-3 w-3" />
+                  </a>
+                ) : (
+                  <span className="text-xs text-muted-foreground whitespace-nowrap">Standardmal</span>
+                )}
+              </div>
             </div>
           )}
 
@@ -278,6 +434,11 @@ const SendCandidateFormDialog: React.FC<Props> = ({
               maxLength={500}
               placeholder="F.eks. 'Vi vurderer søknaden din nå — kan du bekrefte tilgjengelighet?'"
             />
+            <p className="text-xs text-muted-foreground">
+              {channel === 'email'
+                ? 'Settes inn rett over knappen i e-posten.'
+                : 'Settes inn først i SMS-en.'}
+            </p>
           </div>
         </div>
 
