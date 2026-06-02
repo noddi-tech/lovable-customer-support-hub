@@ -380,8 +380,9 @@ export async function dispatchCandidateFormInvite(
       <p>Du vil bli bedt om å bekrefte de siste 4 sifrene i telefonnummeret ditt.</p>
     `;
 
-    const subject = tpl.found ? substituteVars(tpl.subject, baseVars) : fallbackSubject;
-    let bodyHtml = tpl.found ? substituteVars(tpl.body, baseVars) : fallbackBody;
+    const tplCtx = { caller: 'dispatchCandidateFormInvite:email', template_name: 'Kandidatskjema – invitasjon', organization_id: args.organization_id };
+    const subject = tpl.found ? substituteVars(tpl.subject, baseVars, tplCtx) : fallbackSubject;
+    let bodyHtml = tpl.found ? substituteVars(tpl.body, baseVars, tplCtx) : fallbackBody;
     if (customHtml) {
       // Insert recruiter's optional custom note right above the CTA (before first <a>).
       const ctaIdx = bodyHtml.search(/<p>\s*<a\s+href=/i);
