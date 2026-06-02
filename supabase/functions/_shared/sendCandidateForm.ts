@@ -16,6 +16,103 @@
 // the system/automation path posts directly to send-email with service role.
 
 import { logAudit } from './candidateFormUtils.ts';
+import { substituteVars } from './sendOutboundEmail.ts';
+
+const NEUTRAL_BRAND_COLOR = '#111827';
+
+function formatOsloDate(iso: string): string {
+  try {
+    return new Intl.DateTimeFormat('nb-NO', {
+      dateStyle: 'long',
+      timeStyle: 'short',
+      timeZone: 'Europe/Oslo',
+    }).format(new Date(iso));
+  } catch {
+    return new Date(iso).toLocaleDateString('nb-NO');
+  }
+}
+
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+interface TemplateLookup {
+  subject: string;
+  body: string;
+  found: boolean;
+}
+
+async function loadInvitationTemplate(
+  supabase: any,
+  organizationId: string,
+  channel: 'email' | 'sms',
+): Promise<TemplateLookup> {
+  const name =
+    channel === 'email'
+      ? 'Kandidatskjema – invitasjon'
+      : 'Kandidatskjema – invitasjon (SMS)';
+  const { data, error } = await supabase
+    .from('recruitment_email_templates')
+    .select('subject, body, is_active, soft_deleted_at')
+    .eq('organization_id', organizationId)
+    .eq('name', name)
+    .eq('type', channel)
+    .is('soft_deleted_at', null)
+    .maybeSingle();
+  if (error) {
+    console.warn('[candidateForm] template lookup error', error.message);
+    return { subject: '', body: '', found: false };
+  }
+  if (!data || data.is_active === false) {
+    if (data && data.is_active === false) {
+      console.warn(
+        `[candidateForm] template inactive, falling back: org=${organizationId} channel=${channel}`,
+      );
+    } else {
+      console.warn(
+        `[candidateForm] template missing, falling back: org=${organizationId} channel=${channel}`,
+      );
+    }
+    return { subject: '', body: '', found: false };
+  }
+  return { subject: data.subject ?? '', body: data.body ?? '', found: true };
+}
+
+async function loadOrgBranding(
+  supabase: any,
+  organizationId: string,
+): Promise<{ name: string; brand_color: string }> {
+  const { data } = await supabase
+    .from('organizations')
+    .select('name, primary_color, candidate_form_brand_color')
+    .eq('id', organizationId)
+    .maybeSingle();
+  return {
+    name: data?.name ?? '',
+    brand_color:
+      data?.candidate_form_brand_color ||
+      data?.primary_color ||
+      NEUTRAL_BRAND_COLOR,
+  };
+}
+
+async function loadRecruiterName(
+  supabase: any,
+  profileId: string | null,
+): Promise<string> {
+  if (!profileId) return '';
+  const { data } = await supabase
+    .from('profiles')
+    .select('full_name')
+    .eq('id', profileId)
+    .maybeSingle();
+  return data?.full_name ?? '';
+}
 
 export interface CreateTokenInput {
   application_id: string;
@@ -231,6 +328,8 @@ export async function dispatchCandidateFormInvite(
     url: string;
     expires_at: string;
     channel: 'email' | 'sms';
+    organization_id: string;
+    recruiter_profile_id: string | null;
     inbox_id?: string;
     custom_message?: string;
     applicant: { id: string; first_name: string | null };
@@ -243,27 +342,56 @@ export async function dispatchCandidateFormInvite(
   | { ok: false; status: number; error: string; message?: string }
 > {
   const customHtml = args.custom_message?.trim()
-    ? `<p>${args.custom_message.trim().replace(/</g, '&lt;').replace(/\n/g, '<br>')}</p>`
+    ? `<p>${escapeHtml(args.custom_message.trim()).replace(/\n/g, '<br>')}</p>`
     : '';
   const customText = args.custom_message?.trim() ? `${args.custom_message.trim()}\n\n` : '';
   const firstName = args.applicant.first_name ?? '';
-  const expiresHuman = new Date(args.expires_at).toLocaleDateString('nb-NO');
+  const expiresHuman = formatOsloDate(args.expires_at);
+
+  const [tpl, branding, recruiterName] = await Promise.all([
+    loadInvitationTemplate(supabase, args.organization_id, args.channel),
+    loadOrgBranding(supabase, args.organization_id),
+    loadRecruiterName(supabase, args.recruiter_profile_id),
+  ]);
+
+  const baseVars: Record<string, string> = {
+    first_name: firstName,
+    position_title: args.position.title,
+    form_url: args.url,
+    expires_at: expiresHuman,
+    organization_name: branding.name,
+    recruiter_name: recruiterName || branding.name,
+    brand_color: branding.brand_color,
+  };
 
   if (args.channel === 'email') {
     if (!args.inbox_id) {
       await revokeCandidateFormToken(supabase, args.token_id, args.revoked_by_profile_id, 'missing_inbox_id');
       return { ok: false, status: 400, error: 'inbox_id required for email channel' };
     }
-    const subject = `Vi trenger litt mer info – ${args.position.title}`;
-    const bodyHtml = `
-      <p>Hei ${firstName},</p>
-      <p>Vi trenger litt mer info for søknaden din til <strong>${args.position.title}</strong>.</p>
-      ${customHtml}
+
+    const fallbackSubject = `Vi trenger litt mer info – ${args.position.title}`;
+    const fallbackBody = `
+      <p>Hei ${escapeHtml(firstName)},</p>
+      <p>Vi trenger litt mer info for søknaden din til <strong>${escapeHtml(args.position.title)}</strong>.</p>
       <p>Vennligst fyll ut skjemaet innen ${expiresHuman}:</p>
-      <p><a href="${args.url}" style="display:inline-block;padding:12px 20px;background:#2563eb;color:#fff;text-decoration:none;border-radius:6px;">Åpne skjema</a></p>
+      <p><a href="${args.url}" style="display:inline-block;padding:12px 20px;background:${branding.brand_color};color:#ffffff;text-decoration:none;border-radius:6px;font-weight:600;">Åpne skjema</a></p>
       <p>Eller åpne lenken direkte:<br><a href="${args.url}">${args.url}</a></p>
       <p>Du vil bli bedt om å bekrefte de siste 4 sifrene i telefonnummeret ditt.</p>
     `;
+
+    const subject = tpl.found ? substituteVars(tpl.subject, baseVars) : fallbackSubject;
+    let bodyHtml = tpl.found ? substituteVars(tpl.body, baseVars) : fallbackBody;
+    if (customHtml) {
+      // Insert recruiter's optional custom note right above the CTA (before first <a>).
+      const ctaIdx = bodyHtml.search(/<p>\s*<a\s+href=/i);
+      if (ctaIdx >= 0) {
+        bodyHtml = bodyHtml.slice(0, ctaIdx) + customHtml + bodyHtml.slice(ctaIdx);
+      } else {
+        bodyHtml += customHtml;
+      }
+    }
+
     const { data, error } = await supabase.functions.invoke('send-recruitment-email', {
       headers: { Authorization: args.auth_header },
       body: {
@@ -281,8 +409,13 @@ export async function dispatchCandidateFormInvite(
     return { ok: true, dispatch: data };
   }
 
-  // SMS
-  const smsBody = `Hei ${firstName}! ${customText}Fyll ut skjemaet for ${args.position.title}: ${args.url} (utløper ${expiresHuman})`;
+  // SMS — strip any HTML the editor may have wrapped around the body.
+  const fallbackSmsBody = `Hei ${firstName}! ${customText}Fyll ut skjemaet for ${args.position.title}: ${args.url} (utløper ${expiresHuman})`;
+  let smsBody = tpl.found ? substituteVars(tpl.body, baseVars) : fallbackSmsBody;
+  smsBody = smsBody.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+  if (customText && tpl.found && !smsBody.includes(args.custom_message!.trim())) {
+    smsBody = `${customText.trim()} ${smsBody}`.trim();
+  }
   const { data, error } = await supabase.functions.invoke('send-recruitment-sms', {
     headers: { Authorization: args.auth_header },
     body: {

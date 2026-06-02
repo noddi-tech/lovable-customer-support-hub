@@ -105,6 +105,8 @@ Deno.serve(async (req) => {
       url,
       expires_at,
       channel: body.channel,
+      organization_id: result.organization_id,
+      recruiter_profile_id: profile?.id ?? null,
       inbox_id: body.inbox_id,
       custom_message: body.custom_message,
       applicant,

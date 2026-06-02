@@ -461,6 +461,8 @@ Deno.serve(async (req) => {
           url: created.url,
           expires_at: created.expires_at,
           channel: reqChannel,
+          organization_id: created.organization_id,
+          recruiter_profile_id: actorProfileId,
           inbox_id: inboxId,
           custom_message: customMessage,
           applicant: created.applicant,
