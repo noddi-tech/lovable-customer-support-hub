@@ -32,9 +32,14 @@ export function substituteMergeFields(
   template: string,
   values: Record<string, string>,
 ): string {
-  const withButtons = template.replace(CTA_BUTTON_RE, (_m, label: string, urlVar: string) => {
+  const withButtons = template.replace(CTA_BUTTON_RE, (match, label: string, urlVar: string) => {
     const urlKey = String(urlVar).toLowerCase().trim();
-    const url = values[urlKey] || '#';
+    const url = values[urlKey];
+    // Defense in depth: if the URL variable is missing or empty (e.g. this template
+    // was loaded in the generic composer with no form_url in scope), leave the
+    // placeholder intact so it (a) won't ship a broken href="#" button and
+    // (b) gets yellow-flagged by highlightUnknownTokens in preview.
+    if (!url) return match;
     const brand = values['brand_color'] || '#111827';
     const safeLabel = String(label).trim()
       .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -51,10 +56,18 @@ export function substituteMergeFields(
 
 /**
  * Replace unknown tokens with a styled <mark> for HTML preview.
- * Skips the cta_button placeholder (already rendered by substituteMergeFields).
+ * Also flags any UNRESOLVED {{cta_button:...}} placeholder (e.g. preview without
+ * form_url in scope) so admins immediately see it's a server-rendered button
+ * rather than a broken template.
  */
 export function highlightUnknownTokens(html: string): string {
-  return html.replace(/\{\{\s*([a-z_]+)(?:\s*:[^}]*)?\s*\}\}/gi, (match, token) => {
+  const withCta = html.replace(CTA_BUTTON_RE, (match, label: string, urlVar: string) => {
+    const safeLabel = String(label).trim()
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const safeVar = String(urlVar).trim();
+    return `<mark class="bg-amber-100 text-amber-900 px-1.5 py-0.5 rounded text-xs font-mono" title="Server-rendert CTA-knapp — vises kun ved utsending.">[CTA-knapp: ${safeLabel} → {{${safeVar}}}]</mark>`;
+  });
+  return withCta.replace(/\{\{\s*([a-z_]+)(?:\s*:[^}]*)?\s*\}\}/gi, (match, token) => {
     const lower = token.toLowerCase();
     if (lower === 'cta_button') return match;
     if (KNOWN_TOKENS.has(lower)) return match;
