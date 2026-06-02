@@ -77,10 +77,47 @@ function stripHtml(html: string): string {
     .trim();
 }
 
+// Render the special CTA-button placeholder {{cta_button:LABEL:URL_VAR}}.
+// Produces email-safe HTML (bgcolor + inline style) that survives Outlook/Gmail
+// and round-trips through the rich-text editor (since the placeholder itself
+// is plain text in the stored template — the styled <a> is only generated at
+// send time).
+function renderCtaButtons(template: string, values: Record<string, string>): string {
+  return template.replace(
+    /\{\{\s*cta_button\s*:\s*([^:}]+?)\s*:\s*([a-z_]+)\s*\}\}/gi,
+    (_m, rawLabel: string, urlVar: string) => {
+      const label = String(rawLabel).trim();
+      const urlKey = String(urlVar).toLowerCase().trim();
+      const url = values[urlKey] ?? '';
+      const brand = values['brand_color'] || '#111827';
+      const safeLabel = label
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+      const safeUrl = String(url).replace(/"/g, '&quot;');
+      const safeBrand = String(brand).replace(/"/g, '&quot;');
+      // Outlook needs bgcolor attr + inline background; mso conditional gives
+      // VML button for Outlook 2007-2019.
+      return [
+        `<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:16px 0;">`,
+        `<tr><td bgcolor="${safeBrand}" style="background:${safeBrand};border-radius:6px;">`,
+        `<a href="${safeUrl}" target="_blank" rel="noopener" `,
+        `style="display:inline-block;padding:12px 20px;background:${safeBrand};`,
+        `color:#ffffff;text-decoration:none;border-radius:6px;font-weight:600;`,
+        `font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1;">`,
+        safeLabel,
+        `</a></td></tr></table>`,
+      ].join('');
+    },
+  );
+}
+
 // Substitute {{token}} in a template body. Unknown tokens replaced with ''
 // (so recipients never see raw {{var}}). Logs unknown tokens for drift detection.
+// Also expands the special {{cta_button:LABEL:URL_VAR}} placeholder first.
 export function substituteVars(template: string, values: Record<string, string>): string {
-  return template.replace(/\{\{\s*([a-z_]+)\s*\}\}/gi, (_m, t) => {
+  const withButtons = renderCtaButtons(template, values);
+  return withButtons.replace(/\{\{\s*([a-z_]+)\s*\}\}/gi, (_m, t) => {
     const k = t.toLowerCase();
     if (Object.prototype.hasOwnProperty.call(values, k)) {
       return values[k] ?? '';
