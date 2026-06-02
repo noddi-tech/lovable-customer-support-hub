@@ -437,6 +437,7 @@ export type Database = {
       }
       applicants: {
         Row: {
+          anonymized_at: string | null
           availability_date: string | null
           certifications: string[]
           created_at: string
@@ -464,6 +465,7 @@ export type Database = {
           years_experience: number | null
         }
         Insert: {
+          anonymized_at?: string | null
           availability_date?: string | null
           certifications?: string[]
           created_at?: string
@@ -491,6 +493,7 @@ export type Database = {
           years_experience?: number | null
         }
         Update: {
+          anonymized_at?: string | null
           availability_date?: string | null
           certifications?: string[]
           created_at?: string
@@ -1947,6 +1950,76 @@ export type Database = {
             columns: ["inbox_id"]
             isOneToOne: false
             referencedRelation: "inboxes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gdpr_requests: {
+        Row: {
+          applicant_email_snapshot: string | null
+          applicant_id: string | null
+          applicant_name_snapshot: string
+          error_message: string | null
+          fulfilled_at: string | null
+          fulfillment_summary: Json | null
+          id: string
+          organization_id: string
+          reason_provided: string | null
+          request_type: string
+          requested_at: string
+          requested_by: string | null
+          status: string
+        }
+        Insert: {
+          applicant_email_snapshot?: string | null
+          applicant_id?: string | null
+          applicant_name_snapshot: string
+          error_message?: string | null
+          fulfilled_at?: string | null
+          fulfillment_summary?: Json | null
+          id?: string
+          organization_id: string
+          reason_provided?: string | null
+          request_type: string
+          requested_at?: string
+          requested_by?: string | null
+          status: string
+        }
+        Update: {
+          applicant_email_snapshot?: string | null
+          applicant_id?: string | null
+          applicant_name_snapshot?: string
+          error_message?: string | null
+          fulfilled_at?: string | null
+          fulfillment_summary?: Json | null
+          id?: string
+          organization_id?: string
+          reason_provided?: string | null
+          request_type?: string
+          requested_at?: string
+          requested_by?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gdpr_requests_applicant_id_fkey"
+            columns: ["applicant_id"]
+            isOneToOne: false
+            referencedRelation: "applicants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gdpr_requests_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gdpr_requests_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -7397,6 +7470,10 @@ export type Database = {
           usage_count: number
           was_refined: boolean
         }[]
+      }
+      gdpr_erase_applicant: {
+        Args: { p_applicant_id: string; p_request_id: string }
+        Returns: Json
       }
       generate_ticket_number: { Args: { org_id: string }; Returns: string }
       get_all_counts: {
