@@ -179,13 +179,26 @@ export async function logAudit(
   if (TIMELINE_MIRRORED_EVENTS.has(eventType)) {
     const applicationId = opts?.application_id ?? (token as any).application_id;
     if (applicationId) {
-      await supabase.from('application_events').insert({
+      const { error: mirrorErr } = await supabase.from('application_events').insert({
         organization_id: token.organization_id,
         application_id: applicationId,
         applicant_id: token.applicant_id,
         event_type: eventType,
         event_data: { ...(context ?? {}), token_id: token.id },
         performed_by: opts?.performed_by ?? null,
+      });
+      if (mirrorErr) {
+        console.error('[candidateForm] timeline mirror failed', {
+          event_type: eventType,
+          application_id: applicationId,
+          applicant_id: token.applicant_id,
+          error: mirrorErr.message,
+        });
+      }
+    } else {
+      console.warn('[candidateForm] timeline mirror skipped — missing application_id', {
+        event_type: eventType,
+        applicant_id: token.applicant_id,
       });
     }
   }
