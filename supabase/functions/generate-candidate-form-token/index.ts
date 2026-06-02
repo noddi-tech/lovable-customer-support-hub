@@ -15,6 +15,9 @@ interface Body {
   expiry_days?: number;
   inbox_id?: string; // required for email channel (recruitment inbox)
   custom_message?: string;
+  template_id?: string;
+  subject_override?: string;
+  body_html_override?: string;
 }
 
 function json(body: unknown, status = 200) {
