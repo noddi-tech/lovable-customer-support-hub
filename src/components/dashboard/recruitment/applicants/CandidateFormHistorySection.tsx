@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import {
   useCandidateFormTokens,
   useRevokeCandidateForm,
@@ -159,10 +160,17 @@ const CandidateFormHistorySection: React.FC<Props> = ({ applicantId, onSendForm,
           Kandidatskjema
         </CardTitle>
         {onSendForm && (
-          <Button size="sm" variant="outline" onClick={onSendForm} disabled={!canSend}>
-            <Send className="h-3.5 w-3.5" />
-            Send skjema
-          </Button>
+          <TooltipProvider delayDuration={200}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button size="sm" variant="outline" onClick={onSendForm} disabled={!canSend}>
+                  <Send className="h-3.5 w-3.5" />
+                  Send skjema
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Be kandidaten fylle ut manglende informasjon via skjema</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         )}
       </CardHeader>
       <CardContent className="p-0">

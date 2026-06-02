@@ -83,10 +83,13 @@ export const ComposeRecruitmentEmailDialog: React.FC<Props> = ({ open, onOpenCha
         .from('recruitment_email_templates')
         .select('id, name, subject, body')
         .eq('organization_id', currentOrganizationId!)
+        .eq('type', 'email') // exclude SMS templates from the email composer
         .eq('is_active', true)
         .is('soft_deleted_at', null)
         .order('name');
       if (error) throw error;
+      // Defense in depth: also exclude any email template that uses the
+      // candidate-form CTA placeholder — those require server-issued tokens.
       return (data ?? []).filter((t: any) => !CANDIDATE_FORM_TPL_RE.test(t.body || ''));
     },
   });

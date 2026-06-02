@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Loader2, Mail, MessageSquare, Send, Copy, ShieldAlert } from 'lucide-react';
+import { Loader2, Mail, MessageSquare, Send, Copy, ShieldAlert, Info, ExternalLink } from 'lucide-react';
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
@@ -14,9 +14,14 @@ import {
 import { useRecruitmentInboxes } from '@/hooks/recruitment/useRecruitmentEmail';
 import { useSmsRecruitmentInboxes } from '@/hooks/recruitment/useRecruitmentSms';
 import { useSendCandidateForm } from '@/hooks/recruitment/useCandidateFormTokens';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useOrganizationStore } from '@/stores/organizationStore';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { nb } from 'date-fns/locale';
+
+
 
 interface Props {
   open: boolean;
@@ -68,10 +73,34 @@ const SendCandidateFormDialog: React.FC<Props> = ({
     [expiryDays],
   );
 
+  // Template that will fire on the server. Name is hardcoded in
+  // supabase/functions/_shared/sendCandidateForm.ts; we resolve the id so the
+  // "Rediger" link can deep-link to the admin template editor.
+  const { currentOrganizationId } = useOrganizationStore();
+  const tplName = channel === 'email'
+    ? 'Kandidatskjema – invitasjon'
+    : 'Kandidatskjema – invitasjon (SMS)';
+  const { data: tplRow } = useQuery({
+    queryKey: ['candidate-form-template-lookup', currentOrganizationId, channel],
+    enabled: !!currentOrganizationId && open,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('recruitment_email_templates')
+        .select('id, name')
+        .eq('organization_id', currentOrganizationId!)
+        .eq('type', channel)
+        .eq('name', tplName)
+        .is('soft_deleted_at', null)
+        .maybeSingle();
+      return data;
+    },
+  });
+
   const canSubmit =
     !send.isPending &&
     ((channel === 'email' && hasEmail && !!inboxId) ||
       (channel === 'sms' && hasPhone && smsConfigured && !!inboxId));
+
 
   const handleSend = async () => {
     try {
@@ -106,8 +135,37 @@ const SendCandidateFormDialog: React.FC<Props> = ({
         </DialogHeader>
 
         <div className="space-y-4 py-2">
+          <div className="flex items-start gap-2 rounded-md border bg-muted/40 p-2.5 text-xs text-muted-foreground">
+            <Info className="h-3.5 w-3.5 mt-0.5 shrink-0 text-foreground/70" />
+            <p className="leading-relaxed">
+              Send dette etter at kandidaten er kvalifisert eller flyttet til
+              «Forhåndsscreening». Lenken lar dem fylle inn data som mangler, og
+              AI-vurderingen blir automatisk oppdatert når de sender inn.
+            </p>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label>Mal</Label>
+            <div className="flex items-center justify-between gap-2 rounded-md border bg-background px-3 py-2 text-sm">
+              <span className="truncate">{tplName}</span>
+              {tplRow?.id ? (
+                <a
+                  href={`/admin/recruitment/templates/${tplRow.id}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 text-xs text-primary hover:underline whitespace-nowrap"
+                >
+                  Rediger <ExternalLink className="h-3 w-3" />
+                </a>
+              ) : (
+                <span className="text-xs text-muted-foreground whitespace-nowrap">Standardmal</span>
+              )}
+            </div>
+          </div>
+
           <div className="space-y-2">
             <Label>Kanal</Label>
+
             <RadioGroup
               value={channel}
               onValueChange={(v) => setChannel(v as 'email' | 'sms')}
