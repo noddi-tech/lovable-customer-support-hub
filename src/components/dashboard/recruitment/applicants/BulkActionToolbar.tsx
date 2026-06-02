@@ -67,9 +67,16 @@ export function BulkActionToolbar({ selectedIds, onClear, onOpenAction }: Props)
         <Button size="sm" variant="outline" onClick={() => onOpenAction('send_email')}>
           <Mail className="h-3.5 w-3.5" /> Send e-post
         </Button>
-        <Button size="sm" variant="outline" onClick={() => onOpenAction('send_form')}>
-          <Send className="h-3.5 w-3.5" /> Send skjema
-        </Button>
+        <TooltipProvider delayDuration={200}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button size="sm" variant="outline" onClick={() => onOpenAction('send_form')}>
+                <Send className="h-3.5 w-3.5" /> Send skjema
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Be kandidatene fylle ut manglende informasjon via skjema</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
         <Button size="sm" variant="outline" onClick={() => onOpenAction('rescore')}>
           <Sparkles className="h-3.5 w-3.5" /> Re-score
         </Button>
