@@ -59,7 +59,7 @@ export function EmailTemplateTipTap({ value, onChange, placeholder, className }:
         heading: { levels: [1, 2, 3] },
       }),
       Underline,
-      Link.configure({
+      StyledLink.configure({
         openOnClick: false,
         HTMLAttributes: { class: 'text-primary underline' },
       }),
