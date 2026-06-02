@@ -2,6 +2,28 @@ import { useEffect, useState } from 'react';
 import { useEditor, EditorContent, type Editor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Link from '@tiptap/extension-link';
+const StyledLink = Link.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      style: {
+        default: null,
+        parseHTML: (el) => el.getAttribute('style'),
+        renderHTML: (attrs) => (attrs.style ? { style: attrs.style } : {}),
+      },
+      target: {
+        default: null,
+        parseHTML: (el) => el.getAttribute('target'),
+        renderHTML: (attrs) => (attrs.target ? { target: attrs.target } : {}),
+      },
+      rel: {
+        default: null,
+        parseHTML: (el) => el.getAttribute('rel'),
+        renderHTML: (attrs) => (attrs.rel ? { rel: attrs.rel } : {}),
+      },
+    };
+  },
+});
 import Placeholder from '@tiptap/extension-placeholder';
 import Underline from '@tiptap/extension-underline';
 import {
