@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Loader2, Mail, Webhook, MessageSquare, UserCheck, ListTodo } from 'lucide-react';
+import { Loader2, Mail, Webhook, MessageSquare, UserCheck, ListTodo, FileText } from 'lucide-react';
+import { ACTION_LABELS } from '@/components/dashboard/recruitment/admin/rules/types';
 import {
   Dialog,
   DialogContent,
@@ -35,34 +36,50 @@ function actionIcon(actionType: string) {
       return <UserCheck className="h-4 w-4 text-muted-foreground" aria-hidden />;
     case 'create_task':
       return <ListTodo className="h-4 w-4 text-muted-foreground" aria-hidden />;
+    case 'send_candidate_form':
+      return <FileText className="h-4 w-4 text-muted-foreground" aria-hidden />;
     default:
       return null;
   }
 }
 
 function describeAction(rule: MatchedRule): string {
-  const cfg = rule.action_config ?? {};
+  const cfg = (rule.action_config ?? {}) as Record<string, unknown>;
   switch (rule.action_type) {
     case 'send_email':
       return rule.template_name
         ? `Send e-post: '${rule.template_name}'`
         : 'Send e-post';
     case 'webhook': {
-      const url = (cfg as any).url as string | undefined;
+      const url = cfg.url as string | undefined;
       try {
         return url ? `Webhook → ${new URL(url).hostname}` : 'Webhook';
       } catch {
         return 'Webhook';
       }
     }
-    case 'send_sms':
+    case 'send_sms': {
+      const tpl = cfg.template_name as string | undefined;
+      if (tpl) return `SMS: '${tpl}'`;
+      const body = cfg.body as string | undefined;
+      if (body && body.trim()) {
+        const snippet = body.trim().slice(0, 30);
+        return `SMS: "${snippet}${body.trim().length > 30 ? '…' : ''}"`;
+      }
       return 'Send SMS';
+    }
     case 'assign_to':
       return rule.user_name ? `Tildel til ${rule.user_name}` : 'Tildel ansvarlig';
     case 'create_task':
       return 'Opprett oppgave';
+    case 'send_candidate_form': {
+      const days = (cfg.expiry_days as number | undefined) ?? 7;
+      const channel = (cfg.channel as string | undefined) ?? 'email';
+      const channelLabel = channel === 'sms' ? 'SMS' : 'E-post';
+      return `${channelLabel} • ${days} dager`;
+    }
     default:
-      return rule.action_type;
+      return ACTION_LABELS[rule.action_type] ?? rule.action_type;
   }
 }
 
