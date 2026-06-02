@@ -135,8 +135,37 @@ const SendCandidateFormDialog: React.FC<Props> = ({
         </DialogHeader>
 
         <div className="space-y-4 py-2">
+          <div className="flex items-start gap-2 rounded-md border bg-muted/40 p-2.5 text-xs text-muted-foreground">
+            <Info className="h-3.5 w-3.5 mt-0.5 shrink-0 text-foreground/70" />
+            <p className="leading-relaxed">
+              Send dette etter at kandidaten er kvalifisert eller flyttet til
+              «Forhåndsscreening». Lenken lar dem fylle inn data som mangler, og
+              AI-vurderingen blir automatisk oppdatert når de sender inn.
+            </p>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label>Mal</Label>
+            <div className="flex items-center justify-between gap-2 rounded-md border bg-background px-3 py-2 text-sm">
+              <span className="truncate">{tplName}</span>
+              {tplRow?.id ? (
+                <a
+                  href={`/admin/recruitment/templates/${tplRow.id}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 text-xs text-primary hover:underline whitespace-nowrap"
+                >
+                  Rediger <ExternalLink className="h-3 w-3" />
+                </a>
+              ) : (
+                <span className="text-xs text-muted-foreground whitespace-nowrap">Standardmal</span>
+              )}
+            </div>
+          </div>
+
           <div className="space-y-2">
             <Label>Kanal</Label>
+
             <RadioGroup
               value={channel}
               onValueChange={(v) => setChannel(v as 'email' | 'sms')}
