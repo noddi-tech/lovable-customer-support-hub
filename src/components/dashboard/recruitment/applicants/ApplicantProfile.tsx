@@ -519,6 +519,23 @@ const ApplicantProfile: React.FC = () => {
           followupId={snoozeId}
         />
       )}
+
+      {isAdmin && (
+        <>
+          <InitiateGdprExportDialog
+            open={gdprExportOpen}
+            onOpenChange={setGdprExportOpen}
+            applicantId={applicant.id}
+            applicantName={`${applicant.first_name ?? ''} ${applicant.last_name ?? ''}`.trim() || 'kandidaten'}
+          />
+          <InitiateGdprErasureDialog
+            open={gdprEraseOpen}
+            onOpenChange={setGdprEraseOpen}
+            applicantId={applicant.id}
+            applicantName={`${applicant.first_name ?? ''} ${applicant.last_name ?? ''}`.trim() || 'kandidaten'}
+          />
+        </>
+      )}
     </div>
   );
 };
