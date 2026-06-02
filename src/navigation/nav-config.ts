@@ -161,6 +161,15 @@ export const NAV_ITEMS: NavItem[] = [
     group: "settings",
     requiredRole: "admin"
   },
+  {
+    id: "admin-gdpr",
+    label: "GDPR Requests",
+    to: "/admin/gdpr",
+    icon: Shield,
+    group: "settings",
+    requiredRole: "admin"
+  },
+
 ];
 
 export const getGroupedNavItems = (isAdmin: boolean = false, isSuperAdmin: boolean = false) => {
