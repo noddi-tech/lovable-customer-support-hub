@@ -97,6 +97,9 @@ const ApplicantProfile: React.FC = () => {
     stageName: string;
   } | null>(null);
   const [sendFormOpen, setSendFormOpen] = useState(false);
+  const [gdprExportOpen, setGdprExportOpen] = useState(false);
+  const [gdprEraseOpen, setGdprEraseOpen] = useState(false);
+  const { isAdmin } = useAuth();
   const { data: followups } = useApplicantFollowups(id);
   const completeFu = useCompleteFollowup();
   const deleteFu = useDeleteFollowup();
