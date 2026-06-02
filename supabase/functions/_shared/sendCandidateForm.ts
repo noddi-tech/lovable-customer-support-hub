@@ -412,7 +412,7 @@ export async function dispatchCandidateFormInvite(
 
   // SMS — strip any HTML the editor may have wrapped around the body.
   const fallbackSmsBody = `Hei ${firstName}! ${customText}Fyll ut skjemaet for ${args.position.title}: ${args.url} (utløper ${expiresHuman})`;
-  let smsBody = tpl.found ? substituteVars(tpl.body, baseVars) : fallbackSmsBody;
+  let smsBody = tpl.found ? substituteVars(tpl.body, baseVars, { caller: 'dispatchCandidateFormInvite:sms', template_name: 'Kandidatskjema – invitasjon (SMS)', organization_id: args.organization_id }) : fallbackSmsBody;
   smsBody = smsBody.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
   if (customText && tpl.found && !smsBody.includes(args.custom_message!.trim())) {
     smsBody = `${customText.trim()} ${smsBody}`.trim();
