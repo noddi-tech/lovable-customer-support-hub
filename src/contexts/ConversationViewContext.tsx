@@ -300,36 +300,50 @@ export const ConversationViewProvider = ({ children, conversationId, conversatio
     mutationFn: async ({ content, isInternal, status, files, replyAll }: { content: string; isInternal: boolean; status?: string; files?: File[]; replyAll?: boolean }) => {
       if (!conversationId) throw new Error('No conversation ID');
 
-      // Upload attachments to storage if any
+      // Upload attachments to storage if any.
+      // ABORT on any failure — never send a reply that's missing its attachments.
       let attachmentsMeta: any[] | null = null;
       if (files && files.length > 0) {
         const orgId = conversation?.organization_id;
         if (!orgId) throw new Error('No organization ID for file upload');
-        
-        attachmentsMeta = [];
+
+        const uploaded: { meta: any; storagePath: string }[] = [];
         for (const file of files) {
           const uniqueName = `${crypto.randomUUID()}_${file.name}`;
           const storagePath = `${orgId}/${conversationId}/${uniqueName}`;
-          
+
           const { error: uploadError } = await supabase.storage
             .from('message-attachments')
             .upload(storagePath, file);
-          
+
           if (uploadError) {
             logger.warn('Failed to upload attachment', uploadError, 'ConversationViewProvider');
-            toast.error(`Failed to upload ${file.name}`);
-            continue;
+            // Best-effort rollback of any files already uploaded in this attempt
+            if (uploaded.length > 0) {
+              await supabase.storage
+                .from('message-attachments')
+                .remove(uploaded.map((u) => u.storagePath))
+                .catch(() => undefined);
+            }
+            // Throw → mutation rejects → no insert, no send-reply-email,
+            // composer content preserved (onError does not clear replyText).
+            throw new Error(
+              `Couldn't upload ${file.name} — reply not sent, your text is kept`
+            );
           }
-          
-          attachmentsMeta.push({
-            filename: file.name,
-            mimeType: file.type || 'application/octet-stream',
-            size: file.size,
-            storageKey: storagePath,
-            isInline: false,
+
+          uploaded.push({
+            storagePath,
+            meta: {
+              filename: file.name,
+              mimeType: file.type || 'application/octet-stream',
+              size: file.size,
+              storageKey: storagePath,
+              isInline: false,
+            },
           });
         }
-        if (attachmentsMeta.length === 0) attachmentsMeta = null;
+        attachmentsMeta = uploaded.length > 0 ? uploaded.map((u) => u.meta) : null;
       }
 
       const { data: message, error: insertError } = await supabase
@@ -500,9 +514,15 @@ export const ConversationViewProvider = ({ children, conversationId, conversatio
       queryClient.invalidateQueries({ queryKey: ['all-counts'] });
       // Toast is now shown immediately in ReplyArea.tsx for instant feedback
     },
-    onError: (error) => {
+    onError: (error: any) => {
       logger.error('Failed to send reply', error, 'ConversationViewProvider');
-      toast.error('Failed to send reply: ' + error.message);
+      const msg = error?.message || 'Failed to send reply';
+      // If the error is our friendly upload-abort message, show as-is.
+      // Otherwise prefix so the agent knows the send itself failed.
+      const isUploadAbort = typeof msg === 'string' && msg.startsWith("Couldn't upload ");
+      toast.error(isUploadAbort ? msg : 'Failed to send reply: ' + msg);
+      // Intentionally do NOT clear replyText — composer content is preserved
+      // so the agent can fix the attachment and retry without retyping.
     },
   });
 
