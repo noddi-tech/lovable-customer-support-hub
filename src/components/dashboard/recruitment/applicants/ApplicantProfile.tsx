@@ -222,6 +222,30 @@ const ApplicantProfile: React.FC = () => {
             Rediger søker
           </Button>
 
+          {isAdmin && !applicant.anonymized_at && (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setGdprExportOpen(true)}
+                title="GDPR artikkel 15+20"
+              >
+                <ShieldCheck />
+                Eksporter data
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setGdprEraseOpen(true)}
+                className="text-destructive hover:text-destructive border-destructive/40 hover:bg-destructive/10"
+                title="GDPR artikkel 17"
+              >
+                <ShieldOff />
+                Slett kandidat
+              </Button>
+            </>
+          )}
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button size="sm" disabled={!firstApp || stages.length === 0}>
