@@ -44,6 +44,18 @@ export function MergeFieldDropdown({ onInsert, size = 'sm', label = 'Sett inn fl
             <span className="text-xs text-muted-foreground">{f.label}</span>
           </DropdownMenuItem>
         ))}
+        <DropdownMenuSeparator />
+        <DropdownMenuLabel>Spesialfelt</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          onSelect={() => onInsert('{{cta_button:Åpne skjema:form_url}}')}
+          className="flex flex-col items-start gap-0.5"
+        >
+          <code className="text-xs font-mono text-primary">{'{{cta_button:Åpne skjema:form_url}}'}</code>
+          <span className="text-xs text-muted-foreground">
+            CTA-knapp (gjengis som stilig knapp ved utsending; bruker merkevarefarge)
+          </span>
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
