@@ -115,14 +115,43 @@ function renderCtaButtons(template: string, values: Record<string, string>): str
 // Substitute {{token}} in a template body. Unknown tokens replaced with ''
 // (so recipients never see raw {{var}}). Logs unknown tokens for drift detection.
 // Also expands the special {{cta_button:LABEL:URL_VAR}} placeholder first.
-export function substituteVars(template: string, values: Record<string, string>): string {
+//
+// `context` is optional but strongly encouraged for drift forensics — pass at
+// minimum `{ caller, template_name, organization_id }` so the console.error
+// fired for unresolved candidate-form tokens identifies the exact send path.
+export function substituteVars(
+  template: string,
+  values: Record<string, string>,
+  context?: { caller?: string; template_name?: string; organization_id?: string; [k: string]: unknown },
+): string {
   const withButtons = renderCtaButtons(template, values);
+
+  // Drift alert: if after CTA rendering the body still contains a raw
+  // {{cta_button:...}} placeholder OR an unresolved candidate-form variable,
+  // surface it in edge logs with enough context to investigate later.
+  const ctaLeftover = /\{\{\s*cta_button\s*:[^}]+\}\}/i.test(withButtons);
+  const formVarLeftover = /\{\{\s*(form_url|expires_at|brand_color)\s*\}\}/i.test(withButtons);
+  if (ctaLeftover || formVarLeftover) {
+    console.error('[substituteVars] candidate-form drift: unresolved tokens after CTA pass', {
+      cta_button_leftover: ctaLeftover,
+      form_var_leftover: formVarLeftover,
+      caller: context?.caller ?? 'unknown',
+      template_name: context?.template_name ?? null,
+      organization_id: context?.organization_id ?? null,
+      has_form_url: Object.prototype.hasOwnProperty.call(values, 'form_url'),
+      values_keys: Object.keys(values).sort(),
+    });
+  }
+
   return withButtons.replace(/\{\{\s*([a-z_]+)\s*\}\}/gi, (_m, t) => {
     const k = t.toLowerCase();
     if (Object.prototype.hasOwnProperty.call(values, k)) {
       return values[k] ?? '';
     }
-    console.debug(`[substituteVars] unknown token: {{${k}}}`);
+    console.debug(`[substituteVars] unknown token: {{${k}}}`, {
+      caller: context?.caller ?? 'unknown',
+      template_name: context?.template_name ?? null,
+    });
     return '';
   });
 }
