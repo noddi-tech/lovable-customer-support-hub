@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { EmailTemplateTipTap } from '../admin/templates/EmailTemplateTipTap';
-import { Loader2, Paperclip, Calendar as CalendarIcon } from 'lucide-react';
+import { Loader2, Paperclip, Calendar as CalendarIcon, Info as InfoIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   useRecruitmentInboxes,
