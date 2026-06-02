@@ -63,6 +63,12 @@ import ScoringBuiltinFieldsSection from './ScoringBuiltinFieldsSection';
 import StageRequiredFieldsModal from './StageRequiredFieldsModal';
 import SendCandidateFormDialog from './SendCandidateFormDialog';
 import CandidateFormHistorySection from './CandidateFormHistorySection';
+import AnonymizedApplicantBanner from './gdpr/AnonymizedApplicantBanner';
+import GdprRequestsHistorySection from './gdpr/GdprRequestsHistorySection';
+import InitiateGdprExportDialog from './gdpr/InitiateGdprExportDialog';
+import InitiateGdprErasureDialog from './gdpr/InitiateGdprErasureDialog';
+import { useAuth } from '@/hooks/useAuth';
+import { ShieldCheck, ShieldOff } from 'lucide-react';
 
 const ApplicantProfile: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -91,6 +97,9 @@ const ApplicantProfile: React.FC = () => {
     stageName: string;
   } | null>(null);
   const [sendFormOpen, setSendFormOpen] = useState(false);
+  const [gdprExportOpen, setGdprExportOpen] = useState(false);
+  const [gdprEraseOpen, setGdprEraseOpen] = useState(false);
+  const { isAdmin } = useAuth();
   const { data: followups } = useApplicantFollowups(id);
   const completeFu = useCompleteFollowup();
   const deleteFu = useDeleteFollowup();
@@ -139,6 +148,10 @@ const ApplicantProfile: React.FC = () => {
         <ArrowLeft className="h-4 w-4" />
         Tilbake
       </button>
+
+      <AnonymizedApplicantBanner anonymizedAt={applicant.anonymized_at} />
+
+
 
       {/* Header */}
       <div className="space-y-3">
@@ -208,6 +221,30 @@ const ApplicantProfile: React.FC = () => {
             <Pencil />
             Rediger søker
           </Button>
+
+          {isAdmin && !applicant.anonymized_at && (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setGdprExportOpen(true)}
+                title="GDPR artikkel 15+20"
+              >
+                <ShieldCheck />
+                Eksporter data
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setGdprEraseOpen(true)}
+                className="text-destructive hover:text-destructive border-destructive/40 hover:bg-destructive/10"
+                title="GDPR artikkel 17"
+              >
+                <ShieldOff />
+                Slett kandidat
+              </Button>
+            </>
+          )}
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -368,6 +405,7 @@ const ApplicantProfile: React.FC = () => {
                 canSend={!!firstApp}
                 onSendForm={() => setSendFormOpen(true)}
               />
+              {isAdmin && <GdprRequestsHistorySection applicantId={applicant.id} />}
             </div>
           </div>
         </TabsContent>
@@ -480,6 +518,23 @@ const ApplicantProfile: React.FC = () => {
           onOpenChange={(o) => !o && setSnoozeId(null)}
           followupId={snoozeId}
         />
+      )}
+
+      {isAdmin && (
+        <>
+          <InitiateGdprExportDialog
+            open={gdprExportOpen}
+            onOpenChange={setGdprExportOpen}
+            applicantId={applicant.id}
+            applicantName={`${applicant.first_name ?? ''} ${applicant.last_name ?? ''}`.trim() || 'kandidaten'}
+          />
+          <InitiateGdprErasureDialog
+            open={gdprEraseOpen}
+            onOpenChange={setGdprEraseOpen}
+            applicantId={applicant.id}
+            applicantName={`${applicant.first_name ?? ''} ${applicant.last_name ?? ''}`.trim() || 'kandidaten'}
+          />
+        </>
       )}
     </div>
   );

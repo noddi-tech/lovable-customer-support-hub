@@ -45,6 +45,7 @@ export interface ApplicantProfileData {
   imported_via: string | null;
   imported_via_bulk_import_id: string | null;
   metadata: any;
+  anonymized_at: string | null;
   created_at: string;
   updated_at: string;
   applications: ApplicantProfileApplication[];

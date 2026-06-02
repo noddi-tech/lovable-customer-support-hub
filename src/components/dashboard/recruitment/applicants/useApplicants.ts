@@ -71,6 +71,7 @@ export function useApplicants(filters: ApplicantsFilters) {
       let q = supabase
         .from('applicants')
         .select(select)
+        .is('anonymized_at', null) // Phase 12: hide GDPR-erased applicants from default lists.
         .order('created_at', { ascending: false });
 
       if (source !== 'all') q = q.eq('source', source);
