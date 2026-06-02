@@ -63,6 +63,12 @@ import ScoringBuiltinFieldsSection from './ScoringBuiltinFieldsSection';
 import StageRequiredFieldsModal from './StageRequiredFieldsModal';
 import SendCandidateFormDialog from './SendCandidateFormDialog';
 import CandidateFormHistorySection from './CandidateFormHistorySection';
+import AnonymizedApplicantBanner from './gdpr/AnonymizedApplicantBanner';
+import GdprRequestsHistorySection from './gdpr/GdprRequestsHistorySection';
+import InitiateGdprExportDialog from './gdpr/InitiateGdprExportDialog';
+import InitiateGdprErasureDialog from './gdpr/InitiateGdprErasureDialog';
+import { useAuth } from '@/hooks/useAuth';
+import { ShieldCheck, ShieldOff } from 'lucide-react';
 
 const ApplicantProfile: React.FC = () => {
   const { id } = useParams<{ id: string }>();
