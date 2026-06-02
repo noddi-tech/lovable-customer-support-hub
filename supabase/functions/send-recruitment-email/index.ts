@@ -198,8 +198,9 @@ Deno.serve(async (req) => {
       company_name: orgRow?.name || '',
       application_link: applicationLink,
     };
-    subject = substituteVars(subject, vars);
-    bodyHtml = substituteVars(bodyHtml, vars);
+    const subCtx = { caller: 'send-recruitment-email', organization_id: applicant?.organization_id ?? orgRow?.id ?? null };
+    subject = substituteVars(subject, vars, subCtx);
+    bodyHtml = substituteVars(bodyHtml, vars, subCtx);
 
     // 8. Build attachments (signed URLs)
     const expiryDays = orgRow?.default_attachment_expiry_days ?? 7;

@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { EmailTemplateTipTap } from '../admin/templates/EmailTemplateTipTap';
-import { Loader2, Paperclip, Calendar as CalendarIcon } from 'lucide-react';
+import { Loader2, Paperclip, Calendar as CalendarIcon, Info as InfoIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   useRecruitmentInboxes,
@@ -66,7 +66,15 @@ export const ComposeRecruitmentEmailDialog: React.FC<Props> = ({ open, onOpenCha
     }
   }, [open, inboxes, inboxId]);
 
-  const { data: templates } = useQuery({
+  // Templates that contain {{cta_button:LABEL:form_url}} require a server-issued
+  // candidate-form token and can ONLY be sent through generate-candidate-form-token /
+  // dispatchCandidateFormInvite. The generic composer has no form_url to substitute,
+  // so client-side substituteMergeFields would render href="#" and the server-side
+  // substituteVars in send-recruitment-email would wipe expires_at/organization_name/
+  // brand_color to empty strings. Filter them out of the dropdown.
+  const CANDIDATE_FORM_TPL_RE = /\{\{\s*cta_button\s*:[^:}]+:\s*form_url\s*\}\}/i;
+
+  const { data: templates, isLoading: templatesLoading } = useQuery({
     queryKey: ['recruitment-email-templates-active', currentOrganizationId],
     enabled: !!currentOrganizationId && open,
     refetchOnMount: 'always',
@@ -79,7 +87,7 @@ export const ComposeRecruitmentEmailDialog: React.FC<Props> = ({ open, onOpenCha
         .is('soft_deleted_at', null)
         .order('name');
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []).filter((t: any) => !CANDIDATE_FORM_TPL_RE.test(t.body || ''));
     },
   });
 
@@ -213,13 +221,17 @@ export const ComposeRecruitmentEmailDialog: React.FC<Props> = ({ open, onOpenCha
           <div>
             <Label className="mb-1.5 block">Mal (valgfri)</Label>
             <Select value={templateId} onValueChange={handleTemplateChange}>
-              <SelectTrigger><SelectValue placeholder="Velg mal eller skriv fritt" /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder={templatesLoading ? 'Laster maler…' : 'Velg mal eller skriv fritt'} /></SelectTrigger>
               <SelectContent>
                 {(templates ?? []).map((t: any) => (
                   <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
+            <p className="text-xs text-muted-foreground mt-1 flex items-start gap-1.5">
+              <InfoIcon className="h-3.5 w-3.5 mt-0.5 shrink-0 text-muted-foreground/70" />
+              <span>Kandidatskjema-invitasjoner sendes via «Send skjema»-knappen.</span>
+            </p>
           </div>
 
           <div>

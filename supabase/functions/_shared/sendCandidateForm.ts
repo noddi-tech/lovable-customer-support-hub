@@ -380,8 +380,9 @@ export async function dispatchCandidateFormInvite(
       <p>Du vil bli bedt om å bekrefte de siste 4 sifrene i telefonnummeret ditt.</p>
     `;
 
-    const subject = tpl.found ? substituteVars(tpl.subject, baseVars) : fallbackSubject;
-    let bodyHtml = tpl.found ? substituteVars(tpl.body, baseVars) : fallbackBody;
+    const tplCtx = { caller: 'dispatchCandidateFormInvite:email', template_name: 'Kandidatskjema – invitasjon', organization_id: args.organization_id };
+    const subject = tpl.found ? substituteVars(tpl.subject, baseVars, tplCtx) : fallbackSubject;
+    let bodyHtml = tpl.found ? substituteVars(tpl.body, baseVars, tplCtx) : fallbackBody;
     if (customHtml) {
       // Insert recruiter's optional custom note right above the CTA (before first <a>).
       const ctaIdx = bodyHtml.search(/<p>\s*<a\s+href=/i);
@@ -411,7 +412,7 @@ export async function dispatchCandidateFormInvite(
 
   // SMS — strip any HTML the editor may have wrapped around the body.
   const fallbackSmsBody = `Hei ${firstName}! ${customText}Fyll ut skjemaet for ${args.position.title}: ${args.url} (utløper ${expiresHuman})`;
-  let smsBody = tpl.found ? substituteVars(tpl.body, baseVars) : fallbackSmsBody;
+  let smsBody = tpl.found ? substituteVars(tpl.body, baseVars, { caller: 'dispatchCandidateFormInvite:sms', template_name: 'Kandidatskjema – invitasjon (SMS)', organization_id: args.organization_id }) : fallbackSmsBody;
   smsBody = smsBody.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
   if (customText && tpl.found && !smsBody.includes(args.custom_message!.trim())) {
     smsBody = `${customText.trim()} ${smsBody}`.trim();
