@@ -494,7 +494,7 @@ export const ConversationViewProvider = ({ children, conversationId, conversatio
 
       return message;
     },
-    onSuccess: (newMessage) => {
+    onSuccess: (newMessage, variables) => {
       dispatch({ type: 'SET_REPLY_TEXT', payload: '' });
       dispatch({ type: 'SET_SELECTED_AI_SUGGESTION', payload: null });
       dispatch({ type: 'SET_SELECTED_TEMPLATE', payload: null });
@@ -512,7 +512,9 @@ export const ConversationViewProvider = ({ children, conversationId, conversatio
       
       // Only invalidate essential queries
       queryClient.invalidateQueries({ queryKey: ['all-counts'] });
-      // Toast is now shown immediately in ReplyArea.tsx for instant feedback
+      // Fire success toast only after the send (incl. all uploads) resolved —
+      // guarantees we never claim success on an aborted upload.
+      toast.success(variables.isInternal ? 'Internal note added' : 'Reply sent');
     },
     onError: (error: any) => {
       logger.error('Failed to send reply', error, 'ConversationViewProvider');
