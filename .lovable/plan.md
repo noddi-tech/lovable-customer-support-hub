@@ -1,150 +1,104 @@
-## Fix: avif uploads + abort-on-upload-failure in reply send
+# Fix: success toast + UI clear only after the send actually resolves
 
-Two-part change. Bucket allowlist gets `image/avif`. The reply mutation in `ConversationViewContext.tsx` stops swallowing per-file upload failures — any failure aborts before `messages.insert` and before invoking `send-reply-email`, so a partial-attachment reply can never go out.
+## Problem
+`ReplyArea.handleSendReply` clears the composer, closes the reply area, clears attachments, navigates back, and fires `toast.success('Reply sent')` synchronously at click-time — before `sendReplyMutation` resolves. On an upload-abort (e.g. avif), the user sees "Reply sent" flash, the conversation closes, then an error toast appears with no way to recover the draft. This falsely asserts success and silently destroys the agent's in-flight reply.
 
-### Guardrail audit (done)
-- `pg_constraint` check on `event_category IN ('write','export','auth','system')` exists on `public.recruitment_audit_events`, **not** on any trigger fired from `messages`.
-- Triggers on `public.messages` INSERT: `messages_maintain_preview`, `trigger_notify_customer_reply`, `trigger_notify_mentions`, `trigger_send_email_on_message_insert`, `trigger_send_note_edit_notification`, `trigger_set_first_response`, `trigger_slack_new_message`. None write to `recruitment_audit_events`. No event_category constraint risk on this path.
+## Goal
+- Happy path: identical end state — composer cleared, reply area closed, conversation list, one "Reply sent" toast.
+- Failure path: agent stays on the OPEN conversation, composer text intact, attachment chips intact, reply area still open, only the error toast appears.
 
----
+## Changes (2 files)
 
-### Part 1 — Migration: add `image/avif` to `message-attachments`
+### 1. `src/components/dashboard/conversation-view/ReplyArea.tsx` (`handleSendReply`, ~lines 166–209)
 
-Single statement, preserves all existing MIME types (incl. `image/webp` and `image/svg+xml`) and the 50 MiB `file_size_limit`:
+Stop clearing UI / showing toast / navigating at click-time. Keep `stopTyping()` (cosmetic), then await the mutation. Only on success do we clear composer state, attachments, mentions, close the reply area, and `clearConversation()`. On error: do nothing — context's `onError` already shows the toast and preserves `replyText`; `attachments`, `mentionedUserIds`, and `showReplyArea` remain untouched, so the agent lands back in the open conversation with their draft + chips.
 
-```sql
-UPDATE storage.buckets
-SET allowed_mime_types = allowed_mime_types || ARRAY['image/avif']::text[]
-WHERE id = 'message-attachments'
-  AND NOT ('image/avif' = ANY(allowed_mime_types));
-```
-
-Idempotent. Other buckets untouched. `chat-attachments` bucket (used by `ChatReplyInput.tsx`) is not modified.
-
----
-
-### Part 2 — Diff: `src/contexts/ConversationViewContext.tsx` (lines 300–334)
-
-Only the upload loop inside `sendReplyMutation.mutationFn` changes. Everything outside this block (messages.insert, response_tracking, status update, send-reply-email invoke, onSuccess refetch/invalidate behavior) is untouched, so `refetchOnMount:'always'` and cross-invalidation of conversation/message query keys are preserved by construction.
-
+Diff (conceptual):
 ```diff
-   mutationFn: async ({ content, isInternal, status, files, replyAll }: { ... }) => {
-     if (!conversationId) throw new Error('No conversation ID');
+ const handleSendReply = () => {
+   if (!state.replyText.trim()) return;
 
--    // Upload attachments to storage if any
--    let attachmentsMeta: any[] | null = null;
--    if (files && files.length > 0) {
--      const orgId = conversation?.organization_id;
--      if (!orgId) throw new Error('No organization ID for file upload');
--
--      attachmentsMeta = [];
--      for (const file of files) {
--        const uniqueName = `${crypto.randomUUID()}_${file.name}`;
--        const storagePath = `${orgId}/${conversationId}/${uniqueName}`;
--
--        const { error: uploadError } = await supabase.storage
--          .from('message-attachments')
--          .upload(storagePath, file);
--
--        if (uploadError) {
--          logger.warn('Failed to upload attachment', uploadError, 'ConversationViewProvider');
--          toast.error(`Failed to upload ${file.name}`);
--          continue;
--        }
--
--        attachmentsMeta.push({
--          filename: file.name,
--          mimeType: file.type || 'application/octet-stream',
--          size: file.size,
--          storageKey: storagePath,
--          isInline: false,
--        });
--      }
--      if (attachmentsMeta.length === 0) attachmentsMeta = null;
--    }
-+    // Upload attachments to storage if any.
-+    // ABORT on any failure — never send a reply that's missing its attachments.
-+    let attachmentsMeta: any[] | null = null;
-+    if (files && files.length > 0) {
-+      const orgId = conversation?.organization_id;
-+      if (!orgId) throw new Error('No organization ID for file upload');
-+
-+      const uploaded: { meta: any; storagePath: string }[] = [];
-+      for (const file of files) {
-+        const uniqueName = `${crypto.randomUUID()}_${file.name}`;
-+        const storagePath = `${orgId}/${conversationId}/${uniqueName}`;
-+
-+        const { error: uploadError } = await supabase.storage
-+          .from('message-attachments')
-+          .upload(storagePath, file);
-+
-+        if (uploadError) {
-+          logger.warn('Failed to upload attachment', uploadError, 'ConversationViewProvider');
-+          // Best-effort rollback of any files already uploaded in this attempt
-+          if (uploaded.length > 0) {
-+            await supabase.storage
-+              .from('message-attachments')
-+              .remove(uploaded.map((u) => u.storagePath))
-+              .catch(() => undefined);
-+          }
-+          // Throw → mutation rejects → no insert, no send-reply-email,
-+          // composer content preserved (see onError below).
-+          throw new Error(
-+            `Couldn't upload ${file.name} — reply not sent, your text is kept`
-+          );
-+        }
-+
-+        uploaded.push({
-+          storagePath,
-+          meta: {
-+            filename: file.name,
-+            mimeType: file.type || 'application/octet-stream',
-+            size: file.size,
-+            storageKey: storagePath,
-+            isInline: false,
-+          },
-+        });
-+      }
-+      attachmentsMeta = uploaded.length > 0 ? uploaded.map((u) => u.meta) : null;
-+    }
+   const replyText = state.replyText;
+   const isInternal = state.isInternalNote;
+   const currentMentionedUserIds = [...mentionedUserIds];
+   const conversationIdForMentions = conversation?.id;
+   const currentAttachments = [...attachments];
 
-     const { data: message, error: insertError } = await supabase
-       .from('messages')
-       .insert({ ... });
+   stopTyping();
+
+-  // IMMEDIATELY clear UI, show toast, and navigate (optimistic UX)
+-  dispatch({ type: 'SET_REPLY_TEXT', payload: '' });
+-  dispatch({ type: 'SET_SHOW_REPLY_AREA', payload: false });
+-  dispatch({ type: 'SET_IS_INTERNAL_NOTE', payload: false });
+-  setMentionedUserIds([]);
+-  setAttachments([]);
+-  toast.success(isInternal ? 'Internal note added' : 'Reply sent');
+-  clearConversation();
+-
+-  // Fire mutation in background (non-blocking)
+   sendReply(replyText, isInternal, replyStatus, currentAttachments.map(a => a.file), replyAll)
+     .then((messageId) => {
++      // Send (incl. all uploads) succeeded — now safe to clear UI + navigate.
++      dispatch({ type: 'SET_REPLY_TEXT', payload: '' });
++      dispatch({ type: 'SET_SHOW_REPLY_AREA', payload: false });
++      dispatch({ type: 'SET_IS_INTERNAL_NOTE', payload: false });
++      setMentionedUserIds([]);
++      setAttachments([]);
++      clearConversation();
++
+       if (isInternal && currentMentionedUserIds.length > 0 && conversationIdForMentions) {
+         processMentions(replyText, currentMentionedUserIds, {
+           type: 'internal_note',
+           conversation_id: conversationIdForMentions,
+           message_id: messageId,
+         });
+       }
+     })
+     .catch((error) => {
+-      // Error toast is handled by mutation's onError in context
++      // Error toast handled by mutation's onError in context.
++      // Intentionally do NOT clear composer / attachments / showReplyArea —
++      // agent stays on the open conversation with their draft + chips intact.
+       console.error('Reply failed in background:', error);
+     });
+ };
 ```
 
-And add a paired `onError` to surface the message and keep the composer text (the existing `onSuccess` clears `replyText` — we must not clear on error):
+Note: attachments and `mentionedUserIds` live as local state in `ReplyArea`, so the clear must happen here (not in context). Context owns the success toast + cache write.
 
+### 2. `src/contexts/ConversationViewContext.tsx` (`sendReplyMutation.onSuccess`, ~line 497)
+
+Fire the success toast here, after the mutation actually resolved.
+
+Diff:
 ```diff
-   },
-+  onError: (err: any) => {
-+    toast.error(err?.message || 'Failed to send reply');
-+    // Do NOT dispatch SET_REPLY_TEXT '' — composer content is preserved
-+    // so the agent can retry without retyping.
-+  },
-   onSuccess: (newMessage) => {
-     dispatch({ type: 'SET_REPLY_TEXT', payload: '' });
-     ...
-   },
+-    onSuccess: (newMessage) => {
++    onSuccess: (newMessage, variables) => {
+       dispatch({ type: 'SET_REPLY_TEXT', payload: '' });
+       dispatch({ type: 'SET_SELECTED_AI_SUGGESTION', payload: null });
+       dispatch({ type: 'SET_SELECTED_TEMPLATE', payload: null });
+
+       queryClient.setQueryData(['messages', conversationId, user?.id], (old: any[]) => {
+         return old ? [...old, newMessage] : [newMessage];
+       });
+       queryClient.refetchQueries({ queryKey: ['thread-messages'], exact: false });
+       queryClient.invalidateQueries({ queryKey: ['all-counts'] });
+-      // Toast is now shown immediately in ReplyArea.tsx for instant feedback
++      // Fire success toast only after the send (incl. all uploads) resolved —
++      // guarantees we never claim success on an aborted upload.
++      toast.success(variables.isInternal ? 'Internal note added' : 'Reply sent');
+     },
 ```
 
-Happy-path behavior (all uploads succeed) is byte-identical to today: same `attachmentsMeta` shape, same insert payload, same downstream invocation, same `onSuccess` cache writes and refetches.
+(The duplicate `SET_REPLY_TEXT: ''` in onSuccess is harmless — ReplyArea also clears on success; both run when the promise resolves.)
 
-`ChatReplyInput.tsx` and the `chat-attachments` bucket are not touched.
+## Untouched (explicit)
+- `mutationFn` (upload loop + abort-on-failure throw)
+- `onError` (upload-abort vs send-failed messaging, `replyText` preservation)
+- `ChatReplyInput.tsx` and the `chat-attachments` bucket
+- `useNoteMutations` / any other path
 
----
-
-### Verification (run before declaring done)
-
-1. **avif happy path.** Paste a screenshot (Chrome → `image/avif`) into the email reply composer on an open conversation. Expect: storage POST returns 200, attachment chip stays, message row inserts with `attachments[0].mimeType = 'image/avif'`, `send-reply-email` is invoked, recipient receives the file. Confirm via browser Network panel + `SELECT attachments FROM messages WHERE id = '<new id>'`.
-
-2. **forced-failure abort path.** Temporarily attach a disallowed type (e.g. an `.exe` renamed to `image/x-msdownload`, or just a fresh `.heic` which is not in the allowlist) alongside text. Expect: toast `"Couldn't upload <name> — reply not sent, your text is kept"`; **no** new row in `messages` for that conversation in the last minute; **no** `send-reply-email` invocation in edge-function logs in that window; composer text still present. Confirm:
-   ```sql
-   SELECT id, content, created_at FROM messages
-   WHERE conversation_id = '<test conv>' AND created_at > now() - interval '2 minutes';
-   ```
-   and `supabase--edge_function_logs send-reply-email` over the same window.
-
-3. **Regression check on succeed-after-fail retry.** After (2), remove the bad file, keep the composer text, click Send. Expect normal send. Confirm one new row appears.
-
-Not done until all three pass.
+## Verification
+a. **Happy path** — type reply + send → server resolves → exactly one "Reply sent" toast, composer clears, reply area closes, navigates back to list. No flicker, no double toast.
+b. **Forced failure** (attach a file that the bucket rejects, or kill network on the upload POST) → only the upload-abort error toast appears; "Reply sent" never shows; agent **stays on the open conversation**; composer text intact; attachment chips intact; reply area still open; no `messages` row inserted; no `send-reply-email` invocation. Removing the bad attachment and clicking Send again succeeds normally.
+c. **Internal note happy path** → "Internal note added" appears once, after success; mentions still process.

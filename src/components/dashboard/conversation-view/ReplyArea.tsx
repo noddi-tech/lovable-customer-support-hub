@@ -165,34 +165,29 @@ export const ReplyArea = () => {
 
   const handleSendReply = () => {
     if (!state.replyText.trim()) return;
-    
-    // Capture values before clearing state
+
+    // Capture values before sending
     const replyText = state.replyText;
     const isInternal = state.isInternalNote;
     const currentMentionedUserIds = [...mentionedUserIds];
     const conversationIdForMentions = conversation?.id;
-    
-    // Stop typing indicator immediately
-    stopTyping();
-    
-    // IMMEDIATELY clear UI, show toast, and navigate (optimistic UX)
-    dispatch({ type: 'SET_REPLY_TEXT', payload: '' });
-    dispatch({ type: 'SET_SHOW_REPLY_AREA', payload: false });
-    dispatch({ type: 'SET_IS_INTERNAL_NOTE', payload: false });
-    setMentionedUserIds([]);
-    // Clear attachments
     const currentAttachments = [...attachments];
-    setAttachments([]);
-    
-    // Show toast immediately
-    toast.success(isInternal ? 'Internal note added' : 'Reply sent');
-    
-    // Navigate back immediately
-    clearConversation();
-    
-    // Fire mutation in background (non-blocking)
+
+    // Stop typing indicator immediately (cosmetic)
+    stopTyping();
+
+    // Do NOT clear composer / close reply area / navigate at click-time.
+    // Only clear once the send (incl. all uploads) has actually resolved.
     sendReply(replyText, isInternal, replyStatus, currentAttachments.map(a => a.file), replyAll)
       .then((messageId) => {
+        // Send succeeded — now safe to clear UI + navigate.
+        dispatch({ type: 'SET_REPLY_TEXT', payload: '' });
+        dispatch({ type: 'SET_SHOW_REPLY_AREA', payload: false });
+        dispatch({ type: 'SET_IS_INTERNAL_NOTE', payload: false });
+        setMentionedUserIds([]);
+        setAttachments([]);
+        clearConversation();
+
         // Process mentions after successful send
         if (isInternal && currentMentionedUserIds.length > 0 && conversationIdForMentions) {
           processMentions(replyText, currentMentionedUserIds, {
@@ -203,8 +198,10 @@ export const ReplyArea = () => {
         }
       })
       .catch((error) => {
-        // Error toast is handled by mutation's onError in context
-        console.error('Reply failed in background:', error);
+        // Error toast is handled by mutation's onError in context.
+        // Intentionally do NOT clear composer / attachments / showReplyArea —
+        // agent stays on the open conversation with their draft + chips intact.
+        console.error('Reply failed:', error);
       });
   };
 
