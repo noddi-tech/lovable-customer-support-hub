@@ -578,6 +578,26 @@ function extractFromHtml(html: string): { visibleHTML: string; quoted: QuotedBlo
     });
   });
 
+  // STEP 2b: Strip Gmail signature blocks silently.
+  // iOS Gmail omits the "-- " separator span, so EMAIL_LIST_FOOTERS misses
+  // these. Remove the signature wrapper in place — body-safe because
+  // node.remove() preserves prior siblings and surrounding parent text.
+  //
+  // IMPORTANT: do NOT push into `quoted` and do NOT arm the STEP 5 safety
+  // restore. A short legitimate body left after signature removal (e.g.
+  // "Takk!") must NOT cause STEP 5 to restore the signature.
+  const signatureSelectors = [
+    '.gmail_signature',
+    '[data-smartmail="gmail_signature"]',
+    '.gmail_signature_prefix',
+  ];
+  signatureSelectors.forEach(sel => {
+    body.querySelectorAll(sel).forEach((node) => {
+      node.remove();
+    });
+  });
+
+
   // STEP 3: Plain text fallback detection for remaining content
   const remaining = body.innerText || '';
   const lines = remaining.split('\n');
