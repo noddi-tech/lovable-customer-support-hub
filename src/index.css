@@ -1604,25 +1604,16 @@ Optimized for accessibility with WCAG AA compliance.
   opacity: 0.9;
 }
 
-/* HEIGHT-COLLAPSE FIX: chat-bubble customer email bodies whose text lives in
-   bare <div>s (Gmail shape) were rendering at height:0 because an ancestor
-   cascade (table/tr line-height:0 and/or prose resets) zeroed the line box.
-   Restore natural line-height + auto height on non-empty divs only. Selector
-   intentionally avoids :has() so it works on every browser — worst case on
-   old browsers is that a <div><br></div> spacer is a tad taller, never that
-   real text disappears. */
-.chat-bubble-content .email-render__html-content div:not(:empty) {
-  line-height: 1.3 !important;
+/* LINE-HEIGHT FLOOR: email body text can never render at line-height 0,
+   regardless of any missed rule. No :has() — visible to rule scans. */
+.chat-bubble-content .email-render__html-content,
+.chat-bubble-content .email-render__html-content div,
+.chat-bubble-content .email-render__html-content p {
+  line-height: 1.5 !important;
+}
+.chat-bubble-content .email-render__html-content div {
   height: auto !important;
   min-height: 0;
-}
-
-/* Progressive enhancement: where :has() is supported, re-collapse pure
-   br-only spacer divs so they don't grow from the rule above. */
-@supports selector(:has(*)) {
-  .chat-bubble-content .email-render__html-content div:has(> br:only-child):not(:has(> :not(br))) {
-    line-height: 0 !important;
-  }
 }
 
 /* Touch and accessibility - scoped to mobile form fields only */

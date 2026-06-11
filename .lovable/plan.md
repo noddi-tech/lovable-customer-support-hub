@@ -1,52 +1,63 @@
-## Root cause
+## Grep results (full src scan for `line-height: 0`, `br:only-child`, `:has(`)
 
-The `@supports selector(:has(*))` block at `src/index.css` 289–300 zeros `line-height` on any `div:has(> br:only-child):not(:has(> :not(br)))`. The `:not(:has(> :not(br)))` guard only inspects **element** children — text nodes are invisible to it, the same blind spot that broke the prior `display: none` rule. Gmail body divs `<div>text<br></div>` therefore match, and every line in the bubble collapses to `line-height: 0` and overlaps.
+| Location | Rule | Verdict |
+|---|---|---|
+| `src/index.css:1622–1626` | `@supports selector(:has(*)) { .chat-bubble-content .email-render__html-content div:has(> br:only-child):not(:has(> :not(br))) { line-height: 0 !important } }` | **THE BUG — remove.** Duplicate of the block removed earlier (~line 290); this second copy survived. Matches Gmail body divs `<div>text<br></div>` because the guard ignores text nodes. Invisible to the `el.matches()` scan exactly as diagnosed. |
+| `src/index.css:492` | `table/tbody/thead/tr { line-height: 0 }` | Keep — cannot match a text-bearing div; td/th restore 1.3 at line 501. |
+| `src/index.css:524` | `td:empty, th:empty` | Keep — empty cells only. |
+| `src/index.css:532` | `td[bgcolor]:not([class])` | Keep — spacer cells only. |
+| `src/index.css:1406–1407` | `pre:has(code)` | Keep — unrelated, harmless. |
+| `table.tsx:76,90`, `calendar.tsx:37` | Tailwind `[&:has([role=checkbox])]` etc. | Keep — unrelated UI. |
 
-No `:has()` + `:only-child` selector can distinguish a spacer `<div><br></div>` from a body `<div>text<br></div>` in pure CSS, so this approach must be abandoned.
+No other `line-height: 0` or `br:only-child` occurrences exist in src.
 
-## Diff (`src/index.css` 288–300)
+## Diff (`src/index.css`)
+
+**1. Delete lines 1620–1626** (comment + entire `@supports` block):
 
 ```diff
--
--  /* Progressive enhancement: collapse pure spacer <div><br></div> via
--     line-height only (never display:none), so any over-match still renders
--     its text. The :not(:has(> :not(br))) clause excludes divs with element
--     children other than <br>; text-only over-match would just zero leading
--     between text lines, never hide content. */
--  @supports selector(:has(*)) {
--    .email-render__html-content div:has(> br:only-child):not(:has(> :not(br))) {
--      line-height: 0 !important;
--      margin: 0 !important;
--      padding: 0 !important;
--    }
+-/* Progressive enhancement: where :has() is supported, re-collapse pure
+-   br-only spacer divs so they don't grow from the rule above. */
+-@supports selector(:has(*)) {
+-  .chat-bubble-content .email-render__html-content div:has(> br:only-child):not(:has(> :not(br))) {
+-    line-height: 0 !important;
 -  }
--
+-}
 ```
 
-That's the entire change — delete lines 288–300 (the blank line + comment + `@supports` block). Nothing else in this file is touched.
+**2. Replace the existing floor at 1614–1618 with the requested explicit, non-:has floor** (line-height 1.5, covering root, divs, and p):
 
-## What still handles spacer collapsing (unchanged, already present)
+```diff
+-.chat-bubble-content .email-render__html-content div:not(:empty) {
+-  line-height: 1.3 !important;
+-  height: auto !important;
+-  min-height: 0;
+-}
++/* LINE-HEIGHT FLOOR: email body text can never render at line-height 0,
++   regardless of any missed rule. No :has() — visible to rule scans. */
++.chat-bubble-content .email-render__html-content,
++.chat-bubble-content .email-render__html-content div,
++.chat-bubble-content .email-render__html-content p {
++  line-height: 1.5 !important;
++}
++.chat-bubble-content .email-render__html-content div {
++  height: auto !important;
++  min-height: 0;
++}
+```
 
-- `div:empty { display: none }` (lines 282–287) — collapses true `<div></div>`.
-- `br + br { display: none }` (~303) — collapses double `<br>`.
-- `br { ... height: 0.3em ... }` (~308+) — keeps single `<br>` tight.
-
-These together keep `<div><br></div>` spacers visually small without ever touching divs that contain text.
+Spacer tightness still handled by existing untouched rules: `div:empty { display:none }`, `br + br { display:none }`, `br { height: 0.3em }`.
 
 ## Out of scope
 
-`parseQuotedEmail`, `normalizeMessage`, `sanitizeEmailHTML`, STEP 2b, send pipeline, storage. No new `:has()` rules. No `line-height: 0` or `display: none` on any selector that can match a text-bearing div.
+`parseQuotedEmail`, `normalizeMessage`, `sanitizeEmailHTML`, send pipeline, storage. No new `:has()` rules anywhere.
 
-## If a paragraph-gap regression appears after removal
+## Verification (conv `3e5ec395-…`, computed values via live preview)
 
-Only then, and as a follow-up, add a non-`:has` rule scoped to direct children, e.g. `.email-render__html-content > div { margin: 0 }`. Not part of this change unless verification step 4 fails.
-
-## Verification (conv `3e5ec395-…`, post-build)
-
-1. `bbac3c7c` "Hei dere / Da fikk jeg melding om at dekkene endelig er klare…" — full body visible, lines on separate rows, computed `line-height` on inner body div ≈ 18px (not 0).
-2. `447a78f3` "Hei dere / Fått SMS, men ikke svar…" — full body visible, no line overlap.
-3. "Ja, send gjern…/Kenneth", "Ja fint…", "Hva er dimensjon… K" — still visible, normal spacing.
-4. No large blank gaps between paragraphs (spacers still collapsed by `br+br` / `br` / `div:empty`).
+1. Inner body div of `bbac3c7c` ("Da fikk jeg melding…"): computed `line-height` ≈ 21px (14px × 1.5, NOT 0), `offsetHeight` > 0, lines on separate rows.
+2. `447a78f3` ("Fått SMS…"): readable, no overlap.
+3. "Ja, send gjern…", "Ja fint…", "Hva er dimensjon… K": readable, normal spacing.
+4. No large spacer gaps (br rules + div:empty unchanged).
 5. Agent purple bubbles unchanged.
 
 Switch to build mode to apply.
