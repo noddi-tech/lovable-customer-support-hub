@@ -1,68 +1,51 @@
-# Revert :has() spacer rule, strip trailing spacers in the render layer
+# Restore paragraph breaks in customer emails
 
-## Diagnosis (confirmed)
-`:only-child` ignores text nodes, so `<div>Ja, send gjern...<br>Kenneth</div>` (text + br + text) matches `> div:has(> br:only-child):not(:has(> :not(br)))` and collapses. CSS cannot distinguish "text + br" from "br only" — the :has() approach is abandoned permanently.
+## Grep result
+Single occurrence of `br + br` in the codebase:
 
-## Changes
+- `src/index.css:290` — `.email-render__html-content br + br { display: none !important; }` (lines 289–292, including its `/* SPACING FIX: Collapse consecutive br tags */` comment)
 
-### 1. Delete the @supports block — `src/index.css` lines 1619–1630
+No `.chat-bubble-content` variant exists. No other `br+br` rules anywhere in `src/`.
+
+## Diff
+
+`src/index.css` — delete lines 289–292:
 
 ```diff
--/* Collapse pure spacer divs that contain only <br>(s) and no text/elements. ... */
--@supports selector(:has(*)) {
--  .chat-bubble-content .email-render__html-content > div:has(> br:only-child):not(:has(> :not(br))) {
--    line-height: 0 !important;
--    height: 0 !important;
--    overflow: hidden;
+-  /* SPACING FIX: Collapse consecutive br tags */
+-  .email-render__html-content br + br {
+-    display: none !important;
 -  }
--}
+-
+   /* SPACING FIX: Minimize br impact */
+   .email-render__html-content br {
+     content: '';
+     display: block;
+     margin: 0 !important;
+     height: 0.3em;
+   }
 ```
 
-KEPT unchanged: the `line-height: 1.5 !important` floor (lines 1609–1613) and the `height: auto / min-height: 0` block (1614–1617).
+That is the entire change. Nothing else is touched.
 
-### 2. Strip trailing whitespace-only nodes in `sanitizeEmailHTML` — `src/utils/emailFormatting.ts`
+## Untouched (explicit)
+- `br { height: 0.3em }` — kept
+- `div:empty { display:none }` — kept
+- `line-height: 1.5` floor — kept
+- `min-height: 0 / height: auto` block — kept
+- `stripTrailingSpacers` in `src/utils/emailFormatting.ts` — kept (it removes trailing `<br>`/empty `<div>`/`<p>` nodes before render, so bottom padding stays clean independent of the br+br rule)
+- `parseQuotedEmail`, `sanitizeEmailHTML` body logic, send pipeline, storage — untouched
 
-After `DOMPurify.sanitize(...)` (line 445), before returning, run a trailing-trim pass on the sanitized HTML:
+## Why safe
+- DB check on the Jun-2/Jun-8 Anders Kvåle message confirmed paragraphs are stored as `<br><br>` inside a single `<div dir="auto">`. The br+br rule was hiding the 2nd `<br>` of every pair, collapsing every paragraph break to one line.
+- Trailing-padding cleanliness now comes from `stripTrailingSpacers` (node removal before render), which operates on the END of the body. Removing br+br only affects IN-BODY paragraph breaks — different positions, no conflict.
+- `br { height: 0.3em }` stays, so a lone `<br>` (e.g. inside the numbered list 1/2/3) still renders tight; only `<br><br>` becomes a true blank line.
 
-```diff
-   const sanitized = DOMPurify.sanitize(processedContent, config);
-   DOMPurify.removeAllHooks();
--  return sanitized;
-+  return stripTrailingSpacers(sanitized);
-```
+## Verification on conv `3e5ec395-…`
+1. Jun-8 "Hei Robert / Tusen takk…": paragraphs separated by blank lines matching sender's structure. Probe: `consecutiveBrPairsInDOM > 0`; 2nd `<br>` of each pair no longer `display:none`.
+2. Numbered list (1/2/3): stays tight (source uses single `<br>`).
+3. Apr-30 "Hei dere / Fått SMS…" and "Da fikk…": body visible, bottom padding still clean (node-strip intact).
+4. Apr-16 "Ja, send gjern…": still visible (line-height floor intact).
+5. Agent purple bubbles: unchanged.
 
-New helper (same file):
-
-```ts
-const stripTrailingSpacers = (html: string): string => {
-  const temp = document.createElement('div');
-  temp.innerHTML = html;
-  const isSpacer = (node: Node): boolean => {
-    if (node.nodeType === Node.TEXT_NODE) return !node.textContent?.trim();
-    if (node.nodeType !== Node.ELEMENT_NODE) return true; // comments
-    const el = node as Element;
-    if (el.tagName === 'BR') return true;
-    if ((el.tagName === 'DIV' || el.tagName === 'P') && !el.textContent?.trim()
-        && !el.querySelector('img,table,hr')) return true;
-    return false;
-  };
-  let last = temp.lastChild;
-  while (last && isSpacer(last)) {
-    const prev = last.previousSibling;
-    temp.removeChild(last);
-    last = prev;
-  }
-  return temp.innerHTML;
-};
-```
-
-- Walks backward from the last child only; stops at the first node with real content — spacers between text blocks are untouched.
-- The `img,table,hr` guard keeps trailing image-only/table divs (e.g. signature logos).
-- Runs after sanitization in the customer-email render path (`email-render.tsx` → `sanitizeEmailHTML`). No changes to `parseQuotedEmail`, send pipeline, or storage.
-
-## Verification (conv 3e5ec395-…, computed values)
-1. Apr-16 "Ja, send gjern et utrolig godt tilbud :) / Kenneth" → visible again, line-height ~21px.
-2. Apr-30 "Hei dere / Fått SMS…" and "Da fikk…" → visible, readable, trailing padding reduced.
-3. Apr-17 "Hva er dimensjon… K" → visible incl. "K", reduced trailing gap.
-4. All other customer email messages visible, none collapsed.
-5. Agent purple bubbles unchanged.
+Report back: confirm blank-line paragraph rendering on Jun-8, and confirm Apr-30 bottom padding is unchanged.
