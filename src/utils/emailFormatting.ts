@@ -446,8 +446,39 @@ export const sanitizeEmailHTML = (
   // Clean up hooks to avoid leaking across calls
   DOMPurify.removeAllHooks();
 
-  // Return sanitized content directly - styling handled by CSS
-  return sanitized;
+  // Strip trailing spacer nodes (br, empty div/p, whitespace text) so messages
+  // don't reserve a blank line at the bottom. Only TRAILING nodes — spacers
+  // between text blocks are preserved.
+  return stripTrailingSpacers(sanitized);
+};
+
+const stripTrailingSpacers = (html: string): string => {
+  if (typeof document === 'undefined') return html;
+  try {
+    const temp = document.createElement('div');
+    temp.innerHTML = html;
+    const isSpacer = (node: Node): boolean => {
+      if (node.nodeType === Node.TEXT_NODE) return !node.textContent?.trim();
+      if (node.nodeType !== Node.ELEMENT_NODE) return true; // comments etc.
+      const el = node as Element;
+      if (el.tagName === 'BR') return true;
+      if ((el.tagName === 'DIV' || el.tagName === 'P') &&
+          !el.textContent?.trim() &&
+          !el.querySelector('img,table,hr')) {
+        return true;
+      }
+      return false;
+    };
+    let last = temp.lastChild;
+    while (last && isSpacer(last)) {
+      const prev = last.previousSibling;
+      temp.removeChild(last);
+      last = prev;
+    }
+    return temp.innerHTML;
+  } catch {
+    return html;
+  }
 };
 
 /**
