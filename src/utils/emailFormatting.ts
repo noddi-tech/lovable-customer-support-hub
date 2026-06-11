@@ -158,6 +158,14 @@ export const sanitizeEmailHTML = (
   // Use the visible content (with <pre> wrappers removed and entities decoded)
   let processedContent = parsed.visibleContent || htmlContent;
 
+  // TEMP DIAGNOSTIC — remove after verification
+  console.log('[NL-CONVERT] pre-conversion processedContent:', JSON.stringify(processedContent.slice(0, 300)));
+  console.log('[NL-CONVERT] guard:', {
+    hasNewline: processedContent.includes('\n'),
+    hasBr: /<br[\s/>]/i.test(processedContent),
+    hasBlock: /<(p|div|table|ul|ol|blockquote|pre|h[1-6])[\s>]/i.test(processedContent),
+  });
+
   // Newline-only bodies arriving on the HTML path (e.g. agent replies stored
   // with content_type='html' but no markup) collapse to a single line under
   // white-space:normal. Convert \n\n -> <br><br> and remaining \n -> <br>
@@ -173,6 +181,10 @@ export const sanitizeEmailHTML = (
       .replace(/\n{2,}/g, '<br><br>')
       .replace(/\n/g, '<br>');
   }
+
+  // TEMP DIAGNOSTIC — remove after verification
+  console.log('[NL-CONVERT] post-conversion:', JSON.stringify(processedContent.slice(0, 300)));
+
 
   // STEP 2: Continue with existing sanitization logic
 
