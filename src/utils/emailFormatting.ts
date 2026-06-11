@@ -157,8 +157,25 @@ export const sanitizeEmailHTML = (
   
   // Use the visible content (with <pre> wrappers removed and entities decoded)
   let processedContent = parsed.visibleContent || htmlContent;
-  
+
+  // Newline-only bodies arriving on the HTML path (e.g. agent replies stored
+  // with content_type='html' but no markup) collapse to a single line under
+  // white-space:normal. Convert \n\n -> <br><br> and remaining \n -> <br>
+  // ONLY when the body is plain text with newlines and no existing markup.
+  // Customer Gmail bodies (which already use <br>/block tags) are skipped.
+  if (
+    processedContent.includes('\n') &&
+    !/<br[\s/>]/i.test(processedContent) &&
+    !/<(p|div|table|ul|ol|blockquote|pre|h[1-6])[\s>]/i.test(processedContent)
+  ) {
+    processedContent = processedContent
+      .replace(/\r\n/g, '\n')
+      .replace(/\n{2,}/g, '<br><br>')
+      .replace(/\n/g, '<br>');
+  }
+
   // STEP 2: Continue with existing sanitization logic
+
   // Strict email HTML configuration following security best practices
   const config = {
     ALLOWED_TAGS: [
