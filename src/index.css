@@ -275,13 +275,28 @@ Optimized for accessibility with WCAG AA compliance.
     white-space: pre-wrap !important;
   }
 
-  /* SPACING FIX: Collapse empty divs containing only br */
-  .email-render__html-content div:empty,
-  .email-render__html-content div:has(> br:only-child) {
+  /* SPACING FIX: Collapse truly empty divs only.
+     Do NOT use :has(> br:only-child) with display:none — CSS :only-child
+     ignores text-node siblings, so it over-matches Gmail body divs like
+     <div>text<br></div> and hides the visible body text entirely. */
+  .email-render__html-content div:empty {
     display: none !important;
     height: 0 !important;
     margin: 0 !important;
     padding: 0 !important;
+  }
+
+  /* Progressive enhancement: collapse pure spacer <div><br></div> via
+     line-height only (never display:none), so any over-match still renders
+     its text. The :not(:has(> :not(br))) clause excludes divs with element
+     children other than <br>; text-only over-match would just zero leading
+     between text lines, never hide content. */
+  @supports selector(:has(*)) {
+    .email-render__html-content div:has(> br:only-child):not(:has(> :not(br))) {
+      line-height: 0 !important;
+      margin: 0 !important;
+      padding: 0 !important;
+    }
   }
 
   /* SPACING FIX: Collapse consecutive br tags */
