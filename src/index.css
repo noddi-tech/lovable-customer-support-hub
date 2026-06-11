@@ -1616,6 +1616,19 @@ Optimized for accessibility with WCAG AA compliance.
   min-height: 0;
 }
 
+/* Collapse pure spacer divs that contain only <br>(s) and no text/elements.
+   SCOPED with `>` to DIRECT children of .email-render__html-content only — does
+   NOT match nested body divs like <div>text<div>body</div></div> (those are
+   not direct children, and the outer is excluded by the :not guard because it
+   contains a non-br element). Safe: a br-only div has no text to hide. */
+@supports selector(:has(*)) {
+  .chat-bubble-content .email-render__html-content > div:has(> br:only-child):not(:has(> :not(br))) {
+    line-height: 0 !important;
+    height: 0 !important;
+    overflow: hidden;
+  }
+}
+
 /* Touch and accessibility - scoped to mobile form fields only */
 @media (max-width: 767px) {
   html, body, #root {
