@@ -286,10 +286,6 @@ Optimized for accessibility with WCAG AA compliance.
     padding: 0 !important;
   }
 
-  /* SPACING FIX: Collapse consecutive br tags */
-  .email-render__html-content br + br {
-    display: none !important;
-  }
 
   /* SPACING FIX: Minimize br impact */
   .email-render__html-content br {
