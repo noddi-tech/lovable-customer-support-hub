@@ -478,7 +478,10 @@ export const sanitizeEmailHTML = (
   // Strip trailing spacer nodes (br, empty div/p, whitespace text) so messages
   // don't reserve a blank line at the bottom. Only TRAILING nodes — spacers
   // between text blocks are preserved.
-  return stripTrailingSpacers(sanitized);
+  const finalResult = stripTrailingSpacers(sanitized);
+  // TEMP DIAGNOSTIC — remove after verification
+  console.log('[NL-FINAL] sanitizeEmailHTML returning:', JSON.stringify(finalResult.slice(0, 300)));
+  return finalResult;
 };
 
 const stripTrailingSpacers = (html: string): string => {
