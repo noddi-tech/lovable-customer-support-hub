@@ -73,7 +73,7 @@ Deno.serve(async (req: Request) => {
           </html>
         `, {
           status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'text/html' },
+          headers: { ...corsHeaders, 'Content-Type': 'text/html; charset=utf-8' },
         });
       }
 
@@ -107,7 +107,7 @@ Deno.serve(async (req: Request) => {
           </html>
         `, {
           status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'text/html' },
+          headers: { ...corsHeaders, 'Content-Type': 'text/html; charset=utf-8' },
         });
       }
 
@@ -150,7 +150,7 @@ Deno.serve(async (req: Request) => {
           </html>
         `, {
           status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'text/html' },
+          headers: { ...corsHeaders, 'Content-Type': 'text/html; charset=utf-8' },
         });
       }
 
@@ -198,7 +198,7 @@ Deno.serve(async (req: Request) => {
           </html>
         `, {
           status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'text/html' },
+          headers: { ...corsHeaders, 'Content-Type': 'text/html; charset=utf-8' },
         });
       }
 
