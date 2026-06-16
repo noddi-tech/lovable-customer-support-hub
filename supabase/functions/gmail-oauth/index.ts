@@ -73,7 +73,7 @@ Deno.serve(async (req: Request) => {
           </html>
         `, {
           status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'text/html' },
+          headers: { ...corsHeaders, 'Content-Type': 'text/html; charset=utf-8' },
         });
       }
 
@@ -107,7 +107,7 @@ Deno.serve(async (req: Request) => {
           </html>
         `, {
           status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'text/html' },
+          headers: { ...corsHeaders, 'Content-Type': 'text/html; charset=utf-8' },
         });
       }
 
@@ -150,7 +150,7 @@ Deno.serve(async (req: Request) => {
           </html>
         `, {
           status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'text/html' },
+          headers: { ...corsHeaders, 'Content-Type': 'text/html; charset=utf-8' },
         });
       }
 
@@ -198,30 +198,32 @@ Deno.serve(async (req: Request) => {
           </html>
         `, {
           status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'text/html' },
+          headers: { ...corsHeaders, 'Content-Type': 'text/html; charset=utf-8' },
         });
       }
 
       console.log('Gmail account connected successfully:', userInfo.email);
 
       // Return success page that closes the popup
-      return new Response(`
-        <html>
-          <body>
-            <h1>Success!</h1>
-            <p>Gmail account "${userInfo.email}" connected successfully.</p>
-            <script>
-              // Send message to parent window
-              if (window.opener) {
-                window.opener.postMessage({ type: 'gmail_connected', email: '${userInfo.email}' }, '*');
-              }
-              setTimeout(() => window.close(), 2000);
-            </script>
-          </body>
-        </html>
-      `, {
+      return new Response(`<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Gmail connected</title>
+  </head>
+  <body>
+    <h1>Success!</h1>
+    <p>Gmail account "${userInfo.email}" connected successfully.</p>
+    <script>
+      if (window.opener) {
+        window.opener.postMessage({ type: 'gmail_connected', email: '${userInfo.email}' }, '*');
+      }
+      setTimeout(function () { window.close(); }, 1500);
+    </script>
+  </body>
+</html>`, {
         status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'text/html' },
+        headers: { ...corsHeaders, 'Content-Type': 'text/html; charset=utf-8' },
       });
     }
 
