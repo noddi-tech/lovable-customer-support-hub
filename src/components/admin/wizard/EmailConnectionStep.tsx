@@ -187,17 +187,32 @@ export function EmailConnectionStep({ setupType, onEmailConnected, onSkip }: Ema
           </p>
         </div>
 
+        {existingAccountEmail && (
+          <Alert>
+            <CheckCircle2 className="h-4 w-4" />
+            <AlertDescription className="flex items-center justify-between gap-3">
+              <span>
+                <strong>{existingAccountEmail}</strong> is already connected.
+              </span>
+              <Button size="sm" variant="outline" onClick={handleUseExisting}>
+                Use this account
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
+
         <div className="flex flex-col items-center justify-center py-8 space-y-4">
-          <Button 
+          <Button
             onClick={handleGmailConnect}
             disabled={isConnecting}
             size="lg"
             className="shadow-glow"
           >
             <Mail className="h-5 w-5 mr-2" />
-            {isConnecting ? 'Opening...' : 'Connect with Google'}
+            {isConnecting ? 'Opening...' : existingAccountEmail ? 'Connect a different account' : 'Connect with Google'}
           </Button>
         </div>
+
 
         <Alert>
           <AlertCircle className="h-4 w-4" />
