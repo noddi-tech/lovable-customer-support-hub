@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Copy, ExternalLink, AlertCircle, Mail } from "lucide-react";
+import { Copy, ExternalLink, AlertCircle, Mail, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import type { SetupType } from "./SetupTypeSelector";
@@ -18,19 +18,67 @@ export function EmailConnectionStep({ setupType, onEmailConnected, onSkip }: Ema
   const [groupEmail, setGroupEmail] = useState("");
   const [forwardingAddress, setForwardingAddress] = useState("");
   const [isConnecting, setIsConnecting] = useState(false);
+  const [existingAccountEmail, setExistingAccountEmail] = useState<string | null>(null);
+  const popupOpenedAtRef = useRef<string | null>(null);
+  const advancedRef = useRef(false);
   const { toast } = useToast();
+
+  // Detect already-connected Gmail accounts when the step mounts.
+  useEffect(() => {
+    if (setupType !== 'gmail') return;
+    let cancelled = false;
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || cancelled) return;
+      const { data } = await supabase
+        .from('email_accounts')
+        .select('email_address, created_at')
+        .eq('user_id', user.id)
+        .eq('provider', 'gmail')
+        .eq('is_active', true)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (!cancelled && data?.email_address) {
+        setExistingAccountEmail(data.email_address);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [setupType]);
+
+  // Look up the newest gmail account created after the popup opened.
+  const checkForNewlyConnectedAccount = async (): Promise<string | null> => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return null;
+    const since = popupOpenedAtRef.current;
+    const query = supabase
+      .from('email_accounts')
+      .select('email_address, created_at')
+      .eq('user_id', user.id)
+      .eq('provider', 'gmail')
+      .eq('is_active', true)
+      .order('created_at', { ascending: false })
+      .limit(1);
+    const { data } = since
+      ? await query.gte('created_at', since).maybeSingle()
+      : await query.maybeSingle();
+    return data?.email_address ?? null;
+  };
 
   const handleGmailConnect = async () => {
     try {
       setIsConnecting(true);
+      advancedRef.current = false;
+      popupOpenedAtRef.current = new Date(Date.now() - 1000).toISOString();
       const { data, error } = await supabase.functions.invoke('gmail-oauth');
-      
+
       if (error) {
         toast({
           title: "Error",
           description: "Failed to initiate Gmail connection",
           variant: "destructive",
         });
+        setIsConnecting(false);
         return;
       }
 
@@ -42,23 +90,50 @@ export function EmailConnectionStep({ setupType, onEmailConnected, onSkip }: Ema
           description: "Popup blocked. Please allow popups and try again.",
           variant: "destructive",
         });
+        setIsConnecting(false);
         return;
       }
 
+      const advance = (email: string) => {
+        if (advancedRef.current) return;
+        advancedRef.current = true;
+        setExistingAccountEmail(email);
+        onEmailConnected?.(email);
+      };
+
       const handleMessage = (event: MessageEvent) => {
-        if (event.data.type === 'gmail_connected') {
-          onEmailConnected?.(event.data.email);
+        if (event.data?.type === 'gmail_connected' && event.data?.email) {
+          advance(event.data.email);
           window.removeEventListener('message', handleMessage);
         }
       };
 
       window.addEventListener('message', handleMessage);
 
-      const checkClosed = setInterval(() => {
+      const checkClosed = setInterval(async () => {
         if (popup.closed) {
           clearInterval(checkClosed);
           window.removeEventListener('message', handleMessage);
           setIsConnecting(false);
+
+          // Fallback: postMessage may not have fired (e.g. browser blocked
+          // the inline script). Verify against the database instead.
+          if (!advancedRef.current) {
+            const email = await checkForNewlyConnectedAccount();
+            if (email) {
+              advance(email);
+              toast({
+                title: "Gmail connected",
+                description: `${email} is now linked.`,
+              });
+            } else {
+              toast({
+                title: "Couldn't confirm connection",
+                description: "If the Google window said it succeeded, refresh and check Integrations.",
+                variant: "destructive",
+              });
+            }
+          }
         }
       }, 1000);
 
@@ -69,6 +144,12 @@ export function EmailConnectionStep({ setupType, onEmailConnected, onSkip }: Ema
         variant: "destructive",
       });
       setIsConnecting(false);
+    }
+  };
+
+  const handleUseExisting = () => {
+    if (existingAccountEmail) {
+      onEmailConnected?.(existingAccountEmail);
     }
   };
 
@@ -92,6 +173,8 @@ export function EmailConnectionStep({ setupType, onEmailConnected, onSkip }: Ema
       });
     }
   };
+
+
 
 
   if (setupType === 'gmail') {
