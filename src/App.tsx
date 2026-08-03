@@ -45,6 +45,7 @@ import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
 import NotFound from "./pages/NotFound";
 import DataDeletionStatus from "./pages/DataDeletionStatus";
+import OAuthConsent from "./pages/OAuthConsent";
 import SuperAdminImport from "./pages/SuperAdminImport";
 import FieldTypesPage from "./pages/super-admin/recruitment/FieldTypesPage";
 import SystemTemplatesPage from "./pages/super-admin/recruitment/SystemTemplatesPage";
