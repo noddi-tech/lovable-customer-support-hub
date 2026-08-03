@@ -1,0 +1,153 @@
+{
+  "version": 1,
+  "sdk_version": "0.26.1",
+  "path": "/functions/v1/mcp",
+  "auth": {
+    "type": "oauth",
+    "issuer": "https://qgfaycwsangsqzpveoup.supabase.co/auth/v1",
+    "accepted_audiences": [
+      "authenticated"
+    ]
+  },
+  "mcp": {
+    "server": {
+      "name": "lovable-customer-support-hub",
+      "version": "0.1.0",
+      "title": "lovable-customer-support-hub"
+    },
+    "tools": [
+      {
+        "name": "search_conversations",
+        "title": "Search conversations",
+        "description": "Search support conversations by subject text, status, or channel. Returns the most recently updated matches with customer name and preview text.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "description": "Text to match against the conversation subject. Omit to list recent conversations."
+            },
+            "status": {
+              "type": "string",
+              "description": "Filter by status, e.g. 'open', 'pending', 'closed'."
+            },
+            "channel": {
+              "type": "string",
+              "description": "Filter by channel, e.g. 'email', 'widget'."
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "description": "Max results (default 20)."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_conversation",
+        "title": "Get conversation with messages",
+        "description": "Fetch one conversation by id together with its messages in chronological order, including internal notes. Use this to read the full history of a support thread.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "conversation_id": {
+              "type": "string",
+              "format": "uuid",
+              "description": "The conversation id."
+            },
+            "message_limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "description": "Max messages to return, newest-biased (default 30)."
+            }
+          },
+          "required": [
+            "conversation_id"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_my_conversations",
+        "title": "List my assigned conversations",
+        "description": "List conversations currently assigned to the signed-in agent, newest activity first. Useful for answering 'what's on my plate'.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "status": {
+              "type": "string",
+              "description": "Filter by status, e.g. 'open'. Omit for all statuses."
+            },
+            "include_archived": {
+              "type": "boolean",
+              "description": "Include archived conversations (default false)."
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "description": "Max results (default 20)."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "add_internal_note",
+        "title": "Add internal note",
+        "description": "Add an internal note to a conversation. Notes are visible to agents only and are never emailed to the customer.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "conversation_id": {
+              "type": "string",
+              "format": "uuid",
+              "description": "The conversation to attach the note to."
+            },
+            "note": {
+              "type": "string",
+              "minLength": 1,
+              "description": "The note text. Plain text."
+            }
+          },
+          "required": [
+            "conversation_id",
+            "note"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}
