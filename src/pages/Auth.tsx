@@ -112,7 +112,7 @@ export const Auth: React.FC = () => {
     
     // Redirect if already logged in (but not in recovery mode)
     if (user && !isRecoveryMode) {
-      navigate('/', { replace: true });
+      navigate(nextPath || '/', { replace: true });
     }
   }, [user, navigate, isRecoveryMode]);
 
@@ -125,7 +125,7 @@ export const Auth: React.FC = () => {
       const { data, error } = await supabase.functions.invoke('dev-login', {
         body: { 
           email: 'joachim@noddi.no',
-          redirectTo: window.location.origin + '/auth'
+          redirectTo: authRedirectTo
         }
       });
 
@@ -189,7 +189,7 @@ export const Auth: React.FC = () => {
       if (error) throw error;
       
       if (data.user) {
-        navigate('/', { replace: true });
+        navigate(nextPath || '/', { replace: true });
       }
     } catch (error: any) {
       setError(error.message || 'An error occurred during sign in');
@@ -209,7 +209,7 @@ export const Auth: React.FC = () => {
     setLoading(true);
     setError('');
 
-    const redirectTo = `${window.location.origin}/auth`;
+    const redirectTo = authRedirectTo;
     logger.info(`Initiating ${label} OAuth`, { redirectTo, provider }, 'Auth');
 
     try {
@@ -280,7 +280,7 @@ export const Auth: React.FC = () => {
         return;
       }
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth`,
+        redirectTo: authRedirectTo,
       });
       if (error) throw error;
       setSuccessMessage('Password reset link has been sent to your email.');
@@ -353,7 +353,7 @@ export const Auth: React.FC = () => {
       const { error } = await supabase.auth.signInWithOtp({
         email,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth`,
+          emailRedirectTo: authRedirectTo,
         }
       });
       
@@ -405,7 +405,7 @@ export const Auth: React.FC = () => {
         email: emailValidation.data,
         password: passwordValidation.data,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth`,
+          emailRedirectTo: authRedirectTo,
           data: {
             full_name: nameValidation.data,
           }
@@ -422,7 +422,7 @@ export const Auth: React.FC = () => {
       
       if (data.user) {
         if (data.user.email_confirmed_at) {
-          navigate('/', { replace: true });
+          navigate(nextPath || '/', { replace: true });
         } else {
           setSuccessMessage('Account created! Please check your email for the confirmation link.');
         }
