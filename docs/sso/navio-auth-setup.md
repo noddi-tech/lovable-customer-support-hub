@@ -68,22 +68,89 @@ Payload:
 }
 ```
 
-### 2. Supabase Custom Auth Provider (manual)
+### 2. Supabase Custom Auth Provider (`custom:navio`)
 
-In Supabase project **`qgfaycwsangsqzpveoup`** → **Authentication → Providers**
-→ **Add Provider** → **Custom Auth Provider**:
+This step is **not** done by git push / Lovable deploy / Authentik TF alone.
+GoTrue must know about the provider, or you get:
+
+```text
+Unsupported provider: custom provider custom:navio not found
+```
+
+**How forecast did it:** one-time **Dashboard** form on the forecast Supabase
+project (documented only — no automation in that repo). Support Hub has a CLI
+wrapper around the same Admin API the Dashboard uses.
+
+#### Option A — CLI (recommended)
+
+Requires the project **service_role** key (secret; never commit it):
+
+1. Open [Project Settings → API](https://supabase.com/dashboard/project/qgfaycwsangsqzpveoup/settings/api)
+2. Copy **service_role**
+3. Run:
+
+```bash
+export SUPABASE_SERVICE_ROLE_KEY='eyJ…'   # service_role from dashboard
+./scripts/configure-navio-oidc.sh
+```
+
+What the script does:
+
+1. Reads Authentik client id/secret from GSM `navio_support_hub_authentik_oidc`
+2. Checks Authentik discovery is `200`
+3. `POST` (or `PUT` if present)  
+   `https://qgfaycwsangsqzpveoup.supabase.co/auth/v1/admin/custom-providers`  
+   with identifier `custom:navio`, issuer/discovery for `navio-support-hub`,  
+   scopes `openid email profile zendos:active`
+4. Smoke-tests `/auth/v1/authorize?provider=custom:navio` → expects **302** to `auth.noddi.co`
+
+Optional: `DRY_RUN=1 ./scripts/configure-navio-oidc.sh` prints the payload only.
+
+Equivalent one-liner (after you have JSON credentials from GSM):
+
+```bash
+# After: OIDC_JSON=$(gcloud secrets versions access latest --secret=navio_support_hub_authentik_oidc --project=noddi-prod)
+curl -sS -X POST \
+  "https://qgfaycwsangsqzpveoup.supabase.co/auth/v1/admin/custom-providers" \
+  -H "apikey: ${SUPABASE_SERVICE_ROLE_KEY}" \
+  -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}" \
+  -H "Content-Type: application/json" \
+  -d "$(jq -n \
+    --argjson o "$OIDC_JSON" \
+    '{
+      provider_type: "oidc",
+      identifier: "custom:navio",
+      name: "Navio",
+      client_id: $o.client_id,
+      client_secret: $o.client_secret,
+      issuer: "https://auth.noddi.co/application/o/navio-support-hub/",
+      discovery_url: "https://auth.noddi.co/application/o/navio-support-hub/.well-known/openid-configuration",
+      scopes: ["openid","email","profile","zendos:active"],
+      enabled: true
+    }')"
+```
+
+#### Option B — Dashboard (same as forecast)
+
+In Supabase project **`qgfaycwsangsqzpveoup`** →
+[Authentication → Providers](https://supabase.com/dashboard/project/qgfaycwsangsqzpveoup/auth/providers)
+→ **New Provider** → **Auto-discovery (OIDC)**:
 
 | Field | Value |
 | --- | --- |
-| Provider Identifier | `navio` (lowercase only; becomes `custom:navio` in the SDK) |
+| Provider Identifier | `custom:navio` (include the `custom:` prefix) |
 | Display Name | `Navio` |
-| Configuration Method | Auto-discovery |
-| Issuer URL | `https://auth.noddi.co/application/o/navio-support-hub/` (trailing slash required) |
-| Discovery URL | `https://auth.noddi.co/application/o/navio-support-hub/.well-known/openid-configuration` (required — bare issuer 404s) |
-| Client ID | From GSM secret (not an email address) |
-| Client Secret | From GSM secret |
+| Issuer URL | `https://auth.noddi.co/application/o/navio-support-hub/` (trailing slash) |
+| Discovery URL | `https://auth.noddi.co/application/o/navio-support-hub/.well-known/openid-configuration` |
+| Client ID / Secret | From GSM `navio_support_hub_authentik_oidc` |
 | Scopes | `openid, email, profile, zendos:active` |
-| Allow users without email | Unchecked |
+| Enabled | on |
+
+Callback shown by Supabase:
+
+`https://qgfaycwsangsqzpveoup.supabase.co/auth/v1/callback`
+
+(already registered on Authentik).
 
 ### 3. App code
 
@@ -111,23 +178,36 @@ existing `on_auth_user_created` → `handle_new_user` trigger.
 4. In Supabase **Authentication → Users**, the identity provider should be
    `custom:navio` / `navio`.
 
-Protocol smoke test (after infra apply + Supabase provider save):
+Protocol smoke test (after infra apply + Supabase provider create):
 
-```text
-GET https://qgfaycwsangsqzpveoup.supabase.co/auth/v1/authorize?provider=custom:navio
+```bash
+curl -sI "https://qgfaycwsangsqzpveoup.supabase.co/auth/v1/authorize?provider=custom:navio" | head -10
 ```
 
 Expect `302` to `https://auth.noddi.co/application/o/authorize/` with the
 support-hub client_id and `redirect_uri=…qgfaycwsangsqzpveoup…/auth/v1/callback`.
 
+If you still see `Unsupported provider: custom provider custom:navio not found`,
+the Admin create step did not succeed for this project.
+
+## What deploy does **not** do
+
+| Action | Creates Authentik OIDC app | Registers Supabase `custom:navio` | Ships UI button |
+| --- | --- | --- | --- |
+| `git push` app | no | no | yes (Lovable sync) |
+| `tf_apply_authentik_config` | yes | no | no |
+| `./scripts/configure-navio-oidc.sh` | no | **yes** | no |
+| Supabase Dashboard New Provider | no | **yes** | no |
+
 ## Troubleshooting
 
 | Symptom | Cause | Fix |
 | --- | --- | --- |
+| `Unsupported provider: custom provider custom:navio not found` | Provider not registered on this Supabase project | Run `./scripts/configure-navio-oidc.sh` or Dashboard Option B |
 | `access_denied: Unverified email with custom:navio` | Authentik default `email` scope sets `email_verified: False` | Infra attaches `navio-support-hub-email-scope` with `email_verified: true`; re-apply authentik_config if missing |
 | `OIDC discovery issuer mismatch` | Wrong Issuer/Discovery URL | Use exact URLs above (trailing slash on issuer) |
-| Button does nothing / “no redirect URL” | Custom provider missing or misconfigured in this Supabase project | Re-check Provider Identifier `navio` and client credentials from GSM |
-| Works in forecast, not here | Different Authentik app + different Supabase project | Support Hub must use `navio-support-hub` issuer + its own GSM secret |
+| Button does nothing / “no redirect URL” | Custom provider missing or misconfigured | Re-run CLI script; check `client_id` from GSM |
+| Works in forecast, not here | Different Authentik app + different Supabase project | Support Hub must use `navio-support-hub` issuer + its own GSM secret + **this** project’s service_role |
 
 ## Rollback
 
