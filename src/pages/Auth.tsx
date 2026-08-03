@@ -49,6 +49,21 @@ export const Auth: React.FC = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
 
+  // Post-login return target (e.g. the OAuth consent screen an MCP client sent
+  // the user to). Only same-origin relative paths are honoured.
+  const nextPath = (() => {
+    const raw = new URLSearchParams(window.location.search).get('next');
+    if (!raw) return null;
+    if (!raw.startsWith('/') || raw.startsWith('//')) return null;
+    return raw;
+  })();
+
+  // Every redirect back into the app must carry `next` through, or the user
+  // lands on the dashboard instead of finishing the connection.
+  const authRedirectTo = `${window.location.origin}/auth${
+    nextPath ? `?next=${encodeURIComponent(nextPath)}` : ''
+  }`;
+
   useEffect(() => {
     // Check if this is password recovery mode
     const hashParams = new URLSearchParams(window.location.hash.substring(1));
