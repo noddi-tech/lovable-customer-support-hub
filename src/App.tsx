@@ -92,6 +92,7 @@ const AppContent = () => {
     <URLSanitizer>
     <Routes>
       <Route path="/auth" element={<Auth />} />
+      <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
       <Route path="/data-deletion-status/:code" element={<DataDeletionStatus />} />
       <Route path="/apply/form/:token" element={<CandidateFormPage />} />
       
