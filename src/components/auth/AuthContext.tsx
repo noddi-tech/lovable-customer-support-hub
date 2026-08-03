@@ -2,6 +2,10 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
+import {
+  ensureAuthentikSupportHubAccess,
+  isAuthentikNavioUser,
+} from '@/lib/auth-provision';
 import { logger } from '@/utils/logger';
 
 interface AuthContextType {
@@ -132,6 +136,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }, 'Auth');
         
         if (mounted && session) {
+          // Navio / Authentik: auto-bootstrap super_admin (navio-core superusers only upstream).
+          if (isAuthentikNavioUser(session.user)) {
+            try {
+              await ensureAuthentikSupportHubAccess(session.user);
+              queryClient.removeQueries({ queryKey: ['profile'] });
+              queryClient.removeQueries({ queryKey: ['user-roles'] });
+              queryClient.removeQueries({ queryKey: ['organization-memberships'] });
+            } catch (provisionErr) {
+              logger.error(
+                'Authentik Support Hub auto-provision failed',
+                provisionErr,
+                'Auth'
+              );
+            }
+          }
+
           setSession(session);
           setUser(session.user);
           
@@ -140,6 +160,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           logger.info('OAuth processing complete', { 
             success: true,
             userId: session.user?.id,
+            authentik: isAuthentikNavioUser(session.user),
             totalTimeMs: Date.now() - startTime
           }, 'Auth');
         } else if (mounted) {
@@ -202,8 +223,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           logger.debug('Cleared user-specific query cache', { event }, 'Auth');
         }
         
-        // Validate session after sign-in
+        // Validate session after sign-in; provision Authentik superusers.
         if (event === 'SIGNED_IN' && session) {
+          if (isAuthentikNavioUser(session.user)) {
+            void ensureAuthentikSupportHubAccess(session.user)
+              .then(() => {
+                queryClient.removeQueries({ queryKey: ['profile'] });
+                queryClient.removeQueries({ queryKey: ['user-roles'] });
+                queryClient.removeQueries({ queryKey: ['organization-memberships'] });
+              })
+              .catch((provisionErr) => {
+                logger.error(
+                  'Authentik Support Hub auto-provision failed',
+                  provisionErr,
+                  'Auth'
+                );
+              });
+          }
           setTimeout(() => validateSession(), 1000);
         }
       }

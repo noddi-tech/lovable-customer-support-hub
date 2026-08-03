@@ -183,45 +183,75 @@ export const Auth: React.FC = () => {
     }
   };
 
-  const handleGoogleSignIn = async () => {
+  // Kick off an OAuth redirect. We drive the browser navigation ourselves
+  // (skipBrowserRedirect) so failures surface as an error alert instead of a
+  // silent no-op (the SDK's implicit redirect swallows errors).
+  const startOAuth = async (
+    provider: Parameters<typeof supabase.auth.signInWithOAuth>[0]['provider'],
+    label: string,
+    extraOptions?: Parameters<typeof supabase.auth.signInWithOAuth>[0]['options']
+  ) => {
     setLoading(true);
     setError('');
-    
-    logger.info('Initiating Google OAuth', { 
-      redirectTo: `${window.location.origin}/auth`
-    }, 'Auth');
-    
+
+    const redirectTo = `${window.location.origin}/auth`;
+    logger.info(`Initiating ${label} OAuth`, { redirectTo, provider }, 'Auth');
+
     try {
       cleanupAuthState();
-      
+
       const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
+        provider,
         options: {
-          redirectTo: `${window.location.origin}/auth`,
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'consent',
-          },
-        }
+          redirectTo,
+          skipBrowserRedirect: true,
+          ...extraOptions,
+        },
       });
-      
-      logger.info('Google OAuth response', { 
+
+      logger.info(`${label} OAuth response`, {
         hasData: !!data,
         url: data?.url ? 'present' : 'none',
-        error: error?.message 
+        error: error?.message,
       }, 'Auth');
-      
+
       if (error) {
-        logger.error('Google OAuth error', { error: error.message }, 'Auth');
+        logger.error(`${label} OAuth error`, { error: error.message }, 'Auth');
         throw error;
       }
+      if (!data?.url) {
+        throw new Error(
+          `Could not start ${label} sign-in (no redirect URL returned). Ensure the provider is configured in Supabase.`
+        );
+      }
+      window.location.assign(data.url);
     } catch (error: any) {
-      logger.error('Google sign in failed', { error: error.message }, 'Auth');
-      setError(error.message || 'An error occurred during Google sign in. Please ensure Google OAuth is configured in Supabase.');
-    } finally {
+      logger.error(`${label} sign in failed`, { error: error?.message }, 'Auth');
+      setError(
+        error?.message ||
+          `An error occurred during ${label} sign in. Please ensure ${label} OAuth is configured in Supabase.`
+      );
       setLoading(false);
     }
   };
+
+  const handleGoogleSignIn = () =>
+    startOAuth('google', 'Google', {
+      queryParams: {
+        access_type: 'offline',
+        prompt: 'consent',
+      },
+    });
+
+  // "Sign in with Navio" — central IdP at auth.noddi.co via Supabase custom
+  // OIDC provider (identifier `navio` → SDK `custom:navio`). Requires the
+  // Authentik application + Supabase provider from docs/sso/navio-auth-setup.md.
+  const handleNavioSignIn = () =>
+    startOAuth(
+      // Supabase types may not include custom:* literals yet.
+      'custom:navio' as Parameters<typeof supabase.auth.signInWithOAuth>[0]['provider'],
+      'Navio'
+    );
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -522,7 +552,24 @@ export const Auth: React.FC = () => {
 
             <TabsContent value="google" className="space-y-2 mt-2">
               <div className="text-center space-y-3">
-                <p className="text-sm text-muted-foreground">Sign in quickly with your Google account</p>
+                <p className="text-sm text-muted-foreground">
+                  Sign in with Navio (navio-core superusers) or Google
+                </p>
+                <Button
+                  type="button"
+                  variant="default"
+                  size="lg"
+                  className="w-full"
+                  onClick={handleNavioSignIn}
+                  disabled={loading}
+                >
+                  <span className="mr-2 text-base font-semibold">N</span>
+                  {loading ? 'Redirecting…' : 'Sign in with Navio'}
+                </Button>
+                <p className="text-xs text-muted-foreground">
+                  Navio login is limited to Django superusers on navio-core
+                  (platform staff). Support agents should use Google or email.
+                </p>
                 <Button
                   type="button"
                   variant="outline"
@@ -531,7 +578,7 @@ export const Auth: React.FC = () => {
                   onClick={handleGoogleSignIn}
                   disabled={loading}
                 >
-                  <svg className="mr-2 h-5 w-5" viewBox="0 0 24 24">
+                  <svg className="mr-2 h-5 w-5" viewBox="0 0 24 24" aria-hidden="true">
                     <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                     <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
                     <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
@@ -540,6 +587,13 @@ export const Auth: React.FC = () => {
                   Continue with Google
                 </Button>
               </div>
+
+              {error && (
+                <Alert variant="destructive" className="py-2">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription className="text-xs">{error}</AlertDescription>
+                </Alert>
+              )}
               
               {mode === 'signin' && (
                 <div className="pt-2 border-t">
