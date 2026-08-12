@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useLocation, NavLink, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { 
@@ -21,7 +21,7 @@ import { useOptimizedCounts } from '@/hooks/useOptimizedCounts';
 import { useDateFormatting } from '@/hooks/useDateFormatting';
 import { getGroupedNavItems, logNavMatch } from '@/navigation/nav-config';
 import { cn } from '@/lib/utils';
-import { Crown, ChevronRight, ChevronLeft, LogOut, Settings, Palette, Home } from 'lucide-react';
+import { Crown, ChevronRight, ChevronLeft, LogOut, Settings, Palette, Home, UserCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -34,6 +34,8 @@ import {
 import { AgentAvailabilityPanel } from './AgentAvailabilityPanel';
 import { ConnectionStatusIndicator } from '@/components/layout/ConnectionStatusIndicator';
 import { OrganizationSwitcher } from '@/components/organization/OrganizationSwitcher';
+import { MyAccountDialog } from './MyAccountDialog';
+
 
 export const AppMainNav = () => {
   const location = useLocation();
@@ -44,6 +46,8 @@ export const AppMainNav = () => {
   const { user, profile, signOut, isSuperAdmin } = useAuth();
   const { notifications: unreadNotifications } = useOptimizedCounts();
   const { dateTime, timezone } = useDateFormatting();
+  const [accountOpen, setAccountOpen] = useState(false);
+
   
   const isCollapsed = state === 'collapsed' && !isMobile;
   const isAdmin = checkIsAdmin();
@@ -206,7 +210,7 @@ export const AppMainNav = () => {
         </div>
 
         {/* User profile + dropdown */}
-        <DropdownMenu>
+        <DropdownMenu modal={false}>
           <DropdownMenuTrigger asChild>
             <button className={cn(
               "flex items-center gap-2 w-full rounded-md px-3 py-2 hover:bg-muted/50 transition-colors text-left",
@@ -240,7 +244,12 @@ export const AppMainNav = () => {
               </p>
             </div>
             <DropdownMenuSeparator />
+            <DropdownMenuItem onSelect={() => setTimeout(() => setAccountOpen(true), 0)}>
+              <UserCircle className="mr-2 h-4 w-4" />
+              <span>{t('header.myAccount', 'My account')}</span>
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={() => navigate('/settings')}>
+
               <Settings className="mr-2 h-4 w-4" />
               <span>{t('header.settings', 'Settings')}</span>
             </DropdownMenuItem>
@@ -255,6 +264,10 @@ export const AppMainNav = () => {
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+
+        <MyAccountDialog open={accountOpen} onOpenChange={setAccountOpen} />
+
+
 
         {/* Collapse toggle */}
         <Button
