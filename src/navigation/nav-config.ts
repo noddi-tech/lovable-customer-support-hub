@@ -138,20 +138,8 @@ export const NAV_ITEMS: NavItem[] = [
     icon: Cog, 
     group: "settings" 
   },
-  { 
-    id: "settings-profile", 
-    label: "Profile", 
-    to: "/settings/profile", 
-    icon: User, 
-    group: "settings" 
-  },
-  { 
-    id: "settings-notifications", 
-    label: "Notifications", 
-    to: "/settings/notifications", 
-    icon: Bell, 
-    group: "settings" 
-  },
+  // Profile moved to the account menu at the bottom of the sidebar
+  // Notifications consolidated into the single top-level Notifications entry
   // Single Admin Portal link - visible only to admins
   { 
     id: "admin-portal", 
