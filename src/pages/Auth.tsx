@@ -258,9 +258,9 @@ export const Auth: React.FC = () => {
       },
     });
 
-  // "Sign in with Navio" — central IdP at auth.noddi.co via Supabase custom
-  // OIDC provider (identifier `navio` → SDK `custom:navio`). Requires the
-  // Authentik application + Supabase provider from docs/sso/navio-auth-setup.md.
+  // "Sign in with Navio" — product IdP at https://auth.noddi.co/o via Supabase
+  // custom OIDC (`custom:navio`). Shared helpers: `@navio/zidp`. See
+  // docs/sso/navio-auth-setup.md. Staff-only (Django superuser on navio-core).
   const handleNavioSignIn = () =>
     startOAuth(
       // Supabase types may not include custom:* literals yet.
@@ -568,7 +568,7 @@ export const Auth: React.FC = () => {
             <TabsContent value="google" className="space-y-2 mt-2">
               <div className="text-center space-y-3">
                 <p className="text-sm text-muted-foreground">
-                  Sign in with Navio (navio-core superusers) or Google
+                  Sign in with Navio (platform superusers) or Google
                 </p>
                 <Button
                   type="button"
@@ -582,7 +582,7 @@ export const Auth: React.FC = () => {
                   {loading ? 'Redirecting…' : 'Sign in with Navio'}
                 </Button>
                 <p className="text-xs text-muted-foreground">
-                  Navio login is limited to Django superusers on navio-core
+                  Navio login uses auth.noddi.co and is limited to Django superusers
                   (platform staff). Support agents should use Google or email.
                 </p>
                 <Button

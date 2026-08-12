@@ -1,8 +1,17 @@
-# Navio Auth Setup (Authentik + Supabase OIDC)
+# Navio Auth Setup (product IdP + Supabase OIDC)
 
-How to enable **Sign in with Navio** on the Customer Support Hub, matching the
-pattern used by [navio-forecast-dashboard](https://github.com/noddi/navio-forecast-dashboard)
-(`docs/sso/navio-zendos-auth-setup.md`).
+**Sign in with Navio** uses the product identity plane: the Navio backend
+OIDC IdP at **`https://auth.noddi.co/o`** (`apps.idp`), same path as
+[navio-forecast-dashboard](https://github.com/noddi-tech/navio-forecast-dashboard)
+(`docs/sso/navio-core-auth-setup.md`).
+
+Shared TypeScript helpers live in **`@navio/zidp`** (backend package):
+
+- `PRODUCT_OIDC_ISSUER` / `PRODUCT_OIDC_DISCOVERY_URL` / `PRODUCT_OIDC_SCOPES`
+- `isNavioCoreOidcUser` — detect Supabase `custom:navio` sessions
+- `parseSupabaseUser` / claim helpers
+
+Architecture: [noddi-infrastructure `docs/idp.md`](https://github.com/noddi-tech/noddi-infrastructure/blob/main/docs/idp.md).
 
 ## Goal
 
@@ -12,211 +21,90 @@ pattern used by [navio-forecast-dashboard](https://github.com/noddi/navio-foreca
 
 ## Who can use Sign in with Navio?
 
-Only **Django `is_superuser`** accounts on navio-core. Enforcement is layered:
+Only **Django `is_superuser`** accounts on navio-core. Enforcement:
 
 | Layer | Where | Rule |
 | --- | --- | --- |
-| 1. navio-core authorize | `api.noddi.co/o/authorize/` for Authentik source client | Rejects non-superusers (`tenant_authz.assert_user_is_superuser_for_client`) |
-| 2. Authentik enrollment | navio-core source mapping | Sets `user.type = "internal"` (Google/passkey stay non-internal) |
-| 3. Authentik Application | `navio-support-hub` policy binding | Requires `request.user.type == "internal"` |
-| 4. Support Hub app | RPC `ensure_authentik_support_hub_access` | After `custom:navio` session, grants `profiles` + `super_admin` |
+| 1. Product authorize | `auth.noddi.co/o/authorize/` for client name `navio-support-hub` | Rejects non-superusers (`tenant_authz.PRODUCT_SUPERUSER_ONLY_CLIENT_NAMES`) |
+| 2. Support Hub app | RPC `ensure_authentik_support_hub_access` | After `custom:navio` session, grants `profiles` + `super_admin` |
 
-Google / passkey users on Authentik **cannot** complete OAuth into this Supabase
-provider even if they can log into Authentik for other apps.
-
-## Architecture
+## Login flow
 
 1. User clicks **Sign in with Navio** on `/auth`.
 2. App calls `supabase.auth.signInWithOAuth({ provider: 'custom:navio' })`.
-3. Supabase starts OAuth2 + PKCE against the Authentik issuer for the
-   `navio-support-hub` application.
-4. Authentik only authorizes **internal** users (navio-core superuser path).
+3. Supabase starts OAuth2 + PKCE against **`https://auth.noddi.co/o`**.
+4. User authenticates on Navio Core login (superuser gate).
 5. Supabase creates the session; the client calls
-   `ensure_authentik_support_hub_access` to bootstrap `super_admin`.
+   `ensureNavioSupportHubAccess` (`@/lib/auth-provision` → RPC).
+
+```text
+Browser → Support Hub SPA → Supabase Auth → auth.noddi.co/o (product IdP)
+                              ↑
+                    ID token + navio:active claims
+```
 
 ## Prerequisites
 
-### 1. Authentik OIDC client (infrastructure)
-
-Managed in:
-
-`noddi-infrastructure/services/authentik_config/terraform.py`
-→ `_wire_navio_support_hub_oidc`
-
-| Item | Value |
-| --- | --- |
-| Application slug | `navio-support-hub` |
-| Issuer | `https://auth.noddi.co/application/o/navio-support-hub/` |
-| Discovery | `https://auth.noddi.co/application/o/navio-support-hub/.well-known/openid-configuration` |
-| GSM secret | `navio_support_hub_authentik_oidc` |
-| Redirect URIs | `https://qgfaycwsangsqzpveoup.supabase.co/auth/v1/callback` (+ local Supabase CLI) |
-
-Apply the authentik_config stack after merging the infra PR, then pull credentials:
+### 1. Product OIDC client (navio-core)
 
 ```bash
-gcloud secrets versions access latest \
-  --secret=navio_support_hub_authentik_oidc \
-  --project=noddi-prod
+# on noddi-backend-api (prod DB) — name MUST be navio-support-hub for superuser gate
+uv run manage.py upsert_product_oidc_client \
+  --client-id "$CLIENT_ID" \
+  --client-secret "$CLIENT_SECRET" \
+  --name navio-support-hub \
+  --display-name "Navio Support Hub" \
+  --redirect-uri https://qgfaycwsangsqzpveoup.supabase.co/auth/v1/callback \
+  --redirect-uri http://127.0.0.1:54321/auth/v1/callback \
+  --redirect-uri http://localhost:54321/auth/v1/callback
 ```
 
-Payload:
-
-```json
-{
-  "client_id": "<opaque-uuid>",
-  "client_secret": "<long-random-secret>"
-}
-```
+Store credentials in GSM (recommended secret id:
+`navio_support_hub_oidc` in `noddi-prod`).
 
 ### 2. Supabase Custom Auth Provider (`custom:navio`)
 
-This step is **not** done by git push / Lovable deploy / Authentik TF alone.
-GoTrue must know about the provider, or you get:
+| Field | Value |
+| --- | --- |
+| Provider identifier | `navio` → SDK `custom:navio` |
+| Display name | `Navio` |
+| **Issuer URL** | `https://auth.noddi.co/o` |
+| **Discovery URL** | `https://auth.noddi.co/o/.well-known/openid-configuration` |
+| Scopes | `openid, email, profile, navio:active` |
+| Client ID / secret | GSM product client (not Authentik) |
 
-```text
-Unsupported provider: custom provider custom:navio not found
-```
-
-**How forecast did it:** one-time **Dashboard** form on the forecast Supabase
-project (documented only — no automation in that repo). Support Hub has a CLI
-wrapper around the same Admin API the Dashboard uses.
-
-#### Option A — CLI (recommended)
-
-Requires the project **service_role** key (secret; never commit it):
-
-1. Open [Project Settings → API](https://supabase.com/dashboard/project/qgfaycwsangsqzpveoup/settings/api)
-2. Copy **service_role**
-3. Run:
+#### CLI (recommended)
 
 ```bash
 export SUPABASE_SERVICE_ROLE_KEY='eyJ…'   # service_role from dashboard
+# Optional: PRODUCT_OIDC_SECRET=navio_support_hub_oidc
 ./scripts/configure-navio-oidc.sh
 ```
 
-What the script does:
+The script reads the product OIDC client from GSM, checks discovery on
+`auth.noddi.co`, and upserts the Supabase custom provider with `navio:active`.
 
-1. Reads Authentik client id/secret from GSM `navio_support_hub_authentik_oidc`
-2. Checks Authentik discovery is `200`
-3. `POST` (or `PUT` if present)  
-   `https://qgfaycwsangsqzpveoup.supabase.co/auth/v1/admin/custom-providers`  
-   with identifier `custom:navio`, issuer/discovery for `navio-support-hub`,  
-   scopes `openid email profile zendos:active`
-4. Smoke-tests `/auth/v1/authorize?provider=custom:navio` → expects **302** to `auth.noddi.co`
+## Client code (this repo)
 
-Optional: `DRY_RUN=1 ./scripts/configure-navio-oidc.sh` prints the payload only.
-
-Equivalent one-liner (after you have JSON credentials from GSM):
-
-```bash
-# After: OIDC_JSON=$(gcloud secrets versions access latest --secret=navio_support_hub_authentik_oidc --project=noddi-prod)
-curl -sS -X POST \
-  "https://qgfaycwsangsqzpveoup.supabase.co/auth/v1/admin/custom-providers" \
-  -H "apikey: ${SUPABASE_SERVICE_ROLE_KEY}" \
-  -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}" \
-  -H "Content-Type: application/json" \
-  -d "$(jq -n \
-    --argjson o "$OIDC_JSON" \
-    '{
-      provider_type: "oidc",
-      identifier: "custom:navio",
-      name: "Navio",
-      client_id: $o.client_id,
-      client_secret: $o.client_secret,
-      issuer: "https://auth.noddi.co/application/o/navio-support-hub/",
-      discovery_url: "https://auth.noddi.co/application/o/navio-support-hub/.well-known/openid-configuration",
-      scopes: ["openid","email","profile","zendos:active"],
-      enabled: true
-    }')"
-```
-
-#### Option B — Dashboard (same as forecast)
-
-In Supabase project **`qgfaycwsangsqzpveoup`** →
-[Authentication → Providers](https://supabase.com/dashboard/project/qgfaycwsangsqzpveoup/auth/providers)
-→ **New Provider** → **Auto-discovery (OIDC)**:
-
-| Field | Value |
+| File | Role |
 | --- | --- |
-| Provider Identifier | `custom:navio` (include the `custom:` prefix) |
-| Display Name | `Navio` |
-| Issuer URL | `https://auth.noddi.co/application/o/navio-support-hub/` (trailing slash) |
-| Discovery URL | `https://auth.noddi.co/application/o/navio-support-hub/.well-known/openid-configuration` |
-| Client ID / Secret | From GSM `navio_support_hub_authentik_oidc` |
-| Scopes | `openid, email, profile, zendos:active` |
-| Enabled | on |
-
-Callback shown by Supabase:
-
-`https://qgfaycwsangsqzpveoup.supabase.co/auth/v1/callback`
-
-(already registered on Authentik).
-
-### 3. App code
-
-Already implemented in `src/pages/Auth.tsx`:
-
-```ts
-supabase.auth.signInWithOAuth({
-  provider: "custom:navio" as any,
-  options: {
-    redirectTo: `${window.location.origin}/auth`,
-    skipBrowserRedirect: true,
-  },
-});
-// then window.location.assign(data.url)
-```
-
-No schema change is required for basic login. Profile rows are created by the
-existing `on_auth_user_created` → `handle_new_user` trigger.
-
-## Verification
-
-1. Open `/auth` → **Sign in with Navio**.
-2. You should land on `auth.noddi.co` (Authentik).
-3. After login, return to the Support Hub as a signed-in user.
-4. In Supabase **Authentication → Users**, the identity provider should be
-   `custom:navio` / `navio`.
-
-Protocol smoke test (after infra apply + Supabase provider create):
-
-```bash
-curl -sI "https://qgfaycwsangsqzpveoup.supabase.co/auth/v1/authorize?provider=custom:navio" | head -10
-```
-
-Expect `302` to `https://auth.noddi.co/application/o/authorize/` with the
-support-hub client_id and `redirect_uri=…qgfaycwsangsqzpveoup…/auth/v1/callback`.
-
-If you still see `Unsupported provider: custom provider custom:navio not found`,
-the Admin create step did not succeed for this project.
-
-## What deploy does **not** do
-
-| Action | Creates Authentik OIDC app | Registers Supabase `custom:navio` | Ships UI button |
-| --- | --- | --- | --- |
-| `git push` app | no | no | yes (Lovable sync) |
-| `tf_apply_authentik_config` | yes | no | no |
-| `./scripts/configure-navio-oidc.sh` | no | **yes** | no |
-| Supabase Dashboard New Provider | no | **yes** | no |
+| `src/pages/Auth.tsx` | **Sign in with Navio** → `custom:navio` |
+| `src/lib/auth-provision.ts` | Thin wrapper: zidp detection + Support Hub RPC |
+| `src/components/auth/AuthContext.tsx` | Provision on OAuth / SIGNED_IN |
+| `@navio/zidp` | Shared issuer constants + `isNavioCoreOidcUser` |
 
 ## Troubleshooting
 
-| Symptom | Cause | Fix |
-| --- | --- | --- |
-| `Unsupported provider: custom provider custom:navio not found` | Provider not registered on this Supabase project | Run `./scripts/configure-navio-oidc.sh` or Dashboard Option B |
-| `access_denied: Unverified email with custom:navio` | Authentik default `email` scope sets `email_verified: False` | Infra attaches `navio-support-hub-email-scope` with `email_verified: true`; re-apply authentik_config if missing |
-| `OIDC discovery issuer mismatch` | Wrong Issuer/Discovery URL | Use exact URLs above (trailing slash on issuer) |
-| Button does nothing / “no redirect URL” | Custom provider missing or misconfigured | Re-run CLI script; check `client_id` from GSM |
-| Works in forecast, not here | Different Authentik app + different Supabase project | Support Hub must use `navio-support-hub` issuer + its own GSM secret + **this** project’s service_role |
-
-## Rollback
-
-- Disable/delete the Custom provider in Supabase (instant).
-- Hide or remove the Navio button in a deploy.
-- Leave the Authentik application registered (zero cost).
+| Symptom | Fix |
+| --- | --- |
+| Lands on Authentik / `auth.zendos.io` | Supabase issuer still points at Authentik app |
+| `superuser_required` 403 | User is not Django superuser on navio-core |
+| `access_denied: Unverified email` | Product IdP must emit `email_verified: true` |
+| `Unsupported provider: custom:navio` | Run `./scripts/configure-navio-oidc.sh` |
+| `invalid_client` | Wrong client_id/secret or redirect URI not on `OidcClient` |
 
 ## Related
 
-- Forecast reference: `navio-forecast-dashboard/docs/sso/navio-zendos-auth-setup.md`
-- Infra: `noddi-infrastructure/services/authentik_config/README.md` (Navio Support Hub section)
-- Authentik wiring: `_wire_navio_support_hub_oidc` in `services/authentik_config/terraform.py`
+- Forecast setup: `navio-forecast-dashboard/docs/sso/navio-core-auth-setup.md`
+- Backend IdP: `noddi-backend-api/docs/developer/idp.md`
+- Claims + shared helpers: `@navio/zidp`

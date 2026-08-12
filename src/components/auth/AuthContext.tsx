@@ -3,8 +3,8 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import {
-  ensureAuthentikSupportHubAccess,
-  isAuthentikNavioUser,
+  ensureNavioSupportHubAccess,
+  isNavioCoreOidcUser,
 } from '@/lib/auth-provision';
 import { logger } from '@/utils/logger';
 
@@ -136,16 +136,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }, 'Auth');
         
         if (mounted && session) {
-          // Navio / Authentik: auto-bootstrap super_admin (navio-core superusers only upstream).
-          if (isAuthentikNavioUser(session.user)) {
+          // Product IdP (custom:navio → auth.noddi.co/o): bootstrap super_admin
+          // for Django superusers only (authorize gate on navio-support-hub client).
+          if (isNavioCoreOidcUser(session.user)) {
             try {
-              await ensureAuthentikSupportHubAccess(session.user);
+              await ensureNavioSupportHubAccess(session.user);
               queryClient.removeQueries({ queryKey: ['profile'] });
               queryClient.removeQueries({ queryKey: ['user-roles'] });
               queryClient.removeQueries({ queryKey: ['organization-memberships'] });
             } catch (provisionErr) {
               logger.error(
-                'Authentik Support Hub auto-provision failed',
+                'Navio Support Hub auto-provision failed',
                 provisionErr,
                 'Auth'
               );
@@ -160,7 +161,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           logger.info('OAuth processing complete', { 
             success: true,
             userId: session.user?.id,
-            authentik: isAuthentikNavioUser(session.user),
+            navioCore: isNavioCoreOidcUser(session.user),
             totalTimeMs: Date.now() - startTime
           }, 'Auth');
         } else if (mounted) {
@@ -223,10 +224,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           logger.debug('Cleared user-specific query cache', { event }, 'Auth');
         }
         
-        // Validate session after sign-in; provision Authentik superusers.
+        // Validate session after sign-in; provision product IdP superusers.
         if (event === 'SIGNED_IN' && session) {
-          if (isAuthentikNavioUser(session.user)) {
-            void ensureAuthentikSupportHubAccess(session.user)
+          if (isNavioCoreOidcUser(session.user)) {
+            void ensureNavioSupportHubAccess(session.user)
               .then(() => {
                 queryClient.removeQueries({ queryKey: ['profile'] });
                 queryClient.removeQueries({ queryKey: ['user-roles'] });
@@ -234,7 +235,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               })
               .catch((provisionErr) => {
                 logger.error(
-                  'Authentik Support Hub auto-provision failed',
+                  'Navio Support Hub auto-provision failed',
                   provisionErr,
                   'Auth'
                 );
