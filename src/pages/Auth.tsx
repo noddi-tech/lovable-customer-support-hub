@@ -294,12 +294,8 @@ export const Auth: React.FC = () => {
   // Main sign-in view — Navio + Google only.
   return pageShell(
     <>
-      <CardHeader className="space-y-3 text-center">
-        <div className="mx-auto w-16 h-16">
-          <img src="/images/logo-support-hub.png" alt="Support Hub" className="w-full h-full object-contain" />
-        </div>
+      <CardHeader className="text-center">
         <CardTitle className="text-2xl font-bold">Noddi Support Hub</CardTitle>
-        <CardDescription>Sign in to continue</CardDescription>
       </CardHeader>
 
       <CardContent className="space-y-4">
@@ -353,9 +349,6 @@ export const Auth: React.FC = () => {
           </Alert>
         )}
 
-        <p className="text-xs text-center text-muted-foreground">
-          Navio scopes access to your service organizations. Google is for Noddi employees.
-        </p>
 
         {passwordLoginEnabled && (
           <>

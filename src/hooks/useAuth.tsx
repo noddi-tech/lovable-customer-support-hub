@@ -132,13 +132,20 @@ export const useAuth = () => {
         }));
       }
 
-      return (data || []).map((o) => ({
-        id: o.id,
-        name: o.name,
-        slug: o.slug,
-        navio_organization_id:
-          (o as { navio_organization_id?: number | null }).navio_organization_id ?? null,
-      })) as LocalOrganization[];
+      return ((data || []) as unknown[]).map((row) => {
+        const o = row as {
+          id: string;
+          name: string;
+          slug: string | null;
+          navio_organization_id?: number | null;
+        };
+        return {
+          id: o.id,
+          name: o.name,
+          slug: o.slug,
+          navio_organization_id: o.navio_organization_id ?? null,
+        };
+      }) as LocalOrganization[];
     },
     enabled: !!user?.id,
   });
@@ -167,14 +174,22 @@ export const useAuth = () => {
         }));
       }
 
-      return (data || []).map((d) => ({
-        id: d.id,
-        name: d.name,
-        organization_id: d.organization_id,
-        slug: (d as { slug?: string | null }).slug ?? null,
-        navio_department_id:
-          (d as { navio_department_id?: number | null }).navio_department_id ?? null,
-      })) as LocalDepartment[];
+      return ((data || []) as unknown[]).map((row) => {
+        const d = row as {
+          id: string;
+          name: string;
+          organization_id: string;
+          slug?: string | null;
+          navio_department_id?: number | null;
+        };
+        return {
+          id: d.id,
+          name: d.name,
+          organization_id: d.organization_id,
+          slug: d.slug ?? null,
+          navio_department_id: d.navio_department_id ?? null,
+        };
+      }) as LocalDepartment[];
     },
     enabled: !!user?.id,
   });
