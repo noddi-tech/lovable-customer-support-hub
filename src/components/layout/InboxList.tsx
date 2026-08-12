@@ -117,15 +117,15 @@ export const InboxList: React.FC<InboxListProps> = ({
       <LiveChatQueue compact className="px-2" />
       
       {/* Inbox Selector */}
-      <div className="space-y-2">
-        <h3 className="text-xs font-semibold text-foreground/70 px-2">Inboxes</h3>
+      <div className="space-y-2 px-2">
+        <h3 className="text-xs font-semibold text-foreground/70">Inboxes</h3>
         
         {inboxesLoading ? (
           <Skeleton className="h-10 w-full" />
         ) : (
           <Select value={selectedInbox || ''} onValueChange={handleInboxChange}>
-            <SelectTrigger className="w-full bg-background border-border focus:ring-ring">
-              <div className="flex items-center gap-2">
+            <SelectTrigger className="w-full min-w-0 bg-background border-border focus:ring-ring">
+              <div className="flex items-center gap-2 min-w-0 overflow-hidden">
                 {selectedInbox && selectedInbox !== 'all' ? (
                   <>
                     <div 
@@ -135,7 +135,7 @@ export const InboxList: React.FC<InboxListProps> = ({
                     <span className="truncate">{inboxes.find(i => i.id === selectedInbox)?.name || 'Select inbox'}</span>
                   </>
                 ) : (
-                  <span>All Inboxes</span>
+                  <span className="truncate">All Inboxes</span>
                 )}
               </div>
             </SelectTrigger>
@@ -163,8 +163,8 @@ export const InboxList: React.FC<InboxListProps> = ({
       </div>
 
       {/* Status Filters */}
-      <div className="space-y-2">
-        <h3 className="text-xs font-semibold text-foreground/70 px-2">Filters</h3>
+      <div className="space-y-2 px-2">
+        <h3 className="text-xs font-semibold text-foreground/70">Filters</h3>
         
         <div className="space-y-1">
           {statusFilters.map((filter) => (
