@@ -112,22 +112,23 @@ export const AppMainNav = () => {
 
   return (
     <Sidebar collapsible="icon">
-      <SidebarHeader className="p-4 space-y-3">
+      <SidebarHeader className="px-2 py-3 space-y-3">
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton asChild tooltip="Home">
               <NavLink to="/home" onClick={handleNavClick} className="hover:bg-muted/50">
-                <Home className="h-4 w-4" />
+                <Home className="mr-2 h-4 w-4" />
                 {!isCollapsed && <span className="font-semibold">Home</span>}
               </NavLink>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
         {!isCollapsed && (
-          <h2 className="text-lg font-semibold text-foreground">
+          <h2 className="px-2 text-lg font-semibold text-foreground">
             Customer Platform
           </h2>
         )}
+
         
         {/* Organization Switcher — for super admins / multi-org users */}
         {!isCollapsed && <OrganizationSwitcher />}
