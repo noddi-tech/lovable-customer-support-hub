@@ -54,6 +54,23 @@ Deno.serve(async (req) => {
     }
 
     const method = req.method;
+    const url = new URL(req.url);
+
+    if (method === 'GET' && url.searchParams.get('mode') === 'duplicates') {
+      // List emails with >1 auth.users row (cause of GoTrue linking-domain error).
+      const { data, error } = await supabaseAdmin.rpc('admin_list_duplicate_auth_emails');
+      if (error) {
+        console.error('admin_list_duplicate_auth_emails failed:', error);
+        return new Response(
+          JSON.stringify({ error: error.message }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      return new Response(
+        JSON.stringify({ success: true, duplicates: data ?? [] }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     if (method === 'GET') {
       // List orphaned auth users (users in auth.users without profiles)
@@ -166,8 +183,68 @@ Deno.serve(async (req) => {
         );
       }
 
+      if (action === 'merge') {
+        // Merge a duplicate auth user into a canonical one, then delete the dup.
+        // Resolves "Multiple accounts with the same email ... linking domain".
+        const from: string | undefined = body.from;
+        const to: string | undefined = body.to;
+        if (!from || !to || from === to) {
+          return new Response(
+            JSON.stringify({ error: 'from and to (distinct user ids) are required' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        // Sanity: both must currently exist and share the same email.
+        const [{ data: fromUser }, { data: toUser }] = await Promise.all([
+          supabaseAdmin.auth.admin.getUserById(from),
+          supabaseAdmin.auth.admin.getUserById(to),
+        ]);
+        if (!fromUser?.user || !toUser?.user) {
+          return new Response(
+            JSON.stringify({ error: 'from and to must both exist' }),
+            { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        const fEmail = (fromUser.user.email ?? '').toLowerCase();
+        const tEmail = (toUser.user.email ?? '').toLowerCase();
+        if (!fEmail || fEmail !== tEmail) {
+          return new Response(
+            JSON.stringify({ error: `refusing merge: emails differ (${fEmail} vs ${tEmail})` }),
+            { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        console.log(`Merging user ${from} -> ${to} (${tEmail})`);
+        const { data: moved, error: mergeError } = await supabaseAdmin.rpc(
+          'admin_merge_user_records',
+          { p_from: from, p_to: to }
+        );
+        if (mergeError) {
+          console.error('admin_merge_user_records failed:', mergeError);
+          return new Response(
+            JSON.stringify({ error: mergeError.message, stage: 'reassign' }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        // Data reassigned; remove the now-empty duplicate (cascades its auth rows).
+        const { error: delError } = await supabaseAdmin.auth.admin.deleteUser(from);
+        if (delError && !delError.message?.toLowerCase().includes('not found')) {
+          return new Response(
+            JSON.stringify({ error: delError.message, stage: 'delete', moved }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        return new Response(
+          JSON.stringify({ success: true, from, to, email: tEmail, moved }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       return new Response(
-        JSON.stringify({ error: 'Invalid action. Use "delete"' }),
+        JSON.stringify({ error: 'Invalid action. Use "delete" or "merge"' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }

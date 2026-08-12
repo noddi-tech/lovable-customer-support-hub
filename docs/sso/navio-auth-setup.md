@@ -323,6 +323,72 @@ Already implemented; no Supabase UI work:
 | `Could not start Navio sign-in (no redirect URL)` | Same as unsupported provider — step 4 incomplete |
 | Empty org graph warning in console | Supabase scopes missing `navio:active`, or user has no memberships |
 
+## Duplicate accounts — `Multiple accounts with the same email … linking domain`
+
+Symptom (Navio login, both Navio + Google enabled):
+
+```
+[auth] OIDC callback error: server_error -
+Multiple accounts with the same email address in the same linking domain detected: default
+```
+
+**Cause — data, not code.** Supabase GoTrue auto-links a new OIDC identity to an
+existing user *by verified email* (all providers share the `default` linking
+domain). If **two or more `auth.users` rows already share that email** (e.g. a
+Google account **and** an older password/invite/earlier-attempt account), GoTrue
+cannot choose which to link → aborts the callback. Google + Navio both emitting
+`email_verified: true` is required for linking but does **not** fix an existing
+duplicate.
+
+**Durable rule: one `auth.users` row per email.** With a single user, Google and
+Navio identities auto-link onto it and login just works.
+
+### 1. Diagnose (Supabase SQL editor)
+
+```sql
+select * from public.admin_list_duplicate_auth_emails();
+-- each row: email, user_ids[], details[] (created_at, providers, has_profile, roles)
+```
+
+Pick the **canonical** user = the one actually used (has profile + roles +
+provider `google`/`navio`). The other(s) are duplicates to fold in.
+
+### 2. Fix (admin `super_admin`, via the `admin-cleanup-users` edge function)
+
+```bash
+BASE=https://qgfaycwsangsqzpveoup.supabase.co/functions/v1/admin-cleanup-users
+JWT='<super_admin user access token>'   # not the anon/service key
+
+# List duplicates
+curl -sS "$BASE?mode=duplicates" -H "Authorization: Bearer $JWT" | jq
+
+# Merge a duplicate into the canonical, then delete the duplicate.
+# Reassigns public user-ref columns from -> to, then removes the empty dup.
+curl -sS -X POST "$BASE" -H "Authorization: Bearer $JWT" \
+  -H 'Content-Type: application/json' \
+  -d '{"action":"merge","from":"<DUPLICATE_USER_ID>","to":"<CANONICAL_USER_ID>"}' | jq
+```
+
+The merge refuses unless both users exist and share the same email. If a
+duplicate holds no data, deleting it (`action":"delete"`) is enough.
+
+Backing RPCs (migration `20260812220000_merge_duplicate_auth_users.sql`,
+`service_role` only): `admin_list_duplicate_auth_emails()`,
+`admin_merge_user_records(p_from, p_to)`.
+
+### 3. Retry
+
+Re-run **Sign in with Navio** — the identity now links to the single remaining
+user. No more `server_error`.
+
+### Prevention
+
+- Keep `email_verified: true` on both the product IdP (`navio:active`) and Google.
+- Prefer SSO for employees; avoid creating password/invite accounts for an email
+  that already has a Google/Navio login (that is what seeds duplicates).
+- Periodically run `admin_list_duplicate_auth_emails()` (or the `?mode=duplicates`
+  endpoint) as a health check.
+
 ## Related
 
 - Forecast setup: `navio-forecast-dashboard/docs/sso/navio-core-auth-setup.md`
