@@ -34,6 +34,8 @@ import {
 import { AgentAvailabilityPanel } from './AgentAvailabilityPanel';
 import { ConnectionStatusIndicator } from '@/components/layout/ConnectionStatusIndicator';
 import { OrganizationSwitcher } from '@/components/organization/OrganizationSwitcher';
+import { MyAccountDialog } from './MyAccountDialog';
+
 
 export const AppMainNav = () => {
   const location = useLocation();
