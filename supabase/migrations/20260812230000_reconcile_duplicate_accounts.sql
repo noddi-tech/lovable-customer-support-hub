@@ -47,10 +47,13 @@ begin
   -- could change their email to a victim's and delete the victim's account.
   -- Binding deletion authority to a verified OAuth identity for exactly this
   -- email closes that takeover path.
+  -- Allowlist the providers known to emit genuinely verified emails on this
+  -- deployment (Google + the Navio product IdP). A denylist would trust any
+  -- future provider that merely self-asserts email_verified.
   select exists (
     select 1 from auth.identities i
     where i.user_id = me
-      and i.provider not in ('email', 'phone')
+      and (i.provider = 'google' or i.provider ilike '%navio%')
       and lower(i.identity_data ->> 'email') = my_email
       and coalesce(lower(i.identity_data ->> 'email_verified'), 'false') in ('true', 't', '1')
   ) into is_trusted;
