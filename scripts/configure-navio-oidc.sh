@@ -2,7 +2,7 @@
 # Configure Supabase Custom OIDC provider "custom:navio" (Sign in with Navio)
 # against the **product** IdP at https://auth.noddi.co/o (navio-core).
 #
-# Shared constants match @navio/zidp:
+# Shared constants match @navio/nidp:
 #   PRODUCT_OIDC_ISSUER = https://auth.noddi.co/o
 #   scopes = openid, email, profile, navio:active
 #

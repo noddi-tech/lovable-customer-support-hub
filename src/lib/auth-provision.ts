@@ -1,14 +1,28 @@
 import {
-  isNavioCoreOidcUser,
+  isNavioCoreOidcUser as isNavioCoreOidcUserFromNidp,
   PRODUCT_OIDC_ISSUER,
-} from "@navio/zidp";
+  type SupabaseUserLike,
+} from "@navio/nidp";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
-// Shared product IdP detection + issuer constants live in `@navio/zidp`.
-export { isNavioCoreOidcUser, PRODUCT_OIDC_ISSUER };
+export { PRODUCT_OIDC_ISSUER };
+
+/**
+ * True when this Supabase user authenticated via **Sign in with Navio**
+ * (`custom:navio` → product IdP). Thin wrapper so app code can pass Supabase
+ * `User` without fighting index-signature differences vs `SupabaseUserLike`.
+ */
+export function isNavioCoreOidcUser(
+  user: User | null | undefined
+): boolean {
+  return isNavioCoreOidcUserFromNidp(
+    user as unknown as SupabaseUserLike | null | undefined
+  );
+}
+
 /** @deprecated Use {@link isNavioCoreOidcUser} */
-export { isAuthentikNavioUser } from "@navio/zidp";
+export const isAuthentikNavioUser = isNavioCoreOidcUser;
 
 /**
  * Ensure a product IdP (`custom:navio` → {@link PRODUCT_OIDC_ISSUER}) session

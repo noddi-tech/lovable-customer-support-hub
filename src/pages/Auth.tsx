@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { PRODUCT_OIDC_SUPABASE_PROVIDER } from '@navio/zidp';
+import { signInWithNavio } from '@navio/nidp';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/auth/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -259,16 +259,47 @@ export const Auth: React.FC = () => {
       },
     });
 
-  // "Sign in with Navio" — product IdP (auth.noddi.co/o). Provider constant from
-  // @navio/zidp. Staff-only (Django superuser). See docs/sso/navio-auth-setup.md.
-  const handleNavioSignIn = () =>
-    startOAuth(
-      // Supabase types may not include custom:* literals yet.
-      PRODUCT_OIDC_SUPABASE_PROVIDER as Parameters<
-        typeof supabase.auth.signInWithOAuth
-      >[0]['provider'],
-      'Navio'
-    );
+  // "Sign in with Navio" — product IdP (auth.noddi.co/o) via @navio/nidp.
+  // Staff-only (Django superuser). See docs/sso/navio-auth-setup.md.
+  const handleNavioSignIn = async () => {
+    setLoading(true);
+    setError('');
+
+    const redirectTo = authRedirectTo;
+    logger.info('Initiating Navio OAuth', { redirectTo }, 'Auth');
+
+    try {
+      cleanupAuthState();
+
+      const { data, error } = await signInWithNavio(supabase, redirectTo, {
+        skipBrowserRedirect: true,
+      });
+
+      logger.info('Navio OAuth response', {
+        hasData: !!data,
+        url: data?.url ? 'present' : 'none',
+        error: error?.message,
+      }, 'Auth');
+
+      if (error) {
+        logger.error('Navio OAuth error', { error: error.message }, 'Auth');
+        throw error;
+      }
+      if (!data?.url) {
+        throw new Error(
+          'Could not start Navio sign-in (no redirect URL returned). Ensure custom:navio is configured in Supabase.'
+        );
+      }
+      window.location.assign(data.url);
+    } catch (error: any) {
+      logger.error('Navio sign in failed', { error: error?.message }, 'Auth');
+      setError(
+        error?.message ||
+          'An error occurred during Navio sign in. Please ensure Navio OAuth is configured in Supabase.'
+      );
+      setLoading(false);
+    }
+  };
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();

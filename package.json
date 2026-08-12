@@ -18,6 +18,7 @@
     "@emoji-mart/react": "^1.1.1",
     "@hookform/resolvers": "^3.9.0",
     "@lovable.dev/mcp-js": "^0.26.1",
+    "@navio/nidp": "^0.8.0",
     "@playwright/test": "^1.57.0",
     "@radix-ui/react-accordion": "^1.2.0",
     "@radix-ui/react-alert-dialog": "^1.1.1",
@@ -114,8 +115,7 @@
     "vitest": "^3.2.4",
     "xlsx": "^0.18.5",
     "zod": "^3.23.8",
-    "zustand": "^5.0.7",
-    "@navio/zidp": "file:../noddi-backend-api/packages/zidp/zidp_ts"
+    "zustand": "^5.0.7"
   },
   "devDependencies": {
     "@eslint/js": "^9.9.0",
