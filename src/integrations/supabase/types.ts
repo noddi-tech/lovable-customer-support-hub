@@ -1694,9 +1694,7 @@ export type Database = {
           description: string | null
           id: string
           name: string
-          navio_department_id: number | null
           organization_id: string
-          slug: string | null
           updated_at: string
         }
         Insert: {
@@ -1704,9 +1702,7 @@ export type Database = {
           description?: string | null
           id?: string
           name: string
-          navio_department_id?: number | null
           organization_id: string
-          slug?: string | null
           updated_at?: string
         }
         Update: {
@@ -1714,9 +1710,7 @@ export type Database = {
           description?: string | null
           id?: string
           name?: string
-          navio_department_id?: number | null
           organization_id?: string
-          slug?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -3621,7 +3615,6 @@ export type Database = {
           logo_url: string | null
           metadata: Json | null
           name: string
-          navio_organization_id: number | null
           primary_color: string | null
           recruitment_audit_last_cleanup_at: string | null
           recruitment_audit_retention_days: number
@@ -3639,7 +3632,6 @@ export type Database = {
           logo_url?: string | null
           metadata?: Json | null
           name: string
-          navio_organization_id?: number | null
           primary_color?: string | null
           recruitment_audit_last_cleanup_at?: string | null
           recruitment_audit_retention_days?: number
@@ -3657,7 +3649,6 @@ export type Database = {
           logo_url?: string | null
           metadata?: Json | null
           name?: string
-          navio_organization_id?: number | null
           primary_color?: string | null
           recruitment_audit_last_cleanup_at?: string | null
           recruitment_audit_retention_days?: number
