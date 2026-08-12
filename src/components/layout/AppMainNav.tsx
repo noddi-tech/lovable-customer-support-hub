@@ -240,7 +240,12 @@ export const AppMainNav = () => {
               </p>
             </div>
             <DropdownMenuSeparator />
+            <DropdownMenuItem onSelect={() => setTimeout(() => setAccountOpen(true), 0)}>
+              <UserCircle className="mr-2 h-4 w-4" />
+              <span>{t('header.myAccount', 'My account')}</span>
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={() => navigate('/settings')}>
+
               <Settings className="mr-2 h-4 w-4" />
               <span>{t('header.settings', 'Settings')}</span>
             </DropdownMenuItem>
