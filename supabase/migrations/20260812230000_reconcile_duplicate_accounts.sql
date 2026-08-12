@@ -40,11 +40,19 @@ begin
     return jsonb_build_object('merged', 0, 'reason', 'no_email');
   end if;
 
-  -- Caller must control the email via an external OAuth identity.
+  -- Caller must PROVE control of my_email via a trusted external OAuth identity
+  -- whose own verified email equals my_email. Checking only "has some OAuth
+  -- identity" is not enough: auth.users.email is mutable (and this project has
+  -- mailer_autoconfirm=true), so an attacker with their OWN Google identity
+  -- could change their email to a victim's and delete the victim's account.
+  -- Binding deletion authority to a verified OAuth identity for exactly this
+  -- email closes that takeover path.
   select exists (
     select 1 from auth.identities i
     where i.user_id = me
       and i.provider not in ('email', 'phone')
+      and lower(i.identity_data ->> 'email') = my_email
+      and coalesce(lower(i.identity_data ->> 'email_verified'), 'false') in ('true', 't', '1')
   ) into is_trusted;
   if not is_trusted then
     return jsonb_build_object('merged', 0, 'reason', 'caller_not_trusted');
