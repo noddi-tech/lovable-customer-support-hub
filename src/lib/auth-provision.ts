@@ -38,23 +38,35 @@ export function isNavioCoreOidcUser(
   return isNavioCoreOidcUserFromNidp(asNidpUser(user));
 }
 
+/** Employee Google domains that map to network superuser. Matches the RPC guard. */
+const EMPLOYEE_GOOGLE_DOMAINS = new Set(["noddi.no"]);
+
+function isVerifiedGoogleEmail(value: unknown): boolean {
+  return value === true || value === "true" || value === "t" || value === "1";
+}
+
 /**
- * True when the session includes Google as an auth provider.
- * Only Noddi employees have company Google accounts — treat as network superuser
- * for data scope (same as claim owner_superuser / local super_admin).
+ * True only for a **verified Google identity on an employee domain** (noddi.no).
+ * Do not trust the bare `provider === 'google'` flag: a misconfigured Supabase
+ * Google client (no `hd` restriction) would otherwise let any gmail.com account
+ * be treated as employee superuser. The RPC enforces the same domain server-side;
+ * this is the UI-side mirror (RLS remains the real boundary).
  */
 export function isGoogleAuthUser(user: User | null | undefined): boolean {
   if (!user) return false;
-  const app = (user.app_metadata ?? {}) as {
-    provider?: string;
-    providers?: string[];
-  };
-  if (app.provider === "google") return true;
-  if (Array.isArray(app.providers) && app.providers.includes("google")) {
-    return true;
+  for (const identity of user.identities ?? []) {
+    if (identity.provider !== "google") continue;
+    const data = (identity.identity_data ?? {}) as Record<string, unknown>;
+    const email = typeof data.email === "string" ? data.email.toLowerCase() : "";
+    const domain = email.includes("@") ? email.slice(email.lastIndexOf("@") + 1) : "";
+    const hd = typeof data.hd === "string" ? data.hd.toLowerCase() : "";
+    const domainOk = !!domain && EMPLOYEE_GOOGLE_DOMAINS.has(domain);
+    const hdOk = !hd || EMPLOYEE_GOOGLE_DOMAINS.has(hd);
+    if (domainOk && hdOk && isVerifiedGoogleEmail(data.email_verified)) {
+      return true;
+    }
   }
-  const identities = user.identities ?? [];
-  return identities.some((i) => i.provider === "google");
+  return false;
 }
 
 /**
