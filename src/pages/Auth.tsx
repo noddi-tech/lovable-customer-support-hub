@@ -295,7 +295,7 @@ export const Auth: React.FC = () => {
   return pageShell(
     <>
       <CardHeader className="text-center">
-        <CardTitle className="text-2xl font-bold">Noddi Support Hub</CardTitle>
+        <CardTitle className="text-2xl font-bold">Support Hub</CardTitle>
       </CardHeader>
 
       <CardContent className="space-y-4">
