@@ -208,7 +208,7 @@ export const AppMainNav = () => {
         </div>
 
         {/* User profile + dropdown */}
-        <DropdownMenu>
+        <DropdownMenu modal={false}>
           <DropdownMenuTrigger asChild>
             <button className={cn(
               "flex items-center gap-2 w-full rounded-md px-3 py-2 hover:bg-muted/50 transition-colors text-left",
