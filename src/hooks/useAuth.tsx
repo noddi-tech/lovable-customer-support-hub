@@ -132,13 +132,20 @@ export const useAuth = () => {
         }));
       }
 
-      return (data || []).map((o) => ({
-        id: o.id,
-        name: o.name,
-        slug: o.slug,
-        navio_organization_id:
-          (o as { navio_organization_id?: number | null }).navio_organization_id ?? null,
-      })) as LocalOrganization[];
+      return ((data || []) as unknown[]).map((row) => {
+        const o = row as {
+          id: string;
+          name: string;
+          slug: string | null;
+          navio_organization_id?: number | null;
+        };
+        return {
+          id: o.id,
+          name: o.name,
+          slug: o.slug,
+          navio_organization_id: o.navio_organization_id ?? null,
+        };
+      }) as LocalOrganization[];
     },
     enabled: !!user?.id,
   });
