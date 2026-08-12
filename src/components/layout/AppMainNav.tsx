@@ -44,6 +44,8 @@ export const AppMainNav = () => {
   const { user, profile, signOut, isSuperAdmin } = useAuth();
   const { notifications: unreadNotifications } = useOptimizedCounts();
   const { dateTime, timezone } = useDateFormatting();
+  const [accountOpen, setAccountOpen] = useState(false);
+
   
   const isCollapsed = state === 'collapsed' && !isMobile;
   const isAdmin = checkIsAdmin();
