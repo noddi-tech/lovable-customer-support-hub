@@ -113,15 +113,33 @@ function collectFromClaims(claims: Record<string, unknown>): ScopeResult {
   };
 }
 
-function isGoogleAuthUser(user: {
-  app_metadata?: Record<string, unknown> | null;
+/** Employee domain(s) whose verified Google accounts map to network superuser. */
+const EMPLOYEE_GOOGLE_DOMAINS = ["noddi.no"];
+
+function emailDomain(value: unknown): string | null {
+  if (typeof value !== "string" || !value.includes("@")) return null;
+  return value.slice(value.lastIndexOf("@") + 1).toLowerCase();
+}
+
+function isVerified(value: unknown): boolean {
+  return value === true || value === "true" || value === "t" || value === "1";
+}
+
+/**
+ * True only for a **verified** Google identity on an employee domain.
+ * Do not trust the Supabase Google provider `hd` config alone for authorization:
+ * a misconfigured provider would otherwise let any gmail.com account escalate.
+ */
+function isGoogleEmployeeUser(user: {
   identities?: Array<Record<string, unknown>> | null;
 }): boolean {
-  const app = asRecord(user.app_metadata) ?? {};
-  if (app.provider === "google") return true;
-  if (Array.isArray(app.providers) && app.providers.includes("google")) return true;
   for (const id of user.identities ?? []) {
-    if (id.provider === "google") return true;
+    if (id.provider !== "google") continue;
+    const data = asRecord(id.identity_data as unknown) ?? {};
+    const domain = emailDomain(data.email);
+    if (domain && EMPLOYEE_GOOGLE_DOMAINS.includes(domain) && isVerified(data.email_verified)) {
+      return true;
+    }
   }
   return false;
 }
@@ -136,8 +154,8 @@ export function resolveUserScope(
   localIsSuperuser = false
 ): ScopeResult {
   const fromClaims = collectFromClaims(extractNavioClaims(user));
-  // Noddi employees only have company Google accounts → network superuser.
-  const googleEmployee = isGoogleAuthUser(user);
+  // Verified noddi.no Google identity → network superuser (employee accounts).
+  const googleEmployee = isGoogleEmployeeUser(user);
   return {
     ...fromClaims,
     isSuperuser: localIsSuperuser || fromClaims.isSuperuser || googleEmployee,
