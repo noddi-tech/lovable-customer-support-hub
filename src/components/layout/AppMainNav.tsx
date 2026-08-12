@@ -248,8 +248,15 @@ export const AppMainNav = () => {
               <UserCircle className="mr-2 h-4 w-4" />
               <span>{t('header.myAccount', 'My account')}</span>
             </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate('/settings/profile')}>
+              <User className="mr-2 h-4 w-4" />
+              <span>{t('header.profile', 'Profile')}</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate('/settings/notifications')}>
+              <Bell className="mr-2 h-4 w-4" />
+              <span>{t('header.notificationSettings', 'Notification settings')}</span>
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={() => navigate('/settings')}>
-
               <Settings className="mr-2 h-4 w-4" />
               <span>{t('header.settings', 'Settings')}</span>
             </DropdownMenuItem>
