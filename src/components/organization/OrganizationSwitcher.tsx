@@ -7,76 +7,95 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Building2, Globe } from "lucide-react";
+import { Building2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 
+/**
+ * Organization switcher scoped to Navio SO memberships (via local org UUIDs).
+ * Non-members never see other orgs; superuser sees all mapped memberships only
+ * (no synthetic "All Organizations" dump).
+ */
 export function OrganizationSwitcher() {
-  const { memberships, isSuperAdmin } = useAuth();
+  const {
+    memberships,
+    isSuperAdmin,
+    accessibleOrganizations,
+    isScopeEmpty,
+  } = useAuth();
   const { currentOrganizationId, setCurrentOrganization } = useOrganizationStore();
 
-  // Fetch organization names - Super Admins see ALL organizations
+  const membershipOrgIds = memberships.map((m) => m.organization_id);
+  const scopeLocalIds = accessibleOrganizations
+    .map((o) => o.localId)
+    .filter((id): id is string => !!id);
+
+  // Prefer claim-mapped local ids; fall back to membership rows (Google/invite).
+  const allowedIds =
+    scopeLocalIds.length > 0
+      ? scopeLocalIds
+      : membershipOrgIds;
+
   const { data: organizations = [] } = useQuery({
-    queryKey: ['organizations-for-switcher', isSuperAdmin, memberships.map(m => m.organization_id)],
+    queryKey: ["organizations-for-switcher", allowedIds, isSuperAdmin],
     queryFn: async () => {
-      // Super Admins can see ALL organizations
+      // Superuser (Google employee / claim superuser / local super_admin): all orgs.
+      // Everyone else: membership / Navio SO–mapped ids only.
+      let query = supabase.from("organizations").select("id, name, slug").order("name");
+
       if (isSuperAdmin) {
-        const { data, error } = await supabase
-          .from('organizations')
-          .select('id, name, slug')
-          .order('name');
-
-        if (error) {
-          console.error('Error fetching organizations:', error);
-          return [];
-        }
-        return data || [];
-      }
-
-      // Regular users only see their memberships
-      if (memberships.length === 0) return [];
-
-      const orgIds = memberships.map(m => m.organization_id);
-      const { data, error } = await supabase
-        .from('organizations')
-        .select('id, name, slug')
-        .in('id', orgIds);
-
-      if (error) {
-        console.error('Error fetching organizations:', error);
+        // unrestricted
+      } else if (allowedIds.length > 0) {
+        query = query.in("id", allowedIds);
+      } else {
         return [];
       }
 
+      const { data, error } = await query;
+      if (error) {
+        console.error("Error fetching organizations:", error);
+        return [];
+      }
       return data || [];
     },
-    enabled: isSuperAdmin || memberships.length > 0,
+    enabled: allowedIds.length > 0 || isSuperAdmin,
   });
 
-  // Don't show switcher if user only has access to one organization (unless Super Admin)
-  if (memberships.length <= 1 && !isSuperAdmin) {
+  // Hide when only one accessible org
+  if (organizations.length <= 1 && !isSuperAdmin) {
     return null;
   }
 
-  // Determine if we're viewing a filtered (specific org) vs all orgs
-  const isFiltered = currentOrganizationId !== null && currentOrganizationId !== 'all';
+  if (isScopeEmpty && organizations.length === 0) {
+    return (
+      <div className="px-1.5 py-0 space-y-1">
+        <p className="text-[9px] text-muted-foreground uppercase tracking-wide font-medium">
+          Organization
+        </p>
+        <p className="text-[10px] text-destructive">No service organization membership</p>
+      </div>
+    );
+  }
 
   const getCurrentOrgName = () => {
-    if (!currentOrganizationId || currentOrganizationId === 'all') {
-      return 'All Organizations';
+    if (!currentOrganizationId) {
+      return organizations[0]?.name || "Select organization";
     }
-    const org = organizations.find(o => o.id === currentOrganizationId);
-    return org?.name || 'Select Organization';
+    const org = organizations.find((o) => o.id === currentOrganizationId);
+    return org?.name || "Select organization";
   };
 
   const handleOrgChange = (value: string) => {
-    if (value === 'all') {
-      // Clear organization filter to show all
-      setCurrentOrganization(null as any, isSuperAdmin);
-    } else {
-      setCurrentOrganization(value, isSuperAdmin);
-    }
+    setCurrentOrganization(value, isSuperAdmin);
   };
+
+  const selectValue =
+    currentOrganizationId && organizations.some((o) => o.id === currentOrganizationId)
+      ? currentOrganizationId
+      : organizations[0]?.id;
+
+  if (!selectValue) return null;
 
   return (
     <div className="px-1.5 py-0 space-y-1">
@@ -84,35 +103,14 @@ export function OrganizationSwitcher() {
         Organization
       </p>
       <div className="flex items-center gap-1.5">
-        {isFiltered ? (
-          <Building2 className="h-3 w-3 text-amber-500" />
-        ) : (
-          <Globe className="h-3 w-3 text-muted-foreground" />
-        )}
-        <Select
-          value={currentOrganizationId || 'all'}
-          onValueChange={handleOrgChange}
-        >
-          <SelectTrigger 
-            className={cn(
-              "w-[160px] h-7 text-[10px]",
-              isFiltered && "border-amber-500/50 bg-amber-500/10"
-            )}
-          >
+        <Building2 className="h-3 w-3 text-muted-foreground" />
+        <Select value={selectValue} onValueChange={handleOrgChange}>
+          <SelectTrigger className={cn("w-[160px] h-7 text-[10px]")}>
             <SelectValue placeholder="Select organization">
               {getCurrentOrgName()}
             </SelectValue>
           </SelectTrigger>
           <SelectContent>
-            {/* All Organizations option - only for Super Admins */}
-            {isSuperAdmin && (
-              <SelectItem value="all">
-                <span className="flex items-center gap-2">
-                  <Globe className="h-3 w-3" />
-                  All Organizations
-                </span>
-              </SelectItem>
-            )}
             {organizations.map((org) => (
               <SelectItem key={org.id} value={org.id}>
                 <span className="flex items-center gap-2">
@@ -123,16 +121,6 @@ export function OrganizationSwitcher() {
             ))}
           </SelectContent>
         </Select>
-        {isFiltered && (
-          <span className="text-[9px] text-amber-600 px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/30 dark:text-amber-400 rounded-full">
-            Filtered
-          </span>
-        )}
-        {isSuperAdmin && !isFiltered && (
-          <span className="text-[9px] text-muted-foreground px-1.5 py-0.5 bg-primary/10 rounded">
-            Super Admin
-          </span>
-        )}
       </div>
     </div>
   );

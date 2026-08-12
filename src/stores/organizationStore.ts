@@ -16,9 +16,10 @@ export interface OrganizationMembership {
 interface OrganizationStore {
   currentOrganizationId: string | null;
   memberships: OrganizationMembership[];
+  /** @deprecated Prefer effectiveScope.isSuperuser from useAuth; kept for brief compat */
   isSuperAdminMode: boolean;
   
-  setCurrentOrganization: (orgId: string, force?: boolean) => void;
+  setCurrentOrganization: (orgId: string | null, force?: boolean) => void;
   setMemberships: (memberships: OrganizationMembership[]) => void;
   setSuperAdminMode: (enabled: boolean) => void;
   clearOrganizationContext: () => void;
@@ -36,24 +37,37 @@ export const useOrganizationStore = create<OrganizationStore>()(
       isSuperAdminMode: false,
 
       setCurrentOrganization: (orgId, force = false) => {
+        if (orgId == null || orgId === 'all') {
+          // Only allow clearing filter when force (claim/local superuser).
+          if (force) {
+            set({ currentOrganizationId: null });
+          }
+          return;
+        }
+
         const { memberships, isSuperAdminMode } = get();
         const membership = memberships.find(m => m.organization_id === orgId);
         
-        // Allow if user is member OR if forced (Super Admin) OR if in super admin mode
+        // Allow if user is member OR forced (scoped superuser)
         if (membership || force || isSuperAdminMode) {
           set({ currentOrganizationId: orgId });
         } else {
-          console.error('Cannot set organization - user is not a member');
+          console.error('Cannot set organization - user is not a member of', orgId);
         }
       },
 
       setMemberships: (memberships) => {
         set({ memberships });
         
-        // Auto-set current organization if not set
+        // Auto-set current organization if not set or no longer in memberships
         const { currentOrganizationId } = get();
-        if (!currentOrganizationId && memberships.length > 0) {
-          // Prefer default membership, otherwise first active
+        const stillValid =
+          currentOrganizationId &&
+          memberships.some(
+            (m) => m.organization_id === currentOrganizationId && m.status === 'active'
+          );
+
+        if (!stillValid && memberships.length > 0) {
           const defaultMembership = memberships.find(m => m.is_default && m.status === 'active');
           const firstActive = memberships.find(m => m.status === 'active');
           const orgId = defaultMembership?.organization_id || firstActive?.organization_id;
@@ -93,7 +107,7 @@ export const useOrganizationStore = create<OrganizationStore>()(
       name: 'organization-context',
       partialize: (state) => ({
         currentOrganizationId: state.currentOrganizationId,
-        isSuperAdminMode: state.isSuperAdminMode,
+        // Do not persist isSuperAdminMode — derives from session/claims each load
       }),
     }
   )

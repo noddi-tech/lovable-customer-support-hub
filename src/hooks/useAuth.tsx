@@ -2,8 +2,18 @@ import { useAuth as useSupabaseAuth } from '@/components/auth/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useOrganizationStore, OrganizationMembership } from '@/stores/organizationStore';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { logger } from '@/utils/logger';
+import { isGoogleAuthUser, isNavioCoreOidcUser } from '@/lib/auth-provision';
+import {
+  getAllowedLocalOrgIds,
+  getEffectiveScope,
+  type EffectiveScope,
+  type LocalOrganization,
+  type LocalDepartment,
+  type LocalOrgRole,
+} from '@/lib/auth-scope';
+import { getActiveRoles } from '@navio/nidp';
 
 export type UserRole = 'super_admin' | 'admin' | 'agent' | 'user';
 
@@ -22,8 +32,13 @@ export interface UserProfile {
 }
 
 export const useAuth = () => {
-  const { user, session, loading, signOut, isProcessingOAuth } = useSupabaseAuth();
-  const { setMemberships, currentOrganizationId, clearOrganizationContext } = useOrganizationStore();
+  const { user, session, loading, signOut, isProcessingOAuth, navioClaims } = useSupabaseAuth();
+  const {
+    setMemberships,
+    currentOrganizationId,
+    clearOrganizationContext,
+    setCurrentOrganization,
+  } = useOrganizationStore();
 
   // Log when auth state changes
   useEffect(() => {
@@ -64,7 +79,7 @@ export const useAuth = () => {
     enabled: !!user?.id,
   });
 
-  // Fetch organization memberships
+  // Fetch organization memberships (synced from Navio claims for Navio users)
   const { data: memberships = [], isLoading: membershipsLoading } = useQuery({
     queryKey: ['organization-memberships', user?.id],
     queryFn: async () => {
@@ -92,6 +107,78 @@ export const useAuth = () => {
     enabled: !!user?.id,
   });
 
+  // Local orgs for claim→UUID mapping (RLS limits non-members; superuser sees mapped set)
+  const { data: localOrganizations = [] } = useQuery({
+    queryKey: ['organizations-for-scope', user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('organizations')
+        .select('id, name, slug, navio_organization_id');
+
+      if (error) {
+        // Column may not exist until migration is applied — fall back without navio id.
+        const { data: fallback, error: fbErr } = await supabase
+          .from('organizations')
+          .select('id, name, slug');
+        if (fbErr) {
+          logger.error('Organizations for scope failed', { error: fbErr.message }, 'useAuth');
+          return [] as LocalOrganization[];
+        }
+        return (fallback || []).map((o) => ({
+          id: o.id,
+          name: o.name,
+          slug: o.slug,
+          navio_organization_id: null as number | null,
+        }));
+      }
+
+      return (data || []).map((o) => ({
+        id: o.id,
+        name: o.name,
+        slug: o.slug,
+        navio_organization_id:
+          (o as { navio_organization_id?: number | null }).navio_organization_id ?? null,
+      })) as LocalOrganization[];
+    },
+    enabled: !!user?.id,
+  });
+
+  const { data: localDepartments = [] } = useQuery({
+    queryKey: ['departments-for-scope', user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('departments')
+        .select('id, name, organization_id, slug, navio_department_id');
+
+      if (error) {
+        const { data: fallback, error: fbErr } = await supabase
+          .from('departments')
+          .select('id, name, organization_id');
+        if (fbErr) {
+          logger.error('Departments for scope failed', { error: fbErr.message }, 'useAuth');
+          return [] as LocalDepartment[];
+        }
+        return (fallback || []).map((d) => ({
+          id: d.id,
+          name: d.name,
+          organization_id: d.organization_id,
+          slug: null as string | null,
+          navio_department_id: null as number | null,
+        }));
+      }
+
+      return (data || []).map((d) => ({
+        id: d.id,
+        name: d.name,
+        organization_id: d.organization_id,
+        slug: (d as { slug?: string | null }).slug ?? null,
+        navio_department_id:
+          (d as { navio_department_id?: number | null }).navio_department_id ?? null,
+      })) as LocalDepartment[];
+    },
+    enabled: !!user?.id,
+  });
+
   // SECURITY: Fetch user roles from user_roles table (server-side truth)
   const { data: userRoles = [] } = useQuery({
     queryKey: ['user-roles', user?.id],
@@ -113,12 +200,101 @@ export const useAuth = () => {
     enabled: !!user?.id,
   });
 
-  // Sync memberships to store
+  const localRoles: LocalOrgRole[] = useMemo(
+    () =>
+      memberships.map((m) => ({
+        user_id: m.user_id,
+        organization_id: m.organization_id,
+        role: m.role,
+      })),
+    [memberships]
+  );
+
+  const claimSuperuser = useMemo(() => {
+    const active = getActiveRoles(navioClaims);
+    return active.includes('owner_superuser') || active.includes('viewer_superuser');
+  }, [navioClaims]);
+
+  // Noddi employees only have Google Workspace accounts → full superuser scope.
+  const googleEmployee = useMemo(() => isGoogleAuthUser(user), [user]);
+
+  const effectiveScope: EffectiveScope = useMemo(
+    () =>
+      getEffectiveScope({
+        claims: navioClaims,
+        localOrganizations,
+        localDepartments,
+        localRoles,
+        // Google employees + local/claim super_admin are unrestricted.
+        forceSuperuser:
+          googleEmployee || userRoles.includes('super_admin') || claimSuperuser,
+      }),
+    [
+      navioClaims,
+      localOrganizations,
+      localDepartments,
+      localRoles,
+      userRoles,
+      claimSuperuser,
+      googleEmployee,
+    ]
+  );
+
+  const allowedLocalOrgIds = useMemo(
+    () => getAllowedLocalOrgIds(effectiveScope),
+    [effectiveScope]
+  );
+
+  // Sync memberships to store (membership-scoped only)
   useEffect(() => {
     if (memberships.length > 0) {
       setMemberships(memberships);
     }
   }, [memberships, setMemberships]);
+
+  // Clamp current org to allowed scope when scope loads / changes
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const hasNavioGraph =
+      isNavioCoreOidcUser(user) &&
+      (effectiveScope.organizations.length > 0 || effectiveScope.isEmpty);
+
+    if (hasNavioGraph && !effectiveScope.isSuperuser) {
+      const allowed = new Set(
+        allowedLocalOrgIds.length > 0
+          ? allowedLocalOrgIds
+          : memberships.map((m) => m.organization_id)
+      );
+
+      if (currentOrganizationId && currentOrganizationId !== 'all' && !allowed.has(currentOrganizationId)) {
+        const next =
+          memberships.find((m) => m.is_default)?.organization_id ||
+          [...allowed][0] ||
+          null;
+        if (next) {
+          setCurrentOrganization(next, false);
+        } else {
+          setCurrentOrganization(null as unknown as string, false);
+        }
+      } else if (
+        (!currentOrganizationId || currentOrganizationId === 'all') &&
+        memberships.length > 0
+      ) {
+        const next =
+          memberships.find((m) => m.is_default)?.organization_id ||
+          memberships[0]?.organization_id;
+        if (next) setCurrentOrganization(next, false);
+      }
+    }
+  }, [
+    user,
+    effectiveScope,
+    allowedLocalOrgIds,
+    memberships,
+    currentOrganizationId,
+    setCurrentOrganization,
+  ]);
 
   // Clear organization context on sign out
   const handleSignOut = async () => {
@@ -126,8 +302,12 @@ export const useAuth = () => {
     await signOut();
   };
 
-  // SECURITY: Check permissions using server-validated roles
-  const isSuperAdmin = userRoles.includes('super_admin');
+  // SECURITY: Google employees = superuser; also local roles + claim superuser
+  const isSuperAdmin =
+    googleEmployee ||
+    userRoles.includes('super_admin') ||
+    claimSuperuser ||
+    effectiveScope.isSuperuser;
   const isAdmin = userRoles.includes('admin') || isSuperAdmin;
   const canManageUsers = isAdmin;
   const canManageIntegrations = isAdmin;
@@ -162,5 +342,14 @@ export const useAuth = () => {
     currentOrganizationId,
     currentMembership,
     organizationId: currentOrganizationId || profile?.organization_id || null,
+
+    // NIDP membership scope
+    navioClaims,
+    effectiveScope,
+    allowedLocalOrgIds,
+    accessibleOrganizations: effectiveScope.organizations,
+    accessibleServiceDepartments: effectiveScope.departments,
+    isScopeEmpty: effectiveScope.isEmpty && !isSuperAdmin,
+    isGoogleEmployee: googleEmployee,
   };
 };

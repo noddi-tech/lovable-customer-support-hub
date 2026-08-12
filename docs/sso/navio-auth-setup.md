@@ -16,18 +16,42 @@ Architecture: [noddi-infrastructure `docs/idp.md`](https://github.com/noddi-tech
 
 ## Goal
 
-- **Sign in with Navio** limited to **navio-core Django superusers** (platform staff).
-- Keep Supabase Auth for sessions, RLS, `auth.users`, and existing role/org logic.
-- Leave Google, email/password, and magic link for support agents / invites.
+- **Sign in with Navio** via product IdP (`auth.noddi.co/o`) with scope `navio:active`.
+- **Data visibility** is scoped by IdP membership claims (service organizations +
+  service departments). Users only see orgs/depts they belong to.
+- Keep Supabase Auth for sessions, RLS, `auth.users`, and local membership rows
+  synced from claims.
+- **Google login stays** for Noddi employees (company Google only) and is treated
+  as **superuser** (full org access + `super_admin` role), same as claim superuser.
+- Email/password and magic link remain for invites / other agents.
+
+## Membership scope (product claims)
+
+After login, the SPA runs `getNavioAuthContext(user)` from `@navio/nidp` and:
+
+1. `ensure_authentik_support_hub_access` — creates/updates **profile only** (no auto `super_admin`)
+2. `sync_navio_organization_memberships` — maps claim SO ids → local
+   `organizations.navio_organization_id` and upserts `organization_memberships`
+
+Claim superusers (`owner_superuser` / `viewer_superuser` in `navio_active_roles`)
+get local `super_admin` and full org access. **Google employee logins** also get
+`super_admin` via `ensure_google_employee_support_hub_access` (only employees have
+Noddi Google accounts). Everyone else on Navio is limited to membership SOs/SDs.
+
+| Concern | Wire claims | App helper |
+| --- | --- | --- |
+| Service organizations | `navio_memberships`, `navio_organizations` | `getOrganizations` / `getEffectiveScope` |
+| Service departments | `navio_memberships[].departments`, `navio_departments` | `getDepartments` / `getAccessibleServiceDepartments` |
+| Superuser | `navio_active_roles` includes `owner_superuser` \| `viewer_superuser` | `effectiveScope.isSuperuser` |
+
+Local mapping columns: `organizations.navio_organization_id`,
+`departments.navio_department_id` (+ optional `departments.slug`).
 
 ## Who can use Sign in with Navio?
 
-Only **Django `is_superuser`** accounts on navio-core. Enforcement:
-
-| Layer | Where | Rule |
-| --- | --- | --- |
-| 1. Product authorize | `auth.noddi.co/o/authorize/` for client name `navio-support-hub` | Rejects non-superusers (`tenant_authz.PRODUCT_SUPERUSER_ONLY_CLIENT_NAMES`) |
-| 2. Support Hub app | RPC `ensure_authentik_support_hub_access` | After `custom:navio` session, grants `profiles` + `super_admin` |
+Depends on product OIDC client policy for `navio-support-hub` (may still be
+superuser-gated at authorize). **In-app data access is membership-scoped**, not
+“Navio login ⇒ see everything.”
 
 ## Login flow
 
@@ -37,12 +61,15 @@ Only **Django `is_superuser`** accounts on navio-core. Enforcement:
 3. Supabase starts OAuth2 + PKCE against **`https://auth.noddi.co/o`**.
 4. User authenticates on Navio Core login (superuser gate).
 5. Supabase creates the session; the client calls
-   `ensureNavioSupportHubAccess` (`@/lib/auth-provision` → RPC).
+   `bootstrapNavioSupportHubAccess` (`@/lib/auth-provision`):
+   profile RPC + membership sync from claims.
 
 ```text
 Browser → Support Hub SPA → Supabase Auth → auth.noddi.co/o (product IdP)
                               ↑
                     ID token + navio:active claims
+                              ↓
+              getNavioAuthContext → EffectiveScope → org switcher / queries
 ```
 
 ---
@@ -249,8 +276,10 @@ Already implemented; no Supabase UI work:
 | --- | --- |
 | `@navio/nidp@^0.8.0` + `.npmrc` Artifact Registry | App dependency |
 | `signInWithNavio` on `/auth` | `src/pages/Auth.tsx` |
-| Provision on OAuth / `SIGNED_IN` | `AuthContext` + `auth-provision.ts` |
+| Provision + membership sync on OAuth / `SIGNED_IN` | `AuthContext` + `auth-provision.ts` |
+| Claim → scope helpers | `src/lib/auth-scope.ts` |
 | Local install | `bun install` (needs network to `europe-north1-npm.pkg.dev`) |
+| Map local orgs to Navio SO | set `organizations.navio_organization_id` |
 
 ---
 
@@ -270,9 +299,11 @@ Already implemented; no Supabase UI work:
 | File | Role |
 | --- | --- |
 | `src/pages/Auth.tsx` | **Sign in with Navio** → `signInWithNavio` (`@navio/nidp`) |
-| `src/lib/auth-provision.ts` | Thin wrapper: nidp detection + Support Hub RPC |
-| `src/components/auth/AuthContext.tsx` | Provision on OAuth / `SIGNED_IN` |
-| `@navio/nidp` | Shared login helper, issuer constants, `isNavioCoreOidcUser` |
+| `src/lib/auth-provision.ts` | Detection, profile provision, membership sync from claims |
+| `src/lib/auth-scope.ts` | EffectiveScope (SO/SD) from claims + local map |
+| `src/components/auth/AuthContext.tsx` | Bootstrap on OAuth / `SIGNED_IN`; exposes `navioClaims` |
+| `src/hooks/useAuth.tsx` | `effectiveScope`, `allowedLocalOrgIds`, switcher inputs |
+| `@navio/nidp` | Shared login helper, issuer constants, claim helpers |
 | `scripts/configure-navio-oidc.sh` | Upsert Supabase Custom OIDC provider from GSM |
 
 ## Troubleshooting
@@ -282,12 +313,15 @@ Already implemented; no Supabase UI work:
 | Lands on Authentik / `auth.zendos.io` | Supabase issuer still points at Authentik app — re-run step 4 with product issuer |
 | `Unsupported provider: custom:navio` | Provider not created — run `./scripts/configure-navio-oidc.sh` or Dashboard step 4 |
 | `redirect_uri_mismatch` / invalid redirect | Add SPA origin to Supabase **Redirect URLs** (step 3) **and** product `OidcClient` redirect (step 1) |
-| `superuser_required` 403 | User is not Django superuser on navio-core |
+| `superuser_required` 403 | Product client still superuser-only; use allowed account or change client policy |
+| Sees no organizations after login | Missing SO memberships, or `organizations.navio_organization_id` not mapped |
+| Sees all orgs after Navio login | Old auto-super_admin; apply migration `20260812180000_nidp_membership_scope.sql` |
 | `access_denied: Unverified email` | Product IdP must emit `email_verified: true` |
 | `invalid_client` | Wrong client_id/secret or redirect URI not on `OidcClient` |
-| `PGRST202` after login | Apply migration for `ensure_authentik_support_hub_access` (step 5) |
+| `PGRST202` after login | Apply migrations for provision + `sync_navio_organization_memberships` |
 | Login button does nothing / no URL | Provider disabled or misconfigured; check browser console `[auth]` logs |
 | `Could not start Navio sign-in (no redirect URL)` | Same as unsupported provider — step 4 incomplete |
+| Empty org graph warning in console | Supabase scopes missing `navio:active`, or user has no memberships |
 
 ## Related
 

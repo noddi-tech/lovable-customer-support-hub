@@ -49,7 +49,7 @@ type ImportStep = 'setup' | 'mapping' | 'importing';
 
 export const HelpScoutImport = () => {
   const { toast } = useToast();
-  const { user, isSuperAdmin } = useAuth();
+  const { user, isSuperAdmin, memberships, allowedLocalOrgIds, currentOrganizationId } = useAuth();
   const [currentStep, setCurrentStep] = useState<ImportStep>('setup');
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [selectedOrgId, setSelectedOrgId] = useState<string>('');
@@ -78,19 +78,39 @@ export const HelpScoutImport = () => {
   const [estimatedConversations, setEstimatedConversations] = useState<number>(0);
   const [connectionTested, setConnectionTested] = useState(false);
 
-  // Fetch organizations and set initial org
+  // Fetch organizations in membership / Navio scope only
   useEffect(() => {
     const fetchData = async () => {
-      if (isSuperAdmin) {
-        const { data: orgs } = await supabase.from('organizations').select('id, name').order('name');
-        setOrganizations(orgs || []);
+      const ids =
+        allowedLocalOrgIds.length > 0
+          ? allowedLocalOrgIds
+          : memberships.map((m) => m.organization_id);
+
+      if (ids.length === 0 && !isSuperAdmin) {
+        setOrganizations([]);
+        return;
       }
-      
-      const { data: userOrgId } = await supabase.rpc('get_user_organization_id');
-      if (userOrgId) setSelectedOrgId(userOrgId);
+
+      let query = supabase.from('organizations').select('id, name').order('name');
+      if (!isSuperAdmin || ids.length > 0) {
+        if (ids.length === 0) {
+          setOrganizations([]);
+          return;
+        }
+        query = query.in('id', ids);
+      }
+
+      const { data: orgs } = await query;
+      setOrganizations(orgs || []);
+
+      const preferred =
+        currentOrganizationId ||
+        memberships.find((m) => m.is_default)?.organization_id ||
+        orgs?.[0]?.id;
+      if (preferred) setSelectedOrgId(preferred);
     };
     fetchData();
-  }, [isSuperAdmin]);
+  }, [isSuperAdmin, allowedLocalOrgIds, memberships, currentOrganizationId]);
 
   // Fetch inboxes when organization changes
   useEffect(() => {

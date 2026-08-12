@@ -12,6 +12,12 @@ dist
 dist-ssr
 *.local
 
+# SSO client secrets (live OIDC credentials — never commit)
+docs/sso/*-oidc-client-credentials.md
+
+# Serena tool cache
+.serena/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

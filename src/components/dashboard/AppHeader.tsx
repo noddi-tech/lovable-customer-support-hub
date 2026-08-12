@@ -102,7 +102,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
             )}
           </div>
 
-          {/* Organization Switcher - for super admins */}
+          {/* Organization Switcher — membership-scoped (Navio SO) */}
           <OrganizationSwitcher />
         </div>
 

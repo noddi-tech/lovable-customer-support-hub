@@ -10,56 +10,51 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
 export const ImportDataHub = () => {
-  const { isSuperAdmin } = useAuth();
+  const {
+    isSuperAdmin,
+    memberships,
+    allowedLocalOrgIds,
+    currentOrganizationId,
+  } = useAuth();
   const [organizations, setOrganizations] = useState<{ id: string; name: string }[]>([]);
   const [selectedOrg, setSelectedOrg] = useState<{ id: string; name: string } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Fetch organizations - all for super admin, just user's own for regular admin
+  // Organizations limited to Navio membership scope (or local memberships)
   useEffect(() => {
     const fetchOrganization = async () => {
       try {
-        // Get user's own org first
-        const { data: orgId, error: rpcError } = await supabase.rpc('get_user_organization_id');
-        
-        console.log('[ImportDataHub] RPC result:', { orgId, rpcError, isSuperAdmin });
-        
-        if (isSuperAdmin) {
-          // Super admins can see all organizations
-          const { data: orgs, error: orgsError } = await supabase
-            .from('organizations')
-            .select('id, name')
-            .order('name');
-          
-          console.log('[ImportDataHub] All orgs result:', { orgs, orgsError });
-          
-          setOrganizations(orgs || []);
-          
-          // Default to user's own org if available
-          if (orgId && orgs) {
-            const userOrg = orgs.find(o => o.id === orgId);
-            setSelectedOrg(userOrg || orgs[0] || null);
-          }
-        } else {
-          // Regular users only see their own org
-          if (!orgId || rpcError) {
+        const ids =
+          allowedLocalOrgIds.length > 0
+            ? allowedLocalOrgIds
+            : memberships.map((m) => m.organization_id);
+
+        if (ids.length === 0 && !isSuperAdmin) {
+          setIsLoading(false);
+          return;
+        }
+
+        let query = supabase.from('organizations').select('id, name').order('name');
+        if (!isSuperAdmin || ids.length > 0) {
+          if (ids.length === 0) {
             setIsLoading(false);
             return;
           }
-          
-          const { data: org, error: orgError } = await supabase
-            .from('organizations')
-            .select('id, name')
-            .eq('id', orgId)
-            .single();
-          
-          console.log('[ImportDataHub] Org result:', { org, orgError });
-          
-          if (org) {
-            setSelectedOrg(org);
-            setOrganizations([org]);
-          }
+          query = query.in('id', ids);
         }
+
+        const { data: orgs, error: orgsError } = await query;
+        if (orgsError) {
+          console.error('[ImportDataHub] Orgs error:', orgsError);
+        }
+
+        setOrganizations(orgs || []);
+        const preferredId =
+          currentOrganizationId ||
+          memberships.find((m) => m.is_default)?.organization_id ||
+          orgs?.[0]?.id;
+        const preferred = orgs?.find((o) => o.id === preferredId) || orgs?.[0] || null;
+        setSelectedOrg(preferred);
       } catch (error) {
         console.error('[ImportDataHub] Error fetching organizations:', error);
       } finally {
@@ -68,7 +63,7 @@ export const ImportDataHub = () => {
     };
     
     fetchOrganization();
-  }, [isSuperAdmin]);
+  }, [isSuperAdmin, allowedLocalOrgIds, memberships, currentOrganizationId]);
 
   return (
     <div className="space-y-6">
@@ -79,8 +74,8 @@ export const ImportDataHub = () => {
         </p>
       </div>
 
-      {/* Organization Selector for Super Admins */}
-      {isSuperAdmin && organizations.length > 0 && (
+      {/* Organization selector (membership-scoped) */}
+      {organizations.length > 1 && (
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-lg flex items-center gap-2">
@@ -88,7 +83,7 @@ export const ImportDataHub = () => {
               Target Organization
             </CardTitle>
             <CardDescription>
-              Select which organization's data to manage
+              Select which organization&apos;s data to manage (your memberships only)
             </CardDescription>
           </CardHeader>
           <CardContent>

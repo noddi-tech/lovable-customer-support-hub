@@ -260,7 +260,7 @@ export const Auth: React.FC = () => {
     });
 
   // "Sign in with Navio" — product IdP (auth.noddi.co/o) via @navio/nidp.
-  // Staff-only (Django superuser). See docs/sso/navio-auth-setup.md.
+  // Data scope comes from navio SO/SD membership claims. See docs/sso/navio-auth-setup.md.
   const handleNavioSignIn = async () => {
     setLoading(true);
     setError('');
@@ -601,7 +601,7 @@ export const Auth: React.FC = () => {
             <TabsContent value="google" className="space-y-2 mt-2">
               <div className="text-center space-y-3">
                 <p className="text-sm text-muted-foreground">
-                  Sign in with Navio (platform superusers) or Google
+                  Sign in with Navio or Google
                 </p>
                 <Button
                   type="button"
@@ -615,8 +615,8 @@ export const Auth: React.FC = () => {
                   {loading ? 'Redirecting…' : 'Sign in with Navio'}
                 </Button>
                 <p className="text-xs text-muted-foreground">
-                  Navio login uses auth.noddi.co and is limited to Django superusers
-                  (platform staff). Support agents should use Google or email.
+                  Navio login scopes data to your service organizations/departments.
+                  Google login is for Noddi employees and has full (superuser) access.
                 </p>
                 <Button
                   type="button"

@@ -12,23 +12,36 @@ export interface Organization {
   primary_color: string;
   sender_display_name: string | null;
   metadata: Record<string, any>;
+  navio_organization_id?: number | null;
   created_at: string;
   updated_at: string;
 }
 
 export function useOrganizations() {
-  const { isSuperAdmin } = useAuth();
+  const { isSuperAdmin, allowedLocalOrgIds, memberships } = useAuth();
   const queryClient = useQueryClient();
   const { logAction } = useAuditLog();
 
-  // Fetch all organizations (super admin only)
+  // Fetch organizations in membership / Navio scope (not the full table for everyone)
   const { data: organizations = [], isLoading } = useQuery({
-    queryKey: ['organizations'],
+    queryKey: ['organizations', allowedLocalOrgIds, isSuperAdmin],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('organizations')
-        .select('*')
-        .order('name');
+      const ids =
+        allowedLocalOrgIds.length > 0
+          ? allowedLocalOrgIds
+          : memberships.map((m) => m.organization_id);
+
+      let query = supabase.from('organizations').select('*').order('name');
+
+      if (isSuperAdmin) {
+        // Google employees / super_admin: full org list
+      } else if (ids.length > 0) {
+        query = query.in('id', ids);
+      } else {
+        return [] as Organization[];
+      }
+
+      const { data, error } = await query;
 
       if (error) {
         console.error('Error fetching organizations:', error);
@@ -37,7 +50,7 @@ export function useOrganizations() {
 
       return data as Organization[];
     },
-    enabled: isSuperAdmin,
+    enabled: isSuperAdmin || memberships.length > 0 || allowedLocalOrgIds.length > 0,
   });
 
   // Create organization (super admin only)

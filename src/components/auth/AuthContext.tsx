@@ -1,9 +1,12 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
+import { getNavioAuthContext, type NavioClaims } from '@navio/nidp';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import {
-  ensureNavioSupportHubAccess,
+  asNidpUser,
+  bootstrapSupportHubAccess,
+  isGoogleAuthUser,
   isNavioCoreOidcUser,
 } from '@/lib/auth-provision';
 import { logger } from '@/utils/logger';
@@ -13,6 +16,8 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   isProcessingOAuth: boolean;
+  /** Product IdP claims from navio:active (empty for non-Navio sessions). */
+  navioClaims: Partial<NavioClaims>;
   signOut: () => Promise<void>;
   refreshSession: () => Promise<Session | null>;
   validateSession: () => Promise<boolean>;
@@ -33,7 +38,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [isProcessingOAuth, setIsProcessingOAuth] = useState(false);
+  const [navioClaims, setNavioClaims] = useState<Partial<NavioClaims>>({});
   const queryClient = useQueryClient();
+
+  const hydrateNavioClaims = (sessionUser: User | null | undefined) => {
+    if (!sessionUser) {
+      setNavioClaims({});
+      return;
+    }
+    const ctx = getNavioAuthContext(asNidpUser(sessionUser));
+    setNavioClaims(ctx.claims);
+  };
+
+  const runAccessBootstrap = async (sessionUser: User) => {
+    // Navio: membership-scoped. Google (Noddi employees only): super_admin.
+    if (!isNavioCoreOidcUser(sessionUser) && !isGoogleAuthUser(sessionUser)) {
+      hydrateNavioClaims(sessionUser);
+      return;
+    }
+    try {
+      const { claims } = await bootstrapSupportHubAccess(sessionUser);
+      setNavioClaims(claims);
+      queryClient.removeQueries({ queryKey: ['profile'] });
+      queryClient.removeQueries({ queryKey: ['user-roles'] });
+      queryClient.removeQueries({ queryKey: ['organization-memberships'] });
+      queryClient.removeQueries({ queryKey: ['organizations'] });
+      queryClient.removeQueries({ queryKey: ['organizations-for-switcher'] });
+    } catch (provisionErr) {
+      logger.error(
+        'Support Hub auto-provision failed',
+        provisionErr,
+        'Auth'
+      );
+      hydrateNavioClaims(sessionUser);
+    }
+  };
 
   const refreshSession = async () => {
     try {
@@ -136,22 +175,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }, 'Auth');
         
         if (mounted && session) {
-          // Product IdP (custom:navio → auth.noddi.co/o): bootstrap super_admin
-          // for Django superusers only (authorize gate on navio-support-hub client).
-          if (isNavioCoreOidcUser(session.user)) {
-            try {
-              await ensureNavioSupportHubAccess(session.user);
-              queryClient.removeQueries({ queryKey: ['profile'] });
-              queryClient.removeQueries({ queryKey: ['user-roles'] });
-              queryClient.removeQueries({ queryKey: ['organization-memberships'] });
-            } catch (provisionErr) {
-              logger.error(
-                'Navio Support Hub auto-provision failed',
-                provisionErr,
-                'Auth'
-              );
-            }
-          }
+          // Product IdP: profile + membership sync from navio SO/SD claims.
+          await runAccessBootstrap(session.user);
 
           setSession(session);
           setUser(session.user);
@@ -200,6 +225,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setSession(session);
         setUser(newUser);
         setLoading(false);
+
+        if (event === 'SIGNED_OUT' || !newUser) {
+          setNavioClaims({});
+        } else if (newUser) {
+          hydrateNavioClaims(newUser);
+        }
         
         logger.debug('Auth state updated', { 
           loading: false,
@@ -224,24 +255,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           logger.debug('Cleared user-specific query cache', { event }, 'Auth');
         }
         
-        // Validate session after sign-in; provision product IdP superusers.
+        // Validate session after sign-in; provision Navio profile + memberships.
         if (event === 'SIGNED_IN' && session) {
-          if (isNavioCoreOidcUser(session.user)) {
-            void ensureNavioSupportHubAccess(session.user)
-              .then(() => {
-                queryClient.removeQueries({ queryKey: ['profile'] });
-                queryClient.removeQueries({ queryKey: ['user-roles'] });
-                queryClient.removeQueries({ queryKey: ['organization-memberships'] });
-              })
-              .catch((provisionErr) => {
-                logger.error(
-                  'Navio Support Hub auto-provision failed',
-                  provisionErr,
-                  'Auth'
-                );
-              });
-          }
-          setTimeout(() => validateSession(), 1000);
+          void runAccessBootstrap(session.user).then(() => {
+            setTimeout(() => validateSession(), 1000);
+          });
         }
       }
     );
@@ -262,6 +280,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setSession(session);
           setUser(session?.user ?? null);
           setLoading(false);
+
+          if (session?.user) {
+            // Existing session: Navio membership sync or Google superuser provision.
+            if (isNavioCoreOidcUser(session.user) || isGoogleAuthUser(session.user)) {
+              await runAccessBootstrap(session.user);
+            } else {
+              hydrateNavioClaims(session.user);
+            }
+          } else {
+            setNavioClaims({});
+          }
           
           logger.debug('Auth state initialized', { 
             hasUser: !!session?.user,
@@ -325,6 +354,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     session,
     loading,
     isProcessingOAuth,
+    navioClaims,
     signOut,
     refreshSession,
     validateSession,
