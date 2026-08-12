@@ -343,6 +343,26 @@ duplicate.
 **Durable rule: one `auth.users` row per email.** With a single user, Google and
 Navio identities auto-link onto it and login just works.
 
+### Same email, both providers → one account (how it works)
+
+Supabase GoTrue **auto-links** a new provider identity to an existing user when
+the email matches and is **verified**, in the shared `default` linking domain.
+Both sides emit `email_verified: true` — Google always, and the Navio product
+IdP (verified live: its ID token carries `email`, `email_verified: true`,
+`navio_*`). So `anders@noddi.no` via Google and via Navio resolve to the **same**
+`auth.users` row automatically — no per-provider accounts. The only thing that
+breaks it is a pre-existing duplicate (below), which errors instead of linking.
+
+**Self-heal:** on each fresh sign-in the app calls
+`reconcile_my_duplicate_accounts()` (migration `20260812230000`). It collapses any
+other `auth.users` sharing the caller's email into the current account, then the
+other provider's next login auto-links onto the single remaining row. It is
+caller-scoped (only your own email), never deletes the caller, and requires a
+trusted OAuth identity — an email/password row alone cannot trigger it (this
+project has `mailer_autoconfirm=true`, so password signups are "confirmed"
+without proving inbox control). Client wrapper: `reconcileDuplicateAccounts()`
+in `src/lib/auth-provision.ts`, run from `AuthContext` before provisioning.
+
 ### 1. Diagnose (Supabase SQL editor)
 
 ```sql

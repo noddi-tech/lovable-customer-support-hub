@@ -8,6 +8,7 @@ import {
   bootstrapSupportHubAccess,
   isGoogleAuthUser,
   isNavioCoreOidcUser,
+  reconcileDuplicateAccounts,
 } from '@/lib/auth-provision';
 import { logger } from '@/utils/logger';
 
@@ -50,13 +51,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setNavioClaims(ctx.claims);
   };
 
-  const runAccessBootstrap = async (sessionUser: User) => {
+  const runAccessBootstrap = async (sessionUser: User, opts?: { reconcile?: boolean }) => {
     // Navio: membership-scoped. Google (Noddi employees only): super_admin.
     if (!isNavioCoreOidcUser(sessionUser) && !isGoogleAuthUser(sessionUser)) {
       hydrateNavioClaims(sessionUser);
       return;
     }
     try {
+      // On a fresh sign-in, collapse any other auth.users sharing this email
+      // (Google ↔ Navio) into the current account BEFORE provisioning, so the
+      // session inherits the duplicate's profile/roles/data.
+      if (opts?.reconcile) {
+        await reconcileDuplicateAccounts();
+      }
       const { claims } = await bootstrapSupportHubAccess(sessionUser);
       setNavioClaims(claims);
       queryClient.removeQueries({ queryKey: ['profile'] });
@@ -257,7 +264,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         // Validate session after sign-in; provision Navio profile + memberships.
         if (event === 'SIGNED_IN' && session) {
-          void runAccessBootstrap(session.user).then(() => {
+          void runAccessBootstrap(session.user, { reconcile: true }).then(() => {
             setTimeout(() => validateSession(), 1000);
           });
         }

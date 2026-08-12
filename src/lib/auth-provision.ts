@@ -12,6 +12,7 @@ import {
 } from "@navio/nidp";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { logger } from "@/utils/logger";
 import {
   getAllowedNavioOrgIds,
   getEffectiveScope,
@@ -262,6 +263,31 @@ export async function ensureGoogleEmployeeSupportHubAccess(
 /**
  * Bootstrap access for any supported login path (Navio membership scope or Google superuser).
  */
+/**
+ * Collapse other auth.users sharing the caller's email into the current account
+ * (server-side RPC, caller-scoped). Makes Google + Navio logins for the same
+ * email converge on one account. Best-effort: returns the merge count or null.
+ * Run before provisioning so the current session inherits the duplicate's data.
+ * See docs/sso/navio-auth-setup.md → Duplicate accounts.
+ */
+export async function reconcileDuplicateAccounts(): Promise<number> {
+  try {
+    const { data, error } = await supabase.rpc('reconcile_my_duplicate_accounts' as never);
+    if (error) {
+      logger.warn('reconcile_my_duplicate_accounts failed', { error: error.message }, 'Auth');
+      return 0;
+    }
+    const merged = (data as { merged?: number } | null)?.merged ?? 0;
+    if (merged > 0) {
+      logger.info('Merged duplicate account(s) into current user', { merged }, 'Auth');
+    }
+    return merged;
+  } catch (err) {
+    logger.warn('reconcileDuplicateAccounts threw', { err: String(err) }, 'Auth');
+    return 0;
+  }
+}
+
 export async function bootstrapSupportHubAccess(
   user: User,
   localOrganizations: LocalOrganization[] = []
