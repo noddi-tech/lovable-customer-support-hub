@@ -349,9 +349,6 @@ export const Auth: React.FC = () => {
           </Alert>
         )}
 
-        <p className="text-xs text-center text-muted-foreground">
-          Navio scopes access to your service organizations. Google is for Noddi employees.
-        </p>
 
         {passwordLoginEnabled && (
           <>
