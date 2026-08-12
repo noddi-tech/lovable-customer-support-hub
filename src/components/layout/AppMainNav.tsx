@@ -263,6 +263,10 @@ export const AppMainNav = () => {
           </DropdownMenuContent>
         </DropdownMenu>
 
+        <MyAccountDialog open={accountOpen} onOpenChange={setAccountOpen} />
+
+
+
         {/* Collapse toggle */}
         <Button
           variant="ghost"
