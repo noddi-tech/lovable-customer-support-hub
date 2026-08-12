@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { PRODUCT_OIDC_SUPABASE_PROVIDER } from '@navio/zidp';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/auth/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -258,13 +259,14 @@ export const Auth: React.FC = () => {
       },
     });
 
-  // "Sign in with Navio" — product IdP at https://auth.noddi.co/o via Supabase
-  // custom OIDC (`custom:navio`). Shared helpers: `@navio/zidp`. See
-  // docs/sso/navio-auth-setup.md. Staff-only (Django superuser on navio-core).
+  // "Sign in with Navio" — product IdP (auth.noddi.co/o). Provider constant from
+  // @navio/zidp. Staff-only (Django superuser). See docs/sso/navio-auth-setup.md.
   const handleNavioSignIn = () =>
     startOAuth(
       // Supabase types may not include custom:* literals yet.
-      'custom:navio' as Parameters<typeof supabase.auth.signInWithOAuth>[0]['provider'],
+      PRODUCT_OIDC_SUPABASE_PROVIDER as Parameters<
+        typeof supabase.auth.signInWithOAuth
+      >[0]['provider'],
       'Navio'
     );
 
