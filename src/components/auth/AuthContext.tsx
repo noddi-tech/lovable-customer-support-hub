@@ -6,6 +6,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import {
   asNidpUser,
   bootstrapSupportHubAccess,
+  hasSupportHubNavioAccess,
   isGoogleAuthUser,
   isNavioCoreOidcUser,
   reconcileDuplicateAccounts,
