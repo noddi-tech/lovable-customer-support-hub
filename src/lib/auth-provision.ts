@@ -1,6 +1,7 @@
 import {
   getActiveOrganization,
   getActiveRoles,
+  getIamRoles,
   getMemberships,
   getNavioAuthContext,
   getOrganizations,
@@ -128,6 +129,32 @@ function claimRoleForSync(claims: Partial<NavioClaims>): string {
 function isClaimSuperuser(claims: Partial<NavioClaims>): boolean {
   const active = getActiveRoles(claims);
   return active.includes("owner_superuser") || active.includes("viewer_superuser");
+}
+
+/** IAM role required for Support Hub access via the product IdP. */
+export const SUPPORTHUB_USER_ROLE = "roles/supporthub.user";
+
+function normalizeRoleId(value: string): string {
+  return value.trim().toLowerCase().replace(/^roles\//, "");
+}
+
+/**
+ * Navio (product IdP) login gate: only network superusers or holders of
+ * `roles/supporthub.user` may access Support Hub.
+ */
+export function hasSupportHubNavioAccess(claims: Partial<NavioClaims>): boolean {
+  if (isClaimSuperuser(claims)) return true;
+  const target = normalizeRoleId(SUPPORTHUB_USER_ROLE);
+  const candidates = [
+    ...getIamRoles(claims),
+    ...getActiveRoles(claims),
+    ...getMemberships(claims).flatMap((m) =>
+      Array.isArray((m as { roles?: unknown }).roles)
+        ? ((m as { roles: unknown[] }).roles.map(String))
+        : []
+    ),
+  ];
+  return candidates.some((role) => normalizeRoleId(String(role)) === target);
 }
 
 /**
