@@ -36,6 +36,13 @@ const ERROR_MESSAGES: Record<string, { title: string; body: string; fix?: string
     body: 'Your identity was accepted, but there is no profile row for your user yet.',
     fix: 'See browser console [auth] for user id + SQL. Provision migration may be missing (PGRST202).',
   },
+  no_supporthub_role: {
+    title: 'No Support Hub access',
+    body:
+      'Your Navio account is valid, but it is not a superuser and does not have the ' +
+      'roles/supporthub.user role, which is required to use Support Hub.',
+    fix: 'Ask a Navio administrator to grant you the roles/supporthub.user role.',
+  },
   account_disabled: {
     title: 'Account disabled',
     body: 'Your profile is deactivated. Contact an administrator if this is wrong.',
