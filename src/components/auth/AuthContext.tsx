@@ -57,6 +57,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       hydrateNavioClaims(sessionUser);
       return;
     }
+    // Navio logins require superuser or the roles/supporthub.user IAM role.
+    if (isNavioCoreOidcUser(sessionUser)) {
+      const { claims } = getNavioAuthContext(asNidpUser(sessionUser));
+      if (!hasSupportHubNavioAccess(claims)) {
+        logger.warn('Navio sign-in rejected: missing Support Hub role', {
+          userId: sessionUser.id,
+          email: sessionUser.email,
+        }, 'Auth');
+        setNavioClaims({});
+        try {
+          await supabase.auth.signOut({ scope: 'global' });
+        } catch (err) {
+          logger.error('Sign out after rejected Navio login failed', err, 'Auth');
+        }
+        setSession(null);
+        setUser(null);
+        window.dispatchEvent(
+          new CustomEvent('auth-navigate', { detail: { path: '/auth?error=no_supporthub_role' } })
+        );
+        return;
+      }
+    }
     try {
       // On a fresh sign-in, collapse any other auth.users sharing this email
       // (Google ↔ Navio) into the current account BEFORE provisioning, so the
