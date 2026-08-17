@@ -4,6 +4,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { useOrganizationStore, OrganizationMembership } from '@/stores/organizationStore';
 import { useEffect, useMemo } from 'react';
 import { logger } from '@/utils/logger';
+import {
+  hasIamAuthorizationGraph,
+  isNetworkSuperuser,
+} from '@/lib/auth-access';
 import { isGoogleAuthUser, isNavioCoreOidcUser } from '@/lib/auth-provision';
 import {
   getAllowedLocalOrgIds,
@@ -13,7 +17,6 @@ import {
   type LocalDepartment,
   type LocalOrgRole,
 } from '@/lib/auth-scope';
-import { getActiveRoles } from '@navio/nidp';
 
 export type UserRole = 'super_admin' | 'admin' | 'agent' | 'user';
 
@@ -225,13 +228,23 @@ export const useAuth = () => {
     [memberships]
   );
 
-  const claimSuperuser = useMemo(() => {
-    const active = getActiveRoles(navioClaims);
-    return active.includes('owner_superuser') || active.includes('viewer_superuser');
-  }, [navioClaims]);
+  const googleEmployee = useMemo(
+    () => isGoogleAuthUser(user) && !hasIamAuthorizationGraph(navioClaims),
+    [user, navioClaims]
+  );
 
-  // Noddi employees only have Google Workspace accounts → full superuser scope.
-  const googleEmployee = useMemo(() => isGoogleAuthUser(user), [user]);
+  const networkSuperuser = useMemo(
+    () =>
+      isNetworkSuperuser(
+        navioClaims,
+        [
+          ...localRoles,
+          ...userRoles.map((role) => ({ role, organization_id: null })),
+        ],
+        googleEmployee
+      ),
+    [navioClaims, localRoles, userRoles, googleEmployee]
+  );
 
   const effectiveScope: EffectiveScope = useMemo(
     () =>
@@ -240,19 +253,9 @@ export const useAuth = () => {
         localOrganizations,
         localDepartments,
         localRoles,
-        // Google employees + local/claim super_admin are unrestricted.
-        forceSuperuser:
-          googleEmployee || userRoles.includes('super_admin') || claimSuperuser,
+        forceSuperuser: networkSuperuser,
       }),
-    [
-      navioClaims,
-      localOrganizations,
-      localDepartments,
-      localRoles,
-      userRoles,
-      claimSuperuser,
-      googleEmployee,
-    ]
+    [navioClaims, localOrganizations, localDepartments, localRoles, networkSuperuser]
   );
 
   const allowedLocalOrgIds = useMemo(
@@ -317,12 +320,7 @@ export const useAuth = () => {
     await signOut();
   };
 
-  // SECURITY: Google employees = superuser; also local roles + claim superuser
-  const isSuperAdmin =
-    googleEmployee ||
-    userRoles.includes('super_admin') ||
-    claimSuperuser ||
-    effectiveScope.isSuperuser;
+  const isSuperAdmin = networkSuperuser || effectiveScope.isSuperuser;
   const isAdmin = userRoles.includes('admin') || isSuperAdmin;
   const canManageUsers = isAdmin;
   const canManageIntegrations = isAdmin;

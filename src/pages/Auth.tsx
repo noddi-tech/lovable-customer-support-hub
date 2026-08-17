@@ -39,9 +39,11 @@ const ERROR_MESSAGES: Record<string, { title: string; body: string; fix?: string
   no_supporthub_role: {
     title: 'No Support Hub access',
     body:
-      'Your Navio account is valid, but it is not a superuser and does not have the ' +
-      'roles/supporthub.user role, which is required to use Support Hub.',
-    fix: 'Ask a Navio administrator to grant you the roles/supporthub.user role.',
+      'Your Navio account is valid, but the token does not include supporthub.access ' +
+      '(or roles/superuser).',
+    fix:
+      'Ask a Navio administrator to grant roles/supporthub.user (or roles/supporthub.admin) ' +
+      'on your personal UserGroup, or set is_superuser and sign out/in.',
   },
   account_disabled: {
     title: 'Account disabled',

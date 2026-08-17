@@ -19,6 +19,7 @@ import {
   type NavioOrganization,
   summarizeClaimScope,
 } from "@navio/nidp";
+import { isNetworkSuperuser } from "@/lib/auth-access";
 
 export {
   getActiveDepartments,
@@ -106,19 +107,7 @@ function isSuperuserRoles(
   claims: Partial<NavioClaims>,
   forceSuperuser = false
 ): boolean {
-  if (forceSuperuser) return true;
-  if (
-    roles.some(
-      (r) =>
-        r.role === "owner_superuser" ||
-        r.role === "viewer_superuser" ||
-        r.role === "super_admin"
-    )
-  ) {
-    return true;
-  }
-  const active = getActiveRoles(claims);
-  return active.includes("owner_superuser") || active.includes("viewer_superuser");
+  return forceSuperuser || isNetworkSuperuser(claims, roles);
 }
 
 /**
