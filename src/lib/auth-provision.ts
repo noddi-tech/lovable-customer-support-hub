@@ -11,10 +11,8 @@ import {
   type SupabaseUserLike,
 } from "@navio/nidp";
 import {
-  hasIamAuthorizationGraph,
   hasSupportHubNavioAccess,
-  isIamSupportHubAdmin,
-  SUPPORTHUB_USER_ROLE,
+  isNetworkSuperuser,
 } from "@/lib/auth-access";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
@@ -116,13 +114,10 @@ function asNavioId(value: string | number | null | undefined): number | null {
 }
 
 function claimRoleForSync(claims: Partial<NavioClaims>): string {
-  if (isIamSupportHubAdmin(claims)) {
+  if (isNetworkSuperuser(claims)) {
     return "super_admin";
   }
   const active = getActiveRoles(claims);
-  if (active.includes("owner_superuser") || active.includes("viewer_superuser")) {
-    return "super_admin";
-  }
   if (
     active.includes("org_admin") ||
     active.includes("admin") ||
@@ -134,14 +129,7 @@ function claimRoleForSync(claims: Partial<NavioClaims>): string {
   return "agent";
 }
 
-function isClaimSuperuser(claims: Partial<NavioClaims>): boolean {
-  if (isIamSupportHubAdmin(claims)) return true;
-  if (hasIamAuthorizationGraph(claims)) return false;
-  const active = getActiveRoles(claims);
-  return active.includes("owner_superuser") || active.includes("viewer_superuser");
-}
-
-export { hasSupportHubNavioAccess, SUPPORTHUB_USER_ROLE };
+export { hasSupportHubNavioAccess };
 
 /**
  * Sync local organization_memberships from product IdP SO memberships.
@@ -176,7 +164,7 @@ export async function syncNavioOrganizationMemberships(
   const ids = [...new Set([...navioOrgIds, ...fromMemberships, ...fromOrgs])];
   const active = getActiveOrganization(resolvedClaims);
   const defaultId = asNavioId(active?.id);
-  const superuser = isClaimSuperuser(resolvedClaims);
+  const superuser = isNetworkSuperuser(resolvedClaims);
 
   const { data, error } = await supabase.rpc(
     "sync_navio_organization_memberships" as never,

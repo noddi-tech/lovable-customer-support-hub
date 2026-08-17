@@ -39,11 +39,11 @@ const ERROR_MESSAGES: Record<string, { title: string; body: string; fix?: string
   no_supporthub_role: {
     title: 'No Support Hub access',
     body:
-      'Your Navio account is valid, but the token does not include the IAM permission ' +
-      'supporthub.access. Django superuser alone is not enough unless the IdP expanded it.',
+      'Your Navio account is valid, but the token does not include supporthub.access ' +
+      '(or roles/superuser).',
     fix:
       'Ask a Navio administrator to grant roles/supporthub.user (or roles/supporthub.admin) ' +
-      'on your personal UserGroup, or set is_superuser and sign out/in. Check console [auth] for navio_permissions.',
+      'on your personal UserGroup, or set is_superuser and sign out/in.',
   },
   account_disabled: {
     title: 'Account disabled',

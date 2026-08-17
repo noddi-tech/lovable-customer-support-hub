@@ -12,17 +12,14 @@ import {
   getActiveOrganization,
   getActiveRoles,
   getDepartments,
-  getIamPermissions,
-  getIamRoles,
   getMemberships,
   getOrganizations,
-  hasIamPermission,
   type NavioClaims,
   type NavioDepartment,
   type NavioOrganization,
   summarizeClaimScope,
 } from "@navio/nidp";
-import { SUPPORTHUB_ADMIN } from "@/lib/auth-access";
+import { isNetworkSuperuser } from "@/lib/auth-access";
 
 export {
   getActiveDepartments,
@@ -110,23 +107,7 @@ function isSuperuserRoles(
   claims: Partial<NavioClaims>,
   forceSuperuser = false
 ): boolean {
-  if (forceSuperuser) return true;
-  if (hasIamPermission(claims, SUPPORTHUB_ADMIN)) return true;
-  const hasIamGraph =
-    getIamPermissions(claims).length > 0 || getIamRoles(claims).length > 0;
-  if (hasIamGraph) return false;
-  if (
-    roles.some(
-      (r) =>
-        r.role === "owner_superuser" ||
-        r.role === "viewer_superuser" ||
-        r.role === "super_admin"
-    )
-  ) {
-    return true;
-  }
-  const active = getActiveRoles(claims);
-  return active.includes("owner_superuser") || active.includes("viewer_superuser");
+  return forceSuperuser || isNetworkSuperuser(claims, roles);
 }
 
 /**

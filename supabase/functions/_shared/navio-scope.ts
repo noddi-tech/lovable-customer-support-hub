@@ -46,23 +46,36 @@ export function extractNavioClaims(user: {
 }
 
 const SUPPORTHUB_ADMIN = "supporthub.admin";
+const PLATFORM_SUPERUSER_ROLE = "roles/superuser";
 
 function stringList(value: unknown): string[] {
   return Array.isArray(value) ? value.map(String) : [];
 }
 
-function collectFromClaims(claims: Record<string, unknown>): ScopeResult {
+function hasIamGraph(claims: Record<string, unknown>): boolean {
+  return (
+    stringList(claims.navio_permissions).length > 0 ||
+    stringList(claims.navio_roles).length > 0
+  );
+}
+
+/** Same rule as src/lib/auth-access.ts isNetworkSuperuser (claims only). */
+function isClaimsNetworkSuperuser(claims: Record<string, unknown>): boolean {
   const permissions = stringList(claims.navio_permissions);
   const iamRoles = stringList(claims.navio_roles);
+  if (permissions.includes(SUPPORTHUB_ADMIN) || iamRoles.includes(PLATFORM_SUPERUSER_ROLE)) {
+    return true;
+  }
+  if (hasIamGraph(claims)) return false;
   const activeRoles = stringList(claims.navio_active_roles);
-  const hasIamGraph = permissions.length > 0 || iamRoles.length > 0;
-  const isSuperuser =
-    permissions.includes(SUPPORTHUB_ADMIN) ||
-    iamRoles.includes("roles/supporthub.admin") ||
-    iamRoles.includes("roles/superuser") ||
-    (!hasIamGraph &&
-      (activeRoles.includes("owner_superuser") ||
-        activeRoles.includes("viewer_superuser")));
+  return (
+    activeRoles.includes("owner_superuser") ||
+    activeRoles.includes("viewer_superuser")
+  );
+}
+
+function collectFromClaims(claims: Record<string, unknown>): ScopeResult {
+  const isSuperuser = isClaimsNetworkSuperuser(claims);
 
   const deptIds = new Set<number>();
   const orgIds = new Set<number>();
@@ -164,12 +177,9 @@ export function resolveUserScope(
   /** When true (local super_admin), treat as superuser. */
   localIsSuperuser = false
 ): ScopeResult {
-  const fromClaims = collectFromClaims(extractNavioClaims(user));
   const claims = extractNavioClaims(user);
-  const hasIamGraph =
-    stringList(claims.navio_permissions).length > 0 ||
-    stringList(claims.navio_roles).length > 0;
-  const googleFallback = !hasIamGraph && isGoogleEmployeeUser(user);
+  const fromClaims = collectFromClaims(claims);
+  const googleFallback = !hasIamGraph(claims) && isGoogleEmployeeUser(user);
   return {
     ...fromClaims,
     isSuperuser: localIsSuperuser || fromClaims.isSuperuser || googleFallback,

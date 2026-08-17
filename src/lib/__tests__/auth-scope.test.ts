@@ -173,6 +173,24 @@ describe("auth-scope", () => {
     expect(resolveApiDepartmentIds([], scope)).toEqual([]);
   });
 
+  it("roles/superuser is network superuser without forceSuperuser", () => {
+    const scope = getEffectiveScope({
+      claims: { navio_roles: ["roles/superuser"] },
+    });
+    expect(scope.isSuperuser).toBe(true);
+  });
+
+  it("does not treat leftover owner_superuser as superuser when IAM graph exists", () => {
+    const scope = getEffectiveScope({
+      claims: {
+        navio_permissions: ["bookings.list"],
+        navio_active_roles: ["owner_superuser"],
+      },
+      localRoles: [{ organization_id: null, role: "super_admin" }],
+    });
+    expect(scope.isSuperuser).toBe(false);
+  });
+
   it("forceSuperuser (e.g. Google employee) is unrestricted", () => {
     const scope = getEffectiveScope({
       claims: {},

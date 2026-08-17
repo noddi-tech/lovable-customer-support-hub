@@ -236,7 +236,6 @@ export const useAuth = () => {
   const networkSuperuser = useMemo(
     () =>
       isNetworkSuperuser(
-        user,
         navioClaims,
         [
           ...localRoles,
@@ -244,7 +243,7 @@ export const useAuth = () => {
         ],
         googleEmployee
       ),
-    [user, navioClaims, localRoles, userRoles, googleEmployee]
+    [navioClaims, localRoles, userRoles, googleEmployee]
   );
 
   const effectiveScope: EffectiveScope = useMemo(
