@@ -21,6 +21,12 @@ describe("hasSupportHubNavioAccess", () => {
 		).toBe(true);
 	});
 
+	it("allows roles/superuser from IAM", () => {
+		expect(hasSupportHubNavioAccess({ navio_roles: ["roles/superuser"] })).toBe(
+			true,
+		);
+	});
+
 	it("denies other IAM permissions without supporthub.access", () => {
 		expect(
 			hasSupportHubNavioAccess({ navio_permissions: ["bookings.list"] }),
@@ -51,6 +57,15 @@ describe("isNetworkSuperuser", () => {
 		expect(
 			isIamSupportHubAdmin({ navio_permissions: [SUPPORTHUB_ADMIN] }),
 		).toBe(true);
+	});
+
+	it("treats roles/superuser as network admin", () => {
+		expect(
+			isNetworkSuperuser(null, { navio_roles: ["roles/superuser"] }, []),
+		).toBe(true);
+		expect(isIamSupportHubAdmin({ navio_roles: ["roles/superuser"] })).toBe(
+			true,
+		);
 	});
 
 	it("does not treat access-only as network admin", () => {

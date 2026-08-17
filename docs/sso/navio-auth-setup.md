@@ -33,10 +33,11 @@ After login, the SPA runs `getNavioAuthContext(user)` from `@navio/nidp` and:
 2. `sync_navio_organization_memberships` — maps claim SO ids → local
    `organizations.navio_organization_id` and upserts `organization_memberships`
 
-App entry requires `supporthub.access` on `navio_permissions`. Network-wide
-admin is `supporthub.admin`. Django `is_superuser` is expanded by the IdP
-into those permissions. Local `super_admin` / claim role names
-(`owner_superuser`) remain a fallback only when the token has no IAM graph.
+App entry requires `supporthub.access` on `navio_permissions` (or
+`roles/superuser`). Network-wide admin is `supporthub.admin`. Django
+`is_superuser` is a global `roles/superuser` IAMPolicy, not an IdP
+special-case. Local `super_admin` / claim role names remain a fallback
+only when the token has no IAM graph.
 
 | Concern | Wire claims | App helper |
 | --- | --- | --- |
@@ -50,9 +51,10 @@ Local mapping columns: `organizations.navio_organization_id`,
 
 ## Who can use Sign in with Navio?
 
-Depends on product OIDC client policy for `navio-support-hub` (may still be
-superuser-gated at authorize). **In-app data access is membership-scoped**, not
-“Navio login ⇒ see everything.”
+Depends on product OIDC client policy for `navio-support-hub`
+(`authorize_mode=permission`, `access_permission_id=supporthub.access`).
+Django `is_superuser` is bridged to a global `roles/superuser` IAMPolicy.
+**In-app data access is membership-scoped**, not “Navio login ⇒ see everything.”
 
 ## Login flow
 
@@ -60,7 +62,7 @@ superuser-gated at authorize). **In-app data access is membership-scoped**, not
 2. App calls `signInWithNavio(supabase, redirectTo, { skipBrowserRedirect: true })`
    from `@navio/nidp` (`custom:navio` + product scopes).
 3. Supabase starts OAuth2 + PKCE against **`https://auth.noddi.co/o`**.
-4. User authenticates on Navio Core login (superuser gate).
+4. User authenticates on Navio Core login (permission-gated).
 5. Supabase creates the session; the client calls
    `bootstrapNavioSupportHubAccess` (`@/lib/auth-provision`):
    profile RPC + membership sync from claims.
@@ -83,7 +85,8 @@ in the Supabase project **`qgfaycwsangsqzpveoup`**.
 ### Step 1 — Register product OIDC client (navio-core / backend)
 
 On **noddi-backend-api** against the **prod** DB, register a confidential OIDC
-client. The **name must be** `navio-support-hub` (superuser-only gate).
+client. The **name must be** `navio-support-hub`. Set
+`authorize_mode=permission` and `access_permission_id=supporthub.access`.
 
 ```bash
 # Generate secrets once; keep them for Supabase + GSM
@@ -293,7 +296,7 @@ Already implemented; no Supabase UI work:
 - [ ] Supabase Custom OIDC provider `navio` → issuer `https://auth.noddi.co/o`, scopes include `navio:active`
 - [ ] Authorize smoke-test redirects to `auth.noddi.co`
 - [ ] Migration `ensure_authentik_support_hub_access` applied
-- [ ] Test with a **Django superuser** account on navio-core
+- [ ] Test with a user who has `supporthub.access` or `roles/superuser`
 
 ## Client code (this repo)
 

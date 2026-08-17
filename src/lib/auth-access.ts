@@ -3,10 +3,11 @@ import {
   getIamRoles,
   getRolesForOrganization,
   hasIamPermission,
+  hasIamRole,
 } from "@navio/nidp";
 import type { User } from "@supabase/supabase-js";
 
-/** IAM permission ids Support Hub enforces (must match backend SupportHubPermissions). */
+/** IAM permission ids Support Hub enforces (IamExternalPermission catalog). */
 export const SUPPORTHUB_ACCESS = "supporthub.access";
 export const SUPPORTHUB_READ = "supporthub.read";
 export const SUPPORTHUB_ADMIN = "supporthub.admin";
@@ -33,12 +34,19 @@ export function hasSupportHubPermission(claims: ClaimsLike, permissionId: string
   return permissionId !== SUPPORTHUB_ADMIN && hasIamPermission(claims, SUPPORTHUB_ADMIN);
 }
 
+export function hasPlatformSuperuserRole(claims: ClaimsLike): boolean {
+  return hasIamRole(claims, "roles/superuser");
+}
+
 export function hasSupportHubAccessPermission(claims: ClaimsLike): boolean {
-  return SUPPORTHUB_ACCESS_PERMISSIONS.some((id) => hasIamPermission(claims, id));
+  return (
+    hasPlatformSuperuserRole(claims) ||
+    SUPPORTHUB_ACCESS_PERMISSIONS.some((id) => hasIamPermission(claims, id))
+  );
 }
 
 export function isIamSupportHubAdmin(claims: ClaimsLike): boolean {
-  return hasIamPermission(claims, SUPPORTHUB_ADMIN);
+  return hasPlatformSuperuserRole(claims) || hasIamPermission(claims, SUPPORTHUB_ADMIN);
 }
 
 function hasLegacyClaimSuperuserRole(claims: ClaimsLike): boolean {
