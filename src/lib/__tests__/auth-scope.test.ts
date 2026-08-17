@@ -162,6 +162,17 @@ describe("auth-scope", () => {
     expect(resolveApiDepartmentIds([], scope)).toEqual([]);
   });
 
+  it("supporthub.admin permission is network superuser", () => {
+    const scope = getEffectiveScope({
+      claims: {
+        navio_permissions: ["supporthub.admin"],
+        navio_roles: ["roles/supporthub.admin"],
+      },
+    });
+    expect(scope.isSuperuser).toBe(true);
+    expect(resolveApiDepartmentIds([], scope)).toEqual([]);
+  });
+
   it("forceSuperuser (e.g. Google employee) is unrestricted", () => {
     const scope = getEffectiveScope({
       claims: {},

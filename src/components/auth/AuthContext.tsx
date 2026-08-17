@@ -58,11 +58,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       hydrateNavioClaims(sessionUser);
       return;
     }
-    // Navio logins require superuser or the roles/supporthub.user IAM role.
+    // Navio logins require supporthub.access (or admin) on the token.
     if (isNavioCoreOidcUser(sessionUser)) {
       const { claims } = getNavioAuthContext(asNidpUser(sessionUser));
       if (!hasSupportHubNavioAccess(claims)) {
-        logger.warn('Navio sign-in rejected: missing Support Hub role', {
+        logger.warn('Navio sign-in rejected: missing supporthub.access', {
           userId: sessionUser.id,
           email: sessionUser.email,
         }, 'Auth');

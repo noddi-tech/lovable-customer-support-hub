@@ -21,8 +21,8 @@ Architecture: [noddi-infrastructure `docs/idp.md`](https://github.com/noddi-tech
   service departments). Users only see orgs/depts they belong to.
 - Keep Supabase Auth for sessions, RLS, `auth.users`, and local membership rows
   synced from claims.
-- **Google login stays** for Noddi employees (company Google only) and is treated
-  as **superuser** (full org access + `super_admin` role), same as claim superuser.
+- **Google login stays** for `@noddi.no` employees and is a **legacy
+  superuser fallback** only when the token has no IAM permission graph.
 - Email/password and magic link remain for invites / other agents.
 
 ## Membership scope (product claims)
@@ -33,16 +33,17 @@ After login, the SPA runs `getNavioAuthContext(user)` from `@navio/nidp` and:
 2. `sync_navio_organization_memberships` — maps claim SO ids → local
    `organizations.navio_organization_id` and upserts `organization_memberships`
 
-Claim superusers (`owner_superuser` / `viewer_superuser` in `navio_active_roles`)
-get local `super_admin` and full org access. **Google employee logins** also get
-`super_admin` via `ensure_google_employee_support_hub_access` (only employees have
-Noddi Google accounts). Everyone else on Navio is limited to membership SOs/SDs.
+App entry requires `supporthub.access` on `navio_permissions`. Network-wide
+admin is `supporthub.admin`. Django `is_superuser` is expanded by the IdP
+into those permissions. Local `super_admin` / claim role names
+(`owner_superuser`) remain a fallback only when the token has no IAM graph.
 
 | Concern | Wire claims | App helper |
 | --- | --- | --- |
 | Service organizations | `navio_memberships`, `navio_organizations` | `getOrganizations` / `getEffectiveScope` |
 | Service departments | `navio_memberships[].departments`, `navio_departments` | `getDepartments` / `getAccessibleServiceDepartments` |
-| Superuser | `navio_active_roles` includes `owner_superuser` \| `viewer_superuser` | `effectiveScope.isSuperuser` |
+| App entry | `navio_permissions` includes `supporthub.access` | `hasSupportHubNavioAccess` |
+| Superuser | `supporthub.admin` (or legacy claim/local role if no IAM graph) | `effectiveScope.isSuperuser` |
 
 Local mapping columns: `organizations.navio_organization_id`,
 `departments.navio_department_id` (+ optional `departments.slug`).

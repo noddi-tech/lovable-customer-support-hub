@@ -45,13 +45,24 @@ export function extractNavioClaims(user: {
   return out;
 }
 
+const SUPPORTHUB_ADMIN = "supporthub.admin";
+
+function stringList(value: unknown): string[] {
+  return Array.isArray(value) ? value.map(String) : [];
+}
+
 function collectFromClaims(claims: Record<string, unknown>): ScopeResult {
-  const activeRoles = Array.isArray(claims.navio_active_roles)
-    ? (claims.navio_active_roles as unknown[]).map(String)
-    : [];
+  const permissions = stringList(claims.navio_permissions);
+  const iamRoles = stringList(claims.navio_roles);
+  const activeRoles = stringList(claims.navio_active_roles);
+  const hasIamGraph = permissions.length > 0 || iamRoles.length > 0;
   const isSuperuser =
-    activeRoles.includes("owner_superuser") ||
-    activeRoles.includes("viewer_superuser");
+    permissions.includes(SUPPORTHUB_ADMIN) ||
+    iamRoles.includes("roles/supporthub.admin") ||
+    iamRoles.includes("roles/superuser") ||
+    (!hasIamGraph &&
+      (activeRoles.includes("owner_superuser") ||
+        activeRoles.includes("viewer_superuser")));
 
   const deptIds = new Set<number>();
   const orgIds = new Set<number>();
@@ -154,11 +165,14 @@ export function resolveUserScope(
   localIsSuperuser = false
 ): ScopeResult {
   const fromClaims = collectFromClaims(extractNavioClaims(user));
-  // Verified noddi.no Google identity → network superuser (employee accounts).
-  const googleEmployee = isGoogleEmployeeUser(user);
+  const claims = extractNavioClaims(user);
+  const hasIamGraph =
+    stringList(claims.navio_permissions).length > 0 ||
+    stringList(claims.navio_roles).length > 0;
+  const googleFallback = !hasIamGraph && isGoogleEmployeeUser(user);
   return {
     ...fromClaims,
-    isSuperuser: localIsSuperuser || fromClaims.isSuperuser || googleEmployee,
+    isSuperuser: localIsSuperuser || fromClaims.isSuperuser || googleFallback,
   };
 }
 

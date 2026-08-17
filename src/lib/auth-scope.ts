@@ -12,13 +12,17 @@ import {
   getActiveOrganization,
   getActiveRoles,
   getDepartments,
+  getIamPermissions,
+  getIamRoles,
   getMemberships,
   getOrganizations,
+  hasIamPermission,
   type NavioClaims,
   type NavioDepartment,
   type NavioOrganization,
   summarizeClaimScope,
 } from "@navio/nidp";
+import { SUPPORTHUB_ADMIN } from "@/lib/auth-access";
 
 export {
   getActiveDepartments,
@@ -107,6 +111,10 @@ function isSuperuserRoles(
   forceSuperuser = false
 ): boolean {
   if (forceSuperuser) return true;
+  if (hasIamPermission(claims, SUPPORTHUB_ADMIN)) return true;
+  const hasIamGraph =
+    getIamPermissions(claims).length > 0 || getIamRoles(claims).length > 0;
+  if (hasIamGraph) return false;
   if (
     roles.some(
       (r) =>
