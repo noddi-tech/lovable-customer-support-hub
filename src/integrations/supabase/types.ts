@@ -2024,6 +2024,33 @@ export type Database = {
           },
         ]
       }
+      gmail_oauth_states: {
+        Row: {
+          consumed_at: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          nonce: string
+          user_id: string
+        }
+        Insert: {
+          consumed_at?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          nonce: string
+          user_id: string
+        }
+        Update: {
+          consumed_at?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          nonce?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       import_jobs: {
         Row: {
           completed_at: string | null
@@ -3888,6 +3915,24 @@ export type Database = {
           organization_id?: string | null
           parameters?: Json | null
           row_count?: number | null
+        }
+        Relationships: []
+      }
+      rate_limit_tracking: {
+        Row: {
+          count: number
+          key: string
+          window_start: string
+        }
+        Insert: {
+          count?: number
+          key: string
+          window_start?: string
+        }
+        Update: {
+          count?: number
+          key?: string
+          window_start?: string
         }
         Relationships: []
       }
@@ -7359,6 +7404,10 @@ export type Database = {
         }[]
       }
       calculate_sla_breach: { Args: never; Returns: undefined }
+      check_rate_limit: {
+        Args: { _key: string; _limit: number; _window_seconds: number }
+        Returns: boolean
+      }
       claim_queue_row: { Args: { p_queue_id: string }; Returns: Json }
       cleanup_expired_audit_events: { Args: never; Returns: number }
       cleanup_old_email_ingestion_logs: { Args: never; Returns: undefined }
