@@ -1,5 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { corsHeaders } from '../_shared/cors.ts';
+import { requireAdmin } from '../_shared/auth.ts';
+
 
 const BATCH_SIZE = 100; // Delete in smaller batches to avoid timeout
 
