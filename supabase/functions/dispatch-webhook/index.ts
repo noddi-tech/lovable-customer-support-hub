@@ -23,6 +23,65 @@ interface DispatchWebhookResponse {
 const TIMEOUT_MS = 10_000;
 const RESPONSE_EXCERPT_MAX = 2048;
 
+const BLOCKED_HOSTNAMES = new Set([
+  "localhost",
+  "metadata.google.internal",
+  "metadata",
+  "instance-data",
+]);
+
+function isPrivateIpv4(host: string): boolean {
+  const m = host.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (!m) return false;
+  const [a, b] = [Number(m[1]), Number(m[2])];
+  if ([a, Number(m[2]), Number(m[3]), Number(m[4])].some((n) => n > 255)) return true;
+  if (a === 10 || a === 127 || a === 0) return true;
+  if (a === 169 && b === 254) return true; // link-local / cloud metadata
+  if (a === 172 && b >= 16 && b <= 31) return true;
+  if (a === 192 && b === 168) return true;
+  if (a === 100 && b >= 64 && b <= 127) return true; // CGNAT
+  return false;
+}
+
+/** SSRF guard: only outbound HTTPS to public hosts is allowed. */
+function validateWebhookUrl(raw: string): { ok: true; url: URL } | { ok: false; reason: string } {
+  let url: URL;
+  try {
+    url = new URL(raw);
+  } catch {
+    return { ok: false, reason: "Invalid URL" };
+  }
+  if (url.protocol !== "https:") {
+    return { ok: false, reason: "Only https:// webhook URLs are allowed" };
+  }
+  const host = url.hostname.toLowerCase().replace(/^\[|\]$/g, "");
+  if (BLOCKED_HOSTNAMES.has(host) || host.endsWith(".localhost") || host.endsWith(".internal")) {
+    return { ok: false, reason: "Webhook host is not allowed" };
+  }
+  if (isPrivateIpv4(host)) {
+    return { ok: false, reason: "Webhook host resolves to a private address" };
+  }
+  // IPv6 loopback / unique-local / link-local
+  if (host === "::1" || host.startsWith("fc") || host.startsWith("fd") || host.startsWith("fe80")) {
+    return { ok: false, reason: "Webhook host is not allowed" };
+  }
+  const supabaseHost = (() => {
+    try {
+      return new URL(Deno.env.get("SUPABASE_URL") ?? "").hostname;
+    } catch {
+      return "";
+    }
+  })();
+  if (supabaseHost && host === supabaseHost) {
+    return { ok: false, reason: "Webhook host is not allowed" };
+  }
+  return { ok: true, url };
+}
+
+/** Headers a caller may not override (prevents credential relaying). */
+const FORBIDDEN_HEADERS = new Set(["host", "cookie", "apikey", "x-forwarded-for"]);
+
+
 /**
  * Substitute {{foo.bar}} patterns in `template` using values from `scope`.
  * Unknown / unresolved paths stay literal. No recursion, no escaping.
