@@ -1,4 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { checkRateLimit, clientIp, rateLimitResponse } from '../_shared/rate-limit.ts';
+
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -31,8 +33,48 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // Abuse protection: cap submissions per IP.
+    const ip = clientIp(req);
+    if (!(await checkRateLimit(`widget-submit:${ip}`, 10, 300))) {
+      return rateLimitResponse(corsHeaders);
+    }
+
     const body: WidgetSubmission = await req.json();
-    const { widgetKey, name, email, message, subject, pageUrl, visitorId, browserInfo } = body;
+
+    // --- Input validation & sanitization (never trust widget clients) ---
+    const asString = (v: unknown, max: number): string =>
+      typeof v === 'string'
+        ? v
+            .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '') // control chars
+            .replace(/<[^>]*>/g, '') // strip markup
+            .trim()
+            .slice(0, max)
+        : '';
+
+    const widgetKey = asString(body.widgetKey, 200);
+    const name = asString(body.name, 120);
+    const email = asString(body.email, 254).toLowerCase();
+    const message = asString(body.message, 10000);
+    const subject = asString(body.subject, 200) || undefined;
+    const visitorId = asString(body.visitorId, 100) || undefined;
+    const browserInfo =
+      body.browserInfo && typeof body.browserInfo === 'object' && !Array.isArray(body.browserInfo)
+        ? Object.fromEntries(
+            Object.entries(body.browserInfo)
+              .slice(0, 20)
+              .map(([k, v]) => [k.slice(0, 50), String(v).slice(0, 500)]),
+          )
+        : undefined;
+
+    let pageUrl: string | undefined;
+    if (typeof body.pageUrl === 'string' && body.pageUrl.length <= 2000) {
+      try {
+        const parsed = new URL(body.pageUrl);
+        if (parsed.protocol === 'http:' || parsed.protocol === 'https:') pageUrl = parsed.toString();
+      } catch {
+        pageUrl = undefined;
+      }
+    }
 
     // Validate required fields
     if (!widgetKey || !email || !message) {
@@ -50,6 +92,12 @@ Deno.serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    // Per-email throttle on top of the IP limit
+    if (!(await checkRateLimit(`widget-submit-email:${email}`, 10, 3600))) {
+      return rateLimitResponse(corsHeaders);
+    }
+
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;

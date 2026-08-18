@@ -10,6 +10,23 @@ export function getApiUrl(): string {
   return apiBaseUrl;
 }
 
+// The proxy edge functions require callers to identify themselves; the widget
+// presents its (public) widget key so the functions are not open to the world.
+let widgetKey = '';
+
+export function setWidgetKey(key: string) {
+  widgetKey = key;
+}
+
+export function getWidgetKey(): string {
+  return widgetKey;
+}
+
+/** Headers for calls to the Noddi proxy edge functions. */
+export function proxyHeaders(): Record<string, string> {
+  return { 'Content-Type': 'application/json', 'x-widget-key': widgetKey };
+}
+
 export async function fetchWidgetConfig(widgetKey: string): Promise<WidgetConfig | null> {
   try {
     const response = await fetch(`${apiBaseUrl}/widget-config?key=${encodeURIComponent(widgetKey)}`);
@@ -337,7 +354,7 @@ export async function searchAddressSuggestions(widgetKey: string, input: string)
   try {
     const response = await fetch(`${apiBaseUrl}/noddi-address-lookup`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'x-widget-key': widgetKey || getWidgetKey() },
       body: JSON.stringify({ action: 'suggestions', input }),
     });
     if (!response.ok) return [];
@@ -352,7 +369,7 @@ export async function searchAddressSuggestions(widgetKey: string, input: string)
 export async function resolveAddress(widgetKey: string, placeId: string): Promise<ResolvedAddress> {
   const response = await fetch(`${apiBaseUrl}/noddi-address-lookup`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'x-widget-key': widgetKey || getWidgetKey() },
     body: JSON.stringify({ action: 'resolve', place_id: placeId }),
   });
   if (!response.ok) {

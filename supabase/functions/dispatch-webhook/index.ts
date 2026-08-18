@@ -1,4 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { isServiceRoleRequest } from "../_shared/caller.ts";
+import { requireUser } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -22,6 +24,65 @@ interface DispatchWebhookResponse {
 
 const TIMEOUT_MS = 10_000;
 const RESPONSE_EXCERPT_MAX = 2048;
+
+const BLOCKED_HOSTNAMES = new Set([
+  "localhost",
+  "metadata.google.internal",
+  "metadata",
+  "instance-data",
+]);
+
+function isPrivateIpv4(host: string): boolean {
+  const m = host.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (!m) return false;
+  const [a, b] = [Number(m[1]), Number(m[2])];
+  if ([a, Number(m[2]), Number(m[3]), Number(m[4])].some((n) => n > 255)) return true;
+  if (a === 10 || a === 127 || a === 0) return true;
+  if (a === 169 && b === 254) return true; // link-local / cloud metadata
+  if (a === 172 && b >= 16 && b <= 31) return true;
+  if (a === 192 && b === 168) return true;
+  if (a === 100 && b >= 64 && b <= 127) return true; // CGNAT
+  return false;
+}
+
+/** SSRF guard: only outbound HTTPS to public hosts is allowed. */
+function validateWebhookUrl(raw: string): { ok: true; url: URL } | { ok: false; reason: string } {
+  let url: URL;
+  try {
+    url = new URL(raw);
+  } catch {
+    return { ok: false, reason: "Invalid URL" };
+  }
+  if (url.protocol !== "https:") {
+    return { ok: false, reason: "Only https:// webhook URLs are allowed" };
+  }
+  const host = url.hostname.toLowerCase().replace(/^\[|\]$/g, "");
+  if (BLOCKED_HOSTNAMES.has(host) || host.endsWith(".localhost") || host.endsWith(".internal")) {
+    return { ok: false, reason: "Webhook host is not allowed" };
+  }
+  if (isPrivateIpv4(host)) {
+    return { ok: false, reason: "Webhook host resolves to a private address" };
+  }
+  // IPv6 loopback / unique-local / link-local
+  if (host === "::1" || host.startsWith("fc") || host.startsWith("fd") || host.startsWith("fe80")) {
+    return { ok: false, reason: "Webhook host is not allowed" };
+  }
+  const supabaseHost = (() => {
+    try {
+      return new URL(Deno.env.get("SUPABASE_URL") ?? "").hostname;
+    } catch {
+      return "";
+    }
+  })();
+  if (supabaseHost && host === supabaseHost) {
+    return { ok: false, reason: "Webhook host is not allowed" };
+  }
+  return { ok: true, url };
+}
+
+/** Headers a caller may not override (prevents credential relaying). */
+const FORBIDDEN_HEADERS = new Set(["host", "cookie", "apikey", "x-forwarded-for"]);
+
 
 /**
  * Substitute {{foo.bar}} patterns in `template` using values from `scope`.
@@ -52,12 +113,30 @@ const handler = async (req: Request): Promise<Response> => {
   const startedAt = performance.now();
 
   try {
+    // AuthZ: internal automation (service role) or a signed-in user only.
+    if (!isServiceRoleRequest(req)) {
+      const auth = await requireUser(req);
+      if ("response" in auth) {
+        return new Response(
+          JSON.stringify({ error: "Unauthorized" }),
+          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+    }
+
     const payload = (await req.json()) as DispatchWebhookRequest;
     const { url, headers, body, message_template } = payload;
 
     if (!url || typeof url !== "string") {
       return new Response(
         JSON.stringify({ error: "Missing or invalid 'url'" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+    const urlCheck = validateWebhookUrl(url);
+    if (!urlCheck.ok) {
+      return new Response(
+        JSON.stringify({ error: urlCheck.reason }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
@@ -84,7 +163,9 @@ const handler = async (req: Request): Promise<Response> => {
     };
     if (headers && typeof headers === "object") {
       for (const [k, v] of Object.entries(headers)) {
-        if (typeof v === "string") outboundHeaders[k] = v;
+        if (typeof v === "string" && !FORBIDDEN_HEADERS.has(k.toLowerCase())) {
+          outboundHeaders[k] = v;
+        }
       }
     }
 
@@ -94,8 +175,9 @@ const handler = async (req: Request): Promise<Response> => {
 
     let response: Response;
     try {
-      response = await fetch(url, {
+      response = await fetch(urlCheck.url.toString(), {
         method: "POST",
+        redirect: "manual",
         headers: outboundHeaders,
         body: JSON.stringify(outboundBody),
         signal: controller.signal,

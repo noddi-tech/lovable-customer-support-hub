@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { checkRateLimit as checkDurableRateLimit, clientIp, rateLimitResponse } from '../_shared/rate-limit.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -79,6 +80,15 @@ Deno.serve(async (req) => {
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
   try {
+    // Durable, cross-instance abuse protection per client IP.
+    const ip = clientIp(req);
+    const ipAllowed = req.method === 'GET'
+      ? await checkDurableRateLimit(`widget-chat-get:${ip}`, 240, 60)
+      : await checkDurableRateLimit(`widget-chat-post:${ip}`, 60, 60);
+    if (!ipAllowed) {
+      return rateLimitResponse(corsHeaders);
+    }
+
     // Handle GET request for polling messages
     if (req.method === 'GET') {
       const url = new URL(req.url);
@@ -93,7 +103,8 @@ Deno.serve(async (req) => {
       }
 
       // Rate limit GET requests: 60 requests per minute per session
-      if (!checkRateLimit(`get:${sessionId}`, 60, 60000)) {
+      if (!checkRateLimit(`get:${sessionId}`, 60, 60000) ||
+          !(await checkDurableRateLimit(`widget-chat-session:${sessionId}`, 120, 60))) {
         return new Response(
           JSON.stringify({ error: 'Rate limit exceeded' }),
           { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -350,7 +361,8 @@ async function handleSendMessage(supabase: any, data: MessageRequest) {
   }
 
   // Rate limit messages: 30 messages per minute per visitor
-  if (!checkRateLimit(`msg:${session.visitor_id}`, 30, 60000)) {
+  if (!checkRateLimit(`msg:${session.visitor_id}`, 30, 60000) ||
+      !(await checkDurableRateLimit(`widget-chat-msg:${session.visitor_id}`, 30, 60))) {
     return new Response(
       JSON.stringify({ error: 'Rate limit exceeded. Please slow down.' }),
       { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

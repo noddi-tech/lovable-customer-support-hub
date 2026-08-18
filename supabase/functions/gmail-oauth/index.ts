@@ -111,23 +111,59 @@ Deno.serve(async (req: Request) => {
         });
       }
 
-      console.log('Looking up user profile for state:', state);
-      
+      // CSRF: the state is an opaque single-use <id>:<nonce> pair issued at init.
+      const [stateId, stateNonce] = state.split(':');
+      const { data: stateRow } = await supabaseClient
+        .from('gmail_oauth_states')
+        .select('id, nonce, user_id, expires_at, consumed_at')
+        .eq('id', stateId ?? '')
+        .maybeSingle();
+
+      const stateValid = !!stateRow
+        && !!stateNonce
+        && stateRow.nonce === stateNonce
+        && !stateRow.consumed_at
+        && new Date(stateRow.expires_at as string) > new Date();
+
+      if (!stateValid) {
+        console.error('Invalid or expired OAuth state');
+        return new Response(`<!DOCTYPE html>
+          <html>
+            <body>
+              <h1>Error</h1>
+              <p>This sign-in link is invalid or has expired. Please try connecting again.</p>
+              <script>setTimeout(() => window.close(), 3000);</script>
+            </body>
+          </html>
+        `, {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'text/html; charset=utf-8' },
+        });
+      }
+
+      // Single use.
+      await supabaseClient
+        .from('gmail_oauth_states')
+        .update({ consumed_at: new Date().toISOString() })
+        .eq('id', stateRow.id);
+
+      const stateUserId = stateRow.user_id as string;
+
       const { data: profile, error: profileError } = await supabaseClient
         .from('profiles')
         .select('organization_id, user_id, email')
-        .eq('user_id', state)
+        .eq('user_id', stateUserId)
         .single();
 
       console.log('Profile lookup result:', { 
         profile, 
         profileError: profileError?.message,
         hasOrgId: !!profile?.organization_id,
-        stateUsed: state 
+        stateUsed: stateUserId 
       });
 
       if (profileError || !profile) {
-        console.error('User profile lookup failed:', { profileError, state });
+        console.error('User profile lookup failed:', { profileError });
         
         // Try to find any profile to debug
         const { data: allProfiles } = await supabaseClient
@@ -141,7 +177,7 @@ Deno.serve(async (req: Request) => {
           <html>
             <body>
               <h1>Error</h1>
-              <p>User profile not found for user ID: ${state}</p>
+              <p>User profile not found.</p>
               <p>Error: ${profileError?.message || 'Profile not found'}</p>
               <script>
                 setTimeout(() => window.close(), 5000);
@@ -157,7 +193,7 @@ Deno.serve(async (req: Request) => {
       // Store email account
       console.log('Storing email account...', {
         organization_id: profile.organization_id,
-        user_id: state,
+        user_id: stateUserId,
         email_address: userInfo.email,
         provider: 'gmail'
       });
@@ -166,7 +202,7 @@ Deno.serve(async (req: Request) => {
         .from('email_accounts')
         .upsert({
           organization_id: profile.organization_id,
-          user_id: state,
+          user_id: stateUserId,
           email_address: userInfo.email,
           provider: 'gmail',
           access_token: tokens.access_token,
@@ -264,7 +300,31 @@ Deno.serve(async (req: Request) => {
     authUrl.searchParams.set('response_type', 'code');
     authUrl.searchParams.set('access_type', 'offline');
     authUrl.searchParams.set('prompt', 'consent');
-    authUrl.searchParams.set('state', user.id);
+    // Issue a single-use, unguessable state token (CSRF protection).
+    const admin = createClient(
+      'https://qgfaycwsangsqzpveoup.supabase.co',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+    const nonce = crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '');
+    const { data: stateRow, error: stateError } = await admin
+      .from('gmail_oauth_states')
+      .insert({
+        nonce,
+        user_id: user.id,
+        expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+      })
+      .select('id')
+      .single();
+
+    if (stateError || !stateRow) {
+      console.error('Failed to create OAuth state:', stateError);
+      return new Response(JSON.stringify({ error: 'Failed to start OAuth flow' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    authUrl.searchParams.set('state', `${stateRow.id}:${nonce}`);
 
     return new Response(JSON.stringify({ authUrl: authUrl.toString() }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

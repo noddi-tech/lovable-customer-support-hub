@@ -6,6 +6,7 @@ import { formatPlainTextEmail } from './plainTextEmailFormatter';
 import { createPlaceholder, rewriteImageSources } from './imageAssetHandler';
 import { parseQuotedEmail } from '@/lib/parseQuotedEmail';
 import { logger } from '@/utils/logger';
+import { buildAttachmentUrl } from '@/utils/attachmentUrl';
 
 /**
  * Detect signature-like blocks at the end of HTML emails and wrap in .email-signature.
@@ -383,7 +384,7 @@ export const sanitizeEmailHTML = (
         }
         
         // Use storageKey for Supabase Storage - must use actual Supabase URL, not app origin
-        const attachmentUrl = `https://qgfaycwsangsqzpveoup.supabase.co/functions/v1/get-attachment?key=${encodeURIComponent(assetInfo.attachment.storageKey)}`;
+        const attachmentUrl = buildAttachmentUrl({ key: assetInfo.attachment.storageKey });
         console.log(`[EmailFormatting] Found CID match, using URL: ${attachmentUrl}`);
         return `src="${attachmentUrl}" data-attachment="true" class="email-attachment-image${inlineClass}"`;
       }
@@ -421,7 +422,7 @@ export const sanitizeEmailHTML = (
         }
         
         // Use storageKey for Supabase Storage - must use actual Supabase URL, not app origin
-        const attachmentUrl = `https://qgfaycwsangsqzpveoup.supabase.co/functions/v1/get-attachment?key=${encodeURIComponent(assetInfo.attachment.storageKey)}`;
+        const attachmentUrl = buildAttachmentUrl({ key: assetInfo.attachment.storageKey });
         console.log(`[EmailFormatting] Found Content-Location match, using URL: ${attachmentUrl}`);
         return `src="${attachmentUrl}" data-attachment="true" class="email-attachment-image${inlineClass}"`;
       }

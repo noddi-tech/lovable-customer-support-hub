@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { registerBlock, BlockComponentProps, FlowPreviewProps } from './registry';
-import { getApiUrl } from '../../api';
+import { getApiUrl, proxyHeaders } from '../../api';
 
 const COUNTRY_FLAGS: Record<string, string> = { NO: '🇳🇴', SE: '🇸🇪', DK: '🇩🇰', FI: '🇫🇮' };
 
@@ -36,7 +36,7 @@ const LicensePlateBlock: React.FC<BlockComponentProps> = ({
     try {
       const resp = await fetch(`${getApiUrl()}/noddi-booking-proxy`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: proxyHeaders(),
         body: JSON.stringify({ action: 'lookup_car', country_code: country, license_plate: cleaned }),
       });
       const result = await resp.json();

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { registerBlock, BlockComponentProps, FlowPreviewProps } from './registry';
-import { getApiUrl } from '../../api';
+import { getApiUrl, proxyHeaders } from '../../api';
 
 const BookingEditConfirmBlock: React.FC<BlockComponentProps> = ({
   primaryColor, messageId, blockIndex, usedBlocks, onAction, onLogEvent, data,
@@ -56,7 +56,7 @@ const BookingEditConfirmBlock: React.FC<BlockComponentProps> = ({
 
       const resp = await fetch(`${getApiUrl()}/noddi-booking-proxy`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: proxyHeaders(),
         body: JSON.stringify(payload),
       });
       const respData = await resp.json();

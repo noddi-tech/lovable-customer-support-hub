@@ -16,6 +16,28 @@ interface IncomingEmail {
   references?: string;
 }
 
+/** Constant-time-ish comparison of two hex strings. */
+function timingSafeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
+async function hmacHex(secret: string, payload: string): Promise<string> {
+  const key = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign'],
+  );
+  const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(payload));
+  return Array.from(new Uint8Array(sig))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -27,8 +49,32 @@ Deno.serve(async (req: Request) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     );
 
-    const emailData: IncomingEmail = await req.json();
-    console.log('Received email:', emailData);
+    // Fail-closed HMAC verification: the raw body must be signed with
+    // EMAIL_WEBHOOK_SECRET and sent as `x-webhook-signature: sha256=<hex>`.
+    const webhookSecret = Deno.env.get('EMAIL_WEBHOOK_SECRET');
+    const rawBody = await req.text();
+
+    if (!webhookSecret) {
+      console.error('EMAIL_WEBHOOK_SECRET is not configured — rejecting request');
+      return new Response(JSON.stringify({ error: 'Webhook not configured' }), {
+        status: 503,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const provided = (req.headers.get('x-webhook-signature') ?? '').replace(/^sha256=/i, '').trim();
+    const expected = await hmacHex(webhookSecret, rawBody);
+    if (!provided || !timingSafeEqual(provided.toLowerCase(), expected)) {
+      console.warn('Rejected email webhook: invalid signature');
+      return new Response(JSON.stringify({ error: 'Invalid signature' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const emailData: IncomingEmail = JSON.parse(rawBody);
+    console.log('Received email from:', emailData.from, 'to:', emailData.to);
+
 
     // Helper: extract ALL Message-IDs from email headers for multi-ID lookup
     const extractAllIds = (messageId: string, inReplyTo?: string, references?: string): { helpScoutKey: string | null; allIds: string[] } => {

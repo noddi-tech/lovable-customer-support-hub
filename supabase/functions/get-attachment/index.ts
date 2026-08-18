@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { requireUser } from '../_shared/auth.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -14,12 +15,23 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // AuthN: attachments are customer data. Accept a bearer token or a `token`
+    // query param (needed for <img src> where headers cannot be set).
+    const auth = await requireUser(req)
+    if ('response' in auth) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
     const url = new URL(req.url)
+    
     
     // Check for storageKey parameter (new method for Supabase Storage)
     const storageKey = url.searchParams.get('key')

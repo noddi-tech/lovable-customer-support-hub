@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import type { WidgetConfig, WidgetInitOptions } from './types';
-import { fetchWidgetConfig, setApiUrl } from './api';
+import { fetchWidgetConfig, setApiUrl, setWidgetKey } from './api';
 import { FloatingButton } from './components/FloatingButton';
 import { WidgetPanel } from './components/WidgetPanel';
 import './styles/widget.css';
@@ -36,6 +36,7 @@ export const Widget: React.FC<WidgetProps> = ({ options, onMount }) => {
     if (options.apiUrl) {
       setApiUrl(options.apiUrl);
     }
+    setWidgetKey(options.widgetKey);
 
     const loadConfig = async () => {
       setIsLoading(true);
