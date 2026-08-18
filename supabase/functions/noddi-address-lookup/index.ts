@@ -1,4 +1,6 @@
 import { corsHeaders } from "../_shared/cors.ts";
+import { isAllowedProxyCaller } from "../_shared/caller.ts";
+import { checkRateLimit, clientIp, rateLimitResponse } from "../_shared/rate-limit.ts";
 
 const API_BASE = (Deno.env.get("NODDI_API_BASE") || "https://api.noddi.co").replace(/\/+$/, "");
 const NODDI_TOKEN = Deno.env.get("NODDI_API_TOKEN") || "";
@@ -9,6 +11,17 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // AuthZ: signed-in users, internal calls, or the widget with a valid widget key.
+    if (!(await isAllowedProxyCaller(req))) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (!(await checkRateLimit(`noddi-address:${clientIp(req)}`, 60, 60))) {
+      return rateLimitResponse(corsHeaders);
+    }
+
     const { action, input, place_id } = await req.json();
 
     if (action === "suggestions") {
