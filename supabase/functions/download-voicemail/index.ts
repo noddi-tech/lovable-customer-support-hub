@@ -18,6 +18,16 @@ Deno.serve(async (req) => {
 
   try {
     console.log('📞 Starting download-voicemail function...');
+
+    // AuthZ: voicemail audio is customer data — signed-in users only.
+    const auth = await requireUser(req);
+    if ('response' in auth) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
     
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
