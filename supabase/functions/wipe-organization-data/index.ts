@@ -48,6 +48,12 @@ Deno.serve(async (req) => {
       throw new Error('Organization ID is required');
     }
 
+    // AuthZ: only admins of the target organization (or super admins) may wipe data.
+    const auth = await requireAdmin(req, organizationId);
+    if ('response' in auth) {
+      return auth.response;
+    }
+
     const supabaseServiceClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
