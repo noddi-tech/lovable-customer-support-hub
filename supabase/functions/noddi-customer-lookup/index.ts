@@ -765,6 +765,17 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // AuthZ: customer PII — internal service calls or signed-in agents only.
+    if (!isServiceRoleRequest(req)) {
+      const auth = await requireUser(req);
+      if ('response' in auth) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401,
+          headers: { ...cors, 'Content-Type': 'application/json' },
+        });
+      }
+    }
+
     const body = await req.json() as NoddihCustomerLookupRequest;
     
     const phone = sanitizePhone(body.phone); // Remove spaces for E.164 format
