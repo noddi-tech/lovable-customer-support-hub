@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { registerBlock, BlockComponentProps, FlowPreviewProps } from './registry';
-import { getApiUrl } from '../../api';
+import { getApiUrl, proxyHeaders } from '../../api';
 
 function formatDate(dateStr: string): string {
   const d = new Date(dateStr + 'T12:00:00Z'); // noon UTC avoids date shifts near midnight
@@ -50,7 +50,7 @@ const TimeSlotBlock: React.FC<BlockComponentProps> = ({
         const apiUrl = getApiUrl();
         const postJson = (body: any) => fetch(`${apiUrl}/noddi-booking-proxy`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: proxyHeaders(),
           body: JSON.stringify(body),
         }).then(r => r.json());
 

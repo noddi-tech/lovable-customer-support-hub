@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { registerBlock, BlockComponentProps, FlowPreviewProps } from './registry';
-import { getApiUrl } from '../../api';
+import { getApiUrl, proxyHeaders } from '../../api';
 
 const BookingSummaryBlock: React.FC<BlockComponentProps> = ({
   primaryColor, messageId, blockIndex, usedBlocks, onAction, onLogEvent, data,
@@ -39,7 +39,7 @@ const BookingSummaryBlock: React.FC<BlockComponentProps> = ({
           try {
             const lookupResp = await fetch(`${getApiUrl()}/noddi-booking-proxy`, {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: proxyHeaders(),
               body: JSON.stringify({ action: 'lookup_customer', phone }),
             });
             const lookupData = await lookupResp.json();
@@ -96,7 +96,7 @@ const BookingSummaryBlock: React.FC<BlockComponentProps> = ({
 
       const resp = await fetch(`${getApiUrl()}/noddi-booking-proxy`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: proxyHeaders(),
         body: JSON.stringify(bookingPayload),
       });
       const bookingData = await resp.json();

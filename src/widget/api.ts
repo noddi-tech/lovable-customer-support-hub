@@ -10,6 +10,23 @@ export function getApiUrl(): string {
   return apiBaseUrl;
 }
 
+// The proxy edge functions require callers to identify themselves; the widget
+// presents its (public) widget key so the functions are not open to the world.
+let widgetKey = '';
+
+export function setWidgetKey(key: string) {
+  widgetKey = key;
+}
+
+export function getWidgetKey(): string {
+  return widgetKey;
+}
+
+/** Headers for calls to the Noddi proxy edge functions. */
+export function proxyHeaders(): Record<string, string> {
+  return { 'Content-Type': 'application/json', 'x-widget-key': widgetKey };
+}
+
 export async function fetchWidgetConfig(widgetKey: string): Promise<WidgetConfig | null> {
   try {
     const response = await fetch(`${apiBaseUrl}/widget-config?key=${encodeURIComponent(widgetKey)}`);

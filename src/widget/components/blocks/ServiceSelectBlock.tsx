@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { registerBlock, BlockComponentProps, FlowPreviewProps } from './registry';
-import { getApiUrl } from '../../api';
+import { getApiUrl, proxyHeaders } from '../../api';
 
 const CATEGORY_ICONS: Record<string, string> = {
   wheel_services: '🔧',
@@ -60,7 +60,7 @@ const ServiceSelectBlock: React.FC<BlockComponentProps> = ({
       try {
         const resp = await fetch(`${getApiUrl()}/noddi-booking-proxy`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: proxyHeaders(),
           body: JSON.stringify({
             action: 'available_items',
             address_id: addressId,
