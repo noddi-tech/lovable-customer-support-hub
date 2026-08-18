@@ -354,7 +354,7 @@ export async function searchAddressSuggestions(widgetKey: string, input: string)
   try {
     const response = await fetch(`${apiBaseUrl}/noddi-address-lookup`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'x-widget-key': widgetKey || getWidgetKey() },
       body: JSON.stringify({ action: 'suggestions', input }),
     });
     if (!response.ok) return [];
@@ -369,7 +369,7 @@ export async function searchAddressSuggestions(widgetKey: string, input: string)
 export async function resolveAddress(widgetKey: string, placeId: string): Promise<ResolvedAddress> {
   const response = await fetch(`${apiBaseUrl}/noddi-address-lookup`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'x-widget-key': widgetKey || getWidgetKey() },
     body: JSON.stringify({ action: 'resolve', place_id: placeId }),
   });
   if (!response.ok) {
