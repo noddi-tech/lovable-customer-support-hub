@@ -1,4 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { isServiceRoleRequest } from "../_shared/caller.ts";
+import { requireUser } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -111,12 +113,30 @@ const handler = async (req: Request): Promise<Response> => {
   const startedAt = performance.now();
 
   try {
+    // AuthZ: internal automation (service role) or a signed-in user only.
+    if (!isServiceRoleRequest(req)) {
+      const auth = await requireUser(req);
+      if ("response" in auth) {
+        return new Response(
+          JSON.stringify({ error: "Unauthorized" }),
+          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+    }
+
     const payload = (await req.json()) as DispatchWebhookRequest;
     const { url, headers, body, message_template } = payload;
 
     if (!url || typeof url !== "string") {
       return new Response(
         JSON.stringify({ error: "Missing or invalid 'url'" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+    const urlCheck = validateWebhookUrl(url);
+    if (!urlCheck.ok) {
+      return new Response(
+        JSON.stringify({ error: urlCheck.reason }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
@@ -143,7 +163,9 @@ const handler = async (req: Request): Promise<Response> => {
     };
     if (headers && typeof headers === "object") {
       for (const [k, v] of Object.entries(headers)) {
-        if (typeof v === "string") outboundHeaders[k] = v;
+        if (typeof v === "string" && !FORBIDDEN_HEADERS.has(k.toLowerCase())) {
+          outboundHeaders[k] = v;
+        }
       }
     }
 
@@ -153,8 +175,9 @@ const handler = async (req: Request): Promise<Response> => {
 
     let response: Response;
     try {
-      response = await fetch(url, {
+      response = await fetch(urlCheck.url.toString(), {
         method: "POST",
+        redirect: "manual",
         headers: outboundHeaders,
         body: JSON.stringify(outboundBody),
         signal: controller.signal,
