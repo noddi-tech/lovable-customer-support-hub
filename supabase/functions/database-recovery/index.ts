@@ -1,6 +1,7 @@
 /// <reference path="../_shared/edge-runtime.d.ts" />
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.53.0';
 import { corsHeaders } from '../_shared/cors.ts';
+import { requireAdmin } from '../_shared/auth.ts';
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -12,7 +13,7 @@ Deno.serve(async (req) => {
 
   try {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
-    
+
     // Parse request body for organizationId
     let organizationId: string | null = null;
     try {
@@ -21,6 +22,18 @@ Deno.serve(async (req) => {
     } catch {
       // No body or invalid JSON - continue without org filter
     }
+
+    // AuthZ: destructive maintenance is admin-only. A global (no org) run
+    // requires super admin.
+    const auth = await requireAdmin(req, organizationId);
+    if ('response' in auth) return auth.response;
+    if (!organizationId && !auth.admin.isSuperAdmin) {
+      return new Response(
+        JSON.stringify({ error: 'Forbidden: global recovery requires super admin' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
+
 
     console.log('[database-recovery] ===== DATABASE RECOVERY STARTED =====');
     console.log('[database-recovery] Organization ID:', organizationId || 'GLOBAL (all orgs)');
