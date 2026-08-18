@@ -11,6 +11,7 @@ import { decodeHTMLEntities } from '@/lib/parseQuotedEmail';
 import { debug } from '@/utils/debug';
 import { logger } from '@/utils/logger';
 import { supabase } from '@/integrations/supabase/client';
+import { buildAttachmentUrl } from '@/utils/attachmentUrl';
 
 interface EmailRenderProps {
   content: string;
@@ -153,7 +154,7 @@ const AttachmentDownloadButton: React.FC<{ attachment: EmailAttachment; messageI
       if (!session) throw new Error('Not authenticated');
 
       const response = await fetch(
-        `https://qgfaycwsangsqzpveoup.supabase.co/functions/v1/get-attachment?key=${encodeURIComponent(attachment.storageKey)}`,
+        buildAttachmentUrl({ key: attachment.storageKey }),
         { headers: { 'Authorization': `Bearer ${session.access_token}` } }
       );
 

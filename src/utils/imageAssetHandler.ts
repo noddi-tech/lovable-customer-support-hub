@@ -4,6 +4,7 @@
  */
 
 import type { EmailAttachment } from './emailFormatting';
+import { buildAttachmentUrl } from '@/utils/attachmentUrl';
 
 interface ImageErrorBucket {
   'cid-miss': number;
@@ -82,7 +83,7 @@ export const createBlobUrl = async (attachment: EmailAttachment, messageId?: str
     
     // Use storageKey for Supabase Storage attachments (new method)
     if (attachment.storageKey) {
-      fetchUrl = `https://qgfaycwsangsqzpveoup.supabase.co/functions/v1/get-attachment?key=${encodeURIComponent(attachment.storageKey)}`;
+      fetchUrl = buildAttachmentUrl({ key: attachment.storageKey });
       console.log('[EmailRender] Fetching from storage:', attachment.storageKey);
     } else {
       // No storageKey means binary data was never uploaded - return placeholder

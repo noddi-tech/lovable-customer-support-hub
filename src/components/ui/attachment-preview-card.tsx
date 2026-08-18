@@ -5,6 +5,7 @@ import { useToast } from '@/hooks/use-toast';
 import { EmailAttachment } from '@/utils/emailFormatting';
 import { createBlobUrl } from '@/utils/imageAssetHandler';
 import { supabase } from '@/integrations/supabase/client';
+import { buildAttachmentUrl } from '@/utils/attachmentUrl';
 
 type FileCategory = 'image' | 'pdf' | 'spreadsheet' | 'document' | 'other';
 
@@ -61,7 +62,7 @@ export const AttachmentPreviewCard: React.FC<AttachmentPreviewCardProps> = ({
 
     if (attachment.storageKey) {
       const response = await fetch(
-        `https://qgfaycwsangsqzpveoup.supabase.co/functions/v1/get-attachment?key=${encodeURIComponent(attachment.storageKey)}`,
+        buildAttachmentUrl({ key: attachment.storageKey }),
         { headers: { 'Authorization': `Bearer ${session.access_token}` } }
       );
       if (!response.ok) throw new Error('Download failed');
