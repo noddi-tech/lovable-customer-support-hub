@@ -26,6 +26,17 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // AuthZ: signed-in users, internal calls, or the widget with a valid widget key.
+    if (!(await isAllowedProxyCaller(req))) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (!(await checkRateLimit(`noddi-booking:${clientIp(req)}`, 60, 60))) {
+      return rateLimitResponse(corsHeaders);
+    }
+
     const body = await req.json();
     const { action } = body;
 
