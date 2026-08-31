@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useOptimizedCounts } from '@/hooks/useOptimizedCounts';
+import { useInboxEmailAddresses } from '@/hooks/useInboxEmailAddresses';
 import { useDateFormatting } from '@/hooks/useDateFormatting';
 import { UnifiedAppLayout } from '@/components/layout/UnifiedAppLayout';
 import { Card, CardContent } from '@/components/ui/card';
@@ -39,6 +40,8 @@ export default function HomePage() {
   const navigate = useNavigate();
   const { profile, user, isAdmin, isSuperAdmin } = useAuth();
   const { conversations, inboxes } = useOptimizedCounts();
+  const { data: inboxEmails = {} } = useInboxEmailAddresses();
+
   const { dateTime } = useDateFormatting();
 
   const firstName = (profile?.full_name || user?.user_metadata?.full_name || 'there').split(' ')[0];
@@ -107,13 +110,19 @@ export default function HomePage() {
                   onClick={() => navigate(`/interactions/text/open?inbox=${inbox.id}`)}
                 >
                   <CardContent className="p-3 flex items-center justify-between">
-                    <div className="flex items-center gap-3 min-w-0">
+                    <div className="flex items-start gap-3 min-w-0">
                       <span
-                        className="h-2.5 w-2.5 rounded-full shrink-0"
+                        className="h-2.5 w-2.5 rounded-full shrink-0 mt-1.5"
                         style={{ backgroundColor: inbox.color || 'hsl(var(--primary))' }}
                       />
-                      <span className="text-sm font-medium truncate text-foreground">{inbox.name}</span>
+                      <div className="min-w-0 flex flex-col leading-tight">
+                        <span className="text-sm font-medium truncate text-foreground">{inbox.name}</span>
+                        {inboxEmails[inbox.id] && (
+                          <span className="text-[11px] text-muted-foreground truncate">{inboxEmails[inbox.id]}</span>
+                        )}
+                      </div>
                     </div>
+
                     <div className="flex items-center gap-2 ml-3 shrink-0">
                       {inbox.unread_count > 0 && (
                         <Badge variant="destructive" className="text-[10px] px-1.5 py-0">

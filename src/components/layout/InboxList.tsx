@@ -126,24 +126,31 @@ export const InboxList: React.FC<InboxListProps> = ({
           <Skeleton className="h-10 w-full" />
         ) : (
           <Select value={selectedInbox || ''} onValueChange={handleInboxChange}>
-            <SelectTrigger className="w-full min-w-0 bg-background border-border focus:ring-ring">
-              <div className="flex items-center gap-2 min-w-0 overflow-hidden">
+            <SelectTrigger className="w-full min-w-0 h-auto py-1.5 bg-background border-border focus:ring-ring">
+              <div className="flex items-start gap-2 min-w-0 overflow-hidden text-left">
                 {selectedInbox && selectedInbox !== 'all' ? (
                   <>
                     <div 
-                      className="w-2 h-2 rounded-full flex-shrink-0"
+                      className="w-2 h-2 rounded-full flex-shrink-0 mt-1.5"
                       style={{ backgroundColor: inboxes.find(i => i.id === selectedInbox)?.color || '#6B7280' }}
                     />
-                    <span className="truncate">
-                      {inboxes.find(i => i.id === selectedInbox)?.name || 'Select inbox'}
-                      {inboxEmails[selectedInbox] ? ` (${inboxEmails[selectedInbox]})` : ''}
-                    </span>
+                    <div className="min-w-0 flex flex-col leading-tight">
+                      <span className="truncate">
+                        {inboxes.find(i => i.id === selectedInbox)?.name || 'Select inbox'}
+                      </span>
+                      {inboxEmails[selectedInbox] && (
+                        <span className="text-[11px] text-muted-foreground truncate">
+                          {inboxEmails[selectedInbox]}
+                        </span>
+                      )}
+                    </div>
                   </>
                 ) : (
                   <span className="truncate">All Inboxes</span>
                 )}
               </div>
             </SelectTrigger>
+
             <SelectContent className="bg-popover border-border">
               <SelectItem value="all">
                 <div className="flex items-center gap-2">
@@ -153,20 +160,23 @@ export const InboxList: React.FC<InboxListProps> = ({
               </SelectItem>
               {inboxes.map((inbox) => (
                 <SelectItem key={inbox.id} value={inbox.id}>
-                  <div className="flex items-center gap-2 min-w-0">
+                  <div className="flex items-start gap-2 min-w-0">
                     <div 
-                      className="w-2 h-2 rounded-full flex-shrink-0"
+                      className="w-2 h-2 rounded-full flex-shrink-0 mt-1.5"
                       style={{ backgroundColor: inbox.color || '#6B7280' }}
                     />
-                    <span className="truncate">{inbox.name}</span>
-                    {inboxEmails[inbox.id] && (
-                      <span className="text-xs text-muted-foreground truncate">
-                        ({inboxEmails[inbox.id]})
-                      </span>
-                    )}
+                    <div className="min-w-0 flex flex-col leading-tight">
+                      <span className="truncate">{inbox.name}</span>
+                      {inboxEmails[inbox.id] && (
+                        <span className="text-[11px] text-muted-foreground truncate">
+                          {inboxEmails[inbox.id]}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </SelectItem>
               ))}
+
             </SelectContent>
           </Select>
         )}
