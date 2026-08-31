@@ -2,6 +2,8 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { logger } from '@/utils/logger';
+import { isPreviewBypassEnabled } from '@/lib/dev-preview-auth';
+import { PreviewBypassBanner } from '@/components/dev/PreviewBypassBanner';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -10,6 +12,9 @@ interface ProtectedRouteProps {
 export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const { user, loading, isProcessingOAuth } = useAuth();
   const navigate = useNavigate();
+  // Dev-only: browse the app shell without signing in (preview aid, no session).
+  const previewBypass = isPreviewBypassEnabled();
+
 
   // Log every render with full state
   useEffect(() => {
@@ -30,6 +35,8 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
       hasUser: !!user,
       willCheck: !loading && !isProcessingOAuth
     }, 'ProtectedRoute');
+
+    if (previewBypass) return;
 
     // Only proceed when BOTH loading and OAuth processing are complete
     if (!loading && !isProcessingOAuth) {
@@ -68,7 +75,16 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
         }, 'ProtectedRoute');
       }
     }
-  }, [user, loading, isProcessingOAuth, navigate]);
+  }, [user, loading, isProcessingOAuth, navigate, previewBypass]);
+
+  if (previewBypass && !user) {
+    return (
+      <>
+        {children}
+        <PreviewBypassBanner />
+      </>
+    );
+  }
 
   // Show loading while authenticating OR processing OAuth
   if (loading || isProcessingOAuth) {
