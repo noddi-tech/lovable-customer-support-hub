@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { getConversationBrand } from "@/lib/conversationBrand";
 import { BrandBadge } from "@/components/dashboard/conversation-list/BrandBadge";
+import { HeaderCaseChip } from "@/components/cases/HeaderCaseChip";
+
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
