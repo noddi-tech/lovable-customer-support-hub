@@ -39,7 +39,7 @@ export function useConversationAssignActions() {
       try {
         const { error } = await supabase
           .from('conversations')
-          .update({ assigned_to: profileId })
+          .update({ assigned_to_id: profileId })
           .eq('id', conversationId);
 
         if (error) throw error;
