@@ -1043,8 +1043,11 @@ const WIDGET_JS = `
     }
     console.log('[Noddi] Config loaded:', config);
 
-    state.lang = getStoredLang() || config.language || 'no';
+    // Host-provided locale wins over a stale stored choice.
+    hostLocale = normalizeLang((options && (options.locale || (options.context && options.context.locale))) || null);
+    state.lang = hostLocale || normalizeLang(getStoredLang()) || normalizeLang(config.language) || 'no';
     console.log('[Noddi] Language set to:', state.lang);
+
     render();
     console.log('[Noddi] Widget rendered successfully!');
 
