@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { submitContactForm, getIdentity } from '../api';
+import { submitContactForm, getIdentity, storeSubmission, type StoredSubmission } from '../api';
 import { getWidgetTranslations } from '../translations';
 
 interface ContactFormProps {
   widgetKey: string;
   primaryColor: string;
-  onSuccess: () => void;
+  /** Receives the message that was just sent so the panel can keep showing it. */
+  onSuccess: (submission: StoredSubmission) => void;
   language: string;
   initialMessage?: string;
 }
