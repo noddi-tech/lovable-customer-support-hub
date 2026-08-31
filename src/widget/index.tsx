@@ -2,6 +2,7 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { Widget, WidgetAPI } from './Widget';
 import type { WidgetInitOptions } from './types';
+import { setIdentity, clearIdentity, updateWidgetContext, contextFromInitOptions } from './api';
 // @ts-ignore - Vite handles this import
 import widgetStyles from './styles/widget.css?inline';
 
@@ -19,6 +20,9 @@ declare global {
       open?: () => void;
       close?: () => void;
       toggle?: () => void;
+      identify?: (options: Record<string, unknown>) => void;
+      update?: (options: Record<string, unknown>) => void;
+      shutdown?: () => void;
       (command: string, options?: any): void;
     };
     noddi: (command: string, options?: any) => void;
@@ -112,6 +116,31 @@ function toggleWidget() {
   }
 }
 
+/** NoddiWidget('identify', { userId, email, name, phone }) */
+function identifyVisitor(options?: any) {
+  if (!options || typeof options !== 'object') return;
+  setIdentity({
+    user_id: options.userId ?? options.user_id,
+    email: options.email,
+    name: options.name,
+    phone: options.phone,
+  });
+  widgetAPI?.refreshIdentity?.();
+}
+
+/** NoddiWidget('update', { bookingId, context: {...} }) — merge new context mid-session. */
+function updateWidget(options?: any) {
+  if (!options || typeof options !== 'object') return;
+  updateWidgetContext({ ...contextFromInitOptions(options), ...(options.context || {}) });
+  if (options.identity) identifyVisitor(options.identity);
+}
+
+/** NoddiWidget('shutdown') — forget the visitor on logout. */
+function shutdownWidget() {
+  clearIdentity();
+  widgetAPI?.reset?.();
+}
+
 // Process queued commands
 function processQueue() {
   const queue = window.NoddiWidget?.q || [];
@@ -141,6 +170,15 @@ function handleCommand(command: string, options?: any) {
     case 'toggle':
       toggleWidget();
       break;
+    case 'identify':
+      identifyVisitor(options);
+      break;
+    case 'update':
+      updateWidget(options);
+      break;
+    case 'shutdown':
+      shutdownWidget();
+      break;
     default:
       console.warn('[Noddi] Unknown command:', command);
   }
@@ -158,6 +196,9 @@ window.NoddiWidget = Object.assign(
     open: openWidget,
     close: closeWidget,
     toggle: toggleWidget,
+    identify: identifyVisitor,
+    update: updateWidget,
+    shutdown: shutdownWidget,
     q: window.NoddiWidget?.q || [],
   }
 );

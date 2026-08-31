@@ -1,14 +1,29 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import type { WidgetConfig, WidgetInitOptions } from './types';
-import { fetchWidgetConfig, setApiUrl, setWidgetKey, setBrand, setWidgetContext } from './api';
+import {
+  fetchWidgetConfig,
+  setApiUrl,
+  setWidgetKey,
+  setBrand,
+  setWidgetContext,
+  contextFromInitOptions,
+  setIdentity,
+  getIdentity,
+  storeChatSession,
+} from './api';
 import { FloatingButton } from './components/FloatingButton';
 import { WidgetPanel } from './components/WidgetPanel';
+import { useUnreadWatcher } from './hooks/useUnreadWatcher';
 import './styles/widget.css';
 
 // API interface for programmatic control
 export interface WidgetAPI {
   setIsOpen: (open: boolean) => void;
   toggle: () => void;
+  /** Re-read identity after a NoddiWidget('identify', ...) call. */
+  refreshIdentity: () => void;
+  /** Forget the visitor and any open chat (NoddiWidget('shutdown')). */
+  reset: () => void;
 }
 
 interface WidgetProps {
@@ -21,16 +36,38 @@ export const Widget: React.FC<WidgetProps> = ({ options, onMount }) => {
   const [config, setConfig] = useState<WidgetConfig | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // Bumped whenever identity changes so the panel picks up the new visitor.
+  const [identityVersion, setIdentityVersion] = useState(0);
+  // Bumped on shutdown to hard-reset panel state.
+  const [resetVersion, setResetVersion] = useState(0);
+
+  // Unread agent replies while the panel is closed.
+  const { unreadCount, clearUnread } = useUnreadWatcher(!isOpen);
+
+  const openPanel = useCallback((open: boolean) => {
+    setIsOpen(open);
+    if (open) clearUnread();
+  }, [clearUnread]);
 
   // Expose API for programmatic control
   useEffect(() => {
     if (onMount) {
       onMount({
-        setIsOpen,
-        toggle: () => setIsOpen(prev => !prev),
+        setIsOpen: openPanel,
+        toggle: () => setIsOpen(prev => {
+          if (!prev) clearUnread();
+          return !prev;
+        }),
+        refreshIdentity: () => setIdentityVersion(v => v + 1),
+        reset: () => {
+          storeChatSession(null);
+          clearUnread();
+          setIsOpen(false);
+          setResetVersion(v => v + 1);
+        },
       });
     }
-  }, [onMount]);
+  }, [onMount, openPanel, clearUnread]);
 
   useEffect(() => {
     if (options.apiUrl) {
@@ -38,17 +75,17 @@ export const Widget: React.FC<WidgetProps> = ({ options, onMount }) => {
     }
     setWidgetKey(options.widgetKey);
     if (options.brand) setBrand(options.brand);
-    setWidgetContext({
-      locale: options.locale,
-      environment: options.environment,
-      source_app: options.sourceApp,
-      user_id: options.userId,
-      service_department_id: options.serviceDepartmentId,
-      booking_id: options.bookingId,
-      order_id: options.orderId,
-      pathname: options.pathname,
-      app_version: options.appVersion,
-    });
+    // Flat init fields first, then the structured `context` bag wins.
+    setWidgetContext({ ...contextFromInitOptions(options), ...(options.context || {}) });
+    if (options.identity) {
+      setIdentity({
+        user_id: options.identity.userId,
+        email: options.identity.email,
+        name: options.identity.name,
+        phone: options.identity.phone,
+      });
+      setIdentityVersion(v => v + 1);
+    }
 
     const loadConfig = async () => {
       setIsLoading(true);
@@ -81,18 +118,21 @@ export const Widget: React.FC<WidgetProps> = ({ options, onMount }) => {
   return (
     <div className="noddi-widget-container">
       {isOpen && (
-        <WidgetPanel 
-          config={config} 
+        <WidgetPanel
+          key={`${identityVersion}-${resetVersion}`}
+          config={config}
           onClose={() => setIsOpen(false)}
           positionOverride={effectivePosition}
+          identity={getIdentity()}
         />
       )}
       {showButton && (
         <FloatingButton
           isOpen={isOpen}
-          onClick={() => setIsOpen(!isOpen)}
+          onClick={() => openPanel(!isOpen)}
           primaryColor={config.primaryColor}
           position={effectivePosition}
+          unreadCount={unreadCount}
         />
       )}
     </div>

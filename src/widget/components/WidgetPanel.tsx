@@ -1,16 +1,27 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import type { WidgetConfig, WidgetView, ChatSession } from '../types';
 import { ContactForm } from './ContactForm';
 import { KnowledgeSearch } from './KnowledgeSearch';
 import { LiveChat } from './LiveChat';
 import { AiChat } from './AiChat';
-import { startChat, submitContactForm } from '../api';
+import {
+  startChat,
+  getChatSession,
+  storeChatSession,
+  readStoredChatSession,
+  isIdentified,
+  type WidgetIdentity,
+  type ChatEscalation,
+} from '../api';
+import { PreChatForm } from './PreChatForm';
 import { getWidgetTranslations, getLocalizedGreeting, getLocalizedResponseTime, SUPPORTED_WIDGET_LANGUAGES } from '../translations';
 
 interface WidgetPanelProps {
   config: WidgetConfig;
   onClose: () => void;
   positionOverride?: 'bottom-right' | 'bottom-left';
+  /** Visitor identified by the host app via NoddiWidget('identify', ...). */
+  identity?: WidgetIdentity;
 }
 
 // Generate a unique visitor ID
@@ -32,7 +43,7 @@ function getCustomerLanguage(configLanguage: string): string {
   return configLanguage || 'no';
 }
 
-export const WidgetPanel: React.FC<WidgetPanelProps> = ({ config, onClose, positionOverride }) => {
+export const WidgetPanel: React.FC<WidgetPanelProps> = ({ config, onClose, positionOverride, identity }) => {
   const [view, setView] = useState<WidgetView>('home');
   const [showSuccess, setShowSuccess] = useState(false);
   const [chatSession, setChatSession] = useState<ChatSession | null>(null);
@@ -57,7 +68,7 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({ config, onClose, posit
     }, 3000);
   };
 
-  const handleStartChat = useCallback(async () => {
+  const beginChat = useCallback(async (visitor?: { name?: string; email?: string; message?: string }, escalation?: ChatEscalation) => {
     setIsStartingChat(true);
     setChatError(null);
 
@@ -65,19 +76,67 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({ config, onClose, posit
       widgetKey: config.widgetKey,
       visitorId: getVisitorId(),
       pageUrl: window.location.href,
+      visitorName: visitor?.name,
+      visitorEmail: visitor?.email,
+      escalation,
     });
 
     if (session) {
       setChatSession(session);
+      // Persist so a reload / SPA navigation resumes the same chat.
+      storeChatSession({
+        sessionId: session.id,
+        conversationId: session.conversationId,
+        lastSeenAt: new Date().toISOString(),
+      });
       setView('chat');
     } else {
       setChatError('Unable to start chat. Please try again.');
     }
 
     setIsStartingChat(false);
+    return session;
   }, [config.widgetKey]);
 
+  // Entry point from the home screen: collect name/email first when the host
+  // app has not identified the visitor.
+  const handleStartChat = useCallback(async () => {
+    if (isIdentified()) {
+      await beginChat();
+    } else {
+      setChatError(null);
+      setView('prechat');
+    }
+  }, [beginChat]);
+
+  // Resume an open session left behind by an earlier page view.
+  useEffect(() => {
+    let cancelled = false;
+    const stored = readStoredChatSession();
+    if (!stored) return;
+
+    (async () => {
+      const live = await getChatSession(stored.sessionId);
+      if (cancelled) return;
+      if (!live || live.status === 'ended' || live.status === 'abandoned') {
+        storeChatSession(null);
+        return;
+      }
+      setChatSession({
+        id: stored.sessionId,
+        conversationId: stored.conversationId,
+        status: live.status as ChatSession['status'],
+        assignedAgentName: live.assignedAgentName || undefined,
+        startedAt: live.messages[0]?.createdAt || new Date().toISOString(),
+      });
+      setView('chat');
+    })();
+
+    return () => { cancelled = true; };
+  }, []);
+
   const handleEndChat = () => {
+    storeChatSession(null);
     setChatSession(null);
     setView('home');
   };
@@ -90,11 +149,23 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({ config, onClose, posit
     setView('home');
   };
 
-  // Escalation: start live chat from AI with context
-  const handleTalkToHuman = useCallback(async () => {
+  // Escalation: start live chat from AI, carrying the AI transcript over so the
+  // agent does not ask the visitor to repeat themselves.
+  const handleTalkToHuman = useCallback(async (transcript?: string) => {
     if (!config.enableChat || !config.agentsOnline) return;
-    await handleStartChat();
-  }, [config.enableChat, config.agentsOnline, handleStartChat]);
+    const escalation: ChatEscalation | undefined = transcript
+      ? { from: 'ai', transcript }
+      : undefined;
+    if (isIdentified()) {
+      await beginChat(undefined, escalation);
+    } else {
+      setPendingEscalation(escalation ?? null);
+      setChatError(null);
+      setView('prechat');
+    }
+  }, [config.enableChat, config.agentsOnline, beginChat]);
+
+  const [pendingEscalation, setPendingEscalation] = useState<ChatEscalation | null>(null);
 
   // Escalation: email conversation transcript from AI
   const [aiTranscript, setAiTranscript] = useState<string | null>(null);
@@ -216,7 +287,16 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({ config, onClose, posit
                 </button>
               )}
               
-              {/* Knowledge search / AI assistant temporarily disabled to prevent PII exposure */}
+              {/* Help centre: opt-in per widget (admin flag) to keep PII exposure controlled */}
+              {config.enableKnowledgeSearch && (
+                <button className="noddi-widget-action" onClick={() => setView('search')}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                  </svg>
+                  <span>{t.searchHelp}</span>
+                </button>
+              )}
             </div>
           </div>
         ) : view === 'contact' ? (
@@ -238,9 +318,38 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({ config, onClose, posit
               initialMessage={aiTranscript || undefined}
             />
           </div>
+        ) : view === 'prechat' ? (
+          <PreChatForm
+            primaryColor={config.primaryColor}
+            language={currentLanguage}
+            isStarting={isStartingChat}
+            error={chatError}
+            onBack={() => { setPendingEscalation(null); setView('home'); }}
+            onSubmit={async (visitor) => {
+              const escalation = pendingEscalation ?? (visitor.message
+                ? { from: 'ai' as const, transcript: visitor.message }
+                : undefined);
+              setPendingEscalation(null);
+              await beginChat(visitor, escalation);
+            }}
+          />
         ) : view === 'search' ? (
-          /* Knowledge search view disabled — PII exposure risk */
-          null
+          /* Help centre stays behind the admin `enableKnowledgeSearch` flag. */
+          config.enableKnowledgeSearch ? (
+            <div className="noddi-widget-view">
+              <button className="noddi-widget-back" onClick={() => setView('home')}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="15 18 9 12 15 6"></polyline>
+                </svg>
+                {t.back}
+              </button>
+              <KnowledgeSearch
+                widgetKey={config.widgetKey}
+                primaryColor={config.primaryColor}
+                language={currentLanguage}
+              />
+            </div>
+          ) : null
         ) : view === 'chat' && chatSession ? (
           <LiveChat
             session={chatSession}

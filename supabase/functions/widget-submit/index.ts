@@ -1,6 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { checkRateLimit, clientIp, rateLimitResponse } from '../_shared/rate-limit.ts';
-import { sanitizeWidgetContext } from '../_shared/widget-context.ts';
+import { sanitizeWidgetContext, sanitizeWidgetIdentity } from '../_shared/widget-context.ts';
 
 
 const corsHeaders = {
@@ -18,6 +18,7 @@ interface WidgetSubmission {
   pageUrl?: string;
   brand?: string;
   context?: Record<string, unknown>;
+  identity?: Record<string, unknown>;
   visitorId?: string;
   browserInfo?: Record<string, unknown>;
 }
@@ -62,6 +63,8 @@ Deno.serve(async (req) => {
     const visitorId = asString(body.visitorId, 100) || undefined;
     const brand = asString(body.brand, 40) || undefined;
     const context = sanitizeWidgetContext(body.context);
+    // Host-app identity hint; informational only (the widget key is public).
+    const identity = sanitizeWidgetIdentity(body.identity);
     const browserInfo =
       body.browserInfo && typeof body.browserInfo === 'object' && !Array.isArray(body.browserInfo)
         ? Object.fromEntries(
@@ -211,6 +214,7 @@ Deno.serve(async (req) => {
           brand,
           browser_info: browserInfo,
           ...(context ? { context } : {}),
+          ...(identity ? { identity } : {}),
         },
       })
       .select('id')

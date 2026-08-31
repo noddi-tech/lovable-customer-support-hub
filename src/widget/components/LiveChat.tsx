@@ -1,8 +1,24 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useWidgetPolling } from '../hooks/useWidgetPolling';
-import { sendChatMessage, updateTypingStatus, endChat } from '../api';
+import { sendChatMessage, updateTypingStatus, endChat, sendChatAttachment, markChatSessionSeen } from '../api';
 import { getWidgetTranslations } from '../translations';
 import type { ChatSession } from '../types';
+import { ChatRating } from './ChatRating';
+
+const MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024;
+const ALLOWED_ATTACHMENT_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp', 'application/pdf'];
+
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = String(reader.result || '');
+      resolve(result.slice(result.indexOf(',') + 1));
+    };
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+}
 
 interface LiveChatProps {
   session: ChatSession;
@@ -23,6 +39,9 @@ export const LiveChat: React.FC<LiveChatProps> = ({
 }) => {
   const [inputValue, setInputValue] = useState('');
   const [isSending, setIsSending] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<number | null>(null);
   const lastTypingRef = useRef(false);
@@ -42,6 +61,12 @@ export const LiveChat: React.FC<LiveChatProps> = ({
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, agentTyping]);
+
+  // The panel is open, so anything visible here counts as read.
+  useEffect(() => {
+    const last = messages[messages.length - 1];
+    if (last) markChatSessionSeen(last.createdAt);
+  }, [messages]);
 
   // Handle typing indicator
   const handleTyping = useCallback((isTyping: boolean) => {
@@ -87,6 +112,41 @@ export const LiveChat: React.FC<LiveChatProps> = ({
     }
 
     setIsSending(false);
+  };
+
+  const handleFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+
+    setUploadError(null);
+    if (!ALLOWED_ATTACHMENT_TYPES.includes(file.type)) {
+      setUploadError(t.attachmentTypeError);
+      return;
+    }
+    if (file.size > MAX_ATTACHMENT_BYTES) {
+      setUploadError(t.attachmentSizeError);
+      return;
+    }
+
+    setIsUploading(true);
+    const data = await fileToBase64(file).catch(() => null);
+    if (!data) {
+      setIsUploading(false);
+      setUploadError(t.attachmentUploadError);
+      return;
+    }
+    const result = await sendChatAttachment(session.id, {
+      filename: file.name,
+      mimeType: file.type,
+      data,
+    });
+    setIsUploading(false);
+    if (!result.success) {
+      setUploadError(result.error || t.attachmentUploadError);
+      return;
+    }
+    refetch();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -165,6 +225,21 @@ export const LiveChat: React.FC<LiveChatProps> = ({
               style={message.senderType === 'customer' ? { backgroundColor: primaryColor } : {}}
             >
               {message.content}
+              {message.attachments?.map((attachment, index) => (
+                <a
+                  key={`${message.id}-${index}`}
+                  href={attachment.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="noddi-chat-attachment"
+                >
+                  {attachment.type?.startsWith('image/') ? (
+                    <img src={attachment.url} alt={attachment.name} className="noddi-chat-attachment-image" />
+                  ) : (
+                    <span className="noddi-chat-attachment-file">📎 {attachment.name}</span>
+                  )}
+                </a>
+              ))}
             </div>
             <span className="noddi-chat-message-time">
               {new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -189,6 +264,25 @@ export const LiveChat: React.FC<LiveChatProps> = ({
       {!isEnded && (
         <div className="noddi-chat-input-container">
           <input
+            ref={fileInputRef}
+            type="file"
+            accept={ALLOWED_ATTACHMENT_TYPES.join(',')}
+            style={{ display: 'none' }}
+            onChange={handleFileSelected}
+          />
+          <button
+            type="button"
+            className="noddi-chat-attach"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isUploading}
+            aria-label={t.attachFile}
+            title={t.attachFile}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
+            </svg>
+          </button>
+          <input
             type="text"
             className="noddi-chat-input"
             placeholder={t.typeMessage}
@@ -211,16 +305,19 @@ export const LiveChat: React.FC<LiveChatProps> = ({
         </div>
       )}
 
+      {!isEnded && uploadError && (
+        <div className="noddi-widget-error">{uploadError}</div>
+      )}
+
       {isEnded && (
         <div className="noddi-chat-ended">
           <p>{t.thankYou}</p>
-          <button
-            className="noddi-chat-new-button"
-            onClick={onBack}
-            style={{ backgroundColor: primaryColor }}
-          >
-            {t.startNewConversation}
-          </button>
+          <ChatRating
+            sessionId={session.id}
+            primaryColor={primaryColor}
+            language={language}
+            onDone={onBack}
+          />
         </div>
       )}
     </div>

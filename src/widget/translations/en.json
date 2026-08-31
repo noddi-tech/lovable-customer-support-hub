@@ -67,5 +67,18 @@
   "invalidPin": "Invalid code, please try again",
   "codeSent": "Code sent!",
   "resendCode": "Resend code",
-  "sendingCode": "Sending..."
+  "sendingCode": "Sending...",
+  "searchHelp": "Search help articles",
+  "preChatIntro": "Tell us who you are so an agent can help you faster.",
+  "preChatTopic": "What is this about? (optional)",
+  "attachFile": "Attach a file",
+  "attachmentTypeError": "Only images and PDF files can be attached.",
+  "attachmentSizeError": "Files must be smaller than 5 MB.",
+  "attachmentUploadError": "Could not upload the file. Please try again.",
+  "rateTitle": "How was your chat?",
+  "rateCommentPlaceholder": "Anything you'd like to add? (optional)",
+  "rateSubmit": "Send feedback",
+  "rateThanks": "Thanks for your feedback!",
+  "transcriptLabel": "Email me a copy of this chat",
+  "transcriptSend": "Send transcript"
 }

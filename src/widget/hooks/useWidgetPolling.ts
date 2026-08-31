@@ -21,6 +21,9 @@ export function useWidgetPolling(sessionId: string | null): UseWidgetPollingResu
   const lastMessageTimestamp = useRef<string | null>(null);
   const pollIntervalRef = useRef<number | null>(null);
   const errorCountRef = useRef(0);
+  // Timestamp of the last observed message, used to pick a poll interval.
+  const lastActivityRef = useRef<number>(Date.now());
+  const currentDelayRef = useRef<number>(0);
 
   const fetchMessages = useCallback(async () => {
     if (!sessionId) return;
@@ -59,6 +62,7 @@ export function useWidgetPolling(sessionId: string | null): UseWidgetPollingResu
         const lastMessage = data.messages[data.messages.length - 1];
         if (lastMessage) {
           lastMessageTimestamp.current = lastMessage.createdAt;
+          lastActivityRef.current = Date.now();
         }
       }
 
@@ -96,10 +100,36 @@ export function useWidgetPolling(sessionId: string | null): UseWidgetPollingResu
     // Initial fetch
     fetchMessages();
 
-    // Set up interval - poll every 3 seconds
-    pollIntervalRef.current = window.setInterval(fetchMessages, 3000);
+    // Adaptive polling: fast while the visitor is actively chatting, slower when
+    // the conversation goes quiet, paused entirely on a hidden tab.
+    const schedule = () => {
+      if (pollIntervalRef.current) window.clearInterval(pollIntervalRef.current);
+      if (document.hidden) {
+        pollIntervalRef.current = null;
+        return;
+      }
+      const idleMs = Date.now() - lastActivityRef.current;
+      const delay = idleMs < 60_000 ? 2000 : idleMs < 5 * 60_000 ? 5000 : 15000;
+      if (delay === currentDelayRef.current && pollIntervalRef.current) return;
+      currentDelayRef.current = delay;
+      pollIntervalRef.current = window.setInterval(() => {
+        fetchMessages();
+        schedule();
+      }, delay);
+    };
+
+    schedule();
+
+    const onVisibility = () => {
+      if (!document.hidden) {
+        fetchMessages();
+      }
+      schedule();
+    };
+    document.addEventListener('visibilitychange', onVisibility);
 
     return () => {
+      document.removeEventListener('visibilitychange', onVisibility);
       if (pollIntervalRef.current) {
         window.clearInterval(pollIntervalRef.current);
         pollIntervalRef.current = null;

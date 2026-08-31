@@ -34,6 +34,31 @@
   z-index: 999998;
 }
 
+.noddi-widget-button-wrap {
+  position: fixed;
+  bottom: 20px;
+  z-index: 999998;
+  line-height: 0;
+}
+
+.noddi-widget-unread-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 10px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 20px;
+  text-align: center;
+  box-shadow: 0 0 0 2px #fff;
+  pointer-events: none;
+}
+
 .noddi-widget-button:hover {
   transform: scale(1.05);
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);

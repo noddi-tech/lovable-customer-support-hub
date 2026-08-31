@@ -15,6 +15,8 @@ export interface WidgetContext {
   service_department_id?: string;
   booking_id?: string;
   order_id?: string;
+  license_plate?: string;
+  car?: string;
   pathname?: string;
   app_version?: string;
 }
@@ -27,6 +29,8 @@ const FIELD_LIMITS: Record<keyof WidgetContext, number> = {
   service_department_id: 64,
   booking_id: 64,
   order_id: 64,
+  license_plate: 16,
+  car: 80,
   pathname: 300,
   app_version: 40,
 };
@@ -57,4 +61,36 @@ export function sanitizeWidgetContext(input: unknown): WidgetContext | undefined
   }
 
   return Object.keys(out).length > 0 ? (out as WidgetContext) : undefined;
+}
+
+/**
+ * Visitor identity hinted by the host app (NoddiWidget('identify', ...)).
+ * The widget key is public, so this is an agent-facing hint only: it must never
+ * grant access to customer data on its own.
+ */
+export interface WidgetIdentity {
+  user_id?: string;
+  email?: string;
+  name?: string;
+  phone?: string;
+}
+
+const IDENTITY_LIMITS: Record<keyof WidgetIdentity, number> = {
+  user_id: 64,
+  email: 160,
+  name: 120,
+  phone: 32,
+};
+
+export function sanitizeWidgetIdentity(input: unknown): WidgetIdentity | undefined {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) return undefined;
+  const source = input as Record<string, unknown>;
+  const out: Record<string, string> = {};
+  for (const [key, max] of Object.entries(IDENTITY_LIMITS)) {
+    const value = clean(source[key], max);
+    if (!value) continue;
+    if (key === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) continue;
+    out[key] = key === 'email' ? value.toLowerCase() : value;
+  }
+  return Object.keys(out).length > 0 ? (out as WidgetIdentity) : undefined;
 }

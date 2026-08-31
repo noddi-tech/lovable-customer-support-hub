@@ -1,6 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { checkRateLimit as checkDurableRateLimit, clientIp, rateLimitResponse } from '../_shared/rate-limit.ts';
-import { sanitizeWidgetContext } from '../_shared/widget-context.ts';
+import { sanitizeWidgetContext, sanitizeWidgetIdentity } from '../_shared/widget-context.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -17,6 +17,8 @@ interface StartChatRequest {
   pageUrl?: string;
   brand?: string;
   context?: Record<string, unknown>;
+  identity?: Record<string, unknown>;
+  escalation?: { from?: string; conversationId?: string; transcript?: string };
 }
 
 interface MessageRequest {
@@ -41,7 +43,64 @@ interface PingRequest {
   sessionId: string;
 }
 
-type ChatRequest = StartChatRequest | MessageRequest | EndChatRequest | TypingRequest | PingRequest;
+interface AttachmentRequest {
+  action: 'attachment';
+  sessionId: string;
+  content?: string;
+  file: { filename: string; mimeType: string; data: string };
+}
+
+interface RateRequest {
+  action: 'rate';
+  sessionId: string;
+  rating: number;
+  comment?: string;
+}
+
+interface TranscriptRequest {
+  action: 'transcript';
+  sessionId: string;
+  email: string;
+}
+
+type ChatRequest =
+  | StartChatRequest
+  | MessageRequest
+  | EndChatRequest
+  | TypingRequest
+  | PingRequest
+  | AttachmentRequest
+  | RateRequest
+  | TranscriptRequest;
+
+const ATTACHMENT_BUCKET = 'chat-attachments';
+const MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024;
+const ALLOWED_ATTACHMENT_TYPES = [
+  'image/png',
+  'image/jpeg',
+  'image/gif',
+  'image/webp',
+  'application/pdf',
+];
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+/** Storage-safe filename: ASCII only, no path separators. */
+function safeFilename(name: string): string {
+  const cleaned = (name || 'file')
+    .normalize('NFKD')
+    .replace(/[^\x00-\x7F]/g, '')
+    .replace(/[^A-Za-z0-9._-]/g, '_')
+    .replace(/_{2,}/g, '_')
+    .slice(0, 80);
+  return cleaned.replace(/^[._-]+/, '') || 'file';
+}
 
 // ========== Rate Limiting ==========
 const rateLimits = new Map<string, { count: number; resetAt: number }>();
@@ -138,6 +197,12 @@ Deno.serve(async (req) => {
         return await handleTyping(supabase, body);
       case 'ping':
         return await handlePing(supabase, body);
+      case 'attachment':
+        return await handleAttachment(supabase, body);
+      case 'rate':
+        return await handleRate(supabase, body);
+      case 'transcript':
+        return await handleTranscript(supabase, body);
       default:
         return new Response(
           JSON.stringify({ error: 'Invalid action' }),
@@ -159,6 +224,10 @@ async function handleStartChat(supabase: any, data: StartChatRequest) {
   const brand = typeof data.brand === 'string' ? data.brand.trim().slice(0, 40) || undefined : undefined;
   // Optional extra host-site context (locale, environment, source app, ids...)
   const context = sanitizeWidgetContext(data.context);
+  // Host-app identity hint — informational only, never an authorization signal.
+  const identity = sanitizeWidgetIdentity(data.identity);
+  const effectiveName = visitorName || identity?.name;
+  const effectiveEmail = (visitorEmail || identity?.email)?.toLowerCase();
 
   // Validate required fields
   if (!widgetKey || !visitorId) {
@@ -235,11 +304,11 @@ async function handleStartChat(supabase: any, data: StartChatRequest) {
   // Find or create customer
   let customerId: string | null = null;
   
-  if (visitorEmail) {
+  if (effectiveEmail) {
     const { data: existingCustomer } = await supabase
       .from('customers')
       .select('id')
-      .eq('email', visitorEmail.toLowerCase())
+      .eq('email', effectiveEmail)
       .eq('organization_id', organization_id)
       .single();
 
@@ -247,10 +316,10 @@ async function handleStartChat(supabase: any, data: StartChatRequest) {
       customerId = existingCustomer.id;
       
       // Update customer name if provided
-      if (visitorName) {
+      if (effectiveName) {
         await supabase
           .from('customers')
-          .update({ full_name: visitorName, updated_at: new Date().toISOString() })
+          .update({ full_name: effectiveName, updated_at: new Date().toISOString() })
           .eq('id', customerId);
       }
     } else {
@@ -258,8 +327,8 @@ async function handleStartChat(supabase: any, data: StartChatRequest) {
       const { data: newCustomer, error: customerError } = await supabase
         .from('customers')
         .insert({
-          email: visitorEmail.toLowerCase(),
-          full_name: visitorName || null,
+          email: effectiveEmail,
+          full_name: effectiveName || null,
           organization_id,
         })
         .select('id')
@@ -279,7 +348,7 @@ async function handleStartChat(supabase: any, data: StartChatRequest) {
       inbox_id,
       customer_id: customerId,
       channel: 'widget',
-      subject: `Live chat from ${visitorName || visitorEmail || 'Visitor'}`,
+      subject: `Live chat from ${effectiveName || effectiveEmail || 'Visitor'}`,
       preview_text: 'Chat started...',
       status: 'open',
       priority: 'normal',
@@ -291,6 +360,7 @@ async function handleStartChat(supabase: any, data: StartChatRequest) {
         brand,
         visitor_id: visitorId,
         ...(context ? { context } : {}),
+        ...(identity ? { identity } : {}),
       },
     })
     .select('id')
@@ -311,10 +381,15 @@ async function handleStartChat(supabase: any, data: StartChatRequest) {
       conversation_id: conversation.id,
       widget_config_id: widgetConfig.id,
       visitor_id: visitorId,
-      visitor_name: visitorName,
-      visitor_email: visitorEmail?.toLowerCase(),
+      visitor_name: effectiveName,
+      visitor_email: effectiveEmail,
       status: 'waiting',
-      metadata: { page_url: pageUrl, brand, ...(context ? { context } : {}) },
+      metadata: {
+        page_url: pageUrl,
+        brand,
+        ...(context ? { context } : {}),
+        ...(identity ? { identity } : {}),
+      },
     })
     .select('id, status, started_at')
     .single();
@@ -325,6 +400,20 @@ async function handleStartChat(supabase: any, data: StartChatRequest) {
       JSON.stringify({ error: 'Failed to create chat session' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
+  }
+
+  // Carry the AI conversation over so the agent sees the full history.
+  const transcript = typeof data.escalation?.transcript === 'string'
+    ? data.escalation.transcript.slice(0, 8000).trim()
+    : '';
+  if (transcript) {
+    await supabase.from('messages').insert({
+      conversation_id: conversation.id,
+      content: `Handed over from the AI assistant:\n\n${transcript}`,
+      sender_type: 'system',
+      content_type: 'text',
+      is_internal: true,
+    });
   }
 
   return new Response(
@@ -458,7 +547,7 @@ async function handleGetMessages(supabase: any, sessionId: string, since: string
   // Fetch messages
   let query = supabase
     .from('messages')
-    .select('id, content, sender_type, created_at, sender_id')
+    .select('id, content, sender_type, created_at, sender_id, attachments, is_internal')
     .eq('conversation_id', session.conversation_id)
     .order('created_at', { ascending: true });
 
@@ -505,15 +594,38 @@ async function handleGetMessages(supabase: any, sessionId: string, since: string
     .update({ last_seen_at: new Date().toISOString() })
     .eq('id', sessionId);
 
+  // Internal notes and system handover notes never reach the visitor.
+  const visible = (messages || []).filter(
+    (m: any) => !m.is_internal && (m.sender_type === 'customer' || m.sender_type === 'agent'),
+  );
+
+  // Signed URLs expire, so re-sign attachments on every read.
+  const withAttachments = await Promise.all(visible.map(async (m: any) => {
+    const raw = Array.isArray(m.attachments) ? m.attachments : [];
+    const attachments = [] as Array<{ url: string; name: string; type: string }>;
+    for (const att of raw) {
+      const path = att?.storagePath || att?.storage_path;
+      if (!path) continue;
+      const { data: signed } = await supabase.storage
+        .from(ATTACHMENT_BUCKET)
+        .createSignedUrl(path, 3600);
+      if (signed?.signedUrl) {
+        attachments.push({ url: signed.signedUrl, name: att.name || 'file', type: att.type || '' });
+      }
+    }
+    return {
+      id: m.id,
+      content: m.content,
+      senderType: m.sender_type,
+      createdAt: m.created_at,
+      senderName: m.sender_type === 'agent' ? agentName : undefined,
+      ...(attachments.length > 0 ? { attachments } : {}),
+    };
+  }));
+
   return new Response(
     JSON.stringify({
-      messages: messages.map((m: any) => ({
-        id: m.id,
-        content: m.content,
-        senderType: m.sender_type,
-        createdAt: m.created_at,
-        senderName: m.sender_type === 'agent' ? agentName : undefined,
-      })),
+      messages: withAttachments,
       status: session.status,
       agentTyping: typing?.is_typing || false,
       assignedAgentName: agentName,
@@ -620,5 +732,241 @@ async function handlePing(supabase: any, data: PingRequest) {
   return new Response(
     JSON.stringify({ success: true }),
     { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+  );
+}
+
+async function loadSession(supabase: any, sessionId: string) {
+  const { data } = await supabase
+    .from('widget_chat_sessions')
+    .select('id, conversation_id, status, visitor_id, visitor_email, visitor_name, metadata')
+    .eq('id', sessionId)
+    .maybeSingle();
+  return data;
+}
+
+async function handleAttachment(supabase: any, data: AttachmentRequest) {
+  const { sessionId, file } = data;
+
+  if (!sessionId || !file?.data || !file?.filename) {
+    return new Response(
+      JSON.stringify({ error: 'Session ID and file are required' }),
+      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    );
+  }
+
+  if (!ALLOWED_ATTACHMENT_TYPES.includes(file.mimeType)) {
+    return new Response(
+      JSON.stringify({ error: 'Unsupported file type' }),
+      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    );
+  }
+
+  const session = await loadSession(supabase, sessionId);
+  if (!session) {
+    return new Response(
+      JSON.stringify({ error: 'Session not found' }),
+      { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    );
+  }
+  if (session.status === 'ended' || session.status === 'abandoned') {
+    return new Response(
+      JSON.stringify({ error: 'Chat session has ended' }),
+      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    );
+  }
+
+  // Uploads are far more expensive than messages: 10 per visitor per minute.
+  if (!checkRateLimit(`att:${session.visitor_id}`, 10, 60000) ||
+      !(await checkDurableRateLimit(`widget-chat-att:${session.visitor_id}`, 10, 60))) {
+    return new Response(
+      JSON.stringify({ error: 'Too many uploads. Please slow down.' }),
+      { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    );
+  }
+
+  let bytes: Uint8Array;
+  try {
+    const binary = atob(file.data);
+    bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  } catch {
+    return new Response(
+      JSON.stringify({ error: 'Invalid file payload' }),
+      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    );
+  }
+
+  if (bytes.byteLength > MAX_ATTACHMENT_BYTES) {
+    return new Response(
+      JSON.stringify({ error: 'File is larger than 5 MB' }),
+      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    );
+  }
+
+  const path = `${session.conversation_id}/${Date.now()}-${safeFilename(file.filename)}`;
+  const { error: uploadError } = await supabase.storage
+    .from(ATTACHMENT_BUCKET)
+    .upload(path, bytes, { contentType: file.mimeType, upsert: false });
+
+  if (uploadError) {
+    console.error('Error uploading widget attachment:', uploadError);
+    return new Response(
+      JSON.stringify({ error: 'Failed to upload file' }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    );
+  }
+
+  const caption = typeof data.content === 'string' ? data.content.trim().slice(0, 500) : '';
+  const { error: messageError } = await supabase.from('messages').insert({
+    conversation_id: session.conversation_id,
+    content: caption || `📎 ${file.filename}`,
+    sender_type: 'customer',
+    content_type: 'text',
+    attachments: [{ name: file.filename, type: file.mimeType, storagePath: path }],
+  });
+
+  if (messageError) {
+    console.error('Error saving attachment message:', messageError);
+    return new Response(
+      JSON.stringify({ error: 'Failed to attach file' }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    );
+  }
+
+  await Promise.all([
+    supabase
+      .from('widget_chat_sessions')
+      .update({ last_message_at: new Date().toISOString() })
+      .eq('id', sessionId),
+    supabase
+      .from('conversations')
+      .update({
+        preview_text: `📎 ${file.filename}`.substring(0, 200),
+        updated_at: new Date().toISOString(),
+        status: 'open',
+        is_read: false,
+      })
+      .eq('id', session.conversation_id),
+  ]);
+
+  return new Response(
+    JSON.stringify({ success: true }),
+    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+  );
+}
+
+async function handleRate(supabase: any, data: RateRequest) {
+  const { sessionId } = data;
+  const rating = Number(data.rating);
+
+  if (!sessionId || !Number.isInteger(rating) || rating < 1 || rating > 5) {
+    return new Response(
+      JSON.stringify({ error: 'A session ID and a rating between 1 and 5 are required' }),
+      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    );
+  }
+
+  const session = await loadSession(supabase, sessionId);
+  if (!session) {
+    return new Response(
+      JSON.stringify({ error: 'Session not found' }),
+      { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    );
+  }
+
+  const comment = typeof data.comment === 'string'
+    ? data.comment.replace(/<[^>]*>/g, '').trim().slice(0, 500)
+    : '';
+
+  const csat = { rating, comment: comment || undefined, rated_at: new Date().toISOString() };
+
+  await supabase
+    .from('widget_chat_sessions')
+    .update({ metadata: { ...(session.metadata || {}), csat } })
+    .eq('id', sessionId);
+
+  // Visible to agents in the thread so feedback is not buried in metadata.
+  await supabase.from('messages').insert({
+    conversation_id: session.conversation_id,
+    content: `Chat rating: ${rating}/5${comment ? `\n\n"${comment}"` : ''}`,
+    sender_type: 'system',
+    content_type: 'text',
+    is_internal: true,
+  });
+
+  return new Response(
+    JSON.stringify({ success: true }),
+    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+  );
+}
+
+async function handleTranscript(supabase: any, data: TranscriptRequest) {
+  const { sessionId } = data;
+  const email = typeof data.email === 'string' ? data.email.trim().toLowerCase() : '';
+
+  if (!sessionId || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return new Response(
+      JSON.stringify({ error: 'A session ID and a valid email are required' }),
+      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    );
+  }
+
+  // Transcript emails are a spam vector: 3 per visitor per hour.
+  if (!(await checkDurableRateLimit(`widget-chat-transcript:${sessionId}`, 3, 3600))) {
+    return rateLimitResponse(corsHeaders);
+  }
+
+  const session = await loadSession(supabase, sessionId);
+  if (!session) {
+    return new Response(
+      JSON.stringify({ error: 'Session not found' }),
+      { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    );
+  }
+
+  // Only send to the address already tied to the session, when there is one —
+  // otherwise anyone holding a session id could mail the transcript anywhere.
+  if (session.visitor_email && session.visitor_email !== email) {
+    return new Response(
+      JSON.stringify({ error: 'Transcript can only be sent to the email used for this chat' }),
+      { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    );
+  }
+
+  const { data: messages } = await supabase
+    .from('messages')
+    .select('content, sender_type, created_at, is_internal')
+    .eq('conversation_id', session.conversation_id)
+    .order('created_at', { ascending: true });
+
+  const rows = (messages || [])
+    .filter((m: any) => !m.is_internal && (m.sender_type === 'customer' || m.sender_type === 'agent'))
+    .map((m: any) => {
+      const who = m.sender_type === 'customer' ? 'You' : 'Support';
+      const when = new Date(m.created_at).toLocaleString('en-GB', { timeZone: 'Europe/Oslo' });
+      return `<p style="margin:0 0 12px"><strong>${escapeHtml(who)}</strong> <span style="color:#888">${escapeHtml(when)}</span><br>${escapeHtml(m.content || '')}</p>`;
+    })
+    .join('');
+
+  const html = `<div style="font-family:Arial,sans-serif;font-size:14px;color:#111">
+    <h2 style="font-size:18px">Your chat transcript</h2>
+    ${rows || '<p>No messages were exchanged.</p>'}
+  </div>`;
+
+  const { error: sendError } = await supabase.functions.invoke('send-email', {
+    body: { to: email, subject: 'Your chat transcript', html },
+  });
+
+  if (sendError) {
+    console.error('Error sending transcript:', sendError);
+    return new Response(
+      JSON.stringify({ error: 'Failed to send transcript' }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    );
+  }
+
+  return new Response(
+    JSON.stringify({ success: true }),
+    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
   );
 }

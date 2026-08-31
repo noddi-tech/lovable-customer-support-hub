@@ -11,7 +11,9 @@ import da from './da.json';
 
 export type WidgetTranslations = typeof en;
 
-const translations: Record<string, WidgetTranslations> = {
+// Partial: non-English files may lag behind newly added keys; getWidgetTranslations
+// merges them over English so missing keys still resolve.
+const translations: Record<string, Partial<WidgetTranslations>> = {
   en,
   no,
   es,
@@ -38,7 +40,9 @@ export const SUPPORTED_WIDGET_LANGUAGES = [
 ] as const;
 
 export function getWidgetTranslations(language: string): WidgetTranslations {
-  return translations[language] || translations.en;
+  // Merge over English so newly added keys never render as undefined in a
+  // language whose file has not been updated yet.
+  return { ...en, ...(translations[language] || {}) } as WidgetTranslations;
 }
 
 // Default English values (matches database defaults)
