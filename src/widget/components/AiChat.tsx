@@ -22,7 +22,7 @@ interface AiChatProps {
   agentsOnline: boolean;
   enableChat: boolean;
   enableContactForm: boolean;
-  onTalkToHuman: () => void;
+  onTalkToHuman: (transcript?: string) => void;
   onEmailConversation: (transcript: string) => void;
   onBack: () => void;
   onLogEvent?: (event: string, details?: string, type?: 'info' | 'tool' | 'error' | 'success') => void;
@@ -342,7 +342,7 @@ export const AiChat: React.FC<AiChatProps> = ({
       {canEscalate && messages.length > 2 && (
         <div className="noddi-ai-escalation">
           {agentsOnline && enableChat ? (
-            <button className="noddi-ai-escalation-btn" onClick={onTalkToHuman}>
+            <button className="noddi-ai-escalation-btn" onClick={() => onTalkToHuman(buildTranscript())}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
               {t.talkToHuman}
             </button>
