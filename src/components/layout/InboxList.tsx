@@ -66,6 +66,20 @@ export const InboxList: React.FC<InboxListProps> = ({
   const { data: counts, isLoading: countsLoading } = useInboxCounts(selectedInbox || 'all');
   const { defaultInboxId } = useDefaultInbox();
 
+  const [selectOpen, setSelectOpen] = React.useState(false);
+
+  // Configured inboxes get keyboard shortcuts 1-9 (0 = All Inboxes)
+  const numberedInboxes = React.useMemo(
+    () => inboxes.filter((i) => inboxEmails[i.id]).slice(0, 9),
+    [inboxes, inboxEmails]
+  );
+
+  const NumberKey: React.FC<{ n: number }> = ({ n }) => (
+    <kbd className="flex h-4 w-4 items-center justify-center rounded border border-border bg-muted text-[10px] font-medium text-muted-foreground flex-shrink-0 mt-0.5">
+      {n}
+    </kbd>
+  );
+
   const DefaultTag: React.FC = () => (
     <Badge variant="outline" className="h-4 px-1.5 text-[9px] border-primary/40 text-primary flex-shrink-0">
       Default
@@ -168,7 +182,12 @@ export const InboxList: React.FC<InboxListProps> = ({
         {inboxesLoading ? (
           <Skeleton className="h-10 w-full" />
         ) : (
-          <Select value={selectedInbox || ''} onValueChange={handleInboxChange}>
+          <Select
+            value={selectedInbox || ''}
+            onValueChange={handleInboxChange}
+            open={selectOpen}
+            onOpenChange={setSelectOpen}
+          >
             <SelectTrigger className="w-full min-w-0 h-auto py-1.5 bg-background border-border focus:ring-ring">
               <div className="flex items-start gap-2 min-w-0 overflow-hidden text-left w-full">
                 {selectedInbox && selectedInbox !== 'all' ? (
@@ -202,9 +221,23 @@ export const InboxList: React.FC<InboxListProps> = ({
               </div>
             </SelectTrigger>
 
-            <SelectContent className="bg-popover border-border">
+            <SelectContent
+              className="bg-popover border-border"
+              onKeyDown={(e) => {
+                if (e.metaKey || e.ctrlKey || e.altKey) return;
+                if (!/^[0-9]$/.test(e.key)) return;
+                const n = Number(e.key);
+                const target = n === 0 ? 'all' : numberedInboxes[n - 1]?.id;
+                if (!target) return;
+                e.preventDefault();
+                e.stopPropagation();
+                setSelectOpen(false);
+                handleInboxChange(target);
+              }}
+            >
               <SelectItem value="all">
                 <div className="flex items-center gap-2">
+                  <NumberKey n={0} />
                   <div className="w-2 h-2 rounded-full bg-muted-foreground/50" />
                   <span>All Inboxes</span>
                   <OutstandingBadges open={allOutstanding.open} pending={allOutstanding.pending} />
@@ -213,6 +246,7 @@ export const InboxList: React.FC<InboxListProps> = ({
 
               {inboxes.map((inbox) => {
                 const email = inboxEmails[inbox.id];
+                const shortcutIndex = numberedInboxes.findIndex((i) => i.id === inbox.id);
 
                 if (!email) {
                   // Unconfigured inbox: not selectable, offers a shortcut to finish setup
@@ -222,6 +256,7 @@ export const InboxList: React.FC<InboxListProps> = ({
                       className="relative flex items-center justify-between gap-2 rounded-sm py-1.5 pl-8 pr-2 text-sm opacity-60"
                     >
                       <div className="flex items-start gap-2 min-w-0">
+                        <span className="w-4 flex-shrink-0" />
                         <div
                           className="w-2 h-2 rounded-full flex-shrink-0 mt-1.5 bg-muted-foreground/40"
                         />
@@ -251,6 +286,7 @@ export const InboxList: React.FC<InboxListProps> = ({
                 return (
                   <SelectItem key={inbox.id} value={inbox.id}>
                     <div className="flex items-start gap-2 min-w-0 w-full">
+                      {shortcutIndex > -1 ? <NumberKey n={shortcutIndex + 1} /> : <span className="w-4 flex-shrink-0" />}
                       <div 
                         className="w-2 h-2 rounded-full flex-shrink-0 mt-1.5"
                         style={{ backgroundColor: inbox.color || '#6B7280' }}
