@@ -67,5 +67,18 @@
   "invalidPin": "Ugyldig kode, vennligst prøv igjen",
   "codeSent": "Kode sendt!",
   "resendCode": "Send kode på nytt",
-  "sendingCode": "Sender..."
+  "sendingCode": "Sender...",
+  "searchHelp": "Søk i hjelpeartikler",
+  "preChatIntro": "Fortell oss hvem du er, så kan en agent hjelpe deg raskere.",
+  "preChatTopic": "Hva gjelder det? (valgfritt)",
+  "attachFile": "Legg ved fil",
+  "attachmentTypeError": "Bare bilder og PDF-filer kan legges ved.",
+  "attachmentSizeError": "Filer må være mindre enn 5 MB.",
+  "attachmentUploadError": "Kunne ikke laste opp filen. Prøv igjen.",
+  "rateTitle": "Hvordan var chatten?",
+  "rateCommentPlaceholder": "Noe du vil legge til? (valgfritt)",
+  "rateSubmit": "Send tilbakemelding",
+  "rateThanks": "Takk for tilbakemeldingen!",
+  "transcriptLabel": "Send meg en kopi av chatten på e-post",
+  "transcriptSend": "Send utskrift"
 }

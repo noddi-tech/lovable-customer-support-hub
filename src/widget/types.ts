@@ -61,7 +61,7 @@ export interface WidgetIdentityOptions {
   phone?: string;
 }
 
-export type WidgetView = 'home' | 'contact' | 'search' | 'chat' | 'ai';
+export type WidgetView = 'home' | 'contact' | 'search' | 'chat' | 'ai' | 'prechat';
 
 export type ChatSessionStatus = 'waiting' | 'active' | 'ended' | 'abandoned';
 
