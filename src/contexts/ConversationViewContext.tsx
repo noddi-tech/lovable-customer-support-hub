@@ -281,7 +281,7 @@ export const ConversationViewProvider = ({ children, conversationId, conversatio
     queryFn: async () => {
       const { data, error } = await supabase.from('profiles').select('id, user_id, full_name').order('full_name');
       if (error) throw error;
-      return sortInboxesByName(data || []);
+      return data || [];
     },
     enabled: !!user,
   });
@@ -292,7 +292,7 @@ export const ConversationViewProvider = ({ children, conversationId, conversatio
     queryFn: async () => {
       const { data, error } = await supabase.rpc('get_inboxes');
       if (error) throw error;
-      return data || [];
+      return sortInboxesByName(data || []);
     },
     enabled: !!user,
   });
