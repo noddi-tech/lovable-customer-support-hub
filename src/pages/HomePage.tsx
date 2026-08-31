@@ -6,6 +6,7 @@ import { useDateFormatting } from '@/hooks/useDateFormatting';
 import { UnifiedAppLayout } from '@/components/layout/UnifiedAppLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { NAV_ITEMS } from '@/navigation/nav-config';
 import { cn } from '@/lib/utils';
@@ -103,39 +104,68 @@ export default function HomePage() {
               </h2>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-              {inboxes.filter(i => i.is_active).map(inbox => (
-                <Card
-                  key={inbox.id}
-                  className="cursor-pointer hover:shadow-md transition-shadow"
-                  onClick={() => navigate(`/interactions/text/open?inbox=${inbox.id}`)}
-                >
-                  <CardContent className="p-3 flex items-center justify-between">
-                    <div className="flex items-start gap-3 min-w-0">
-                      <span
-                        className="h-2.5 w-2.5 rounded-full shrink-0 mt-1.5"
-                        style={{ backgroundColor: inbox.color || 'hsl(var(--primary))' }}
-                      />
-                      <div className="min-w-0 flex flex-col leading-tight">
-                        <span className="text-sm font-medium truncate text-foreground">{inbox.name}</span>
-                        {inboxEmails[inbox.id] && (
-                          <span className="text-[11px] text-muted-foreground truncate">{inboxEmails[inbox.id]}</span>
+              {inboxes.filter(i => i.is_active).map(inbox => {
+                const email = inboxEmails[inbox.id];
+                const isConfigured = Boolean(email);
+
+                return (
+                  <Card
+                    key={inbox.id}
+                    aria-disabled={!isConfigured}
+                    className={cn(
+                      'transition-shadow',
+                      isConfigured
+                        ? 'cursor-pointer hover:shadow-md'
+                        : 'cursor-not-allowed opacity-60 bg-muted/30'
+                    )}
+                    onClick={isConfigured ? () => navigate(`/interactions/text/open?inbox=${inbox.id}`) : undefined}
+                  >
+                    <CardContent className="p-3 flex items-center justify-between">
+                      <div className="flex items-start gap-3 min-w-0">
+                        <span
+                          className="h-2.5 w-2.5 rounded-full shrink-0 mt-1.5"
+                          style={{ backgroundColor: isConfigured ? (inbox.color || 'hsl(var(--primary))') : 'hsl(var(--muted-foreground) / 0.4)' }}
+                        />
+                        <div className="min-w-0 flex flex-col leading-tight">
+                          <span className={cn('text-sm font-medium truncate', isConfigured ? 'text-foreground' : 'text-muted-foreground')}>
+                            {inbox.name}
+                          </span>
+                          <span className="text-[11px] text-muted-foreground truncate">
+                            {isConfigured ? email : 'Not configured'}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 ml-3 shrink-0">
+                        {isConfigured ? (
+                          <>
+                            {inbox.unread_count > 0 && (
+                              <Badge variant="destructive" className="text-[10px] px-1.5 py-0">
+                                {inbox.unread_count}
+                              </Badge>
+                            )}
+                            <Badge variant="secondary">
+                              {inbox.open_count} open
+                            </Badge>
+                          </>
+                        ) : (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 px-2 text-[11px]"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate('/admin/integrations');
+                            }}
+                          >
+                            Configure
+                          </Button>
                         )}
                       </div>
-                    </div>
-
-                    <div className="flex items-center gap-2 ml-3 shrink-0">
-                      {inbox.unread_count > 0 && (
-                        <Badge variant="destructive" className="text-[10px] px-1.5 py-0">
-                          {inbox.unread_count}
-                        </Badge>
-                      )}
-                      <Badge variant="secondary">
-                        {inbox.open_count} open
-                      </Badge>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
             <Separator className="mt-4" />
           </div>
