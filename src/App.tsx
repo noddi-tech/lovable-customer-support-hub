@@ -2,6 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { GlobalErrorBoundary } from "@/components/error/GlobalErrorBoundary";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { EnvBanner } from "@/components/dev/EnvBanner";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { queryClient, persister } from '@/lib/persistedQueryClient';
@@ -300,6 +301,7 @@ const App = () => (
                     <DesignSystemProvider>
                       <TooltipProvider>
                         <I18nWrapper>
+                        <EnvBanner />
                         <AppContent />
                         {/* Aircall Workspace Manager - Controls container visibility */}
                         <AircallWorkspaceManager />

@@ -1,0 +1,34 @@
+/**
+ * Slim environment banner shown at the very top of the app.
+ * Renders nothing on production (published domain + prod build).
+ */
+export const EnvBanner = () => {
+  const host = typeof window !== 'undefined' ? window.location.hostname : '';
+  const isDev = import.meta.env.DEV === true;
+  const isLocal = host === 'localhost' || host === '127.0.0.1' || host.endsWith('.local');
+  const isLovablePreview = host.includes('id-preview--') || host.includes('.lovableproject.com');
+
+  let label: string | null = null;
+  let tone = '';
+
+  if (isLocal) {
+    label = `LOCAL DEV · ${window.location.host}`;
+    tone = 'bg-emerald-600 text-white';
+  } else if (isLovablePreview) {
+    label = `LOVABLE PREVIEW · ${isDev ? 'dev build' : 'prod build'}`;
+    tone = 'bg-amber-500 text-black';
+  } else if (isDev) {
+    label = `DEV BUILD · ${host}`;
+    tone = 'bg-amber-500 text-black';
+  }
+
+  if (!label) return null; // production — stay silent
+
+  return (
+    <div
+      className={`fixed inset-x-0 top-0 z-[9999] h-5 flex items-center justify-center text-[10px] font-semibold tracking-wide uppercase pointer-events-none ${tone}`}
+    >
+      {label}
+    </div>
+  );
+};
