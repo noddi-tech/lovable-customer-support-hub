@@ -17,6 +17,8 @@ import { useAccessibleInboxes } from '@/hooks/useInteractionsData';
 import { useInboxEmailAddresses } from '@/hooks/useInboxEmailAddresses';
 import { useInboxOutstandingCounts } from '@/hooks/useInboxOutstandingCounts';
 import { useDefaultInbox } from '@/hooks/useDefaultInbox';
+import { groupInboxesByDomain } from '@/utils/inboxGrouping';
+
 
 interface QuickInboxSwitcherProps {
   open: boolean;
@@ -37,6 +39,14 @@ export const QuickInboxSwitcher: React.FC<QuickInboxSwitcherProps> = ({ open, on
     () => inboxes.filter((i) => !!inboxEmails[i.id]),
     [inboxes, inboxEmails],
   );
+
+  // Group inboxes that share an email domain
+  const groups = React.useMemo(
+    () => groupInboxesByDomain(selectable, inboxEmails),
+    [selectable, inboxEmails],
+  );
+
+
 
   const allOutstanding = React.useMemo(
     () =>
