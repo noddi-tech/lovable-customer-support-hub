@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Progress } from '@/components/ui/progress';
-import { Plus, Mail, User, Users, MessageSquare, Sparkles, Languages, Loader2, FileText } from 'lucide-react';
+import { Plus, Mail, User, Users, MessageSquare, Sparkles, Languages, Loader2, FileText, ArrowRight, ArrowLeft } from "lucide-react";
 import { Badge } from '@/components/ui/badge';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -62,6 +62,9 @@ function parseEmails(raw: string): string[] {
 
 export const NewConversationDialog: React.FC<NewConversationDialogProps> = ({ children }) => {
   const [open, setOpen] = useState(false);
+  // Two-step flow: pick recipients first, then a fullscreen compose window.
+  const [step, setStep] = useState<'recipients' | 'compose'>('recipients');
+
   const [customerEmail, setCustomerEmail] = useState('');
   const [customerName, setCustomerName] = useState('');
   const [subject, setSubject] = useState('');
@@ -322,7 +325,9 @@ export const NewConversationDialog: React.FC<NewConversationDialogProps> = ({ ch
   });
 
   const resetForm = () => {
+    setStep('recipients');
     setCustomerEmail('');
+
     setCustomerName('');
     setSubject('');
     setInitialMessage('');
@@ -531,8 +536,23 @@ export const NewConversationDialog: React.FC<NewConversationDialogProps> = ({ ch
     navigate(`${basePath}?inbox=${currentInbox}`);
   }, [parsedEmails, subject, selectedInboxId, initialMessage, priority, createConversationMutation, queryClient, navigate, resetForm]);
 
+  const canContinue = isBulkMode
+    ? parsedEmails.length > 0
+    : /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail.trim());
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Step 1 only collects recipients — move on to the compose window.
+    if (step === 'recipients') {
+      if (!canContinue) {
+        toast.error(isBulkMode ? 'Add at least one valid email' : 'A valid recipient email is required');
+        return;
+      }
+      setStep('compose');
+      return;
+    }
+
     
     if (isBulkMode) {
       handleBulkSend();
@@ -560,366 +580,369 @@ export const NewConversationDialog: React.FC<NewConversationDialogProps> = ({ ch
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        if (!next) setStep('recipients');
+      }}
+    >
       <DialogTrigger asChild>
         {children}
       </DialogTrigger>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center space-x-2">
-            <MessageSquare className="h-5 w-5" />
-            <span>{t('conversation.newConversation')}</span>
-          </DialogTitle>
-        </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Customer Information */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center justify-between text-base">
-                <div className="flex items-center space-x-2">
-                  {isBulkMode ? <Users className="h-4 w-4" /> : <User className="h-4 w-4" />}
-                  <span>{isBulkMode ? 'Recipients' : t('conversation.customerInformation')}</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Label htmlFor="bulk-mode" className="text-xs font-normal text-muted-foreground cursor-pointer">
-                    Send to multiple
-                  </Label>
-                  <Switch
-                    id="bulk-mode"
-                    checked={isBulkMode}
-                    onCheckedChange={setIsBulkMode}
-                    disabled={!!bulkSendProgress}
-                  />
-                </div>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {isBulkMode ? (
-                <div className="space-y-2">
-                  <Label htmlFor="bulk-emails">Email addresses (one per line, or comma/semicolon separated)</Label>
-                  <Textarea
-                    id="bulk-emails"
-                    placeholder={"customer1@example.com\ncustomer2@example.com\ncustomer3@example.com"}
-                    value={bulkEmails}
-                    onChange={(e) => setBulkEmails(e.target.value)}
-                    className="min-h-[100px] resize-none font-mono text-sm"
-                    emojiAutocomplete={false}
-                    disabled={!!bulkSendProgress}
-                  />
-                  {bulkEmails.trim() && (
-                    <Badge variant="secondary" className="text-xs">
-                      {parsedEmails.length} valid {parsedEmails.length === 1 ? 'email' : 'emails'} detected
-                    </Badge>
-                  )}
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="customer-email">{t('conversation.emailAddress')} *</Label>
-                    <Input
-                      id="customer-email"
-                      type="email"
-                      placeholder="customer@example.com"
-                      value={customerEmail}
-                      onChange={(e) => setCustomerEmail(e.target.value)}
-                      required={!isBulkMode}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="customer-name">{t('conversation.customerName')}</Label>
-                    <Input
-                      id="customer-name"
-                      placeholder={t('conversation.customerName')}
-                      value={customerName}
-                      onChange={(e) => setCustomerName(e.target.value)}
-                    />
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+      {step === 'recipients' ? (
+        /* ---------- Step 1: recipients only ---------- */
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <MessageSquare className="h-5 w-5" />
+              <span>{t('conversation.newConversation')}</span>
+            </DialogTitle>
+          </DialogHeader>
 
-          {/* Noddi Customer Search - only in single mode */}
-          {!isBulkMode && profile?.organization_id && (
+          <form onSubmit={handleSubmit} className="space-y-6">
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="flex items-center space-x-2 text-base">
-                  <User className="h-4 w-4" />
-                  <span>Search Customer in Noddi</span>
+                <CardTitle className="flex items-center justify-between text-base">
+                  <div className="flex items-center space-x-2">
+                    {isBulkMode ? <Users className="h-4 w-4" /> : <User className="h-4 w-4" />}
+                    <span>{isBulkMode ? 'Recipients' : t('conversation.customerInformation')}</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Label htmlFor="bulk-mode" className="text-xs font-normal text-muted-foreground cursor-pointer">
+                      Send to multiple
+                    </Label>
+                    <Switch id="bulk-mode" checked={isBulkMode} onCheckedChange={setIsBulkMode} />
+                  </div>
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <NoddiCustomerSearch
-                  selectedCustomer={selectedCustomer}
-                  onSelectCustomer={handleCustomerSelect}
-                  organizationId={profile.organization_id}
-                  showEmailSearch={false}
-                />
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Conversation Details */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center space-x-2 text-base">
-                <Mail className="h-4 w-4" />
-                <span>{t('conversation.conversationDetails')}</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="subject">{t('conversation.subject')} *</Label>
-                <Input
-                  id="subject"
-                  placeholder="Email subject line"
-                  value={subject}
-                  onChange={(e) => setSubject(e.target.value)}
-                  required
-                  disabled={!!bulkSendProgress}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="inbox">{t('conversation.inbox')}</Label>
-                  <Select value={selectedInboxId} onValueChange={setSelectedInboxId} disabled={!!bulkSendProgress}>
-                    <SelectTrigger>
-                      <SelectValue placeholder={t('conversation.selectInbox')} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {inboxes.map((inbox) => (
-                        <SelectItem key={inbox.id} value={inbox.id}>
-                          <div className="flex items-center space-x-2">
-                            <div 
-                              className="w-3 h-3 rounded-full" 
-                              style={{ backgroundColor: inbox.color }}
-                            />
-                            <span>{inbox.name}</span>
-                            {inbox.is_default && <span className="text-xs text-muted-foreground">(default)</span>}
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="priority">{t('conversation.priority')}</Label>
-                  <Select value={priority} onValueChange={setPriority} disabled={!!bulkSendProgress}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="low">{t('conversation.low')}</SelectItem>
-                      <SelectItem value="normal">{t('conversation.normal')}</SelectItem>
-                      <SelectItem value="high">{t('conversation.high')}</SelectItem>
-                      <SelectItem value="urgent">{t('conversation.urgent')}</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="initial-message">
-                    {t('conversation.initialMessage')}
-                    {isBulkMode && (
-                      <span className="text-xs text-muted-foreground ml-2">
-                        (use {'{email}'} for recipient's email)
-                      </span>
-                    )}
-                  </Label>
-                  
-                  {/* Editor Toolbar */}
-                  <div className="flex items-center gap-1">
-                    {/* AI Suggestions */}
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={handleGetAiSuggestions}
-                          disabled={isLoadingAi || !subject.trim()}
-                          title="Get AI suggestions"
-                        >
-                          {isLoadingAi ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Sparkles className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </PopoverTrigger>
-                      {aiSuggestions.length > 0 && (
-                        <PopoverContent className="w-96 max-h-96 overflow-y-auto">
-                          <div className="space-y-2">
-                            <p className="text-sm font-medium">AI Suggestions</p>
-                            {aiSuggestions.map((suggestion, index) => (
-                              <Card
-                                key={index}
-                                className="p-3 cursor-pointer hover:bg-accent transition-colors"
-                                onClick={() => handleSelectSuggestion(suggestion)}
-                              >
-                                <p className="text-sm line-clamp-3">{suggestion}</p>
-                              </Card>
-                            ))}
-                          </div>
-                        </PopoverContent>
-                      )}
-                    </Popover>
-
-                    {/* Translation */}
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          disabled={!initialMessage.trim()}
-                          title="Translate message"
-                        >
-                          <Languages className="h-4 w-4" />
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-80">
-                        <div className="space-y-3">
-                          <p className="text-sm font-medium">Translate Message</p>
-                          <div className="space-y-2">
-                            <Label>From</Label>
-                            <Select value={sourceLanguage} onValueChange={setSourceLanguage}>
-                              <SelectTrigger>
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {languages.map((lang) => (
-                                  <SelectItem key={lang.code} value={lang.code}>
-                                    {lang.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div className="space-y-2">
-                            <Label>To</Label>
-                            <Select value={targetLanguage} onValueChange={setTargetLanguage}>
-                              <SelectTrigger>
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {languages.filter(l => l.code !== 'auto').map((lang) => (
-                                  <SelectItem key={lang.code} value={lang.code}>
-                                    {lang.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <Button
-                            type="button"
-                            onClick={handleTranslate}
-                            disabled={isTranslating}
-                            className="w-full"
-                          >
-                            {isTranslating ? (
-                              <>
-                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                Translating...
-                              </>
-                            ) : (
-                              'Translate'
-                            )}
-                          </Button>
-                        </div>
-                      </PopoverContent>
-                    </Popover>
-
-                    {/* Templates */}
-                    <TemplateSelector
-                      onSelectTemplate={handleTemplateSelect}
-                      isMobile={false}
+              <CardContent className="space-y-4">
+                {isBulkMode ? (
+                  <div className="space-y-2">
+                    <Label htmlFor="bulk-emails">Email addresses (one per line, or comma/semicolon separated)</Label>
+                    <Textarea
+                      id="bulk-emails"
+                      placeholder={"customer1@example.com\ncustomer2@example.com"}
+                      value={bulkEmails}
+                      onChange={(e) => setBulkEmails(e.target.value)}
+                      className="min-h-[120px] resize-none font-mono text-sm"
+                      emojiAutocomplete={false}
                     />
-                  </div>
-                </div>
-
-                <Textarea
-                  id="initial-message"
-                  placeholder={t('conversation.initialMessagePlaceholder')}
-                  value={initialMessage}
-                  onChange={(e) => setInitialMessage(e.target.value)}
-                  className="min-h-[120px] resize-none"
-                  disabled={!!bulkSendProgress}
-                />
-                <p className="text-xs text-muted-foreground">
-                  {t('conversation.initialMessageNote')}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Bulk Send Progress */}
-          {bulkSendProgress && (
-            <Card>
-              <CardContent className="py-4">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="flex items-center gap-2">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Sending {bulkSendProgress.current}/{bulkSendProgress.total}...
-                    </span>
-                    {bulkSendProgress.failed > 0 && (
-                      <span className="text-destructive text-xs">{bulkSendProgress.failed} failed</span>
+                    {bulkEmails.trim() && (
+                      <Badge variant="secondary" className="text-xs">
+                        {parsedEmails.length} valid {parsedEmails.length === 1 ? 'email' : 'emails'} detected
+                      </Badge>
                     )}
                   </div>
-                  <Progress value={(bulkSendProgress.current / bulkSendProgress.total) * 100} className="h-2" />
-                </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="customer-email">{t('conversation.emailAddress')} *</Label>
+                      <Input
+                        id="customer-email"
+                        type="email"
+                        placeholder="customer@example.com"
+                        value={customerEmail}
+                        onChange={(e) => setCustomerEmail(e.target.value)}
+                        required
+                        autoFocus
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="customer-name">{t('conversation.customerName')}</Label>
+                      <Input
+                        id="customer-name"
+                        placeholder={t('conversation.customerName')}
+                        value={customerName}
+                        onChange={(e) => setCustomerName(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
-          )}
 
-          <Separator />
+            {!isBulkMode && profile?.organization_id && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center space-x-2 text-base">
+                    <User className="h-4 w-4" />
+                    <span>Search Customer in Noddi</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <NoddiCustomerSearch
+                    selectedCustomer={selectedCustomer}
+                    onSelectCustomer={handleCustomerSelect}
+                    organizationId={profile.organization_id}
+                    showEmailSearch={false}
+                  />
+                </CardContent>
+              </Card>
+            )}
 
-          {/* Action Buttons */}
-          <div className="flex items-center justify-end space-x-3">
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={() => setOpen(false)}
-              disabled={createConversationMutation.isPending || !!bulkSendProgress}
-            >
-              {t('conversation.cancel')}
-            </Button>
-            <Button 
-              type="submit"
-              disabled={createConversationMutation.isPending || !!bulkSendProgress || (isBulkMode && parsedEmails.length === 0)}
-            >
-              {bulkSendProgress ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Sending {bulkSendProgress.current}/{bulkSendProgress.total}...
-                </>
-              ) : createConversationMutation.isPending ? (
-                t('conversation.creating')
-              ) : isBulkMode ? (
-                `Send to ${parsedEmails.length} recipient${parsedEmails.length !== 1 ? 's' : ''}`
-              ) : (
-                t('conversation.createConversation')
+            <Separator />
+
+            <div className="flex items-center justify-end space-x-3">
+              <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+                {t('conversation.cancel')}
+              </Button>
+              <Button type="submit" disabled={!canContinue}>
+                Continue
+                <ArrowRight className="h-4 w-4 ml-2" />
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      ) : (
+        /* ---------- Step 2: fullscreen compose ---------- */
+        <DialogContent className="max-w-none w-screen h-screen sm:rounded-none p-0 gap-0 flex flex-col">
+          <DialogHeader className="px-6 py-4 border-b shrink-0">
+            <DialogTitle className="flex items-center space-x-2 text-base">
+              <Mail className="h-5 w-5" />
+              <span>New email</span>
+            </DialogTitle>
+          </DialogHeader>
+
+          <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
+            {/* Recipient bar */}
+            <div className="px-6 py-3 border-b shrink-0 flex items-center gap-3 text-sm">
+              <span className="text-muted-foreground w-12 shrink-0">To</span>
+              <div className="flex-1 min-w-0 flex flex-wrap items-center gap-2">
+                {isBulkMode ? (
+                  <Badge variant="secondary">{parsedEmails.length} recipients</Badge>
+                ) : (
+                  <Badge variant="secondary" className="max-w-full truncate">
+                    {customerName ? `${customerName} <${customerEmail}>` : customerEmail}
+                  </Badge>
+                )}
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setStep('recipients')}
+                disabled={!!bulkSendProgress}
+              >
+                <ArrowLeft className="h-4 w-4 mr-1" />
+                Edit recipients
+              </Button>
+            </div>
+
+            {/* Subject */}
+            <div className="px-6 py-3 border-b shrink-0 flex items-center gap-3">
+              <span className="text-muted-foreground text-sm w-12 shrink-0">Subject</span>
+              <Input
+                id="subject"
+                placeholder="Email subject line"
+                value={subject}
+                onChange={(e) => setSubject(e.target.value)}
+                required
+                autoFocus
+                disabled={!!bulkSendProgress}
+                className="border-0 shadow-none focus-visible:ring-0 px-0 text-base"
+              />
+            </div>
+
+            {/* Inbox / priority */}
+            <div className="px-6 py-3 border-b shrink-0 flex flex-wrap items-center gap-4">
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground text-sm">{t('conversation.inbox')}</span>
+                <Select value={selectedInboxId} onValueChange={setSelectedInboxId} disabled={!!bulkSendProgress}>
+                  <SelectTrigger className="h-8 w-[220px]">
+                    <SelectValue placeholder={t('conversation.selectInbox')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {inboxes.map((inbox) => (
+                      <SelectItem key={inbox.id} value={inbox.id}>
+                        <div className="flex items-center space-x-2">
+                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: inbox.color }} />
+                          <span>{inbox.name}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground text-sm">{t('conversation.priority')}</span>
+                <Select value={priority} onValueChange={setPriority} disabled={!!bulkSendProgress}>
+                  <SelectTrigger className="h-8 w-[140px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="low">{t('conversation.low')}</SelectItem>
+                    <SelectItem value="normal">{t('conversation.normal')}</SelectItem>
+                    <SelectItem value="high">{t('conversation.high')}</SelectItem>
+                    <SelectItem value="urgent">{t('conversation.urgent')}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {isBulkMode && (
+                <span className="text-xs text-muted-foreground">
+                  use {'{email}'} for recipient's email
+                </span>
               )}
-            </Button>
-          </div>
-        </form>
+            </div>
 
-        {/* AI Suggestion Dialog */}
-        <AiSuggestionDialog
-          open={showAiDialog}
-          onOpenChange={setShowAiDialog}
-          suggestion={selectedSuggestion || ''}
-          onUseAsIs={handleUseAsIs}
-          onRefine={handleRefine}
-          isRefining={isRefining}
-        />
-      </DialogContent>
+            {/* Body — fills the window */}
+            <div className="flex-1 min-h-0 px-6 py-4">
+              <Textarea
+                id="initial-message"
+                placeholder={t('conversation.initialMessagePlaceholder')}
+                value={initialMessage}
+                onChange={(e) => setInitialMessage(e.target.value)}
+                className="h-full min-h-0 resize-none border-0 shadow-none focus-visible:ring-0 px-0 text-base"
+                disabled={!!bulkSendProgress}
+              />
+            </div>
+
+            {bulkSendProgress && (
+              <div className="px-6 pb-3 shrink-0 space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Sending {bulkSendProgress.current}/{bulkSendProgress.total}...
+                  </span>
+                  {bulkSendProgress.failed > 0 && (
+                    <span className="text-destructive text-xs">{bulkSendProgress.failed} failed</span>
+                  )}
+                </div>
+                <Progress value={(bulkSendProgress.current / bulkSendProgress.total) * 100} className="h-2" />
+              </div>
+            )}
+
+            {/* Footer toolbar */}
+            <div className="px-6 py-3 border-t shrink-0 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-1">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleGetAiSuggestions}
+                      disabled={isLoadingAi || !subject.trim()}
+                      title="Get AI suggestions"
+                    >
+                      {isLoadingAi ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                    </Button>
+                  </PopoverTrigger>
+                  {aiSuggestions.length > 0 && (
+                    <PopoverContent className="w-96 max-h-96 overflow-y-auto">
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium">AI Suggestions</p>
+                        {aiSuggestions.map((suggestion, index) => (
+                          <Card
+                            key={index}
+                            className="p-3 cursor-pointer hover:bg-accent transition-colors"
+                            onClick={() => handleSelectSuggestion(suggestion)}
+                          >
+                            <p className="text-sm line-clamp-3">{suggestion}</p>
+                          </Card>
+                        ))}
+                      </div>
+                    </PopoverContent>
+                  )}
+                </Popover>
+
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      disabled={!initialMessage.trim()}
+                      title="Translate message"
+                    >
+                      <Languages className="h-4 w-4" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-80">
+                    <div className="space-y-3">
+                      <p className="text-sm font-medium">Translate Message</p>
+                      <div className="space-y-2">
+                        <Label>From</Label>
+                        <Select value={sourceLanguage} onValueChange={setSourceLanguage}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {languages.map((lang) => (
+                              <SelectItem key={lang.code} value={lang.code}>{lang.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>To</Label>
+                        <Select value={targetLanguage} onValueChange={setTargetLanguage}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {languages.filter(l => l.code !== 'auto').map((lang) => (
+                              <SelectItem key={lang.code} value={lang.code}>{lang.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <Button type="button" onClick={handleTranslate} disabled={isTranslating} className="w-full">
+                        {isTranslating ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Translating...
+                          </>
+                        ) : 'Translate'}
+                      </Button>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+
+                <TemplateSelector onSelectTemplate={handleTemplateSelect} isMobile={false} />
+              </div>
+
+              <div className="flex items-center gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setOpen(false)}
+                  disabled={createConversationMutation.isPending || !!bulkSendProgress}
+                >
+                  {t('conversation.cancel')}
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={createConversationMutation.isPending || !!bulkSendProgress || !subject.trim()}
+                >
+                  {bulkSendProgress ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Sending {bulkSendProgress.current}/{bulkSendProgress.total}...
+                    </>
+                  ) : createConversationMutation.isPending ? (
+                    t('conversation.creating')
+                  ) : isBulkMode ? (
+                    `Send to ${parsedEmails.length} recipient${parsedEmails.length !== 1 ? 's' : ''}`
+                  ) : (
+                    t('conversation.createConversation')
+                  )}
+                </Button>
+              </div>
+            </div>
+          </form>
+
+          <AiSuggestionDialog
+            open={showAiDialog}
+            onOpenChange={setShowAiDialog}
+            suggestion={selectedSuggestion || ''}
+            onUseAsIs={handleUseAsIs}
+            onRefine={handleRefine}
+            isRefining={isRefining}
+          />
+        </DialogContent>
+      )}
     </Dialog>
   );
 };
