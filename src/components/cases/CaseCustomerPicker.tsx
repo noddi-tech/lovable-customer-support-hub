@@ -15,7 +15,7 @@ import { useCustomersList, customerSortName, type CustomerListRow } from '@/hook
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 export interface PickedCustomer {
   id: string;
@@ -136,4 +136,20 @@ export function CaseCustomerPicker({ value, onChange, disabled }: CaseCustomerPi
       </PopoverContent>
     </Popover>
   );
+}
+
+/** Resolves a customer id to a display label (used to prefill the picker). */
+export function useCustomerBasics(customerId: string | null) {
+  return useQuery({
+    queryKey: ['customer-basics', customerId],
+    enabled: !!customerId,
+    queryFn: async (): Promise<PickedCustomer | null> => {
+      const { data, error } = await (supabase.from('customers') as any)
+        .select('id, full_name, email, phone')
+        .eq('id', customerId)
+        .maybeSingle();
+      if (error) throw error;
+      return data ? { id: data.id, label: labelFor(data) } : null;
+    },
+  });
 }
