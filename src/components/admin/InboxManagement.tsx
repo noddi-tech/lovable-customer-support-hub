@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Heading } from '@/components/ui/heading';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -69,8 +70,8 @@ interface EmailAccount {
 
 // Content-only component for use inside collapsible sections
 export function InboxManagementContent() {
+  const navigate = useNavigate();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [editingInbox, setEditingInbox] = useState<InboxData | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [newInboxData, setNewInboxData] = useState({
     name: '',
@@ -82,10 +83,6 @@ export function InboxManagementContent() {
     sender_display_name: '',
     purpose: 'support' as 'support' | 'recruitment',
   });
-
-  // Sending/Receiving address edit state
-  const [editGroupEmail, setEditGroupEmail] = useState('');
-  const [editRouteId, setEditRouteId] = useState<string | null>(null);
 
   const queryClient = useQueryClient();
 
@@ -144,18 +141,6 @@ export function InboxManagementContent() {
     },
   });
 
-  // Initialize group email state when opening edit dialog
-  useEffect(() => {
-    if (editingInbox) {
-      const route = (inboundRoutes || []).find(r => r.inbox_id === editingInbox.id);
-      setEditRouteId(route?.id || null);
-      setEditGroupEmail(route?.group_email || '');
-    } else {
-      setEditRouteId(null);
-      setEditGroupEmail('');
-    }
-  }, [editingInbox, inboundRoutes]);
-
   // Create inbox mutation
   const createInboxMutation = useMutation({
     mutationFn: async (inboxData: typeof newInboxData) => {
@@ -200,42 +185,8 @@ export function InboxManagementContent() {
     }
   });
 
-  // Update inbox mutation
-  const updateInboxMutation = useMutation({
-    mutationFn: async ({ id, updates }: { id: string; updates: Partial<InboxData> }) => {
-      const { error } = await supabase
-        .from('inboxes')
-        .update(updates)
-        .eq('id', id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['inboxes'] });
-      setEditingInbox(null);
-      toast.success('Inbox updated successfully');
-    },
-    onError: (error) => {
-      toast.error('Failed to update inbox: ' + error.message);
-    }
-  });
 
-  // Update sending/receiving address (inbound route group_email)
-  const updateGroupEmailMutation = useMutation({
-    mutationFn: async ({ routeId, groupEmail }: { routeId: string; groupEmail: string }) => {
-      const { error } = await supabase
-        .from('inbound_routes')
-        .update({ group_email: groupEmail })
-        .eq('id', routeId);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['inbound_routes'] });
-      toast.success('Sending address updated');
-    },
-    onError: (error) => {
-      toast.error('Failed to update sending address: ' + error.message);
-    }
-  });
+
 
   // Bulk delete conversations mutation
   const bulkDeleteConversationsMutation = useMutation({
@@ -298,13 +249,6 @@ export function InboxManagementContent() {
     createInboxMutation.mutate(newInboxData);
   };
 
-  const handleUpdateInbox = (updates: Partial<InboxData>) => {
-    if (editingInbox) {
-      // Filter out computed fields that shouldn't be updated
-      const { conversation_count, created_at, updated_at, ...updateData } = updates;
-      updateInboxMutation.mutate({ id: editingInbox.id, updates: updateData });
-    }
-  };
 
   const handleDeleteInbox = (id: string, forceDelete?: boolean) => {
     deleteInboxMutation.mutate({ id, forceDelete });
@@ -481,7 +425,8 @@ export function InboxManagementContent() {
                     <Button 
                       variant="ghost" 
                       size="sm"
-                      onClick={() => setEditingInbox(inbox)}
+                      aria-label={`Configure ${inbox.name}`}
+                      onClick={() => navigate(`/admin/inboxes/${inbox.id}`)}
                     >
                       <Settings className="w-4 h-4" />
                     </Button>
@@ -594,155 +539,6 @@ export function InboxManagementContent() {
         </div>
       )}
 
-      {/* Edit Dialog */}
-      <Dialog open={!!editingInbox} onOpenChange={(open) => !open && setEditingInbox(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit Inbox</DialogTitle>
-            <DialogDescription>
-              Update inbox settings and configuration
-            </DialogDescription>
-          </DialogHeader>
-          {editingInbox && (
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="edit-name">Inbox Name</Label>
-                <Input
-                  id="edit-name"
-                  value={editingInbox.name}
-                  onChange={(e) => setEditingInbox(prev => prev ? { ...prev, name: e.target.value } : null)}
-                />
-              </div>
-              <div>
-                <Label htmlFor="edit-description">Description</Label>
-                <Textarea
-                  id="edit-description"
-                  value={editingInbox.description || ''}
-                  onChange={(e) => setEditingInbox(prev => prev ? { ...prev, description: e.target.value } : null)}
-                />
-              </div>
-              <div>
-                <Label htmlFor="edit-department">Department</Label>
-                <Select 
-                  value={editingInbox.department_id || 'no-department'} 
-                  onValueChange={(value) => setEditingInbox(prev => prev ? { 
-                    ...prev, 
-                    department_id: value === 'no-department' ? null : value 
-                  } : null)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select department (optional)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="no-department">No Department</SelectItem>
-                    {departments?.map(dept => (
-                      <SelectItem key={dept.id} value={dept.id}>{dept.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Color</Label>
-                <div className="flex gap-2 mt-1.5 flex-wrap">
-                  {INBOX_COLOR_PALETTE.map((color) => (
-                    <button
-                      key={color.value}
-                      type="button"
-                      onClick={() => setEditingInbox(prev => prev ? { ...prev, color: color.value } : null)}
-                      className={`w-8 h-8 rounded-full border-2 transition-all ${
-                        editingInbox.color === color.value
-                          ? 'border-foreground scale-110 ring-2 ring-offset-2 ring-primary'
-                          : 'border-transparent hover:scale-105'
-                      }`}
-                      style={{ backgroundColor: color.value }}
-                      title={color.label}
-                    />
-                  ))}
-                </div>
-              </div>
-              <div>
-                <Label htmlFor="edit-sender-name">Sender Display Name (Optional)</Label>
-                <Input
-                  id="edit-sender-name"
-                  value={editingInbox.sender_display_name || ''}
-                  onChange={(e) => setEditingInbox(prev => prev ? { ...prev, sender_display_name: e.target.value || null } : null)}
-                  placeholder="Leave empty to use organization default"
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Override the organization-level sender name for this inbox
-                </p>
-              </div>
-              <div>
-                <Label htmlFor="edit-purpose">Purpose</Label>
-                <Select
-                  value={editingInbox.purpose || 'support'}
-                  onValueChange={(v: 'support' | 'recruitment') => setEditingInbox(prev => prev ? { ...prev, purpose: v } : null)}
-                >
-                  <SelectTrigger id="edit-purpose"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="support">Support</SelectItem>
-                    <SelectItem value="recruitment">Recruitment</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="edit-is_active"
-                  checked={editingInbox.is_active}
-                  onCheckedChange={(checked) => setEditingInbox(prev => prev ? { ...prev, is_active: checked } : null)}
-                />
-                <Label htmlFor="edit-is_active">Active</Label>
-              </div>
-              {!editingInbox.is_default && (
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="edit-is_default"
-                    checked={editingInbox.is_default}
-                    onCheckedChange={(checked) => setEditingInbox(prev => prev ? { ...prev, is_default: checked } : null)}
-                  />
-                  <Label htmlFor="edit-is_default">Set as default inbox</Label>
-                </div>
-              )}
-              {/* Sending/Receiving address */}
-              <div className="pt-2">
-                <Label htmlFor="edit-group-email">Sending/Receiving address</Label>
-                {editRouteId ? (
-                  <div className="mt-1 flex gap-2">
-                    <Input
-                      id="edit-group-email"
-                      value={editGroupEmail}
-                      onChange={(e) => setEditGroupEmail(e.target.value)}
-                      placeholder="e.g., hei@noddi.no"
-                    />
-                    <Button
-                      onClick={() => editRouteId && updateGroupEmailMutation.mutate({ routeId: editRouteId, groupEmail: editGroupEmail.trim() })}
-                      disabled={updateGroupEmailMutation.isPending || editGroupEmail.trim().length === 0}
-                    >
-                      {updateGroupEmailMutation.isPending ? 'Saving…' : 'Save'}
-                    </Button>
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground mt-1">
-                    No inbound route linked to this inbox yet. Set it up in Admin → Integrations → Inbound Addresses.
-                  </p>
-                )}
-                <p className="text-xs text-muted-foreground mt-1">Used as the From address when replying. Must match your authenticated domain in SendGrid.</p>
-              </div>
-            </div>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditingInbox(null)}>
-              Cancel
-            </Button>
-            <Button 
-              onClick={() => editingInbox && handleUpdateInbox(editingInbox)} 
-              disabled={updateInboxMutation.isPending}
-            >
-              {updateInboxMutation.isPending ? 'Updating...' : 'Update Inbox'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
