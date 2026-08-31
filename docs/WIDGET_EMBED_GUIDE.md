@@ -102,6 +102,9 @@ NoddiWidget('init', {
   userId: user?.id,
   serviceDepartmentId: user?.serviceDepartmentId,
   bookingId: currentBooking?.id,
+  orderId: currentOrder?.id,
+  licensePlate: selectedCar?.licensePlate,
+  car: selectedCar?.displayName,
   appVersion: __APP_VERSION__,
 });
 ```
@@ -116,12 +119,70 @@ Stored on `conversations.metadata.context` (and on the chat session metadata) an
 
 ---
 
-## 5. Programmatic control
+## 5. Identifying logged-in users
+
+If your app knows who the visitor is, call `identify` after `init` (and after login).
+The visitor then skips the pre-chat name/email form, and agents see the identity on
+the conversation.
+
+```js
+NoddiWidget('identify', {
+  userId: user.id,
+  name: user.fullName,
+  email: user.email,
+  phone: user.phoneNumber,
+});
+```
+
+On logout, clear it:
+
+```js
+NoddiWidget('shutdown');   // clears identity and the stored chat session
+```
+
+Rules:
+- The widget key is public, so identity is an **unverified hint**. It is shown to
+  agents as "Identified by the host app (unverified)" and never grants access to
+  customer data on its own.
+- `email` must be a valid address or it is dropped; all values are sanitized and
+  truncated like context fields.
+- Sending `identify` before `init` is fine — the call is queued.
+
+### Updating context mid-session
+
+When the user navigates to another booking, car or route, push the change without
+re-initialising:
+
+```js
+NoddiWidget('update', { bookingId: newBooking.id, pathname: location.pathname });
+```
+
+Context is captured when a conversation is created, so `update` affects the *next*
+chat or form submission.
+
+---
+
+## 6. Session resumption, attachments and ratings
+
+These work out of the box, no host-app changes needed:
+
+- **Resumption** — an active chat is stored in `localStorage` (`noddi_chat_session`)
+  and resumes after a reload or navigation. `shutdown` clears it.
+- **Unread badge** — agent replies that arrive while the widget is closed show a
+  red count on the launcher.
+- **Attachments** — visitors can attach images and PDFs up to 5 MB.
+- **Rating** — after a chat ends the visitor can rate 1–5, leave a comment and have
+  the transcript emailed to the address used for the chat.
+
+---
+
+## 7. Programmatic control
 
 ```js
 NoddiWidget('open');    // or NoddiWidget.open()
 NoddiWidget('close');
 NoddiWidget('toggle');
+NoddiWidget('shutdown');
 ```
 
 Custom launcher example:
@@ -140,7 +201,7 @@ NoddiWidget('init', {
 
 ---
 
-## 6. Checklist for frontend implementors
+## 8. Checklist for frontend implementors
 
 - [ ] Script tag added with the queue stub before the async `widget.js`.
 - [ ] `widgetKey` comes from config, not hardcoded per environment.
@@ -149,4 +210,6 @@ NoddiWidget('init', {
 - [ ] `environment` set so staging/dev chats are distinguishable in the live inbox.
 - [ ] `locale`, `sourceApp` and (when logged in) `userId` passed for richer agent context.
 - [ ] `bookingId` / `orderId` passed when the widget opens inside a booking or order flow.
+- [ ] `identify` called after login and `shutdown` called on logout.
+- [ ] `update` called when the user switches booking/car or navigates in a SPA.
 - [ ] If using a custom launcher: `showButton: false` and open via `onReady`.
