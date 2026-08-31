@@ -88,11 +88,16 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
   showBulkCheckbox = false,
   style
 }) => {
-  const { dispatch, archiveConversation, toggleConversationRead } = useConversationList();
+  const { dispatch, archiveConversation, toggleConversationRead, selectedInboxId } = useConversationList();
   const { conversation: formatConversationTime, dateTime: formatDateTime } = useDateFormatting();
   const { inboxes } = useOptimizedCounts();
+  const { data: inboxEmails } = useInboxEmailAddresses();
   const { t } = useTranslation();
   const isMobile = useIsMobile();
+
+  // Only surface the inbox column/badge when the list isn't already scoped to
+  // a single inbox — in the "All inboxes" view it's essential context.
+  const showInboxColumn = !selectedInboxId || selectedInboxId === 'all';
 
   const computedValues = useMemo(() => {
     const ChannelIcon = channelIcons[conversation.channel] || MessageCircle;
@@ -106,6 +111,7 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
     const waitingTime = formatCompactTime(conversation.received_at || conversation.updated_at);
     const slaBorder = getSLABorderColor(conversation.slaStatus);
     const receivedRaw = conversation.received_at || conversation.updated_at;
+    const inbox = conversation.inbox_id ? inboxes.find((i: any) => i.id === conversation.inbox_id) : undefined;
 
     return {
       ChannelIcon,
@@ -120,8 +126,12 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
       formattedTime: formatConversationTime(conversation.updated_at),
       // Full date + time the conversation was last received, in the user's timezone.
       receivedAt: receivedRaw ? formatDateTime(receivedRaw) : '—',
+      inboxName: inbox?.name || (conversation.inbox_id ? 'Unknown inbox' : 'No inbox'),
+      inboxColor: (inbox as any)?.color || '#6B7280',
+      inboxEmail: conversation.inbox_id ? inboxEmails?.[conversation.inbox_id] : undefined,
     };
-  }, [conversation, t, formatConversationTime, formatDateTime]);
+  }, [conversation, t, formatConversationTime, formatDateTime, inboxes, inboxEmails]);
+
 
 
   const handleArchive = useCallback((e: React.MouseEvent) => {
