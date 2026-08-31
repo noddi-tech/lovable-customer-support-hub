@@ -11,7 +11,7 @@ const LABELS: Record<string, string> = {
   locale: 'Language',
   environment: 'Environment',
   source_app: 'Source app',
-  noddi_user_id: 'Noddi user',
+  user_id: 'User ID',
   service_department_id: 'Department',
   booking_id: 'Booking',
   order_id: 'Order',

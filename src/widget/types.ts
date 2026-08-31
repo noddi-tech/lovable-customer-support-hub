@@ -25,8 +25,8 @@ export interface WidgetInitOptions {
   environment?: string;
   /** Product surface using this widget key, e.g. 'customer' | 'partner' | 'marketing'. */
   sourceApp?: string;
-  /** Noddi user id of the logged-in visitor, so agents skip manual matching. */
-  noddiUserId?: string | number;
+  /** User id of the logged-in visitor, so agents skip manual matching. */
+  userId?: string | number;
   /** Service department the visitor belongs to / is browsing. */
   serviceDepartmentId?: string | number;
   /** Booking currently open in the host app. */
