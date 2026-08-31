@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.auto_create_case_for_conversation() FROM PUBLIC, anon, authenticated;
