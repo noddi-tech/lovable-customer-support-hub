@@ -16,6 +16,7 @@ interface ChatConversation {
   status: string;
   updated_at: string;
   is_read: boolean;
+  metadata?: unknown;
   customer: {
     id: string;
     full_name: string | null;
@@ -59,6 +60,7 @@ export const ChatConversationList: React.FC<ChatConversationListProps> = ({
           status,
           updated_at,
           is_read,
+          metadata,
           customer:customers(id, full_name, email)
         `)
         .eq('organization_id', organizationId)
