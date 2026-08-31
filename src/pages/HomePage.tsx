@@ -143,8 +143,8 @@ export default function HomePage() {
                     )}
                     onClick={isConfigured ? () => navigate(`/interactions/text/open?inbox=${inbox.id}`) : undefined}
                   >
-                    <CardContent className="p-3 flex items-center justify-between">
-                      <div className="flex items-start gap-3 min-w-0">
+                    <CardContent className="p-3 flex items-center justify-between gap-2">
+                      <div className="flex items-start gap-3 min-w-0 flex-1">
                         <span
                           className="h-2.5 w-2.5 rounded-full shrink-0 mt-1.5"
                           style={{ backgroundColor: isConfigured ? (inbox.color || 'hsl(var(--primary))') : 'hsl(var(--muted-foreground) / 0.4)' }}
