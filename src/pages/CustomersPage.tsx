@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { UnifiedAppLayout } from '@/components/layout/UnifiedAppLayout';
 import { SidebarTrigger } from '@/components/ui/sidebar';
@@ -6,15 +6,47 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useCustomersList } from '@/hooks/useCustomersList';
 import { useDateFormatting } from '@/hooks/useDateFormatting';
 import { Mail, Phone, Search, UserRound, MessageSquare } from 'lucide-react';
 
+const STATUS_OPTIONS = [
+  { value: 'open', label: 'Open' },
+  { value: 'pending', label: 'Pending' },
+  { value: 'closed', label: 'Closed' },
+];
+
 export default function CustomersPage() {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [brandFilter, setBrandFilter] = useState('all');
   const { dateTime } = useDateFormatting();
-  const { data: customers = [], isLoading } = useCustomersList(search);
+  const { data: allCustomers = [], isLoading } = useCustomersList(search);
+
+  const brandOptions = useMemo(() => {
+    const set = new Set<string>();
+    allCustomers.forEach((c) => c.brands.forEach((b) => set.add(b)));
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [allCustomers]);
+
+  const customers = useMemo(
+    () =>
+      allCustomers.filter((c) => {
+        if (statusFilter !== 'all' && !c.statuses.includes(statusFilter)) return false;
+        if (brandFilter !== 'all' && !c.brands.includes(brandFilter)) return false;
+        return true;
+      }),
+    [allCustomers, statusFilter, brandFilter],
+  );
+
 
   return (
     <UnifiedAppLayout>
