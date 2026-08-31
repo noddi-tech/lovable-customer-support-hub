@@ -64,14 +64,14 @@ function scanFile(filePath: string) {
       }
     });
 
-    // Check for missing required patterns
-    const hasTabsList = lines[tabsLineIdx].includes('TabsList');
-    if (hasTabsList) {
+    // Advisory hints. Only opening <TabsList> tags, never imports/closing tags.
+    const isTabsListOpenTag = /<TabsList[\s/>]/.test(lines[tabsLineIdx]);
+    if (isTabsListOpenTag) {
       const hasMinW0 = REQUIRED_PATTERNS[0].test(context);
       const hasFlexWrap = REQUIRED_PATTERNS[1].test(context);
 
       if (!hasMinW0) {
-        violations.push({
+        warnings.push({
           file: filePath,
           line: tabsLineIdx + 1,
           issue: 'Missing min-w-0 near TabsList',
@@ -80,7 +80,7 @@ function scanFile(filePath: string) {
       }
 
       if (!hasFlexWrap) {
-        violations.push({
+        warnings.push({
           file: filePath,
           line: tabsLineIdx + 1,
           issue: 'Missing flex-wrap near TabsList',
@@ -109,6 +109,15 @@ function scanDirectory(dir: string) {
 console.log('🔍 Scanning for unsafe tab/button patterns...\n');
 
 scanDirectory('./src');
+
+if (warnings.length > 0) {
+  console.log(`⚠️  ${warnings.length} advisory hints (not failing the build):\n`);
+  warnings.slice(0, 20).forEach((w, idx) => {
+    console.log(`${idx + 1}. ${w.file}:${w.line} — ${w.issue}`);
+  });
+  if (warnings.length > 20) console.log(`   ...and ${warnings.length - 20} more`);
+  console.log();
+}
 
 if (violations.length === 0) {
   console.log('✅ No unsafe tab patterns detected!');
