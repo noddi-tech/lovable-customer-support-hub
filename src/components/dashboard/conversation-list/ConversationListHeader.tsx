@@ -1,4 +1,4 @@
-import { Filter, CheckCheck, ChevronDown, Move, Settings, CheckSquare, X, Plus, MoreHorizontal } from "lucide-react";
+import { Filter, CheckCheck, ChevronDown, Move, Settings, CheckSquare, X, Plus, MoreHorizontal, Inbox, Clock, CheckCircle, Mail, Flag, ArrowDown, ArrowUp, Minus, AlertTriangle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
@@ -252,10 +252,10 @@ export const ConversationListHeader = ({
                 value={state.statusFilter}
                 onValueChange={(value) => dispatch({ type: 'SET_STATUS_FILTER', payload: value })}
               >
-                <DropdownMenuRadioItem value="all">{t('dashboard.conversationList.allStatus', 'All Status')}</DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value="open">{t('dashboard.conversationList.open', 'Open')}</DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value="pending">{t('dashboard.conversationList.pending', 'Pending')}</DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value="closed">{t('dashboard.conversationList.closed', 'Closed')}</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="all" className="gap-2"><Mail className="!w-3.5 !h-3.5" />{t('dashboard.conversationList.allStatus', 'All Status')}</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="open" className="gap-2"><Inbox className="!w-3.5 !h-3.5 text-blue-600" />{t('dashboard.conversationList.open', 'Open')}</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="pending" className="gap-2"><Clock className="!w-3.5 !h-3.5 text-orange-600" />{t('dashboard.conversationList.pending', 'Pending')}</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="closed" className="gap-2"><CheckCircle className="!w-3.5 !h-3.5 text-green-600" />{t('dashboard.conversationList.closed', 'Closed')}</DropdownMenuRadioItem>
               </DropdownMenuRadioGroup>
               <DropdownMenuSeparator />
               <DropdownMenuLabel>{t('dashboard.conversationList.priorityFilter', 'Priority')}</DropdownMenuLabel>
@@ -263,12 +263,13 @@ export const ConversationListHeader = ({
                 value={state.priorityFilter}
                 onValueChange={(value) => dispatch({ type: 'SET_PRIORITY_FILTER', payload: value })}
               >
-                <DropdownMenuRadioItem value="all">{t('dashboard.conversationList.allPriority', 'All Priority')}</DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value="low">{t('dashboard.conversationList.low', 'Low')}</DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value="normal">{t('dashboard.conversationList.normal', 'Normal')}</DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value="high">{t('dashboard.conversationList.high', 'High')}</DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value="urgent">{t('dashboard.conversationList.urgent', 'Urgent')}</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="all" className="gap-2"><Flag className="!w-3.5 !h-3.5" />{t('dashboard.conversationList.allPriority', 'All Priority')}</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="low" className="gap-2"><ArrowDown className="!w-3.5 !h-3.5 text-muted-foreground" />{t('dashboard.conversationList.low', 'Low')}</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="normal" className="gap-2"><Minus className="!w-3.5 !h-3.5 text-blue-600" />{t('dashboard.conversationList.normal', 'Normal')}</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="high" className="gap-2"><ArrowUp className="!w-3.5 !h-3.5 text-orange-600" />{t('dashboard.conversationList.high', 'High')}</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="urgent" className="gap-2"><AlertTriangle className="!w-3.5 !h-3.5 text-destructive" />{t('dashboard.conversationList.urgent', 'Urgent')}</DropdownMenuRadioItem>
               </DropdownMenuRadioGroup>
+
               {hasActiveFilters && (
                 <>
                   <DropdownMenuSeparator />
@@ -343,7 +344,10 @@ export const ConversationListHeader = ({
           )}
           {state.statusFilter !== 'all' && (
             <Badge variant="secondary" className="h-5 px-2 text-xs gap-1">
-              Status: {state.statusFilter}
+              {state.statusFilter === 'open' && <Inbox className="!w-3 !h-3 text-blue-600" />}
+              {state.statusFilter === 'pending' && <Clock className="!w-3 !h-3 text-orange-600" />}
+              {state.statusFilter === 'closed' && <CheckCircle className="!w-3 !h-3 text-green-600" />}
+              {state.statusFilter}
               <button onClick={() => dispatch({ type: 'SET_STATUS_FILTER', payload: 'all' })} className="ml-1 hover:text-foreground">
                 <X className="!w-2.5 !h-2.5" />
               </button>
@@ -351,12 +355,17 @@ export const ConversationListHeader = ({
           )}
           {state.priorityFilter !== 'all' && (
             <Badge variant="secondary" className="h-5 px-2 text-xs gap-1">
-              Priority: {state.priorityFilter}
+              {state.priorityFilter === 'low' && <ArrowDown className="!w-3 !h-3 text-muted-foreground" />}
+              {state.priorityFilter === 'normal' && <Minus className="!w-3 !h-3 text-blue-600" />}
+              {state.priorityFilter === 'high' && <ArrowUp className="!w-3 !h-3 text-orange-600" />}
+              {state.priorityFilter === 'urgent' && <AlertTriangle className="!w-3 !h-3 text-destructive" />}
+              {state.priorityFilter}
               <button onClick={() => dispatch({ type: 'SET_PRIORITY_FILTER', payload: 'all' })} className="ml-1 hover:text-foreground">
                 <X className="!w-2.5 !h-2.5" />
               </button>
             </Badge>
           )}
+
           <Button variant="ghost" size="sm" onClick={clearAllFilters} className="h-5 px-2 text-xs">
             {t('dashboard.conversationList.clearAll', 'Clear all')}
           </Button>
