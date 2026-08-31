@@ -323,32 +323,51 @@ export function useMyCaseCounts() {
 
 export function useCaseCategories() {
   const { profile } = useAuth();
+  const orgId = profile?.organization_id;
   return useQuery({
-    queryKey: ['case-categories', profile?.organization_id],
-    enabled: !!profile?.organization_id,
+    queryKey: ['case-categories', orgId],
+    enabled: !!orgId,
     queryFn: async () => {
       const { data, error } = await (supabase.from('case_categories') as any)
         .select(sel('id, name, slug, color, sort_order, is_active'))
+        .eq('organization_id', orgId)
         .eq('is_active', true)
         .order('sort_order');
       if (error) throw error;
-      return (data ?? []) as Array<{ id: string; name: string; slug: string; color: string | null; sort_order: number; is_active: boolean }>;
+      const rows = (data ?? []) as Array<{ id: string; name: string; slug: string; color: string | null; sort_order: number; is_active: boolean }>;
+      // Defensive de-duplication by slug/name in case seed data was inserted twice
+      const seen = new Set<string>();
+      return rows.filter((r) => {
+        const key = (r.slug || r.name || '').toLowerCase();
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
     },
   });
 }
 
 export function useCaseResolutionCodes() {
   const { profile } = useAuth();
+  const orgId = profile?.organization_id;
   return useQuery({
-    queryKey: ['case-resolution-codes', profile?.organization_id],
-    enabled: !!profile?.organization_id,
+    queryKey: ['case-resolution-codes', orgId],
+    enabled: !!orgId,
     queryFn: async () => {
       const { data, error } = await (supabase.from('case_resolution_codes') as any)
         .select(sel('id, name, slug, sort_order, is_active'))
+        .eq('organization_id', orgId)
         .eq('is_active', true)
         .order('sort_order');
       if (error) throw error;
-      return (data ?? []) as Array<{ id: string; name: string; slug: string; sort_order: number; is_active: boolean }>;
+      const rows = (data ?? []) as Array<{ id: string; name: string; slug: string; sort_order: number; is_active: boolean }>;
+      const seen = new Set<string>();
+      return rows.filter((r) => {
+        const key = (r.slug || r.name || '').toLowerCase();
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
     },
   });
 }
@@ -373,6 +392,7 @@ export function useCreateCase() {
   return useMutation({
     mutationFn: async (input: CreateCaseInput) => {
       if (!profile?.organization_id) throw new Error('Missing organization');
+      if (!input.customerId) throw new Error('A case must be linked to a customer');
 
       const { data, error } = await (supabase.from('cases') as any)
         .insert({
