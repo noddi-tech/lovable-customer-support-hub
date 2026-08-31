@@ -64,6 +64,13 @@ export const InboxList: React.FC<InboxListProps> = ({
   const { data: inboxEmails = {} } = useInboxEmailAddresses();
   const { data: outstanding = {} } = useInboxOutstandingCounts();
   const { data: counts, isLoading: countsLoading } = useInboxCounts(selectedInbox || 'all');
+  const { defaultInboxId } = useDefaultInbox();
+
+  const DefaultTag: React.FC = () => (
+    <Badge variant="outline" className="h-4 px-1.5 text-[9px] border-primary/40 text-primary flex-shrink-0">
+      Default
+    </Badge>
+  );
 
   const allOutstanding = React.useMemo(
     () =>
