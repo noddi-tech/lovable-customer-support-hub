@@ -1,10 +1,11 @@
-import { memo, useMemo } from 'react';
+import { memo, useCallback, useMemo } from 'react';
 import { FixedSizeList as List } from 'react-window';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import InfiniteLoader from 'react-window-infinite-loader';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ConversationTableRow } from './ConversationTableRow';
 import { FlexHeaderCell } from './FlexHeaderCell';
+import { useBulkRangeSelect } from '@/hooks/useBulkRangeSelect';
 
 import { useConversationList, type Conversation } from '@/contexts/ConversationListContext';
 import { useTranslation } from 'react-i18next';
@@ -21,11 +22,12 @@ interface VirtualizedRowProps {
     bulkSelectionMode: boolean;
     selectedConversations: Set<string>;
     dispatch: any;
+    onBulkSelect: (id: string, selected: boolean, shiftKey?: boolean) => void;
   };
 }
 
 const VirtualizedRow = memo(({ index, style, data }: VirtualizedRowProps) => {
-  const { conversations, selectedConversation, onSelectConversation, bulkSelectionMode, selectedConversations, dispatch } = data;
+  const { conversations, selectedConversation, onSelectConversation, bulkSelectionMode, selectedConversations, onBulkSelect } = data;
   const conversation = conversations[index];
 
   if (!conversation) {
@@ -48,9 +50,7 @@ const VirtualizedRow = memo(({ index, style, data }: VirtualizedRowProps) => {
       isSelected={selectedConversation?.id === conversation.id}
       onSelect={onSelectConversation}
       isBulkSelected={selectedConversations.has(conversation.id)}
-      onBulkSelect={(id, selected) =>
-        dispatch({ type: 'TOGGLE_BULK_SELECTION', payload: { id, selected } })
-      }
+      onBulkSelect={onBulkSelect}
       showBulkCheckbox={bulkSelectionMode}
       style={style}
     />
@@ -102,13 +102,21 @@ const VirtualizedConversationTable = memo(({ onSelectConversation, selectedConve
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      conversations.forEach(conv => {
-        dispatch({ type: 'TOGGLE_BULK_SELECTION', payload: { id: conv.id, selected: true } });
+      dispatch({
+        type: 'SET_BULK_SELECTION',
+        payload: { ids: conversations.map(c => c.id), selected: true },
       });
     } else {
       dispatch({ type: 'CLEAR_BULK_SELECTION' });
     }
   };
+
+  const orderedIds = useMemo(() => conversations.map(c => c.id), [conversations]);
+  const setSelection = useCallback(
+    (ids: string[], selected: boolean) => dispatch({ type: 'SET_BULK_SELECTION', payload: { ids, selected } }),
+    [dispatch],
+  );
+  const handleBulkSelect = useBulkRangeSelect(orderedIds, setSelection);
 
   const allSelected = state.bulkSelectionMode &&
     conversations.length > 0 &&
@@ -122,7 +130,8 @@ const VirtualizedConversationTable = memo(({ onSelectConversation, selectedConve
     bulkSelectionMode: state.bulkSelectionMode,
     selectedConversations: state.selectedConversations,
     dispatch,
-  }), [conversations, selectedConversation, onSelectConversation, state.bulkSelectionMode, state.selectedConversations, dispatch]);
+    onBulkSelect: handleBulkSelect,
+  }), [conversations, selectedConversation, onSelectConversation, state.bulkSelectionMode, state.selectedConversations, dispatch, handleBulkSelect]);
 
   if (isLoading) {
     return (
