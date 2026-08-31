@@ -123,7 +123,7 @@ export const AppMainNav = () => {
         </SidebarMenu>
         {!isCollapsed && (
           <h2 className="px-2 text-lg font-semibold text-foreground">
-            Customer Platform
+            Support Hub
           </h2>
         )}
 
