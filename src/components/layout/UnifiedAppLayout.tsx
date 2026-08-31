@@ -8,6 +8,7 @@ import { UIProbe } from '@/dev/UIProbe';
 import { useDesktopEmailNotifications } from '@/hooks/useDesktopEmailNotifications';
 import { useNotificationPermissionPrompt } from '@/hooks/useNotificationPermissionPrompt';
 import { useOpenConversationsBadge } from '@/hooks/useOpenConversationsBadge';
+import { WhatsNewDialog } from '@/features/whats-new/WhatsNewDialog';
 
 interface UnifiedAppLayoutProps {
   children: React.ReactNode;
