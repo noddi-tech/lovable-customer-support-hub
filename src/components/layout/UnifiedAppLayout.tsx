@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { AppMainNav } from './AppMainNav';
 import { SearchCommandPalette } from '@/components/search/SearchCommandPalette';
+import { QuickInboxSwitcher } from './QuickInboxSwitcher';
 import { UIProbe } from '@/dev/UIProbe';
 import { useDesktopEmailNotifications } from '@/hooks/useDesktopEmailNotifications';
 
@@ -14,18 +15,23 @@ export const UnifiedAppLayout: React.FC<UnifiedAppLayoutProps> = ({
   children
 }) => {
   const [searchOpen, setSearchOpen] = useState(false);
+  const [inboxSwitcherOpen, setInboxSwitcherOpen] = useState(false);
   const location = useLocation();
   const section = location.pathname.split('/').slice(0, 3).join('/');
 
   // Desktop notifications for newly arrived emails (opt-in, per device)
   useDesktopEmailNotifications();
 
-  // Global Cmd+K / Ctrl+K shortcut
+  // Global Cmd+K / Ctrl+K (search) and Cmd+D / Ctrl+D (quick inbox switcher)
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
       if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
         setSearchOpen((prev) => !prev);
+      }
+      if ((e.key === 'd' || e.key === 'D') && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        setInboxSwitcherOpen((prev) => !prev);
       }
     };
     window.addEventListener('keydown', down);
@@ -36,6 +42,8 @@ export const UnifiedAppLayout: React.FC<UnifiedAppLayoutProps> = ({
     <SidebarProvider defaultOpen={false}>
       {import.meta.env.DEV && import.meta.env.VITE_UI_PROBE === '1' && <UIProbe />}
       <SearchCommandPalette open={searchOpen} onOpenChange={setSearchOpen} />
+      <QuickInboxSwitcher open={inboxSwitcherOpen} onOpenChange={setInboxSwitcherOpen} />
+
       <div className="h-svh flex w-full bg-background">
         {/* Sidebar Navigation */}
         <AppMainNav />
