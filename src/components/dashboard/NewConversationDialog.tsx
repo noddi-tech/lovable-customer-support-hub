@@ -14,6 +14,7 @@ import { Plus, Mail, User, Users, MessageSquare, Sparkles, Languages, Loader2, F
 import { Badge } from '@/components/ui/badge';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useInboxEmailAddresses } from '@/hooks/useInboxEmailAddresses';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { useTranslation } from 'react-i18next';
