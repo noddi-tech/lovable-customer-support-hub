@@ -255,7 +255,10 @@ export const InboxList: React.FC<InboxListProps> = ({
                         style={{ backgroundColor: inbox.color || '#6B7280' }}
                       />
                       <div className="min-w-0 flex flex-col leading-tight flex-1">
-                        <span className="truncate">{inbox.name}</span>
+                        <span className="truncate flex items-center gap-1.5">
+                          {inbox.name}
+                          {defaultInboxId === inbox.id && <DefaultTag />}
+                        </span>
                         <span className="text-[11px] text-muted-foreground truncate">
                           {email}
                         </span>
