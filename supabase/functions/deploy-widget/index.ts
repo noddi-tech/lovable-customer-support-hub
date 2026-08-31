@@ -387,7 +387,11 @@ const WIDGET_JS = `
     }
   }
 
+  // Locale explicitly sent by the host app (init/update). Wins over storage.
+  var hostLocale = null;
+
   function getStoredLang() {
+
     return localStorage.getItem('noddi_widget_language');
   }
 
