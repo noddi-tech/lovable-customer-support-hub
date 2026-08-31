@@ -33,6 +33,27 @@ function setBadgeHref(href: string | null) {
   document.head.appendChild(badge);
 }
 
+let baseImagePromise: Promise<HTMLImageElement | null> | null = null;
+
+function loadBaseImage(): Promise<HTMLImageElement | null> {
+  if (baseImagePromise) return baseImagePromise;
+  baseImagePromise = new Promise((resolve) => {
+    const candidates = [getBaseFaviconHref(), '/favicon.png', '/favicon.ico'];
+    let i = 0;
+    const tryNext = () => {
+      if (i >= candidates.length) return resolve(null);
+      const src = candidates[i++];
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => resolve(img);
+      img.onerror = tryNext;
+      img.src = src;
+    };
+    tryNext();
+  });
+  return baseImagePromise;
+}
+
 async function drawBadge(count: number): Promise<string | null> {
   const size = 64;
   const canvas = document.createElement('canvas');
@@ -41,26 +62,27 @@ async function drawBadge(count: number): Promise<string | null> {
   const ctx = canvas.getContext('2d');
   if (!ctx) return null;
 
-  const base = getBaseFaviconHref();
-  await new Promise<void>((resolve) => {
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => {
-      try {
-        ctx.drawImage(img, 0, 0, size, size);
-      } catch {
-        /* ignore */
-      }
-      resolve();
-    };
-    img.onerror = () => resolve();
-    img.src = base;
-  });
+  const base = await loadBaseImage();
+  // Never replace the favicon with a blank icon: if the original couldn't be
+  // loaded (or would taint the canvas), leave the tab icon untouched.
+  if (!base) return null;
+
+  try {
+    ctx.drawImage(base, 0, 0, size, size);
+  } catch {
+    return null;
+  }
 
   const label = count > 99 ? '99+' : String(count);
   const r = label.length > 2 ? 22 : 19;
   const cx = size - r - 2;
   const cy = size - r - 2;
+
+  // Subtle ring so the badge reads clearly on top of the logo
+  ctx.beginPath();
+  ctx.arc(cx, cy, r + 2, 0, Math.PI * 2);
+  ctx.fillStyle = '#ffffff';
+  ctx.fill();
 
   ctx.beginPath();
   ctx.arc(cx, cy, r, 0, Math.PI * 2);
@@ -79,6 +101,7 @@ async function drawBadge(count: number): Promise<string | null> {
     return null; // tainted canvas (cross-origin favicon)
   }
 }
+
 
 /**
  * Renders a numeric badge on the browser tab favicon (and the OS app badge
