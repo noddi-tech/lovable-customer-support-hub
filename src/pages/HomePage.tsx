@@ -121,6 +121,7 @@ export default function HomePage() {
               {inboxes.filter(i => i.is_active).map(inbox => {
                 const email = inboxEmails[inbox.id];
                 const isConfigured = Boolean(email);
+                const isDefault = defaultInboxId === inbox.id;
 
                 return (
                   <Card
@@ -130,7 +131,8 @@ export default function HomePage() {
                       'transition-shadow',
                       isConfigured
                         ? 'cursor-pointer hover:shadow-md'
-                        : 'cursor-not-allowed opacity-60 bg-muted/30'
+                        : 'cursor-not-allowed opacity-60 bg-muted/30',
+                      isDefault && 'ring-1 ring-primary/50'
                     )}
                     onClick={isConfigured ? () => navigate(`/interactions/text/open?inbox=${inbox.id}`) : undefined}
                   >
@@ -141,8 +143,13 @@ export default function HomePage() {
                           style={{ backgroundColor: isConfigured ? (inbox.color || 'hsl(var(--primary))') : 'hsl(var(--muted-foreground) / 0.4)' }}
                         />
                         <div className="min-w-0 flex flex-col leading-tight">
-                          <span className={cn('text-sm font-medium truncate', isConfigured ? 'text-foreground' : 'text-muted-foreground')}>
+                          <span className={cn('text-sm font-medium truncate flex items-center gap-1.5', isConfigured ? 'text-foreground' : 'text-muted-foreground')}>
                             {inbox.name}
+                            {isDefault && (
+                              <Badge variant="outline" className="h-4 px-1.5 text-[9px] border-primary/40 text-primary">
+                                Default
+                              </Badge>
+                            )}
                           </span>
                           <span className="text-[11px] text-muted-foreground truncate">
                             {isConfigured ? email : 'Not configured'}
