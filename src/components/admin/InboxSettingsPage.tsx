@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { ArrowLeft, Mail, MessageSquare } from 'lucide-react';
+import { ArrowLeft, Mail, MessageSquare, Plug2, ExternalLink } from 'lucide-react';
 
 export const INBOX_COLOR_PALETTE = [
   { value: '#6656D9', label: 'Primary Purple' },
