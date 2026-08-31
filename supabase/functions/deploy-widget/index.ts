@@ -792,8 +792,8 @@ const WIDGET_JS = `
         e.preventDefault();
         const t = getT(state.lang);
         const fd = new FormData(contactForm);
-        const name = (fd.get('name') || '').trim();
-        const email = (fd.get('email') || '').trim();
+        const name = ((fd.get('name') || '').trim()) || (identity.name || '');
+        const email = ((fd.get('email') || '').trim()) || (identity.email || '');
         const message = (fd.get('message') || '').trim();
 
         if (!name || !email || !message) {
