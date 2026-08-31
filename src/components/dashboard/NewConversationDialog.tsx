@@ -108,6 +108,7 @@ export const NewConversationDialog: React.FC<NewConversationDialogProps> = ({ ch
       return data as InboxData[];
     }
   });
+  const { data: inboxEmails = {} } = useInboxEmailAddresses();
 
   // Set default inbox when inboxes load
   React.useEffect(() => {
