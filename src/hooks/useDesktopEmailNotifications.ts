@@ -1,41 +1,48 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { useBrowserNotifications } from './useBrowserNotifications';
+import { useNotificationPreferences } from './useNotificationPreferences';
 
 const STORAGE_KEY = 'desktop-email-notifications-enabled';
 
+/**
+ * Legacy local flag. Preferences now live in `notification_preferences.desktop_enabled`
+ * so the choice follows the user across devices; the local value is kept for one
+ * release as a migration fallback (and for the pre-auth permission prompt).
+ */
 export function isDesktopEmailNotificationsEnabled(): boolean {
   return localStorage.getItem(STORAGE_KEY) === 'true';
 }
 
-/**
- * Small store so the settings toggle and the listener stay in sync
- * across components without a full context provider.
- */
-const listeners = new Set<(v: boolean) => void>();
-
 export function setDesktopEmailNotificationsEnabled(enabled: boolean) {
   localStorage.setItem(STORAGE_KEY, String(enabled));
-  listeners.forEach((l) => l(enabled));
 }
 
 export function useDesktopEmailNotificationsSetting() {
-  const [enabled, setEnabled] = useState(isDesktopEmailNotificationsEnabled);
+  const { preferences, updatePreferences, isUpdating } = useNotificationPreferences();
+  const migratedRef = useRef(false);
 
+  const enabled = preferences?.desktop_enabled ?? false;
+
+  // One-time migration: local opt-in wins until it has been persisted server-side.
   useEffect(() => {
-    const listener = (v: boolean) => setEnabled(v);
-    listeners.add(listener);
-    return () => {
-      listeners.delete(listener);
-    };
-  }, []);
+    if (!preferences || migratedRef.current) return;
+    migratedRef.current = true;
+    if (!preferences.desktop_enabled && isDesktopEmailNotificationsEnabled()) {
+      updatePreferences({ desktop_enabled: true });
+    }
+  }, [preferences, updatePreferences]);
 
-  const update = useCallback((v: boolean) => {
-    setDesktopEmailNotificationsEnabled(v);
-  }, []);
+  const setEnabled = useCallback(
+    (v: boolean) => {
+      setDesktopEmailNotificationsEnabled(v);
+      updatePreferences({ desktop_enabled: v });
+    },
+    [updatePreferences]
+  );
 
-  return { enabled, setEnabled: update };
+  return { enabled, setEnabled, isUpdating, preferences };
 }
 
 /**
@@ -46,11 +53,16 @@ export function useDesktopEmailNotificationsSetting() {
 export function useDesktopEmailNotifications() {
   const { user } = useAuth();
   const { showNotification, permission } = useBrowserNotifications();
-  const { enabled } = useDesktopEmailNotificationsSetting();
+  const { preferences } = useNotificationPreferences();
   const seenRef = useRef<Set<string>>(new Set());
+
+  const enabled = preferences?.desktop_enabled ?? false;
+  const emailEnabled = preferences?.desktop_on_new_email ?? true;
+  const chatEnabled = preferences?.desktop_on_chat_message ?? true;
 
   useEffect(() => {
     if (!user || !enabled || permission !== 'granted') return;
+    if (!emailEnabled && !chatEnabled) return;
 
     const channel = supabase
       .channel('desktop-email-notifications')
@@ -89,6 +101,7 @@ export function useDesktopEmailNotifications() {
           const channel: string = conversation.channel || 'email';
           const isChat = ['chat', 'live_chat', 'widget'].includes(channel);
           if (!isChat && channel !== 'email') return;
+          if (isChat ? !chatEnabled : !emailEnabled) return;
 
           const customer = conversation.customer as { full_name?: string | null; email?: string | null } | null;
           const from = customer?.full_name || customer?.email || (isChat ? 'New chat message' : 'New email');
@@ -121,5 +134,5 @@ export function useDesktopEmailNotifications() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user, enabled, permission, showNotification]);
+  }, [user, enabled, emailEnabled, chatEnabled, permission, showNotification]);
 }

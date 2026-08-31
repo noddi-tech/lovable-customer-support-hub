@@ -32,6 +32,10 @@ export interface NotificationPreferences {
   app_on_ticket_updated: boolean;
   app_on_ticket_commented: boolean;
   app_on_sla_breach: boolean;
+  // Desktop (browser) notifications
+  desktop_enabled: boolean;
+  desktop_on_new_email: boolean;
+  desktop_on_chat_message: boolean;
   // Digest settings
   daily_digest_enabled: boolean;
   weekly_digest_enabled: boolean;
@@ -87,6 +91,10 @@ export function useNotificationPreferences() {
             app_on_ticket_updated: true,
             app_on_ticket_commented: true,
             app_on_sla_breach: true,
+            // Desktop defaults
+            desktop_enabled: false,
+            desktop_on_new_email: true,
+            desktop_on_chat_message: true,
             // Digest defaults
             daily_digest_enabled: false,
             weekly_digest_enabled: true,

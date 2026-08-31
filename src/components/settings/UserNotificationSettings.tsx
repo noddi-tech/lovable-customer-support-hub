@@ -3,42 +3,149 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { useNotificationPreferences, NotificationPreferences } from '@/hooks/useNotificationPreferences';
-import { Mail, Bell, Calendar, Loader2, AtSign } from 'lucide-react';
+import { useBrowserNotifications } from '@/hooks/useBrowserNotifications';
+import { Bell, Calendar, Loader2, Mail, MonitorSmartphone } from 'lucide-react';
 import { DesktopEmailNotificationSettings } from './DesktopEmailNotificationSettings';
 
-interface NotificationToggleProps {
-  id: string;
+type PrefKey = keyof NotificationPreferences;
+
+interface EventRow {
   label: string;
   description: string;
-  checked: boolean;
-  onCheckedChange: (checked: boolean) => void;
-  disabled?: boolean;
+  app?: PrefKey;
+  email?: PrefKey;
+  desktop?: PrefKey;
 }
 
-function NotificationToggle({ id, label, description, checked, onCheckedChange, disabled }: NotificationToggleProps) {
+interface EventGroup {
+  title: string;
+  rows: EventRow[];
+}
+
+const GROUPS: EventGroup[] = [
+  {
+    title: 'Conversations',
+    rows: [
+      {
+        label: 'New customer email',
+        description: 'An email arrives in an inbox you can access',
+        app: 'app_on_new_email',
+        email: 'email_on_new_email',
+        desktop: 'desktop_on_new_email',
+      },
+      {
+        label: 'New chat message',
+        description: 'A live-chat visitor sends a message',
+        desktop: 'desktop_on_chat_message',
+      },
+      {
+        label: 'Customer reply',
+        description: 'A customer replies in a conversation you are involved with',
+        app: 'app_on_customer_reply',
+        email: 'email_on_customer_reply',
+      },
+      {
+        label: 'Conversation assigned to me',
+        description: 'Someone assigns a conversation to you',
+        app: 'app_on_conversation_assigned',
+        email: 'email_on_conversation_assigned',
+      },
+      {
+        label: 'Mentions',
+        description: 'Someone @mentions you in a note or comment',
+        app: 'app_on_mention',
+        email: 'email_on_mention',
+      },
+    ],
+  },
+  {
+    title: 'Calls',
+    rows: [
+      {
+        label: 'Incoming call',
+        description: 'A call is ringing for your team',
+        app: 'app_on_incoming_call',
+      },
+      {
+        label: 'Missed call',
+        description: 'A call was not answered',
+        app: 'app_on_missed_call',
+        email: 'email_on_missed_call',
+      },
+      {
+        label: 'Voicemail',
+        description: 'A caller left a voicemail',
+        app: 'app_on_voicemail',
+        email: 'email_on_voicemail',
+      },
+    ],
+  },
+  {
+    title: 'Tickets & SLA',
+    rows: [
+      {
+        label: 'Ticket assigned to me',
+        description: 'A ticket is assigned to you',
+        app: 'app_on_ticket_assigned',
+        email: 'email_on_ticket_assigned',
+      },
+      {
+        label: 'New comment',
+        description: 'Someone comments on your ticket',
+        app: 'app_on_ticket_commented',
+        email: 'email_on_ticket_commented',
+      },
+      {
+        label: 'Ticket updates',
+        description: "A ticket you're involved with is updated",
+        app: 'app_on_ticket_updated',
+        email: 'email_on_ticket_updated',
+      },
+      {
+        label: 'SLA breach warning',
+        description: 'An SLA is about to breach',
+        app: 'app_on_sla_breach',
+        email: 'email_on_sla_breach',
+      },
+    ],
+  },
+];
+
+function ChannelCell({
+  id,
+  ariaLabel,
+  prefKey,
+  preferences,
+  onToggle,
+  disabled,
+}: {
+  id: string;
+  ariaLabel: string;
+  prefKey?: PrefKey;
+  preferences: NotificationPreferences;
+  onToggle: (key: PrefKey) => (checked: boolean) => void;
+  disabled?: boolean;
+}) {
+  if (!prefKey) {
+    return <span className="text-xs text-muted-foreground/50" aria-hidden>—</span>;
+  }
   return (
-    <div className="flex items-center justify-between py-3">
-      <div className="space-y-0.5">
-        <Label htmlFor={id} className="text-sm font-medium cursor-pointer">
-          {label}
-        </Label>
-        <p className="text-xs text-muted-foreground">{description}</p>
-      </div>
-      <Switch
-        id={id}
-        checked={checked}
-        onCheckedChange={onCheckedChange}
-        disabled={disabled}
-      />
-    </div>
+    <Switch
+      id={id}
+      aria-label={ariaLabel}
+      checked={Boolean(preferences[prefKey])}
+      onCheckedChange={onToggle(prefKey)}
+      disabled={disabled}
+    />
   );
 }
 
 export function UserNotificationSettings() {
   const { preferences, isLoading, updatePreferences, isUpdating } = useNotificationPreferences();
+  const { permission, isSupported } = useBrowserNotifications();
 
-  const handleToggle = (key: keyof NotificationPreferences) => (checked: boolean) => {
-    updatePreferences({ [key]: checked });
+  const handleToggle = (key: PrefKey) => (checked: boolean) => {
+    updatePreferences({ [key]: checked } as Partial<NotificationPreferences>);
   };
 
   if (isLoading) {
@@ -59,140 +166,89 @@ export function UserNotificationSettings() {
     );
   }
 
+  const desktopDisabled = !isSupported || permission !== 'granted' || !preferences.desktop_enabled;
+
   return (
     <div className="space-y-6">
-      {/* Desktop / browser notifications */}
-      <DesktopEmailNotificationSettings />
-
-      {/* Mentions */}
       <Card>
         <CardHeader>
-          <div className="flex items-center gap-2">
-            <AtSign className="h-5 w-5 text-muted-foreground" />
-            <CardTitle className="text-lg">Mentions</CardTitle>
-          </div>
+          <CardTitle className="text-lg">Notifications</CardTitle>
           <CardDescription>
-            Get notified when someone @mentions you in notes or comments
+            Pick how you want to hear about each event. <span className="font-medium">In-app</span> shows a toast and
+            adds to the bell while you have Support Hub open, <span className="font-medium">Email</span> sends a
+            message to your inbox, and <span className="font-medium">Desktop</span> pops up from your operating system
+            even when the app is in a background tab.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-1">
-          <NotificationToggle
-            id="app_on_mention"
-            label="In-app notifications"
-            description="Show a notification when someone mentions you"
-            checked={preferences.app_on_mention ?? true}
-            onCheckedChange={handleToggle('app_on_mention')}
-            disabled={isUpdating}
-          />
-          <Separator />
-          <NotificationToggle
-            id="email_on_mention"
-            label="Email notifications"
-            description="Receive an email when someone mentions you"
-            checked={preferences.email_on_mention ?? false}
-            onCheckedChange={handleToggle('email_on_mention')}
-            disabled={isUpdating}
-          />
-        </CardContent>
-      </Card>
+        <CardContent className="space-y-5">
+          <DesktopEmailNotificationSettings />
 
-      {/* Email Notifications */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <Mail className="h-5 w-5 text-muted-foreground" />
-            <CardTitle className="text-lg">Email Notifications</CardTitle>
+          {/* Column headings */}
+          <div className="grid grid-cols-[1fr_repeat(3,4.5rem)] items-end gap-2 border-b pb-2">
+            <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Event</span>
+            <span className="flex flex-col items-center gap-1 text-[11px] font-medium text-muted-foreground">
+              <Bell className="h-4 w-4" />
+              In-app
+            </span>
+            <span className="flex flex-col items-center gap-1 text-[11px] font-medium text-muted-foreground">
+              <Mail className="h-4 w-4" />
+              Email
+            </span>
+            <span className="flex flex-col items-center gap-1 text-[11px] font-medium text-muted-foreground">
+              <MonitorSmartphone className="h-4 w-4" />
+              Desktop
+            </span>
           </div>
-          <CardDescription>
-            Choose which events trigger email notifications
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-1">
-          <NotificationToggle
-            id="email_on_ticket_assigned"
-            label="Ticket assigned to me"
-            description="Receive an email when a ticket is assigned to you"
-            checked={preferences.email_on_ticket_assigned ?? true}
-            onCheckedChange={handleToggle('email_on_ticket_assigned')}
-            disabled={isUpdating}
-          />
-          <Separator />
-          <NotificationToggle
-            id="email_on_ticket_updated"
-            label="Ticket updates"
-            description="Receive an email when a ticket you're involved with is updated"
-            checked={preferences.email_on_ticket_updated ?? false}
-            onCheckedChange={handleToggle('email_on_ticket_updated')}
-            disabled={isUpdating}
-          />
-          <Separator />
-          <NotificationToggle
-            id="email_on_ticket_commented"
-            label="New comments"
-            description="Receive an email when someone comments on your ticket"
-            checked={preferences.email_on_ticket_commented ?? true}
-            onCheckedChange={handleToggle('email_on_ticket_commented')}
-            disabled={isUpdating}
-          />
-          <Separator />
-          <NotificationToggle
-            id="email_on_sla_breach"
-            label="SLA breach warnings"
-            description="Receive an email when an SLA is about to breach"
-            checked={preferences.email_on_sla_breach ?? true}
-            onCheckedChange={handleToggle('email_on_sla_breach')}
-            disabled={isUpdating}
-          />
-        </CardContent>
-      </Card>
 
-      {/* In-App Notifications */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <Bell className="h-5 w-5 text-muted-foreground" />
-            <CardTitle className="text-lg">In-App Notifications</CardTitle>
-          </div>
-          <CardDescription>
-            Choose which events show notifications in the app
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-1">
-          <NotificationToggle
-            id="app_on_ticket_assigned"
-            label="Ticket assigned to me"
-            description="Show a notification when a ticket is assigned to you"
-            checked={preferences.app_on_ticket_assigned ?? true}
-            onCheckedChange={handleToggle('app_on_ticket_assigned')}
-            disabled={isUpdating}
-          />
-          <Separator />
-          <NotificationToggle
-            id="app_on_ticket_updated"
-            label="Ticket updates"
-            description="Show a notification when a ticket you're involved with is updated"
-            checked={preferences.app_on_ticket_updated ?? true}
-            onCheckedChange={handleToggle('app_on_ticket_updated')}
-            disabled={isUpdating}
-          />
-          <Separator />
-          <NotificationToggle
-            id="app_on_ticket_commented"
-            label="New comments"
-            description="Show a notification when someone comments on your ticket"
-            checked={preferences.app_on_ticket_commented ?? true}
-            onCheckedChange={handleToggle('app_on_ticket_commented')}
-            disabled={isUpdating}
-          />
-          <Separator />
-          <NotificationToggle
-            id="app_on_sla_breach"
-            label="SLA breach warnings"
-            description="Show a notification when an SLA is about to breach"
-            checked={preferences.app_on_sla_breach ?? true}
-            onCheckedChange={handleToggle('app_on_sla_breach')}
-            disabled={isUpdating}
-          />
+          {GROUPS.map((group, groupIndex) => (
+            <div key={group.title} className="space-y-1">
+              {groupIndex > 0 && <Separator className="mb-3" />}
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                {group.title}
+              </h3>
+              {group.rows.map((row) => (
+                <div
+                  key={row.label}
+                  className="grid grid-cols-[1fr_repeat(3,4.5rem)] items-center gap-2 py-2"
+                >
+                  <div className="space-y-0.5 pr-4">
+                    <Label className="text-sm font-medium">{row.label}</Label>
+                    <p className="text-xs text-muted-foreground">{row.description}</p>
+                  </div>
+                  <div className="flex justify-center">
+                    <ChannelCell
+                      id={`app-${row.app ?? row.label}`}
+                      ariaLabel={`In-app notification for ${row.label}`}
+                      prefKey={row.app}
+                      preferences={preferences}
+                      onToggle={handleToggle}
+                      disabled={isUpdating}
+                    />
+                  </div>
+                  <div className="flex justify-center">
+                    <ChannelCell
+                      id={`email-${row.email ?? row.label}`}
+                      ariaLabel={`Email notification for ${row.label}`}
+                      prefKey={row.email}
+                      preferences={preferences}
+                      onToggle={handleToggle}
+                      disabled={isUpdating}
+                    />
+                  </div>
+                  <div className="flex justify-center">
+                    <ChannelCell
+                      id={`desktop-${row.desktop ?? row.label}`}
+                      ariaLabel={`Desktop notification for ${row.label}`}
+                      prefKey={row.desktop}
+                      preferences={preferences}
+                      onToggle={handleToggle}
+                      disabled={isUpdating || desktopDisabled}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ))}
         </CardContent>
       </Card>
 
@@ -203,28 +259,42 @@ export function UserNotificationSettings() {
             <Calendar className="h-5 w-5 text-muted-foreground" />
             <CardTitle className="text-lg">Digest Emails</CardTitle>
           </div>
-          <CardDescription>
-            Receive periodic summaries of activity
-          </CardDescription>
+          <CardDescription>Receive periodic summaries of activity</CardDescription>
         </CardHeader>
         <CardContent className="space-y-1">
-          <NotificationToggle
-            id="daily_digest_enabled"
-            label="Daily digest"
-            description="Receive a daily summary of activity every morning"
-            checked={preferences.daily_digest_enabled ?? false}
-            onCheckedChange={handleToggle('daily_digest_enabled')}
-            disabled={isUpdating}
-          />
+          <div className="flex items-center justify-between py-3">
+            <div className="space-y-0.5">
+              <Label htmlFor="daily_digest_enabled" className="text-sm font-medium cursor-pointer">
+                Daily digest
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                Receive a daily summary of activity every morning
+              </p>
+            </div>
+            <Switch
+              id="daily_digest_enabled"
+              checked={preferences.daily_digest_enabled ?? false}
+              onCheckedChange={handleToggle('daily_digest_enabled')}
+              disabled={isUpdating}
+            />
+          </div>
           <Separator />
-          <NotificationToggle
-            id="weekly_digest_enabled"
-            label="Weekly digest"
-            description="Receive a weekly summary every Monday morning"
-            checked={preferences.weekly_digest_enabled ?? true}
-            onCheckedChange={handleToggle('weekly_digest_enabled')}
-            disabled={isUpdating}
-          />
+          <div className="flex items-center justify-between py-3">
+            <div className="space-y-0.5">
+              <Label htmlFor="weekly_digest_enabled" className="text-sm font-medium cursor-pointer">
+                Weekly digest
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                Receive a weekly summary every Monday morning
+              </p>
+            </div>
+            <Switch
+              id="weekly_digest_enabled"
+              checked={preferences.weekly_digest_enabled ?? true}
+              onCheckedChange={handleToggle('weekly_digest_enabled')}
+              disabled={isUpdating}
+            />
+          </div>
         </CardContent>
       </Card>
     </div>
