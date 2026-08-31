@@ -44,7 +44,7 @@ export function isNavioCoreOidcUser(
 }
 
 /** Employee Google domains that map to network superuser. Matches the RPC guard. */
-const EMPLOYEE_GOOGLE_DOMAINS = new Set(["noddi.no"]);
+const EMPLOYEE_GOOGLE_DOMAINS = new Set(["noddi.no", "noddi.co"]);
 
 function isVerifiedGoogleEmail(value: unknown): boolean {
   return value === true || value === "true" || value === "t" || value === "1";
