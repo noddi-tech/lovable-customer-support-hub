@@ -655,6 +655,12 @@ export const ChatCustomerPanel: React.FC<ChatCustomerPanelProps> = ({
             </CardContent>
           </Card>
         )}
+
+        {/* Unified customer history (merged in from the old case side panel) */}
+        <CustomerTimeline
+          customerId={customer?.id ?? null}
+          currentConversationId={conversationId}
+        />
       </div>
     </div>
   );
