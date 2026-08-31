@@ -8,6 +8,7 @@ import {
   bootstrapSupportHubAccess,
   hasSupportHubNavioAccess,
   isGoogleAuthUser,
+  isGoogleSignedInSession,
   isNavioCoreOidcUser,
   reconcileDuplicateAccounts,
 } from '@/lib/auth-provision';
@@ -59,7 +60,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return;
     }
     // Navio logins require supporthub.access (or admin) on the token.
-    if (isNavioCoreOidcUser(sessionUser)) {
+    // Google employee sessions bypass this gate entirely (always allowed).
+    if (isNavioCoreOidcUser(sessionUser) && !isGoogleSignedInSession(sessionUser)) {
       const { claims } = getNavioAuthContext(asNidpUser(sessionUser));
       if (!hasSupportHubNavioAccess(claims)) {
         logger.warn('Navio sign-in rejected: missing supporthub.access', {

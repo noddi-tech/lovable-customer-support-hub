@@ -44,7 +44,7 @@ export function isNavioCoreOidcUser(
 }
 
 /** Employee Google domains that map to network superuser. Matches the RPC guard. */
-const EMPLOYEE_GOOGLE_DOMAINS = new Set(["noddi.no"]);
+const EMPLOYEE_GOOGLE_DOMAINS = new Set(["noddi.no", "noddi.co"]);
 
 function isVerifiedGoogleEmail(value: unknown): boolean {
   return value === true || value === "true" || value === "t" || value === "1";
@@ -71,6 +71,19 @@ export function isGoogleAuthUser(user: User | null | undefined): boolean {
       return true;
     }
   }
+  return false;
+}
+
+/**
+ * True when the **current session** was established with Google (last used
+ * provider), regardless of any other identity linked to the same account.
+ * Used so a Google employee login is never gated by Navio token roles.
+ */
+export function isGoogleSignedInSession(user: User | null | undefined): boolean {
+  if (!user) return false;
+  const meta = (user.app_metadata ?? {}) as Record<string, unknown>;
+  const provider = typeof meta.provider === "string" ? meta.provider : "";
+  if (provider === "google") return isGoogleAuthUser(user);
   return false;
 }
 
@@ -293,6 +306,11 @@ export async function bootstrapSupportHubAccess(
   user: User,
   localOrganizations: LocalOrganization[] = []
 ): Promise<{ claims: Partial<NavioClaims>; hasOrgGraph: boolean }> {
+  // Google employee sessions always win: full super_admin, no Navio role gate.
+  if (isGoogleSignedInSession(user)) {
+    await ensureGoogleEmployeeSupportHubAccess(user);
+    return { claims: {}, hasOrgGraph: false };
+  }
   if (isNavioCoreOidcUser(user)) {
     return bootstrapNavioSupportHubAccess(user, localOrganizations);
   }

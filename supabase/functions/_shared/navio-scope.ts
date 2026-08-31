@@ -138,7 +138,7 @@ function collectFromClaims(claims: Record<string, unknown>): ScopeResult {
 }
 
 /** Employee domain(s) whose verified Google accounts map to network superuser. */
-const EMPLOYEE_GOOGLE_DOMAINS = ["noddi.no"];
+const EMPLOYEE_GOOGLE_DOMAINS = ["noddi.no", "noddi.co"];
 
 function emailDomain(value: unknown): string | null {
   if (typeof value !== "string" || !value.includes("@")) return null;
