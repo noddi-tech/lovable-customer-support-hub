@@ -37,6 +37,38 @@ const WIDGET_JS = `
     return null;
   }
 
+  // Host-provided allow-list (init/update `supportedLocales`), already mapped
+  // to widget UI codes. Empty = offer everything the widget ships.
+  var allowedLangs = [];
+
+  function sanitizeSupportedLocales(value) {
+    if (!Array.isArray(value)) return [];
+    const out = [];
+    value.slice(0, 20).forEach(function (entry) {
+      if (typeof entry !== 'string') return;
+      const code = normalizeLang(entry.trim().slice(0, 20));
+      if (code && out.indexOf(code) === -1) out.push(code);
+    });
+    return out;
+  }
+
+  // Languages the picker offers: host list ∩ shipped languages, host order.
+  function availableLangs() {
+    if (!allowedLangs.length) return SUPPORTED_LANGUAGES;
+    const picked = [];
+    allowedLangs.forEach(function (code) {
+      const lang = SUPPORTED_LANGUAGES.find(l => l.code === code);
+      if (lang) picked.push(lang);
+    });
+    return picked.length ? picked : SUPPORTED_LANGUAGES;
+  }
+
+  // Keep state.lang inside the allowed set.
+  function enforceAllowedLang() {
+    const langs = availableLangs();
+    if (!langs.some(l => l.code === state.lang)) state.lang = langs[0].code;
+  }
+
   function getT(lang) {
     return translations[lang] || translations.en;
   }
@@ -415,7 +447,8 @@ const WIDGET_JS = `
     if (!container) return;
 
     const t = getT(state.lang);
-    const currentLang = SUPPORTED_LANGUAGES.find(l => l.code === state.lang) || SUPPORTED_LANGUAGES[0];
+    const langs = availableLangs();
+    const currentLang = langs.find(l => l.code === state.lang) || langs[0];
 
     let html = '<div class="noddi-widget-container">';
 
@@ -640,7 +673,7 @@ const WIDGET_JS = `
       html += '<span class="noddi-widget-flag">' + currentLang.flag + '</span><span>' + currentLang.name + '</span></button>';
       if (state.showLangMenu) {
         html += '<div class="noddi-widget-language-menu">';
-        SUPPORTED_LANGUAGES.forEach(l => {
+        langs.forEach(l => {
           html += '<button class="noddi-widget-language-option' + (l.code === state.lang ? ' active' : '') + '" data-lang="' + l.code + '">';
           html += '<span class="noddi-widget-flag">' + l.flag + '</span>' + l.name + '</button>';
         });
@@ -1049,7 +1082,9 @@ const WIDGET_JS = `
 
     // Host-provided locale wins over a stale stored choice.
     hostLocale = normalizeLang((options && (options.locale || (options.context && options.context.locale))) || null);
+    allowedLangs = sanitizeSupportedLocales(options && options.supportedLocales);
     state.lang = hostLocale || normalizeLang(getStoredLang()) || normalizeLang(config.language) || 'no';
+    enforceAllowedLang();
     console.log('[Noddi] Language set to:', state.lang);
 
     render();
@@ -1086,10 +1121,19 @@ const WIDGET_JS = `
   // NoddiWidget('update', { locale }) — re-language the widget mid-session.
   function update(opts) {
     if (!opts || typeof opts !== 'object') return;
+    let changed = false;
+    if (opts.supportedLocales !== undefined) {
+      allowedLangs = sanitizeSupportedLocales(opts.supportedLocales);
+      changed = true;
+    }
     const next = normalizeLang(opts.locale || (opts.context && opts.context.locale));
     if (next && next !== state.lang) {
       hostLocale = next;
       state.lang = next;
+      changed = true;
+    }
+    if (changed) {
+      enforceAllowedLang();
       render();
     }
   }
