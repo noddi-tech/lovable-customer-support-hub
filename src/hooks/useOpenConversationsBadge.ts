@@ -2,24 +2,28 @@ import { useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useInboxOutstandingCounts } from './useInboxOutstandingCounts';
 import { useFaviconBadge } from './useFaviconBadge';
+import { useDefaultInbox } from './useDefaultInbox';
 
 /**
- * Shows the number of open conversations in the currently selected (default)
- * inbox on the favicon / app badge. Falls back to all inboxes combined.
+ * Shows the number of open conversations in the user's default inbox on the
+ * favicon / app badge. The inbox currently open in the URL wins; otherwise the
+ * per-user default inbox is used, falling back to all inboxes combined.
  */
 export function useOpenConversationsBadge() {
   const location = useLocation();
   const { data } = useInboxOutstandingCounts();
+  const { defaultInboxId } = useDefaultInbox();
 
-  const inboxId = useMemo(
+  const urlInboxId = useMemo(
     () => new URLSearchParams(location.search).get('inbox'),
     [location.search]
   );
 
+  const inboxId = urlInboxId || defaultInboxId;
+
   const count = useMemo(() => {
     if (!data) return 0;
-    if (inboxId && data[inboxId]) return data[inboxId].open;
-    if (inboxId) return 0;
+    if (inboxId) return data[inboxId]?.open ?? 0;
     return Object.values(data).reduce((sum, c) => sum + c.open, 0);
   }, [data, inboxId]);
 
