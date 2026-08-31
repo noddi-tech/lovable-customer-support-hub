@@ -37,7 +37,7 @@ const WIDGET_JS = `
     return null;
   }
 
-  // Host-provided allow-list (init/update `supportedLocales`), already mapped
+  // Host-provided allow-list (init/update supportedLocales), already mapped
   // to widget UI codes. Empty = offer everything the widget ships.
   var allowedLangs = [];
 
