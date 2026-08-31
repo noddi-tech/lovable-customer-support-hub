@@ -84,7 +84,7 @@ export function NoddiTicketFilters({ value, onChange, departments }: Props) {
         value={value.departmentId ? String(value.departmentId) : 'ALL'}
         onValueChange={(v) => onChange({ ...value, departmentId: v === 'ALL' ? null : Number(v) })}
       >
-        <SelectTrigger className="w-[200px]">
+        <SelectTrigger className="col-span-2 w-full sm:w-[200px]">
           <SelectValue placeholder="Department" />
         </SelectTrigger>
         <SelectContent>
