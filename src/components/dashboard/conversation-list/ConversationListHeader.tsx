@@ -252,10 +252,10 @@ export const ConversationListHeader = ({
                 value={state.statusFilter}
                 onValueChange={(value) => dispatch({ type: 'SET_STATUS_FILTER', payload: value })}
               >
-                <DropdownMenuRadioItem value="all">{t('dashboard.conversationList.allStatus', 'All Status')}</DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value="open">{t('dashboard.conversationList.open', 'Open')}</DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value="pending">{t('dashboard.conversationList.pending', 'Pending')}</DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value="closed">{t('dashboard.conversationList.closed', 'Closed')}</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="all" className="gap-2"><Mail className="!w-3.5 !h-3.5" />{t('dashboard.conversationList.allStatus', 'All Status')}</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="open" className="gap-2"><Inbox className="!w-3.5 !h-3.5 text-blue-600" />{t('dashboard.conversationList.open', 'Open')}</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="pending" className="gap-2"><Clock className="!w-3.5 !h-3.5 text-orange-600" />{t('dashboard.conversationList.pending', 'Pending')}</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="closed" className="gap-2"><CheckCircle className="!w-3.5 !h-3.5 text-green-600" />{t('dashboard.conversationList.closed', 'Closed')}</DropdownMenuRadioItem>
               </DropdownMenuRadioGroup>
               <DropdownMenuSeparator />
               <DropdownMenuLabel>{t('dashboard.conversationList.priorityFilter', 'Priority')}</DropdownMenuLabel>
@@ -263,12 +263,13 @@ export const ConversationListHeader = ({
                 value={state.priorityFilter}
                 onValueChange={(value) => dispatch({ type: 'SET_PRIORITY_FILTER', payload: value })}
               >
-                <DropdownMenuRadioItem value="all">{t('dashboard.conversationList.allPriority', 'All Priority')}</DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value="low">{t('dashboard.conversationList.low', 'Low')}</DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value="normal">{t('dashboard.conversationList.normal', 'Normal')}</DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value="high">{t('dashboard.conversationList.high', 'High')}</DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value="urgent">{t('dashboard.conversationList.urgent', 'Urgent')}</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="all" className="gap-2"><Flag className="!w-3.5 !h-3.5" />{t('dashboard.conversationList.allPriority', 'All Priority')}</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="low" className="gap-2"><ArrowDown className="!w-3.5 !h-3.5 text-muted-foreground" />{t('dashboard.conversationList.low', 'Low')}</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="normal" className="gap-2"><Minus className="!w-3.5 !h-3.5 text-blue-600" />{t('dashboard.conversationList.normal', 'Normal')}</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="high" className="gap-2"><ArrowUp className="!w-3.5 !h-3.5 text-orange-600" />{t('dashboard.conversationList.high', 'High')}</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="urgent" className="gap-2"><AlertTriangle className="!w-3.5 !h-3.5 text-destructive" />{t('dashboard.conversationList.urgent', 'Urgent')}</DropdownMenuRadioItem>
               </DropdownMenuRadioGroup>
+
               {hasActiveFilters && (
                 <>
                   <DropdownMenuSeparator />
