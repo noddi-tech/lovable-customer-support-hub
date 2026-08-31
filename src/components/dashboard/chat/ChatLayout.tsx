@@ -9,7 +9,9 @@ import { ChatCaseSidePanel } from './ChatCaseSidePanel';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { MessageCircle } from 'lucide-react';
+import { MessageCircle, Settings } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { useIsMobile } from '@/hooks/use-responsive';
 
