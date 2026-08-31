@@ -109,12 +109,12 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({ config, onClose, posit
     setShowLanguageMenu(false);
   };
 
-  const handleContactSuccess = () => {
+  // Show the confirmation until the visitor navigates away — no auto reset to an
+  // empty home view, and the sent message stays available after reopening.
+  const handleContactSuccess = (submission: StoredSubmission) => {
+    setSubmissions(readStoredSubmissions());
+    setActiveSubmission(submission);
     setShowSuccess(true);
-    setTimeout(() => {
-      setShowSuccess(false);
-      setView('home');
-    }, 3000);
   };
 
   const beginChat = useCallback(async (visitor?: { name?: string; email?: string; message?: string }, escalation?: ChatEscalation) => {
