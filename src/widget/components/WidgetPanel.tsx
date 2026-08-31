@@ -21,8 +21,9 @@ import {
   SUPPORTED_WIDGET_LANGUAGES,
   DEFAULT_WIDGET_LANGUAGE,
   normalizeWidgetLanguage,
+  resolveWidgetLanguages,
 } from '../translations';
-import { getWidgetContext } from '../api';
+import { getWidgetContext, getSupportedLocales } from '../api';
 
 
 interface WidgetPanelProps {
@@ -49,14 +50,22 @@ function getVisitorId(): string {
  * customer choice → widget config → Norwegian.
  */
 function getCustomerLanguage(configLanguage: string): string {
-  const hostLocale = normalizeWidgetLanguage(getWidgetContext()?.locale);
+  // Only languages the host allows (supportedLocales) may be selected.
+  const available = resolveWidgetLanguages(getSupportedLocales());
+  const allow = (code: string | null) =>
+    code && available.some(l => l.code === code) ? code : null;
+
+  const hostLocale = allow(normalizeWidgetLanguage(getWidgetContext()?.locale));
   if (hostLocale) return hostLocale;
 
-  const savedLanguage = localStorage.getItem('noddi_widget_language');
-  if (savedLanguage && SUPPORTED_WIDGET_LANGUAGES.some(l => l.code === savedLanguage)) {
-    return savedLanguage;
-  }
-  return normalizeWidgetLanguage(configLanguage) || DEFAULT_WIDGET_LANGUAGE;
+  const savedLanguage = allow(localStorage.getItem('noddi_widget_language'));
+  if (savedLanguage) return savedLanguage;
+
+  return (
+    allow(normalizeWidgetLanguage(configLanguage)) ||
+    allow(DEFAULT_WIDGET_LANGUAGE) ||
+    available[0].code
+  );
 }
 
 export const WidgetPanel: React.FC<WidgetPanelProps> = ({ config, onClose, positionOverride, identity }) => {
@@ -70,11 +79,21 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({ config, onClose, posit
 
   // Host can change locale mid-session via NoddiWidget('update', { locale }).
   const hostLocale = normalizeWidgetLanguage(getWidgetContext()?.locale);
+  // Host can also narrow the picker via supportedLocales on init/update.
+  const availableLanguages = resolveWidgetLanguages(getSupportedLocales());
+  const availableCodes = availableLanguages.map(l => l.code).join(',');
   useEffect(() => {
-    if (hostLocale && hostLocale !== currentLanguage) {
+    if (hostLocale && hostLocale !== currentLanguage && availableLanguages.some(l => l.code === hostLocale)) {
       setCurrentLanguage(hostLocale);
     }
   }, [hostLocale]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // The current language may no longer be offered after an update.
+  useEffect(() => {
+    if (!availableLanguages.some(l => l.code === currentLanguage)) {
+      setCurrentLanguage(availableLanguages[0].code);
+    }
+  }, [availableCodes, currentLanguage]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const t = getWidgetTranslations(currentLanguage);
 
@@ -205,7 +224,7 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({ config, onClose, posit
     ? { right: '20px' } 
     : { left: '20px' };
 
-  const currentLang = SUPPORTED_WIDGET_LANGUAGES.find(l => l.code === currentLanguage);
+  const currentLang = availableLanguages.find(l => l.code === currentLanguage);
   const currentLangName = currentLang?.name || 'English';
   const currentLangFlag = currentLang?.flag || '🌐';
 
@@ -414,7 +433,7 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({ config, onClose, posit
             
             {showLanguageMenu && (
               <div className="noddi-widget-language-menu">
-                {SUPPORTED_WIDGET_LANGUAGES.map((lang) => (
+                {availableLanguages.map((lang) => (
                   <button
                     key={lang.code}
                     className={`noddi-widget-language-option ${currentLanguage === lang.code ? 'active' : ''}`}
