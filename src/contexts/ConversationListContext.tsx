@@ -859,7 +859,9 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
       }
       
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
-      toast.success(`Changed status for ${ids.length} conversations`);
+      queryClient.invalidateQueries({ queryKey: ['inboxCounts'] });
+      queryClient.invalidateQueries({ queryKey: ['all-counts'] });
+      toast.success(`Changed status to ${status} for ${ids.length} conversation${ids.length === 1 ? '' : 's'}`);
       dispatch({ type: 'CLEAR_BULK_SELECTION' });
     } catch (error) {
       logger.error('Failed to change status', error, 'bulkChangeStatus');
