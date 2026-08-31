@@ -503,7 +503,15 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
         </div>
       </TableCell>
 
+      {/* Received */}
+      <TableCell className="p-2 w-36">
+        <span className="text-xs text-muted-foreground whitespace-nowrap" title={computedValues.receivedAt}>
+          {computedValues.receivedAt}
+        </span>
+      </TableCell>
+
       {/* Waiting */}
+
       <TableCell className="p-2 w-20">
         <span className="text-xs text-muted-foreground">{computedValues.waitingTime}</span>
       </TableCell>
