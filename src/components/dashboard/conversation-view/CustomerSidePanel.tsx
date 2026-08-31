@@ -30,7 +30,7 @@ import { useConversationView } from '@/contexts/ConversationViewContext';
 import { NoddiCustomerDetails } from '@/components/dashboard/voice/NoddiCustomerDetails';
 import { CustomerNoddiTicketsCard } from '@/components/noddi-tickets/CustomerNoddiTicketsCard';
 import { ConversationCaseSection } from '@/components/cases/ConversationCaseSection';
-import { CustomerHistoryCard } from '@/components/cases/CustomerHistoryCard';
+import { CustomerTimeline } from '@/components/cases/CustomerTimeline';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
@@ -769,8 +769,8 @@ export const CustomerSidePanel = ({
             channel={conversation.channel}
           />
 
-          {/* Persistent customer history across threads */}
-          <CustomerHistoryCard
+          {/* Unified history across email, chat, phone, notes and cases */}
+          <CustomerTimeline
             customerId={conversation.customer?.id}
             currentConversationId={conversation.id}
           />
