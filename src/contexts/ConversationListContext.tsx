@@ -96,6 +96,7 @@ type ConversationListAction =
   | { type: 'OPEN_DELETE_DIALOG'; payload: string }
   | { type: 'CLOSE_DELETE_DIALOG' }
   | { type: 'TOGGLE_BULK_SELECTION'; payload: { id: string; selected: boolean } }
+  | { type: 'SET_BULK_SELECTION'; payload: { ids: string[]; selected: boolean } }
   | { type: 'CLEAR_BULK_SELECTION' }
   | { type: 'TOGGLE_BULK_MODE' }
   | { type: 'SET_SORT'; payload: string }
