@@ -84,5 +84,6 @@
   "sendAnother": "Send en ny melding",
   "backToHome": "Tilbake",
   "yourMessages": "Dine meldinger",
-  "awaitingReply": "Vi svarer på e-post"
+  "awaitingReply": "Vi svarer på e-post",
+  "markResolved": "Marker som løst"
 }

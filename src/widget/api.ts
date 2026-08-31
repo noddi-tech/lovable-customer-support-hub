@@ -480,12 +480,13 @@ export async function getChatMessages(sessionId: string, since?: string): Promis
   }
 }
 
-export async function endChat(sessionId: string): Promise<boolean> {
+export async function endChat(sessionId: string, resolved = false): Promise<boolean> {
   try {
     const response = await fetch(`${apiBaseUrl}/widget-chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'end', sessionId }),
+      // `resolved` also closes the conversation in the support app.
+      body: JSON.stringify({ action: 'end', sessionId, resolved }),
     });
     return response.ok;
   } catch (error) {

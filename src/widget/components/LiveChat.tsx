@@ -157,7 +157,13 @@ export const LiveChat: React.FC<LiveChatProps> = ({
   };
 
   const handleEndChat = async () => {
-    await endChat(session.id);
+    await endChat(session.id, false);
+    onEnd();
+  };
+
+  // Visitor confirms the issue is solved — closes the conversation for agents too.
+  const handleResolveChat = async () => {
+    await endChat(session.id, true);
     onEnd();
   };
 
@@ -195,12 +201,20 @@ export const LiveChat: React.FC<LiveChatProps> = ({
           </span>
         </div>
         {!isEnded && (
-          <button 
-            className="noddi-chat-end-button"
-            onClick={handleEndChat}
-          >
-            {t.endChat}
-          </button>
+          <div className="noddi-chat-status-actions">
+            <button
+              className="noddi-chat-resolve-button"
+              onClick={handleResolveChat}
+            >
+              {t.markResolved || 'Mark as resolved'}
+            </button>
+            <button 
+              className="noddi-chat-end-button"
+              onClick={handleEndChat}
+            >
+              {t.endChat}
+            </button>
+          </div>
         )}
       </div>
 
