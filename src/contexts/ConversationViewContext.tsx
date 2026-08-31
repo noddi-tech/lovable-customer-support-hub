@@ -500,6 +500,54 @@ export const ConversationViewProvider = ({ children, conversationId, conversatio
       dispatch({ type: 'SET_REPLY_TEXT', payload: '' });
       dispatch({ type: 'SET_SELECTED_AI_SUGGESTION', payload: null });
       dispatch({ type: 'SET_SELECTED_TEMPLATE', payload: null });
+
+      // Accountability: a public reply takes ownership of the conversation and
+      // its linked case, and stamps first response for SLA reporting.
+      if (!variables.isInternal) {
+        void (async () => {
+          try {
+            const { data: profileRow } = await supabase
+              .from('profiles')
+              .select('id')
+              .eq('user_id', user?.id ?? '')
+              .maybeSingle();
+            const profileId = profileRow?.id;
+            if (!profileId || !conversationId) return;
+
+            const { data: conv } = await (supabase.from('conversations') as any)
+              .select('assigned_to_id, case_id')
+              .eq('id', conversationId)
+              .maybeSingle();
+
+            if (conv && !conv.assigned_to_id) {
+              await (supabase.from('conversations') as any)
+                .update({ assigned_to_id: profileId })
+                .eq('id', conversationId);
+              queryClient.invalidateQueries({ queryKey: ['conversation-meta'] });
+            }
+
+            if (conv?.case_id) {
+              const { data: caseRow } = await (supabase.from('cases') as any)
+                .select('owner_id, first_response_at, status')
+                .eq('id', conv.case_id)
+                .maybeSingle();
+              const updates: Record<string, unknown> = {};
+              if (caseRow && !caseRow.owner_id) updates.owner_id = profileId;
+              if (caseRow && !caseRow.first_response_at) updates.first_response_at = new Date().toISOString();
+              if (caseRow?.status === 'open') updates.status = 'in_progress';
+              if (Object.keys(updates).length > 0) {
+                await (supabase.from('cases') as any).update(updates).eq('id', conv.case_id);
+                queryClient.invalidateQueries({ queryKey: ['conversation-case'] });
+                queryClient.invalidateQueries({ queryKey: ['cases'] });
+              }
+            }
+          } catch (err) {
+            logger.error('Assign-on-reply failed', err as any, 'ConversationViewProvider');
+          }
+        })();
+      }
+
+
       
       // Optimistically update messages cache instead of invalidating
       queryClient.setQueryData(['messages', conversationId, user?.id], (old: any[]) => {
