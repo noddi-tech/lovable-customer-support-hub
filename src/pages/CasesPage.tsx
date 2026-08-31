@@ -18,7 +18,13 @@ import {
   type CaseQueueView,
 } from '@/hooks/useCases';
 import { useDateFormatting } from '@/hooks/useDateFormatting';
-import { BarChart3, Plus, Search, Briefcase, UserRound } from 'lucide-react';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { BarChart3, Plus, Search, Briefcase, UserRound, HelpCircle } from 'lucide-react';
 
 const VIEWS: Array<{ value: CaseQueueView; label: string }> = [
   { value: 'mine', label: 'My cases' },
