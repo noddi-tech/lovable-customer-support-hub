@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { checkRateLimit as checkDurableRateLimit, clientIp, rateLimitResponse } from '../_shared/rate-limit.ts';
+import { sanitizeWidgetContext } from '../_shared/widget-context.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -15,6 +16,7 @@ interface StartChatRequest {
   visitorEmail?: string;
   pageUrl?: string;
   brand?: string;
+  context?: Record<string, unknown>;
 }
 
 interface MessageRequest {
@@ -155,6 +157,8 @@ async function handleStartChat(supabase: any, data: StartChatRequest) {
   const { widgetKey, visitorId, visitorName, visitorEmail, pageUrl } = data;
   // Optional brand of the host site (sent by the embedding frontend)
   const brand = typeof data.brand === 'string' ? data.brand.trim().slice(0, 40) || undefined : undefined;
+  // Optional extra host-site context (locale, environment, source app, ids...)
+  const context = sanitizeWidgetContext(data.context);
 
   // Validate required fields
   if (!widgetKey || !visitorId) {
@@ -286,6 +290,7 @@ async function handleStartChat(supabase: any, data: StartChatRequest) {
         page_url: pageUrl,
         brand,
         visitor_id: visitorId,
+        ...(context ? { context } : {}),
       },
     })
     .select('id')
@@ -309,7 +314,7 @@ async function handleStartChat(supabase: any, data: StartChatRequest) {
       visitor_name: visitorName,
       visitor_email: visitorEmail?.toLowerCase(),
       status: 'waiting',
-      metadata: { page_url: pageUrl, brand },
+      metadata: { page_url: pageUrl, brand, ...(context ? { context } : {}) },
     })
     .select('id, status, started_at')
     .single();
