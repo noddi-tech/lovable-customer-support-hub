@@ -1,4 +1,4 @@
-import { Inbox } from 'lucide-react';
+import { Inbox, Briefcase, UserSearch } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 export interface Announcement {
