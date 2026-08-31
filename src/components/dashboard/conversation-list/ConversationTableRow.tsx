@@ -335,6 +335,22 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
           </div>
         </div>
 
+        {/* Inbox (only in the All inboxes view) */}
+        {showInboxColumn && (
+          <div className="p-2 w-40 shrink-0 min-w-0">
+            <InboxBadge
+              name={computedValues.inboxName}
+              color={computedValues.inboxColor}
+              email={computedValues.inboxEmail}
+            />
+            {computedValues.inboxEmail && (
+              <div className="text-[10px] text-muted-foreground truncate">{computedValues.inboxEmail}</div>
+            )}
+          </div>
+        )}
+
+
+
         {/* Subject */}
         <div className="p-2 flex-1 min-w-0">
           <div className="flex items-center gap-2">
