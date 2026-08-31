@@ -21,7 +21,7 @@ import { useOptimizedCounts } from '@/hooks/useOptimizedCounts';
 import { useDateFormatting } from '@/hooks/useDateFormatting';
 import { getGroupedNavItems, logNavMatch } from '@/navigation/nav-config';
 import { cn } from '@/lib/utils';
-import { Crown, ChevronRight, ChevronLeft, LogOut, Settings, Palette, Home, UserCircle, User, Bell } from 'lucide-react';
+import { Crown, ChevronRight, ChevronLeft, LogOut, Palette, Home, User, Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -44,8 +44,6 @@ export const AppMainNav = () => {
   const { user, profile, signOut, isSuperAdmin } = useAuth();
   const { notifications: unreadNotifications } = useOptimizedCounts();
   const { dateTime, timezone } = useDateFormatting();
-  const [accountOpen, setAccountOpen] = useState(false);
-  const [preferencesOpen, setPreferencesOpen] = useState(false);
 
   
   const isCollapsed = state === 'collapsed' && !isMobile;
