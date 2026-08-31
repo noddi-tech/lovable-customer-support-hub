@@ -70,6 +70,13 @@ export const NAV_ITEMS: NavItem[] = [
     icon: Phone, 
     group: "interactions" 
   },
+  {
+    id: "cases",
+    label: "Cases",
+    to: "/operations/cases",
+    icon: Briefcase,
+    group: "interactions"
+  },
 
   // Marketing - hierarchical paths
   { 
@@ -88,13 +95,6 @@ export const NAV_ITEMS: NavItem[] = [
   },
 
   // Operations - hierarchical paths
-  {
-    id: "cases",
-    label: "Cases",
-    to: "/operations/cases",
-    icon: Briefcase,
-    group: "operations"
-  },
   { 
     id: "service-tickets", 
     label: "Ops Tickets", 
