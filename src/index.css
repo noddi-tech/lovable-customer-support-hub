@@ -258,10 +258,10 @@ Optimized for accessibility with WCAG AA compliance.
   .email-render__html-content,
   .email-render__plain-content {
     @apply prose prose-sm dark:prose-invert max-w-none;
-    line-height: 1.3 !important;
+    line-height: 1.5 !important;
     margin-top: 0.25em !important;
     color: hsl(var(--foreground));
-    font-size: 13px;
+    font-size: 14px;
     overflow-wrap: anywhere;
   }
 
@@ -298,9 +298,9 @@ Optimized for accessibility with WCAG AA compliance.
   /* Paragraph spacing - compact and consistent */
   .email-render__html-content p,
   .email-render__plain-content p {
-    margin-bottom: 0.15em !important;
+    margin-bottom: 0.5em !important;
     margin-top: 0 !important;
-    line-height: 1.3;
+    line-height: 1.5;
   }
 
   .email-render__html-content p:last-child,
@@ -493,10 +493,10 @@ Optimized for accessibility with WCAG AA compliance.
   /* Table cells: MINIMAL padding by default to collapse spacer rows */
   .email-render__html-content td,
   .email-render__html-content th {
-    font-size: 0.875rem !important;
-    line-height: 1.3 !important;
+    font-size: 0.9rem !important;
+    line-height: 1.5 !important;
     margin: 0 !important;
-    padding: 2px 4px !important; /* Minimal default - collapses spacer rows */
+    padding: 6px 8px !important; /* Readable default; empty/spacer cells collapse below */
     height: auto !important;
     vertical-align: top;
   }
@@ -510,7 +510,7 @@ Optimized for accessibility with WCAG AA compliance.
   .email-render__html-content [class*="order-details"] th,
   .email-render__html-content [class*="product"] td,
   .email-render__html-content [class*="product"] th {
-    padding: 8px !important; /* Restore for data tables */
+    padding: 10px !important; /* Restore for data tables */
   }
 
   /* Empty cells (no content at all) - collapse them */
@@ -533,18 +533,18 @@ Optimized for accessibility with WCAG AA compliance.
   .email-render__html-content td h1,
   .email-render__html-content th h1,
   .email-render__html-content h1 {
-    font-size: 1.1rem !important;
-    line-height: 1.3 !important;
-    margin: 0 !important;
+    font-size: 1.25rem !important;
+    line-height: 1.35 !important;
+    margin: 0 0 0.4em !important;
     padding: 0 !important;
   }
 
   .email-render__html-content td h2,
   .email-render__html-content th h2,
   .email-render__html-content h2 {
-    font-size: 1rem !important;
-    line-height: 1.3 !important;
-    margin: 0 !important;
+    font-size: 1.1rem !important;
+    line-height: 1.35 !important;
+    margin: 0 0 0.35em !important;
     padding: 0 !important;
   }
 
@@ -558,14 +558,13 @@ Optimized for accessibility with WCAG AA compliance.
   .email-render__html-content h4,
   .email-render__html-content h5,
   .email-render__html-content h6 {
-    font-size: 0.95rem !important;
-    line-height: 1.3 !important;
-    margin: 0 !important;
+    font-size: 1rem !important;
+    line-height: 1.35 !important;
+    margin: 0 0 0.3em !important;
     padding: 0 !important;
   }
 
   /* Text elements inside cells and non-table text */
-  .email-render__html-content p,
   .email-render__html-content span,
   .email-render__html-content a,
   .email-render__html-content strong,
@@ -573,15 +572,15 @@ Optimized for accessibility with WCAG AA compliance.
   .email-render__html-content em,
   .email-render__html-content i,
   .email-render__html-content li {
-    font-size: 0.875rem !important;
-    line-height: 1.3 !important;
+    font-size: 0.9rem !important;
+    line-height: 1.5 !important;
     margin: 0 !important;
     padding: 0 !important;
   }
 
   /* Limit logo/header image heights - exclude attachment images */
   .email-render__html-content img:not([data-attachment]):not(.email-attachment-image) {
-    max-height: 40px !important;
+    max-height: 72px !important;
   }
 
   /* Inline signature images - cap at 80px (logos, headshots) */
