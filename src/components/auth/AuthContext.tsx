@@ -8,6 +8,7 @@ import {
   bootstrapSupportHubAccess,
   hasSupportHubNavioAccess,
   isGoogleAuthUser,
+  isGoogleSignedInSession,
   isNavioCoreOidcUser,
   reconcileDuplicateAccounts,
 } from '@/lib/auth-provision';
