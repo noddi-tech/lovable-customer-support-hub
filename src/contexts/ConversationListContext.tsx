@@ -216,6 +216,9 @@ interface ConversationListContextType {
   bulkDelete: () => void;
   bulkAssign: (assigneeId: string) => void;
   agents: Array<{ id: string; name: string }>;
+  /** Currently selected inbox id, or 'all' for the combined view. */
+  selectedInboxId: string;
+
 }
 
 const ConversationListContext = createContext<ConversationListContextType | undefined>(undefined);
