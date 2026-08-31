@@ -11,7 +11,9 @@ import da from './da.json';
 
 export type WidgetTranslations = typeof en;
 
-const translations: Record<string, WidgetTranslations> = {
+// Partial: non-English files may lag behind newly added keys; getWidgetTranslations
+// merges them over English so missing keys still resolve.
+const translations: Record<string, Partial<WidgetTranslations>> = {
   en,
   no,
   es,
