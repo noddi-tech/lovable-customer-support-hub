@@ -114,16 +114,15 @@ export default function ServiceTickets() {
       </div>
 
       <Tabs value={statusTab} onValueChange={setStatusTab}>
-        <div className="-mx-4 overflow-x-auto px-4 md:mx-0 md:px-0">
-          <TabsList className="w-max">
-            {STATUS_TABS.map((tab) => (
-              <TabsTrigger key={tab.value} value={tab.value}>
-                {tab.label}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </div>
+        <TabsList className="h-auto min-w-0 flex-wrap justify-start gap-1">
+          {STATUS_TABS.map((tab) => (
+            <TabsTrigger key={tab.value} value={tab.value}>
+              {tab.label}
+            </TabsTrigger>
+          ))}
+        </TabsList>
       </Tabs>
+
 
       <NoddiTicketFilters value={filters} onChange={setFilters} departments={departments} />
 

@@ -32,9 +32,9 @@ const TabsTrigger = React.forwardRef<
     ref={ref}
     className={cn(
       // Hard requirements (use ! to defeat later overrides)
-      "inline-flex h-9 items-center justify-center gap-2 !whitespace-nowrap shrink-0 min-w-fit leading-none",
-      // Visual size
-      "rounded-lg px-3 py-1 text-sm font-medium",
+      "inline-flex h-9 items-center justify-center gap-2 !whitespace-nowrap shrink-0 min-w-fit",
+      // Visual size (leading-none last so tailwind-merge keeps it over text-sm's line-height)
+      "rounded-lg px-3 py-1 text-sm font-medium leading-none",
       // Focus and interaction states
       "ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
       // Active states (keep existing styles)

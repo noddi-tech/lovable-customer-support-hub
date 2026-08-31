@@ -23,7 +23,8 @@ describe('Tabs with Long Labels', () => {
       expect(trigger.className).toMatch(/items-center/);
       expect(trigger.className).toMatch(/gap-2/);
       expect(trigger.className).toMatch(/leading-none/);
-      expect(trigger.className).not.toMatch(/whitespace-nowrap/);
+      // Triggers keep their label on one line by design; the TabsList wraps instead.
+      expect(trigger.className).toMatch(/whitespace-nowrap/);
     }
   });
 
