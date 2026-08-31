@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label';
 import {
   CaseStatusBadge,
   CasePriorityBadge,
+  CASE_PRIORITY_DOT,
   CaseSlaBadge,
   CASE_STATUS_ICONS,
   CASE_STATUS_ICON_COLORS,
