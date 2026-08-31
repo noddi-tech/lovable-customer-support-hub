@@ -14,6 +14,11 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
+import {
   Popover,
   PopoverContent,
   PopoverTrigger,
@@ -57,6 +62,23 @@ export const AgentAvailabilityPanel: React.FC<AgentAvailabilityPanelProps> = ({
   collapsed = false,
   className 
 }) => {
+  // Availability section is collapsed by default; choice persists per browser.
+  const [sectionOpen, setSectionOpen] = React.useState<boolean>(() => {
+    try {
+      return localStorage.getItem('sidebar:availability-open') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  React.useEffect(() => {
+    try {
+      localStorage.setItem('sidebar:availability-open', String(sectionOpen));
+    } catch {
+      /* ignore storage failures */
+    }
+  }, [sectionOpen]);
+
   // Chat availability
   const { status: chatStatus, setStatus: setChatStatus, isLoading: chatLoading, isUpdating: chatUpdating } = useAgentAvailability();
   const { data: onlineAgents = [], isLoading: agentsLoading } = useOnlineAgents();
