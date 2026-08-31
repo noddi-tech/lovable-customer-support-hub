@@ -14,6 +14,7 @@ interface StartChatRequest {
   visitorName?: string;
   visitorEmail?: string;
   pageUrl?: string;
+  brand?: string;
 }
 
 interface MessageRequest {
@@ -152,6 +153,8 @@ Deno.serve(async (req) => {
 
 async function handleStartChat(supabase: any, data: StartChatRequest) {
   const { widgetKey, visitorId, visitorName, visitorEmail, pageUrl } = data;
+  // Optional brand of the host site (sent by the embedding frontend)
+  const brand = typeof data.brand === 'string' ? data.brand.trim().slice(0, 40) || undefined : undefined;
 
   // Validate required fields
   if (!widgetKey || !visitorId) {
@@ -281,6 +284,7 @@ async function handleStartChat(supabase: any, data: StartChatRequest) {
       metadata: {
         source: 'widget_chat',
         page_url: pageUrl,
+        brand,
         visitor_id: visitorId,
       },
     })
@@ -305,7 +309,7 @@ async function handleStartChat(supabase: any, data: StartChatRequest) {
       visitor_name: visitorName,
       visitor_email: visitorEmail?.toLowerCase(),
       status: 'waiting',
-      metadata: { page_url: pageUrl },
+      metadata: { page_url: pageUrl, brand },
     })
     .select('id, status, started_at')
     .single();
