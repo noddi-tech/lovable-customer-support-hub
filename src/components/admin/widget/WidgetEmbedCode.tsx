@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from 'react';
-import { Copy, Check, ExternalLink, Rocket, Loader2, ChevronDown, BookOpen, Code, Share2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { Copy, Check, ExternalLink, ChevronDown, BookOpen, Code, Share2 } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
+import { WidgetDeployPanel } from './WidgetDeployPanel';
 
 interface WidgetEmbedCodeProps {
   widgetKey: string;
@@ -11,15 +12,11 @@ interface WidgetEmbedCodeProps {
 
 export const WidgetEmbedCode: React.FC<WidgetEmbedCodeProps> = ({ widgetKey }) => {
   const [copied, setCopied] = useState(false);
-  const [deploying, setDeploying] = useState(false);
   const [apiRefOpen, setApiRefOpen] = useState(false);
   const [examplesOpen, setExamplesOpen] = useState(false);
   const [copiedExample, setCopiedExample] = useState<string | null>(null);
   const [copiedDocs, setCopiedDocs] = useState(false);
-  const [lastDeploy, setLastDeploy] = useState<{ size: number | null; at: string } | null>(null);
-  const [liveBuild, setLiveBuild] = useState<{ publishedAt: string; commit: string; size?: number } | null>(null);
 
-  const appCommit = typeof __APP_COMMIT__ !== 'undefined' ? __APP_COMMIT__ : 'unknown';
 
   // Use the production Supabase URL
   const supabaseUrl = 'https://qgfaycwsangsqzpveoup.supabase.co';
@@ -79,54 +76,6 @@ document.querySelector('#my-help-btn').addEventListener('click', () => {
     }
   };
 
-  const fetchLiveBuild = async () => {
-    try {
-      const res = await fetch(
-        `${supabaseUrl}/storage/v1/object/public/widget/widget-build.json?t=${Date.now()}`,
-      );
-      if (!res.ok) return;
-      setLiveBuild(await res.json());
-    } catch {
-      // manifest not published yet
-    }
-  };
-
-  useEffect(() => {
-    fetchLiveBuild();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const handleDeploy = async () => {
-    setDeploying(true);
-    try {
-      const response = await fetch(`${supabaseUrl}/functions/v1/deploy-widget?action=deploy`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ commit: appCommit }),
-      });
-      
-      if (!response.ok) {
-        throw new Error('Deploy failed');
-      }
-      
-      const result = await response.json();
-      setLastDeploy({ size: result.size ?? null, at: new Date().toLocaleString() });
-      if (result.publishedAt) {
-        setLiveBuild({ publishedAt: result.publishedAt, commit: result.commit, size: result.size });
-      } else {
-        fetchLiveBuild();
-      }
-      toast.success('Widget deployed to production!', {
-        description: `Size: ${result.size || 'unknown'} — hard-refresh host apps to pick it up`,
-      });
-    } catch (err) {
-      toast.error('Failed to deploy widget', {
-        description: 'Check edge function logs for details',
-      });
-    } finally {
-      setDeploying(false);
-    }
-  };
 
 
   const generateSlackFormattedDocs = () => {
@@ -213,83 +162,7 @@ Config API: ${supabaseUrl}/functions/v1/widget-config?key=${widgetKey}`;
         </Card>
       </div>
 
-      <Card className="border-primary/20 bg-primary/5">
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <Rocket className="h-4 w-4" />
-            Deploy Widget
-          </CardTitle>
-          <CardDescription>
-            Publishes the current widget bundle (built into the <code>deploy-widget</code> edge
-            function) to public storage at <code>{widgetScriptUrl}</code>. Every host site loads
-            that single file, so this is what makes widget code changes go live.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <Button
-            onClick={handleDeploy}
-            disabled={deploying}
-            className="gap-2"
-          >
-            {deploying ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Deploying...
-              </>
-            ) : (
-              <>
-                <Rocket className="h-4 w-4" />
-                Deploy to Production
-              </>
-            )}
-          </Button>
-
-          <div className="rounded-lg border bg-background/60 p-3 text-xs space-y-1">
-            <p className="font-medium text-sm">Currently published bundle</p>
-            {liveBuild ? (
-              <>
-                <p className="text-muted-foreground">
-                  Published: {new Date(liveBuild.publishedAt).toLocaleString()}{' '}
-                  <span className="opacity-70">({liveBuild.publishedAt})</span>
-                </p>
-                <p className="text-muted-foreground">
-                  Commit: <code>{liveBuild.commit}</code>
-                  {liveBuild.size ? ` — ${(liveBuild.size / 1024).toFixed(1)} KB` : ''}
-                </p>
-              </>
-            ) : (
-              <p className="text-muted-foreground">
-                No build manifest found yet — deploy once to stamp the bundle.
-              </p>
-            )}
-            <p className="text-muted-foreground">
-              This app build: <code>{appCommit}</code>
-            </p>
-          </div>
-
-          {lastDeploy && (
-            <p className="text-xs text-muted-foreground">
-              Last deploy from this browser: {lastDeploy.at}
-              {lastDeploy.size ? ` — ${(lastDeploy.size / 1024).toFixed(1)} KB` : ''}
-            </p>
-          )}
-
-          <div className="rounded-lg border bg-background/60 p-4 text-sm space-y-2">
-            <p className="font-medium">What happens when you deploy</p>
-            <ol className="list-decimal pl-5 space-y-1 text-muted-foreground">
-              <li>The bundled widget script is uploaded to the public <code>widget</code> storage bucket, overwriting <code>widget.js</code>.</li>
-              <li>Host sites pick up the new file on their next load — the CDN caches it for up to ~1 hour, so hard-refresh (or add <code>?v=</code> cache-buster) to verify immediately.</li>
-              <li>No change is needed in the host app: config, locales and identity are read at runtime.</li>
-            </ol>
-            <p className="font-medium pt-2">Verify after deploying</p>
-            <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
-              <li>Open DevTools on the host site and check <code>window.NoddiWidget</code> exposes the expected methods (e.g. <code>identify</code>, <code>clearIdentity</code>).</li>
-              <li>Open the contact form while logged in — name and email should be prefilled.</li>
-              <li>Fetch <code>{widgetScriptUrl}</code> directly to confirm the served file contains your change.</li>
-            </ul>
-          </div>
-        </CardContent>
-      </Card>
+      <WidgetDeployPanel variant="full" />
 
 
       <Card>
