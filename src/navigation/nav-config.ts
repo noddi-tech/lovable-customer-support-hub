@@ -89,7 +89,7 @@ export const NAV_ITEMS: NavItem[] = [
   // Operations - hierarchical paths
   { 
     id: "service-tickets", 
-    label: "Service Tickets", 
+    label: "Ops Tickets", 
     to: "/operations/tickets", 
     icon: Ticket, 
     group: "operations" 
