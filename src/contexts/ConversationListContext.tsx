@@ -667,10 +667,12 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
           case 'channel':
             return multiplier * a.channel.localeCompare(b.channel);
           case 'waiting':
+          case 'received':
             // Use received_at (last message arrival) for sorting, fallback to updated_at
             const aTime = new Date(a.received_at || a.updated_at).getTime();
             const bTime = new Date(b.received_at || b.updated_at).getTime();
             return multiplier * (aTime - bTime);
+
           case 'sla':
             const slaOrder = { breached: 4, at_risk: 3, on_track: 2, met: 1 };
             const aSla = slaOrder[a.slaStatus || 'on_track'] || 2;

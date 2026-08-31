@@ -2,10 +2,10 @@ import { memo, useMemo } from 'react';
 import { FixedSizeList as List } from 'react-window';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import InfiniteLoader from 'react-window-infinite-loader';
-import { Table, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ConversationTableRow } from './ConversationTableRow';
-import { TableHeaderCell } from './TableHeaderCell';
+import { FlexHeaderCell } from './FlexHeaderCell';
+
 import { useConversationList, type Conversation } from '@/contexts/ConversationListContext';
 import { useTranslation } from 'react-i18next';
 import { Clock, Inbox } from 'lucide-react';
@@ -153,72 +153,77 @@ const VirtualizedConversationTable = memo(({ onSelectConversation, selectedConve
         </div>
       )}
       
-      {/* Fixed Table Header - always mounted */}
-      <div className="bg-card">
-        <Table>
-          <TableHeader className="border-b">
-            <TableRow className="hover:bg-transparent">
-              {state.bulkSelectionMode && (
-                <TableHead className="w-10 p-2">
-                  <Checkbox
-                    checked={allSelected}
-                    onCheckedChange={handleSelectAll}
-                  />
-                </TableHead>
-              )}
-              <TableHeaderCell
-                label={t('dashboard.conversationList.customer', 'Customer')}
-                sortKey="customer"
-                currentSort={state.tableSort}
-                onSort={handleSort}
-                className="w-48"
-              />
-              <TableHeaderCell
-                label={t('dashboard.conversationList.conversation', 'Conversation')}
-                sortKey="subject"
-                currentSort={state.tableSort}
-                onSort={handleSort}
-              />
-              <TableHeaderCell
-                label={t('dashboard.conversationList.channel', 'Channel')}
-                sortKey="channel"
-                currentSort={state.tableSort}
-                onSort={handleSort}
-                className="w-20"
-              />
-              <TableHeaderCell
-                label={t('dashboard.conversationList.waiting', 'Waiting')}
-                sortKey="waiting"
-                currentSort={state.tableSort}
-                onSort={handleSort}
-                className="w-24"
-              />
-              <TableHeaderCell
-                label={t('dashboard.conversationList.sla', 'SLA')}
-                sortKey="sla"
-                currentSort={state.tableSort}
-                onSort={handleSort}
-                className="w-16"
-              />
-              <TableHeaderCell
-                label={t('dashboard.conversationList.status', 'Status')}
-                sortKey="status"
-                currentSort={state.tableSort}
-                onSort={handleSort}
-                className="w-24"
-              />
-              <TableHeaderCell
-                label={t('dashboard.conversationList.priority', 'Priority')}
-                sortKey="priority"
-                currentSort={state.tableSort}
-                onSort={handleSort}
-                className="w-24"
-              />
-              <TableHead className="w-12 p-2"></TableHead>
-            </TableRow>
-          </TableHeader>
-        </Table>
+      {/*
+        Fixed header. Rendered as a flex row (not a <table>) so the column
+        widths line up exactly with the virtualized flex rows below.
+      */}
+      <div className="bg-card border-b">
+        <div className="flex items-center px-4">
+          {state.bulkSelectionMode && (
+            <div className="w-10 p-2 shrink-0">
+              <Checkbox checked={allSelected} onCheckedChange={handleSelectAll} />
+            </div>
+          )}
+          <FlexHeaderCell
+            label={t('dashboard.conversationList.customer', 'Customer')}
+            sortKey="customer"
+            currentSort={state.tableSort}
+            onSort={handleSort}
+            className="w-48 shrink-0"
+          />
+          <FlexHeaderCell
+            label={t('dashboard.conversationList.conversation', 'Conversation')}
+            sortKey="subject"
+            currentSort={state.tableSort}
+            onSort={handleSort}
+            className="flex-1 min-w-0"
+          />
+          <FlexHeaderCell
+            label={t('dashboard.conversationList.status', 'Status')}
+            sortKey="status"
+            currentSort={state.tableSort}
+            onSort={handleSort}
+            className="w-32 shrink-0"
+          />
+          <FlexHeaderCell
+            label={t('dashboard.conversationList.priority', 'Priority')}
+            sortKey="priority"
+            currentSort={state.tableSort}
+            onSort={handleSort}
+            className="w-24 shrink-0"
+          />
+          <FlexHeaderCell
+            label={t('dashboard.conversationList.channel', 'Channel')}
+            sortKey="channel"
+            currentSort={state.tableSort}
+            onSort={handleSort}
+            className="w-28 shrink-0"
+          />
+          <FlexHeaderCell
+            label={t('dashboard.conversationList.received', 'Received')}
+            sortKey="received"
+            currentSort={state.tableSort}
+            onSort={handleSort}
+            className="w-36 shrink-0"
+          />
+          <FlexHeaderCell
+            label={t('dashboard.conversationList.waiting', 'Waiting')}
+            sortKey="waiting"
+            currentSort={state.tableSort}
+            onSort={handleSort}
+            className="w-20 shrink-0"
+          />
+          <FlexHeaderCell
+            label={t('dashboard.conversationList.sla', 'SLA')}
+            sortKey="sla"
+            currentSort={state.tableSort}
+            onSort={handleSort}
+            className="w-20 shrink-0"
+          />
+          <div className="w-12 p-2 shrink-0" />
+        </div>
       </div>
+
 
       {/* Virtualized Table Body */}
       <div className="flex-1 min-h-0 h-full">

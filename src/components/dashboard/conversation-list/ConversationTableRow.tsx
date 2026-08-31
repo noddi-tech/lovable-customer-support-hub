@@ -89,7 +89,7 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
   style
 }) => {
   const { dispatch, archiveConversation, toggleConversationRead } = useConversationList();
-  const { conversation: formatConversationTime } = useDateFormatting();
+  const { conversation: formatConversationTime, dateTime: formatDateTime } = useDateFormatting();
   const { inboxes } = useOptimizedCounts();
   const { t } = useTranslation();
   const isMobile = useIsMobile();
@@ -105,6 +105,7 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
     const priorityCfg = priorityConfig[conversation.priority as keyof typeof priorityConfig];
     const waitingTime = formatCompactTime(conversation.received_at || conversation.updated_at);
     const slaBorder = getSLABorderColor(conversation.slaStatus);
+    const receivedRaw = conversation.received_at || conversation.updated_at;
 
     return {
       ChannelIcon,
@@ -117,8 +118,11 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
       slaBorder,
       customerInitial: getCustomerInitial(conversation.customer?.full_name, conversation.customer?.email),
       formattedTime: formatConversationTime(conversation.updated_at),
+      // Full date + time the conversation was last received, in the user's timezone.
+      receivedAt: receivedRaw ? formatDateTime(receivedRaw) : '—',
     };
-  }, [conversation, t, formatConversationTime]);
+  }, [conversation, t, formatConversationTime, formatDateTime]);
+
 
   const handleArchive = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
@@ -363,7 +367,15 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
           </div>
         </div>
 
+        {/* Received */}
+        <div className="p-2 w-36 shrink-0">
+          <span className="text-xs text-muted-foreground truncate block" title={computedValues.receivedAt}>
+            {computedValues.receivedAt}
+          </span>
+        </div>
+
         {/* Waiting */}
+
         <div className="p-2 w-20 shrink-0">
           <span className="text-xs text-muted-foreground">{computedValues.waitingTime}</span>
         </div>
@@ -408,7 +420,8 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
       )}
 
       {/* Customer */}
-      <TableCell className="p-2">
+      <TableCell className="p-2 w-48">
+
         <div className="flex items-center gap-2 min-w-0">
           <Avatar className="h-6 w-6 ring-1 ring-muted shrink-0">
             <AvatarFallback className="text-xs">{computedValues.customerInitial}</AvatarFallback>
@@ -490,7 +503,15 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
         </div>
       </TableCell>
 
+      {/* Received */}
+      <TableCell className="p-2 w-36">
+        <span className="text-xs text-muted-foreground whitespace-nowrap" title={computedValues.receivedAt}>
+          {computedValues.receivedAt}
+        </span>
+      </TableCell>
+
       {/* Waiting */}
+
       <TableCell className="p-2 w-20">
         <span className="text-xs text-muted-foreground">{computedValues.waitingTime}</span>
       </TableCell>
