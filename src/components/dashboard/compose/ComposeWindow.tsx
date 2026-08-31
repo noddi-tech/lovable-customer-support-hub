@@ -42,7 +42,6 @@ import { useAuth } from '@/hooks/useAuth';
 import { useInboxEmailAddresses } from '@/hooks/useInboxEmailAddresses';
 import { createConversationAndSend } from '@/lib/createConversation';
 import { useCompose, type ComposeDraft } from '@/contexts/ComposeContext';
-import { NoddiCustomerSearch } from '@/components/shared/NoddiCustomerSearch';
 import { TemplateSelector } from '../conversation-view/TemplateSelector';
 import { AiSuggestionDialog } from '../conversation-view/AiSuggestionDialog';
 
@@ -94,7 +93,9 @@ export const ComposeWindow: React.FC<ComposeWindowProps> = ({ draft }) => {
   const [expanded, setExpanded] = useState(false);
   const [sending, setSending] = useState(false);
   const [bulkProgress, setBulkProgress] = useState<{ current: number; total: number; failed: number } | null>(null);
-  const [selectedCustomer, setSelectedCustomer] = useState<NoddiCustomer | null>(null);
+  const [suggestions, setSuggestions] = useState<NoddiCustomer[]>([]);
+  const [suggestOpen, setSuggestOpen] = useState(false);
+  const [suggestLoading, setSuggestLoading] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -155,14 +156,87 @@ export const ComposeWindow: React.FC<ComposeWindowProps> = ({ draft }) => {
     [draft.id, updateDraft],
   );
 
-  const handleCustomerSelect = (customer: NoddiCustomer | null) => {
-    setSelectedCustomer(customer);
-    if (customer) {
-      set({
-        to: customer.email || customer.metadata?.noddi_email || '',
-        toName: customer.full_name,
-      });
+  /* ---------- Gmail-style recipient autocomplete ---------- */
+  const orgId = profile?.organization_id;
+
+  React.useEffect(() => {
+    const term = draft.to.trim();
+    if (draft.bulkMode || !orgId || term.length < 2) {
+      setSuggestions([]);
+      return;
     }
+
+    let cancelled = false;
+    const timer = window.setTimeout(async () => {
+      setSuggestLoading(true);
+      try {
+        const like = `%${term}%`;
+        const { data: local } = await supabase
+          .from('customers')
+          .select('id, full_name, email, phone')
+          .eq('organization_id', orgId)
+          .or(`full_name.ilike.${like},email.ilike.${like}`)
+          .limit(8);
+
+        let merged: NoddiCustomer[] = (local || []).map((c: any) => ({
+          id: c.id,
+          full_name: c.full_name || c.email,
+          email: c.email || undefined,
+        }));
+
+        // Name lookup in Noddi when the term isn't an email fragment
+        if (!term.includes('@')) {
+          const parts = term.split(/\s+/).filter(Boolean);
+          const { data } = await supabase.functions.invoke('noddi-search-by-name', {
+            body: {
+              firstName: parts[0],
+              ...(parts.length > 1 ? { lastName: parts.slice(1).join(' ') } : {}),
+              organizationId: orgId,
+            },
+          });
+          const remote: NoddiCustomer[] = (data?.results || []).map((r: any) => ({
+            id: r.local_customer_id || `noddi-${r.noddi_user_id}`,
+            full_name: r.full_name,
+            email: r.email || r.noddi_email || undefined,
+            metadata: { noddi_email: r.noddi_email },
+          }));
+          merged = [...merged, ...remote];
+        }
+
+        // Dedupe by email (or id when there is no email)
+        const seen = new Set<string>();
+        const unique = merged.filter((c) => {
+          const key = (c.email || c.metadata?.noddi_email || c.id).toLowerCase();
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+
+        if (!cancelled) {
+          setSuggestions(unique.slice(0, 8));
+          setSuggestOpen(unique.length > 0);
+        }
+      } catch (error) {
+        console.warn('Recipient lookup failed', error);
+        if (!cancelled) setSuggestions([]);
+      } finally {
+        if (!cancelled) setSuggestLoading(false);
+      }
+    }, 350);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [draft.to, draft.bulkMode, orgId]);
+
+  const applySuggestion = (customer: NoddiCustomer) => {
+    set({
+      to: customer.email || customer.metadata?.noddi_email || '',
+      toName: customer.full_name,
+    });
+    setSuggestOpen(false);
+    setSuggestions([]);
   };
 
   const handleGetAiSuggestions = async () => {
@@ -434,14 +508,43 @@ export const ComposeWindow: React.FC<ComposeWindowProps> = ({ draft }) => {
                 <Badge variant="secondary">{parsedEmails.length} recipients</Badge>
               </div>
             ) : (
-              <Input
-                value={draft.to}
-                onChange={(e) => set({ to: e.target.value })}
-                placeholder="customer@example.com"
-                type="email"
-                disabled={busy}
-                className="h-7 border-0 shadow-none focus-visible:ring-0 px-0 text-sm"
-              />
+              <div className="relative flex-1 min-w-0">
+                <Input
+                  value={draft.to}
+                  onChange={(e) => set({ to: e.target.value })}
+                  onFocus={() => suggestions.length > 0 && setSuggestOpen(true)}
+                  onBlur={() => window.setTimeout(() => setSuggestOpen(false), 150)}
+                  onKeyDown={(e) => e.key === 'Escape' && setSuggestOpen(false)}
+                  placeholder="Name or email"
+                  autoComplete="off"
+                  disabled={busy}
+                  className="h-7 w-full border-0 shadow-none focus-visible:ring-0 px-0 text-sm"
+                />
+                {suggestLoading && (
+                  <Loader2 className="absolute right-1 top-1.5 h-3.5 w-3.5 animate-spin text-muted-foreground" />
+                )}
+                {suggestOpen && suggestions.length > 0 && (
+                  <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-64 overflow-y-auto rounded-md border border-border bg-popover shadow-lg">
+                    {suggestions.map((customer) => (
+                      <button
+                        key={customer.id}
+                        type="button"
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => applySuggestion(customer)}
+                        className="flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-accent"
+                      >
+                        <User className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                        <div className="min-w-0">
+                          <div className="truncate text-sm">{customer.full_name}</div>
+                          <div className="truncate text-xs text-muted-foreground">
+                            {customer.email || customer.metadata?.noddi_email || 'No email'}
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             )}
             <div className="flex items-center gap-1 shrink-0">
               <Label htmlFor={`bulk-${draft.id}`} className="text-xs font-normal text-muted-foreground cursor-pointer">
@@ -466,18 +569,6 @@ export const ComposeWindow: React.FC<ComposeWindowProps> = ({ draft }) => {
             />
           )}
         </div>
-
-        {/* Customer lookup */}
-        {!draft.bulkMode && profile?.organization_id && (
-          <div className="px-3 py-2 border-b border-border">
-            <NoddiCustomerSearch
-              selectedCustomer={selectedCustomer as any}
-              onSelectCustomer={handleCustomerSelect as any}
-              organizationId={profile.organization_id}
-              showEmailSearch={false}
-            />
-          </div>
-        )}
 
         {/* Subject */}
         <div className="flex items-center gap-2 px-3 py-1.5 border-b border-border">
