@@ -23,8 +23,12 @@ export const ConversationTable = memo<ConversationTableProps>(({
     isLoading,
     state,
     dispatch,
+    selectedInboxId,
   } = useConversationList();
   const { t } = useTranslation();
+  // Show the inbox column only when the list spans every inbox.
+  const showInboxColumn = !selectedInboxId || selectedInboxId === 'all';
+
 
   const handleSort = (key: string) => {
     dispatch({ type: 'SET_SORT', payload: key });
@@ -80,6 +84,16 @@ export const ConversationTable = memo<ConversationTableProps>(({
               onSort={handleSort}
               className="w-48"
             />
+            {showInboxColumn && (
+              <TableHeaderCell
+                label={t('dashboard.conversationList.inbox', 'Inbox')}
+                sortKey="inbox"
+                currentSort={state.tableSort}
+                onSort={handleSort}
+                className="w-40"
+              />
+            )}
+
             <TableHeaderCell
               label={t('dashboard.conversationList.conversation', 'Conversation')}
               sortKey="subject"

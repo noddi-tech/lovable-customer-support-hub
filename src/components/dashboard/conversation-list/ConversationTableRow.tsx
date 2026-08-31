@@ -14,6 +14,31 @@ import { useTranslation } from 'react-i18next';
 import { SLABadge } from './SLABadge';
 import { getCustomerDisplay, getCustomerInitial } from '@/utils/customerDisplayName';
 import { useIsMobile } from '@/hooks/use-responsive';
+import { useInboxEmailAddresses } from '@/hooks/useInboxEmailAddresses';
+
+/**
+ * Small colored pill identifying which inbox a conversation belongs to.
+ * Shown in the "All inboxes" view so agents always know the destination.
+ */
+const InboxBadge = ({
+  name,
+  color,
+  email,
+  compact,
+}: { name: string; color: string; email?: string; compact?: boolean }) => (
+  <span
+    title={email ? `${name} (${email})` : name}
+    className={cn(
+      'inline-flex items-center gap-1 rounded-full border px-1.5 py-0 max-w-full',
+      compact ? 'text-[9px]' : 'text-[10px]',
+    )}
+    style={{ borderColor: `${color}66`, backgroundColor: `${color}14`, color }}
+  >
+    <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ backgroundColor: color }} />
+    <span className="truncate font-medium">{name}</span>
+  </span>
+);
+
 
 // --- Visual config maps ---
 
@@ -88,11 +113,16 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
   showBulkCheckbox = false,
   style
 }) => {
-  const { dispatch, archiveConversation, toggleConversationRead } = useConversationList();
+  const { dispatch, archiveConversation, toggleConversationRead, selectedInboxId } = useConversationList();
   const { conversation: formatConversationTime, dateTime: formatDateTime } = useDateFormatting();
   const { inboxes } = useOptimizedCounts();
+  const { data: inboxEmails } = useInboxEmailAddresses();
   const { t } = useTranslation();
   const isMobile = useIsMobile();
+
+  // Only surface the inbox column/badge when the list isn't already scoped to
+  // a single inbox — in the "All inboxes" view it's essential context.
+  const showInboxColumn = !selectedInboxId || selectedInboxId === 'all';
 
   const computedValues = useMemo(() => {
     const ChannelIcon = channelIcons[conversation.channel] || MessageCircle;
@@ -106,6 +136,7 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
     const waitingTime = formatCompactTime(conversation.received_at || conversation.updated_at);
     const slaBorder = getSLABorderColor(conversation.slaStatus);
     const receivedRaw = conversation.received_at || conversation.updated_at;
+    const inbox = conversation.inbox_id ? inboxes.find((i: any) => i.id === conversation.inbox_id) : undefined;
 
     return {
       ChannelIcon,
@@ -120,8 +151,12 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
       formattedTime: formatConversationTime(conversation.updated_at),
       // Full date + time the conversation was last received, in the user's timezone.
       receivedAt: receivedRaw ? formatDateTime(receivedRaw) : '—',
+      inboxName: inbox?.name || (conversation.inbox_id ? 'Unknown inbox' : 'No inbox'),
+      inboxColor: (inbox as any)?.color || '#6B7280',
+      inboxEmail: conversation.inbox_id ? inboxEmails?.[conversation.inbox_id] : undefined,
     };
-  }, [conversation, t, formatConversationTime, formatDateTime]);
+  }, [conversation, t, formatConversationTime, formatDateTime, inboxes, inboxEmails]);
+
 
 
   const handleArchive = useCallback((e: React.MouseEvent) => {
@@ -234,7 +269,16 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
             </div>
             {/* Line 3: Status + Channel + badges */}
             <div className="flex items-center gap-1.5 flex-wrap">
+              {showInboxColumn && (
+                <InboxBadge
+                  compact
+                  name={computedValues.inboxName}
+                  color={computedValues.inboxColor}
+                  email={computedValues.inboxEmail}
+                />
+              )}
               {StatusBadge}
+
               <div className="flex items-center gap-1 text-muted-foreground">
                 <computedValues.ChannelIcon className="h-3 w-3" />
                 <span className="text-[10px] capitalize">
@@ -299,6 +343,22 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
             </div>
           </div>
         </div>
+
+        {/* Inbox (only in the All inboxes view) */}
+        {showInboxColumn && (
+          <div className="p-2 w-40 shrink-0 min-w-0">
+            <InboxBadge
+              name={computedValues.inboxName}
+              color={computedValues.inboxColor}
+              email={computedValues.inboxEmail}
+            />
+            {computedValues.inboxEmail && (
+              <div className="text-[10px] text-muted-foreground truncate">{computedValues.inboxEmail}</div>
+            )}
+          </div>
+        )}
+
+
 
         {/* Subject */}
         <div className="p-2 flex-1 min-w-0">
@@ -434,6 +494,24 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
           </div>
         </div>
       </TableCell>
+
+      {/* Inbox (only in the All inboxes view) */}
+      {showInboxColumn && (
+        <TableCell className="p-2 w-40">
+          <div className="min-w-0">
+            <InboxBadge
+              name={computedValues.inboxName}
+              color={computedValues.inboxColor}
+              email={computedValues.inboxEmail}
+            />
+            {computedValues.inboxEmail && (
+              <div className="text-[10px] text-muted-foreground truncate">{computedValues.inboxEmail}</div>
+            )}
+          </div>
+        </TableCell>
+      )}
+
+
 
       {/* Subject */}
       <TableCell className="p-2">
