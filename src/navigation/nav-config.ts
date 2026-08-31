@@ -1,4 +1,5 @@
 import {
+  Briefcase,
   MessageSquare, 
   MessageCircle,
   Phone, 
@@ -87,6 +88,13 @@ export const NAV_ITEMS: NavItem[] = [
   },
 
   // Operations - hierarchical paths
+  {
+    id: "cases",
+    label: "Cases",
+    to: "/operations/cases",
+    icon: Briefcase,
+    group: "operations"
+  },
   { 
     id: "service-tickets", 
     label: "Ops Tickets", 
