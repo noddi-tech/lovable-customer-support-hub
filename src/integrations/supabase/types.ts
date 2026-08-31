@@ -7714,6 +7714,15 @@ export type Database = {
           updated_at: string
         }[]
       }
+      get_meta_deletion_request_status: {
+        Args: { _code: string }
+        Returns: {
+          completed_at: string
+          confirmation_code: string
+          created_at: string
+          status: string
+        }[]
+      }
       get_online_agent_count: { Args: { org_id: string }; Returns: number }
       get_organization_by_email_domain: {
         Args: { email_domain: string }
