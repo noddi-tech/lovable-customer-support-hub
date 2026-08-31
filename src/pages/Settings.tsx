@@ -19,6 +19,7 @@ import { LanguageSettings } from '@/components/settings/LanguageSettings';
 import { TimezoneSettings } from '@/components/settings/TimezoneSettings';
 import { UserNotificationSettings } from '@/components/settings/UserNotificationSettings';
 import { UserProfileSettings } from '@/components/settings/UserProfileSettings';
+import { AccountInfoCard } from '@/components/settings/AccountInfoCard';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
