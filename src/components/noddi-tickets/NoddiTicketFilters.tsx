@@ -35,8 +35,8 @@ export function NoddiTicketFilters({ value, onChange, departments }: Props) {
     !!value.search || value.priority !== 'ALL' || value.category !== 'ALL' || value.departmentId !== null;
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <div className="relative min-w-[240px] flex-1">
+    <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
+      <div className="relative col-span-2 sm:min-w-[240px] sm:flex-1">
         <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           value={value.search}
