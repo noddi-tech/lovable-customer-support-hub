@@ -69,8 +69,8 @@ interface EmailAccount {
 
 // Content-only component for use inside collapsible sections
 export function InboxManagementContent() {
+  const navigate = useNavigate();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [editingInbox, setEditingInbox] = useState<InboxData | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [newInboxData, setNewInboxData] = useState({
     name: '',
@@ -82,10 +82,6 @@ export function InboxManagementContent() {
     sender_display_name: '',
     purpose: 'support' as 'support' | 'recruitment',
   });
-
-  // Sending/Receiving address edit state
-  const [editGroupEmail, setEditGroupEmail] = useState('');
-  const [editRouteId, setEditRouteId] = useState<string | null>(null);
 
   const queryClient = useQueryClient();
 
