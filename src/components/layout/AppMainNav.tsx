@@ -21,7 +21,7 @@ import { useOptimizedCounts } from '@/hooks/useOptimizedCounts';
 import { useDateFormatting } from '@/hooks/useDateFormatting';
 import { getGroupedNavItems, logNavMatch } from '@/navigation/nav-config';
 import { cn } from '@/lib/utils';
-import { Crown, ChevronRight, ChevronLeft, LogOut, Settings, Palette, Home, UserCircle, User, Bell } from 'lucide-react';
+import { Crown, ChevronRight, ChevronLeft, LogOut, Palette, Home, User, Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -33,8 +33,6 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { AgentAvailabilityPanel } from './AgentAvailabilityPanel';
 
-import { MyAccountDialog } from './MyAccountDialog';
-import { PreferencesDialog } from './PreferencesDialog';
 
 
 export const AppMainNav = () => {
@@ -46,8 +44,6 @@ export const AppMainNav = () => {
   const { user, profile, signOut, isSuperAdmin } = useAuth();
   const { notifications: unreadNotifications } = useOptimizedCounts();
   const { dateTime, timezone } = useDateFormatting();
-  const [accountOpen, setAccountOpen] = useState(false);
-  const [preferencesOpen, setPreferencesOpen] = useState(false);
 
   
   const isCollapsed = state === 'collapsed' && !isMobile;
@@ -240,10 +236,6 @@ export const AppMainNav = () => {
               </p>
             </div>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={() => setTimeout(() => setAccountOpen(true), 0)}>
-              <UserCircle className="mr-2 h-4 w-4" />
-              <span>{t('header.myAccount', 'My account')}</span>
-            </DropdownMenuItem>
             <DropdownMenuItem onClick={() => navigate('/settings/profile')}>
               <User className="mr-2 h-4 w-4" />
               <span>{t('header.profile', 'Profile')}</span>
@@ -251,10 +243,6 @@ export const AppMainNav = () => {
             <DropdownMenuItem onClick={() => navigate('/settings/notifications')}>
               <Bell className="mr-2 h-4 w-4" />
               <span>{t('header.notificationSettings', 'Notification settings')}</span>
-            </DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => setTimeout(() => setPreferencesOpen(true), 0)}>
-              <Settings className="mr-2 h-4 w-4" />
-              <span>{t('header.settings', 'Settings')}</span>
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => navigate('/admin/design-library')}>
               <Palette className="mr-2 h-4 w-4" />
@@ -268,8 +256,6 @@ export const AppMainNav = () => {
           </DropdownMenuContent>
         </DropdownMenu>
 
-        <MyAccountDialog open={accountOpen} onOpenChange={setAccountOpen} />
-        <PreferencesDialog open={preferencesOpen} onOpenChange={setPreferencesOpen} />
 
 
 

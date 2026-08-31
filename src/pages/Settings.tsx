@@ -19,6 +19,7 @@ import { LanguageSettings } from '@/components/settings/LanguageSettings';
 import { TimezoneSettings } from '@/components/settings/TimezoneSettings';
 import { UserNotificationSettings } from '@/components/settings/UserNotificationSettings';
 import { UserProfileSettings } from '@/components/settings/UserProfileSettings';
+import { AccountInfoCard } from '@/components/settings/AccountInfoCard';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
@@ -110,7 +111,20 @@ export default function Settings() {
         );
       
       case '/settings/profile':
-        return <UserProfileSettings />;
+        return (
+          <div className="space-y-6 max-w-4xl">
+            <UserProfileSettings />
+            <AccountInfoCard />
+            <ResponsiveGrid cols={{ sm: '1', lg: '2' }} gap="6">
+              <LayoutItem>
+                <LanguageSettings />
+              </LayoutItem>
+              <LayoutItem>
+                <TimezoneSettings />
+              </LayoutItem>
+            </ResponsiveGrid>
+          </div>
+        );
       
       case '/settings/notifications':
         return <UserNotificationSettings />;
