@@ -4,6 +4,7 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { useNotificationPreferences, NotificationPreferences } from '@/hooks/useNotificationPreferences';
 import { Mail, Bell, Calendar, Loader2, AtSign } from 'lucide-react';
+import { DesktopEmailNotificationSettings } from './DesktopEmailNotificationSettings';
 
 interface NotificationToggleProps {
   id: string;
