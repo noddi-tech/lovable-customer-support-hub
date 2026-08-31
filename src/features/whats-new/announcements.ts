@@ -1,4 +1,4 @@
-import { Inbox } from 'lucide-react';
+import { Inbox, Briefcase, UserSearch } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 export interface Announcement {
@@ -18,6 +18,32 @@ export interface Announcement {
  */
 export const ANNOUNCEMENTS: Announcement[] = [
   {
+    id: 'cases-and-customer-record-2026-08',
+    title: 'Cases: follow-up that survives the thread',
+    description:
+      'Email, chat and calls can now be tied to a Case — a single piece of work with an owner, a due date and a resolution. Threads close, cases stay until the customer issue is actually done.',
+    icon: Briefcase,
+    bullets: [
+      'Link or create a case straight from the conversation side panel — the case chip in the header shows status and SLA',
+      'Replying to a customer now claims the conversation and its case for you, and stamps first response time',
+      'Operations → Cases gives you My cases, Overdue, Unassigned and Waiting queues',
+      'Closing a case requires a resolution code, so reporting on contact reasons actually works',
+    ],
+  },
+  {
+    id: 'customer-record-360-2026-08',
+    title: 'Full customer history',
+    description:
+      'Every email address and phone number we have seen for a customer is now merged into one record, with a timeline across all channels.',
+    icon: UserSearch,
+    bullets: [
+      '"Previous contacts" in the conversation side panel shows earlier threads, calls and cases',
+      'Customer notes are shared and persistent — no longer lost per thread',
+      'Open the full 360 view from the customer name to see identities, cases, calls and notes',
+    ],
+  },
+  {
+
     id: 'quick-inbox-switcher-cmd-i',
     title: 'Quick inbox switcher',
     description:
