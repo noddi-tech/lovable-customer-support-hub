@@ -1,6 +1,8 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 import { renderEmailLayout, plainTextToHtml, htmlToPlainText } from '../_shared/email-layout.ts';
 import { resolveBrandTheme } from '../_shared/brand-theme.ts';
+import { getCompanyInfo, renderCompanyFooterHtml } from '../_shared/email-company-info.ts';
+
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -410,11 +412,26 @@ const handler = async (req: Request): Promise<Response> => {
     const isHtmlBody = /<\/?[a-z][\s\S]*>/i.test(rawContent);
     const bodyHtml = isHtmlBody ? rawContent : plainTextToHtml(rawContent);
 
+    // Informative footer (legal name, address, org. number, contact details)
+    // resolved from the Noddi backend and cached for 6 hours.
+    const companyInfo = await getCompanyInfo(brandTheme.id);
+    // Legacy marketing taglines are dropped in favour of the company block.
+    const LEGACY_FOOTERS = [/bilen st[åa]r parkert/i, /profesjonell dekkservice/i];
+    const templateFooter = String(templateSettings.footer_content || '').trim();
+    const keepTemplateFooter = templateFooter && !LEGACY_FOOTERS.some((re) => re.test(templateFooter));
+    const footerContent = [
+      keepTemplateFooter ? `<div style="margin-bottom:14px;">${templateFooter}</div>` : '',
+      renderCompanyFooterHtml(companyInfo, brandTheme, brandName),
+    ]
+      .filter(Boolean)
+      .join('');
+
     const emailHTML = renderEmailLayout({
       bodyHtml,
       signatureHtml: signature,
       headerContent: templateSettings.header_content,
-      footerContent: templateSettings.footer_content,
+      footerContent,
+
       headerBackgroundColor,
       headerTextColor,
       bodyBackgroundColor: templateSettings.body_background_color,
