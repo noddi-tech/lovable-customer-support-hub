@@ -58,7 +58,59 @@ export default function CasesPage() {
           <div className="flex items-center gap-3">
             <SidebarTrigger className="md:hidden" />
             <div className="min-w-0 flex-1">
-              <h1 className="truncate text-lg font-semibold">Cases</h1>
+              <div className="flex items-center gap-1.5">
+                <h1 className="truncate text-lg font-semibold">Cases</h1>
+                <TooltipProvider delayDuration={150}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        aria-label="How cases are created"
+                        className="text-muted-foreground transition-colors hover:text-foreground"
+                      >
+                        <HelpCircle className="h-4 w-4" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" align="start" className="max-w-sm space-y-2 p-3 text-xs">
+                      <p className="font-medium text-sm">How cases get created</p>
+                      <p>
+                        You rarely need the <span className="font-medium">New case</span> button — cases open
+                        themselves so nothing slips through.
+                      </p>
+                      <ul className="list-disc space-y-1 pl-4">
+                        <li>
+                          <span className="font-medium">Emails</span> open a case as soon as they arrive.
+                        </li>
+                        <li>
+                          <span className="font-medium">Chats</span> open one the moment a colleague takes the
+                          chat — chats the AI handles alone stay out of the queue.
+                        </li>
+                        <li>
+                          <span className="font-medium">Noise is skipped</span>: out-of-office replies,
+                          auto-replies, bounces and spam never create a case.
+                        </li>
+                      </ul>
+                      <p className="font-medium text-sm pt-1">One case per customer issue</p>
+                      <ul className="list-disc space-y-1 pl-4">
+                        <li>
+                          A new message from someone who already has an active case is added to that case
+                          instead of starting a new one.
+                        </li>
+                        <li>
+                          If their case was closed in the last 7 days, it re-opens rather than duplicating.
+                        </li>
+                        <li>
+                          When the last conversation on a case is closed, the case closes automatically — and
+                          re-opens if the customer writes back.
+                        </li>
+                      </ul>
+                      <p className="pt-1 text-muted-foreground">
+                        Phone, SMS and social threads stay manual — use New case for those.
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
               <p className="hidden text-xs text-muted-foreground sm:block">
                 Every case has one owner and a due date. Cases persist across emails, chats and calls for the
                 same customer.
