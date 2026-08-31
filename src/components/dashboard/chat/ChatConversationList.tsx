@@ -7,6 +7,14 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { MessageCircle, Search } from 'lucide-react';
 import { ChatListItem } from './ChatListItem';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { getConversationBrand, getBrandColor } from '@/lib/conversationBrand';
 import type { ChatFilterType } from './ChatFilters';
 
 interface ChatConversation {
@@ -44,6 +52,7 @@ export const ChatConversationList: React.FC<ChatConversationListProps> = ({
   const { profile } = useAuth();
   const organizationId = profile?.organization_id;
   const [searchQuery, setSearchQuery] = useState('');
+  const [brandFilter, setBrandFilter] = useState<string>('all');
 
   const { data: conversations = [], isLoading } = useQuery({
     queryKey: ['chat-conversations', organizationId, filter],
@@ -112,23 +121,42 @@ export const ChatConversationList: React.FC<ChatConversationListProps> = ({
     refetchInterval: 5000, // Poll every 5 seconds for real-time updates
   });
 
-  // Filter conversations by search query
+  // Distinct brands present in the loaded chats (for the brand dropdown)
+  const brandOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    conversations.forEach(conv => {
+      const brand = getConversationBrand(conv.metadata, 'widget');
+      if (brand) map.set(brand.key, brand.label);
+    });
+    return Array.from(map, ([key, label]) => ({ key, label })).sort((a, b) =>
+      a.label.localeCompare(b.label)
+    );
+  }, [conversations]);
+
+  // Filter conversations by brand + search query
   const filteredConversations = useMemo(() => {
-    if (!searchQuery.trim()) return conversations;
-    
-    const query = searchQuery.toLowerCase();
+    const query = searchQuery.trim().toLowerCase();
+
     return conversations.filter(conv => {
+      if (brandFilter !== 'all') {
+        const brand = getConversationBrand(conv.metadata, 'widget');
+        const brandKey = brand?.key ?? 'unknown';
+        if (brandKey !== brandFilter) return false;
+      }
+
+      if (!query) return true;
+
       const name = conv.session?.visitor_name || conv.customer?.full_name || '';
       const email = conv.session?.visitor_email || conv.customer?.email || '';
       const preview = conv.preview_text || '';
-      
+
       return (
         name.toLowerCase().includes(query) ||
         email.toLowerCase().includes(query) ||
         preview.toLowerCase().includes(query)
       );
     });
-  }, [conversations, searchQuery]);
+  }, [conversations, searchQuery, brandFilter]);
 
   if (isLoading) {
     return (
@@ -148,8 +176,8 @@ export const ChatConversationList: React.FC<ChatConversationListProps> = ({
 
   return (
     <div className="flex flex-col h-full">
-      {/* Search Input */}
-      <div className="p-2 border-b">
+      {/* Search + brand filter */}
+      <div className="p-2 border-b space-y-2">
         <div className="relative">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -159,6 +187,27 @@ export const ChatConversationList: React.FC<ChatConversationListProps> = ({
             className="pl-8 h-9 text-sm"
           />
         </div>
+
+        <Select value={brandFilter} onValueChange={setBrandFilter}>
+          <SelectTrigger className="h-9 text-sm">
+            <SelectValue placeholder="All brands" />
+          </SelectTrigger>
+          <SelectContent className="bg-popover z-50">
+            <SelectItem value="all">All brands</SelectItem>
+            {brandOptions.map(opt => (
+              <SelectItem key={opt.key} value={opt.key}>
+                <span className="flex items-center gap-2">
+                  <span
+                    className="h-2 w-2 rounded-full shrink-0"
+                    style={{ backgroundColor: getBrandColor(opt.key) }}
+                  />
+                  {opt.label}
+                </span>
+              </SelectItem>
+            ))}
+            <SelectItem value="unknown">No brand</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {filteredConversations.length === 0 ? (
