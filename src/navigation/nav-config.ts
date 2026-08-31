@@ -23,7 +23,7 @@ export type NavItem = {
   label: string;
   to: string;
   icon: any;
-  group: "notifications" | "interactions" | "marketing" | "operations" | "settings";
+  group: "notifications" | "support" | "interactions" | "marketing" | "operations" | "settings";
   requiredRole?: "admin" | "super_admin";
   showBadge?: boolean;
 };
@@ -48,6 +48,22 @@ export const NAV_ITEMS: NavItem[] = [
     showBadge: true
   },
 
+  // Support - cases and ops tickets
+  {
+    id: "cases",
+    label: "Cases",
+    to: "/operations/cases",
+    icon: Briefcase,
+    group: "support"
+  },
+  {
+    id: "service-tickets",
+    label: "Ops Tickets",
+    to: "/operations/tickets",
+    icon: Ticket,
+    group: "support"
+  },
+
   // Interactions - hierarchical paths
   { 
     id: "text", 
@@ -70,13 +86,6 @@ export const NAV_ITEMS: NavItem[] = [
     icon: Phone, 
     group: "interactions" 
   },
-  {
-    id: "cases",
-    label: "Cases",
-    to: "/operations/cases",
-    icon: Briefcase,
-    group: "interactions"
-  },
 
   // Marketing - hierarchical paths
   { 
@@ -95,13 +104,6 @@ export const NAV_ITEMS: NavItem[] = [
   },
 
   // Operations - hierarchical paths
-  { 
-    id: "service-tickets", 
-    label: "Ops Tickets", 
-    to: "/operations/tickets", 
-    icon: Ticket, 
-    group: "operations" 
-  },
   { 
     id: "recruitment", 
     label: "Recruitment", 

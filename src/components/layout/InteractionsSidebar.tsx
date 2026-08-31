@@ -20,18 +20,14 @@ import {
   Inbox,
   Archive,
   BarChart3,
-  Settings,
-  Briefcase
+  Settings
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useMyCaseCounts } from '@/hooks/useCases';
-import { SidebarCounter } from '@/components/ui/sidebar-counter';
 
 export const InteractionsSidebar: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const { data: caseCounts } = useMyCaseCounts();
 
   const isActive = (path: string) => {
     return location.pathname === path || location.pathname.startsWith(path + '/');
@@ -54,12 +50,6 @@ export const InteractionsSidebar: React.FC = () => {
       title: 'Voice Calls',
       icon: Phone,
       path: '/interactions/voice',
-      badge: undefined
-    },
-    {
-      title: 'Cases',
-      icon: Briefcase,
-      path: '/operations/cases',
       badge: undefined
     }
   ];
@@ -124,9 +114,6 @@ export const InteractionsSidebar: React.FC = () => {
                         <Icon className="h-4 w-4" />
                         {item.title}
                       </div>
-                      {item.path === '/operations/cases' && !!caseCounts?.mine && (
-                        <SidebarCounter count={caseCounts.mine} />
-                      )}
                       {item.badge && (
                         <span className="bg-primary text-primary-foreground text-xs px-2 py-1 rounded-full">
                           {item.badge}
