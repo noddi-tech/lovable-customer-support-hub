@@ -130,6 +130,7 @@ export const ChatLayout: React.FC = () => {
           <SidebarTrigger className="shrink-0 h-8 w-8" />
           <MessageCircle className="h-4 w-4 text-primary shrink-0" />
           <h1 className="text-base font-semibold truncate">Live Chat</h1>
+          <div className="ml-auto">{widgetSettingsButton}</div>
         </div>
 
         <ChatFilters
