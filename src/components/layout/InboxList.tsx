@@ -13,9 +13,10 @@ import React from 'react';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Inbox, Mail, Users, Archive, Star, Clock, CheckCircle, Trash2 } from 'lucide-react';
+import { Inbox, Mail, Users, Archive, Star, Clock, CheckCircle, Trash2, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAccessibleInboxes, useInboxCounts } from '@/hooks/useInteractionsData';
 import { useInboxEmailAddresses } from '@/hooks/useInboxEmailAddresses';
@@ -67,6 +68,15 @@ export const InboxList: React.FC<InboxListProps> = ({
   const { defaultInboxId } = useDefaultInbox();
 
   const [selectOpen, setSelectOpen] = React.useState(false);
+
+  // The inbox selection supports several inboxes at once (comma separated in the URL)
+  const selectedIds = React.useMemo(
+    () =>
+      !selectedInbox || selectedInbox === 'all'
+        ? []
+        : String(selectedInbox).split(',').filter(Boolean),
+    [selectedInbox]
+  );
 
   // Configured inboxes get keyboard shortcuts 1-9 (0 = All Inboxes)
   const numberedInboxes = React.useMemo(
@@ -168,6 +178,14 @@ export const InboxList: React.FC<InboxListProps> = ({
     
     // Also call the callback
     onInboxSelect?.(inboxId);
+  };
+
+  // Add/remove an inbox from the combined multi-inbox view
+  const toggleInbox = (inboxId: string) => {
+    const next = selectedIds.includes(inboxId)
+      ? selectedIds.filter((id) => id !== inboxId)
+      : [...selectedIds, inboxId];
+    handleInboxChange(next.length === 0 ? 'all' : next.join(','));
   };
 
   return (
