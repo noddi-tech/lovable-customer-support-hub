@@ -2,7 +2,7 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { Widget, WidgetAPI } from './Widget';
 import type { WidgetInitOptions } from './types';
-import { setIdentity, clearIdentity, updateWidgetContext, contextFromInitOptions, setBrand, setSupportedLocales } from './api';
+import { setIdentity, clearIdentity, updateWidgetContext, contextFromInitOptions, setBrand, setSupportedLocales, setHostEnableKnowledgeSearch } from './api';
 import { sanitizeSupportedLocales } from './translations';
 // @ts-ignore - Vite handles this import
 import widgetStyles from './styles/widget.css?inline';
@@ -65,6 +65,7 @@ function initializeWidget(options: WidgetInitOptions) {
   initOptions = options;
   // Host may narrow the language picker: supportedLocales: ['nb-NO', 'en-US'].
   setSupportedLocales(sanitizeSupportedLocales((options as any).supportedLocales));
+  setHostEnableKnowledgeSearch((options as any).enableKnowledgeSearch);
   isReadyFlag = false;
   
   // Inject CSS styles
@@ -173,6 +174,11 @@ function updateWidget(options?: any) {
     options.locale !== undefined || (options.context && options.context.locale !== undefined);
   if (options.supportedLocales !== undefined) {
     setSupportedLocales(sanitizeSupportedLocales(options.supportedLocales));
+    localeChanged = true;
+  }
+  if (options.enableKnowledgeSearch !== undefined) {
+    setHostEnableKnowledgeSearch(options.enableKnowledgeSearch);
+    // Home actions must reflect the new gate without a re-init.
     localeChanged = true;
   }
   updateWidgetContext({ ...contextFromInitOptions(options), ...(options.context || {}) });

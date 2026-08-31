@@ -57,6 +57,12 @@ export interface WidgetInitOptions {
    * 20 chars each; unknown locales are dropped.
    */
   supportedLocales?: string[];
+  /**
+   * Host gate for the knowledge-base / help-centre home button.
+   * `false` always hides it, `true` shows it only when the admin widget
+   * config also enables it, omitted keeps the admin config alone.
+   */
+  enableKnowledgeSearch?: boolean;
   /** Brand name or slug from the Noddi brand catalog. Max 40. */
   brand?: string;
   /** Preferred: one nested context object. */
@@ -76,6 +82,8 @@ export interface WidgetUpdateOptions extends WidgetHostContext {
   brand?: string;
   /** Narrow (or reset) the language picker mid-session. See init. */
   supportedLocales?: string[];
+  /** Show/hide the help-centre home button mid-session. See init. */
+  enableKnowledgeSearch?: boolean;
   /** Preferred nested form; merged over any flat fields above. */
   context?: WidgetHostContext;
   /** `null` clears the visitor (same as `clearIdentity`). */

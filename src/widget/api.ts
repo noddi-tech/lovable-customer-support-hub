@@ -46,6 +46,27 @@ export function getSupportedLocales(): string[] {
   return supportedLocales;
 }
 
+// Host-controlled gate for the knowledge-base / help-centre home action
+// (init/update `enableKnowledgeSearch`). undefined = host has no opinion.
+let hostEnableKnowledgeSearch: boolean | undefined;
+
+export function setHostEnableKnowledgeSearch(value: boolean | undefined) {
+  hostEnableKnowledgeSearch = typeof value === 'boolean' ? value : undefined;
+}
+
+export function getHostEnableKnowledgeSearch(): boolean | undefined {
+  return hostEnableKnowledgeSearch;
+}
+
+/**
+ * Effective help-centre visibility: host `false` always wins, host `true`
+ * still requires the admin flag, host omitted keeps the admin flag alone.
+ */
+export function isKnowledgeSearchEnabled(adminEnabled: boolean): boolean {
+  if (hostEnableKnowledgeSearch === false) return false;
+  return !!adminEnabled;
+}
+
 
 // Optional extra context of the host site (locale, environment, source app,
 // logged-in user, booking/order in flight, SPA pathname, release).
