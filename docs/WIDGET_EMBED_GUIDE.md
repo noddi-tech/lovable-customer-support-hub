@@ -35,6 +35,15 @@ The `q` queue means you can call `NoddiWidget(...)` before the script finishes l
 | `position` | `'bottom-right' \| 'bottom-left'` | admin config | Overrides the position configured in admin. |
 | `showButton` | `boolean` | `true` | Set `false` to hide the floating launcher and open the widget yourself. |
 | `onReady` | `() => void` | — | Called when the widget is mounted and programmatic commands are available. |
+| `locale` | `string` | — | Visitor language (BCP-47, e.g. `nb-NO`). Max 20 chars. |
+| `environment` | `string` | — | `production` / `staging` / `development`. Non-production is badged in the hub so agents can ignore test noise. Max 20 chars. |
+| `sourceApp` | `string` | — | Product surface using this widget key, e.g. `customer`, `partner`, `marketing`. Max 40 chars. |
+| `noddiUserId` | `string \| number` | — | Noddi user id of the logged-in visitor — lets agents skip manual customer matching. |
+| `serviceDepartmentId` | `string \| number` | — | Service department to route/filter by. |
+| `bookingId` | `string \| number` | — | Booking the visitor is currently in. |
+| `orderId` | `string \| number` | — | Order the visitor is currently in. |
+| `pathname` | `string` | live location | SPA route. Defaults to `location.pathname + search` at conversation creation, since `page_url` is often just the entry URL. Max 300 chars. |
+| `appVersion` | `string` | — | Host app release, to correlate reports with deploys. Max 40 chars. |
 
 ---
 
@@ -79,7 +88,35 @@ Stored on `conversations.metadata.brand` and rendered by the Support Hub in:
 
 ---
 
-## 4. Programmatic control
+## 4. Extra context fields
+
+All fields below are optional and additive — send what you have:
+
+```js
+NoddiWidget('init', {
+  widgetKey: 'YOUR_WIDGET_KEY',
+  brand: 'noddi',
+  locale: 'nb-NO',
+  environment: import.meta.env.MODE === 'production' ? 'production' : 'staging',
+  sourceApp: 'customer',
+  noddiUserId: user?.id,
+  serviceDepartmentId: user?.serviceDepartmentId,
+  bookingId: currentBooking?.id,
+  appVersion: __APP_VERSION__,
+});
+```
+
+Rules:
+- Values are coerced to strings, stripped of markup/control characters and truncated to the limits above; unknown keys are dropped server-side.
+- Like `brand`, they are captured on **conversation creation** (chat start and contact-form submit), so set them at `init`. Re-initialise the widget to change them.
+- Never send secrets, tokens or full personal data — this is displayed verbatim to agents.
+
+### Where it ends up
+Stored on `conversations.metadata.context` (and on the chat session metadata) and shown to agents as a **Session context** card in the conversation side panel, with a badge when `environment` is not production.
+
+---
+
+## 5. Programmatic control
 
 ```js
 NoddiWidget('open');    // or NoddiWidget.open()
@@ -103,10 +140,13 @@ NoddiWidget('init', {
 
 ---
 
-## 5. Checklist for frontend implementors
+## 6. Checklist for frontend implementors
 
 - [ ] Script tag added with the queue stub before the async `widget.js`.
 - [ ] `widgetKey` comes from config, not hardcoded per environment.
 - [ ] `brand` passed on `init` and matches the Noddi brand catalog name/slug.
 - [ ] Verified in Support Hub: start a test chat, confirm the brand badge (with logo) appears in the inbox list and conversation header.
+- [ ] `environment` set so staging/dev chats are distinguishable in the live inbox.
+- [ ] `locale`, `sourceApp` and (when logged in) `noddiUserId` passed for richer agent context.
+- [ ] `bookingId` / `orderId` passed when the widget opens inside a booking or order flow.
 - [ ] If using a custom launcher: `showButton: false` and open via `onReady`.

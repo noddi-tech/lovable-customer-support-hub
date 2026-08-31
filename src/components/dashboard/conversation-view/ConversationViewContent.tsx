@@ -63,6 +63,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from '@/integrations/supabase/client';
+import { WidgetContextCard } from './WidgetContextCard';
 
 interface ConversationViewContentProps {
   conversationId: string;
@@ -339,11 +340,14 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
         
         {/* Collapsible Customer Details Panel - same as email view */}
         {showNoddiPanel && (
-          <ChatCustomerPanel
-            customer={conversation.customer}
-            conversationId={conversationId}
-            onClose={() => setShowNoddiPanel(false)}
-          />
+          <div className="flex flex-col overflow-y-auto border-l">
+            <WidgetContextCard metadata={conversation.metadata} className="m-3 mb-0" />
+            <ChatCustomerPanel
+              customer={conversation.customer}
+              conversationId={conversationId}
+              onClose={() => setShowNoddiPanel(false)}
+            />
+          </div>
         )}
         
         {/* Dialogs still needed for chat */}

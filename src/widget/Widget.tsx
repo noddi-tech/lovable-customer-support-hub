@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import type { WidgetConfig, WidgetInitOptions } from './types';
-import { fetchWidgetConfig, setApiUrl, setWidgetKey, setBrand } from './api';
+import { fetchWidgetConfig, setApiUrl, setWidgetKey, setBrand, setWidgetContext } from './api';
 import { FloatingButton } from './components/FloatingButton';
 import { WidgetPanel } from './components/WidgetPanel';
 import './styles/widget.css';
@@ -38,6 +38,17 @@ export const Widget: React.FC<WidgetProps> = ({ options, onMount }) => {
     }
     setWidgetKey(options.widgetKey);
     if (options.brand) setBrand(options.brand);
+    setWidgetContext({
+      locale: options.locale,
+      environment: options.environment,
+      source_app: options.sourceApp,
+      noddi_user_id: options.noddiUserId,
+      service_department_id: options.serviceDepartmentId,
+      booking_id: options.bookingId,
+      order_id: options.orderId,
+      pathname: options.pathname,
+      app_version: options.appVersion,
+    });
 
     const loadConfig = async () => {
       setIsLoading(true);

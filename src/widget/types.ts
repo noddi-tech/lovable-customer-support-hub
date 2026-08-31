@@ -19,6 +19,24 @@ export interface WidgetConfig {
 export interface WidgetInitOptions {
   /** Optional brand of the host site, shown to agents on chats (e.g. 'Noddi Bilpleie'). */
   brand?: string;
+  /** BCP-47 language of the visitor's session, e.g. 'nb-NO'. */
+  locale?: string;
+  /** Deployment the widget runs in: 'production' | 'staging' | 'development'. */
+  environment?: string;
+  /** Product surface using this widget key, e.g. 'customer' | 'partner' | 'marketing'. */
+  sourceApp?: string;
+  /** Noddi user id of the logged-in visitor, so agents skip manual matching. */
+  noddiUserId?: string | number;
+  /** Service department the visitor belongs to / is browsing. */
+  serviceDepartmentId?: string | number;
+  /** Booking currently open in the host app. */
+  bookingId?: string | number;
+  /** Order currently open in the host app. */
+  orderId?: string | number;
+  /** SPA route; falls back to the live location when omitted. */
+  pathname?: string;
+  /** Host app release/version, to correlate reports with deploys. */
+  appVersion?: string;
   widgetKey: string;
   apiUrl?: string;
   // Client-side overrides
