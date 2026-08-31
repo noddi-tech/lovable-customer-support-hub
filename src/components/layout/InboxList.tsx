@@ -295,9 +295,18 @@ export const InboxList: React.FC<InboxListProps> = ({
                 </span>
               </button>
 
-              {inboxes.map((inbox) => {
+              {inboxGroups.map((group) => (
+                <div key={group.label} className="pt-1">
+                  <div className="flex items-center gap-2 px-2 pb-1">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      {group.label}
+                    </span>
+                    <span className="h-px flex-1 bg-border" />
+                  </div>
+                  {group.inboxes.map((inbox) => {
                 const email = inboxEmails[inbox.id];
                 const shortcutIndex = numberedInboxes.findIndex((i) => i.id === inbox.id);
+
 
                 if (!email) {
                   // Unconfigured inbox: not selectable, offers a shortcut to finish setup
