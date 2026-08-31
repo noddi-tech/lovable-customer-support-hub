@@ -420,7 +420,8 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
       )}
 
       {/* Customer */}
-      <TableCell className="p-2">
+      <TableCell className="p-2 w-48">
+
         <div className="flex items-center gap-2 min-w-0">
           <Avatar className="h-6 w-6 ring-1 ring-muted shrink-0">
             <AvatarFallback className="text-xs">{computedValues.customerInitial}</AvatarFallback>
