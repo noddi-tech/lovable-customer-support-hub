@@ -84,5 +84,6 @@
   "sendAnother": "Send another message",
   "backToHome": "Back",
   "yourMessages": "Your messages",
-  "awaitingReply": "We'll reply by email"
+  "awaitingReply": "We'll reply by email",
+  "markResolved": "Mark as resolved"
 }
