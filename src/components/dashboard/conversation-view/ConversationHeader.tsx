@@ -146,7 +146,7 @@ onClick={() => {
                 )}
                 {(() => {
                   const brand = getConversationBrand((conversation as any).metadata, conversation.channel);
-                  return brand ? <BrandBadge brand={brand} /> : null;
+                  return brand ? <BrandBadge brand={brand} size="md" /> : null;
                 })()}
               </div>
             </div>

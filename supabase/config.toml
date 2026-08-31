@@ -400,3 +400,6 @@ verify_jwt = false
 
 [functions.noddi-tickets]
 verify_jwt = true
+
+[functions.noddi-brands]
+verify_jwt = true
