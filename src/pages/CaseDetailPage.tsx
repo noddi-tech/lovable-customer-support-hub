@@ -186,11 +186,19 @@ export default function CaseDetailPage() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {Object.entries(CASE_STATUS_LABELS).map(([value, label]) => (
-                          <SelectItem key={value} value={value}>
-                            {label}
-                          </SelectItem>
-                        ))}
+                        {Object.entries(CASE_STATUS_LABELS).map(([value, label]) => {
+                          const Icon = CASE_STATUS_ICONS[value as CaseStatus];
+                          return (
+                            <SelectItem key={value} value={value}>
+                              <span className="flex items-center gap-2">
+                                <Icon
+                                  className={`h-4 w-4 ${CASE_STATUS_ICON_COLORS[value as CaseStatus]}`}
+                                />
+                                {label}
+                              </span>
+                            </SelectItem>
+                          );
+                        })}
                       </SelectContent>
                     </Select>
                   </div>
