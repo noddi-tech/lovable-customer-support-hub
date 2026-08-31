@@ -187,7 +187,7 @@ export default function HomePage() {
                             className="h-7 px-2 text-[11px]"
                             onClick={(e) => {
                               e.stopPropagation();
-                              navigate(`/admin/inboxes?inbox=${inbox.id}`);
+                              navigate(`/admin/inboxes/${inbox.id}`);
                             }}
                           >
                             <Settings2 className="h-3.5 w-3.5 mr-1.5" />
@@ -233,7 +233,7 @@ export default function HomePage() {
                                   className="h-7 w-7 text-muted-foreground hover:text-foreground"
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    navigate(`/admin/inboxes?inbox=${inbox.id}`);
+                                    navigate(`/admin/inboxes/${inbox.id}`);
                                   }}
                                 >
                                   <Settings2 className="h-4 w-4" />
