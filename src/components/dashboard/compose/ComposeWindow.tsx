@@ -546,17 +546,35 @@ export const ComposeWindow: React.FC<ComposeWindowProps> = ({ draft }) => {
                 )}
               </div>
             )}
-            <div className="flex items-center gap-1 shrink-0">
-              <Label htmlFor={`bulk-${draft.id}`} className="text-xs font-normal text-muted-foreground cursor-pointer">
-                {draft.bulkMode ? <Users className="h-3.5 w-3.5" /> : <User className="h-3.5 w-3.5" />}
-              </Label>
-              <Switch
-                id={`bulk-${draft.id}`}
-                checked={draft.bulkMode}
-                onCheckedChange={(v) => set({ bulkMode: v })}
-                disabled={busy}
-              />
-            </div>
+            <TooltipProvider delayDuration={200}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <Label
+                      htmlFor={`bulk-${draft.id}`}
+                      className={cn(
+                        'text-xs font-normal cursor-pointer',
+                        draft.bulkMode ? 'text-primary' : 'text-muted-foreground',
+                      )}
+                    >
+                      <Users className="h-4 w-4" />
+                    </Label>
+                    <Switch
+                      id={`bulk-${draft.id}`}
+                      checked={draft.bulkMode}
+                      onCheckedChange={(v) => set({ bulkMode: v })}
+                      disabled={busy}
+                    />
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="max-w-[260px]">
+                  {draft.bulkMode
+                    ? 'Send to many: one separate email and conversation is created per recipient.'
+                    : 'Send to many — turn on to paste a list of recipients and send an individual email to each.'}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+
           </div>
           {draft.bulkMode && (
             <Textarea
