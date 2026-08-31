@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { useDateFormatting } from '@/hooks/useDateFormatting';
-import { useCustomerTimeline, type TimelineChannel } from '@/hooks/useCustomerTimeline';
+import { useCustomerTimeline, type TimelineChannel, type TimelineItem } from '@/hooks/useCustomerTimeline';
+import { TimelineItemPreviewDialog } from '@/components/cases/TimelineItemPreviewDialog';
 import { History, Mail, MessageSquare, Phone, StickyNote, Briefcase } from 'lucide-react';
 
 const CHANNEL_ICONS: Record<TimelineChannel, React.ComponentType<{ className?: string }>> = {
