@@ -132,7 +132,10 @@ export const InboxList: React.FC<InboxListProps> = ({
                       className="w-2 h-2 rounded-full flex-shrink-0"
                       style={{ backgroundColor: inboxes.find(i => i.id === selectedInbox)?.color || '#6B7280' }}
                     />
-                    <span className="truncate">{inboxes.find(i => i.id === selectedInbox)?.name || 'Select inbox'}</span>
+                    <span className="truncate">
+                      {inboxes.find(i => i.id === selectedInbox)?.name || 'Select inbox'}
+                      {inboxEmails[selectedInbox] ? ` (${inboxEmails[selectedInbox]})` : ''}
+                    </span>
                   </>
                 ) : (
                   <span className="truncate">All Inboxes</span>
@@ -148,12 +151,17 @@ export const InboxList: React.FC<InboxListProps> = ({
               </SelectItem>
               {inboxes.map((inbox) => (
                 <SelectItem key={inbox.id} value={inbox.id}>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
                     <div 
                       className="w-2 h-2 rounded-full flex-shrink-0"
                       style={{ backgroundColor: inbox.color || '#6B7280' }}
                     />
-                    <span>{inbox.name}</span>
+                    <span className="truncate">{inbox.name}</span>
+                    {inboxEmails[inbox.id] && (
+                      <span className="text-xs text-muted-foreground truncate">
+                        ({inboxEmails[inbox.id]})
+                      </span>
+                    )}
                   </div>
                 </SelectItem>
               ))}
