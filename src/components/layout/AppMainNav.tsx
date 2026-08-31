@@ -32,7 +32,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { AgentAvailabilityPanel } from './AgentAvailabilityPanel';
-import { ConnectionStatusIndicator } from '@/components/layout/ConnectionStatusIndicator';
 import { OrganizationSwitcher } from '@/components/organization/OrganizationSwitcher';
 import { MyAccountDialog } from './MyAccountDialog';
 
@@ -197,18 +196,14 @@ export const AppMainNav = () => {
         {/* Chat / phone availability */}
         <AgentAvailabilityPanel collapsed={isCollapsed} />
 
-        {/* Connection status + Timezone row */}
-        <div className={cn(
-          "flex items-center px-3 py-1",
-          isCollapsed ? "justify-center" : "justify-between"
-        )}>
-          <ConnectionStatusIndicator />
-          {!isCollapsed && (
-            <span className="text-[11px] text-muted-foreground truncate ml-2">
+        {/* Timezone row */}
+        {!isCollapsed && (
+          <div className="flex items-center justify-end px-3 py-1">
+            <span className="text-[11px] text-muted-foreground truncate">
               {timezone} · {dateTime(new Date()).split(' ')[1] || ''}
             </span>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* User profile + dropdown */}
         <DropdownMenu modal={false}>
