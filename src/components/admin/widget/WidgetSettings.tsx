@@ -210,6 +210,9 @@ export const WidgetSettings: React.FC = () => {
       </div>
 
       <div className="space-y-6">
+        {/* Prominent deploy call-to-action */}
+        <WidgetDeployPanel />
+
         {/* Widget selector (top bar) */}
         <Card>
           <CardContent className="p-4">
