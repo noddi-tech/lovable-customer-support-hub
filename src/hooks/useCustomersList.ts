@@ -58,34 +58,50 @@ export function useCustomersList(search?: string) {
 
       const ids = customers.map((c) => c.id);
       const { data: convs } = await (supabase.from('conversations') as any)
-        .select(sel('id, customer_id, updated_at'))
+        .select(sel('id, customer_id, updated_at, status, channel, metadata'))
         .in('customer_id', ids)
         .is('deleted_at', null)
         .order('updated_at', { ascending: false })
         .limit(1000);
 
-      const stats = new Map<string, { last: string | null; count: number }>();
-      ((convs ?? []) as Array<{ customer_id: string | null; updated_at: string }>).forEach((c) => {
+      type ConvRow = {
+        customer_id: string | null;
+        updated_at: string;
+        status: string | null;
+        channel: string | null;
+        metadata: unknown;
+      };
+
+      const stats = new Map<
+        string,
+        { last: string | null; count: number; statuses: Set<string>; brands: Set<string> }
+      >();
+      ((convs ?? []) as ConvRow[]).forEach((c) => {
         if (!c.customer_id) return;
-        const prev = stats.get(c.customer_id);
-        if (!prev) stats.set(c.customer_id, { last: c.updated_at, count: 1 });
-        else {
-          prev.count += 1;
-          if (!prev.last || c.updated_at > prev.last) prev.last = c.updated_at;
+        let entry = stats.get(c.customer_id);
+        if (!entry) {
+          entry = { last: null, count: 0, statuses: new Set(), brands: new Set() };
+          stats.set(c.customer_id, entry);
         }
+        entry.count += 1;
+        if (!entry.last || c.updated_at > entry.last) entry.last = c.updated_at;
+        if (c.status) entry.statuses.add(c.status);
+        const brand = getConversationBrand(c.metadata, c.channel);
+        if (brand) entry.brands.add(brand.label);
       });
 
       return customers
-        .map((c) => ({
-          ...c,
-          last_activity_at: stats.get(c.id)?.last ?? null,
-          conversation_count: stats.get(c.id)?.count ?? 0,
-        }))
-        .sort((a, b) => {
-          const av = a.last_activity_at || a.created_at;
-          const bv = b.last_activity_at || b.created_at;
-          return bv.localeCompare(av);
-        });
+        .map((c) => {
+          const entry = stats.get(c.id);
+          return {
+            ...c,
+            last_activity_at: entry?.last ?? null,
+            conversation_count: entry?.count ?? 0,
+            statuses: entry ? Array.from(entry.statuses).sort() : [],
+            brands: entry ? Array.from(entry.brands).sort() : [],
+          };
+        })
+        .sort((a, b) => customerSortName(a).localeCompare(customerSortName(b)));
     },
   });
 }
