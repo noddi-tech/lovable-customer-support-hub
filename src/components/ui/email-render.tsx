@@ -595,7 +595,7 @@ const EmailRenderComponent: React.FC<EmailRenderProps> = ({
 
     const timer = setTimeout(processImages, 100); // Small delay to ensure DOM is ready
     return () => clearTimeout(timer);
-  }, [isHTML, attachments, messageId]);
+  }, [isHTML, attachments, messageId, inlineImages, lightboxImages]);
 
   // Cleanup object URLs on unmount
   useEffect(() => {
