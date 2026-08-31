@@ -12,7 +12,6 @@ import {
 } from '@/components/ui/sidebar';
 import { 
   Ticket, 
-  DoorOpen, 
   Users,
   BarChart3,
   Send,
@@ -35,11 +34,6 @@ export const OperationsSidebar: React.FC = () => {
       title: 'Service Tickets',
       path: '/operations/tickets',
       icon: Ticket
-    },
-    {
-      title: 'Doorman Interface',
-      path: '/operations/doorman',
-      icon: DoorOpen
     },
     {
       title: 'Recruitment',
