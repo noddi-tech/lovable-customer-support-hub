@@ -24,6 +24,7 @@ import { useDateFormatting } from '@/hooks/useDateFormatting';
 import { useIsMobile } from '@/hooks/use-responsive';
 import { useAircallPhone } from '@/hooks/useAircallPhone';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { sortInboxesByName } from '@/lib/sortInboxes';
 
 interface HeaderProps {
   organizationName?: string;
@@ -88,7 +89,7 @@ export const Header: React.FC<HeaderProps> = ({
     queryFn: async () => {
       const { data, error } = await supabase.rpc('get_inboxes');
       if (error) throw error;
-      return data as any[];
+      return sortInboxesByName(data as any[]);
     },
   });
 

@@ -7,6 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useTranslation } from 'react-i18next';
 import type { SearchFilters as SearchFiltersType } from '@/hooks/useGlobalSearch';
 import { useAgents } from '@/hooks/useAgents';
+import { sortInboxesByName } from '@/lib/sortInboxes';
 
 interface SearchFiltersProps {
   filters: SearchFiltersType;
@@ -22,7 +23,7 @@ export const SearchFilters = ({ filters, onFiltersChange }: SearchFiltersProps) 
     queryFn: async () => {
       const { data, error } = await supabase.rpc('get_inboxes');
       if (error) throw error;
-      return data || [];
+      return sortInboxesByName(data || []);
     },
   });
   

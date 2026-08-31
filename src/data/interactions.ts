@@ -10,6 +10,7 @@ import type {
   ConversationId 
 } from '@/types/interactions';
 import { logger } from '@/utils/logger';
+import { sortInboxesByName } from '@/lib/sortInboxes';
 
 // Auth error codes that indicate authentication issues
 const AUTH_ERROR_CODES = [
@@ -63,12 +64,12 @@ export async function listAccessibleInboxes(): Promise<Inbox[]> {
       throw error;
     }
     
-    return (data || []).map((inbox: any) => ({
+    return sortInboxesByName((data || []).map((inbox: any) => ({
       id: inbox.id,
       name: inbox.name,
       color: inbox.color,
       is_active: inbox.is_active
-    }));
+    })));
   } catch (error) {
     logger.error('Failed to list accessible inboxes', error, 'listAccessibleInboxes');
     

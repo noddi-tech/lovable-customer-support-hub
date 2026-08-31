@@ -45,6 +45,7 @@ import { createConversationAndSend } from '@/lib/createConversation';
 import { useCompose, type ComposeDraft } from '@/contexts/ComposeContext';
 import { TemplateSelector } from '../conversation-view/TemplateSelector';
 import { AiSuggestionDialog } from '../conversation-view/AiSuggestionDialog';
+import { sortInboxesByName } from '@/lib/sortInboxes';
 
 interface InboxData {
   id: string;
@@ -134,7 +135,7 @@ export const ComposeWindow: React.FC<ComposeWindowProps> = ({ draft }) => {
     queryFn: async () => {
       const { data, error } = await supabase.rpc('get_inboxes');
       if (error) throw error;
-      return data as InboxData[];
+      return sortInboxesByName(data as InboxData[]);
     },
   });
   const { data: inboxEmails = {} } = useInboxEmailAddresses();

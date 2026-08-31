@@ -21,6 +21,7 @@ import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useTranslation } from 'react-i18next';
+import { sortInboxesByName } from '@/lib/sortInboxes';
 
 interface EmailAccount {
   id: string;
@@ -59,7 +60,7 @@ export function ConnectedEmailAccountsContent() {
     queryFn: async () => {
       const { data, error } = await supabase.rpc("get_inboxes");
       if (error) throw error;
-      return data as Inbox[];
+      return sortInboxesByName(data as Inbox[]);
     },
   });
 

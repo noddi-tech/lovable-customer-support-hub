@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { supabase } from '@/integrations/supabase/client';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Copy, Inbox, MailCheck } from 'lucide-react';
+import { sortInboxesByName } from '@/lib/sortInboxes';
 interface InboundRoute {
   id: string;
   address: string;
@@ -39,7 +40,7 @@ export const InboundRoutesList = () => {
     queryFn: async (): Promise<InboxRow[]> => {
       const { data, error } = await supabase.rpc('get_inboxes');
       if (error) throw error;
-      return (data || []).map((i: any) => ({ id: i.id, name: i.name }));
+      return sortInboxesByName((data || []).map((i: any) => ({ id: i.id, name: i.name })));
     },
   });
 

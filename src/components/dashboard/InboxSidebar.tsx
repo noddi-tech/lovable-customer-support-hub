@@ -27,6 +27,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { NewConversationDialog } from './NewConversationDialog';
 import { useTranslation } from 'react-i18next';
+import { sortInboxesByName } from '@/lib/sortInboxes';
 
 interface InboxSidebarProps {
   selectedTab: string;
@@ -61,7 +62,7 @@ export const InboxSidebar: React.FC<InboxSidebarProps> = ({ selectedTab, onTabCh
     queryFn: async () => {
       const { data, error } = await supabase.rpc('get_inboxes');
       if (error) throw error;
-      return data as InboxData[];
+      return sortInboxesByName(data as InboxData[]);
     }
   });
 
