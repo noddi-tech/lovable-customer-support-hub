@@ -36,7 +36,7 @@ export function DesktopEmailNotificationSettings() {
           <CardTitle className="text-lg">Desktop notifications</CardTitle>
         </div>
         <CardDescription>
-          Get a browser notification on this device when a new email arrives in your inboxes.
+          Get a browser notification on this device when a new email or chat message arrives in your inboxes.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -48,7 +48,7 @@ export function DesktopEmailNotificationSettings() {
           <div className="flex items-center justify-between py-1">
             <div className="space-y-0.5">
               <Label htmlFor="desktop-email-notifications" className="text-sm font-medium cursor-pointer">
-                New email notifications
+                New email & chat notifications
               </Label>
               <p className="text-xs text-muted-foreground">
                 {permission === 'denied'
