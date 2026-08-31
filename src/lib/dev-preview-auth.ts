@@ -61,6 +61,14 @@ export function getDevLoginCredentials(): { email: string; password: string } | 
 /** Default email shown in the dev sign-in box when nothing is configured yet. */
 export const DEV_LOGIN_DEFAULT_EMAIL = 'anders@noddi.no';
 
+/**
+ * Shared local-development password. Only ever used in dev builds (the
+ * isDevPreview() gate below), so it never ships in a production bundle.
+ * Keeps the dev sign-in one-click for everyone on the team without each
+ * developer having to configure a local .env.
+ */
+export const DEV_LOGIN_FALLBACK_PASSWORD = '123456789';
+
 const REMEMBER_KEY = 'dev:preview-login';
 
 /**
