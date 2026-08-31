@@ -29,6 +29,7 @@ import {
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { type EmailAttachment } from "@/utils/emailFormatting";
 import { useDateFormatting } from "@/hooks/useDateFormatting";
+import { formatDistanceToNow } from 'date-fns';
 import { useTranslation } from "react-i18next";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -93,37 +94,39 @@ function formatList(list: Addr[] = [], max = 3, preferEmail = false) {
 function getMessageStyle(authorType: 'agent' | 'customer' | 'system' | 'ai_draft' = 'customer') {
   if (authorType === 'agent') {
     return {
-      border: 'border-l-4 border-blue-500 dark:border-blue-600',
-      bg: 'bg-blue-50/20 dark:bg-blue-950/20 hover:bg-blue-50/30',
-      avatarRing: 'ring-2 ring-blue-200 dark:ring-blue-800',
+      // Agents get one subtle tint so replies are scannable without a rainbow thread
+      border: 'border-l-2 border-primary/60',
+      bg: 'bg-muted/40 hover:bg-muted/60',
+      avatarRing: 'ring-1 ring-primary/30',
       label: 'You',
-      labelBadge: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+      labelBadge: 'bg-primary/10 text-primary border border-primary/20',
     };
   }
   if (authorType === 'ai_draft') {
     return {
-      border: 'border-l-4 border-dashed border-emerald-400 dark:border-emerald-500',
-      bg: 'bg-emerald-50/30 dark:bg-emerald-950/20 hover:bg-emerald-50/40',
-      avatarRing: 'ring-2 ring-emerald-300 dark:ring-emerald-700',
+      border: 'border-l-2 border-dashed border-emerald-500',
+      bg: 'bg-emerald-50/40 dark:bg-emerald-950/20',
+      avatarRing: 'ring-1 ring-emerald-400/50',
       label: 'AI Draft',
       labelBadge: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200',
     };
   }
   if (authorType === 'customer') {
     return {
-      border: 'border-l-4 border-amber-400 dark:border-amber-600',
-      bg: 'bg-amber-50/20 dark:bg-amber-950/20 hover:bg-amber-50/30',
-      avatarRing: 'ring-2 ring-amber-200 dark:ring-amber-800',
+      // Customer messages stay on the plain surface — the default reading state
+      border: 'border-l-2 border-transparent',
+      bg: 'bg-card hover:bg-muted/30',
+      avatarRing: 'ring-1 ring-border',
       label: 'Customer',
-      labelBadge: 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200',
+      labelBadge: 'bg-muted text-muted-foreground border border-border',
     };
   }
   return {
-    border: 'border-l-4 border-gray-400',
-    bg: 'bg-gray-50/20 hover:bg-gray-50/30',
-    avatarRing: 'ring-2 ring-gray-200',
+    border: 'border-l-2 border-muted-foreground/30',
+    bg: 'bg-muted/20',
+    avatarRing: 'ring-1 ring-border',
     label: 'System',
-    labelBadge: 'bg-gray-100 text-gray-800',
+    labelBadge: 'bg-muted text-muted-foreground border border-border',
   };
 }
 
@@ -243,6 +246,19 @@ const MessageCardComponent = ({
   // Generate smart preview text
   const previewText = getSmartPreview(message.visibleBody, 300);
 
+  // Timestamps: relative for scanning, absolute on hover
+  const createdAtIso = typeof message.createdAt === 'string'
+    ? message.createdAt
+    : new Date(message.createdAt).toISOString();
+  const absoluteTime = dateTime(createdAtIso);
+  const relativeTime = (() => {
+    try {
+      return formatDistanceToNow(new Date(createdAtIso), { addSuffix: true });
+    } catch {
+      return absoluteTime;
+    }
+  })();
+
   // Use the real author label from normalization
   const display = message.authorLabel;
   
@@ -350,7 +366,7 @@ const MessageCardComponent = ({
           : "border-y border-r border-gray-200 dark:border-gray-800",
         !isInternalNote && "hover:border-gray-300 dark:hover:border-gray-700",
         disableAnimation && "disable-animation",
-        effectiveCollapsed ? "py-1 min-h-[108px] grid place-content-center" : "py-2",
+        effectiveCollapsed ? "py-0" : "py-2",
         isNewestMessage && "ring-2 ring-primary/30 ring-offset-1",
         isPinned && isInternalNote && "ring-2 ring-yellow-400/50 ring-offset-1"
       )}
@@ -359,12 +375,11 @@ const MessageCardComponent = ({
         {/* Card Header - improved spacing */}
         <div className={cn(
           "px-2 md:px-4",
-          effectiveCollapsed ? "py-0" : "py-4"
+          effectiveCollapsed ? "py-2" : "py-4"
         )}>
           <div className={cn(
             "flex",
-            effectiveCollapsed ? "items-center gap-3" : "items-start gap-5",
-            !isInternalNote && isAgent && "md:flex-row-reverse"
+            effectiveCollapsed ? "items-center gap-3" : "items-start gap-4"
           )}>
             {/* Avatar */}
             <Avatar className={cn(
@@ -386,8 +401,7 @@ const MessageCardComponent = ({
               <div className={cn(
                 "flex items-center",
                 effectiveCollapsed ? "flex-nowrap gap-2.5" : "flex-wrap gap-3",
-                effectiveCollapsed ? "mb-0" : "mb-1.5",
-                !isInternalNote && isAgent && "md:justify-end"
+                effectiveCollapsed ? "mb-0" : "mb-1.5"
               )}>
                 {/* Note icon and badge FIRST for internal notes */}
                 {isInternalNote && (
@@ -398,41 +412,55 @@ const MessageCardComponent = ({
                   </Badge>
                 )}
                 
-                {/* Timestamp */}
-                <span className={cn(
-                  "text-muted-foreground shrink-0 flex items-center gap-1",
-                  effectiveCollapsed ? "text-xs leading-none" : "text-sm"
-                )}>
-                  <Calendar className="w-3 h-3" />
-                  <span className="font-semibold">
-                    {dateTime(typeof message.createdAt === 'string' ? message.createdAt : new Date(message.createdAt).toISOString())}
-                  </span>
-                </span>
-                
-                {/* Author type badge with name inside - replaces separate name span */}
-                {!isInternalNote && messageStyle && (
-                  <Badge className={cn("text-xs shrink-0 gap-1", messageStyle.labelBadge)}>
-                    {isAiDraft && <Bot className="w-3 h-3" />}
-                    {isAiDraft 
+                {/* Author name — primary identity, always first */}
+                {!isInternalNote && (
+                  <span className={cn(
+                    "font-semibold text-foreground truncate",
+                    effectiveCollapsed ? "text-xs leading-none max-w-[180px]" : "text-sm max-w-[260px]"
+                  )}>
+                    {isAiDraft
                       ? 'AI Draft'
-                      : message.authorType === 'customer' 
-                        ? shortName(message.from.name) || message.from.email?.split('@')[0] || 'Customer'
-                        : shortName(message.from.name) || message.from.email?.split('@')[0] || 'Agent'}
+                      : shortName(message.from.name) || message.from.email?.split('@')[0] || (isAgent ? 'Agent' : 'Customer')}
+                  </span>
+                )}
+
+                {/* Role badge — secondary, compact */}
+                {!isInternalNote && messageStyle && !effectiveCollapsed && (
+                  <Badge className={cn("text-[10px] px-1.5 py-0 h-4 shrink-0 gap-1 font-medium", messageStyle.labelBadge)}>
+                    {isAiDraft && <Bot className="w-3 h-3" />}
+                    {messageStyle.label}
                   </Badge>
                 )}
 
-                {/* Inline "To:" recipient - shown for non-notes when expanded */}
+                {/* Recipient — muted, truncated */}
                 {!isInternalNote && !effectiveCollapsed && (() => {
-                  const recipientEmail = toShown.length > 0 
+                  const recipientEmail = toShown.length > 0
                     ? (toShown[0].email || toShown[0].label)
                     : (conversation?.customer?.email || '—');
                   return (
                     <span className="text-xs text-muted-foreground shrink-0 truncate max-w-[220px]" title={recipientEmail}>
-                      → {recipientEmail}
+                      to {recipientEmail}
                     </span>
                   );
                 })()}
-                
+
+                {/* Delivery status dot for agent messages */}
+                {isAgent && !isInternalNote && !isAiDraft && (() => {
+                  const status = message.emailStatus;
+                  const failed = status === 'failed';
+                  const pending = status === 'pending' || status === 'retry';
+                  return (
+                    <span
+                      className={cn(
+                        "h-1.5 w-1.5 rounded-full shrink-0",
+                        failed ? "bg-destructive" : pending ? "bg-amber-500" : "bg-emerald-500"
+                      )}
+                      title={failed ? 'Delivery failed' : pending ? 'Sending…' : 'Delivered'}
+                      aria-label={failed ? 'Delivery failed' : pending ? 'Sending' : 'Delivered'}
+                    />
+                  );
+                })()}
+
                 {/* Note author name next to note badge */}
                 {isInternalNote && (
                   <span className={cn(
@@ -453,30 +481,35 @@ const MessageCardComponent = ({
                   </Badge>
                 )}
                 
-                 {attachments.length > 0 && (
-                   <Badge variant="outline" className="text-xs shrink-0">
-                     <Paperclip className="w-3 h-3 mr-1" />
-                     {attachments.length}
-                   </Badge>
-                 )}
-              </div>
+                {attachments.length > 0 && (
+                  <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 shrink-0">
+                    <Paperclip className="w-3 h-3 mr-1" />
+                    {attachments.length}
+                  </Badge>
+                )}
 
-              {/* Preview text below header when collapsed */}
-              {effectiveCollapsed && previewText && (
-                <div className="pl-[26px] pt-1.5 pb-1 pr-4">
-                  <span className="text-xs text-muted-foreground line-clamp-3 leading-relaxed">
+                {/* Collapsed: one-line preview inline so the row stays dense */}
+                {effectiveCollapsed && previewText && (
+                  <span className="text-xs text-muted-foreground truncate min-w-0 flex-1">
                     {previewText}
                   </span>
-                </div>
-              )}
+                )}
+
+                {/* Relative time — always last, right aligned */}
+                <span
+                  className="ml-auto shrink-0 text-xs text-muted-foreground tabular-nums"
+                  title={absoluteTime}
+                >
+                  {relativeTime}
+                </span>
+              </div>
 
               {/* Recipients chips removed - now inline in header */}
 
               {/* Full recipients list when expanded */}
               {showAllRecipients && (
                 <div className={cn(
-                  "mt-1 space-x-1 text-xs text-muted-foreground",
-                  isAgent && "md:text-right"
+                  "mt-1 space-x-1 text-xs text-muted-foreground"
                 )}>
                   <span className="font-medium">{t('mail.to') || 'to'}:</span>{' '}
                   {(message.to ?? []).map(a => a.name || a.email || '').filter(Boolean).join(', ')}
@@ -497,7 +530,7 @@ const MessageCardComponent = ({
               <Button 
                 variant="ghost" 
                 size="sm" 
-                className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                className="h-8 w-8 p-0 opacity-100 md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100 transition-opacity"
                 onClick={handleCopy}
                 title="Copy message content"
               >
@@ -524,7 +557,7 @@ const MessageCardComponent = ({
               </Button>
               
               {/* Message Actions - hidden for AI drafts */}
-              {!isAiDraft && <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+              {!isAiDraft && <div className="opacity-100 md:opacity-0 md:group-hover:opacity-100 md:focus-within:opacity-100 transition-opacity">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
@@ -625,7 +658,8 @@ const MessageCardComponent = ({
           "message-content",
           effectiveCollapsed ? "is-collapsed" : "pl-2 pr-2 pb-3 md:pl-16 md:pr-4 md:pb-4"
         )}>
-          <div className="space-y-4 overflow-hidden">
+          {/* Cap measure at ~72ch and relax line-height for comfortable reading */}
+          <div className="space-y-4 overflow-hidden max-w-[72ch] leading-relaxed">
             {/* Email content or mention-aware note (with inline editor) */}
             {isInternalNote ? (
               isEditingThisNote ? (
@@ -673,12 +707,12 @@ const MessageCardComponent = ({
                   {showQuoted ? (
                     <>
                       <ChevronUp className="h-3 w-3 mr-1" />
-                      Hide quoted text
+                      Hide trimmed content
                     </>
                   ) : (
                     <>
                       <ChevronDown className="h-3 w-3 mr-1" />
-                      Show quoted text
+                      Show trimmed content
                     </>
                   )}
                 </Button>
