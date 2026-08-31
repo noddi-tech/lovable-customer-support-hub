@@ -86,6 +86,13 @@ export const InboxList: React.FC<InboxListProps> = ({
     [inboxes, inboxEmails]
   );
 
+  // Inboxes sharing an email domain are shown together
+  const inboxGroups = React.useMemo(
+    () => groupInboxesByDomain(inboxes, inboxEmails),
+    [inboxes, inboxEmails]
+  );
+
+
   const NumberKey: React.FC<{ n: number }> = ({ n }) => (
     <kbd className="flex h-4 w-4 items-center justify-center rounded border border-border bg-muted text-[10px] font-medium text-muted-foreground flex-shrink-0 mt-0.5">
       {n}
