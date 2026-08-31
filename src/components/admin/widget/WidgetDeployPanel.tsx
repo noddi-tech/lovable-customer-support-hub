@@ -157,7 +157,7 @@ export const WidgetDeployPanel: React.FC<WidgetDeployPanelProps> = ({ variant = 
         )}
 
         {variant === 'full' && (
-          <div className="rounded-lg border bg-background/60 p-4 text-sm space-y-2">
+          <div className="border-t p-5 text-sm space-y-2 [&_code]:rounded [&_code]:bg-muted [&_code]:px-1 [&_code]:py-0.5 [&_code]:text-xs [&_code]:break-all">
             <p className="font-medium">What happens when you deploy</p>
             <ol className="list-decimal pl-5 space-y-1 text-muted-foreground">
               <li>
