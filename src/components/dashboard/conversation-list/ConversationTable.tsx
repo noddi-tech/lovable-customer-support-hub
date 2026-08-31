@@ -106,7 +106,14 @@ export const ConversationTable = memo<ConversationTableProps>(({
               sortKey="channel"
               currentSort={state.tableSort}
               onSort={handleSort}
-              className="w-20"
+              className="w-28"
+            />
+            <TableHeaderCell
+              label={t('dashboard.conversationList.received', 'Received')}
+              sortKey="received"
+              currentSort={state.tableSort}
+              onSort={handleSort}
+              className="w-36"
             />
             <TableHeaderCell
               label={t('dashboard.conversationList.waiting', 'Waiting')}
@@ -115,6 +122,7 @@ export const ConversationTable = memo<ConversationTableProps>(({
               onSort={handleSort}
               className="w-20"
             />
+
             <TableHeaderCell
               label={t('dashboard.conversationList.sla', 'SLA')}
               sortKey="sla"
