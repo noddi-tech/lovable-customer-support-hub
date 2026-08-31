@@ -80,6 +80,16 @@ export const ConversationTable = memo<ConversationTableProps>(({
               onSort={handleSort}
               className="w-48"
             />
+            {showInboxColumn && (
+              <TableHeaderCell
+                label={t('dashboard.conversationList.inbox', 'Inbox')}
+                sortKey="inbox"
+                currentSort={state.tableSort}
+                onSort={handleSort}
+                className="w-40"
+              />
+            )}
+
             <TableHeaderCell
               label={t('dashboard.conversationList.conversation', 'Conversation')}
               sortKey="subject"
