@@ -547,7 +547,7 @@ async function handleGetMessages(supabase: any, sessionId: string, since: string
   // Fetch messages
   let query = supabase
     .from('messages')
-    .select('id, content, sender_type, created_at, sender_id')
+    .select('id, content, sender_type, created_at, sender_id, attachments, is_internal')
     .eq('conversation_id', session.conversation_id)
     .order('created_at', { ascending: true });
 
@@ -594,15 +594,38 @@ async function handleGetMessages(supabase: any, sessionId: string, since: string
     .update({ last_seen_at: new Date().toISOString() })
     .eq('id', sessionId);
 
+  // Internal notes and system handover notes never reach the visitor.
+  const visible = (messages || []).filter(
+    (m: any) => !m.is_internal && (m.sender_type === 'customer' || m.sender_type === 'agent'),
+  );
+
+  // Signed URLs expire, so re-sign attachments on every read.
+  const withAttachments = await Promise.all(visible.map(async (m: any) => {
+    const raw = Array.isArray(m.attachments) ? m.attachments : [];
+    const attachments = [] as Array<{ url: string; name: string; type: string }>;
+    for (const att of raw) {
+      const path = att?.storagePath || att?.storage_path;
+      if (!path) continue;
+      const { data: signed } = await supabase.storage
+        .from(ATTACHMENT_BUCKET)
+        .createSignedUrl(path, 3600);
+      if (signed?.signedUrl) {
+        attachments.push({ url: signed.signedUrl, name: att.name || 'file', type: att.type || '' });
+      }
+    }
+    return {
+      id: m.id,
+      content: m.content,
+      senderType: m.sender_type,
+      createdAt: m.created_at,
+      senderName: m.sender_type === 'agent' ? agentName : undefined,
+      ...(attachments.length > 0 ? { attachments } : {}),
+    };
+  }));
+
   return new Response(
     JSON.stringify({
-      messages: messages.map((m: any) => ({
-        id: m.id,
-        content: m.content,
-        senderType: m.sender_type,
-        createdAt: m.created_at,
-        senderName: m.sender_type === 'agent' ? agentName : undefined,
-      })),
+      messages: withAttachments,
       status: session.status,
       agentTyping: typing?.is_typing || false,
       assignedAgentName: agentName,
@@ -709,5 +732,241 @@ async function handlePing(supabase: any, data: PingRequest) {
   return new Response(
     JSON.stringify({ success: true }),
     { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+  );
+}
+
+async function loadSession(supabase: any, sessionId: string) {
+  const { data } = await supabase
+    .from('widget_chat_sessions')
+    .select('id, conversation_id, status, visitor_id, visitor_email, visitor_name, metadata')
+    .eq('id', sessionId)
+    .maybeSingle();
+  return data;
+}
+
+async function handleAttachment(supabase: any, data: AttachmentRequest) {
+  const { sessionId, file } = data;
+
+  if (!sessionId || !file?.data || !file?.filename) {
+    return new Response(
+      JSON.stringify({ error: 'Session ID and file are required' }),
+      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    );
+  }
+
+  if (!ALLOWED_ATTACHMENT_TYPES.includes(file.mimeType)) {
+    return new Response(
+      JSON.stringify({ error: 'Unsupported file type' }),
+      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    );
+  }
+
+  const session = await loadSession(supabase, sessionId);
+  if (!session) {
+    return new Response(
+      JSON.stringify({ error: 'Session not found' }),
+      { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    );
+  }
+  if (session.status === 'ended' || session.status === 'abandoned') {
+    return new Response(
+      JSON.stringify({ error: 'Chat session has ended' }),
+      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    );
+  }
+
+  // Uploads are far more expensive than messages: 10 per visitor per minute.
+  if (!checkRateLimit(`att:${session.visitor_id}`, 10, 60000) ||
+      !(await checkDurableRateLimit(`widget-chat-att:${session.visitor_id}`, 10, 60))) {
+    return new Response(
+      JSON.stringify({ error: 'Too many uploads. Please slow down.' }),
+      { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    );
+  }
+
+  let bytes: Uint8Array;
+  try {
+    const binary = atob(file.data);
+    bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  } catch {
+    return new Response(
+      JSON.stringify({ error: 'Invalid file payload' }),
+      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    );
+  }
+
+  if (bytes.byteLength > MAX_ATTACHMENT_BYTES) {
+    return new Response(
+      JSON.stringify({ error: 'File is larger than 5 MB' }),
+      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    );
+  }
+
+  const path = `${session.conversation_id}/${Date.now()}-${safeFilename(file.filename)}`;
+  const { error: uploadError } = await supabase.storage
+    .from(ATTACHMENT_BUCKET)
+    .upload(path, bytes, { contentType: file.mimeType, upsert: false });
+
+  if (uploadError) {
+    console.error('Error uploading widget attachment:', uploadError);
+    return new Response(
+      JSON.stringify({ error: 'Failed to upload file' }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    );
+  }
+
+  const caption = typeof data.content === 'string' ? data.content.trim().slice(0, 500) : '';
+  const { error: messageError } = await supabase.from('messages').insert({
+    conversation_id: session.conversation_id,
+    content: caption || `📎 ${file.filename}`,
+    sender_type: 'customer',
+    content_type: 'text',
+    attachments: [{ name: file.filename, type: file.mimeType, storagePath: path }],
+  });
+
+  if (messageError) {
+    console.error('Error saving attachment message:', messageError);
+    return new Response(
+      JSON.stringify({ error: 'Failed to attach file' }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    );
+  }
+
+  await Promise.all([
+    supabase
+      .from('widget_chat_sessions')
+      .update({ last_message_at: new Date().toISOString() })
+      .eq('id', sessionId),
+    supabase
+      .from('conversations')
+      .update({
+        preview_text: `📎 ${file.filename}`.substring(0, 200),
+        updated_at: new Date().toISOString(),
+        status: 'open',
+        is_read: false,
+      })
+      .eq('id', session.conversation_id),
+  ]);
+
+  return new Response(
+    JSON.stringify({ success: true }),
+    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+  );
+}
+
+async function handleRate(supabase: any, data: RateRequest) {
+  const { sessionId } = data;
+  const rating = Number(data.rating);
+
+  if (!sessionId || !Number.isInteger(rating) || rating < 1 || rating > 5) {
+    return new Response(
+      JSON.stringify({ error: 'A session ID and a rating between 1 and 5 are required' }),
+      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    );
+  }
+
+  const session = await loadSession(supabase, sessionId);
+  if (!session) {
+    return new Response(
+      JSON.stringify({ error: 'Session not found' }),
+      { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    );
+  }
+
+  const comment = typeof data.comment === 'string'
+    ? data.comment.replace(/<[^>]*>/g, '').trim().slice(0, 500)
+    : '';
+
+  const csat = { rating, comment: comment || undefined, rated_at: new Date().toISOString() };
+
+  await supabase
+    .from('widget_chat_sessions')
+    .update({ metadata: { ...(session.metadata || {}), csat } })
+    .eq('id', sessionId);
+
+  // Visible to agents in the thread so feedback is not buried in metadata.
+  await supabase.from('messages').insert({
+    conversation_id: session.conversation_id,
+    content: `Chat rating: ${rating}/5${comment ? `\n\n"${comment}"` : ''}`,
+    sender_type: 'system',
+    content_type: 'text',
+    is_internal: true,
+  });
+
+  return new Response(
+    JSON.stringify({ success: true }),
+    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+  );
+}
+
+async function handleTranscript(supabase: any, data: TranscriptRequest) {
+  const { sessionId } = data;
+  const email = typeof data.email === 'string' ? data.email.trim().toLowerCase() : '';
+
+  if (!sessionId || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return new Response(
+      JSON.stringify({ error: 'A session ID and a valid email are required' }),
+      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    );
+  }
+
+  // Transcript emails are a spam vector: 3 per visitor per hour.
+  if (!(await checkDurableRateLimit(`widget-chat-transcript:${sessionId}`, 3, 3600))) {
+    return rateLimitResponse(corsHeaders);
+  }
+
+  const session = await loadSession(supabase, sessionId);
+  if (!session) {
+    return new Response(
+      JSON.stringify({ error: 'Session not found' }),
+      { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    );
+  }
+
+  // Only send to the address already tied to the session, when there is one —
+  // otherwise anyone holding a session id could mail the transcript anywhere.
+  if (session.visitor_email && session.visitor_email !== email) {
+    return new Response(
+      JSON.stringify({ error: 'Transcript can only be sent to the email used for this chat' }),
+      { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    );
+  }
+
+  const { data: messages } = await supabase
+    .from('messages')
+    .select('content, sender_type, created_at, is_internal')
+    .eq('conversation_id', session.conversation_id)
+    .order('created_at', { ascending: true });
+
+  const rows = (messages || [])
+    .filter((m: any) => !m.is_internal && (m.sender_type === 'customer' || m.sender_type === 'agent'))
+    .map((m: any) => {
+      const who = m.sender_type === 'customer' ? 'You' : 'Support';
+      const when = new Date(m.created_at).toLocaleString('en-GB', { timeZone: 'Europe/Oslo' });
+      return `<p style="margin:0 0 12px"><strong>${escapeHtml(who)}</strong> <span style="color:#888">${escapeHtml(when)}</span><br>${escapeHtml(m.content || '')}</p>`;
+    })
+    .join('');
+
+  const html = `<div style="font-family:Arial,sans-serif;font-size:14px;color:#111">
+    <h2 style="font-size:18px">Your chat transcript</h2>
+    ${rows || '<p>No messages were exchanged.</p>'}
+  </div>`;
+
+  const { error: sendError } = await supabase.functions.invoke('send-email', {
+    body: { to: email, subject: 'Your chat transcript', html },
+  });
+
+  if (sendError) {
+    console.error('Error sending transcript:', sendError);
+    return new Response(
+      JSON.stringify({ error: 'Failed to send transcript' }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    );
+  }
+
+  return new Response(
+    JSON.stringify({ success: true }),
+    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
   );
 }
