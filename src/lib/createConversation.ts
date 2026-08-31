@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { sanitizeStorageFilename } from '@/utils/storageKey';
 
 export interface CreateConversationInput {
   customerEmail: string;
@@ -9,6 +10,8 @@ export interface CreateConversationInput {
   priority: string;
   organizationId?: string | null;
   senderProfileUserId?: string | null;
+  /** Optional files to attach to the first outgoing message. */
+  files?: File[];
 }
 
 export interface CreateConversationResult {
@@ -101,7 +104,44 @@ export async function createConversationAndSend(
   let emailSent = false;
   let emailErrorMessage: string | undefined;
 
-  if (input.initialMessage.trim()) {
+  // 4a. Upload attachments (abort the send if any upload fails)
+  let attachmentsMeta: Array<Record<string, unknown>> | null = null;
+  if (input.files && input.files.length > 0) {
+    const orgId = input.organizationId;
+    if (!orgId) throw new Error('No organization ID for file upload');
+
+    const uploaded: { meta: Record<string, unknown>; storagePath: string }[] = [];
+    for (const file of input.files) {
+      const uniqueName = `${crypto.randomUUID()}_${sanitizeStorageFilename(file.name)}`;
+      const storagePath = `${orgId}/${conversation.id}/${uniqueName}`;
+      const { error: uploadError } = await supabase.storage
+        .from('message-attachments')
+        .upload(storagePath, file);
+
+      if (uploadError) {
+        if (uploaded.length > 0) {
+          await supabase.storage
+            .from('message-attachments')
+            .remove(uploaded.map((u) => u.storagePath));
+        }
+        throw new Error(`Couldn't upload ${file.name} — email not sent`);
+      }
+
+      uploaded.push({
+        storagePath,
+        meta: {
+          filename: file.name,
+          mimeType: file.type || 'application/octet-stream',
+          size: file.size,
+          storageKey: storagePath,
+          isInline: false,
+        },
+      });
+    }
+    attachmentsMeta = uploaded.map((u) => u.meta);
+  }
+
+  if (input.initialMessage.trim() || attachmentsMeta) {
     const { data: newMessage, error: messageError } = await supabase
       .from('messages')
       .insert({
@@ -113,6 +153,7 @@ export async function createConversationAndSend(
         is_internal: false,
         email_status: 'pending',
         email_subject: input.subject,
+        ...(attachmentsMeta ? { attachments: attachmentsMeta } : {}),
       })
       .select('id')
       .single();
