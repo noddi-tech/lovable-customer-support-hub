@@ -571,10 +571,16 @@ const EmailRenderComponent: React.FC<EmailRenderProps> = ({
         const attachmentImgs = container.querySelectorAll('img[data-attachment="true"]');
         attachmentImgs.forEach((img, idx) => {
           (img as HTMLElement).addEventListener('click', () => {
-            setLightboxIndex(idx);
+            // Map the in-body image to its position in the full image list.
+            const inline = inlineImages[idx];
+            const target = inline
+              ? lightboxImages.findIndex(i => i.filename === inline.filename)
+              : idx;
+            setLightboxIndex(target >= 0 ? target : 0);
             setLightboxOpen(true);
           });
         });
+
         
         setImageProcessingComplete(true);
         
