@@ -936,9 +936,35 @@ const WIDGET_JS = `
       state.searchResults = [];
       state.expandedResult = null;
     } else if (action === 'start-chat') {
-      // Redirect to prechat form to collect email first
-      state.view = 'prechat';
-      state.error = null;
+      if (isIdentified()) {
+        // Host already identified the visitor — skip the pre-chat form.
+        const email = identity.email || '';
+        const name = identity.name || '';
+        state.prechatEmail = email;
+        state.prechatName = name;
+        state.error = null;
+        state.isLoading = true;
+        state.view = 'prechat';
+        render();
+        const session = await startChat(config.widgetKey, getVisitorId(), email, name);
+        state.isLoading = false;
+        if (session) {
+          state.chatSession = session;
+          saveSession(session);
+          const data = await getMessages(session.id);
+          state.chatMessages = data.messages || [];
+          state.agentTyping = data.agentTyping || false;
+          if (data.assignedAgentName) state.chatSession.assignedAgentName = data.assignedAgentName;
+          state.view = 'chat';
+          startPolling();
+        } else {
+          state.error = 'Unable to start chat';
+        }
+      } else {
+        // Collect email first
+        state.view = 'prechat';
+        state.error = null;
+      }
     } else if (action === 'send-chat') {
       const input = container.querySelector('[data-chat-input]');
       const content = (input && input.value || '').trim();
