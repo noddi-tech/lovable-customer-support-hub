@@ -322,7 +322,9 @@ export const NewConversationDialog: React.FC<NewConversationDialogProps> = ({ ch
   });
 
   const resetForm = () => {
+    setStep('recipients');
     setCustomerEmail('');
+
     setCustomerName('');
     setSubject('');
     setInitialMessage('');
