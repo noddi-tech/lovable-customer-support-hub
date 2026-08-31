@@ -267,14 +267,14 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     const templateSettings = template || {
-      header_background_color: '#3B82F6',
-      header_text_color: '#FFFFFF',
+      header_background_color: '',
+      header_text_color: '',
       header_content: '',
-      footer_background_color: '#F8F9FA',
-      footer_text_color: '#6B7280',
-      footer_content: 'Best regards,<br>Support Team',
+      footer_background_color: '',
+      footer_text_color: '',
+      footer_content: '',
       body_background_color: '#FFFFFF',
-      body_text_color: '#374151',
+      body_text_color: '#1F1F1F',
       signature_content: 'Best regards,<br>{{agent_name}}<br>Support Team',
       include_agent_name: true
     } as any;
