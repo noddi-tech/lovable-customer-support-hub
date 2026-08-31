@@ -18,7 +18,6 @@ import {
   getWidgetTranslations,
   getLocalizedGreeting,
   getLocalizedResponseTime,
-  SUPPORTED_WIDGET_LANGUAGES,
   DEFAULT_WIDGET_LANGUAGE,
   normalizeWidgetLanguage,
   resolveWidgetLanguages,

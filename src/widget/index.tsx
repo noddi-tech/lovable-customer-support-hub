@@ -2,7 +2,8 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { Widget, WidgetAPI } from './Widget';
 import type { WidgetInitOptions } from './types';
-import { setIdentity, clearIdentity, updateWidgetContext, contextFromInitOptions, setBrand } from './api';
+import { setIdentity, clearIdentity, updateWidgetContext, contextFromInitOptions, setBrand, setSupportedLocales } from './api';
+import { sanitizeSupportedLocales } from './translations';
 // @ts-ignore - Vite handles this import
 import widgetStyles from './styles/widget.css?inline';
 
@@ -62,6 +63,8 @@ function injectStyles() {
 function initializeWidget(options: WidgetInitOptions) {
   console.log('[Noddi] initializeWidget called with options:', options);
   initOptions = options;
+  // Host may narrow the language picker: supportedLocales: ['nb-NO', 'en-US'].
+  setSupportedLocales(sanitizeSupportedLocales((options as any).supportedLocales));
   isReadyFlag = false;
   
   // Inject CSS styles
@@ -166,8 +169,12 @@ function clearVisitorIdentity() {
 function updateWidget(options?: any) {
   if (!options || typeof options !== 'object') return;
   if (typeof options.brand === 'string' && options.brand) setBrand(options.brand);
-  const localeChanged =
+  let localeChanged =
     options.locale !== undefined || (options.context && options.context.locale !== undefined);
+  if (options.supportedLocales !== undefined) {
+    setSupportedLocales(sanitizeSupportedLocales(options.supportedLocales));
+    localeChanged = true;
+  }
   updateWidgetContext({ ...contextFromInitOptions(options), ...(options.context || {}) });
   if (options.identity !== undefined) identifyVisitor(options.identity);
   // Re-mount the panel so the new host locale takes effect immediately.
