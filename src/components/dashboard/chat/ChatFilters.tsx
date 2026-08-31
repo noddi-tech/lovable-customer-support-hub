@@ -28,13 +28,13 @@ export const ChatFilters: React.FC<ChatFiltersProps> = ({
   ];
 
   return (
-    <div className="flex items-center gap-1 p-2 border-b overflow-x-auto scrollbar-none">
+    <div className="flex items-center gap-1 px-2 py-2 border-b overflow-x-auto scrollbar-none min-h-[52px]">
       {filters.map((filter) => (
         <button
           key={filter.key}
           onClick={() => onFilterChange(filter.key)}
           className={cn(
-            "flex shrink-0 items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-md transition-colors min-h-[40px]",
+            "flex h-9 shrink-0 items-center gap-1.5 px-3 text-sm font-medium leading-none rounded-md transition-colors",
             currentFilter === filter.key
               ? "bg-primary text-primary-foreground"
               : "text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -45,7 +45,7 @@ export const ChatFilters: React.FC<ChatFiltersProps> = ({
             <Badge 
               variant={currentFilter === filter.key ? "secondary" : "outline"}
               className={cn(
-                "text-[10px] px-1.5 py-0 h-4 min-w-[16px]",
+                "flex items-center justify-center text-[10px] px-1.5 py-0 h-5 min-w-[20px] shrink-0",
                 currentFilter === filter.key && "bg-primary-foreground/20 text-primary-foreground"
               )}
             >
