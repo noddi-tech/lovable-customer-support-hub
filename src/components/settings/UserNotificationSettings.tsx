@@ -60,6 +60,9 @@ export function UserNotificationSettings() {
 
   return (
     <div className="space-y-6">
+      {/* Desktop / browser notifications */}
+      <DesktopEmailNotificationSettings />
+
       {/* Mentions */}
       <Card>
         <CardHeader>
