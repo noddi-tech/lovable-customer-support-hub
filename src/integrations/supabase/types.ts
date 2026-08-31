@@ -936,6 +936,7 @@ export type Database = {
         Row: {
           agent_phone: string | null
           availability_status: string | null
+          case_id: string | null
           created_at: string
           customer_email: string | null
           customer_id: string | null
@@ -963,6 +964,7 @@ export type Database = {
         Insert: {
           agent_phone?: string | null
           availability_status?: string | null
+          case_id?: string | null
           created_at?: string
           customer_email?: string | null
           customer_id?: string | null
@@ -990,6 +992,7 @@ export type Database = {
         Update: {
           agent_phone?: string | null
           availability_status?: string | null
+          case_id?: string | null
           created_at?: string
           customer_email?: string | null
           customer_id?: string | null
@@ -1015,6 +1018,13 @@ export type Database = {
           webhook_event_type?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "calls_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "calls_customer_id_fkey"
             columns: ["customer_id"]
@@ -1122,6 +1132,367 @@ export type Database = {
             columns: ["revoked_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      case_categories: {
+        Row: {
+          color: string | null
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          organization_id: string
+          slug: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          organization_id: string
+          slug: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          organization_id?: string
+          slug?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "case_categories_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      case_events: {
+        Row: {
+          actor_id: string | null
+          case_id: string
+          created_at: string
+          event_type: string
+          from_value: string | null
+          id: string
+          metadata: Json
+          note: string | null
+          organization_id: string
+          to_value: string | null
+        }
+        Insert: {
+          actor_id?: string | null
+          case_id: string
+          created_at?: string
+          event_type: string
+          from_value?: string | null
+          id?: string
+          metadata?: Json
+          note?: string | null
+          organization_id: string
+          to_value?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          case_id?: string
+          created_at?: string
+          event_type?: string
+          from_value?: string | null
+          id?: string
+          metadata?: Json
+          note?: string | null
+          organization_id?: string
+          to_value?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "case_events_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "case_events_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "case_events_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      case_resolution_codes: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          organization_id: string
+          slug: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          organization_id: string
+          slug: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          organization_id?: string
+          slug?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "case_resolution_codes_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      case_tag_links: {
+        Row: {
+          case_id: string
+          created_at: string
+          organization_id: string
+          tag_id: string
+        }
+        Insert: {
+          case_id: string
+          created_at?: string
+          organization_id: string
+          tag_id: string
+        }
+        Update: {
+          case_id?: string
+          created_at?: string
+          organization_id?: string
+          tag_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "case_tag_links_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "case_tag_links_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "case_tag_links_tag_id_fkey"
+            columns: ["tag_id"]
+            isOneToOne: false
+            referencedRelation: "case_tags"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      case_tags: {
+        Row: {
+          color: string | null
+          created_at: string
+          id: string
+          name: string
+          organization_id: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          organization_id: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          organization_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "case_tags_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cases: {
+        Row: {
+          case_number: number
+          category_id: string | null
+          closed_at: string | null
+          created_at: string
+          created_by_id: string | null
+          customer_id: string | null
+          description: string | null
+          due_at: string | null
+          first_response_at: string | null
+          first_response_due_at: string | null
+          id: string
+          inbox_id: string | null
+          metadata: Json
+          navio_ticket_id: string | null
+          organization_id: string
+          owner_id: string | null
+          priority: string
+          resolution_code_id: string | null
+          resolution_due_at: string | null
+          resolution_notes: string | null
+          resolved_at: string | null
+          source_channel: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          case_number?: number
+          category_id?: string | null
+          closed_at?: string | null
+          created_at?: string
+          created_by_id?: string | null
+          customer_id?: string | null
+          description?: string | null
+          due_at?: string | null
+          first_response_at?: string | null
+          first_response_due_at?: string | null
+          id?: string
+          inbox_id?: string | null
+          metadata?: Json
+          navio_ticket_id?: string | null
+          organization_id: string
+          owner_id?: string | null
+          priority?: string
+          resolution_code_id?: string | null
+          resolution_due_at?: string | null
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          source_channel?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          case_number?: number
+          category_id?: string | null
+          closed_at?: string | null
+          created_at?: string
+          created_by_id?: string | null
+          customer_id?: string | null
+          description?: string | null
+          due_at?: string | null
+          first_response_at?: string | null
+          first_response_due_at?: string | null
+          id?: string
+          inbox_id?: string | null
+          metadata?: Json
+          navio_ticket_id?: string | null
+          organization_id?: string
+          owner_id?: string | null
+          priority?: string
+          resolution_code_id?: string | null
+          resolution_due_at?: string | null
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          source_channel?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cases_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "case_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cases_created_by_id_fkey"
+            columns: ["created_by_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cases_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cases_inbox_id_fkey"
+            columns: ["inbox_id"]
+            isOneToOne: false
+            referencedRelation: "inboxes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cases_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cases_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cases_resolution_code_id_fkey"
+            columns: ["resolution_code_id"]
+            isOneToOne: false
+            referencedRelation: "case_resolution_codes"
             referencedColumns: ["id"]
           },
         ]
@@ -1243,6 +1614,7 @@ export type Database = {
           assigned_to_id: string | null
           auto_close_days: number | null
           call_id: string | null
+          case_id: string | null
           channel: Database["public"]["Enums"]["communication_channel"]
           conversation_type: string
           created_at: string
@@ -1276,6 +1648,7 @@ export type Database = {
           assigned_to_id?: string | null
           auto_close_days?: number | null
           call_id?: string | null
+          case_id?: string | null
           channel: Database["public"]["Enums"]["communication_channel"]
           conversation_type?: string
           created_at?: string
@@ -1309,6 +1682,7 @@ export type Database = {
           assigned_to_id?: string | null
           auto_close_days?: number | null
           call_id?: string | null
+          case_id?: string | null
           channel?: Database["public"]["Enums"]["communication_channel"]
           conversation_type?: string
           created_at?: string
@@ -1357,6 +1731,13 @@ export type Database = {
             columns: ["call_id"]
             isOneToOne: false
             referencedRelation: "calls"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversations_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
             referencedColumns: ["id"]
           },
           {
@@ -1514,6 +1895,60 @@ export type Database = {
           },
         ]
       }
+      customer_identities: {
+        Row: {
+          created_at: string
+          customer_id: string
+          id: string
+          identity_type: string
+          is_primary: boolean
+          metadata: Json
+          organization_id: string
+          updated_at: string
+          value: string
+          verified: boolean
+        }
+        Insert: {
+          created_at?: string
+          customer_id: string
+          id?: string
+          identity_type: string
+          is_primary?: boolean
+          metadata?: Json
+          organization_id: string
+          updated_at?: string
+          value: string
+          verified?: boolean
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string
+          id?: string
+          identity_type?: string
+          is_primary?: boolean
+          metadata?: Json
+          organization_id?: string
+          updated_at?: string
+          value?: string
+          verified?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_identities_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_identities_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customer_memories: {
         Row: {
           confidence: number
@@ -1569,6 +2004,61 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "customer_memories_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_notes: {
+        Row: {
+          content: string
+          created_at: string
+          created_by_id: string | null
+          customer_id: string
+          id: string
+          is_pinned: boolean
+          organization_id: string
+          updated_at: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          created_by_id?: string | null
+          customer_id: string
+          id?: string
+          is_pinned?: boolean
+          organization_id: string
+          updated_at?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          created_by_id?: string | null
+          customer_id?: string
+          id?: string
+          is_pinned?: boolean
+          organization_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_notes_created_by_id_fkey"
+            columns: ["created_by_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_notes_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_notes_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -6262,6 +6752,57 @@ export type Database = {
           },
           {
             foreignKeyName: "service_tickets_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sla_policies: {
+        Row: {
+          created_at: string
+          first_response_minutes: number
+          id: string
+          inbox_id: string | null
+          is_active: boolean
+          organization_id: string
+          priority: string
+          resolution_minutes: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          first_response_minutes?: number
+          id?: string
+          inbox_id?: string | null
+          is_active?: boolean
+          organization_id: string
+          priority?: string
+          resolution_minutes?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          first_response_minutes?: number
+          id?: string
+          inbox_id?: string | null
+          is_active?: boolean
+          organization_id?: string
+          priority?: string
+          resolution_minutes?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sla_policies_inbox_id_fkey"
+            columns: ["inbox_id"]
+            isOneToOne: false
+            referencedRelation: "inboxes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sla_policies_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
