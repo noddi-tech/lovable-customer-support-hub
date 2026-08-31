@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { Copy, Check, ExternalLink, Rocket, Loader2, ChevronDown, BookOpen, Code, Share2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { Copy, Check, ExternalLink, ChevronDown, BookOpen, Code, Share2 } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,15 +12,11 @@ interface WidgetEmbedCodeProps {
 
 export const WidgetEmbedCode: React.FC<WidgetEmbedCodeProps> = ({ widgetKey }) => {
   const [copied, setCopied] = useState(false);
-  const [deploying, setDeploying] = useState(false);
   const [apiRefOpen, setApiRefOpen] = useState(false);
   const [examplesOpen, setExamplesOpen] = useState(false);
   const [copiedExample, setCopiedExample] = useState<string | null>(null);
   const [copiedDocs, setCopiedDocs] = useState(false);
-  const [lastDeploy, setLastDeploy] = useState<{ size: number | null; at: string } | null>(null);
-  const [liveBuild, setLiveBuild] = useState<{ publishedAt: string; commit: string; size?: number } | null>(null);
 
-  const appCommit = typeof __APP_COMMIT__ !== 'undefined' ? __APP_COMMIT__ : 'unknown';
 
   // Use the production Supabase URL
   const supabaseUrl = 'https://qgfaycwsangsqzpveoup.supabase.co';
