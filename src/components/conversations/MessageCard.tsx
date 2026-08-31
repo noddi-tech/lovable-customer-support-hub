@@ -246,6 +246,19 @@ const MessageCardComponent = ({
   // Generate smart preview text
   const previewText = getSmartPreview(message.visibleBody, 300);
 
+  // Timestamps: relative for scanning, absolute on hover
+  const createdAtIso = typeof message.createdAt === 'string'
+    ? message.createdAt
+    : new Date(message.createdAt).toISOString();
+  const absoluteTime = dateTime(createdAtIso);
+  const relativeTime = (() => {
+    try {
+      return formatDistanceToNow(new Date(createdAtIso), { addSuffix: true });
+    } catch {
+      return absoluteTime;
+    }
+  })();
+
   // Use the real author label from normalization
   const display = message.authorLabel;
   
@@ -468,22 +481,28 @@ const MessageCardComponent = ({
                   </Badge>
                 )}
                 
-                 {attachments.length > 0 && (
-                   <Badge variant="outline" className="text-xs shrink-0">
-                     <Paperclip className="w-3 h-3 mr-1" />
-                     {attachments.length}
-                   </Badge>
-                 )}
-              </div>
+                {attachments.length > 0 && (
+                  <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 shrink-0">
+                    <Paperclip className="w-3 h-3 mr-1" />
+                    {attachments.length}
+                  </Badge>
+                )}
 
-              {/* Preview text below header when collapsed */}
-              {effectiveCollapsed && previewText && (
-                <div className="pl-[26px] pt-1.5 pb-1 pr-4">
-                  <span className="text-xs text-muted-foreground line-clamp-3 leading-relaxed">
+                {/* Collapsed: one-line preview inline so the row stays dense */}
+                {effectiveCollapsed && previewText && (
+                  <span className="text-xs text-muted-foreground truncate min-w-0 flex-1">
                     {previewText}
                   </span>
-                </div>
-              )}
+                )}
+
+                {/* Relative time — always last, right aligned */}
+                <span
+                  className="ml-auto shrink-0 text-xs text-muted-foreground tabular-nums"
+                  title={absoluteTime}
+                >
+                  {relativeTime}
+                </span>
+              </div>
 
               {/* Recipients chips removed - now inline in header */}
 
@@ -511,7 +530,7 @@ const MessageCardComponent = ({
               <Button 
                 variant="ghost" 
                 size="sm" 
-                className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                className="h-8 w-8 p-0 opacity-100 md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100 transition-opacity"
                 onClick={handleCopy}
                 title="Copy message content"
               >
@@ -538,7 +557,7 @@ const MessageCardComponent = ({
               </Button>
               
               {/* Message Actions - hidden for AI drafts */}
-              {!isAiDraft && <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+              {!isAiDraft && <div className="opacity-100 md:opacity-0 md:group-hover:opacity-100 md:focus-within:opacity-100 transition-opacity">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
@@ -639,7 +658,8 @@ const MessageCardComponent = ({
           "message-content",
           effectiveCollapsed ? "is-collapsed" : "pl-2 pr-2 pb-3 md:pl-16 md:pr-4 md:pb-4"
         )}>
-          <div className="space-y-4 overflow-hidden">
+          {/* Cap measure at ~72ch and relax line-height for comfortable reading */}
+          <div className="space-y-4 overflow-hidden max-w-[72ch] leading-relaxed">
             {/* Email content or mention-aware note (with inline editor) */}
             {isInternalNote ? (
               isEditingThisNote ? (
@@ -687,12 +707,12 @@ const MessageCardComponent = ({
                   {showQuoted ? (
                     <>
                       <ChevronUp className="h-3 w-3 mr-1" />
-                      Hide quoted text
+                      Hide trimmed content
                     </>
                   ) : (
                     <>
                       <ChevronDown className="h-3 w-3 mr-1" />
-                      Show quoted text
+                      Show trimmed content
                     </>
                   )}
                 </Button>
