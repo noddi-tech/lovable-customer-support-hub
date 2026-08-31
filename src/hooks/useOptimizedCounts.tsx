@@ -137,7 +137,7 @@ export const useOptimizedCounts = (selectedInboxId?: string): OptimizedCounts =>
                 whatsapp: Number(result.channels_whatsapp) || 0,
               },
               notifications: Number(result.notifications_unread) || 0,
-              inboxes: Array.isArray(result.inboxes_data) ? result.inboxes_data as Array<{
+              inboxes: Array.isArray(result.inboxes_data) ? sortInboxesByName(result.inboxes_data as Array<{
                 id: string;
                 name: string;
                 color: string;
@@ -145,7 +145,7 @@ export const useOptimizedCounts = (selectedInboxId?: string): OptimizedCounts =>
                 open_count: number;
                 unread_count: number;
                 is_active: boolean;
-              }> : []
+              }>) : []
             };
           }
         } catch (networkError: any) {
