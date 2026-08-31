@@ -50,6 +50,13 @@ export interface WidgetIdentity {
 export interface WidgetInitOptions {
   /** Required. Public widget key from Admin → Widget settings. */
   widgetKey: string;
+  /**
+   * Languages the host app supports, e.g. ['nb-NO', 'en-US', 'sv-SE'].
+   * The picker shows the intersection with the languages the widget ships,
+   * in this order. Omit to keep the widget default set. Max 20 entries,
+   * 20 chars each; unknown locales are dropped.
+   */
+  supportedLocales?: string[];
   /** Brand name or slug from the Noddi brand catalog. Max 40. */
   brand?: string;
   /** Preferred: one nested context object. */
@@ -67,6 +74,8 @@ export interface WidgetInitOptions {
 export interface WidgetUpdateOptions extends WidgetHostContext {
   /** Mid-session brand change (multi-brand SPAs). */
   brand?: string;
+  /** Narrow (or reset) the language picker mid-session. See init. */
+  supportedLocales?: string[];
   /** Preferred nested form; merged over any flat fields above. */
   context?: WidgetHostContext;
   /** `null` clears the visitor (same as `clearIdentity`). */
