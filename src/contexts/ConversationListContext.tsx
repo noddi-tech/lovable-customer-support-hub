@@ -99,6 +99,7 @@ type ConversationListAction =
   | { type: 'SET_BULK_SELECTION'; payload: { ids: string[]; selected: boolean } }
   | { type: 'CLEAR_BULK_SELECTION' }
   | { type: 'TOGGLE_BULK_MODE' }
+  | { type: 'ENABLE_BULK_MODE' }
   | { type: 'SET_SORT'; payload: string }
   | { type: 'OPEN_ARCHIVE_DIALOG'; payload: ArchiveDialogState }
   | { type: 'CLOSE_ARCHIVE_DIALOG' }
@@ -170,6 +171,8 @@ function conversationListReducer(state: ConversationListState, action: Conversat
     }
     case 'CLEAR_BULK_SELECTION':
       return { ...state, selectedConversations: new Set() };
+    case 'ENABLE_BULK_MODE':
+      return state.bulkSelectionMode ? state : { ...state, bulkSelectionMode: true };
     case 'TOGGLE_BULK_MODE':
       return { ...state, bulkSelectionMode: !state.bulkSelectionMode, selectedConversations: new Set() };
     case 'SET_SORT': {

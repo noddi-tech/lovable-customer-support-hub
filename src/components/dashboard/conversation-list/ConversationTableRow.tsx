@@ -186,7 +186,14 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
   const shiftKeyRef = useRef(false);
 
   const handleRowClick = useCallback((e: React.MouseEvent) => {
-    if (showBulkCheckbox && onBulkSelect) {
+    // Cmd/Ctrl-click = toggle one row, Shift-click = select the range,
+    // both work even before selection mode has been turned on explicitly.
+    const modifierSelect = e.metaKey || e.ctrlKey || e.shiftKey;
+    if (onBulkSelect && (showBulkCheckbox || modifierSelect)) {
+      if (modifierSelect) {
+        e.preventDefault();
+        window.getSelection?.()?.removeAllRanges();
+      }
       onBulkSelect(conversation.id, !isBulkSelected, e.shiftKey);
     } else {
       onSelect(conversation);

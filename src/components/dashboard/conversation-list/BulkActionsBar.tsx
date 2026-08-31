@@ -49,7 +49,7 @@ export function BulkActionsBar({
           Clear
         </Button>
         <span className="text-xs text-muted-foreground hidden lg:inline">
-          Tip: shift-click to select a range
+          Tip: ⌘/Ctrl-click to pick individually, shift-click for a range
         </span>
       </div>
 
