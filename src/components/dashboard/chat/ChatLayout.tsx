@@ -9,6 +9,8 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { MessageCircle } from 'lucide-react';
+import { SidebarTrigger } from '@/components/ui/sidebar';
+import { useIsMobile } from '@/hooks/use-responsive';
 
 // Direct import - lazy loading was causing context provider issues
 import { ConversationView } from '@/components/dashboard/ConversationView';
@@ -19,6 +21,7 @@ export const ChatLayout: React.FC = () => {
   const [searchParams] = useSearchParams();
   const highlightMessageId = searchParams.get('m');
   const { profile } = useAuth();
+  const isMobile = useIsMobile();
   const organizationId = profile?.organization_id;
 
   // Map URL filter to our filter type
@@ -87,6 +90,46 @@ export const ChatLayout: React.FC = () => {
   const handleBack = () => {
     navigate(-1);
   };
+
+  // ============ MOBILE: single column, list <-> conversation ============
+  if (isMobile) {
+    if (selectedConversationId) {
+      return (
+        <div className="flex flex-col h-full bg-card overflow-hidden">
+          <ConversationView
+            conversationId={selectedConversationId}
+            showSidePanel={false}
+          />
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex flex-col h-full bg-card overflow-hidden">
+        <div className="flex items-center gap-2 px-3 py-2.5 border-b bg-card">
+          <SidebarTrigger className="shrink-0 h-8 w-8" />
+          <MessageCircle className="h-4 w-4 text-primary shrink-0" />
+          <h1 className="text-base font-semibold truncate">Live Chat</h1>
+        </div>
+
+        <ChatFilters
+          currentFilter={currentFilter}
+          onFilterChange={handleFilterChange}
+          counts={counts}
+        />
+
+        <LiveChatQueue className="border-b" compact />
+
+        <div className="flex-1 min-h-0 overflow-hidden">
+          <ChatConversationList
+            filter={currentFilter}
+            selectedId={undefined}
+            onSelect={handleSelectChat}
+          />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full bg-card">
