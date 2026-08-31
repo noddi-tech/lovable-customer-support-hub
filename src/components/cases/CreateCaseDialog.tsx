@@ -18,6 +18,7 @@ import {
   useCreateCase,
   type CasePriority,
 } from '@/hooks/useCases';
+import { CaseCustomerPicker, useCustomerBasics, type PickedCustomer } from './CaseCustomerPicker';
 
 interface CreateCaseDialogProps {
   open: boolean;
