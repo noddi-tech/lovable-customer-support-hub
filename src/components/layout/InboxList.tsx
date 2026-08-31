@@ -158,24 +158,60 @@ export const InboxList: React.FC<InboxListProps> = ({
                   <span>All Inboxes</span>
                 </div>
               </SelectItem>
-              {inboxes.map((inbox) => (
-                <SelectItem key={inbox.id} value={inbox.id}>
-                  <div className="flex items-start gap-2 min-w-0">
-                    <div 
-                      className="w-2 h-2 rounded-full flex-shrink-0 mt-1.5"
-                      style={{ backgroundColor: inbox.color || '#6B7280' }}
-                    />
-                    <div className="min-w-0 flex flex-col leading-tight">
-                      <span className="truncate">{inbox.name}</span>
-                      {inboxEmails[inbox.id] && (
-                        <span className="text-[11px] text-muted-foreground truncate">
-                          {inboxEmails[inbox.id]}
-                        </span>
-                      )}
+              {inboxes.map((inbox) => {
+                const email = inboxEmails[inbox.id];
+
+                if (!email) {
+                  // Unconfigured inbox: not selectable, offers a shortcut to finish setup
+                  return (
+                    <div
+                      key={inbox.id}
+                      className="relative flex items-center justify-between gap-2 rounded-sm py-1.5 pl-8 pr-2 text-sm opacity-60"
+                    >
+                      <div className="flex items-start gap-2 min-w-0">
+                        <div
+                          className="w-2 h-2 rounded-full flex-shrink-0 mt-1.5 bg-muted-foreground/40"
+                        />
+                        <div className="min-w-0 flex flex-col leading-tight">
+                          <span className="truncate text-muted-foreground">{inbox.name}</span>
+                          <span className="text-[11px] text-muted-foreground truncate">
+                            Not configured
+                          </span>
+                        </div>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-6 px-2 text-[11px] flex-shrink-0"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          navigate('/admin/integrations');
+                        }}
+                      >
+                        Configure
+                      </Button>
                     </div>
-                  </div>
-                </SelectItem>
-              ))}
+                  );
+                }
+
+                return (
+                  <SelectItem key={inbox.id} value={inbox.id}>
+                    <div className="flex items-start gap-2 min-w-0">
+                      <div 
+                        className="w-2 h-2 rounded-full flex-shrink-0 mt-1.5"
+                        style={{ backgroundColor: inbox.color || '#6B7280' }}
+                      />
+                      <div className="min-w-0 flex flex-col leading-tight">
+                        <span className="truncate">{inbox.name}</span>
+                        <span className="text-[11px] text-muted-foreground truncate">
+                          {email}
+                        </span>
+                      </div>
+                    </div>
+                  </SelectItem>
+                );
+              })}
 
             </SelectContent>
           </Select>
