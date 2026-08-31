@@ -70,6 +70,8 @@ function getCustomerLanguage(configLanguage: string): string {
 export const WidgetPanel: React.FC<WidgetPanelProps> = ({ config, onClose, positionOverride, identity }) => {
   const [view, setView] = useState<WidgetView>('home');
   const [showSuccess, setShowSuccess] = useState(false);
+  const [submissions, setSubmissions] = useState<StoredSubmission[]>(() => readStoredSubmissions());
+  const [activeSubmission, setActiveSubmission] = useState<StoredSubmission | null>(null);
   const [chatSession, setChatSession] = useState<ChatSession | null>(null);
   const [isStartingChat, setIsStartingChat] = useState(false);
   const [chatError, setChatError] = useState<string | null>(null);
