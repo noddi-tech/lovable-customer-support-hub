@@ -80,54 +80,6 @@ document.querySelector('#my-help-btn').addEventListener('click', () => {
     }
   };
 
-  const fetchLiveBuild = async () => {
-    try {
-      const res = await fetch(
-        `${supabaseUrl}/storage/v1/object/public/widget/widget-build.json?t=${Date.now()}`,
-      );
-      if (!res.ok) return;
-      setLiveBuild(await res.json());
-    } catch {
-      // manifest not published yet
-    }
-  };
-
-  useEffect(() => {
-    fetchLiveBuild();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const handleDeploy = async () => {
-    setDeploying(true);
-    try {
-      const response = await fetch(`${supabaseUrl}/functions/v1/deploy-widget?action=deploy`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ commit: appCommit }),
-      });
-      
-      if (!response.ok) {
-        throw new Error('Deploy failed');
-      }
-      
-      const result = await response.json();
-      setLastDeploy({ size: result.size ?? null, at: new Date().toLocaleString() });
-      if (result.publishedAt) {
-        setLiveBuild({ publishedAt: result.publishedAt, commit: result.commit, size: result.size });
-      } else {
-        fetchLiveBuild();
-      }
-      toast.success('Widget deployed to production!', {
-        description: `Size: ${result.size || 'unknown'} — hard-refresh host apps to pick it up`,
-      });
-    } catch (err) {
-      toast.error('Failed to deploy widget', {
-        description: 'Check edge function logs for details',
-      });
-    } finally {
-      setDeploying(false);
-    }
-  };
 
 
   const generateSlackFormattedDocs = () => {
