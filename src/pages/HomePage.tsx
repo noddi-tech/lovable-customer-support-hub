@@ -11,6 +11,9 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { NAV_ITEMS } from '@/navigation/nav-config';
 import { cn } from '@/lib/utils';
+import { groupInboxesByDomain } from '@/utils/inboxGrouping';
+import { useMemo } from 'react';
+
 import {
   Inbox,
   MessageSquare,
