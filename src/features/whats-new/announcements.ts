@@ -1,4 +1,4 @@
-import { Inbox, Briefcase, UserSearch } from 'lucide-react';
+import { Inbox, Briefcase, UserSearch, History } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 export interface Announcement {
@@ -55,7 +55,7 @@ export const ANNOUNCEMENTS: Announcement[] = [
       'Alt + click (or Alt + number) combines several inboxes into one view',
       'Open and pending counts are shown per inbox',
     ],
-  },,
+  },
   {
     id: 'unified-customer-timeline-chat-2026-09',
     title: 'One timeline across email, chat and phone',
