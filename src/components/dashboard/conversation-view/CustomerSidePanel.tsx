@@ -29,6 +29,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useConversationView } from '@/contexts/ConversationViewContext';
 import { NoddiCustomerDetails } from '@/components/dashboard/voice/NoddiCustomerDetails';
 import { CustomerNoddiTicketsCard } from '@/components/noddi-tickets/CustomerNoddiTicketsCard';
+import { ConversationCaseSection } from '@/components/cases/ConversationCaseSection';
+import { CustomerHistoryCard } from '@/components/cases/CustomerHistoryCard';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
@@ -756,6 +758,24 @@ export const CustomerSidePanel = ({
       {/* Customer Info Section - Scrollable */}
       <div className="flex-1 overflow-y-auto relative" style={{ isolation: 'isolate' }}>
         <div className="p-3 space-y-3">
+
+          {/* Case linkage — makes follow-up survive beyond this thread */}
+          <ConversationCaseSection
+            conversationId={conversation.id}
+            caseId={conversation.case_id}
+            customerId={conversation.customer?.id}
+            subject={conversation.subject}
+            inboxId={conversation.inbox_id}
+            channel={conversation.channel}
+          />
+
+          {/* Persistent customer history across threads */}
+          <CustomerHistoryCard
+            customerId={conversation.customer?.id}
+            currentConversationId={conversation.id}
+          />
+
+
           
           {/* Enhanced Noddi Customer Details Component */}
           <NoddiCustomerDetails
