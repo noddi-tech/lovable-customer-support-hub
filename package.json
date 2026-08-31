@@ -8,7 +8,9 @@
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "ui:guards": "tsx scripts/lint-tabs-overflow.ts && vitest --run -t \"long-labels\"",
+    "prepublish:check": "npm run ui:guards && npm run build"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
