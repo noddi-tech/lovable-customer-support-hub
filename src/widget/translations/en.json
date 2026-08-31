@@ -80,5 +80,9 @@
   "rateSubmit": "Send feedback",
   "rateThanks": "Thanks for your feedback!",
   "transcriptLabel": "Email me a copy of this chat",
-  "transcriptSend": "Send transcript"
+  "transcriptSend": "Send transcript",
+  "sendAnother": "Send another message",
+  "backToHome": "Back",
+  "yourMessages": "Your messages",
+  "awaitingReply": "We'll reply by email"
 }

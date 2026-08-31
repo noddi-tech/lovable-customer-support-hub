@@ -67,5 +67,9 @@
   "invalidPin": "Ogiltig kod, försök igen",
   "codeSent": "Kod skickad!",
   "resendCode": "Skicka kod igen",
-  "sendingCode": "Skickar..."
+  "sendingCode": "Skickar...",
+  "sendAnother": "Skicka ett nytt meddelande",
+  "backToHome": "Tillbaka",
+  "yourMessages": "Dina meddelanden",
+  "awaitingReply": "Vi svarar via e-post"
 }
