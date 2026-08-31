@@ -15,7 +15,8 @@ import {
   Shield,
   Search,
   Send,
-  FileLock2
+  FileLock2,
+  UserRound
 } from "lucide-react";
 
 export type NavItem = {
