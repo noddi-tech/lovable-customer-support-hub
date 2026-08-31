@@ -23,6 +23,7 @@ import {
   UserCheck,
   Clock,
   Settings2,
+  Star,
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
