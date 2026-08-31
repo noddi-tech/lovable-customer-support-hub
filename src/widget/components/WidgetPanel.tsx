@@ -277,7 +277,7 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({ config, onClose, posit
 
       {/* Content */}
       <div className="noddi-widget-content">
-        {showSuccess ? (
+        {showSuccess && activeSubmission ? (
           <div className="noddi-widget-success">
             <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: config.primaryColor }}>
               <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
@@ -285,6 +285,36 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({ config, onClose, posit
             </svg>
             <h4>{t.messageSent}</h4>
             <p>{t.wellGetBack}</p>
+
+            <div className="noddi-widget-sent-message">
+              <div className="noddi-widget-sent-meta">
+                {new Date(activeSubmission.sentAt).toLocaleString()} · {activeSubmission.email}
+              </div>
+              <div className="noddi-widget-sent-body">{activeSubmission.message}</div>
+            </div>
+
+            <div className="noddi-widget-sent-actions">
+              <button
+                className="noddi-widget-action"
+                onClick={() => {
+                  setShowSuccess(false);
+                  setActiveSubmission(null);
+                  setView('contact');
+                }}
+              >
+                {t.sendAnother || 'Send another message'}
+              </button>
+              <button
+                className="noddi-widget-back"
+                onClick={() => {
+                  setShowSuccess(false);
+                  setActiveSubmission(null);
+                  setView('home');
+                }}
+              >
+                {t.backToHome || 'Back'}
+              </button>
+            </div>
           </div>
         ) : view === 'home' ? (
           <div className="noddi-widget-home">
