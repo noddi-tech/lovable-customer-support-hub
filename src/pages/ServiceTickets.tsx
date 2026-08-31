@@ -91,10 +91,12 @@ export default function ServiceTickets() {
     <div className="space-y-4 p-4 md:p-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
         <div className="min-w-0">
-          <h1 className="text-xl font-semibold tracking-tight md:text-2xl">Service tickets</h1>
+          <h1 className="text-xl font-semibold tracking-tight md:text-2xl">Ops tickets</h1>
           <p className="text-xs text-muted-foreground md:text-sm">
-            Live from the Noddi backend. Tickets are owned by Noddi — Support Hub reads and creates them.
+            Creates operational tickets for a service department in Navio. Tickets live in the Navio
+            backend and show up in their app — Support Hub only reads and creates them.
           </p>
+
         </div>
         <div className="flex items-center gap-2">
           <Button

@@ -31,7 +31,7 @@ export const OperationsSidebar: React.FC = () => {
 
   const operationsItems = [
     {
-      title: 'Service Tickets',
+      title: 'Ops Tickets',
       path: '/operations/tickets',
       icon: Ticket
     },

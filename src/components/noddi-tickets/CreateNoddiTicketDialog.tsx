@@ -91,10 +91,12 @@ export function CreateNoddiTicketDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90svh] w-[calc(100%-2rem)] max-w-xl overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Create ticket</DialogTitle>
+          <DialogTitle>Create ops ticket</DialogTitle>
           <DialogDescription>
-            The ticket is created directly in the Noddi backend — Support Hub only displays it.
+            This creates an operational ticket for a service department in Navio. It is created
+            directly in the Navio backend and will show up in their app — Support Hub only displays it.
           </DialogDescription>
+
         </DialogHeader>
 
         <div className="space-y-4">
