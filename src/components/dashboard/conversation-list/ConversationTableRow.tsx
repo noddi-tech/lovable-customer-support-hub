@@ -14,6 +14,31 @@ import { useTranslation } from 'react-i18next';
 import { SLABadge } from './SLABadge';
 import { getCustomerDisplay, getCustomerInitial } from '@/utils/customerDisplayName';
 import { useIsMobile } from '@/hooks/use-responsive';
+import { useInboxEmailAddresses } from '@/hooks/useInboxEmailAddresses';
+
+/**
+ * Small colored pill identifying which inbox a conversation belongs to.
+ * Shown in the "All inboxes" view so agents always know the destination.
+ */
+const InboxBadge = ({
+  name,
+  color,
+  email,
+  compact,
+}: { name: string; color: string; email?: string; compact?: boolean }) => (
+  <span
+    title={email ? `${name} (${email})` : name}
+    className={cn(
+      'inline-flex items-center gap-1 rounded-full border px-1.5 py-0 max-w-full',
+      compact ? 'text-[9px]' : 'text-[10px]',
+    )}
+    style={{ borderColor: `${color}66`, backgroundColor: `${color}14`, color }}
+  >
+    <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ backgroundColor: color }} />
+    <span className="truncate font-medium">{name}</span>
+  </span>
+);
+
 
 // --- Visual config maps ---
 
