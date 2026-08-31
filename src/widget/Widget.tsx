@@ -42,7 +42,7 @@ export const Widget: React.FC<WidgetProps> = ({ options, onMount }) => {
       locale: options.locale,
       environment: options.environment,
       source_app: options.sourceApp,
-      noddi_user_id: options.noddiUserId,
+      user_id: options.userId,
       service_department_id: options.serviceDepartmentId,
       booking_id: options.bookingId,
       order_id: options.orderId,

@@ -11,7 +11,7 @@ export interface WidgetContext {
   locale?: string;
   environment?: string;
   source_app?: string;
-  noddi_user_id?: string;
+  user_id?: string;
   service_department_id?: string;
   booking_id?: string;
   order_id?: string;
@@ -23,7 +23,7 @@ const FIELD_LIMITS: Record<keyof WidgetContext, number> = {
   locale: 20,
   environment: 20,
   source_app: 40,
-  noddi_user_id: 64,
+  user_id: 64,
   service_department_id: 64,
   booking_id: 64,
   order_id: 64,

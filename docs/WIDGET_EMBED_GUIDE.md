@@ -38,7 +38,7 @@ The `q` queue means you can call `NoddiWidget(...)` before the script finishes l
 | `locale` | `string` | — | Visitor language (BCP-47, e.g. `nb-NO`). Max 20 chars. |
 | `environment` | `string` | — | `production` / `staging` / `development`. Non-production is badged in the hub so agents can ignore test noise. Max 20 chars. |
 | `sourceApp` | `string` | — | Product surface using this widget key, e.g. `customer`, `partner`, `marketing`. Max 40 chars. |
-| `noddiUserId` | `string \| number` | — | Noddi user id of the logged-in visitor — lets agents skip manual customer matching. |
+| `userId` | `string \| number` | — | Noddi user id of the logged-in visitor — lets agents skip manual customer matching. |
 | `serviceDepartmentId` | `string \| number` | — | Service department to route/filter by. |
 | `bookingId` | `string \| number` | — | Booking the visitor is currently in. |
 | `orderId` | `string \| number` | — | Order the visitor is currently in. |
@@ -99,7 +99,7 @@ NoddiWidget('init', {
   locale: 'nb-NO',
   environment: import.meta.env.MODE === 'production' ? 'production' : 'staging',
   sourceApp: 'customer',
-  noddiUserId: user?.id,
+  userId: user?.id,
   serviceDepartmentId: user?.serviceDepartmentId,
   bookingId: currentBooking?.id,
   appVersion: __APP_VERSION__,
@@ -147,6 +147,6 @@ NoddiWidget('init', {
 - [ ] `brand` passed on `init` and matches the Noddi brand catalog name/slug.
 - [ ] Verified in Support Hub: start a test chat, confirm the brand badge (with logo) appears in the inbox list and conversation header.
 - [ ] `environment` set so staging/dev chats are distinguishable in the live inbox.
-- [ ] `locale`, `sourceApp` and (when logged in) `noddiUserId` passed for richer agent context.
+- [ ] `locale`, `sourceApp` and (when logged in) `userId` passed for richer agent context.
 - [ ] `bookingId` / `orderId` passed when the widget opens inside a booking or order flow.
 - [ ] If using a custom launcher: `showButton: false` and open via `onReady`.
