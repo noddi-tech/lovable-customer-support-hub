@@ -11,6 +11,9 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { NAV_ITEMS } from '@/navigation/nav-config';
 import { cn } from '@/lib/utils';
+import { groupInboxesByDomain } from '@/utils/inboxGrouping';
+import { useMemo } from 'react';
+
 import {
   Inbox,
   MessageSquare,
@@ -61,6 +64,12 @@ export default function HomePage() {
   });
 
   const sections = ['interactions', 'marketing', 'operations', 'settings'] as const;
+
+  const inboxGroups = useMemo(
+    () => groupInboxesByDomain(inboxes.filter(i => i.is_active), inboxEmails),
+    [inboxes, inboxEmails],
+  );
+
 
   const stats = [
     { label: 'Open', value: conversations.open, icon: MailOpen },
@@ -124,8 +133,21 @@ export default function HomePage() {
                 Manage inboxes
               </Button>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-              {inboxes.filter(i => i.is_active).map(inbox => {
+            <div className="space-y-4">
+              {inboxGroups.map(group => (
+                <div key={group.label}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      {group.label}
+                    </span>
+                    <span className="h-px flex-1 bg-border" />
+                    <span className="text-[10px] text-muted-foreground">
+                      {group.inboxes.length} {group.inboxes.length === 1 ? 'inbox' : 'inboxes'}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+              {group.inboxes.map(inbox => {
+
                 const email = inboxEmails[inbox.id];
                 const isConfigured = Boolean(email);
                 const isDefault = defaultInboxId === inbox.id;
@@ -248,7 +270,11 @@ export default function HomePage() {
                   </Card>
                 );
               })}
+                  </div>
+                </div>
+              ))}
             </div>
+
             <Separator className="mt-4" />
           </div>
         )}

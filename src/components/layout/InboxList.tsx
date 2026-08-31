@@ -22,6 +22,8 @@ import { useAccessibleInboxes, useInboxCounts } from '@/hooks/useInteractionsDat
 import { useInboxEmailAddresses } from '@/hooks/useInboxEmailAddresses';
 import { useInboxOutstandingCounts } from '@/hooks/useInboxOutstandingCounts';
 import { useDefaultInbox } from '@/hooks/useDefaultInbox';
+import { groupInboxesByDomain } from '@/utils/inboxGrouping';
+
 
 import { LiveChatQueue } from '@/components/conversations/LiveChatQueue';
 import type { StatusFilter, InboxId } from '@/types/interactions';
@@ -83,6 +85,13 @@ export const InboxList: React.FC<InboxListProps> = ({
     () => inboxes.filter((i) => inboxEmails[i.id]).slice(0, 9),
     [inboxes, inboxEmails]
   );
+
+  // Inboxes sharing an email domain are shown together
+  const inboxGroups = React.useMemo(
+    () => groupInboxesByDomain(inboxes, inboxEmails),
+    [inboxes, inboxEmails]
+  );
+
 
   const NumberKey: React.FC<{ n: number }> = ({ n }) => (
     <kbd className="flex h-4 w-4 items-center justify-center rounded border border-border bg-muted text-[10px] font-medium text-muted-foreground flex-shrink-0 mt-0.5">
@@ -295,9 +304,18 @@ export const InboxList: React.FC<InboxListProps> = ({
                 </span>
               </button>
 
-              {inboxes.map((inbox) => {
+              {inboxGroups.map((group) => (
+                <div key={group.label} className="pt-1">
+                  <div className="flex items-center gap-2 px-2 pb-1">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      {group.label}
+                    </span>
+                    <span className="h-px flex-1 bg-border" />
+                  </div>
+                  {group.inboxes.map((inbox) => {
                 const email = inboxEmails[inbox.id];
                 const shortcutIndex = numberedInboxes.findIndex((i) => i.id === inbox.id);
+
 
                 if (!email) {
                   // Unconfigured inbox: not selectable, offers a shortcut to finish setup
@@ -380,7 +398,10 @@ export const InboxList: React.FC<InboxListProps> = ({
                     />
                   </div>
                 );
-              })}
+                  })}
+                </div>
+              ))}
+
 
               <p className="px-2 py-1.5 text-[11px] text-muted-foreground border-t border-border mt-1">
                 Press 0–9 to switch · tick boxes (or Alt+click / Alt+number) to view several inboxes at once
