@@ -1,7 +1,7 @@
 import { format } from 'date-fns';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
-import { TicketPriorityBadge, TicketStatusBadge } from './NoddiTicketBadges';
+import { TicketPriorityBadge, TicketSourceBadge, TicketStatusBadge } from './NoddiTicketBadges';
 import { TICKET_CATEGORY_LABELS, type NoddiTicket } from '@/types/noddiTicket';
 
 interface Props {
@@ -39,6 +39,7 @@ export function NoddiTicketTable({ tickets, isLoading, onSelect }: Props) {
             <TableHead className="w-[130px]">Status</TableHead>
             <TableHead className="w-[110px]">Priority</TableHead>
             <TableHead className="w-[160px]">Category</TableHead>
+            <TableHead className="w-[140px]">Source</TableHead>
             <TableHead className="w-[170px]">Assignee</TableHead>
             <TableHead className="w-[150px]">Created</TableHead>
           </TableRow>
@@ -67,6 +68,9 @@ export function NoddiTicketTable({ tickets, isLoading, onSelect }: Props) {
               </TableCell>
               <TableCell className="text-xs text-muted-foreground">
                 {TICKET_CATEGORY_LABELS[ticket.category] ?? ticket.category}
+              </TableCell>
+              <TableCell>
+                <TicketSourceBadge source={ticket.source} />
               </TableCell>
               <TableCell className="text-sm">
                 {ticket.assignee?.name ?? <span className="text-muted-foreground">Unassigned</span>}

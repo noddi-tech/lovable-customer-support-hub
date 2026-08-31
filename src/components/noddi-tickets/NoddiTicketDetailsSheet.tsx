@@ -21,7 +21,7 @@ import {
   useNoddiTicketEvents,
   useUpdateNoddiTicket,
 } from '@/hooks/useNoddiTickets';
-import { TicketPriorityBadge, TicketStatusBadge } from './NoddiTicketBadges';
+import { TicketPriorityBadge, TicketSourceBadge, TicketStatusBadge } from './NoddiTicketBadges';
 import {
   NODDI_TICKET_PRIORITIES,
   TICKET_CATEGORY_LABELS,
@@ -81,6 +81,7 @@ export function NoddiTicketDetailsSheet({ ticketId, onOpenChange }: Props) {
               <Badge variant="outline" className="text-[11px]">
                 {TICKET_TYPE_LABELS[ticket.type] ?? ticket.type}
               </Badge>
+              <TicketSourceBadge source={ticket.source} />
               {ticket.tags?.map((tag) => (
                 <Badge key={tag.id} variant="secondary" className="text-[11px]">
                   {tag.short_name}
