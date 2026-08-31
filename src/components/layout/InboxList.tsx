@@ -19,6 +19,8 @@ import { Inbox, Mail, Users, Archive, Star, Clock, CheckCircle, Trash2 } from 'l
 import { cn } from '@/lib/utils';
 import { useAccessibleInboxes, useInboxCounts } from '@/hooks/useInteractionsData';
 import { useInboxEmailAddresses } from '@/hooks/useInboxEmailAddresses';
+import { useInboxOutstandingCounts } from '@/hooks/useInboxOutstandingCounts';
+
 import { LiveChatQueue } from '@/components/conversations/LiveChatQueue';
 import type { StatusFilter, InboxId } from '@/types/interactions';
 
