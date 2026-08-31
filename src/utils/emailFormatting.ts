@@ -6,7 +6,7 @@ import { formatPlainTextEmail } from './plainTextEmailFormatter';
 import { createPlaceholder, rewriteImageSources } from './imageAssetHandler';
 import { parseQuotedEmail } from '@/lib/parseQuotedEmail';
 import { logger } from '@/utils/logger';
-import { buildAttachmentUrl } from '@/utils/attachmentUrl';
+import { buildAttachmentUrl, buildEmailImageProxyUrl } from '@/utils/attachmentUrl';
 
 /**
  * Detect signature-like blocks at the end of HTML emails and wrap in .email-signature.
