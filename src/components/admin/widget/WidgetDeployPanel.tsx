@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { Rocket, Loader2, RefreshCw, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { Rocket, Loader2, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 
 const SUPABASE_URL = 'https://qgfaycwsangsqzpveoup.supabase.co';
