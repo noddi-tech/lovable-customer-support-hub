@@ -30,14 +30,14 @@ export const UnifiedAppLayout: React.FC<UnifiedAppLayoutProps> = ({
   // Favicon / app badge with open conversations in the selected inbox
   useOpenConversationsBadge();
 
-  // Global Cmd+K / Ctrl+K (search) and Cmd+D / Ctrl+D (quick inbox switcher)
+  // Global Cmd+K / Ctrl+K (search) and Cmd+I / Ctrl+I (quick inbox switcher)
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
       if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
         setSearchOpen((prev) => !prev);
       }
-      if ((e.key === 'd' || e.key === 'D') && (e.metaKey || e.ctrlKey)) {
+      if ((e.key === 'i' || e.key === 'I') && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
         setInboxSwitcherOpen((prev) => !prev);
       }
