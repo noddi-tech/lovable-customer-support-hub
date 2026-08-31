@@ -315,7 +315,7 @@ export const ComposeWindow: React.FC<ComposeWindowProps> = ({ draft }) => {
   /* ---------------- Minimized bar ---------------- */
   if (draft.minimized) {
     return (
-      <div className="w-64 rounded-t-lg border border-border bg-card shadow-lg">
+      <div className="w-64 rounded-t-lg border border-border bg-card text-card-foreground shadow-lg" style={{ backgroundColor: 'hsl(var(--card))' }}>
         <div className="flex items-center gap-1 px-3 py-2">
           <button
             type="button"
