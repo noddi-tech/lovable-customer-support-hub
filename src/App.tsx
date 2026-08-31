@@ -300,6 +300,7 @@ const App = () => (
                     <DesignSystemProvider>
                       <TooltipProvider>
                         <I18nWrapper>
+                        <EnvBanner />
                         <AppContent />
                         {/* Aircall Workspace Manager - Controls container visibility */}
                         <AircallWorkspaceManager />
