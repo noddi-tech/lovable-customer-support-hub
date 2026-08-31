@@ -2,7 +2,7 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { Widget, WidgetAPI } from './Widget';
 import type { WidgetInitOptions } from './types';
-import { setIdentity, clearIdentity, updateWidgetContext, contextFromInitOptions, setBrand, setSupportedLocales } from './api';
+import { setIdentity, clearIdentity, updateWidgetContext, contextFromInitOptions, setBrand, setSupportedLocales, setHostEnableKnowledgeSearch } from './api';
 import { sanitizeSupportedLocales } from './translations';
 // @ts-ignore - Vite handles this import
 import widgetStyles from './styles/widget.css?inline';
