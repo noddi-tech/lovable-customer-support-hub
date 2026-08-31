@@ -1,4 +1,4 @@
-import { CheckSquare, XSquare, Archive, Trash2, MailCheck, UserPlus } from 'lucide-react';
+import { CheckSquare, XSquare, Archive, Trash2, MailCheck, UserPlus, CircleDot, Clock, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -34,7 +34,7 @@ export function BulkActionsBar({
   if (selectedCount === 0) return null;
 
   return (
-    <div className="bg-card border-b border-border px-4 py-3 flex items-center justify-between gap-4">
+    <div className="bg-primary/5 border-b border-border px-4 py-2 flex items-center justify-between gap-4 flex-wrap">
       <div className="flex items-center gap-3">
         <span className="text-sm font-medium">
           {selectedCount} selected
@@ -50,7 +50,23 @@ export function BulkActionsBar({
         </Button>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 flex-wrap">
+        {/* Prominent one-click status changes for the selected conversations */}
+        <div className="flex items-center gap-1 pr-2 mr-1 border-r border-border">
+          <Button variant="outline" size="sm" className="h-8" onClick={() => onChangeStatus('open')}>
+            <CircleDot className="w-4 h-4 mr-1.5 text-emerald-600" />
+            Open
+          </Button>
+          <Button variant="outline" size="sm" className="h-8" onClick={() => onChangeStatus('pending')}>
+            <Clock className="w-4 h-4 mr-1.5 text-amber-600" />
+            Pending
+          </Button>
+          <Button variant="outline" size="sm" className="h-8" onClick={() => onChangeStatus('closed')}>
+            <CheckCircle2 className="w-4 h-4 mr-1.5 text-muted-foreground" />
+            Close
+          </Button>
+        </div>
+
         <Button
           variant="outline"
           size="sm"
@@ -70,17 +86,6 @@ export function BulkActionsBar({
           <CheckSquare className="w-4 h-4 mr-2" />
           Mark Unread
         </Button>
-
-        <Select onValueChange={onChangeStatus}>
-          <SelectTrigger className="h-8 w-[140px]">
-            <SelectValue placeholder="Change Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="open">Open</SelectItem>
-            <SelectItem value="pending">Pending</SelectItem>
-            <SelectItem value="closed">Closed</SelectItem>
-          </SelectContent>
-        </Select>
 
         <Select onValueChange={onAssign}>
           <SelectTrigger className="h-8 w-[140px]">
