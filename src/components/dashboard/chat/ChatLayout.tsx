@@ -9,6 +9,8 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { MessageCircle } from 'lucide-react';
+import { SidebarTrigger } from '@/components/ui/sidebar';
+import { useIsMobile } from '@/hooks/use-responsive';
 
 // Direct import - lazy loading was causing context provider issues
 import { ConversationView } from '@/components/dashboard/ConversationView';
@@ -19,6 +21,7 @@ export const ChatLayout: React.FC = () => {
   const [searchParams] = useSearchParams();
   const highlightMessageId = searchParams.get('m');
   const { profile } = useAuth();
+  const isMobile = useIsMobile();
   const organizationId = profile?.organization_id;
 
   // Map URL filter to our filter type
