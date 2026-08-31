@@ -32,7 +32,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { AgentAvailabilityPanel } from './AgentAvailabilityPanel';
-import { OrganizationSwitcher } from '@/components/organization/OrganizationSwitcher';
+
 import { MyAccountDialog } from './MyAccountDialog';
 
 
@@ -128,9 +128,6 @@ export const AppMainNav = () => {
           </h2>
         )}
 
-        
-        {/* Organization Switcher — for super admins / multi-org users */}
-        {!isCollapsed && <OrganizationSwitcher />}
       </SidebarHeader>
 
       <SidebarContent>
