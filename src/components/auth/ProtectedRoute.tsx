@@ -36,6 +36,8 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
       willCheck: !loading && !isProcessingOAuth
     }, 'ProtectedRoute');
 
+    if (previewBypass) return;
+
     // Only proceed when BOTH loading and OAuth processing are complete
     if (!loading && !isProcessingOAuth) {
       if (!user) {
