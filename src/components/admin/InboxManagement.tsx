@@ -481,7 +481,8 @@ export function InboxManagementContent() {
                     <Button 
                       variant="ghost" 
                       size="sm"
-                      onClick={() => setEditingInbox(inbox)}
+                      aria-label={`Configure ${inbox.name}`}
+                      onClick={() => navigate(`/admin/inboxes/${inbox.id}`)}
                     >
                       <Settings className="w-4 h-4" />
                     </Button>

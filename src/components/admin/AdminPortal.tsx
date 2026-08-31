@@ -15,6 +15,7 @@ import { EmailTemplateSettings } from '@/components/settings/EmailTemplateSettin
 import { VoiceIntegrationsList } from './VoiceIntegrationsList';
 import { InboundRoutesList } from './InboundRoutesList';
 import { InboxManagement } from './InboxManagement';
+import { InboxSettingsPage } from './InboxSettingsPage';
 import { SystemHealthPage } from './SystemHealthPage';
 import { HelpScoutImport } from './HelpScoutImport';
 import { EmailIntegrationWizard } from './EmailIntegrationWizard';
