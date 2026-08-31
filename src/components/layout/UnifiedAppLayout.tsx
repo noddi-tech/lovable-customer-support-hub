@@ -4,6 +4,7 @@ import { SidebarProvider } from '@/components/ui/sidebar';
 import { AppMainNav } from './AppMainNav';
 import { SearchCommandPalette } from '@/components/search/SearchCommandPalette';
 import { UIProbe } from '@/dev/UIProbe';
+import { useDesktopEmailNotifications } from '@/hooks/useDesktopEmailNotifications';
 
 interface UnifiedAppLayoutProps {
   children: React.ReactNode;
