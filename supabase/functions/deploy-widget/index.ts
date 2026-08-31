@@ -1306,9 +1306,20 @@ Deno.serve(async (req: Request) => {
   const url = new URL(req.url);
   const action = url.searchParams.get('action');
 
-  // Serve the widget JS directly
+  // Build metadata (published date + git commit of the app that triggered the deploy)
+  const buildBundle = (publishedAt: string, commit: string) => {
+    const safe = (v: string) => String(v).replace(/[^a-zA-Z0-9:_.\-+ ]/g, '');
+    const meta = { publishedAt: safe(publishedAt), commit: safe(commit) };
+    const banner = `/*! Navio Support Widget | published: ${meta.publishedAt} | commit: ${meta.commit} */\n`;
+    const header = `window.__NAVIO_WIDGET_BUILD__=${JSON.stringify(meta)};\n`;
+    const footer = `\ntry{if(window.NoddiWidget){window.NoddiWidget.build=window.__NAVIO_WIDGET_BUILD__;}}catch(e){}\n`;
+    return { bundle: banner + header + WIDGET_JS + footer, meta };
+  };
+
+  // Serve the widget JS directly (unpublished / live edge-function version)
   if (req.method === 'GET' && !action) {
-    return new Response(WIDGET_JS, {
+    const { bundle } = buildBundle(new Date().toISOString(), 'edge-function-live');
+    return new Response(bundle, {
       headers: {
         ...corsHeaders,
         'Content-Type': 'application/javascript',
@@ -1324,10 +1335,22 @@ Deno.serve(async (req: Request) => {
       const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
       const supabase = createClient(supabaseUrl, supabaseKey);
 
+      let commit = 'unknown';
+      try {
+        const body = await req.json();
+        if (body && typeof body.commit === 'string' && body.commit.trim()) {
+          commit = body.commit.trim().slice(0, 40);
+        }
+      } catch (_) {
+        // no body provided
+      }
+      const publishedAt = new Date().toISOString();
+      const { bundle, meta } = buildBundle(publishedAt, commit);
+
       // Upload to storage
       const { error: uploadError } = await supabase.storage
         .from('widget')
-        .upload('widget.js', WIDGET_JS, {
+        .upload('widget.js', bundle, {
           contentType: 'application/javascript',
           upsert: true,
           cacheControl: '3600',
@@ -1341,6 +1364,15 @@ Deno.serve(async (req: Request) => {
         });
       }
 
+      // Publish a machine-readable build manifest alongside the bundle
+      await supabase.storage
+        .from('widget')
+        .upload('widget-build.json', JSON.stringify({ ...meta, size: bundle.length }, null, 2), {
+          contentType: 'application/json',
+          upsert: true,
+          cacheControl: '60',
+        });
+
       // Get public URL
       const { data: publicUrl } = supabase.storage
         .from('widget')
@@ -1349,7 +1381,9 @@ Deno.serve(async (req: Request) => {
       return new Response(JSON.stringify({
         success: true,
         url: publicUrl.publicUrl,
-        size: WIDGET_JS.length,
+        size: bundle.length,
+        publishedAt: meta.publishedAt,
+        commit: meta.commit,
         message: 'Widget deployed successfully!'
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
