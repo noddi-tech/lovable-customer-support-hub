@@ -92,6 +92,9 @@ const handler = async (req: Request): Promise<Response> => {
     const body = await req.json();
     messageId = body.messageId;
     const replyAll = body.replyAll ?? true;
+    // When true, render the email exactly as the customer sees it and return it
+    // without sending or touching delivery status.
+    const previewOnly = body.preview === true;
     console.log('Processing message ID:', messageId);
 
     if (!messageId) throw new Error('Message ID is required');
