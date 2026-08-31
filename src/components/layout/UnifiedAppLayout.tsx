@@ -54,6 +54,7 @@ export const UnifiedAppLayout: React.FC<UnifiedAppLayoutProps> = ({
       <SearchCommandPalette open={searchOpen} onOpenChange={setSearchOpen} />
       <QuickInboxSwitcher open={inboxSwitcherOpen} onOpenChange={setInboxSwitcherOpen} />
       <WhatsNewDialog />
+      <MobileEdgeSwipe />
 
       <div className="h-svh flex w-full bg-background">
         {/* Sidebar Navigation */}
