@@ -1,5 +1,5 @@
 /**
- * QuickInboxSwitcher - Cmd/Ctrl+D dialog for jumping between inboxes.
+ * QuickInboxSwitcher - Cmd/Ctrl+I dialog for jumping between inboxes.
  * Each inbox is numbered; pressing the number key switches to it instantly.
  */
 import React from 'react';
