@@ -142,10 +142,12 @@ export const ComposeWindow: React.FC<ComposeWindowProps> = ({ draft }) => {
   // Default inbox once inboxes are known
   React.useEffect(() => {
     if (!draft.inboxId && inboxes.length > 0) {
-      const def = inboxes.find((i) => i.is_default) || inboxes[0];
+      const configured = inboxes.filter((i) => inboxEmails[i.id]);
+      const pool = configured.length > 0 ? configured : inboxes;
+      const def = pool.find((i) => i.is_default) || pool[0];
       updateDraft(draft.id, { inboxId: def.id });
     }
-  }, [inboxes, draft.inboxId, draft.id, updateDraft]);
+  }, [inboxes, inboxEmails, draft.inboxId, draft.id, updateDraft]);
 
   const parsedEmails = useMemo(
     () => (draft.bulkMode ? parseEmails(draft.bulkEmails) : []),
