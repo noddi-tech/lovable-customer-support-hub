@@ -1,4 +1,4 @@
-import { Filter, CheckCheck, ChevronDown, Move, Settings, CheckSquare, X, Plus, MoreHorizontal } from "lucide-react";
+import { Filter, CheckCheck, ChevronDown, Move, Settings, CheckSquare, X, Plus, MoreHorizontal, Inbox, Clock, CheckCircle, Mail, Flag, ArrowDown, ArrowUp, Minus, AlertTriangle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
