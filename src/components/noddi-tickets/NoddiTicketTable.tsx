@@ -30,7 +30,44 @@ export function NoddiTicketTable({ tickets, isLoading, onSelect }: Props) {
   }
 
   return (
-    <div className="rounded-md border">
+    <>
+      {/* Mobile: card list */}
+      <div className="space-y-2 md:hidden">
+        {tickets.map((ticket) => (
+          <button
+            key={ticket.id}
+            type="button"
+            onClick={() => onSelect(ticket.id)}
+            className="w-full rounded-md border bg-card p-3 text-left active:bg-muted/50"
+          >
+            <div className="flex items-start justify-between gap-2">
+              <span className="text-sm font-medium leading-snug line-clamp-2">
+                {ticket.title || 'Untitled ticket'}
+              </span>
+              <span className="shrink-0 font-mono text-[11px] text-muted-foreground">#{ticket.id}</span>
+            </div>
+            {ticket.service_department?.name && (
+              <div className="mt-0.5 truncate text-[11px] text-muted-foreground">
+                {ticket.service_department.name}
+              </div>
+            )}
+            <div className="mt-2 flex flex-wrap items-center gap-1.5">
+              <TicketStatusBadge status={ticket.status} />
+              <TicketPriorityBadge priority={ticket.priority} />
+              <TicketSourceBadge source={ticket.source} />
+            </div>
+            <div className="mt-2 flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
+              <span className="truncate">{ticket.assignee?.name ?? 'Unassigned'}</span>
+              <span className="shrink-0">
+                {ticket.created_at ? format(new Date(ticket.created_at), 'dd MMM HH:mm') : '—'}
+              </span>
+            </div>
+          </button>
+        ))}
+      </div>
+
+      {/* Desktop: table */}
+      <div className="hidden overflow-x-auto rounded-md border md:block">
       <Table>
         <TableHeader>
           <TableRow>
