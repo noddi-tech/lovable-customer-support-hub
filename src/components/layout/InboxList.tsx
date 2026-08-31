@@ -18,6 +18,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Inbox, Mail, Users, Archive, Star, Clock, CheckCircle, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAccessibleInboxes, useInboxCounts } from '@/hooks/useInteractionsData';
+import { useInboxEmailAddresses } from '@/hooks/useInboxEmailAddresses';
 import { LiveChatQueue } from '@/components/conversations/LiveChatQueue';
 import type { StatusFilter, InboxId } from '@/types/interactions';
 
