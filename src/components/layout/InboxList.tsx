@@ -389,7 +389,10 @@ export const InboxList: React.FC<InboxListProps> = ({
                     />
                   </div>
                 );
-              })}
+                  })}
+                </div>
+              ))}
+
 
               <p className="px-2 py-1.5 text-[11px] text-muted-foreground border-t border-border mt-1">
                 Press 0–9 to switch · tick boxes (or Alt+click / Alt+number) to view several inboxes at once
