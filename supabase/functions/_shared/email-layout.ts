@@ -7,6 +7,8 @@
  * every inbox / brand can have its own look without touching this file.
  */
 
+import { FOOTER_THEME, resolveBrandTheme, type BrandTheme } from './brand-theme.ts';
+
 export interface EmailLayoutOptions {
   /** Main message body, already HTML. */
   bodyHtml: string;
@@ -14,30 +16,31 @@ export interface EmailLayoutOptions {
   signatureHtml?: string | null;
   /** Header markup (logo, brand name, tagline...). Empty hides the header. */
   headerContent?: string | null;
-  /** Footer markup. Empty hides the footer. */
+  /** Footer markup. Empty falls back to the brand name line. */
   footerContent?: string | null;
   headerBackgroundColor?: string | null;
   headerTextColor?: string | null;
+  /** @deprecated footer colors are fixed (dark gray) for every brand. */
   footerBackgroundColor?: string | null;
+  /** @deprecated footer colors are fixed (dark gray) for every brand. */
   footerTextColor?: string | null;
   bodyBackgroundColor?: string | null;
   bodyTextColor?: string | null;
   /** Brand / inbox name, used as a fallback header when no header content is set. */
   brandName?: string | null;
+  /** Explicit brand theme; resolved from brandName when omitted. */
+  brandTheme?: BrandTheme | null;
   /** Short text shown in the inbox preview line (hidden in the email body). */
   preheader?: string | null;
 }
 
 const FALLBACK = {
-  headerBg: '#FFFFFF',
-  headerText: '#111827',
-  footerBg: '#F8F9FA',
-  footerText: '#6B7280',
   bodyBg: '#FFFFFF',
-  bodyText: '#374151',
-  pageBg: '#F3F4F6',
+  bodyText: '#1F1F1F',
+  pageBg: '#F7F6FA',
   border: '#E5E7EB',
 };
+
 
 const FONT_STACK =
   "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
