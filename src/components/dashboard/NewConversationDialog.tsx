@@ -62,6 +62,9 @@ function parseEmails(raw: string): string[] {
 
 export const NewConversationDialog: React.FC<NewConversationDialogProps> = ({ children }) => {
   const [open, setOpen] = useState(false);
+  // Two-step flow: pick recipients first, then a fullscreen compose window.
+  const [step, setStep] = useState<'recipients' | 'compose'>('recipients');
+
   const [customerEmail, setCustomerEmail] = useState('');
   const [customerName, setCustomerName] = useState('');
   const [subject, setSubject] = useState('');
