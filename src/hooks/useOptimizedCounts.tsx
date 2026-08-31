@@ -3,6 +3,7 @@ import { useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNetworkErrorHandler } from './useNetworkErrorHandler';
 import { useAuth } from './useAuth';
+import { sortInboxesByName } from '@/lib/sortInboxes';
 
 export interface OptimizedCounts {
   conversations: {
