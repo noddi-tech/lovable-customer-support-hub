@@ -154,19 +154,18 @@ export const NoddiCustomerSearch = ({
 
   const handleSelectCustomer = (customer: Customer) => {
     onSelectCustomer(customer);
-    setSearchFirstName('');
-    setSearchLastName('');
+    setSearchName('');
     setAlternativeEmail('');
     setSearchResults([]);
   };
 
   const handleClearCustomer = () => {
     onSelectCustomer(null);
-    setSearchFirstName('');
-    setSearchLastName('');
+    setSearchName('');
     setAlternativeEmail('');
     setSearchResults([]);
   };
+
 
   if (selectedCustomer) {
     return (
