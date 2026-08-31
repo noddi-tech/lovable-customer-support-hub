@@ -108,15 +108,11 @@ export const ConversationStatusContextMenu: React.FC<ConversationStatusContextMe
                 <div className="px-3 py-4 text-sm text-muted-foreground">No people found</div>
               )}
             </div>
-            {assignedToId && (
-              <>
-                <ContextMenuSeparator />
-                <ContextMenuItem onSelect={() => assign(conversationId, null)}>
-                  <UserMinus className="w-4 h-4 mr-2" />
-                  Unassign
-                </ContextMenuItem>
-              </>
-            )}
+            <ContextMenuSeparator />
+            <ContextMenuItem onSelect={() => assign(conversationId, null)}>
+              <UserMinus className="w-4 h-4 mr-2" />
+              Unassign
+            </ContextMenuItem>
           </ContextMenuSubContent>
         </ContextMenuSub>
         <ContextMenuSeparator />
