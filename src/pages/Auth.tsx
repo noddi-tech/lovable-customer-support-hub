@@ -12,6 +12,7 @@ import { useNavigate } from 'react-router-dom';
 import { Lock, AlertCircle } from 'lucide-react';
 import { isPasswordLoginEnabled } from '@/lib/auth-features';
 import { logger } from '@/utils/logger';
+import { enablePreviewBypass, isDevPreview } from '@/lib/dev-preview-auth';
 
 // Error keys that may arrive as `?error=` when a sign-in bounces back to /auth.
 // `not_authenticated` is intentionally omitted — landing on the login page
@@ -350,6 +351,20 @@ export const Auth: React.FC = () => {
           </svg>
           Sign in with Google
         </Button>
+
+        {isDevPreview() && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full text-xs text-muted-foreground"
+            onClick={() => {
+              enablePreviewBypass();
+              navigate(nextPath || '/', { replace: true });
+            }}
+          >
+            Skip sign-in (dev preview)
+          </Button>
+        )}
 
         {error && (
           <Alert variant="destructive" className="py-2">
