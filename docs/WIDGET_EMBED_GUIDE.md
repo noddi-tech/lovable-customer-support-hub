@@ -35,7 +35,7 @@ The `q` queue means you can call `NoddiWidget(...)` before the script finishes l
 | `position` | `'bottom-right' \| 'bottom-left'` | admin config | Overrides the position configured in admin. |
 | `showButton` | `boolean` | `true` | Set `false` to hide the floating launcher and open the widget yourself. |
 | `onReady` | `() => void` | — | Called when the widget is mounted and programmatic commands are available. |
-| `locale` | `string` | — | Visitor language (BCP-47, e.g. `nb-NO`). Max 20 chars. |
+| `locale` | `string` | — | Visitor language (BCP-47, e.g. `nb-NO`, `en-US`, `sv-SE`, or the frontend codes `nb` / `en` / `se`). Maps to the widget UI languages `no` / `en` / `sv`; anything else falls back to `no`. Sent on `init` or `update` it always wins over the visitor's previously stored language choice. Max 20 chars. |
 | `environment` | `string` | — | `production` / `staging` / `development`. Non-production is badged in the hub so agents can ignore test noise. Max 20 chars. |
 | `sourceApp` | `string` | — | Product surface using this widget key, e.g. `customer`, `partner`, `marketing`. Max 40 chars. |
 | `userId` | `string \| number` | — | User id of the logged-in visitor — lets agents skip manual customer matching. |
