@@ -471,6 +471,30 @@ export const sanitizeEmailHTML = (
       return match;
     });
 
+  // Route remote images through the server-side proxy so emails render with
+  // their original artwork (logos, banners, spacers) without exposing the
+  // agent's IP/cookies to the sender. Runs before sanitization so the final
+  // src is an https URL DOMPurify accepts.
+  processedContent = processedContent.replace(
+    /<img\b[^>]*>/gi,
+    (imgTag) => {
+      const srcMatch = imgTag.match(/\ssrc=["']([^"']+)["']/i);
+      const src = srcMatch?.[1];
+      if (!src) return imgTag;
+      if (!/^https?:\/\//i.test(src)) return imgTag;
+      // Already an app-owned URL (attachments / proxy) — leave alone.
+      if (src.includes('/functions/v1/get-attachment') || src.includes('/functions/v1/email-image-proxy')) {
+        return imgTag;
+      }
+      const proxied = buildEmailImageProxyUrl(src);
+      return imgTag
+        .replace(srcMatch![0], ` src="${proxied}"`)
+        // srcset would bypass the proxy, so drop it.
+        .replace(/\ssrcset=["'][^"']*["']/gi, '')
+        + '';
+    }
+  ).replace(/\sdata-proxied-src=["'][^"']*["']/gi, '');
+
   // Sanitize the HTML
   const sanitized = DOMPurify.sanitize(processedContent, config);
   // Clean up hooks to avoid leaking across calls
