@@ -228,7 +228,61 @@ const WIDGET_JS = `
     spinner: '<svg class="noddi-widget-spinner" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" opacity="0.25"></circle><path d="M12 2a10 10 0 0 1 10 10" opacity="0.75"></path></svg>'
   };
 
+  // ========== VISITOR IDENTITY ==========
+  // Host-supplied identity (init/identify/update). Persisted so a reload keeps
+  // the visitor identified. Never trusted server-side for authorisation.
+  var IDENTITY_STORAGE_KEY = 'noddi_widget_identity';
+  var IDENTITY_LIMITS = { name: 100, email: 255, phone: 40, userId: 100 };
+  var identity = readStoredIdentity();
+
+  function readStoredIdentity() {
+    try {
+      const raw = localStorage.getItem(IDENTITY_STORAGE_KEY);
+      const parsed = raw ? JSON.parse(raw) : null;
+      return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch (e) {
+      return {};
+    }
+  }
+
+  function persistIdentity() {
+    try {
+      localStorage.setItem(IDENTITY_STORAGE_KEY, JSON.stringify(identity));
+    } catch (e) {}
+  }
+
+  function setIdentity(value) {
+    if (!value || typeof value !== 'object') return;
+    const next = {};
+    Object.keys(IDENTITY_LIMITS).forEach(function (key) {
+      const raw = value[key] !== undefined ? value[key] : (key === 'userId' ? value.user_id : undefined);
+      if (raw === undefined || raw === null) return;
+      const str = String(raw).trim().slice(0, IDENTITY_LIMITS[key]);
+      if (str) next[key] = str;
+    });
+    identity = Object.assign({}, identity, next);
+    persistIdentity();
+  }
+
+  function clearIdentity() {
+    identity = {};
+    try { localStorage.removeItem(IDENTITY_STORAGE_KEY); } catch (e) {}
+  }
+
+  function isIdentified() {
+    return !!(identity.email || identity.userId);
+  }
+
+  function escapeAttr(value) {
+    return String(value == null ? '' : value)
+      .replace(/&/g, '&amp;')
+      .replace(/"/g, '&quot;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  }
+
   // ========== STATE ==========
+
   let apiUrl = '';
   let config = null;
   let configLoading = false;
@@ -553,8 +607,8 @@ const WIDGET_JS = `
         html += '<button class="noddi-widget-back" data-action="back">' + icons.back + t.back + '</button>';
         html += '<h4 style="font-size:16px;font-weight:600;color:#1f2937;margin-bottom:16px">' + t.enterEmailToContinue + '</h4>';
         html += '<form class="noddi-widget-form" data-form="prechat">';
-        html += '<div class="noddi-widget-field"><label>' + t.email + ' *</label><input type="email" name="email" placeholder="your@email.com" value="' + (state.prechatEmail || '') + '" maxlength="255" required></div>';
-        html += '<div class="noddi-widget-field"><label>' + t.name + ' <span style="color:#9ca3af;font-weight:normal">(' + t.optional + ')</span></label><input type="text" name="name" placeholder="' + t.yourName + '" value="' + (state.prechatName || '') + '" maxlength="100"></div>';
+        html += '<div class="noddi-widget-field"><label>' + t.email + ' *</label><input type="email" name="email" placeholder="your@email.com" value="' + escapeAttr(state.prechatEmail || identity.email || '') + '" maxlength="255" required></div>';
+        html += '<div class="noddi-widget-field"><label>' + t.name + ' <span style="color:#9ca3af;font-weight:normal">(' + t.optional + ')</span></label><input type="text" name="name" placeholder="' + t.yourName + '" value="' + escapeAttr(state.prechatName || identity.name || '') + '" maxlength="100"></div>';
         if (state.error) html += '<div class="noddi-widget-error">' + state.error + '</div>';
         html += '<button type="submit" class="noddi-widget-submit" style="background-color:' + config.primaryColor + '"' + (state.isLoading ? ' disabled' : '') + '>' + (state.isLoading ? t.startingChat : t.startChat) + '</button>';
         html += '</form></div>';
@@ -563,8 +617,8 @@ const WIDGET_JS = `
         html += '<div class="noddi-widget-view">';
         html += '<button class="noddi-widget-back" data-action="back">' + icons.back + t.back + '</button>';
         html += '<form class="noddi-widget-form" data-form="contact">';
-        html += '<div class="noddi-widget-field"><label>' + t.name + '</label><input type="text" name="name" placeholder="' + t.yourName + '" maxlength="100"></div>';
-        html += '<div class="noddi-widget-field"><label>' + t.email + '</label><input type="email" name="email" placeholder="your@email.com" maxlength="255"></div>';
+        html += '<div class="noddi-widget-field"><label>' + t.name + '</label><input type="text" name="name" placeholder="' + t.yourName + '" value="' + escapeAttr(identity.name || '') + '" maxlength="100"></div>';
+        html += '<div class="noddi-widget-field"><label>' + t.email + '</label><input type="email" name="email" placeholder="your@email.com" value="' + escapeAttr(identity.email || '') + '" maxlength="255"></div>';
         html += '<div class="noddi-widget-field"><label>' + t.message + '</label><textarea name="message" placeholder="' + t.howCanWeHelp + '" rows="4" maxlength="2000"></textarea></div>';
         if (state.error) html += '<div class="noddi-widget-error">' + state.error + '</div>';
         html += '<button type="submit" class="noddi-widget-submit" style="background-color:' + config.primaryColor + '"' + (state.isLoading ? ' disabled' : '') + '>' + (state.isLoading ? t.sending : t.sendMessageBtn) + '</button>';
@@ -738,8 +792,8 @@ const WIDGET_JS = `
         e.preventDefault();
         const t = getT(state.lang);
         const fd = new FormData(contactForm);
-        const name = (fd.get('name') || '').trim();
-        const email = (fd.get('email') || '').trim();
+        const name = ((fd.get('name') || '').trim()) || (identity.name || '');
+        const email = ((fd.get('email') || '').trim()) || (identity.email || '');
         const message = (fd.get('message') || '').trim();
 
         if (!name || !email || !message) {
@@ -805,8 +859,8 @@ const WIDGET_JS = `
         e.preventDefault();
         const t = getT(state.lang);
         const fd = new FormData(prechatForm);
-        const email = (fd.get('email') || '').trim();
-        const name = (fd.get('name') || '').trim();
+        const email = ((fd.get('email') || '').trim()) || (identity.email || '');
+        const name = ((fd.get('name') || '').trim()) || (identity.name || '');
 
         if (!email) {
           state.error = t.emailRequired;
@@ -882,9 +936,35 @@ const WIDGET_JS = `
       state.searchResults = [];
       state.expandedResult = null;
     } else if (action === 'start-chat') {
-      // Redirect to prechat form to collect email first
-      state.view = 'prechat';
-      state.error = null;
+      if (isIdentified()) {
+        // Host already identified the visitor — skip the pre-chat form.
+        const email = identity.email || '';
+        const name = identity.name || '';
+        state.prechatEmail = email;
+        state.prechatName = name;
+        state.error = null;
+        state.isLoading = true;
+        state.view = 'prechat';
+        render();
+        const session = await startChat(config.widgetKey, getVisitorId(), email, name);
+        state.isLoading = false;
+        if (session) {
+          state.chatSession = session;
+          saveSession(session);
+          const data = await getMessages(session.id);
+          state.chatMessages = data.messages || [];
+          state.agentTyping = data.agentTyping || false;
+          if (data.assignedAgentName) state.chatSession.assignedAgentName = data.assignedAgentName;
+          state.view = 'chat';
+          startPolling();
+        } else {
+          state.error = 'Unable to start chat';
+        }
+      } else {
+        // Collect email first
+        state.view = 'prechat';
+        state.error = null;
+      }
     } else if (action === 'send-chat') {
       const input = container.querySelector('[data-chat-input]');
       const content = (input && input.value || '').trim();
@@ -1094,6 +1174,10 @@ const WIDGET_JS = `
     // Host-provided locale wins over a stale stored choice.
     hostLocale = normalizeLang((options && (options.locale || (options.context && options.context.locale))) || null);
     allowedLangs = sanitizeSupportedLocales(options && options.supportedLocales);
+    if (options && options.identity !== undefined) {
+      if (options.identity === null) clearIdentity();
+      else setIdentity(options.identity);
+    }
     if (options && typeof options.enableKnowledgeSearch === 'boolean') {
       hostEnableKnowledgeSearch = options.enableKnowledgeSearch;
     }
@@ -1136,6 +1220,11 @@ const WIDGET_JS = `
   function update(opts) {
     if (!opts || typeof opts !== 'object') return;
     let changed = false;
+    if (opts.identity !== undefined) {
+      if (opts.identity === null) clearIdentity();
+      else setIdentity(opts.identity);
+      changed = true;
+    }
     if (opts.supportedLocales !== undefined) {
       allowedLangs = sanitizeSupportedLocales(opts.supportedLocales);
       changed = true;
@@ -1166,11 +1255,30 @@ const WIDGET_JS = `
     else if (cmd === 'close') { state.isOpen = false; render(); }
     else if (cmd === 'toggle') { state.isOpen = !state.isOpen; render(); }
     else if (cmd === 'update') update(opts);
+    else if (cmd === 'identify') applyIdentify(opts);
+    else if (cmd === 'clearIdentity') applyClearIdentity();
   };
+
+  function applyIdentify(opts) {
+    if (opts === null || opts === undefined) { applyClearIdentity(); return; }
+    setIdentity(opts);
+    if (container) render();
+  }
+
+  function applyClearIdentity() {
+    clearIdentity();
+    state.prechatEmail = '';
+    state.prechatName = '';
+    if (container) render();
+  }
+
   api.init = init;
   api.open = function() { state.isOpen = true; render(); };
   api.close = function() { state.isOpen = false; render(); };
   api.toggle = function() { state.isOpen = !state.isOpen; render(); };
+  api.identify = applyIdentify;
+  api.clearIdentity = applyClearIdentity;
+  api.getIdentity = function() { return Object.assign({}, identity); };
   api.update = update;
 
   api.q = (window.NoddiWidget && window.NoddiWidget.q) || [];
