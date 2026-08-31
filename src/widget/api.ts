@@ -294,7 +294,8 @@ export async function submitContactForm(
       }
       return { success: false, error: errorData.error || 'Failed to submit' };
     }
-    return { success: true };
+    const body = await response.json().catch(() => ({}));
+    return { success: true, conversationId: body?.conversationId };
   } catch (error) {
     console.error('[Noddi Widget] Error submitting form:', error);
     return { success: false, error: 'Something went wrong, please try again later' };
