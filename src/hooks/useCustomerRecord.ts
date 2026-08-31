@@ -68,7 +68,7 @@ export function useCustomerIdentities(customerId?: string | null) {
         .eq('customer_id', customerId)
         .order('is_primary', { ascending: false });
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []) as CustomerIdentity[];
     },
   });
 }
@@ -87,7 +87,7 @@ export function useCustomerConversations(customerId?: string | null, excludeConv
       if (excludeConversationId) q = q.neq('id', excludeConversationId);
       const { data, error } = await q;
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []) as CustomerConversationSummary[];
     },
   });
 }
@@ -174,7 +174,7 @@ export function useCustomerNotes(customerId?: string | null) {
         .order('is_pinned', { ascending: false })
         .order('created_at', { ascending: false });
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []) as CustomerNote[];
     },
   });
 }

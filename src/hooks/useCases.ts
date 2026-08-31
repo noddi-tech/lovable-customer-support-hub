@@ -139,7 +139,7 @@ export function useCases(filters: CaseFilters = {}) {
 
       const { data, error } = await q;
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []) as CaseRecord[];
     },
   });
 }
@@ -185,7 +185,7 @@ export function useCaseEvents(caseId?: string | null) {
         .eq('case_id', caseId)
         .order('created_at', { ascending: false });
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []) as CaseEventRecord[];
     },
   });
 }
@@ -200,7 +200,7 @@ export function useCaseConversations(caseId?: string | null) {
         .eq('case_id', caseId)
         .order('updated_at', { ascending: false });
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []) as Array<{ id: string; subject: string | null; channel: string; status: string; updated_at: string; preview_text: string | null; received_at: string | null }>;
     },
   });
 }
@@ -216,7 +216,7 @@ export function useCaseCategories() {
         .eq('is_active', true)
         .order('sort_order');
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []) as Array<{ id: string; name: string; slug: string; color: string | null; sort_order: number; is_active: boolean }>;
     },
   });
 }
@@ -232,7 +232,7 @@ export function useCaseResolutionCodes() {
         .eq('is_active', true)
         .order('sort_order');
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []) as Array<{ id: string; name: string; slug: string; sort_order: number; is_active: boolean }>;
     },
   });
 }
