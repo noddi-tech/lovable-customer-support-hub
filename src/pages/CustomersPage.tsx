@@ -143,9 +143,22 @@ export default function CustomersPage() {
                           <Phone className="h-3 w-3" /> {c.phone}
                         </span>
                       )}
+                      {c.brands.map((b) => (
+                        <Badge key={b} variant="outline" className="h-5 px-1.5 text-[10px] font-normal">
+                          {b}
+                        </Badge>
+                      ))}
                     </div>
                   </div>
                   <div className="flex shrink-0 items-center gap-3">
+                    {c.statuses.includes('open') && (
+                      <Badge className="hidden sm:inline-flex">Open</Badge>
+                    )}
+                    {!c.statuses.includes('open') && c.statuses.includes('pending') && (
+                      <Badge variant="outline" className="hidden sm:inline-flex">
+                        Pending
+                      </Badge>
+                    )}
                     <Badge variant="secondary" className="gap-1">
                       <MessageSquare className="h-3 w-3" />
                       {c.conversation_count}
