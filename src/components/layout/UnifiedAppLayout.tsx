@@ -17,6 +17,9 @@ export const UnifiedAppLayout: React.FC<UnifiedAppLayoutProps> = ({
   const location = useLocation();
   const section = location.pathname.split('/').slice(0, 3).join('/');
 
+  // Desktop notifications for newly arrived emails (opt-in, per device)
+  useDesktopEmailNotifications();
+
   // Global Cmd+K / Ctrl+K shortcut
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
