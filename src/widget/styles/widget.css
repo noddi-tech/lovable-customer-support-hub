@@ -780,6 +780,26 @@
   color: #6b7280;
 }
 
+.noddi-chat-status-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.noddi-chat-resolve-button {
+  background: none;
+  border: none;
+  color: #16a34a;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.noddi-chat-resolve-button:hover {
+  background: #f0fdf4;
+}
+
 .noddi-chat-end-button {
   background: none;
   border: none;
