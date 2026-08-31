@@ -37,6 +37,17 @@ const WIDGET_JS = `
     return null;
   }
 
+  // Host gate for the help-centre home action (init/update
+  // enableKnowledgeSearch). undefined = host has no opinion.
+  var hostEnableKnowledgeSearch;
+
+  // Effective help-centre visibility: host false always wins, host true still
+  // requires the admin flag, host omitted keeps the admin flag alone.
+  function knowledgeSearchEnabled() {
+    if (hostEnableKnowledgeSearch === false) return false;
+    return !!(config && config.enableKnowledgeSearch);
+  }
+
   // Host-provided allow-list (init/update supportedLocales), already mapped
   // to widget UI codes. Empty = offer everything the widget ships.
   var allowedLangs = [];
@@ -526,7 +537,7 @@ const WIDGET_JS = `
           html += '<div class="noddi-widget-action-text"><span class="noddi-widget-action-title">' + t.sendMessage + '</span><span class="noddi-widget-action-subtitle">' + t.leaveMessage + '</span></div></button>';
         }
 
-        if (config.enableKnowledgeSearch) {
+        if (knowledgeSearchEnabled()) {
           html += '<button class="noddi-widget-action" data-action="search">';
           html += '<div class="noddi-widget-action-icon" style="background-color:' + hexToRgba(config.primaryColor, 0.1) + '">';
           html += '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="' + config.primaryColor + '" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>';
@@ -1083,6 +1094,9 @@ const WIDGET_JS = `
     // Host-provided locale wins over a stale stored choice.
     hostLocale = normalizeLang((options && (options.locale || (options.context && options.context.locale))) || null);
     allowedLangs = sanitizeSupportedLocales(options && options.supportedLocales);
+    if (options && typeof options.enableKnowledgeSearch === 'boolean') {
+      hostEnableKnowledgeSearch = options.enableKnowledgeSearch;
+    }
     state.lang = hostLocale || normalizeLang(getStoredLang()) || normalizeLang(config.language) || 'no';
     enforceAllowedLang();
     console.log('[Noddi] Language set to:', state.lang);
@@ -1124,6 +1138,13 @@ const WIDGET_JS = `
     let changed = false;
     if (opts.supportedLocales !== undefined) {
       allowedLangs = sanitizeSupportedLocales(opts.supportedLocales);
+      changed = true;
+    }
+    if (opts.enableKnowledgeSearch !== undefined) {
+      hostEnableKnowledgeSearch =
+        typeof opts.enableKnowledgeSearch === 'boolean' ? opts.enableKnowledgeSearch : undefined;
+      // Leaving the help centre if the host just turned it off.
+      if (!knowledgeSearchEnabled() && state.view === 'search') state.view = 'home';
       changed = true;
     }
     const next = normalizeLang(opts.locale || (opts.context && opts.context.locale));
