@@ -8,7 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CaseStatusBadge, CasePriorityBadge, CaseSlaBadge } from '@/components/cases/CaseBadges';
+import { CaseStatusBadge, CasePriorityBadge, CaseSlaBadge, CASE_PRIORITY_DOT } from '@/components/cases/CaseBadges';
 import { CreateCaseDialog } from '@/components/cases/CreateCaseDialog';
 import {
   CASE_PRIORITY_LABELS,
