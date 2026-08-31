@@ -666,6 +666,9 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
             return multiplier * ((a.subject || '').localeCompare(b.subject || ''));
           case 'channel':
             return multiplier * a.channel.localeCompare(b.channel);
+          case 'inbox':
+            return multiplier * ((a.inbox_id || '').localeCompare(b.inbox_id || ''));
+
           case 'waiting':
           case 'received':
             // Use received_at (last message arrival) for sorting, fallback to updated_at
