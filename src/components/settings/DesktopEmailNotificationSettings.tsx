@@ -2,13 +2,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { MonitorSmartphone } from 'lucide-react';
+import { MonitorSmartphone, ExternalLink, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { useBrowserNotifications } from '@/hooks/useBrowserNotifications';
 import { useDesktopEmailNotificationsSetting } from '@/hooks/useDesktopEmailNotifications';
 
+/** The Lovable preview runs inside an iframe, where browsers block notification prompts. */
+const isInIframe = typeof window !== 'undefined' && window.self !== window.top;
+
 export function DesktopEmailNotificationSettings() {
-  const { permission, isSupported, requestPermission } = useBrowserNotifications();
+  const { permission, isSupported, requestPermission, refreshPermission } = useBrowserNotifications();
   const { enabled, setEnabled } = useDesktopEmailNotificationsSetting();
 
   const handleToggle = async (checked: boolean) => {
