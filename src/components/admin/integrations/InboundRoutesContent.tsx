@@ -10,6 +10,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Copy, Inbox, ArrowDownToLine, ArrowUpFromLine, ChevronDown, Info, Send } from 'lucide-react';
 import { sortInboxesByName } from '@/lib/sortInboxes';
+import { ForwardingSetupDocs } from './ForwardingSetupDocs';
+
 
 interface InboundRoute {
   id: string;
@@ -305,14 +307,11 @@ export const InboundRoutesContent = () => {
 
               <Separator />
 
-              <div className="space-y-2 text-sm text-muted-foreground">
-                <p className="font-medium text-foreground">Forwarding setup instructions</p>
-                <ul className="list-disc pl-5 space-y-1">
-                  <li>In Google Workspace: set up email forwarding from your public address to the parse address above.</li>
-                  <li>For Google Groups: add the parse address as a member and allow external senders.</li>
-                  <li>Send a test email to verify it appears in the linked inbox.</li>
-                </ul>
-              </div>
+              <ForwardingSetupDocs
+                parseAddress={selectedRoute.address}
+                publicEmail={selectedRoute.group_email || publicEmail}
+              />
+
             </div>
           )}
 
