@@ -14,6 +14,7 @@ export interface WidgetContext {
   user_id?: string;
   service_department_id?: string;
   booking_id?: string;
+  booking_slug?: string;
   order_id?: string;
   license_plate?: string;
   car?: string;
@@ -28,6 +29,7 @@ const FIELD_LIMITS: Record<keyof WidgetContext, number> = {
   user_id: 64,
   service_department_id: 64,
   booking_id: 64,
+  booking_slug: 80,
   order_id: 64,
   license_plate: 16,
   car: 80,
