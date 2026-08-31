@@ -50,7 +50,7 @@ export const CASE_STATUS_ICON_COLORS: Record<CaseStatus, string> = {
 };
 
 export function CaseStatusBadge({ status, className }: { status: CaseStatus; className?: string }) {
-  const Icon = STATUS_ICONS[status];
+  const Icon = CASE_STATUS_ICONS[status];
   return (
     <Badge variant="outline" className={cn('gap-1 font-medium', STATUS_STYLES[status], className)}>
       <Icon className="h-3 w-3" />
