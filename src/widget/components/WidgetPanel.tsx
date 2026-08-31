@@ -14,7 +14,16 @@ import {
   type ChatEscalation,
 } from '../api';
 import { PreChatForm } from './PreChatForm';
-import { getWidgetTranslations, getLocalizedGreeting, getLocalizedResponseTime, SUPPORTED_WIDGET_LANGUAGES } from '../translations';
+import {
+  getWidgetTranslations,
+  getLocalizedGreeting,
+  getLocalizedResponseTime,
+  SUPPORTED_WIDGET_LANGUAGES,
+  DEFAULT_WIDGET_LANGUAGE,
+  normalizeWidgetLanguage,
+} from '../translations';
+import { getWidgetContext } from '../api';
+
 
 interface WidgetPanelProps {
   config: WidgetConfig;
