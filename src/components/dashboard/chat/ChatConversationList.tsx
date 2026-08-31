@@ -1,11 +1,15 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
-import { MessageCircle, Search } from 'lucide-react';
+import { MessageCircle, Search, X } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { useBulkRangeSelect } from '@/hooks/useBulkRangeSelect';
+import { useConversationStatusActions } from '@/hooks/useConversationStatusActions';
 import { ChatListItem } from './ChatListItem';
 import {
   Select,
@@ -53,6 +57,8 @@ export const ChatConversationList: React.FC<ChatConversationListProps> = ({
   const organizationId = profile?.organization_id;
   const [searchQuery, setSearchQuery] = useState('');
   const [brandFilter, setBrandFilter] = useState<string>('all');
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const { setStatus } = useConversationStatusActions();
 
   const { data: conversations = [], isLoading } = useQuery({
     queryKey: ['chat-conversations', organizationId, filter],
@@ -158,6 +164,45 @@ export const ChatConversationList: React.FC<ChatConversationListProps> = ({
     });
   }, [conversations, searchQuery, brandFilter]);
 
+  const orderedIds = useMemo(
+    () => filteredConversations.map(c => c.id),
+    [filteredConversations],
+  );
+
+  const setSelection = useCallback((ids: string[], selected: boolean) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      ids.forEach(id => (selected ? next.add(id) : next.delete(id)));
+      return next;
+    });
+  }, []);
+
+  const handleBulkSelect = useBulkRangeSelect(orderedIds, setSelection);
+  const selectionMode = selectedIds.size > 0;
+
+  // Drop selections for chats that are no longer in the list
+  useEffect(() => {
+    setSelectedIds(prev => {
+      if (prev.size === 0) return prev;
+      const visible = new Set(orderedIds);
+      const next = new Set([...prev].filter(id => visible.has(id)));
+      return next.size === prev.size ? prev : next;
+    });
+  }, [orderedIds]);
+
+  const applyBulkStatus = useCallback(
+    async (status: 'open' | 'pending' | 'closed') => {
+      const ids = [...selectedIds];
+      await Promise.all(ids.map(id => setStatus(id, status)));
+      setSelectedIds(new Set());
+    },
+    [selectedIds, setStatus],
+  );
+
+  const allSelected =
+    filteredConversations.length > 0 &&
+    filteredConversations.every(c => selectedIds.has(c.id));
+
   if (isLoading) {
     return (
       <div className="space-y-2 p-2">
@@ -210,6 +255,33 @@ export const ChatConversationList: React.FC<ChatConversationListProps> = ({
         </Select>
       </div>
 
+      {selectionMode && (
+        <div className="flex items-center gap-2 border-b bg-muted/50 px-2 py-2">
+          <Checkbox
+            checked={allSelected}
+            onCheckedChange={(checked) =>
+              setSelection(orderedIds, checked === true)
+            }
+            aria-label="Select all chats"
+          />
+          <span className="text-xs font-medium">{selectedIds.size} selected</span>
+          <div className="ml-auto flex items-center gap-1">
+            <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => applyBulkStatus('open')}>
+              Open
+            </Button>
+            <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => applyBulkStatus('pending')}>
+              Pending
+            </Button>
+            <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => applyBulkStatus('closed')}>
+              Close
+            </Button>
+            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setSelectedIds(new Set())} aria-label="Clear selection">
+              <X className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        </div>
+      )}
+
       {filteredConversations.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-12 text-center px-4">
           <MessageCircle className="h-12 w-12 text-muted-foreground/40 mb-4" />
@@ -235,6 +307,9 @@ export const ChatConversationList: React.FC<ChatConversationListProps> = ({
                 conv={conv}
                 isSelected={selectedId === conv.id}
                 onSelect={() => onSelect(conv.id)}
+                isBulkSelected={selectedIds.has(conv.id)}
+                selectionMode={selectionMode}
+                onBulkSelect={handleBulkSelect}
               />
             ))}
           </div>
