@@ -16,8 +16,13 @@ import {
   disablePreviewBypass,
   enablePreviewBypass,
   getDevLoginCredentials,
+  getRememberedDevLogin,
+  rememberDevLogin,
+  forgetDevLogin,
   isDevPreview,
+  DEV_LOGIN_DEFAULT_EMAIL,
 } from '@/lib/dev-preview-auth';
+
 
 // Error keys that may arrive as `?error=` when a sign-in bounces back to /auth.
 // `not_authenticated` is intentionally omitted — landing on the login page
@@ -65,6 +70,11 @@ export const Auth: React.FC = () => {
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [isRecoveryMode, setIsRecoveryMode] = useState(false);
+  const [devEmail, setDevEmail] = useState(
+    () => getDevLoginCredentials()?.email || getRememberedDevLogin()?.email || DEV_LOGIN_DEFAULT_EMAIL,
+  );
+  const [devPassword, setDevPassword] = useState(() => getDevLoginCredentials()?.password || '');
+
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -198,10 +208,10 @@ export const Auth: React.FC = () => {
     }
   };
 
-  // Dev-only: sign in as the configured admin test user with a REAL session.
+  // Dev-only: sign in as a real user (real JWT + RLS scope) with one click.
   const handleDevSignIn = async () => {
-    const creds = getDevLoginCredentials();
-    if (!creds) return;
+    const creds = { email: devEmail.trim(), password: devPassword };
+    if (!creds.email || !creds.password) return;
     setLoading(true);
     setError('');
     try {
@@ -209,13 +219,15 @@ export const Auth: React.FC = () => {
       disablePreviewBypass();
       const { error } = await supabase.auth.signInWithPassword(creds);
       if (error) throw error;
+      rememberDevLogin(creds.email, creds.password);
       navigate(nextPath || '/', { replace: true });
     } catch (err: any) {
-      setError(err?.message || 'Dev sign-in failed. Check VITE_DEV_LOGIN_* in .env.');
+      setError(err?.message || 'Dev sign-in failed — check the email/password.');
     } finally {
       setLoading(false);
     }
   };
+
 
   const handlePasswordUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -376,17 +388,52 @@ export const Auth: React.FC = () => {
           Sign in with Google
         </Button>
 
-        {getDevLoginCredentials() && (
-          <Button
-            variant="secondary"
-            size="sm"
-            className="w-full"
-            onClick={handleDevSignIn}
-            disabled={loading}
-          >
-            Dev sign-in (real session)
-          </Button>
+        {isDevPreview() && (
+          <div className="rounded-md border border-dashed border-muted-foreground/40 p-3 space-y-2">
+            <p className="text-xs font-medium text-muted-foreground">
+              Dev sign-in (real session, dev build only)
+            </p>
+            <Input
+              type="email"
+              value={devEmail}
+              onChange={(e) => setDevEmail(e.target.value)}
+              placeholder="user@noddi.no"
+              className="h-8 text-xs"
+              autoComplete="off"
+            />
+            <Input
+              type="password"
+              value={devPassword}
+              onChange={(e) => setDevPassword(e.target.value)}
+              placeholder="password (remembered in this browser)"
+              className="h-8 text-xs"
+              autoComplete="off"
+            />
+            <div className="flex gap-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                className="flex-1"
+                onClick={handleDevSignIn}
+                disabled={loading || !devEmail || !devPassword}
+              >
+                Sign in as {devEmail || 'test user'}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-xs text-muted-foreground"
+                onClick={() => {
+                  forgetDevLogin();
+                  setDevPassword('');
+                }}
+              >
+                Forget
+              </Button>
+            </div>
+          </div>
         )}
+
 
         {isDevPreview() && (
           <Button

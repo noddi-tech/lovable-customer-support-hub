@@ -51,8 +51,50 @@ export function disablePreviewBypass(): void {
  */
 export function getDevLoginCredentials(): { email: string; password: string } | null {
   if (!isDevPreview()) return null;
-  const email = import.meta.env.VITE_DEV_LOGIN_EMAIL as string | undefined;
-  const password = import.meta.env.VITE_DEV_LOGIN_PASSWORD as string | undefined;
+  const email = (import.meta.env.VITE_DEV_LOGIN_EMAIL as string | undefined) || getRememberedDevLogin()?.email;
+  const password =
+    (import.meta.env.VITE_DEV_LOGIN_PASSWORD as string | undefined) || getRememberedDevLogin()?.password;
   if (!email || !password) return null;
   return { email, password };
 }
+
+/** Default email shown in the dev sign-in box when nothing is configured yet. */
+export const DEV_LOGIN_DEFAULT_EMAIL = 'anders@noddi.no';
+
+const REMEMBER_KEY = 'dev:preview-login';
+
+/**
+ * Credentials the developer typed once in the dev sign-in box, kept in this
+ * browser only so later sign-ins are one click. Dev builds only — never read
+ * in production (isDevPreview() gate).
+ */
+export function getRememberedDevLogin(): { email: string; password: string } | null {
+  if (!isDevPreview()) return null;
+  try {
+    const raw = localStorage.getItem(REMEMBER_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed?.email || !parsed?.password) return null;
+    return { email: parsed.email, password: parsed.password };
+  } catch {
+    return null;
+  }
+}
+
+export function rememberDevLogin(email: string, password: string): void {
+  if (!isDevPreview()) return;
+  try {
+    localStorage.setItem(REMEMBER_KEY, JSON.stringify({ email, password }));
+  } catch {
+    /* storage unavailable — one-click sign-in simply stays off */
+  }
+}
+
+export function forgetDevLogin(): void {
+  try {
+    localStorage.removeItem(REMEMBER_KEY);
+  } catch {
+    /* no-op */
+  }
+}
+
