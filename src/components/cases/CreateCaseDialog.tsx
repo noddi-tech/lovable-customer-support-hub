@@ -44,8 +44,12 @@ export function CreateCaseDialog({
   const [description, setDescription] = useState('');
   const [priority, setPriority] = useState<CasePriority>('normal');
   const [categoryId, setCategoryId] = useState<string>('');
+  const [customer, setCustomer] = useState<PickedCustomer | null>(null);
   const { data: categories = [] } = useCaseCategories();
   const createCase = useCreateCase();
+
+  // When a customer is passed in (e.g. from a conversation) resolve its label.
+  const { data: presetCustomer } = useCustomerBasics(customerId ?? null);
 
   useEffect(() => {
     if (open) {
@@ -53,15 +57,22 @@ export function CreateCaseDialog({
       setDescription('');
       setPriority('normal');
       setCategoryId('');
+      setCustomer(null);
     }
   }, [open, defaultTitle]);
 
+  useEffect(() => {
+    if (open && presetCustomer) setCustomer(presetCustomer);
+  }, [open, presetCustomer]);
+
+  const selectedCustomerId = customer?.id ?? null;
+
   const handleSubmit = async () => {
-    if (!title.trim()) return;
+    if (!title.trim() || !selectedCustomerId) return;
     const result = await createCase.mutateAsync({
       title: title.trim(),
       description: description.trim() || null,
-      customerId: customerId ?? null,
+      customerId: selectedCustomerId,
       priority,
       categoryId: categoryId || null,
       inboxId: inboxId ?? null,
