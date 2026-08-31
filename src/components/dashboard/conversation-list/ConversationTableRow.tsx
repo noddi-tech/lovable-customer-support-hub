@@ -269,7 +269,16 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
             </div>
             {/* Line 3: Status + Channel + badges */}
             <div className="flex items-center gap-1.5 flex-wrap">
+              {showInboxColumn && (
+                <InboxBadge
+                  compact
+                  name={computedValues.inboxName}
+                  color={computedValues.inboxColor}
+                  email={computedValues.inboxEmail}
+                />
+              )}
               {StatusBadge}
+
               <div className="flex items-center gap-1 text-muted-foreground">
                 <computedValues.ChannelIcon className="h-3 w-3" />
                 <span className="text-[10px] capitalize">
