@@ -1,6 +1,8 @@
 // Public status page for Meta data-deletion requests.
 // Reachable at /data-deletion-status/:code without authentication.
-// RLS allows public SELECT on recruitment_meta_data_deletion_requests by code.
+// The table itself is not publicly readable — lookup goes through the
+// get_meta_deletion_request_status RPC, which returns status fields for one
+// exact confirmation code only.
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
