@@ -45,7 +45,7 @@ export const ChatFilters: React.FC<ChatFiltersProps> = ({
             <Badge 
               variant={currentFilter === filter.key ? "secondary" : "outline"}
               className={cn(
-                "text-[10px] px-1.5 py-0 h-4 min-w-[16px]",
+                "flex items-center justify-center text-[10px] px-1.5 py-0 h-5 min-w-[20px] shrink-0",
                 currentFilter === filter.key && "bg-primary-foreground/20 text-primary-foreground"
               )}
             >
