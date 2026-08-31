@@ -6,6 +6,7 @@ import { useDateFormatting } from '@/hooks/useDateFormatting';
 import { UnifiedAppLayout } from '@/components/layout/UnifiedAppLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { NAV_ITEMS } from '@/navigation/nav-config';
 import { cn } from '@/lib/utils';
