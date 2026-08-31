@@ -10,6 +10,8 @@ import {
   storeChatSession,
   readStoredChatSession,
   isIdentified,
+  readStoredSubmissions,
+  type StoredSubmission,
   type WidgetIdentity,
   type ChatEscalation,
 } from '../api';
