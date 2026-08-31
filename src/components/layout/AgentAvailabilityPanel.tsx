@@ -18,8 +18,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-import { Circle, ChevronDown, Loader2, Phone, MessageSquare, LogIn, LogOut, RefreshCw }  from 'lucide-react';
-import { useRealtimeConnection } from '@/contexts/RealtimeProvider';
+import { Circle, ChevronDown, Loader2, Phone, MessageSquare, LogIn, LogOut }  from 'lucide-react';
 
 interface AgentAvailabilityPanelProps {
   collapsed?: boolean;
@@ -53,59 +52,6 @@ const getInitials = (name: string): string => {
 };
 
 
-const liveUpdatesConfig = {
-  connected: {
-    label: 'Live updates active',
-    dot: 'bg-green-500',
-    description: 'New emails, chats and replies appear instantly — no need to refresh.',
-  },
-  connecting: {
-    label: 'Connecting live updates…',
-    dot: 'bg-muted-foreground',
-    description: 'Establishing the realtime connection to the support backend.',
-  },
-  disconnected: {
-    label: 'Live updates reconnecting',
-    dot: 'bg-yellow-500',
-    description: 'Nothing is lost — emails and chats still arrive, the list just refreshes on a timer.',
-  },
-  error: {
-    label: 'Live updates unavailable',
-    dot: 'bg-destructive',
-    description: 'Realtime is down. Emails and chats still arrive; the app falls back to a 10s refresh.',
-  },
-} as const;
-
-const LiveUpdatesSection: React.FC<{ compact?: boolean }> = ({ compact }) => {
-  const { connectionStatus, forceReconnect } = useRealtimeConnection();
-  const config = liveUpdatesConfig[connectionStatus as keyof typeof liveUpdatesConfig] ?? liveUpdatesConfig.connecting;
-  const degraded = connectionStatus === 'disconnected' || connectionStatus === 'error';
-
-  return (
-    <div className={cn('space-y-1 rounded-lg bg-muted/30 p-1.5', compact && 'bg-transparent p-0')}>
-      <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground">
-        <RefreshCw className="h-2.5 w-2.5" />
-        <span>Live updates</span>
-      </div>
-      <div className="flex items-center gap-2">
-        <span className={cn('h-2 w-2 rounded-full flex-shrink-0', config.dot, connectionStatus === 'connecting' && 'animate-pulse')} />
-        <span className="text-[10px] text-foreground">{config.label}</span>
-      </div>
-      <p className="text-[9px] leading-snug text-muted-foreground">{config.description}</p>
-      {degraded && (
-        <Button
-          variant="link"
-          size="sm"
-          onClick={forceReconnect}
-          className="h-auto p-0 text-[10px] text-primary justify-start"
-        >
-          <RefreshCw className="h-3 w-3 mr-1" />
-          Retry now
-        </Button>
-      )}
-    </div>
-  );
-};
 
 export const AgentAvailabilityPanel: React.FC<AgentAvailabilityPanelProps> = ({ 
   collapsed = false,
@@ -258,10 +204,6 @@ export const AgentAvailabilityPanel: React.FC<AgentAvailabilityPanelProps> = ({
                   )}
                 </div>
               )}
-              {/* Live updates */}
-              <div className="border-t border-border/50 pt-2">
-                <LiveUpdatesSection compact />
-              </div>
             </div>
           </PopoverContent>
         </Popover>
@@ -405,9 +347,6 @@ export const AgentAvailabilityPanel: React.FC<AgentAvailabilityPanelProps> = ({
         </div>
       )}
       
-      {/* Live updates / realtime connection */}
-      <LiveUpdatesSection />
-
       {/* Online agents list */}
       {otherAgents.length > 0 && (
         <div className="pt-2 mt-1 border-t border-border/50">

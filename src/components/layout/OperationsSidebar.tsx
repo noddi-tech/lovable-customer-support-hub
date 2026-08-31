@@ -21,24 +21,16 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
-import { useMyCaseCounts } from '@/hooks/useCases';
-import { SidebarCounter } from '@/components/ui/sidebar-counter';
 
 export const OperationsSidebar: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { data: caseCounts } = useMyCaseCounts();
 
   const isActive = (path: string) => {
     return location.pathname === path || location.pathname.startsWith(path + '/');
   };
 
   const operationsItems = [
-    {
-      title: 'Cases',
-      path: '/operations/cases',
-      icon: Briefcase
-    },
     {
       title: 'Ops Tickets',
       path: '/operations/tickets',
@@ -83,9 +75,6 @@ export const OperationsSidebar: React.FC = () => {
                     <Link to={item.path}>
                       <Icon className="h-4 w-4" />
                       <span>{item.title}</span>
-                      {item.path === '/operations/cases' && !!caseCounts?.mine && (
-                        <SidebarCounter count={caseCounts.mine} className="ml-auto" />
-                      )}
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
