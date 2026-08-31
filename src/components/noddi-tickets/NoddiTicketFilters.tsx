@@ -101,6 +101,7 @@ export function NoddiTicketFilters({ value, onChange, departments }: Props) {
         <Button
           variant="ghost"
           size="sm"
+          className="col-span-2 sm:col-auto"
           onClick={() => onChange({ search: '', priority: 'ALL', category: 'ALL', departmentId: null })}
         >
           <X className="mr-1 h-4 w-4" /> Clear
