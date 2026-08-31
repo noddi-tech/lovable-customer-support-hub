@@ -60,7 +60,7 @@ export const AdminPortal = () => {
         );
 
       case 'inboxes':
-        return <InboxManagement />;
+        return pathParts[2] ? <InboxSettingsPage inboxId={pathParts[2]} /> : <InboxManagement />;
 
       case 'integrations':
         return <IntegrationSettings />;
