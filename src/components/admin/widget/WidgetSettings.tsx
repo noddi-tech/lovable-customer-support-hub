@@ -209,75 +209,81 @@ export const WidgetSettings: React.FC = () => {
         </div>
       </div>
 
-      <div className="flex gap-6">
-        {/* Widget List Sidebar */}
-        <Card className="w-[280px] shrink-0">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <MessageCircle className="h-4 w-4" />
-              Your Widgets
-            </CardTitle>
-            <CardDescription>
-              Select or create a widget
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {widgetConfigs.map((widget) => (
-              <button
-                key={widget.id}
-                onClick={() => setSelectedWidgetId(widget.id)}
-                className={`w-full p-3 rounded-lg border-2 text-left transition-all ${
-                  selectedWidgetId === widget.id
-                    ? 'border-primary bg-primary/10 shadow-md ring-2 ring-primary/20'
-                    : 'border-border hover:border-primary/50 hover:bg-muted/50'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <span className="font-semibold text-sm truncate max-w-[140px]">
-                    {widget.inboxes?.name || 'Unknown Inbox'}
-                  </span>
-                  <Badge 
-                    variant={widget.is_active ? 'default' : 'secondary'} 
-                    className={widget.is_active ? 'bg-green-500 hover:bg-green-500 text-white shrink-0' : 'shrink-0'}
+      <div className="space-y-6">
+        {/* Widget selector (top bar) */}
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+              <div className="space-y-2 w-full sm:max-w-md">
+                <Label className="flex items-center gap-2">
+                  <MessageCircle className="h-4 w-4" />
+                  Widget
+                </Label>
+                {widgetConfigs.length > 0 ? (
+                  <Select
+                    value={selectedWidgetId ?? undefined}
+                    onValueChange={(id) => setSelectedWidgetId(id)}
                   >
-                    {widget.is_active ? 'Active' : 'Inactive'}
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select a widget to configure" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {widgetConfigs.map((widget) => (
+                        <SelectItem key={widget.id} value={widget.id}>
+                          <span className="flex items-center gap-2">
+                            <span className="truncate">{widget.inboxes?.name || 'Unknown Inbox'}</span>
+                            <span className="text-xs text-muted-foreground font-mono">
+                              {widget.widget_key.slice(0, 8)}…
+                            </span>
+                            {!widget.is_active && (
+                              <span className="text-xs text-muted-foreground">(inactive)</span>
+                            )}
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    No widgets yet. Create one to get started.
+                  </p>
+                )}
+              </div>
+
+              <div className="flex items-center gap-3">
+                {selectedWidget && (
+                  <Badge
+                    variant={selectedWidget.is_active ? 'default' : 'secondary'}
+                    className={selectedWidget.is_active ? 'bg-green-500 hover:bg-green-500 text-white' : ''}
+                  >
+                    {selectedWidget.is_active ? 'Active' : 'Inactive'}
                   </Badge>
-                </div>
-                <div className="text-xs text-muted-foreground mt-2 font-mono truncate" title={widget.widget_key}>
-                  {widget.widget_key.slice(0, 12)}...
-                </div>
-              </button>
-            ))}
-
-            {inboxes.length > 0 && (
-              <Select onValueChange={(inboxId) => createWidgetMutation.mutate(inboxId)}>
-                <SelectTrigger className="w-full">
-                  <Plus className="h-4 w-4 mr-2" />
-                  <span>Create Widget</span>
-                </SelectTrigger>
-                <SelectContent>
-                  {inboxes
-                    .filter(inbox => !widgetConfigs.some(w => w.inbox_id === inbox.id))
-                    .map((inbox) => (
-                      <SelectItem key={inbox.id} value={inbox.id}>
-                        {inbox.name}
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-            )}
-
-            {widgetConfigs.length === 0 && (
-              <p className="text-sm text-muted-foreground text-center py-4">
-                No widgets yet. Create one to get started.
-              </p>
-            )}
+                )}
+                {inboxes.filter(inbox => !widgetConfigs.some(w => w.inbox_id === inbox.id)).length > 0 && (
+                  <Select onValueChange={(inboxId) => createWidgetMutation.mutate(inboxId)}>
+                    <SelectTrigger className="w-[200px]">
+                      <Plus className="h-4 w-4 mr-2" />
+                      <span>Create Widget</span>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {inboxes
+                        .filter(inbox => !widgetConfigs.some(w => w.inbox_id === inbox.id))
+                        .map((inbox) => (
+                          <SelectItem key={inbox.id} value={inbox.id}>
+                            {inbox.name}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+            </div>
           </CardContent>
         </Card>
 
         {/* Main Content Area with Tabs */}
         {selectedWidget ? (
-          <Card className="flex-1">
+          <Card className="w-full min-w-0">
             <Tabs defaultValue="settings" className="w-full">
               <CardHeader className="pb-0">
                 <div className="flex items-center justify-between mb-4">
@@ -290,6 +296,7 @@ export const WidgetSettings: React.FC = () => {
                     </CardDescription>
                   </div>
                 </div>
+
                 <TabsList className="grid w-full grid-cols-4">
                   <TabsTrigger value="settings" className="gap-1.5">
                     <Settings className="h-4 w-4" />
