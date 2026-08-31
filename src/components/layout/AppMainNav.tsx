@@ -33,8 +33,6 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { AgentAvailabilityPanel } from './AgentAvailabilityPanel';
 
-import { MyAccountDialog } from './MyAccountDialog';
-import { PreferencesDialog } from './PreferencesDialog';
 
 
 export const AppMainNav = () => {
@@ -240,10 +238,6 @@ export const AppMainNav = () => {
               </p>
             </div>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={() => setTimeout(() => setAccountOpen(true), 0)}>
-              <UserCircle className="mr-2 h-4 w-4" />
-              <span>{t('header.myAccount', 'My account')}</span>
-            </DropdownMenuItem>
             <DropdownMenuItem onClick={() => navigate('/settings/profile')}>
               <User className="mr-2 h-4 w-4" />
               <span>{t('header.profile', 'Profile')}</span>
@@ -251,10 +245,6 @@ export const AppMainNav = () => {
             <DropdownMenuItem onClick={() => navigate('/settings/notifications')}>
               <Bell className="mr-2 h-4 w-4" />
               <span>{t('header.notificationSettings', 'Notification settings')}</span>
-            </DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => setTimeout(() => setPreferencesOpen(true), 0)}>
-              <Settings className="mr-2 h-4 w-4" />
-              <span>{t('header.settings', 'Settings')}</span>
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => navigate('/admin/design-library')}>
               <Palette className="mr-2 h-4 w-4" />
@@ -268,8 +258,6 @@ export const AppMainNav = () => {
           </DropdownMenuContent>
         </DropdownMenu>
 
-        <MyAccountDialog open={accountOpen} onOpenChange={setAccountOpen} />
-        <PreferencesDialog open={preferencesOpen} onOpenChange={setPreferencesOpen} />
 
 
 
