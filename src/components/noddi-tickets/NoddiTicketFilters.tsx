@@ -50,7 +50,7 @@ export function NoddiTicketFilters({ value, onChange, departments }: Props) {
         value={value.priority}
         onValueChange={(v) => onChange({ ...value, priority: v as NoddiTicketFilterState['priority'] })}
       >
-        <SelectTrigger className="w-[150px]">
+        <SelectTrigger className="w-full sm:w-[150px]">
           <SelectValue placeholder="Priority" />
         </SelectTrigger>
         <SelectContent>
