@@ -8,6 +8,7 @@ import { Plus, Edit2, Trash2, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import { useMentionNotifications } from '@/hooks/useMentionNotifications';
+import { useCustomerNotes, useCustomerNoteMutations } from '@/hooks/useCustomerRecord';
 
 interface CustomerNote {
   id: string;
@@ -21,27 +22,18 @@ interface CustomerNotesProps {
   customerId?: string;
 }
 
-// Dummy data for now - will be replaced with API calls
-const dummyNotes: CustomerNote[] = [
-  {
-    id: '1',
-    content: 'Customer prefers email communication over phone calls. Very responsive to technical solutions.',
-    created_at: '2025-01-15T10:30:00Z',
-    created_by: 'John Doe',
-    updated_at: '2025-01-15T14:20:00Z'
-  },
-  {
-    id: '2', 
-    content: 'Uses premium plan. Has requested priority support for integration issues.',
-    created_at: '2025-01-10T09:15:00Z',
-    created_by: 'Sarah Johnson'
-  }
-];
-
 export const CustomerNotes: React.FC<CustomerNotesProps> = ({ customerId }) => {
   const { t } = useTranslation();
   const { processMentions } = useMentionNotifications();
-  const [notes, setNotes] = useState<CustomerNote[]>(dummyNotes);
+  const { data: dbNotes = [] } = useCustomerNotes(customerId);
+  const { addNote, updateNote, deleteNote } = useCustomerNoteMutations(customerId);
+  const notes: CustomerNote[] = dbNotes.map((n) => ({
+    id: n.id,
+    content: n.content,
+    created_at: n.created_at,
+    created_by: n.author?.full_name ?? 'Unknown',
+    updated_at: n.updated_at !== n.created_at ? n.updated_at : undefined,
+  }));
   const [isAdding, setIsAdding] = useState(false);
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [noteContent, setNoteContent] = useState('');
@@ -52,13 +44,6 @@ export const CustomerNotes: React.FC<CustomerNotesProps> = ({ customerId }) => {
   const handleAddNote = async () => {
     if (!noteContent.trim()) return;
 
-    const newNote: CustomerNote = {
-      id: Date.now().toString(),
-      content: noteContent.trim(),
-      created_at: new Date().toISOString(),
-      created_by: 'Current User', // Will be replaced with actual user
-    };
-
     // Process mentions
     if (mentionedUserIds.length > 0 && customerId) {
       await processMentions(noteContent, mentionedUserIds, {
@@ -67,11 +52,10 @@ export const CustomerNotes: React.FC<CustomerNotesProps> = ({ customerId }) => {
       });
     }
 
-    setNotes([newNote, ...notes]);
+    await addNote.mutateAsync({ content: noteContent.trim() });
     setNoteContent('');
     setMentionedUserIds([]);
     setIsAdding(false);
-    toast.success('Note added successfully');
   };
 
   const handleEditNote = (noteId: string) => {
@@ -82,15 +66,9 @@ export const CustomerNotes: React.FC<CustomerNotesProps> = ({ customerId }) => {
     }
   };
 
-  const handleSaveEdit = () => {
-    if (!noteContent.trim()) return;
-
-    setNotes(notes.map(note => 
-      note.id === editingNoteId 
-        ? { ...note, content: noteContent.trim(), updated_at: new Date().toISOString() }
-        : note
-    ));
-    
+  const handleSaveEdit = async () => {
+    if (!noteContent.trim() || !editingNoteId) return;
+    await updateNote.mutateAsync({ id: editingNoteId, content: noteContent.trim() });
     setNoteContent('');
     setEditingNoteId(null);
     toast.success('Note updated successfully');
@@ -110,8 +88,7 @@ export const CustomerNotes: React.FC<CustomerNotesProps> = ({ customerId }) => {
       // Unmounting the trigger row synchronously with the close leaves body
       // pointer-events:none and freezes the page until refresh.
       setTimeout(() => {
-        setNotes(prev => prev.filter(note => note.id !== idToDelete));
-        toast.success('Note deleted successfully');
+        deleteNote.mutate(idToDelete);
       }, 0);
     }
   };

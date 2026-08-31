@@ -11,6 +11,7 @@ import {
   SidebarFooter
 } from '@/components/ui/sidebar';
 import { 
+  Briefcase,
   Ticket, 
   Users,
   BarChart3,
@@ -30,6 +31,11 @@ export const OperationsSidebar: React.FC = () => {
   };
 
   const operationsItems = [
+    {
+      title: 'Cases',
+      path: '/operations/cases',
+      icon: Briefcase
+    },
     {
       title: 'Ops Tickets',
       path: '/operations/tickets',

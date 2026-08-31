@@ -58,6 +58,10 @@ import SystemTemplateEditorPage from "./pages/super-admin/recruitment/SystemTemp
 import SearchPage from "./pages/SearchPage";
 import BulkOutreach from "./pages/BulkOutreach";
 import HomePage from "./pages/HomePage";
+import CasesPage from "./pages/CasesPage";
+import CaseReportsPage from "./pages/CaseReportsPage";
+import CaseDetailPage from "./pages/CaseDetailPage";
+import CustomerDetailPage from "./pages/CustomerDetailPage";
 import CandidateFormPage from "./pages/candidate/CandidateFormPage";
 import "@/lib/i18n";
 import "@/styles/controls.css";
@@ -141,7 +145,11 @@ const AppContent = () => {
       <Route path="/marketing/newsletters" element={<ProtectedRoute><Index /></ProtectedRoute>} />
       
       {/* ========== OPERATIONS ========== */}
-      <Route path="/operations" element={<Navigate to="/operations/tickets" replace />} />
+      <Route path="/operations" element={<Navigate to="/operations/cases" replace />} />
+      <Route path="/operations/cases" element={<ProtectedRoute><CasesPage /></ProtectedRoute>} />
+      <Route path="/operations/case-reports" element={<ProtectedRoute><CaseReportsPage /></ProtectedRoute>} />
+      <Route path="/operations/cases/:id" element={<ProtectedRoute><CaseDetailPage /></ProtectedRoute>} />
+      <Route path="/customers/:id" element={<ProtectedRoute><CustomerDetailPage /></ProtectedRoute>} />
       <Route path="/operations/tickets" element={<ProtectedRoute><Index /></ProtectedRoute>} />
       <Route path="/operations/tickets/:id" element={<ProtectedRoute><Index /></ProtectedRoute>} />
       <Route path="/operations/recruitment" element={<ProtectedRoute><Index /></ProtectedRoute>} />

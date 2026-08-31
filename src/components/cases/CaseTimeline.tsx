@@ -1,0 +1,67 @@
+import { CASE_STATUS_LABELS, useCaseEvents, type CaseStatus } from '@/hooks/useCases';
+import { useDateFormatting } from '@/hooks/useDateFormatting';
+import { Skeleton } from '@/components/ui/skeleton';
+
+const EVENT_LABELS: Record<string, string> = {
+  created: 'Case created',
+  status_changed: 'Status changed',
+  owner_changed: 'Owner changed',
+  priority_changed: 'Priority changed',
+  due_changed: 'Due date changed',
+};
+
+function formatValue(eventType: string, value: string | null) {
+  if (!value) return '—';
+  if (eventType === 'status_changed' || eventType === 'created') {
+    return CASE_STATUS_LABELS[value as CaseStatus] ?? value;
+  }
+  if (eventType === 'due_changed') {
+    const d = new Date(value);
+    return Number.isNaN(d.getTime())
+      ? value
+      : d.toLocaleString('nb-NO', { timeZone: 'Europe/Oslo', dateStyle: 'short', timeStyle: 'short' });
+  }
+  return value;
+}
+
+export function CaseTimeline({ caseId }: { caseId: string }) {
+  const { data: events = [], isLoading } = useCaseEvents(caseId);
+  const { dateTime } = useDateFormatting();
+
+  if (isLoading) {
+    return (
+      <div className="space-y-2">
+        <Skeleton className="h-10 w-full" />
+        <Skeleton className="h-10 w-full" />
+      </div>
+    );
+  }
+
+  if (events.length === 0) {
+    return <p className="text-sm text-muted-foreground">No activity yet.</p>;
+  }
+
+  return (
+    <ol className="relative space-y-4 border-l border-border pl-4">
+      {events.map((event) => (
+        <li key={event.id} className="relative">
+          <span className="absolute -left-[21px] top-1.5 h-2 w-2 rounded-full bg-primary" />
+          <p className="text-sm">
+            <span className="font-medium">{EVENT_LABELS[event.event_type] ?? event.event_type}</span>
+            {event.event_type !== 'created' && (
+              <span className="text-muted-foreground">
+                {' '}
+                {formatValue(event.event_type, event.from_value)} →{' '}
+                {formatValue(event.event_type, event.to_value)}
+              </span>
+            )}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            {event.actor?.full_name ?? 'System'} · {dateTime(event.created_at)}
+          </p>
+          {event.note && <p className="mt-1 text-sm text-muted-foreground">{event.note}</p>}
+        </li>
+      ))}
+    </ol>
+  );
+}
