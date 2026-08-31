@@ -21,7 +21,9 @@ import {
   Mail,
   UserCheck,
   Clock,
+  Settings2,
 } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 const sectionIcons: Record<string, typeof MessageSquare> = {
   interactions: MessageSquare,
