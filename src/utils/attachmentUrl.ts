@@ -27,3 +27,14 @@ export function buildAttachmentUrl(params: Record<string, string>): string {
   if (cachedAccessToken) search.set('token', cachedAccessToken);
   return `${FUNCTIONS_BASE}/get-attachment?${search.toString()}`;
 }
+
+/**
+ * Builds an authenticated URL that fetches a remote email image server-side.
+ * Keeps the agent's IP/cookies away from sender tracking pixels while still
+ * rendering the email exactly as designed.
+ */
+export function buildEmailImageProxyUrl(remoteUrl: string): string {
+  const search = new URLSearchParams({ url: remoteUrl });
+  if (cachedAccessToken) search.set('token', cachedAccessToken);
+  return `${FUNCTIONS_BASE}/email-image-proxy?${search.toString()}`;
+}
