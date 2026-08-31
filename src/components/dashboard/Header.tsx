@@ -10,7 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Bell, Search, Settings, LogOut, User, Menu, ArrowLeft, Palette, Clock, Sidebar, Phone, Loader2 } from 'lucide-react';
+import { Bell, Search, Settings, LogOut, User, Menu, ArrowLeft, Clock, Sidebar, Phone, Loader2 } from 'lucide-react';
 import { NotificationDropdown } from '@/components/notifications/NotificationDropdown';
 import { SyncButton } from '@/components/dashboard/SyncButton';
 import { DeleteAllButton } from '@/components/dashboard/DeleteAllButton';

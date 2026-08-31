@@ -15,7 +15,6 @@ import { ConnectionStatusIndicator } from '@/components/layout/ConnectionStatusI
 import { 
   Search,
   LogOut,
-  Palette,
   Menu,
   ArrowLeft,
   Settings
