@@ -315,7 +315,7 @@ export const ComposeWindow: React.FC<ComposeWindowProps> = ({ draft }) => {
   /* ---------------- Minimized bar ---------------- */
   if (draft.minimized) {
     return (
-      <div className="w-64 rounded-t-lg border border-border bg-card shadow-lg">
+      <div className="w-64 rounded-t-lg border border-border bg-card text-card-foreground shadow-lg" style={{ backgroundColor: 'hsl(var(--card))' }}>
         <div className="flex items-center gap-1 px-3 py-2">
           <button
             type="button"
@@ -337,10 +337,15 @@ export const ComposeWindow: React.FC<ComposeWindowProps> = ({ draft }) => {
   return (
     <div
       className={cn(
-        'flex flex-col rounded-t-lg border border-border bg-card shadow-2xl overflow-hidden',
-        expanded ? 'w-[min(96vw,900px)] h-[85vh]' : 'w-[min(96vw,520px)] h-[560px] max-h-[80vh]',
+        'flex flex-col rounded-t-lg border border-border shadow-2xl overflow-hidden isolate',
+        'bg-card text-card-foreground opacity-100 backdrop-blur-none',
+        expanded
+          ? 'fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[70vw] h-[70vh] rounded-lg'
+          : 'w-[min(96vw,520px)] h-[560px] max-h-[80vh]',
       )}
+      style={{ backgroundColor: 'hsl(var(--card))' }}
     >
+
       {/* Header */}
       <div className="flex items-center gap-1 bg-muted px-3 py-2 border-b border-border">
         <span className="flex-1 min-w-0 text-sm font-medium truncate">{title}</span>
