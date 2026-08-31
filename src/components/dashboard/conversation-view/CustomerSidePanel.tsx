@@ -28,6 +28,7 @@ import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useConversationView } from '@/contexts/ConversationViewContext';
 import { NoddiCustomerDetails } from '@/components/dashboard/voice/NoddiCustomerDetails';
+import { CustomerNoddiTicketsCard } from '@/components/noddi-tickets/CustomerNoddiTicketsCard';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
@@ -66,6 +67,23 @@ export const CustomerSidePanel = ({
   const [searchLastName, setSearchLastName] = useState('');
   const [matchingCustomers, setMatchingCustomers] = useState<any[]>([]);
   const [nameSearchLoading, setNameSearchLoading] = useState(false);
+
+  // Noddi user groups + car in context, used to look up the customer's open tickets
+  const customerUserGroupIds = (() => {
+    const ids: number[] = [];
+    if (selectedUserGroupId) ids.push(selectedUserGroupId);
+    const d = noddiData?.data;
+    if (d?.user_group_id) ids.push(d.user_group_id);
+    for (const g of d?.all_user_groups ?? []) if (g?.id) ids.push(g.id);
+    return Array.from(new Set(ids));
+  })();
+
+  const customerLicensePlate = (() => {
+    const label = noddiData?.data?.ui_meta?.vehicle_label;
+    if (!label) return null;
+    const match = label.match(/[A-Z]{2}\s?\d{3,5}/i);
+    return match ? match[0].toUpperCase() : null;
+  })();
 
   const handleAlternativeEmailSearch = async () => {
     if (!alternativeEmail || !conversation.customer?.id) return;
@@ -750,6 +768,12 @@ export const CustomerSidePanel = ({
             noddiData={noddiData}
             onUserGroupChange={handleUserGroupChange}
             selectedUserGroupId={selectedUserGroupId}
+          />
+
+          {/* Open Noddi tickets for this customer (matched on user group / car) */}
+          <CustomerNoddiTicketsCard
+            userGroupIds={customerUserGroupIds}
+            licensePlate={customerLicensePlate}
           />
 
           {/* Alternative Lookup - only show if no data found */}

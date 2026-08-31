@@ -20,6 +20,27 @@ export type NoddiTicketPriority = (typeof NODDI_TICKET_PRIORITIES)[number];
 export type NoddiTicketCategory = (typeof NODDI_TICKET_CATEGORIES)[number];
 export type NoddiTicketType = (typeof NODDI_TICKET_TYPES)[number];
 
+/** Where the ticket was originally created. Tickets created here are SUPPORT_APP. */
+export const TICKET_SOURCE_LABELS: Record<string, string> = {
+  SUPPORT_APP: 'Support Hub',
+  SUPPORT_HUB: 'Support Hub',
+  ADMIN: 'Noddi Admin',
+  ADMIN_APP: 'Noddi Admin',
+  API: 'API',
+  CUSTOMER_APP: 'Customer app',
+  WORKER_APP: 'Worker app',
+  SYSTEM: 'System',
+  AUTOMATION: 'Automation',
+};
+
+export function ticketSourceLabel(source?: string | null): string {
+  if (!source) return 'Unknown';
+  return (
+    TICKET_SOURCE_LABELS[source.toUpperCase()] ??
+    source.replace(/_/g, ' ').toLowerCase().replace(/^./, (c) => c.toUpperCase())
+  );
+}
+
 export interface NoddiRef {
   id: number;
   name?: string | null;
@@ -42,6 +63,7 @@ export interface NoddiTicket {
   priority: NoddiTicketPriority;
   category: NoddiTicketCategory;
   type: NoddiTicketType;
+  source?: string | null;
   created_at: string;
   updated_at?: string | null;
   due_at?: string | null;
