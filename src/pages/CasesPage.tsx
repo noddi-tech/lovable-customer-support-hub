@@ -18,7 +18,7 @@ import {
   type CaseQueueView,
 } from '@/hooks/useCases';
 import { useDateFormatting } from '@/hooks/useDateFormatting';
-import { Plus, Search, Briefcase, UserRound } from 'lucide-react';
+import { BarChart3, Plus, Search, Briefcase, UserRound } from 'lucide-react';
 
 const VIEWS: Array<{ value: CaseQueueView; label: string }> = [
   { value: 'mine', label: 'My cases' },
@@ -64,6 +64,9 @@ export default function CasesPage() {
                 same customer.
               </p>
             </div>
+            <Button size="sm" variant="outline" onClick={() => navigate('/operations/case-reports')}>
+              <BarChart3 className="mr-1.5 h-4 w-4" /> Reports
+            </Button>
             <Button size="sm" onClick={() => setCreateOpen(true)}>
               <Plus className="mr-1.5 h-4 w-4" /> New case
             </Button>
