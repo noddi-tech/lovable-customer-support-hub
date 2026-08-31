@@ -119,6 +119,7 @@ export function NoddiTicketTable({ tickets, isLoading, onSelect }: Props) {
           ))}
         </TableBody>
       </Table>
-    </div>
+      </div>
+    </>
   );
 }
