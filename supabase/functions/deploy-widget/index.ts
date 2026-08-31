@@ -607,8 +607,8 @@ const WIDGET_JS = `
         html += '<button class="noddi-widget-back" data-action="back">' + icons.back + t.back + '</button>';
         html += '<h4 style="font-size:16px;font-weight:600;color:#1f2937;margin-bottom:16px">' + t.enterEmailToContinue + '</h4>';
         html += '<form class="noddi-widget-form" data-form="prechat">';
-        html += '<div class="noddi-widget-field"><label>' + t.email + ' *</label><input type="email" name="email" placeholder="your@email.com" value="' + (state.prechatEmail || '') + '" maxlength="255" required></div>';
-        html += '<div class="noddi-widget-field"><label>' + t.name + ' <span style="color:#9ca3af;font-weight:normal">(' + t.optional + ')</span></label><input type="text" name="name" placeholder="' + t.yourName + '" value="' + (state.prechatName || '') + '" maxlength="100"></div>';
+        html += '<div class="noddi-widget-field"><label>' + t.email + ' *</label><input type="email" name="email" placeholder="your@email.com" value="' + escapeAttr(state.prechatEmail || identity.email || '') + '" maxlength="255" required></div>';
+        html += '<div class="noddi-widget-field"><label>' + t.name + ' <span style="color:#9ca3af;font-weight:normal">(' + t.optional + ')</span></label><input type="text" name="name" placeholder="' + t.yourName + '" value="' + escapeAttr(state.prechatName || identity.name || '') + '" maxlength="100"></div>';
         if (state.error) html += '<div class="noddi-widget-error">' + state.error + '</div>';
         html += '<button type="submit" class="noddi-widget-submit" style="background-color:' + config.primaryColor + '"' + (state.isLoading ? ' disabled' : '') + '>' + (state.isLoading ? t.startingChat : t.startChat) + '</button>';
         html += '</form></div>';
