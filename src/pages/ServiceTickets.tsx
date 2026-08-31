@@ -89,39 +89,47 @@ export default function ServiceTickets() {
 
   return (
     <div className="space-y-4 p-4 md:p-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Service tickets</h1>
-          <p className="text-sm text-muted-foreground">
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-xl font-semibold tracking-tight md:text-2xl">Service tickets</h1>
+          <p className="text-xs text-muted-foreground md:text-sm">
             Live from the Noddi backend. Tickets are owned by Noddi — Support Hub reads and creates them.
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
+          <Button
+            variant="outline"
+            size="sm"
+            className="flex-1 sm:flex-none"
+            onClick={() => refetch()}
+            disabled={isFetching}
+          >
             <RefreshCw className={`mr-1.5 h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
-          <Button size="sm" onClick={() => setCreateOpen(true)}>
+          <Button size="sm" className="flex-1 sm:flex-none" onClick={() => setCreateOpen(true)}>
             <Plus className="mr-1.5 h-4 w-4" /> New ticket
           </Button>
         </div>
       </div>
 
       <Tabs value={statusTab} onValueChange={setStatusTab}>
-        <TabsList>
-          {STATUS_TABS.map((tab) => (
-            <TabsTrigger key={tab.value} value={tab.value}>
-              {tab.label}
-            </TabsTrigger>
-          ))}
-        </TabsList>
+        <div className="-mx-4 overflow-x-auto px-4 md:mx-0 md:px-0">
+          <TabsList className="w-max">
+            {STATUS_TABS.map((tab) => (
+              <TabsTrigger key={tab.value} value={tab.value}>
+                {tab.label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </div>
       </Tabs>
 
       <NoddiTicketFilters value={filters} onChange={setFilters} departments={departments} />
 
       <NoddiTicketTable tickets={tickets} isLoading={isLoading} onSelect={handleSelect} />
 
-      <div className="flex items-center justify-between text-sm text-muted-foreground">
+      <div className="flex flex-col items-start gap-2 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
         <span>
           {total > 0
             ? `Showing ${page * PAGE_SIZE + 1}–${Math.min((page + 1) * PAGE_SIZE, total)} of ${total}`

@@ -151,7 +151,7 @@ export function NoddiTicketDetailsSheet({ ticketId, onOpenChange }: Props) {
 
             <Separator />
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field label="Category" value={TICKET_CATEGORY_LABELS[ticket.category] ?? ticket.category} />
               <Field label="Department" value={ticket.service_department?.name} />
               <Field label="Assignee" value={ticket.assignee?.name ?? 'Unassigned'} />

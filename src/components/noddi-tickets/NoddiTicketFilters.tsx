@@ -35,8 +35,8 @@ export function NoddiTicketFilters({ value, onChange, departments }: Props) {
     !!value.search || value.priority !== 'ALL' || value.category !== 'ALL' || value.departmentId !== null;
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <div className="relative min-w-[240px] flex-1">
+    <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
+      <div className="relative col-span-2 sm:min-w-[240px] sm:flex-1">
         <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           value={value.search}
@@ -50,7 +50,7 @@ export function NoddiTicketFilters({ value, onChange, departments }: Props) {
         value={value.priority}
         onValueChange={(v) => onChange({ ...value, priority: v as NoddiTicketFilterState['priority'] })}
       >
-        <SelectTrigger className="w-[150px]">
+        <SelectTrigger className="w-full sm:w-[150px]">
           <SelectValue placeholder="Priority" />
         </SelectTrigger>
         <SelectContent>
@@ -67,7 +67,7 @@ export function NoddiTicketFilters({ value, onChange, departments }: Props) {
         value={value.category}
         onValueChange={(v) => onChange({ ...value, category: v as NoddiTicketFilterState['category'] })}
       >
-        <SelectTrigger className="w-[180px]">
+        <SelectTrigger className="w-full sm:w-[180px]">
           <SelectValue placeholder="Category" />
         </SelectTrigger>
         <SelectContent>
@@ -84,7 +84,7 @@ export function NoddiTicketFilters({ value, onChange, departments }: Props) {
         value={value.departmentId ? String(value.departmentId) : 'ALL'}
         onValueChange={(v) => onChange({ ...value, departmentId: v === 'ALL' ? null : Number(v) })}
       >
-        <SelectTrigger className="w-[200px]">
+        <SelectTrigger className="col-span-2 w-full sm:w-[200px]">
           <SelectValue placeholder="Department" />
         </SelectTrigger>
         <SelectContent>
@@ -101,6 +101,7 @@ export function NoddiTicketFilters({ value, onChange, departments }: Props) {
         <Button
           variant="ghost"
           size="sm"
+          className="col-span-2 sm:col-auto"
           onClick={() => onChange({ search: '', priority: 'ALL', category: 'ALL', departmentId: null })}
         >
           <X className="mr-1 h-4 w-4" /> Clear
