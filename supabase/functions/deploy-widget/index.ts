@@ -1220,6 +1220,11 @@ const WIDGET_JS = `
   function update(opts) {
     if (!opts || typeof opts !== 'object') return;
     let changed = false;
+    if (opts.identity !== undefined) {
+      if (opts.identity === null) clearIdentity();
+      else setIdentity(opts.identity);
+      changed = true;
+    }
     if (opts.supportedLocales !== undefined) {
       allowedLangs = sanitizeSupportedLocales(opts.supportedLocales);
       changed = true;
