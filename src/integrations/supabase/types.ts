@@ -3816,6 +3816,7 @@ export type Database = {
           chat_availability: string | null
           chat_availability_updated_at: string | null
           created_at: string
+          default_inbox_id: string | null
           department_id: string | null
           email: string
           email_display_name: string | null
@@ -3836,6 +3837,7 @@ export type Database = {
           chat_availability?: string | null
           chat_availability_updated_at?: string | null
           created_at?: string
+          default_inbox_id?: string | null
           department_id?: string | null
           email: string
           email_display_name?: string | null
@@ -3856,6 +3858,7 @@ export type Database = {
           chat_availability?: string | null
           chat_availability_updated_at?: string | null
           created_at?: string
+          default_inbox_id?: string | null
           department_id?: string | null
           email?: string
           email_display_name?: string | null
@@ -3872,6 +3875,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "profiles_default_inbox_id_fkey"
+            columns: ["default_inbox_id"]
+            isOneToOne: false
+            referencedRelation: "inboxes"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "profiles_department_id_fkey"
             columns: ["department_id"]

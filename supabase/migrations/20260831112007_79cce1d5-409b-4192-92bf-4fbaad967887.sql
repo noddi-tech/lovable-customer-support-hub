@@ -1,0 +1,1 @@
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS default_inbox_id uuid REFERENCES public.inboxes(id) ON DELETE SET NULL;
