@@ -12,7 +12,12 @@ import { useNavigate } from 'react-router-dom';
 import { Lock, AlertCircle } from 'lucide-react';
 import { isPasswordLoginEnabled } from '@/lib/auth-features';
 import { logger } from '@/utils/logger';
-import { enablePreviewBypass, isDevPreview } from '@/lib/dev-preview-auth';
+import {
+  disablePreviewBypass,
+  enablePreviewBypass,
+  getDevLoginCredentials,
+  isDevPreview,
+} from '@/lib/dev-preview-auth';
 
 // Error keys that may arrive as `?error=` when a sign-in bounces back to /auth.
 // `not_authenticated` is intentionally omitted — landing on the login page
@@ -193,6 +198,25 @@ export const Auth: React.FC = () => {
     }
   };
 
+  // Dev-only: sign in as the configured admin test user with a REAL session.
+  const handleDevSignIn = async () => {
+    const creds = getDevLoginCredentials();
+    if (!creds) return;
+    setLoading(true);
+    setError('');
+    try {
+      cleanupAuthState();
+      disablePreviewBypass();
+      const { error } = await supabase.auth.signInWithPassword(creds);
+      if (error) throw error;
+      navigate(nextPath || '/', { replace: true });
+    } catch (err: any) {
+      setError(err?.message || 'Dev sign-in failed. Check VITE_DEV_LOGIN_* in .env.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handlePasswordUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -351,6 +375,18 @@ export const Auth: React.FC = () => {
           </svg>
           Sign in with Google
         </Button>
+
+        {getDevLoginCredentials() && (
+          <Button
+            variant="secondary"
+            size="sm"
+            className="w-full"
+            onClick={handleDevSignIn}
+            disabled={loading}
+          >
+            Dev sign-in (real session)
+          </Button>
+        )}
 
         {isDevPreview() && (
           <Button
