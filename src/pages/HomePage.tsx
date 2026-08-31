@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useOptimizedCounts } from '@/hooks/useOptimizedCounts';
 import { useInboxEmailAddresses } from '@/hooks/useInboxEmailAddresses';
+import { useDefaultInbox } from '@/hooks/useDefaultInbox';
 import { useDateFormatting } from '@/hooks/useDateFormatting';
 import { UnifiedAppLayout } from '@/components/layout/UnifiedAppLayout';
 import { Card, CardContent } from '@/components/ui/card';
@@ -22,6 +23,7 @@ import {
   UserCheck,
   Clock,
   Settings2,
+  Star,
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
@@ -44,6 +46,7 @@ export default function HomePage() {
   const { profile, user, isAdmin, isSuperAdmin } = useAuth();
   const { conversations, inboxes } = useOptimizedCounts();
   const { data: inboxEmails = {} } = useInboxEmailAddresses();
+  const { defaultInboxId, setDefaultInbox } = useDefaultInbox();
 
   const { dateTime } = useDateFormatting();
 
@@ -118,6 +121,7 @@ export default function HomePage() {
               {inboxes.filter(i => i.is_active).map(inbox => {
                 const email = inboxEmails[inbox.id];
                 const isConfigured = Boolean(email);
+                const isDefault = defaultInboxId === inbox.id;
 
                 return (
                   <Card
@@ -127,7 +131,8 @@ export default function HomePage() {
                       'transition-shadow',
                       isConfigured
                         ? 'cursor-pointer hover:shadow-md'
-                        : 'cursor-not-allowed opacity-60 bg-muted/30'
+                        : 'cursor-not-allowed opacity-60 bg-muted/30',
+                      isDefault && 'ring-1 ring-primary/50'
                     )}
                     onClick={isConfigured ? () => navigate(`/interactions/text/open?inbox=${inbox.id}`) : undefined}
                   >
@@ -138,8 +143,13 @@ export default function HomePage() {
                           style={{ backgroundColor: isConfigured ? (inbox.color || 'hsl(var(--primary))') : 'hsl(var(--muted-foreground) / 0.4)' }}
                         />
                         <div className="min-w-0 flex flex-col leading-tight">
-                          <span className={cn('text-sm font-medium truncate', isConfigured ? 'text-foreground' : 'text-muted-foreground')}>
+                          <span className={cn('text-sm font-medium truncate flex items-center gap-1.5', isConfigured ? 'text-foreground' : 'text-muted-foreground')}>
                             {inbox.name}
+                            {isDefault && (
+                              <Badge variant="outline" className="h-4 px-1.5 text-[9px] border-primary/40 text-primary">
+                                Default
+                              </Badge>
+                            )}
                           </span>
                           <span className="text-[11px] text-muted-foreground truncate">
                             {isConfigured ? email : 'Not configured'}
@@ -176,6 +186,33 @@ export default function HomePage() {
                             <Settings2 className="h-3.5 w-3.5 mr-1.5" />
                             Configure
                           </Button>
+                        )}
+
+                        {isConfigured && (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  aria-label={isDefault ? `Clear default inbox` : `Set ${inbox.name} as default inbox`}
+                                  className={cn(
+                                    'h-7 w-7',
+                                    isDefault ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+                                  )}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setDefaultInbox(isDefault ? null : inbox.id);
+                                  }}
+                                >
+                                  <Star className={cn('h-4 w-4', isDefault && 'fill-current')} />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                {isDefault ? 'This is your default inbox' : 'Set as my default inbox'}
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
                         )}
 
                         {isConfigured && (

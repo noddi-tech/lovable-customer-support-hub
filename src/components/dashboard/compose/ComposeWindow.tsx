@@ -41,6 +41,7 @@ import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useInboxEmailAddresses } from '@/hooks/useInboxEmailAddresses';
+import { useDefaultInbox } from '@/hooks/useDefaultInbox';
 import { createConversationAndSend } from '@/lib/createConversation';
 import { useCompose, type ComposeDraft } from '@/contexts/ComposeContext';
 import { TemplateSelector } from '../conversation-view/TemplateSelector';
@@ -139,16 +140,18 @@ export const ComposeWindow: React.FC<ComposeWindowProps> = ({ draft }) => {
     },
   });
   const { data: inboxEmails = {} } = useInboxEmailAddresses();
+  const { defaultInboxId } = useDefaultInbox();
 
-  // Default inbox once inboxes are known
+  // Default inbox once inboxes are known (user preference wins)
   React.useEffect(() => {
     if (!draft.inboxId && inboxes.length > 0) {
       const configured = inboxes.filter((i) => inboxEmails[i.id]);
       const pool = configured.length > 0 ? configured : inboxes;
-      const def = pool.find((i) => i.is_default) || pool[0];
+      const def =
+        pool.find((i) => i.id === defaultInboxId) || pool.find((i) => i.is_default) || pool[0];
       updateDraft(draft.id, { inboxId: def.id });
     }
-  }, [inboxes, inboxEmails, draft.inboxId, draft.id, updateDraft]);
+  }, [inboxes, inboxEmails, defaultInboxId, draft.inboxId, draft.id, updateDraft]);
 
   const parsedEmails = useMemo(
     () => (draft.bulkMode ? parseEmails(draft.bulkEmails) : []),
@@ -498,6 +501,11 @@ export const ComposeWindow: React.FC<ComposeWindowProps> = ({ draft }) => {
                         style={{ backgroundColor: email ? inbox.color : undefined }}
                       />
                       <span className={cn('truncate', !email && 'text-muted-foreground')}>{inbox.name}</span>
+                      {defaultInboxId === inbox.id && (
+                        <span className="text-[9px] px-1.5 py-0.5 rounded border border-primary/40 text-primary shrink-0">
+                          Default
+                        </span>
+                      )}
                       <span className="text-xs text-muted-foreground truncate">
                         {email ? `(${email})` : '(not configured)'}
                       </span>

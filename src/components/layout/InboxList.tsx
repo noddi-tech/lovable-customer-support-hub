@@ -20,6 +20,7 @@ import { cn } from '@/lib/utils';
 import { useAccessibleInboxes, useInboxCounts } from '@/hooks/useInteractionsData';
 import { useInboxEmailAddresses } from '@/hooks/useInboxEmailAddresses';
 import { useInboxOutstandingCounts } from '@/hooks/useInboxOutstandingCounts';
+import { useDefaultInbox } from '@/hooks/useDefaultInbox';
 
 import { LiveChatQueue } from '@/components/conversations/LiveChatQueue';
 import type { StatusFilter, InboxId } from '@/types/interactions';
@@ -63,6 +64,13 @@ export const InboxList: React.FC<InboxListProps> = ({
   const { data: inboxEmails = {} } = useInboxEmailAddresses();
   const { data: outstanding = {} } = useInboxOutstandingCounts();
   const { data: counts, isLoading: countsLoading } = useInboxCounts(selectedInbox || 'all');
+  const { defaultInboxId } = useDefaultInbox();
+
+  const DefaultTag: React.FC = () => (
+    <Badge variant="outline" className="h-4 px-1.5 text-[9px] border-primary/40 text-primary flex-shrink-0">
+      Default
+    </Badge>
+  );
 
   const allOutstanding = React.useMemo(
     () =>
@@ -170,8 +178,9 @@ export const InboxList: React.FC<InboxListProps> = ({
                       style={{ backgroundColor: inboxes.find(i => i.id === selectedInbox)?.color || '#6B7280' }}
                     />
                     <div className="min-w-0 flex flex-col leading-tight flex-1">
-                      <span className="truncate">
+                      <span className="truncate flex items-center gap-1.5">
                         {inboxes.find(i => i.id === selectedInbox)?.name || 'Select inbox'}
+                        {defaultInboxId === selectedInbox && <DefaultTag />}
                       </span>
                       {inboxEmails[selectedInbox] && (
                         <span className="text-[11px] text-muted-foreground truncate">
@@ -247,7 +256,10 @@ export const InboxList: React.FC<InboxListProps> = ({
                         style={{ backgroundColor: inbox.color || '#6B7280' }}
                       />
                       <div className="min-w-0 flex flex-col leading-tight flex-1">
-                        <span className="truncate">{inbox.name}</span>
+                        <span className="truncate flex items-center gap-1.5">
+                          {inbox.name}
+                          {defaultInboxId === inbox.id && <DefaultTag />}
+                        </span>
                         <span className="text-[11px] text-muted-foreground truncate">
                           {email}
                         </span>
