@@ -148,6 +148,11 @@ onClick={() => {
                   const brand = getConversationBrand((conversation as any).metadata, conversation.channel);
                   return brand ? <BrandBadge brand={brand} size="md" /> : null;
                 })()}
+                <HeaderCaseChip
+                  conversationId={conversation.id}
+                  caseId={(conversation as any).case_id}
+                />
+
               </div>
             </div>
           </div>
