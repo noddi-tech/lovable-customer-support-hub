@@ -1229,6 +1229,9 @@ const WIDGET_JS = `
     injectStyles();
     console.log('[Noddi] Styles injected');
 
+    // Restore locally stored contact-form messages so the visitor can see them again.
+    state.submissions = readSubmissions();
+
     container = document.createElement('div');
     container.id = 'noddi-widget-root';
     document.body.appendChild(container);
