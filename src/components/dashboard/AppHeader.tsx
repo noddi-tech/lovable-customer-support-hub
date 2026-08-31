@@ -159,10 +159,6 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
                 <Settings className="mr-2 h-4 w-4" />
                 <span>{t('header.settings', 'Settings')}</span>
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => navigate('/admin/design-library')}>
-                <Palette className="mr-2 h-4 w-4" />
-                <span>{t('header.designLibrary', 'Design Library')}</span>
-              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleSignOut}>
                 <LogOut className="mr-2 h-4 w-4" />

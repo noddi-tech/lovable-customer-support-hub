@@ -247,10 +247,6 @@ export const Header: React.FC<HeaderProps> = ({
               <Settings className="mr-2 h-4 w-4" />
               <span>{t('common.settings')}</span>
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => navigate('/design-library')}>
-              <Palette className="mr-2 h-4 w-4" />
-              <span>{t('dashboard.header.designLibrary')}</span>
-            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={signOut} className="text-destructive">
               <LogOut className="mr-2 h-4 w-4" />
