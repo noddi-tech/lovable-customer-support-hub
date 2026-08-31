@@ -10,7 +10,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { CaseStatusBadge, CasePriorityBadge, CaseSlaBadge } from '@/components/cases/CaseBadges';
+import {
+  CaseStatusBadge,
+  CasePriorityBadge,
+  CaseSlaBadge,
+  CASE_STATUS_ICONS,
+  CASE_STATUS_ICON_COLORS,
+} from '@/components/cases/CaseBadges';
 import { CaseTimeline } from '@/components/cases/CaseTimeline';
 import { CloseCaseDialog } from '@/components/cases/CloseCaseDialog';
 import {
