@@ -369,29 +369,37 @@ const handler = async (req: Request): Promise<Response> => {
       }
     }
 
-    // Build HTML content with optimized structure
-    const emailHTML = `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <style>
-    body { font-family: Arial, sans-serif; line-height: 1.6; color: #374151; margin: 0; padding: 0; }
-    .container { max-width: 600px; margin: 0 auto; }
-    .content { padding: 20px; }
-    .signature { margin-top: 20px; padding-top: 20px; border-top: 1px solid #E5E7EB; }
-    .footer { margin-top: 20px; font-size: 12px; color: #6B7280; text-align: center; padding: 20px; }
-  </style>
-</head>
-<body>
-  <div class="container">
-    ${templateSettings.header_content ? `<div style="background: ${templateSettings.header_background_color}; color: ${templateSettings.header_text_color}; padding: 20px; text-align: center;">${templateSettings.header_content}</div>` : ''}
-    <div class="content">${String(message.content || '').replace(/\n/g, '<br>')}</div>
-    ${signature ? `<div class="signature">${signature}</div>` : ''}
-    ${templateSettings.footer_content ? `<div class="footer">${templateSettings.footer_content}</div>` : ''}
-  </div>
-</body>
-</html>`;
-    const plainText = String(message.content || '');
+    // Brand name for the header fallback (inbox name, else sender display name)
+    let brandName: string | null = senderDisplayName || null;
+    if (inboxId) {
+      const { data: brandInbox } = await supabaseClient
+        .from('inboxes')
+        .select('name')
+        .eq('id', inboxId)
+        .maybeSingle();
+      brandName = brandInbox?.name || brandName;
+    }
+
+    // Build HTML content using the shared, reusable email layout
+    const rawContent = String(message.content || '');
+    const isHtmlBody = /<\/?[a-z][\s\S]*>/i.test(rawContent);
+    const bodyHtml = isHtmlBody ? rawContent : plainTextToHtml(rawContent);
+
+    const emailHTML = renderEmailLayout({
+      bodyHtml,
+      signatureHtml: signature,
+      headerContent: templateSettings.header_content,
+      footerContent: templateSettings.footer_content,
+      headerBackgroundColor: templateSettings.header_background_color,
+      headerTextColor: templateSettings.header_text_color,
+      footerBackgroundColor: templateSettings.footer_background_color,
+      footerTextColor: templateSettings.footer_text_color,
+      bodyBackgroundColor: templateSettings.body_background_color,
+      bodyTextColor: templateSettings.body_text_color,
+      brandName,
+      preheader: htmlToPlainText(bodyHtml).slice(0, 140),
+    });
+    const plainText = isHtmlBody ? htmlToPlainText(rawContent) : rawContent;
 
     // Monitor email size to prevent Gmail clipping (102KB limit)
     const estimatedSize = emailHTML.length + plainText.length + 2000; // +2KB for headers
