@@ -50,6 +50,15 @@ function escapeHtml(value: string): string {
     .replace(/"/g, '&quot;');
 }
 
+/**
+ * Escapes stray "<" characters that are not part of a real tag (e.g. "<3" in a
+ * footer). Gmail's sanitizer treats those as an unterminated tag and can drop /
+ * clip everything after them.
+ */
+function escapeStrayAngles(html: string): string {
+  return String(html ?? '').replace(/<(?![a-zA-Z/!?])/g, '&lt;');
+}
+
 /** Converts a plain-text message body into safe HTML with line breaks preserved. */
 export function plainTextToHtml(text: string): string {
   return escapeHtml(String(text ?? ''))
