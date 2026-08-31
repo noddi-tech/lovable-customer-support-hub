@@ -12,6 +12,9 @@ interface ProtectedRouteProps {
 export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const { user, loading, isProcessingOAuth } = useAuth();
   const navigate = useNavigate();
+  // Dev-only: browse the app shell without signing in (preview aid, no session).
+  const previewBypass = isPreviewBypassEnabled();
+
 
   // Log every render with full state
   useEffect(() => {
