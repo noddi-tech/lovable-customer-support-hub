@@ -1174,6 +1174,10 @@ const WIDGET_JS = `
     // Host-provided locale wins over a stale stored choice.
     hostLocale = normalizeLang((options && (options.locale || (options.context && options.context.locale))) || null);
     allowedLangs = sanitizeSupportedLocales(options && options.supportedLocales);
+    if (options && options.identity !== undefined) {
+      if (options.identity === null) clearIdentity();
+      else setIdentity(options.identity);
+    }
     if (options && typeof options.enableKnowledgeSearch === 'boolean') {
       hostEnableKnowledgeSearch = options.enableKnowledgeSearch;
     }
