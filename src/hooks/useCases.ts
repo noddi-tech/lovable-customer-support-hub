@@ -392,6 +392,7 @@ export function useCreateCase() {
   return useMutation({
     mutationFn: async (input: CreateCaseInput) => {
       if (!profile?.organization_id) throw new Error('Missing organization');
+      if (!input.customerId) throw new Error('A case must be linked to a customer');
 
       const { data, error } = await (supabase.from('cases') as any)
         .insert({
