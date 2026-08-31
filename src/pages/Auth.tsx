@@ -376,17 +376,52 @@ export const Auth: React.FC = () => {
           Sign in with Google
         </Button>
 
-        {getDevLoginCredentials() && (
-          <Button
-            variant="secondary"
-            size="sm"
-            className="w-full"
-            onClick={handleDevSignIn}
-            disabled={loading}
-          >
-            Dev sign-in (real session)
-          </Button>
+        {isDevPreview() && (
+          <div className="rounded-md border border-dashed border-muted-foreground/40 p-3 space-y-2">
+            <p className="text-xs font-medium text-muted-foreground">
+              Dev sign-in (real session, dev build only)
+            </p>
+            <Input
+              type="email"
+              value={devEmail}
+              onChange={(e) => setDevEmail(e.target.value)}
+              placeholder="user@noddi.no"
+              className="h-8 text-xs"
+              autoComplete="off"
+            />
+            <Input
+              type="password"
+              value={devPassword}
+              onChange={(e) => setDevPassword(e.target.value)}
+              placeholder="password (remembered in this browser)"
+              className="h-8 text-xs"
+              autoComplete="off"
+            />
+            <div className="flex gap-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                className="flex-1"
+                onClick={handleDevSignIn}
+                disabled={loading || !devEmail || !devPassword}
+              >
+                Sign in as {devEmail || 'test user'}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-xs text-muted-foreground"
+                onClick={() => {
+                  forgetDevLogin();
+                  setDevPassword('');
+                }}
+              >
+                Forget
+              </Button>
+            </div>
+          </div>
         )}
+
 
         {isDevPreview() && (
           <Button
