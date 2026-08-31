@@ -33,3 +33,6 @@ declare module 'aircall-everywhere' {
     removeListener(event: string, callback: (data: any) => void): void;
   }
 }
+
+declare const __APP_COMMIT__: string;
+declare const __APP_BUILD_TIME__: string;
