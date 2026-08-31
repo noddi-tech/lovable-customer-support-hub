@@ -10,6 +10,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Copy, Inbox, ArrowDownToLine, ArrowUpFromLine, ChevronDown, Info, Send } from 'lucide-react';
 import { sortInboxesByName } from '@/lib/sortInboxes';
+import { ForwardingSetupDocs } from './ForwardingSetupDocs';
+
 
 interface InboundRoute {
   id: string;
