@@ -21,7 +21,7 @@ import { useOptimizedCounts } from '@/hooks/useOptimizedCounts';
 import { useDateFormatting } from '@/hooks/useDateFormatting';
 import { getGroupedNavItems, logNavMatch } from '@/navigation/nav-config';
 import { cn } from '@/lib/utils';
-import { Crown, ChevronRight, ChevronLeft, LogOut, Palette, Home, User, Bell } from 'lucide-react';
+import { Crown, ChevronRight, ChevronLeft, LogOut, Home, User, Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -243,10 +243,6 @@ export const AppMainNav = () => {
             <DropdownMenuItem onClick={() => navigate('/settings/notifications')}>
               <Bell className="mr-2 h-4 w-4" />
               <span>{t('header.notificationSettings', 'Notification settings')}</span>
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => navigate('/admin/design-library')}>
-              <Palette className="mr-2 h-4 w-4" />
-              <span>{t('header.designLibrary', 'Design Library')}</span>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleSignOut}>

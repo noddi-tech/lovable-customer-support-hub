@@ -15,7 +15,6 @@ import { ConnectionStatusIndicator } from '@/components/layout/ConnectionStatusI
 import { 
   Search,
   LogOut,
-  Palette,
   Menu,
   ArrowLeft,
   Settings
@@ -158,10 +157,6 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
               <DropdownMenuItem onClick={() => navigate('/settings')}>
                 <Settings className="mr-2 h-4 w-4" />
                 <span>{t('header.settings', 'Settings')}</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => navigate('/admin/design-library')}>
-                <Palette className="mr-2 h-4 w-4" />
-                <span>{t('header.designLibrary', 'Design Library')}</span>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleSignOut}>

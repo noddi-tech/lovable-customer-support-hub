@@ -10,7 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Bell, Search, Settings, LogOut, User, Menu, ArrowLeft, Palette, Clock, Sidebar, Phone, Loader2 } from 'lucide-react';
+import { Bell, Search, Settings, LogOut, User, Menu, ArrowLeft, Clock, Sidebar, Phone, Loader2 } from 'lucide-react';
 import { NotificationDropdown } from '@/components/notifications/NotificationDropdown';
 import { SyncButton } from '@/components/dashboard/SyncButton';
 import { DeleteAllButton } from '@/components/dashboard/DeleteAllButton';
@@ -246,10 +246,6 @@ export const Header: React.FC<HeaderProps> = ({
             <DropdownMenuItem onClick={() => navigate('/settings')}>
               <Settings className="mr-2 h-4 w-4" />
               <span>{t('common.settings')}</span>
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => navigate('/design-library')}>
-              <Palette className="mr-2 h-4 w-4" />
-              <span>{t('dashboard.header.designLibrary')}</span>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={signOut} className="text-destructive">
