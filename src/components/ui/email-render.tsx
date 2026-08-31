@@ -490,11 +490,18 @@ const EmailRenderComponent: React.FC<EmailRenderProps> = ({
     return isHTML && content.includes('Image blocked for privacy');
   }, [isHTML, content]);
 
-  // Get inline image attachments for lightbox
+  // Get inline image attachments (used to map in-body image clicks)
   const inlineImages = useMemo(() => 
     attachments.filter(a => a.isInline && a.mimeType?.startsWith('image/')),
     [attachments]
   );
+
+  // Every image attachment can be opened in the lightbox — inline or not.
+  const lightboxImages = useMemo(
+    () => attachments.filter(a => a.mimeType?.startsWith('image/')),
+    [attachments]
+  );
+
 
   // Enhanced image processing effect
   useEffect(() => {
