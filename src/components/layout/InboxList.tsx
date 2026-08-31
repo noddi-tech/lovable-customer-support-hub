@@ -241,18 +241,23 @@ export const InboxList: React.FC<InboxListProps> = ({
 
                 return (
                   <SelectItem key={inbox.id} value={inbox.id}>
-                    <div className="flex items-start gap-2 min-w-0">
+                    <div className="flex items-start gap-2 min-w-0 w-full">
                       <div 
                         className="w-2 h-2 rounded-full flex-shrink-0 mt-1.5"
                         style={{ backgroundColor: inbox.color || '#6B7280' }}
                       />
-                      <div className="min-w-0 flex flex-col leading-tight">
+                      <div className="min-w-0 flex flex-col leading-tight flex-1">
                         <span className="truncate">{inbox.name}</span>
                         <span className="text-[11px] text-muted-foreground truncate">
                           {email}
                         </span>
                       </div>
+                      <OutstandingBadges
+                        open={outstanding[inbox.id]?.open || 0}
+                        pending={outstanding[inbox.id]?.pending || 0}
+                      />
                     </div>
+
                   </SelectItem>
                 );
               })}
