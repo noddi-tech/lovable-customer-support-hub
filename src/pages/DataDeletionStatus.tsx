@@ -1,6 +1,8 @@
 // Public status page for Meta data-deletion requests.
 // Reachable at /data-deletion-status/:code without authentication.
-// RLS allows public SELECT on recruitment_meta_data_deletion_requests by code.
+// The table itself is not publicly readable — lookup goes through the
+// get_meta_deletion_request_status RPC, which returns status fields for one
+// exact confirmation code only.
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -21,15 +23,15 @@ export default function DataDeletionStatus() {
   useEffect(() => {
     if (!code) return;
     (async () => {
-      const { data, error } = await supabase
-        .from('recruitment_meta_data_deletion_requests' as any)
-        .select('confirmation_code, status, created_at, completed_at')
-        .eq('confirmation_code', code)
-        .maybeSingle();
+      const { data, error } = await (supabase as any).rpc(
+        'get_meta_deletion_request_status',
+        { _code: code },
+      );
       if (error) {
         setError(error.message);
       } else {
-        setRequest(data as unknown as DeletionRequest | null);
+        const row = Array.isArray(data) ? data[0] : data;
+        setRequest((row ?? null) as DeletionRequest | null);
       }
       setLoading(false);
     })();
