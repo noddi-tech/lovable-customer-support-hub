@@ -161,6 +161,13 @@ function conversationListReducer(state: ConversationListState, action: Conversat
       }
       return { ...state, selectedConversations: newSelected };
     }
+    case 'SET_BULK_SELECTION': {
+      const newSelected = new Set(state.selectedConversations);
+      action.payload.ids.forEach((id) =>
+        action.payload.selected ? newSelected.add(id) : newSelected.delete(id),
+      );
+      return { ...state, selectedConversations: newSelected };
+    }
     case 'CLEAR_BULK_SELECTION':
       return { ...state, selectedConversations: new Set() };
     case 'TOGGLE_BULK_MODE':
