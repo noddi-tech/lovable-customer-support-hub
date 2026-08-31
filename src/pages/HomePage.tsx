@@ -21,7 +21,9 @@ import {
   Mail,
   UserCheck,
   Clock,
+  Settings2,
 } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 const sectionIcons: Record<string, typeof MessageSquare> = {
   interactions: MessageSquare,
@@ -102,6 +104,15 @@ export default function HomePage() {
               <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
                 <Inbox className="h-4 w-4" /> Inboxes
               </h2>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 text-[11px]"
+                onClick={() => navigate('/admin/inboxes')}
+              >
+                <Settings2 className="h-3.5 w-3.5 mr-1.5" />
+                Manage inboxes
+              </Button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
               {inboxes.filter(i => i.is_active).map(inbox => {
@@ -159,11 +170,34 @@ export default function HomePage() {
                             className="h-7 px-2 text-[11px]"
                             onClick={(e) => {
                               e.stopPropagation();
-                              navigate('/admin/integrations');
+                              navigate(`/admin/inboxes?inbox=${inbox.id}`);
                             }}
                           >
+                            <Settings2 className="h-3.5 w-3.5 mr-1.5" />
                             Configure
                           </Button>
+                        )}
+
+                        {isConfigured && (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  aria-label={`Configure ${inbox.name}`}
+                                  className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    navigate(`/admin/inboxes?inbox=${inbox.id}`);
+                                  }}
+                                >
+                                  <Settings2 className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Configure this inbox</TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
                         )}
                       </div>
                     </CardContent>
