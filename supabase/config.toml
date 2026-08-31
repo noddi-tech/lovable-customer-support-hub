@@ -178,6 +178,10 @@ verify_jwt = true
 verify_jwt = true
 
 # PUBLIC: get-attachment is public - storageKey is unguessable UUID path
+# PUBLIC gateway: auth is enforced in-function via ?token= (img tags cannot set headers)
+[functions.email-image-proxy]
+verify_jwt = false
+
 [functions.get-attachment]
 verify_jwt = false
 

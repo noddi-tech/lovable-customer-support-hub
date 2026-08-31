@@ -492,6 +492,15 @@ export const sanitizeEmailHTML = (
     }
   ).replace(/\sdata-proxied-src=["'][^"']*["']/gi, '');
 
+  // Same treatment for CSS background images and legacy background attributes.
+  processedContent = processedContent
+    .replace(/\sbackground=["'](https?:\/\/[^"']+)["']/gi, (_m, url) =>
+      ` background="${buildEmailImageProxyUrl(url)}"`)
+    .replace(/url\(\s*(['"]?)(https?:\/\/[^'")]+)\1\s*\)/gi, (match, _q, url) => {
+      if (String(url).includes('/functions/v1/')) return match;
+      return `url("${buildEmailImageProxyUrl(url)}")`;
+    });
+
   // Sanitize the HTML
   const sanitized = DOMPurify.sanitize(processedContent, config);
   // Clean up hooks to avoid leaking across calls
