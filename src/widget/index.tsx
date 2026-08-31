@@ -62,6 +62,7 @@ function injectStyles() {
 function initializeWidget(options: WidgetInitOptions) {
   console.log('[Noddi] initializeWidget called with options:', options);
   initOptions = options;
+  isReadyFlag = false;
   
   // Inject CSS styles
   injectStyles();

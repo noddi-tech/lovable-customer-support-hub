@@ -16,13 +16,38 @@ export interface WidgetConfig {
   language: string; // Language code (en, no, es, fr, de, it, pt, nl, sv, da)
 }
 
+export type WidgetEnvironment = 'production' | 'staging' | 'development';
+
+/** Context accepted by `init` and `update` (flat host-facing field names). */
+export interface WidgetHostContext {
+  locale?: string;
+  environment?: WidgetEnvironment;
+  sourceApp?: string;
+  userId?: string | number;
+  serviceDepartmentId?: string | number;
+  bookingId?: string | number;
+  bookingSlug?: string;
+  orderId?: string | number;
+  licensePlate?: string;
+  car?: string;
+  pathname?: string;
+  appVersion?: string;
+}
+
+/** Payload for `NoddiWidget('update', ...)`; `identity: null` clears the visitor. */
+export interface WidgetUpdateOptions extends WidgetHostContext {
+  brand?: string;
+  context?: WidgetHostContext;
+  identity?: WidgetIdentityOptions | null;
+}
+
 export interface WidgetInitOptions {
   /** Optional brand of the host site, shown to agents on chats (e.g. 'Noddi Bilpleie'). */
   brand?: string;
   /** BCP-47 language of the visitor's session, e.g. 'nb-NO'. */
   locale?: string;
-  /** Deployment the widget runs in: 'production' | 'staging' | 'development'. */
-  environment?: string;
+  /** Deployment the widget runs in. */
+  environment?: WidgetEnvironment;
   /** Product surface using this widget key, e.g. 'customer' | 'partner' | 'marketing'. */
   sourceApp?: string;
   /** User id of the logged-in visitor, so agents skip manual matching. */
@@ -31,6 +56,8 @@ export interface WidgetInitOptions {
   serviceDepartmentId?: string | number;
   /** Booking currently open in the host app. */
   bookingId?: string | number;
+  /** Booking slug, when the host only has a slug (draft flows) and no numeric id. */
+  bookingSlug?: string;
   /** Order currently open in the host app. */
   orderId?: string | number;
   /** SPA route; falls back to the live location when omitted. */
@@ -42,7 +69,7 @@ export interface WidgetInitOptions {
   /** Human-readable car description, e.g. 'Tesla Model 3 (2021)'. */
   car?: string;
   /** Structured alternative to the flat fields above; merged over them. */
-  context?: Record<string, unknown>;
+  context?: WidgetHostContext;
   /** Known visitor, passed straight to `identify`. */
   identity?: WidgetIdentityOptions;
   widgetKey: string;
