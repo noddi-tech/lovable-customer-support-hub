@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { logger } from '@/utils/logger';
+import { sanitizeStorageFilename } from '@/utils/storageKey';
 
 interface ConversationViewState {
   replyText: string;
@@ -309,7 +310,7 @@ export const ConversationViewProvider = ({ children, conversationId, conversatio
 
         const uploaded: { meta: any; storagePath: string }[] = [];
         for (const file of files) {
-          const uniqueName = `${crypto.randomUUID()}_${file.name}`;
+          const uniqueName = `${crypto.randomUUID()}_${sanitizeStorageFilename(file.name)}`;
           const storagePath = `${orgId}/${conversationId}/${uniqueName}`;
 
           const { error: uploadError } = await supabase.storage

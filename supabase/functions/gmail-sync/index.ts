@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { sanitizeStorageFilename } from '../_shared/storage.ts';
 
 /**
  * Recursively finds the preferred text part (HTML or plain) from the payload.
@@ -561,7 +562,7 @@ async function syncGmailMessages(account: any, supabaseClient: any, folder: 'inb
               }
 
               // Upload to Supabase Storage with same pattern as SendGrid inbound
-              const storageKey = `${account.organization_id}/gmail/${message.id}/${crypto.randomUUID()}_${att.filename}`;
+              const storageKey = `${account.organization_id}/gmail/${message.id}/${crypto.randomUUID()}_${sanitizeStorageFilename(att.filename)}`;
               const { error: uploadError } = await supabaseClient.storage
                 .from('message-attachments')
                 .upload(storageKey, bytes, {

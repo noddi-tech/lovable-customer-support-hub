@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { sanitizeStorageFilename } from '../_shared/storage.ts';
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -511,7 +512,7 @@ Deno.serve(async (req: Request) => {
             const isInline = mimeType.startsWith('image/') && !!contentId;
             
             // Upload to Supabase Storage with retry logic
-            const storagePath = `${organization_id}/${conversation_id}/${crypto.randomUUID()}_${filename}`;
+            const storagePath = `${organization_id}/${conversation_id}/${crypto.randomUUID()}_${sanitizeStorageFilename(filename)}`;
             const MAX_RETRIES = 3;
             let uploadAttempt = 0;
             let uploadSuccess = false;

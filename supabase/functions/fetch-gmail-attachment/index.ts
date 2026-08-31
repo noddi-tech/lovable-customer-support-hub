@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { sanitizeStorageFilename } from '../_shared/storage.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -190,7 +191,7 @@ serve(async (req) => {
     }
 
     // Upload to Supabase Storage
-    const storageKey = `${organizationId}/gmail/${gmailMessageId}/${crypto.randomUUID()}_${filename}`;
+    const storageKey = `${organizationId}/gmail/${gmailMessageId}/${crypto.randomUUID()}_${sanitizeStorageFilename(filename)}`;
     const { error: uploadError } = await supabaseClient.storage
       .from('message-attachments')
       .upload(storageKey, bytes, {
