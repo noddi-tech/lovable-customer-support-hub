@@ -205,6 +205,122 @@ export function useCaseConversations(caseId?: string | null) {
   });
 }
 
+export interface CaseActivityItem {
+  id: string;
+  kind: 'conversation' | 'call' | 'chat';
+  at: string;
+  title: string;
+  subtitle?: string | null;
+  status?: string | null;
+  href?: string | null;
+}
+
+/** Everything attached to a case: email/chat conversations, calls and chat sessions. */
+export function useCaseActivity(caseId?: string | null) {
+  return useQuery({
+    queryKey: ['case-activity', caseId],
+    enabled: !!caseId,
+    queryFn: async (): Promise<CaseActivityItem[]> => {
+      const [convRes, callRes, chatRes] = await Promise.all([
+        (supabase.from('conversations') as any)
+          .select(sel('id, subject, channel, status, updated_at, preview_text'))
+          .eq('case_id', caseId),
+        (supabase.from('calls') as any)
+          .select(sel('id, direction, status, started_at, duration_seconds'))
+          .eq('case_id', caseId),
+        (supabase.from('widget_chat_sessions') as any)
+          .select(sel('id, status, started_at, conversation_id'))
+          .eq('case_id', caseId),
+      ]);
+
+      const items: CaseActivityItem[] = [];
+
+      for (const c of (convRes.data ?? []) as any[]) {
+        items.push({
+          id: `conversation:${c.id}`,
+          kind: 'conversation',
+          at: c.updated_at,
+          title: c.subject || (c.channel === 'widget' ? 'Live chat' : '(no subject)'),
+          subtitle: c.preview_text,
+          status: c.status,
+          href: `/c/${c.id}`,
+        });
+      }
+
+      for (const call of (callRes.data ?? []) as any[]) {
+        const mins = call.duration_seconds ? Math.round(call.duration_seconds / 60) : null;
+        items.push({
+          id: `call:${call.id}`,
+          kind: 'call',
+          at: call.started_at,
+          title: call.direction === 'outbound' ? 'Outbound call' : 'Inbound call',
+          subtitle: mins !== null ? `${mins} min` : null,
+          status: call.status,
+          href: null,
+        });
+      }
+
+      for (const chat of (chatRes.data ?? []) as any[]) {
+        items.push({
+          id: `chat:${chat.id}`,
+          kind: 'chat',
+          at: chat.started_at,
+          title: 'Chat session',
+          status: chat.status,
+          href: chat.conversation_id ? `/c/${chat.conversation_id}` : null,
+        });
+      }
+
+      return items
+        .filter((i) => !!i.at)
+        .sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
+    },
+  });
+}
+
+export function useLinkChatSessionToCase() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ sessionId, caseId }: { sessionId: string; caseId: string | null }) => {
+      const { error } = await (supabase.from('widget_chat_sessions') as any)
+        .update({ case_id: caseId })
+        .eq('id', sessionId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['case-activity'] });
+      queryClient.invalidateQueries({ queryKey: ['cases'] });
+    },
+    onError: (error: any) => toast.error(error?.message ?? 'Could not link chat session'),
+  });
+}
+
+/** Counts for sidebar badges: cases owned by me that are still open, plus overdue. */
+export function useMyCaseCounts() {
+  const { profile } = useAuth();
+  const profileId = profile?.id;
+  return useQuery({
+    queryKey: ['case-counts', profileId],
+    enabled: !!profileId,
+    refetchInterval: 60_000,
+    queryFn: async () => {
+      const openStatuses = ['open', 'in_progress', 'waiting_customer', 'waiting_internal'];
+      const [mine, overdue] = await Promise.all([
+        (supabase.from('cases') as any)
+          .select('id', { count: 'exact', head: true })
+          .eq('owner_id', profileId)
+          .in('status', openStatuses),
+        (supabase.from('cases') as any)
+          .select('id', { count: 'exact', head: true })
+          .in('status', openStatuses)
+          .not('due_at', 'is', null)
+          .lt('due_at', new Date().toISOString()),
+      ]);
+      return { mine: mine.count ?? 0, overdue: overdue.count ?? 0 };
+    },
+  });
+}
+
 export function useCaseCategories() {
   const { profile } = useAuth();
   return useQuery({

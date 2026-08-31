@@ -7696,6 +7696,7 @@ export type Database = {
       widget_chat_sessions: {
         Row: {
           assigned_agent_id: string | null
+          case_id: string | null
           conversation_id: string | null
           created_at: string | null
           ended_at: string | null
@@ -7713,6 +7714,7 @@ export type Database = {
         }
         Insert: {
           assigned_agent_id?: string | null
+          case_id?: string | null
           conversation_id?: string | null
           created_at?: string | null
           ended_at?: string | null
@@ -7730,6 +7732,7 @@ export type Database = {
         }
         Update: {
           assigned_agent_id?: string | null
+          case_id?: string | null
           conversation_id?: string | null
           created_at?: string | null
           ended_at?: string | null
@@ -7751,6 +7754,13 @@ export type Database = {
             columns: ["assigned_agent_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "widget_chat_sessions_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
             referencedColumns: ["id"]
           },
           {

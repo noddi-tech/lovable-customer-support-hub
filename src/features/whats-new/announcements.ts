@@ -1,4 +1,4 @@
-import { Inbox, Briefcase, UserSearch } from 'lucide-react';
+import { Inbox, Briefcase, UserSearch, History as HistoryIcon } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 export interface Announcement {
@@ -54,6 +54,19 @@ export const ANNOUNCEMENTS: Announcement[] = [
       'Each inbox has a number — press it to switch instantly',
       'Alt + click (or Alt + number) combines several inboxes into one view',
       'Open and pending counts are shown per inbox',
+    ],
+  },
+  {
+    id: 'unified-customer-timeline-chat-2026-09',
+    title: 'One timeline across email, chat and phone',
+    description:
+      'Live chat now has the same case tools as email, and the side panel shows one merged history of every interaction with that customer.',
+    icon: HistoryIcon,
+    bullets: [
+      'Live chat gets a right-hand panel with the linked case and the full customer history',
+      'Filter the timeline by email, chat, phone, notes or cases — click any row to open it',
+      'A case now lists its conversations, chat sessions and calls together',
+      'Operations → Cases shows how many open cases you own',
     ],
   },
 ];

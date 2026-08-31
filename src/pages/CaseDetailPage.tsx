@@ -18,13 +18,13 @@ import {
   CASE_STATUS_LABELS,
   useCase,
   useCaseCategories,
-  useCaseConversations,
+  useCaseActivity,
   useUpdateCase,
   type CasePriority,
   type CaseStatus,
 } from '@/hooks/useCases';
 import { useDateFormatting } from '@/hooks/useDateFormatting';
-import { ArrowLeft, CheckCircle2, MessageSquare, UserRound } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Mail, MessageSquare, Phone, UserRound } from 'lucide-react';
 
 function useOrgAgents() {
   const { profile } = useAuth();
@@ -46,7 +46,7 @@ export default function CaseDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: record, isLoading } = useCase(id);
-  const { data: conversations = [] } = useCaseConversations(id);
+  const { data: activity = [] } = useCaseActivity(id);
   const { data: categories = [] } = useCaseCategories();
   const { data: agents = [] } = useOrgAgents();
   const updateCase = useUpdateCase();
@@ -121,33 +121,44 @@ export default function CaseDetailPage() {
 
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm">Linked conversations ({conversations.length})</CardTitle>
+                  <CardTitle className="text-sm">Linked activity ({activity.length})</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
-                  {conversations.length === 0 ? (
+                  {activity.length === 0 ? (
                     <p className="text-sm text-muted-foreground">
-                      No conversations linked yet. Link one from the conversation side panel.
+                      Nothing linked yet. Link a conversation, chat or call from its side panel.
                     </p>
                   ) : (
-                    conversations.map((c) => (
-                      <button
-                        key={c.id}
-                        onClick={() => navigate(`/c/${c.id}`)}
-                        className="w-full rounded-md border p-2.5 text-left transition-colors hover:bg-accent/50"
-                      >
-                        <div className="flex items-center gap-2">
-                          <MessageSquare className="h-3.5 w-3.5 text-muted-foreground" />
-                          <span className="min-w-0 flex-1 truncate text-sm font-medium">
-                            {c.subject || '(no subject)'}
-                          </span>
-                          <span className="text-xs text-muted-foreground">{c.channel}</span>
-                        </div>
-                        {c.preview_text && (
-                          <p className="mt-1 line-clamp-1 text-xs text-muted-foreground">{c.preview_text}</p>
-                        )}
-                        <p className="mt-1 text-xs text-muted-foreground">Updated {dateTime(c.updated_at)}</p>
-                      </button>
-                    ))
+                    activity.map((item) => {
+                      const Icon =
+                        item.kind === 'call' ? Phone : item.kind === 'chat' ? MessageSquare : Mail;
+                      return (
+                        <button
+                          key={item.id}
+                          disabled={!item.href}
+                          onClick={() => item.href && navigate(item.href)}
+                          className="w-full rounded-md border p-2.5 text-left transition-colors enabled:hover:bg-accent/50 disabled:cursor-default"
+                        >
+                          <div className="flex items-center gap-2">
+                            <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+                            <span className="min-w-0 flex-1 truncate text-sm font-medium">
+                              {item.title}
+                            </span>
+                            {item.status && (
+                              <span className="text-xs text-muted-foreground">
+                                {item.status.replace(/_/g, ' ')}
+                              </span>
+                            )}
+                          </div>
+                          {item.subtitle && (
+                            <p className="mt-1 line-clamp-1 text-xs text-muted-foreground">
+                              {item.subtitle}
+                            </p>
+                          )}
+                          <p className="mt-1 text-xs text-muted-foreground">{dateTime(item.at)}</p>
+                        </button>
+                      );
+                    })
                   )}
                 </CardContent>
               </Card>
