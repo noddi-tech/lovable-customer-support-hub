@@ -96,6 +96,7 @@ type ConversationListAction =
   | { type: 'OPEN_DELETE_DIALOG'; payload: string }
   | { type: 'CLOSE_DELETE_DIALOG' }
   | { type: 'TOGGLE_BULK_SELECTION'; payload: { id: string; selected: boolean } }
+  | { type: 'SET_BULK_SELECTION'; payload: { ids: string[]; selected: boolean } }
   | { type: 'CLEAR_BULK_SELECTION' }
   | { type: 'TOGGLE_BULK_MODE' }
   | { type: 'SET_SORT'; payload: string }
@@ -158,6 +159,13 @@ function conversationListReducer(state: ConversationListState, action: Conversat
       } else {
         newSelected.delete(action.payload.id);
       }
+      return { ...state, selectedConversations: newSelected };
+    }
+    case 'SET_BULK_SELECTION': {
+      const newSelected = new Set(state.selectedConversations);
+      action.payload.ids.forEach((id) =>
+        action.payload.selected ? newSelected.add(id) : newSelected.delete(id),
+      );
       return { ...state, selectedConversations: newSelected };
     }
     case 'CLEAR_BULK_SELECTION':
@@ -851,7 +859,9 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
       }
       
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
-      toast.success(`Changed status for ${ids.length} conversations`);
+      queryClient.invalidateQueries({ queryKey: ['inboxCounts'] });
+      queryClient.invalidateQueries({ queryKey: ['all-counts'] });
+      toast.success(`Changed status to ${status} for ${ids.length} conversation${ids.length === 1 ? '' : 's'}`);
       dispatch({ type: 'CLEAR_BULK_SELECTION' });
     } catch (error) {
       logger.error('Failed to change status', error, 'bulkChangeStatus');

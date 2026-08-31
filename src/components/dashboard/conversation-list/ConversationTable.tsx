@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo, useCallback, useMemo } from 'react';
 import { Table, TableBody, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ConversationTableRow } from './ConversationTableRow';
@@ -7,6 +7,7 @@ import { useConversationList, type Conversation } from '@/contexts/ConversationL
 import { Clock } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { InboxZeroCelebration, AlmostThereBanner } from './InboxZeroCelebration';
+import { useBulkRangeSelect } from '@/hooks/useBulkRangeSelect';
 
 interface ConversationTableProps {
   onSelectConversation: (conversation: Conversation) => void;
@@ -36,13 +37,21 @@ export const ConversationTable = memo<ConversationTableProps>(({
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      filteredConversations.forEach(conv => {
-        dispatch({ type: 'TOGGLE_BULK_SELECTION', payload: { id: conv.id, selected: true } });
+      dispatch({
+        type: 'SET_BULK_SELECTION',
+        payload: { ids: filteredConversations.map(c => c.id), selected: true },
       });
     } else {
       dispatch({ type: 'CLEAR_BULK_SELECTION' });
     }
   };
+
+  const orderedIds = useMemo(() => paginatedConversations.map(c => c.id), [paginatedConversations]);
+  const setSelection = useCallback(
+    (ids: string[], selected: boolean) => dispatch({ type: 'SET_BULK_SELECTION', payload: { ids, selected } }),
+    [dispatch],
+  );
+  const handleBulkSelect = useBulkRangeSelect(orderedIds, setSelection);
 
   const allSelected = state.bulkSelectionMode &&
     filteredConversations.length > 0 &&
@@ -155,9 +164,7 @@ export const ConversationTable = memo<ConversationTableProps>(({
               isSelected={selectedConversation?.id === conversation.id}
               onSelect={onSelectConversation}
               isBulkSelected={state.selectedConversations.has(conversation.id)}
-              onBulkSelect={(id, selected) =>
-                dispatch({ type: 'TOGGLE_BULK_SELECTION', payload: { id, selected } })
-              }
+              onBulkSelect={handleBulkSelect}
               showBulkCheckbox={state.bulkSelectionMode}
             />
           ))}
