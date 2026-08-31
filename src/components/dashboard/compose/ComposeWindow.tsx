@@ -495,7 +495,7 @@ export const ComposeWindow: React.FC<ComposeWindowProps> = ({ draft }) => {
             >
               <span className="flex items-center gap-1.5 min-w-0">
                 <span className="text-muted-foreground shrink-0">Priority:</span>
-                <SelectValue />
+                <span className="truncate capitalize">{draft.priority || 'normal'}</span>
               </span>
             </SelectTrigger>
             <SelectContent className="w-[280px]">
