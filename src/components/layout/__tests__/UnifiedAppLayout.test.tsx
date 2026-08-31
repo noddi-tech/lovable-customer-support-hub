@@ -53,7 +53,7 @@ describe('UnifiedAppLayout', () => {
     expect(screen.getByText('Test Content')).toBeInTheDocument();
     
     // Sidebar branding
-    expect(screen.getByText('Customer Platform')).toBeInTheDocument();
+    expect(screen.getByText('Support Hub')).toBeInTheDocument();
   });
 
   it('renders without a top header bar', () => {
