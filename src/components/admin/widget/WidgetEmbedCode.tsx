@@ -16,6 +16,7 @@ export const WidgetEmbedCode: React.FC<WidgetEmbedCodeProps> = ({ widgetKey }) =
   const [examplesOpen, setExamplesOpen] = useState(false);
   const [copiedExample, setCopiedExample] = useState<string | null>(null);
   const [copiedDocs, setCopiedDocs] = useState(false);
+  const [lastDeploy, setLastDeploy] = useState<{ size: number | null; at: string } | null>(null);
 
   // Use the production Supabase URL
   const supabaseUrl = 'https://qgfaycwsangsqzpveoup.supabase.co';
