@@ -17,6 +17,8 @@ export interface WidgetConfig {
 }
 
 export interface WidgetInitOptions {
+  /** Optional brand of the host site, shown to agents on chats (e.g. 'Noddi Bilpleie'). */
+  brand?: string;
   widgetKey: string;
   apiUrl?: string;
   // Client-side overrides

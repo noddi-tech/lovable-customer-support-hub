@@ -22,6 +22,18 @@ export function getWidgetKey(): string {
   return widgetKey;
 }
 
+// Optional brand of the host site (e.g. 'Noddi Bilpleie'). Passed through to
+// the backend so agents can see which brand a chat came from.
+let brand = '';
+
+export function setBrand(value: string) {
+  brand = (value || '').slice(0, 40);
+}
+
+export function getBrand(): string {
+  return brand;
+}
+
 /** Headers for calls to the Noddi proxy edge functions. */
 export function proxyHeaders(): Record<string, string> {
   return { 'Content-Type': 'application/json', 'x-widget-key': widgetKey };
@@ -50,6 +62,7 @@ export interface SubmitContactData {
   message: string;
   pageUrl: string;
   visitorId?: string;
+  brand?: string;
 }
 
 export async function submitContactForm(data: SubmitContactData): Promise<{ success: boolean; error?: string }> {
@@ -57,7 +70,7 @@ export async function submitContactForm(data: SubmitContactData): Promise<{ succ
     const response = await fetch(`${apiBaseUrl}/widget-submit`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
+      body: JSON.stringify({ brand: brand || undefined, ...data }),
     });
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
@@ -106,6 +119,7 @@ export interface StartChatData {
   visitorName?: string;
   visitorEmail?: string;
   pageUrl?: string;
+  brand?: string;
 }
 
 export async function startChat(data: StartChatData): Promise<ChatSession | null> {
@@ -113,7 +127,7 @@ export async function startChat(data: StartChatData): Promise<ChatSession | null
     const response = await fetch(`${apiBaseUrl}/widget-chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'start', ...data }),
+      body: JSON.stringify({ action: 'start', brand: brand || undefined, ...data }),
     });
     if (!response.ok) return null;
     return await response.json();

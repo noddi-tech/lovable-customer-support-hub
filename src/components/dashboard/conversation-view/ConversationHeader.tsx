@@ -2,6 +2,8 @@ import { useState } from "react";
 import { canGoBackInApp, getConversationBackPath } from '@/utils/conversationNavigation';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { getConversationBrand } from "@/lib/conversationBrand";
+import { BrandBadge } from "@/components/dashboard/conversation-list/BrandBadge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
@@ -142,6 +144,10 @@ onClick={() => {
                 {conversation.is_archived && (
                   <Badge variant="outline" className="text-xs">Archived</Badge>
                 )}
+                {(() => {
+                  const brand = getConversationBrand((conversation as any).metadata, conversation.channel);
+                  return brand ? <BrandBadge brand={brand} /> : null;
+                })()}
               </div>
             </div>
           </div>

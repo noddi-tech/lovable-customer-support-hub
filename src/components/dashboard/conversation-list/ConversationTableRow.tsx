@@ -6,6 +6,8 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Checkbox } from '@/components/ui/checkbox';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { MoreVertical, Archive, Trash2, MessageCircle, Mail, MailOpen, Globe, Clock, CheckCircle, XCircle, Reply, Lock } from 'lucide-react';
+import { getConversationBrand } from '@/lib/conversationBrand';
+import { BrandBadge } from './BrandBadge';
 import { cn } from '@/lib/utils';
 import { useDateFormatting } from '@/hooks/useDateFormatting';
 import { useConversationList, type Conversation } from '@/contexts/ConversationListContext';
@@ -20,6 +22,15 @@ import { useInboxEmailAddresses } from '@/hooks/useInboxEmailAddresses';
  * Small colored pill identifying which inbox a conversation belongs to.
  * Shown in the "All inboxes" view so agents always know the destination.
  */
+const ConversationBrandBadge = ({
+  conversation,
+  compact,
+}: { conversation: any; compact?: boolean }) => {
+  const brand = getConversationBrand(conversation.metadata, conversation.channel);
+  if (!brand) return null;
+  return <BrandBadge brand={brand} compact={compact} />;
+};
+
 const InboxBadge = ({
   name,
   color,
@@ -285,6 +296,7 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
                   {conversation.channel === 'widget' ? 'Chat' : conversation.channel}
                 </span>
               </div>
+              <ConversationBrandBadge conversation={conversation} compact />
               {!conversation.is_read && (
                 <Badge className="bg-primary text-primary-foreground px-1.5 py-0 text-[9px]">New</Badge>
               )}
@@ -424,6 +436,7 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
                 LIVE
               </Badge>
             )}
+            <ConversationBrandBadge conversation={conversation} />
           </div>
         </div>
 

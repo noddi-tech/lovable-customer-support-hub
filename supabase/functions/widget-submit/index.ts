@@ -15,6 +15,7 @@ interface WidgetSubmission {
   message: string;
   subject?: string;
   pageUrl?: string;
+  brand?: string;
   visitorId?: string;
   browserInfo?: Record<string, unknown>;
 }
@@ -57,6 +58,7 @@ Deno.serve(async (req) => {
     const message = asString(body.message, 10000);
     const subject = asString(body.subject, 200) || undefined;
     const visitorId = asString(body.visitorId, 100) || undefined;
+    const brand = asString(body.brand, 40) || undefined;
     const browserInfo =
       body.browserInfo && typeof body.browserInfo === 'object' && !Array.isArray(body.browserInfo)
         ? Object.fromEntries(
@@ -203,6 +205,7 @@ Deno.serve(async (req) => {
         metadata: {
           source: 'widget',
           page_url: pageUrl,
+          brand,
           browser_info: browserInfo,
         },
       })
