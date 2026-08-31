@@ -859,8 +859,8 @@ const WIDGET_JS = `
         e.preventDefault();
         const t = getT(state.lang);
         const fd = new FormData(prechatForm);
-        const email = (fd.get('email') || '').trim();
-        const name = (fd.get('name') || '').trim();
+        const email = ((fd.get('email') || '').trim()) || (identity.email || '');
+        const name = ((fd.get('name') || '').trim()) || (identity.name || '');
 
         if (!email) {
           state.error = t.emailRequired;
