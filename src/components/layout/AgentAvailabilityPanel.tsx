@@ -18,8 +18,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-import { Circle, ChevronDown, Loader2, Phone, MessageSquare, LogIn, LogOut, RefreshCw }  from 'lucide-react';
-import { useRealtimeConnection } from '@/contexts/RealtimeProvider';
+import { Circle, ChevronDown, Loader2, Phone, MessageSquare, LogIn, LogOut }  from 'lucide-react';
 
 interface AgentAvailabilityPanelProps {
   collapsed?: boolean;
