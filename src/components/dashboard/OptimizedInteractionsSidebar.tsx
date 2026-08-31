@@ -13,6 +13,7 @@ import { SidebarSection } from '@/components/ui/sidebar-section';
 import { SidebarItem } from '@/components/ui/sidebar-item';
 import { EnhancedLoadingSkeleton } from '@/components/ui/enhanced-loading-skeleton';
 import { NewConversationDialog } from './NewConversationDialog';
+import { DraftsList } from './compose/DraftsList';
 import { useOptimizedCounts } from '@/hooks/useOptimizedCounts';
 import { useInteractionsNavigation } from '@/hooks/useInteractionsNavigation';
 
