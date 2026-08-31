@@ -515,15 +515,8 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
   });
 
   const archiveConversation = (id: string) => {
-    const conv = conversations.find(c => c.id === id);
-    if (conv && conv.status !== 'closed') {
-      dispatch({
-        type: 'OPEN_ARCHIVE_DIALOG',
-        payload: { open: true, ids: [id], nonClosedCount: 1, totalCount: 1 },
-      });
-    } else {
-      archiveConversationMutation.mutate(id);
-    }
+    // Archiving always closes the conversation as well — no extra prompt.
+    archiveConversationMutation.mutate(id);
   };
 
   const confirmArchive = async (alsoClose: boolean) => {
