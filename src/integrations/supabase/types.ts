@@ -3399,6 +3399,9 @@ export type Database = {
           app_on_voicemail: boolean | null
           created_at: string
           daily_digest_enabled: boolean | null
+          desktop_enabled: boolean
+          desktop_on_chat_message: boolean
+          desktop_on_new_email: boolean
           email_on_conversation_assigned: boolean | null
           email_on_customer_reply: boolean | null
           email_on_mention: boolean | null
@@ -3429,6 +3432,9 @@ export type Database = {
           app_on_voicemail?: boolean | null
           created_at?: string
           daily_digest_enabled?: boolean | null
+          desktop_enabled?: boolean
+          desktop_on_chat_message?: boolean
+          desktop_on_new_email?: boolean
           email_on_conversation_assigned?: boolean | null
           email_on_customer_reply?: boolean | null
           email_on_mention?: boolean | null
@@ -3459,6 +3465,9 @@ export type Database = {
           app_on_voicemail?: boolean | null
           created_at?: string
           daily_digest_enabled?: boolean | null
+          desktop_enabled?: boolean
+          desktop_on_chat_message?: boolean
+          desktop_on_new_email?: boolean
           email_on_conversation_assigned?: boolean | null
           email_on_customer_reply?: boolean | null
           email_on_mention?: boolean | null
