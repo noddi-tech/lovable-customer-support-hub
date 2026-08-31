@@ -178,8 +178,9 @@ export const InboxList: React.FC<InboxListProps> = ({
                       style={{ backgroundColor: inboxes.find(i => i.id === selectedInbox)?.color || '#6B7280' }}
                     />
                     <div className="min-w-0 flex flex-col leading-tight flex-1">
-                      <span className="truncate">
+                      <span className="truncate flex items-center gap-1.5">
                         {inboxes.find(i => i.id === selectedInbox)?.name || 'Select inbox'}
+                        {defaultInboxId === selectedInbox && <DefaultTag />}
                       </span>
                       {inboxEmails[selectedInbox] && (
                         <span className="text-[11px] text-muted-foreground truncate">
