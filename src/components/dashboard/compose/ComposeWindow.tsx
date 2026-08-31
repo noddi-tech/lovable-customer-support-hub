@@ -15,6 +15,7 @@ import {
   User,
   Send,
   Trash2,
+  Paperclip,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -91,6 +92,27 @@ export const ComposeWindow: React.FC<ComposeWindowProps> = ({ draft }) => {
   const [sending, setSending] = useState(false);
   const [bulkProgress, setBulkProgress] = useState<{ current: number; total: number; failed: number } | null>(null);
   const [selectedCustomer, setSelectedCustomer] = useState<NoddiCustomer | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const MAX_FILE_BYTES = 10 * 1024 * 1024;
+
+  const handleFilesPicked = (list: FileList | null) => {
+    if (!list) return;
+    const picked = Array.from(list);
+    const tooBig = picked.filter((f) => f.size > MAX_FILE_BYTES);
+    if (tooBig.length > 0) {
+      toast.error(`${tooBig.map((f) => f.name).join(', ')} exceeds the 10MB limit`);
+    }
+    const ok = picked.filter((f) => f.size <= MAX_FILE_BYTES);
+    if (ok.length > 0) setFiles((prev) => [...prev, ...ok]);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const removeFile = (index: number) => setFiles((prev) => prev.filter((_, i) => i !== index));
+
+  const formatBytes = (bytes: number) =>
+    bytes < 1024 * 1024 ? `${Math.max(1, Math.round(bytes / 1024))} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 
   // AI / translation
   const [aiSuggestions, setAiSuggestions] = useState<string[]>([]);
@@ -256,6 +278,7 @@ export const ComposeWindow: React.FC<ComposeWindowProps> = ({ draft }) => {
             priority: draft.priority,
             organizationId: profile?.organization_id,
             senderProfileUserId: profile?.user_id,
+            files,
           });
         } catch (error) {
           console.error(`Failed to send to ${email}:`, error);
@@ -289,6 +312,7 @@ export const ComposeWindow: React.FC<ComposeWindowProps> = ({ draft }) => {
         priority: draft.priority,
         organizationId: profile?.organization_id,
         senderProfileUserId: profile?.user_id,
+        files,
       });
 
       if (result.emailError) toast.warning(`Conversation created, but: ${result.emailError}`);
@@ -485,6 +509,27 @@ export const ComposeWindow: React.FC<ComposeWindowProps> = ({ draft }) => {
           />
         </div>
 
+        {files.length > 0 && (
+          <div className="px-3 pb-2 flex flex-wrap gap-1.5">
+            {files.map((file, index) => (
+              <Badge key={`${file.name}-${index}`} variant="secondary" className="gap-1 max-w-full">
+                <Paperclip className="h-3 w-3 shrink-0" />
+                <span className="truncate max-w-[160px]">{file.name}</span>
+                <span className="text-muted-foreground text-[10px]">{formatBytes(file.size)}</span>
+                <button
+                  type="button"
+                  onClick={() => removeFile(index)}
+                  disabled={busy}
+                  className="ml-0.5 hover:text-destructive"
+                  aria-label={`Remove ${file.name}`}
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </Badge>
+            ))}
+          </div>
+        )}
+
         {bulkProgress && (
           <div className="px-3 pb-2 space-y-1">
             <div className="flex items-center justify-between text-xs">
@@ -506,6 +551,24 @@ export const ComposeWindow: React.FC<ComposeWindowProps> = ({ draft }) => {
         <Button onClick={handleSend} disabled={busy || !draft.subject.trim()} size="sm" className="gap-2">
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
           {draft.bulkMode ? `Send (${parsedEmails.length})` : 'Send'}
+        </Button>
+
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          className="hidden"
+          onChange={(e) => handleFilesPicked(e.target.files)}
+        />
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={busy}
+          title="Attach files"
+        >
+          <Paperclip className="h-4 w-4" />
         </Button>
 
         <Popover>
