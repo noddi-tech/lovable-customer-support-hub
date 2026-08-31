@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { ArrowLeft, Mail, MessageSquare } from 'lucide-react';
+import { ArrowLeft, Mail, MessageSquare, Plug2, ExternalLink } from 'lucide-react';
 
 export const INBOX_COLOR_PALETTE = [
   { value: '#6656D9', label: 'Primary Purple' },
@@ -236,16 +236,42 @@ export function InboxSettingsPage({ inboxId }: { inboxId: string }) {
 
       <Card>
         <CardHeader>
-          <CardTitle>Email routing</CardTitle>
-          <CardDescription>Connected addresses and the From address used for replies</CardDescription>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <CardTitle>Email routing</CardTitle>
+              <CardDescription>Connected addresses and the From address used for replies</CardDescription>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate('/admin/integrations')}
+              className="gap-2"
+            >
+              <Plug2 className="w-4 h-4" />
+              Integrations & Routing
+              <ExternalLink className="w-3.5 h-3.5 opacity-70" />
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="text-sm">
             <span className="flex items-center gap-2 mb-1"><Mail className="w-4 h-4" /> Connected email(s)</span>
             <div className="text-muted-foreground">
               {accounts.length + (route ? 1 : 0) === 0 ? (
-                <span>No email connected. Set one up in Admin → Integrations & Routing.</span>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span>No email connected yet.</span>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => navigate('/admin/integrations')}
+                    className="gap-2"
+                  >
+                    <Plug2 className="w-4 h-4" />
+                    Connect an email
+                  </Button>
+                </div>
               ) : (
+
                 <ul className="list-disc pl-5 space-y-1">
                   {accounts.map((a) => (
                     <li key={a.id}>
