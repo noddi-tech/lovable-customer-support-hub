@@ -22,7 +22,7 @@ import {
   normalizeWidgetLanguage,
   resolveWidgetLanguages,
 } from '../translations';
-import { getWidgetContext, getSupportedLocales } from '../api';
+import { getWidgetContext, getSupportedLocales, isKnowledgeSearchEnabled } from '../api';
 
 
 interface WidgetPanelProps {
@@ -86,6 +86,12 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({ config, onClose, posit
       setCurrentLanguage(hostLocale);
     }
   }, [hostLocale]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Help centre: admin flag AND the host gate (enableKnowledgeSearch).
+  const knowledgeSearchEnabled = isKnowledgeSearchEnabled(config.enableKnowledgeSearch);
+  useEffect(() => {
+    if (!knowledgeSearchEnabled && view === 'search') setView('home');
+  }, [knowledgeSearchEnabled, view]);
 
   // The current language may no longer be offered after an update.
   useEffect(() => {
@@ -330,8 +336,8 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({ config, onClose, posit
                 </button>
               )}
               
-              {/* Help centre: opt-in per widget (admin flag) to keep PII exposure controlled */}
-              {config.enableKnowledgeSearch && (
+              {/* Help centre: opt-in per widget (admin flag) and host-gated via enableKnowledgeSearch */}
+              {knowledgeSearchEnabled && (
                 <button className="noddi-widget-action" onClick={() => setView('search')}>
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <circle cx="11" cy="11" r="8"></circle>
@@ -377,8 +383,8 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({ config, onClose, posit
             }}
           />
         ) : view === 'search' ? (
-          /* Help centre stays behind the admin `enableKnowledgeSearch` flag. */
-          config.enableKnowledgeSearch ? (
+          /* Help centre stays behind the admin flag and the host gate. */
+          knowledgeSearchEnabled ? (
             <div className="noddi-widget-view">
               <button className="noddi-widget-back" onClick={() => setView('home')}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

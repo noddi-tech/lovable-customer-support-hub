@@ -39,6 +39,8 @@ export interface WidgetUpdateOptions extends WidgetHostContext {
   brand?: string;
   /** Locales the host supports; narrows the widget language picker. */
   supportedLocales?: string[];
+  /** Host gate for the help-centre home action. false always hides it. */
+  enableKnowledgeSearch?: boolean;
   context?: WidgetHostContext;
   identity?: WidgetIdentityOptions | null;
 }
@@ -48,6 +50,8 @@ export interface WidgetInitOptions {
   brand?: string;
   /** Locales the host supports (BCP-47), e.g. ['nb-NO', 'en-US', 'sv-SE']. */
   supportedLocales?: string[];
+  /** Host gate for the help-centre home action. false always hides it. */
+  enableKnowledgeSearch?: boolean;
   /** BCP-47 language of the visitor's session, e.g. 'nb-NO'. */
   locale?: string;
   /** Deployment the widget runs in. */
