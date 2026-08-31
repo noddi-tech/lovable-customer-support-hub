@@ -536,8 +536,23 @@ export const NewConversationDialog: React.FC<NewConversationDialogProps> = ({ ch
     navigate(`${basePath}?inbox=${currentInbox}`);
   }, [parsedEmails, subject, selectedInboxId, initialMessage, priority, createConversationMutation, queryClient, navigate, resetForm]);
 
+  const canContinue = isBulkMode
+    ? parsedEmails.length > 0
+    : /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail.trim());
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Step 1 only collects recipients — move on to the compose window.
+    if (step === 'recipients') {
+      if (!canContinue) {
+        toast.error(isBulkMode ? 'Add at least one valid email' : 'A valid recipient email is required');
+        return;
+      }
+      setStep('compose');
+      return;
+    }
+
     
     if (isBulkMode) {
       handleBulkSend();
