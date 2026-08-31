@@ -16,6 +16,9 @@ import {
   Send,
   Trash2,
   Paperclip,
+  ArrowDown,
+  ArrowUp,
+  AlertTriangle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -486,14 +489,52 @@ export const ComposeWindow: React.FC<ComposeWindowProps> = ({ draft }) => {
             className="h-7 border-0 shadow-none focus-visible:ring-0 px-0 text-sm"
           />
           <Select value={draft.priority} onValueChange={(v) => set({ priority: v })} disabled={busy}>
-            <SelectTrigger className="h-7 w-[110px] text-xs">
-              <SelectValue />
+            <SelectTrigger
+              className="h-7 w-[168px] shrink-0 text-xs"
+              title="Priority of the conversation this email creates"
+            >
+              <span className="flex items-center gap-1.5 min-w-0">
+                <span className="text-muted-foreground shrink-0">Priority:</span>
+                <span className="truncate capitalize">{draft.priority || 'normal'}</span>
+              </span>
             </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="low">{t('conversation.low')}</SelectItem>
-              <SelectItem value="normal">{t('conversation.normal')}</SelectItem>
-              <SelectItem value="high">{t('conversation.high')}</SelectItem>
-              <SelectItem value="urgent">{t('conversation.urgent')}</SelectItem>
+            <SelectContent className="w-[280px]">
+              <SelectItem value="low">
+                <div className="flex items-start gap-2">
+                  <ArrowDown className="h-3.5 w-3.5 mt-0.5 text-muted-foreground shrink-0" />
+                  <div className="min-w-0">
+                    <div>{t('conversation.low')}</div>
+                    <div className="text-xs text-muted-foreground">No rush — handle when there is time</div>
+                  </div>
+                </div>
+              </SelectItem>
+              <SelectItem value="normal">
+                <div className="flex items-start gap-2">
+                  <Minus className="h-3.5 w-3.5 mt-0.5 text-blue-600 shrink-0" />
+                  <div className="min-w-0">
+                    <div>{t('conversation.normal')}</div>
+                    <div className="text-xs text-muted-foreground">Default — standard response time</div>
+                  </div>
+                </div>
+              </SelectItem>
+              <SelectItem value="high">
+                <div className="flex items-start gap-2">
+                  <ArrowUp className="h-3.5 w-3.5 mt-0.5 text-orange-600 shrink-0" />
+                  <div className="min-w-0">
+                    <div>{t('conversation.high')}</div>
+                    <div className="text-xs text-muted-foreground">Needs attention before normal cases</div>
+                  </div>
+                </div>
+              </SelectItem>
+              <SelectItem value="urgent">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="h-3.5 w-3.5 mt-0.5 text-destructive shrink-0" />
+                  <div className="min-w-0">
+                    <div>{t('conversation.urgent')}</div>
+                    <div className="text-xs text-muted-foreground">Critical — handle immediately</div>
+                  </div>
+                </div>
+              </SelectItem>
             </SelectContent>
           </Select>
         </div>
