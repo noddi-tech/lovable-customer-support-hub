@@ -73,12 +73,12 @@ async function drawBadge(count: number): Promise<string | null> {
     return null;
   }
 
-  const label = count > 99 ? '99+' : String(count);
-  const r = label.length > 2 ? 22 : 19;
-  const cx = size - r - 2;
-  const cy = size - r - 2;
+  // Small unread dot in the top-left corner — no number, ~50% smaller than before
+  const r = 9;
+  const cx = r + 3;
+  const cy = r + 3;
 
-  // Subtle ring so the badge reads clearly on top of the logo
+  // Subtle ring so the dot reads clearly on top of the logo
   ctx.beginPath();
   ctx.arc(cx, cy, r + 2, 0, Math.PI * 2);
   ctx.fillStyle = '#ffffff';
@@ -89,11 +89,6 @@ async function drawBadge(count: number): Promise<string | null> {
   ctx.fillStyle = '#e11d48';
   ctx.fill();
 
-  ctx.fillStyle = '#ffffff';
-  ctx.font = `bold ${label.length > 2 ? 24 : 30}px -apple-system, Segoe UI, sans-serif`;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(label, cx, cy + 1);
 
   try {
     return canvas.toDataURL('image/png');
