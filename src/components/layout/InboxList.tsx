@@ -61,7 +61,40 @@ export const InboxList: React.FC<InboxListProps> = ({
   const [searchParams] = useSearchParams();
   const { data: inboxes = [], isLoading: inboxesLoading } = useAccessibleInboxes();
   const { data: inboxEmails = {} } = useInboxEmailAddresses();
+  const { data: outstanding = {} } = useInboxOutstandingCounts();
   const { data: counts, isLoading: countsLoading } = useInboxCounts(selectedInbox || 'all');
+
+  const allOutstanding = React.useMemo(
+    () =>
+      Object.values(outstanding).reduce(
+        (acc, o) => ({ open: acc.open + o.open, pending: acc.pending + o.pending }),
+        { open: 0, pending: 0 },
+      ),
+    [outstanding],
+  );
+
+  const OutstandingBadges: React.FC<{ open: number; pending: number }> = ({ open, pending }) => {
+    if (!open && !pending) return null;
+    return (
+      <span className="flex items-center gap-1 flex-shrink-0">
+        {open > 0 && (
+          <Badge variant="secondary" className="h-5 px-1.5 text-[10px] font-medium" title={`${open} open`}>
+            {open}
+          </Badge>
+        )}
+        {pending > 0 && (
+          <Badge
+            variant="outline"
+            className="h-5 px-1.5 text-[10px] font-medium text-orange-600 border-orange-500/40"
+            title={`${pending} pending`}
+          >
+            {pending}
+          </Badge>
+        )}
+      </span>
+    );
+  };
+
 
   // Get the count for a specific filter
   const getFilterCount = (filter: StatusFilter): number => {
