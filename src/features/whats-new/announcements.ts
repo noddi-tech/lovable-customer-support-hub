@@ -1,4 +1,4 @@
-import { Inbox, Briefcase, UserSearch, History } from 'lucide-react';
+import { Inbox, Briefcase, UserSearch, History as HistoryIcon } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 export interface Announcement {
@@ -61,7 +61,7 @@ export const ANNOUNCEMENTS: Announcement[] = [
     title: 'One timeline across email, chat and phone',
     description:
       'Live chat now has the same case tools as email, and the side panel shows one merged history of every interaction with that customer.',
-    icon: History,
+    icon: HistoryIcon,
     bullets: [
       'Live chat gets a right-hand panel with the linked case and the full customer history',
       'Filter the timeline by email, chat, phone, notes or cases — click any row to open it',
