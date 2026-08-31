@@ -153,20 +153,23 @@ export const InboxList: React.FC<InboxListProps> = ({
               </SelectItem>
               {inboxes.map((inbox) => (
                 <SelectItem key={inbox.id} value={inbox.id}>
-                  <div className="flex items-center gap-2 min-w-0">
+                  <div className="flex items-start gap-2 min-w-0">
                     <div 
-                      className="w-2 h-2 rounded-full flex-shrink-0"
+                      className="w-2 h-2 rounded-full flex-shrink-0 mt-1.5"
                       style={{ backgroundColor: inbox.color || '#6B7280' }}
                     />
-                    <span className="truncate">{inbox.name}</span>
-                    {inboxEmails[inbox.id] && (
-                      <span className="text-xs text-muted-foreground truncate">
-                        ({inboxEmails[inbox.id]})
-                      </span>
-                    )}
+                    <div className="min-w-0 flex flex-col leading-tight">
+                      <span className="truncate">{inbox.name}</span>
+                      {inboxEmails[inbox.id] && (
+                        <span className="text-[11px] text-muted-foreground truncate">
+                          {inboxEmails[inbox.id]}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </SelectItem>
               ))}
+
             </SelectContent>
           </Select>
         )}
