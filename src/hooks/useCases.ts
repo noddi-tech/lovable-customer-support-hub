@@ -295,6 +295,32 @@ export function useLinkChatSessionToCase() {
   });
 }
 
+/** Counts for sidebar badges: cases owned by me that are still open, plus overdue. */
+export function useMyCaseCounts() {
+  const { profile } = useAuth();
+  const profileId = profile?.id;
+  return useQuery({
+    queryKey: ['case-counts', profileId],
+    enabled: !!profileId,
+    refetchInterval: 60_000,
+    queryFn: async () => {
+      const openStatuses = ['open', 'in_progress', 'waiting_customer', 'waiting_internal'];
+      const [mine, overdue] = await Promise.all([
+        (supabase.from('cases') as any)
+          .select('id', { count: 'exact', head: true })
+          .eq('owner_id', profileId)
+          .in('status', openStatuses),
+        (supabase.from('cases') as any)
+          .select('id', { count: 'exact', head: true })
+          .in('status', openStatuses)
+          .not('due_at', 'is', null)
+          .lt('due_at', new Date().toISOString()),
+      ]);
+      return { mine: mine.count ?? 0, overdue: overdue.count ?? 0 };
+    },
+  });
+}
+
 export function useCaseCategories() {
   const { profile } = useAuth();
   return useQuery({
