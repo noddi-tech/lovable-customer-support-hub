@@ -9,7 +9,9 @@ import { ChatCaseSidePanel } from './ChatCaseSidePanel';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { MessageCircle } from 'lucide-react';
+import { MessageCircle, Settings } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { useIsMobile } from '@/hooks/use-responsive';
 
@@ -21,9 +23,26 @@ export const ChatLayout: React.FC = () => {
   const { filter: urlFilter, conversationId: selectedConversationId } = useParams<{ filter?: string; conversationId?: string }>();
   const [searchParams] = useSearchParams();
   const highlightMessageId = searchParams.get('m');
-  const { profile } = useAuth();
+  const { profile, isAdmin } = useAuth();
   const isMobile = useIsMobile();
   const organizationId = profile?.organization_id;
+
+  const widgetSettingsButton = isAdmin ? (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8"
+          aria-label="Widget settings"
+          onClick={() => navigate('/admin/widget')}
+        >
+          <Settings className="h-4 w-4" />
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent>Widget settings (Admin portal)</TooltipContent>
+    </Tooltip>
+  ) : null;
 
   // Map URL filter to our filter type
   const currentFilter: ChatFilterType = 
@@ -111,6 +130,7 @@ export const ChatLayout: React.FC = () => {
           <SidebarTrigger className="shrink-0 h-8 w-8" />
           <MessageCircle className="h-4 w-4 text-primary shrink-0" />
           <h1 className="text-base font-semibold truncate">Live Chat</h1>
+          <div className="ml-auto">{widgetSettingsButton}</div>
         </div>
 
         <ChatFilters
@@ -138,6 +158,7 @@ export const ChatLayout: React.FC = () => {
       <div className="flex items-center gap-2 px-4 py-3 border-b bg-card">
         <MessageCircle className="h-5 w-5 text-primary" />
         <h1 className="text-lg font-semibold">Live Chat</h1>
+        <div className="ml-auto">{widgetSettingsButton}</div>
       </div>
 
       {/* Main content */}
