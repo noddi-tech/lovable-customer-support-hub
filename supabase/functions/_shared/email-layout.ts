@@ -50,6 +50,15 @@ function escapeHtml(value: string): string {
     .replace(/"/g, '&quot;');
 }
 
+/**
+ * Escapes stray "<" characters that are not part of a real tag (e.g. "<3" in a
+ * footer). Gmail's sanitizer treats those as an unterminated tag and can drop /
+ * clip everything after them.
+ */
+function escapeStrayAngles(html: string): string {
+  return String(html ?? '').replace(/<(?![a-zA-Z/!?])/g, '&lt;');
+}
+
 /** Converts a plain-text message body into safe HTML with line breaks preserved. */
 export function plainTextToHtml(text: string): string {
   return escapeHtml(String(text ?? ''))
@@ -81,9 +90,12 @@ export function renderEmailLayout(options: EmailLayoutOptions): string {
   const bodyBg = options.bodyBackgroundColor || FALLBACK.bodyBg;
   const bodyText = options.bodyTextColor || FALLBACK.bodyText;
 
-  const headerInner =
+  const headerInner = escapeStrayAngles(
     (options.headerContent && options.headerContent.trim()) ||
-    (options.brandName ? `<span style="font-size:18px;font-weight:600;">${escapeHtml(options.brandName)}</span>` : '');
+      (options.brandName
+        ? `<span style="font-size:18px;font-weight:600;color:${headerText};">${escapeHtml(options.brandName)}</span>`
+        : ''),
+  );
 
   const preheader = options.preheader?.trim()
     ? `<div style="display:none;max-height:0;overflow:hidden;opacity:0;mso-hide:all;">${escapeHtml(
@@ -92,65 +104,22 @@ export function renderEmailLayout(options: EmailLayoutOptions): string {
     : '';
 
   const header = headerInner
-    ? `<tr>
-        <td style="background:${headerBg};color:${headerText};padding:20px 28px;border-bottom:1px solid ${FALLBACK.border};font-family:${FONT_STACK};font-size:16px;line-height:1.4;">
-          ${headerInner}
-        </td>
-      </tr>`
+    ? `<tr><td bgcolor="${headerBg}" style="background-color:${headerBg};color:${headerText};padding:20px 28px;border-bottom:1px solid ${FALLBACK.border};font-family:${FONT_STACK};font-size:16px;line-height:1.4;">${headerInner}</td></tr>`
     : '';
 
   const signature = options.signatureHtml?.trim()
-    ? `<tr>
-        <td style="padding:0 28px 24px 28px;font-family:${FONT_STACK};font-size:14px;line-height:1.6;color:${bodyText};">
-          <div style="border-top:1px solid ${FALLBACK.border};padding-top:16px;">${options.signatureHtml}</div>
-        </td>
-      </tr>`
+    ? `<tr><td bgcolor="${bodyBg}" style="background-color:${bodyBg};padding:0 28px 24px 28px;font-family:${FONT_STACK};font-size:14px;line-height:1.6;color:${bodyText};"><div style="border-top:1px solid ${FALLBACK.border};padding-top:16px;">${escapeStrayAngles(
+        options.signatureHtml,
+      )}</div></td></tr>`
     : '';
 
   const footer = options.footerContent?.trim()
-    ? `<tr>
-        <td style="background:${footerBg};color:${footerText};padding:18px 28px;border-top:1px solid ${FALLBACK.border};font-family:${FONT_STACK};font-size:12px;line-height:1.6;text-align:center;">
-          ${options.footerContent}
-        </td>
-      </tr>`
+    ? `<tr><td bgcolor="${footerBg}" style="background-color:${footerBg};color:${footerText};padding:18px 28px;border-top:1px solid ${FALLBACK.border};font-family:${FONT_STACK};font-size:12px;line-height:1.6;text-align:center;">${escapeStrayAngles(
+        options.footerContent,
+      )}</td></tr>`
     : '';
 
-  return `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml">
-<head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<meta http-equiv="X-UA-Compatible" content="IE=edge" />
-<title></title>
-<style type="text/css">
-  body { margin:0; padding:0; width:100% !important; background:${FALLBACK.pageBg}; }
-  img { border:0; outline:none; text-decoration:none; max-width:100%; height:auto; }
-  a { color:#2563EB; }
-  table { border-collapse:collapse; }
-  @media only screen and (max-width:620px) {
-    .email-card { width:100% !important; border-radius:0 !important; }
-    .email-pad { padding-left:18px !important; padding-right:18px !important; }
-  }
-</style>
-</head>
-<body style="margin:0;padding:0;background:${FALLBACK.pageBg};">
-${preheader}
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${FALLBACK.pageBg};padding:24px 12px;">
-  <tr>
-    <td align="center">
-      <table role="presentation" class="email-card" width="600" cellpadding="0" cellspacing="0" style="width:600px;max-width:600px;background:${bodyBg};border:1px solid ${FALLBACK.border};border-radius:10px;overflow:hidden;">
-        ${header}
-        <tr>
-          <td class="email-pad" style="padding:28px;font-family:${FONT_STACK};font-size:15px;line-height:1.65;color:${bodyText};word-break:break-word;">
-            ${options.bodyHtml}
-          </td>
-        </tr>
-        ${signature}
-        ${footer}
-      </table>
-    </td>
-  </tr>
-</table>
-</body>
-</html>`;
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><meta http-equiv="X-UA-Compatible" content="IE=edge" /><title></title><style type="text/css">body{margin:0;padding:0;width:100%!important;background-color:${FALLBACK.pageBg};}img{border:0;outline:none;text-decoration:none;max-width:100%;height:auto;}a{color:#2563EB;}table{border-collapse:collapse;}@media only screen and (max-width:620px){.email-card{width:100%!important;border-radius:0!important;}.email-pad{padding-left:18px!important;padding-right:18px!important;}}</style></head><body style="margin:0;padding:0;background-color:${FALLBACK.pageBg};">${preheader}<table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="${FALLBACK.pageBg}" style="background-color:${FALLBACK.pageBg};padding:24px 12px;"><tr><td align="center"><table role="presentation" class="email-card" width="600" cellpadding="0" cellspacing="0" bgcolor="${bodyBg}" style="width:600px;max-width:600px;background-color:${bodyBg};border:1px solid ${FALLBACK.border};border-radius:10px;overflow:hidden;">${header}<tr><td class="email-pad" bgcolor="${bodyBg}" style="background-color:${bodyBg};padding:28px;font-family:${FONT_STACK};font-size:15px;line-height:1.65;color:${bodyText};word-break:break-word;">${escapeStrayAngles(
+    options.bodyHtml,
+  )}</td></tr>${signature}${footer}</table></td></tr></table></body></html>`;
 }
