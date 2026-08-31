@@ -344,7 +344,10 @@ export const ConversationListHeader = ({
           )}
           {state.statusFilter !== 'all' && (
             <Badge variant="secondary" className="h-5 px-2 text-xs gap-1">
-              Status: {state.statusFilter}
+              {state.statusFilter === 'open' && <Inbox className="!w-3 !h-3 text-blue-600" />}
+              {state.statusFilter === 'pending' && <Clock className="!w-3 !h-3 text-orange-600" />}
+              {state.statusFilter === 'closed' && <CheckCircle className="!w-3 !h-3 text-green-600" />}
+              {state.statusFilter}
               <button onClick={() => dispatch({ type: 'SET_STATUS_FILTER', payload: 'all' })} className="ml-1 hover:text-foreground">
                 <X className="!w-2.5 !h-2.5" />
               </button>
@@ -352,12 +355,17 @@ export const ConversationListHeader = ({
           )}
           {state.priorityFilter !== 'all' && (
             <Badge variant="secondary" className="h-5 px-2 text-xs gap-1">
-              Priority: {state.priorityFilter}
+              {state.priorityFilter === 'low' && <ArrowDown className="!w-3 !h-3 text-muted-foreground" />}
+              {state.priorityFilter === 'normal' && <Minus className="!w-3 !h-3 text-blue-600" />}
+              {state.priorityFilter === 'high' && <ArrowUp className="!w-3 !h-3 text-orange-600" />}
+              {state.priorityFilter === 'urgent' && <AlertTriangle className="!w-3 !h-3 text-destructive" />}
+              {state.priorityFilter}
               <button onClick={() => dispatch({ type: 'SET_PRIORITY_FILTER', payload: 'all' })} className="ml-1 hover:text-foreground">
                 <X className="!w-2.5 !h-2.5" />
               </button>
             </Badge>
           )}
+
           <Button variant="ghost" size="sm" onClick={clearAllFilters} className="h-5 px-2 text-xs">
             {t('dashboard.conversationList.clearAll', 'Clear all')}
           </Button>
