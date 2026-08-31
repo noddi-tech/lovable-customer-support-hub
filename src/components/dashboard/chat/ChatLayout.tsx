@@ -23,9 +23,26 @@ export const ChatLayout: React.FC = () => {
   const { filter: urlFilter, conversationId: selectedConversationId } = useParams<{ filter?: string; conversationId?: string }>();
   const [searchParams] = useSearchParams();
   const highlightMessageId = searchParams.get('m');
-  const { profile } = useAuth();
+  const { profile, isAdmin } = useAuth();
   const isMobile = useIsMobile();
   const organizationId = profile?.organization_id;
+
+  const widgetSettingsButton = isAdmin ? (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8"
+          aria-label="Widget settings"
+          onClick={() => navigate('/admin/widget')}
+        >
+          <Settings className="h-4 w-4" />
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent>Widget settings (Admin portal)</TooltipContent>
+    </Tooltip>
+  ) : null;
 
   // Map URL filter to our filter type
   const currentFilter: ChatFilterType = 
