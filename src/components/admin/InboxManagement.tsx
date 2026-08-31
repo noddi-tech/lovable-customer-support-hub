@@ -248,13 +248,6 @@ export function InboxManagementContent() {
     createInboxMutation.mutate(newInboxData);
   };
 
-  const handleUpdateInbox = (updates: Partial<InboxData>) => {
-    if (editingInbox) {
-      // Filter out computed fields that shouldn't be updated
-      const { conversation_count, created_at, updated_at, ...updateData } = updates;
-      updateInboxMutation.mutate({ id: editingInbox.id, updates: updateData });
-    }
-  };
 
   const handleDeleteInbox = (id: string, forceDelete?: boolean) => {
     deleteInboxMutation.mutate({ id, forceDelete });
