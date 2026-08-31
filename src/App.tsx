@@ -144,7 +144,6 @@ const AppContent = () => {
       <Route path="/operations" element={<Navigate to="/operations/tickets" replace />} />
       <Route path="/operations/tickets" element={<ProtectedRoute><Index /></ProtectedRoute>} />
       <Route path="/operations/tickets/:id" element={<ProtectedRoute><Index /></ProtectedRoute>} />
-      <Route path="/operations/doorman" element={<ProtectedRoute><Index /></ProtectedRoute>} />
       <Route path="/operations/recruitment" element={<ProtectedRoute><Index /></ProtectedRoute>} />
       <Route path="/operations/recruitment/pipeline" element={<ProtectedRoute><Index /></ProtectedRoute>} />
       <Route path="/operations/recruitment/applicants" element={<ProtectedRoute><Index /></ProtectedRoute>} />

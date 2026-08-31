@@ -5,8 +5,7 @@ import {
   Megaphone, 
   Mail, 
   Ticket, 
-  DoorOpen, 
-  Users,
+    Users,
   BarChart3,
   Settings,
   Cog,
@@ -93,13 +92,6 @@ export const NAV_ITEMS: NavItem[] = [
     label: "Service Tickets", 
     to: "/operations/tickets", 
     icon: Ticket, 
-    group: "operations" 
-  },
-  { 
-    id: "doorman", 
-    label: "Doorman Interface", 
-    to: "/operations/doorman", 
-    icon: DoorOpen, 
     group: "operations" 
   },
   { 

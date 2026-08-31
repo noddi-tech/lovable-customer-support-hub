@@ -8,7 +8,6 @@ import { EnhancedInteractionsLayout } from '@/components/dashboard/EnhancedInter
 import { VoiceInterface } from '@/components/dashboard/VoiceInterface';
 import NewsletterBuilder from '@/components/dashboard/NewsletterBuilder';
 import ServiceTicketsInterface from '@/components/dashboard/ServiceTicketsInterface';
-import DoormanInterface from '@/components/dashboard/DoormanInterface';
 import RecruitmentInterface from '@/components/dashboard/RecruitmentInterface';
 import VoiceAnalyticsPage from '@/pages/VoiceAnalyticsPage';
 import VoiceSettingsPage from '@/pages/VoiceSettingsPage';
@@ -48,7 +47,6 @@ const Index = () => {
     
     // Operations sub-sections
     if (path.includes('/operations/tickets')) return 'tickets';
-    if (path.includes('/operations/doorman')) return 'doorman';
     if (path.includes('/operations/recruitment')) return 'recruitment';
     if (path.includes('/operations/analytics')) return 'analytics';
     if (path.includes('/operations/bulk-outreach')) return 'bulk-outreach';
@@ -117,9 +115,6 @@ const Index = () => {
               <ServiceTickets />
             </React.Suspense>
           );
-        }
-        if (subSection === 'doorman') {
-          return <DoormanInterface />;
         }
         if (subSection === 'recruitment') {
           return <RecruitmentInterface />;
