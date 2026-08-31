@@ -11,7 +11,7 @@ import { NotificationDropdown } from '@/components/notifications/NotificationDro
 import { SearchCommandPalette } from '@/components/search/SearchCommandPalette';
 
 import { ConnectionStatusIndicator } from '@/components/layout/ConnectionStatusIndicator';
-import { OrganizationSwitcher } from '@/components/organization/OrganizationSwitcher';
+
 import { 
   Search,
   LogOut,
@@ -102,8 +102,6 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
             )}
           </div>
 
-          {/* Organization Switcher — membership-scoped (Navio SO) */}
-          <OrganizationSwitcher />
         </div>
 
         {/* Right Section - Actions, User Menu */}
