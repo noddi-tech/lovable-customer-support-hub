@@ -164,7 +164,7 @@ export default function HomePage() {
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2 ml-3 shrink-0">
+                      <div className="flex items-center gap-1 sm:gap-2 shrink-0">
                         {isConfigured ? (
                           <>
                             {inbox.unread_count > 0 && (
