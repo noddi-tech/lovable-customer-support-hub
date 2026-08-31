@@ -70,6 +70,11 @@ export const Auth: React.FC = () => {
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [isRecoveryMode, setIsRecoveryMode] = useState(false);
+  const [devEmail, setDevEmail] = useState(
+    () => getDevLoginCredentials()?.email || getRememberedDevLogin()?.email || DEV_LOGIN_DEFAULT_EMAIL,
+  );
+  const [devPassword, setDevPassword] = useState(() => getDevLoginCredentials()?.password || '');
+
   const { user } = useAuth();
   const navigate = useNavigate();
 
