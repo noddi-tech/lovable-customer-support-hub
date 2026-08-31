@@ -14,6 +14,11 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
+import {
   Popover,
   PopoverContent,
   PopoverTrigger,
@@ -57,6 +62,23 @@ export const AgentAvailabilityPanel: React.FC<AgentAvailabilityPanelProps> = ({
   collapsed = false,
   className 
 }) => {
+  // Availability section is collapsed by default; choice persists per browser.
+  const [sectionOpen, setSectionOpen] = React.useState<boolean>(() => {
+    try {
+      return localStorage.getItem('sidebar:availability-open') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  React.useEffect(() => {
+    try {
+      localStorage.setItem('sidebar:availability-open', String(sectionOpen));
+    } catch {
+      /* ignore storage failures */
+    }
+  }, [sectionOpen]);
+
   // Chat availability
   const { status: chatStatus, setStatus: setChatStatus, isLoading: chatLoading, isUpdating: chatUpdating } = useAgentAvailability();
   const { data: onlineAgents = [], isLoading: agentsLoading } = useOnlineAgents();
@@ -212,11 +234,28 @@ export const AgentAvailabilityPanel: React.FC<AgentAvailabilityPanelProps> = ({
   }
 
   return (
-    <div className={cn("px-1.5 space-y-3", className)}>
-      {/* Section header */}
-      <p className="text-[9px] font-medium text-muted-foreground uppercase tracking-wide">
-        Availability
-      </p>
+    <Collapsible
+      open={sectionOpen}
+      onOpenChange={setSectionOpen}
+      className={cn("px-1.5", className)}
+    >
+      {/* Section header — click to expand/collapse downward */}
+      <CollapsibleTrigger className="flex w-full items-center gap-1.5 py-1 text-[9px] font-medium text-muted-foreground uppercase tracking-wide hover:text-foreground transition-colors">
+        <ChevronDown
+          className={cn(
+            "h-3 w-3 transition-transform",
+            !sectionOpen && "-rotate-90"
+          )}
+        />
+        <span className="flex-1 text-left">Availability</span>
+        <Circle className={cn("h-2 w-2 fill-current", currentChatConfig.color)} />
+        {showPhoneSection && (
+          <Phone className={cn("h-2.5 w-2.5", phoneConnected ? "text-green-500" : "text-muted-foreground")} />
+        )}
+      </CollapsibleTrigger>
+
+      <CollapsibleContent className="space-y-3 pt-2">
+      
       
       {/* Chat Availability Section */}
       <div className="space-y-1.5 p-1.5 rounded-lg bg-muted/30">
@@ -392,6 +431,7 @@ export const AgentAvailabilityPanel: React.FC<AgentAvailabilityPanelProps> = ({
           No other agents online
         </p>
       )}
-    </div>
+      </CollapsibleContent>
+    </Collapsible>
   );
 };
