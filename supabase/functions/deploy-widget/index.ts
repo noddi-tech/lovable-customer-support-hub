@@ -228,7 +228,61 @@ const WIDGET_JS = `
     spinner: '<svg class="noddi-widget-spinner" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" opacity="0.25"></circle><path d="M12 2a10 10 0 0 1 10 10" opacity="0.75"></path></svg>'
   };
 
+  // ========== VISITOR IDENTITY ==========
+  // Host-supplied identity (init/identify/update). Persisted so a reload keeps
+  // the visitor identified. Never trusted server-side for authorisation.
+  var IDENTITY_STORAGE_KEY = 'noddi_widget_identity';
+  var IDENTITY_LIMITS = { name: 100, email: 255, phone: 40, userId: 100 };
+  var identity = readStoredIdentity();
+
+  function readStoredIdentity() {
+    try {
+      const raw = localStorage.getItem(IDENTITY_STORAGE_KEY);
+      const parsed = raw ? JSON.parse(raw) : null;
+      return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch (e) {
+      return {};
+    }
+  }
+
+  function persistIdentity() {
+    try {
+      localStorage.setItem(IDENTITY_STORAGE_KEY, JSON.stringify(identity));
+    } catch (e) {}
+  }
+
+  function setIdentity(value) {
+    if (!value || typeof value !== 'object') return;
+    const next = {};
+    Object.keys(IDENTITY_LIMITS).forEach(function (key) {
+      const raw = value[key] !== undefined ? value[key] : (key === 'userId' ? value.user_id : undefined);
+      if (raw === undefined || raw === null) return;
+      const str = String(raw).trim().slice(0, IDENTITY_LIMITS[key]);
+      if (str) next[key] = str;
+    });
+    identity = Object.assign({}, identity, next);
+    persistIdentity();
+  }
+
+  function clearIdentity() {
+    identity = {};
+    try { localStorage.removeItem(IDENTITY_STORAGE_KEY); } catch (e) {}
+  }
+
+  function isIdentified() {
+    return !!(identity.email || identity.userId);
+  }
+
+  function escapeAttr(value) {
+    return String(value == null ? '' : value)
+      .replace(/&/g, '&amp;')
+      .replace(/"/g, '&quot;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  }
+
   // ========== STATE ==========
+
   let apiUrl = '';
   let config = null;
   let configLoading = false;
