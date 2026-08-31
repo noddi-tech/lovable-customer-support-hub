@@ -5,7 +5,7 @@ import { LiveChatQueue } from '@/components/conversations/LiveChatQueue';
 import { ChatFilters, type ChatFilterType } from './ChatFilters';
 import { ChatConversationList } from './ChatConversationList';
 import { ChatEmptyState } from './ChatEmptyState';
-import { ChatCaseSidePanel } from './ChatCaseSidePanel';
+
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
