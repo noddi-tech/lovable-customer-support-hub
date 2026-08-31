@@ -140,11 +140,15 @@ export default function HomePage() {
                         {isConfigured ? (
                           <>
                             {inbox.unread_count > 0 && (
-                              <Badge variant="destructive" className="text-[10px] px-1.5 py-0">
-                                {inbox.unread_count}
+                              <Badge
+                                variant="destructive"
+                                className="text-[10px] px-1.5 py-0"
+                                title="Unread conversations"
+                              >
+                                {inbox.unread_count} unread
                               </Badge>
                             )}
-                            <Badge variant="secondary">
+                            <Badge variant="secondary" title="Open conversations">
                               {inbox.open_count} open
                             </Badge>
                           </>
