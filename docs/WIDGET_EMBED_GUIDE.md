@@ -38,7 +38,7 @@ The `q` queue means you can call `NoddiWidget(...)` before the script finishes l
 | `locale` | `string` | — | Visitor language (BCP-47, e.g. `nb-NO`). Max 20 chars. |
 | `environment` | `string` | — | `production` / `staging` / `development`. Non-production is badged in the hub so agents can ignore test noise. Max 20 chars. |
 | `sourceApp` | `string` | — | Product surface using this widget key, e.g. `customer`, `partner`, `marketing`. Max 40 chars. |
-| `userId` | `string \| number` | — | Noddi user id of the logged-in visitor — lets agents skip manual customer matching. |
+| `userId` | `string \| number` | — | User id of the logged-in visitor — lets agents skip manual customer matching. |
 | `serviceDepartmentId` | `string \| number` | — | Service department to route/filter by. |
 | `bookingId` | `string \| number` | — | Booking the visitor is currently in. |
 | `orderId` | `string \| number` | — | Order the visitor is currently in. |
