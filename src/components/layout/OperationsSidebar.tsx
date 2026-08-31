@@ -12,7 +12,6 @@ import {
 } from '@/components/ui/sidebar';
 import { 
   Ticket, 
-  DoorOpen, 
   Users,
   BarChart3,
   Send,
