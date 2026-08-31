@@ -89,7 +89,7 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
   style
 }) => {
   const { dispatch, archiveConversation, toggleConversationRead } = useConversationList();
-  const { conversation: formatConversationTime } = useDateFormatting();
+  const { conversation: formatConversationTime, dateTime: formatDateTime } = useDateFormatting();
   const { inboxes } = useOptimizedCounts();
   const { t } = useTranslation();
   const isMobile = useIsMobile();
@@ -105,6 +105,7 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
     const priorityCfg = priorityConfig[conversation.priority as keyof typeof priorityConfig];
     const waitingTime = formatCompactTime(conversation.received_at || conversation.updated_at);
     const slaBorder = getSLABorderColor(conversation.slaStatus);
+    const receivedRaw = conversation.received_at || conversation.updated_at;
 
     return {
       ChannelIcon,
@@ -117,8 +118,11 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
       slaBorder,
       customerInitial: getCustomerInitial(conversation.customer?.full_name, conversation.customer?.email),
       formattedTime: formatConversationTime(conversation.updated_at),
+      // Full date + time the conversation was last received, in the user's timezone.
+      receivedAt: receivedRaw ? formatDateTime(receivedRaw) : '—',
     };
-  }, [conversation, t, formatConversationTime]);
+  }, [conversation, t, formatConversationTime, formatDateTime]);
+
 
   const handleArchive = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
