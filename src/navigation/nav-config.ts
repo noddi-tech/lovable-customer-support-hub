@@ -57,6 +57,13 @@ export const NAV_ITEMS: NavItem[] = [
     group: "support"
   },
   {
+    id: "customers",
+    label: "Customers",
+    to: "/customers",
+    icon: UserRound,
+    group: "support"
+  },
+  {
     id: "service-tickets",
     label: "Ops Tickets",
     to: "/operations/tickets",

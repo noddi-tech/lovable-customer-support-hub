@@ -62,6 +62,7 @@ import CasesPage from "./pages/CasesPage";
 import CaseReportsPage from "./pages/CaseReportsPage";
 import CaseDetailPage from "./pages/CaseDetailPage";
 import CustomerDetailPage from "./pages/CustomerDetailPage";
+import CustomersPage from "./pages/CustomersPage";
 import CandidateFormPage from "./pages/candidate/CandidateFormPage";
 import "@/lib/i18n";
 import "@/styles/controls.css";
@@ -149,6 +150,7 @@ const AppContent = () => {
       <Route path="/operations/cases" element={<ProtectedRoute><CasesPage /></ProtectedRoute>} />
       <Route path="/operations/case-reports" element={<ProtectedRoute><CaseReportsPage /></ProtectedRoute>} />
       <Route path="/operations/cases/:id" element={<ProtectedRoute><CaseDetailPage /></ProtectedRoute>} />
+      <Route path="/customers" element={<ProtectedRoute><CustomersPage /></ProtectedRoute>} />
       <Route path="/customers/:id" element={<ProtectedRoute><CustomerDetailPage /></ProtectedRoute>} />
       <Route path="/operations/tickets" element={<ProtectedRoute><Index /></ProtectedRoute>} />
       <Route path="/operations/tickets/:id" element={<ProtectedRoute><Index /></ProtectedRoute>} />
