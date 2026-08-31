@@ -93,37 +93,39 @@ function formatList(list: Addr[] = [], max = 3, preferEmail = false) {
 function getMessageStyle(authorType: 'agent' | 'customer' | 'system' | 'ai_draft' = 'customer') {
   if (authorType === 'agent') {
     return {
-      border: 'border-l-4 border-blue-500 dark:border-blue-600',
-      bg: 'bg-blue-50/20 dark:bg-blue-950/20 hover:bg-blue-50/30',
-      avatarRing: 'ring-2 ring-blue-200 dark:ring-blue-800',
+      // Agents get one subtle tint so replies are scannable without a rainbow thread
+      border: 'border-l-2 border-primary/60',
+      bg: 'bg-muted/40 hover:bg-muted/60',
+      avatarRing: 'ring-1 ring-primary/30',
       label: 'You',
-      labelBadge: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+      labelBadge: 'bg-primary/10 text-primary border border-primary/20',
     };
   }
   if (authorType === 'ai_draft') {
     return {
-      border: 'border-l-4 border-dashed border-emerald-400 dark:border-emerald-500',
-      bg: 'bg-emerald-50/30 dark:bg-emerald-950/20 hover:bg-emerald-50/40',
-      avatarRing: 'ring-2 ring-emerald-300 dark:ring-emerald-700',
+      border: 'border-l-2 border-dashed border-emerald-500',
+      bg: 'bg-emerald-50/40 dark:bg-emerald-950/20',
+      avatarRing: 'ring-1 ring-emerald-400/50',
       label: 'AI Draft',
       labelBadge: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200',
     };
   }
   if (authorType === 'customer') {
     return {
-      border: 'border-l-4 border-amber-400 dark:border-amber-600',
-      bg: 'bg-amber-50/20 dark:bg-amber-950/20 hover:bg-amber-50/30',
-      avatarRing: 'ring-2 ring-amber-200 dark:ring-amber-800',
+      // Customer messages stay on the plain surface — the default reading state
+      border: 'border-l-2 border-transparent',
+      bg: 'bg-card hover:bg-muted/30',
+      avatarRing: 'ring-1 ring-border',
       label: 'Customer',
-      labelBadge: 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200',
+      labelBadge: 'bg-muted text-muted-foreground border border-border',
     };
   }
   return {
-    border: 'border-l-4 border-gray-400',
-    bg: 'bg-gray-50/20 hover:bg-gray-50/30',
-    avatarRing: 'ring-2 ring-gray-200',
+    border: 'border-l-2 border-muted-foreground/30',
+    bg: 'bg-muted/20',
+    avatarRing: 'ring-1 ring-border',
     label: 'System',
-    labelBadge: 'bg-gray-100 text-gray-800',
+    labelBadge: 'bg-muted text-muted-foreground border border-border',
   };
 }
 
