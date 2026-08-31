@@ -62,6 +62,7 @@ export interface SubmitContactData {
   message: string;
   pageUrl: string;
   visitorId?: string;
+  brand?: string;
 }
 
 export async function submitContactForm(data: SubmitContactData): Promise<{ success: boolean; error?: string }> {
