@@ -34,6 +34,19 @@ export function getBrand(): string {
   return brand;
 }
 
+// Optional list of locales the host app supports (init/update
+// `supportedLocales`). When set it narrows the widget language picker.
+let supportedLocales: string[] = [];
+
+export function setSupportedLocales(value: string[]) {
+  supportedLocales = value;
+}
+
+export function getSupportedLocales(): string[] {
+  return supportedLocales;
+}
+
+
 // Optional extra context of the host site (locale, environment, source app,
 // logged-in user, booking/order in flight, SPA pathname, release).
 // Passed through to the backend and shown to agents on the conversation.

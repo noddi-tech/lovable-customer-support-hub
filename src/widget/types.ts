@@ -37,6 +37,8 @@ export interface WidgetHostContext {
 /** Payload for `NoddiWidget('update', ...)`; `identity: null` clears the visitor. */
 export interface WidgetUpdateOptions extends WidgetHostContext {
   brand?: string;
+  /** Locales the host supports; narrows the widget language picker. */
+  supportedLocales?: string[];
   context?: WidgetHostContext;
   identity?: WidgetIdentityOptions | null;
 }
@@ -44,6 +46,8 @@ export interface WidgetUpdateOptions extends WidgetHostContext {
 export interface WidgetInitOptions {
   /** Optional brand of the host site, shown to agents on chats (e.g. 'Noddi Bilpleie'). */
   brand?: string;
+  /** Locales the host supports (BCP-47), e.g. ['nb-NO', 'en-US', 'sv-SE']. */
+  supportedLocales?: string[];
   /** BCP-47 language of the visitor's session, e.g. 'nb-NO'. */
   locale?: string;
   /** Deployment the widget runs in. */
