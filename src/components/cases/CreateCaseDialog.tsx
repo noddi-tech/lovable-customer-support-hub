@@ -19,6 +19,7 @@ import {
   type CasePriority,
 } from '@/hooks/useCases';
 import { CaseCustomerPicker, useCustomerBasics, type PickedCustomer } from './CaseCustomerPicker';
+import { CASE_PRIORITY_DOT } from './CaseBadges';
 
 interface CreateCaseDialogProps {
   open: boolean;
