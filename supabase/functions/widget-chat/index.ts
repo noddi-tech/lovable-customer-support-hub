@@ -30,6 +30,8 @@ interface MessageRequest {
 interface EndChatRequest {
   action: 'end';
   sessionId: string;
+  /** Visitor marked the chat as resolved — also close the conversation in the support app. */
+  resolved?: boolean;
 }
 
 interface TypingRequest {
@@ -635,7 +637,7 @@ async function handleGetMessages(supabase: any, sessionId: string, since: string
 }
 
 async function handleEndChat(supabase: any, data: EndChatRequest) {
-  const { sessionId } = data;
+  const { sessionId, resolved } = data;
 
   if (!sessionId) {
     return new Response(
@@ -643,6 +645,12 @@ async function handleEndChat(supabase: any, data: EndChatRequest) {
       { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
+
+  const { data: session } = await supabase
+    .from('widget_chat_sessions')
+    .select('conversation_id')
+    .eq('id', sessionId)
+    .single();
 
   const { error } = await supabase
     .from('widget_chat_sessions')
@@ -660,8 +668,17 @@ async function handleEndChat(supabase: any, data: EndChatRequest) {
     );
   }
 
+  // The visitor said the issue is solved — close the thread for the agents too.
+  if (resolved && session?.conversation_id) {
+    const { error: closeError } = await supabase
+      .from('conversations')
+      .update({ status: 'closed', updated_at: new Date().toISOString() })
+      .eq('id', session.conversation_id);
+    if (closeError) console.error('Error closing conversation after visitor resolve:', closeError);
+  }
+
   return new Response(
-    JSON.stringify({ success: true }),
+    JSON.stringify({ success: true, resolved: !!resolved }),
     { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
   );
 }
