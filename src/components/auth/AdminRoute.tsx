@@ -1,5 +1,6 @@
 import { usePermissions } from "@/hooks/usePermissions";
 import { Navigate } from "react-router-dom";
+import { isPreviewBypassEnabled } from "@/lib/dev-preview-auth";
 
 interface AdminRouteProps {
   children: React.ReactNode;
@@ -7,6 +8,9 @@ interface AdminRouteProps {
 
 export const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
   const { isAdmin, isLoading } = usePermissions();
+
+  // Dev-only preview bypass: let the shell render without a session.
+  if (isPreviewBypassEnabled()) return <>{children}</>;
 
   if (isLoading) {
     return (

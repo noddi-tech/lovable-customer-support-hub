@@ -1,6 +1,7 @@
 import { useAuth } from "@/hooks/useAuth";
 import { Navigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
+import { isPreviewBypassEnabled } from "@/lib/dev-preview-auth";
 
 interface SuperAdminRouteProps {
   children: React.ReactNode;
@@ -8,6 +9,9 @@ interface SuperAdminRouteProps {
 
 export const SuperAdminRoute: React.FC<SuperAdminRouteProps> = ({ children }) => {
   const { isSuperAdmin, loading } = useAuth();
+
+  // Dev-only preview bypass: let the shell render without a session.
+  if (isPreviewBypassEnabled()) return <>{children}</>;
 
   if (loading) {
     return (
