@@ -253,22 +253,19 @@ export const sanitizeEmailHTML = (
       node.setAttribute('style', 'max-width: 100%; height: auto; display: block;');
       node.setAttribute('referrerpolicy', 'no-referrer');
       
-      // Block external HTTP images
-      if (src && src.startsWith('http:')) {
-        node.setAttribute('data-original-src', src);
-        node.setAttribute('src', createPlaceholder('mixed-content'));
-        node.setAttribute('alt', (node.getAttribute('alt') || 'Image') + ' (HTTP image blocked for security)');
-        node.setAttribute('data-blocked', 'http-blocked');
-        node.setAttribute('title', 'HTTP image blocked to prevent mixed content warnings');
-      }
-      // Block external images by default for privacy
-      else if (src && 
+      // Remote images are fetched server-side through email-image-proxy, so
+      // anything already pointing at our functions is allowed through.
+      const isAppOwned = !!src && (
+        src.includes('/functions/v1/get-attachment') ||
+        src.includes('/functions/v1/email-image-proxy')
+      );
+
+      // Block anything remote that somehow escaped the proxy rewrite
+      if (!isAppOwned && src &&
                !src.startsWith('cid:') && 
                !src.startsWith('/') && 
                !src.startsWith('data:') && 
-               !src.startsWith('blob:') &&
-               !src.includes('/supabase/functions/v1/get-attachment') &&
-               !src.includes('/functions/v1/get-attachment')) {
+               !src.startsWith('blob:')) {
         node.setAttribute('data-original-src', src);
         node.setAttribute('src', '');
         node.setAttribute('alt', node.getAttribute('alt') || 'Image blocked for privacy');
