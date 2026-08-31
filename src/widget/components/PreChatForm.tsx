@@ -53,36 +53,42 @@ export const PreChatForm: React.FC<PreChatFormProps> = ({
       <form className="noddi-widget-form" onSubmit={handleSubmit}>
         <p className="noddi-widget-greeting">{t.preChatIntro}</p>
 
-        <label className="noddi-widget-label" htmlFor="noddi-prechat-name">{t.name}</label>
-        <input
-          id="noddi-prechat-name"
-          className="noddi-widget-input"
-          value={name}
-          maxLength={120}
-          onChange={(e) => setName(e.target.value)}
-          required
-        />
+        <div className="noddi-widget-field">
+          <label htmlFor="noddi-prechat-name">{t.name}</label>
+          <input
+            id="noddi-prechat-name"
+            type="text"
+            value={name}
+            maxLength={120}
+            onChange={(e) => setName(e.target.value)}
+            disabled={isStarting}
+          />
+        </div>
 
-        <label className="noddi-widget-label" htmlFor="noddi-prechat-email">{t.email}</label>
-        <input
-          id="noddi-prechat-email"
-          type="email"
-          className="noddi-widget-input"
-          value={email}
-          maxLength={160}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-        />
+        <div className="noddi-widget-field">
+          <label htmlFor="noddi-prechat-email">{t.email}</label>
+          <input
+            id="noddi-prechat-email"
+            type="email"
+            placeholder="your@email.com"
+            value={email}
+            maxLength={160}
+            onChange={(e) => setEmail(e.target.value)}
+            disabled={isStarting}
+          />
+        </div>
 
-        <label className="noddi-widget-label" htmlFor="noddi-prechat-message">{t.preChatTopic}</label>
-        <textarea
-          id="noddi-prechat-message"
-          className="noddi-widget-textarea"
-          value={message}
-          maxLength={1000}
-          rows={3}
-          onChange={(e) => setMessage(e.target.value)}
-        />
+        <div className="noddi-widget-field">
+          <label htmlFor="noddi-prechat-message">{t.preChatTopic}</label>
+          <textarea
+            id="noddi-prechat-message"
+            value={message}
+            maxLength={1000}
+            rows={3}
+            onChange={(e) => setMessage(e.target.value)}
+            disabled={isStarting}
+          />
+        </div>
 
         {error && <div className="noddi-widget-error">{error}</div>}
 
