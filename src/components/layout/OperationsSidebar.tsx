@@ -37,11 +37,6 @@ export const OperationsSidebar: React.FC = () => {
       icon: Ticket
     },
     {
-      title: 'Doorman Interface',
-      path: '/operations/doorman',
-      icon: DoorOpen
-    },
-    {
       title: 'Recruitment',
       path: '/operations/recruitment',
       icon: Users
