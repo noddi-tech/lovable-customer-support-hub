@@ -74,88 +74,87 @@ export const WidgetDeployPanel: React.FC<WidgetDeployPanelProps> = ({ variant = 
 
   const isStale = !!liveBuild && appCommit !== 'unknown' && liveBuild.commit !== appCommit;
 
+  const status = !liveBuild
+    ? { label: 'Never deployed', dot: 'bg-muted-foreground', text: 'text-muted-foreground' }
+    : isStale
+      ? { label: 'Changes not deployed', dot: 'bg-destructive', text: 'text-destructive' }
+      : { label: 'Live bundle up to date', dot: 'bg-emerald-500', text: 'text-muted-foreground' };
+
+  const shortCommit = (c?: string) => (c && c !== 'unknown' ? c.slice(0, 7) : '—');
+
   return (
-    <Card className="border-primary/40 bg-primary/5 shadow-sm">
-      <CardContent className="p-4 space-y-4">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div className="flex items-start gap-3 min-w-0">
-            <div className="rounded-lg bg-primary/15 p-2 text-primary shrink-0">
-              <Rocket className="h-5 w-5" />
+    <Card className="overflow-hidden border-border/70">
+      <CardContent className="p-0">
+        <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0 space-y-1.5">
+            <div className="flex items-center gap-2">
+              <span className={`h-2 w-2 rounded-full ${status.dot}`} />
+              <h3 className="text-sm font-semibold tracking-tight">Production deployment</h3>
+              <span className={`text-xs ${status.text}`}>· {status.label}</span>
             </div>
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <p className="font-semibold">Deploy widget to production</p>
-                {liveBuild ? (
-                  isStale ? (
-                    <Badge variant="destructive" className="gap-1">
-                      <AlertTriangle className="h-3 w-3" />
-                      Out of date
-                    </Badge>
-                  ) : (
-                    <Badge variant="secondary" className="gap-1">
-                      <CheckCircle2 className="h-3 w-3" />
-                      Up to date
-                    </Badge>
-                  )
-                ) : (
-                  <Badge variant="outline">Never deployed</Badge>
-                )}
-              </div>
-              <p className="text-sm text-muted-foreground mt-0.5">
-                Settings save instantly, but widget <span className="font-medium">code</span> changes
-                only reach host sites after you deploy the bundle.
-              </p>
-            </div>
+            <p className="text-sm text-muted-foreground max-w-xl">
+              Settings save instantly. Widget <span className="font-medium text-foreground">code</span>{' '}
+              changes only reach host sites after you publish the bundle.
+            </p>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
-            <Button variant="ghost" size="icon" onClick={fetchLiveBuild} title="Refresh status">
+          <div className="flex items-center gap-2 sm:shrink-0">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={fetchLiveBuild}
+              title="Refresh status"
+              className="text-muted-foreground"
+            >
               <RefreshCw className="h-4 w-4" />
             </Button>
-            <Button onClick={handleDeploy} disabled={deploying} size="lg" className="gap-2">
+            <Button onClick={handleDeploy} disabled={deploying} className="gap-2">
               {deploying ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Deploying...
+                  Deploying…
                 </>
               ) : (
                 <>
                   <Rocket className="h-4 w-4" />
-                  Deploy to Production
+                  Deploy to production
                 </>
               )}
             </Button>
           </div>
         </div>
 
-        <div className="rounded-lg border bg-background/60 p-3 text-xs space-y-1">
-          <p className="font-medium text-sm">Currently published bundle</p>
-          {liveBuild ? (
-            <>
-              <p className="text-muted-foreground">
-                Published: {new Date(liveBuild.publishedAt).toLocaleString()}{' '}
-                <span className="opacity-70">({liveBuild.publishedAt})</span>
-              </p>
-              <p className="text-muted-foreground">
-                Commit: <code>{liveBuild.commit}</code>
-                {liveBuild.size ? ` — ${(liveBuild.size / 1024).toFixed(1)} KB` : ''}
-              </p>
-            </>
-          ) : (
-            <p className="text-muted-foreground">
-              No build manifest found yet — deploy once to stamp the bundle.
+        <div className="grid grid-cols-1 divide-y border-t bg-muted/30 text-xs sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+          <div className="px-5 py-3 space-y-0.5">
+            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Published</p>
+            <p className="font-medium">
+              {liveBuild ? new Date(liveBuild.publishedAt).toLocaleString() : 'Not published yet'}
             </p>
-          )}
-          <p className="text-muted-foreground">
-            This app build: <code>{appCommit}</code>
-          </p>
-          {lastDeploy && (
-            <p className="text-muted-foreground">
-              Last deploy from this browser: {lastDeploy.at}
-              {lastDeploy.size ? ` — ${(lastDeploy.size / 1024).toFixed(1)} KB` : ''}
+          </div>
+          <div className="px-5 py-3 space-y-0.5">
+            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Live bundle</p>
+            <p className="font-medium font-mono">
+              {shortCommit(liveBuild?.commit)}
+              {liveBuild?.size ? (
+                <span className="font-sans text-muted-foreground">
+                  {' '}
+                  · {(liveBuild.size / 1024).toFixed(1)} KB
+                </span>
+              ) : null}
             </p>
-          )}
+          </div>
+          <div className="px-5 py-3 space-y-0.5">
+            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">This app build</p>
+            <p className="font-medium font-mono">{shortCommit(appCommit)}</p>
+          </div>
         </div>
+
+        {lastDeploy && (
+          <p className="border-t px-5 py-2 text-xs text-muted-foreground">
+            Last deploy from this browser: {lastDeploy.at}
+            {lastDeploy.size ? ` · ${(lastDeploy.size / 1024).toFixed(1)} KB` : ''}
+          </p>
+        )}
 
         {variant === 'full' && (
           <div className="rounded-lg border bg-background/60 p-4 text-sm space-y-2">
