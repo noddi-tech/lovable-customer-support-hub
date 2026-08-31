@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Copy, Check, ExternalLink, Rocket, Loader2, ChevronDown, BookOpen, Code, Share2 } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Button } from '@/components/ui/button';
@@ -17,6 +17,9 @@ export const WidgetEmbedCode: React.FC<WidgetEmbedCodeProps> = ({ widgetKey }) =
   const [copiedExample, setCopiedExample] = useState<string | null>(null);
   const [copiedDocs, setCopiedDocs] = useState(false);
   const [lastDeploy, setLastDeploy] = useState<{ size: number | null; at: string } | null>(null);
+  const [liveBuild, setLiveBuild] = useState<{ publishedAt: string; commit: string; size?: number } | null>(null);
+
+  const appCommit = typeof __APP_COMMIT__ !== 'undefined' ? __APP_COMMIT__ : 'unknown';
 
   // Use the production Supabase URL
   const supabaseUrl = 'https://qgfaycwsangsqzpveoup.supabase.co';
@@ -76,11 +79,30 @@ document.querySelector('#my-help-btn').addEventListener('click', () => {
     }
   };
 
+  const fetchLiveBuild = async () => {
+    try {
+      const res = await fetch(
+        `${supabaseUrl}/storage/v1/object/public/widget/widget-build.json?t=${Date.now()}`,
+      );
+      if (!res.ok) return;
+      setLiveBuild(await res.json());
+    } catch {
+      // manifest not published yet
+    }
+  };
+
+  useEffect(() => {
+    fetchLiveBuild();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleDeploy = async () => {
     setDeploying(true);
     try {
       const response = await fetch(`${supabaseUrl}/functions/v1/deploy-widget?action=deploy`, {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ commit: appCommit }),
       });
       
       if (!response.ok) {
@@ -89,6 +111,11 @@ document.querySelector('#my-help-btn').addEventListener('click', () => {
       
       const result = await response.json();
       setLastDeploy({ size: result.size ?? null, at: new Date().toLocaleString() });
+      if (result.publishedAt) {
+        setLiveBuild({ publishedAt: result.publishedAt, commit: result.commit, size: result.size });
+      } else {
+        fetchLiveBuild();
+      }
       toast.success('Widget deployed to production!', {
         description: `Size: ${result.size || 'unknown'} — hard-refresh host apps to pick it up`,
       });
@@ -216,6 +243,29 @@ Config API: ${supabaseUrl}/functions/v1/widget-config?key=${widgetKey}`;
               </>
             )}
           </Button>
+
+          <div className="rounded-lg border bg-background/60 p-3 text-xs space-y-1">
+            <p className="font-medium text-sm">Currently published bundle</p>
+            {liveBuild ? (
+              <>
+                <p className="text-muted-foreground">
+                  Published: {new Date(liveBuild.publishedAt).toLocaleString()}{' '}
+                  <span className="opacity-70">({liveBuild.publishedAt})</span>
+                </p>
+                <p className="text-muted-foreground">
+                  Commit: <code>{liveBuild.commit}</code>
+                  {liveBuild.size ? ` — ${(liveBuild.size / 1024).toFixed(1)} KB` : ''}
+                </p>
+              </>
+            ) : (
+              <p className="text-muted-foreground">
+                No build manifest found yet — deploy once to stamp the bundle.
+              </p>
+            )}
+            <p className="text-muted-foreground">
+              This app build: <code>{appCommit}</code>
+            </p>
+          </div>
 
           {lastDeploy && (
             <p className="text-xs text-muted-foreground">
