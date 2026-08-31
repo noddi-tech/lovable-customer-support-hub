@@ -132,9 +132,6 @@ export const AppMainNav = () => {
         
         {/* Organization Switcher — for super admins / multi-org users */}
         {!isCollapsed && <OrganizationSwitcher />}
-
-        {/* Agent Availability Toggle */}
-        <AgentAvailabilityPanel collapsed={isCollapsed} />
       </SidebarHeader>
 
       <SidebarContent>
@@ -197,6 +194,9 @@ export const AppMainNav = () => {
       </SidebarContent>
 
       <SidebarFooter className="mt-auto border-t border-sidebar-border py-2 space-y-1">
+        {/* Chat / phone availability */}
+        <AgentAvailabilityPanel collapsed={isCollapsed} />
+
         {/* Connection status + Timezone row */}
         <div className={cn(
           "flex items-center px-3 py-1",
