@@ -85,6 +85,7 @@ const handler = async (req: Request): Promise<Response> => {
   );
 
   let messageId: string | undefined;
+  let isPreview = false;
 
   try {
     console.log('send-reply-email (SendGrid) called');
@@ -92,6 +93,10 @@ const handler = async (req: Request): Promise<Response> => {
     const body = await req.json();
     messageId = body.messageId;
     const replyAll = body.replyAll ?? true;
+    // When true, render the email exactly as the customer sees it and return it
+    // without sending or touching delivery status.
+    const previewOnly = body.preview === true;
+    isPreview = previewOnly;
     console.log('Processing message ID:', messageId);
 
     if (!messageId) throw new Error('Message ID is required');
@@ -402,6 +407,21 @@ const handler = async (req: Request): Promise<Response> => {
     });
     const plainText = isHtmlBody ? htmlToPlainText(rawContent) : rawContent;
 
+    // Preview mode: render the exact customer-facing email without sending anything.
+    if (previewOnly) {
+      return new Response(
+        JSON.stringify({
+          preview: true,
+          html: emailHTML,
+          subject,
+          to: toEmail,
+          from: fromEmailFinal,
+          fromName: senderDisplayName || brandName || null,
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
+
     // Monitor email size to prevent Gmail clipping (102KB limit)
     const estimatedSize = emailHTML.length + plainText.length + 2000; // +2KB for headers
     console.log(`📧 Email size: ${(estimatedSize/1024).toFixed(1)}KB (HTML: ${(emailHTML.length/1024).toFixed(1)}KB, Plain: ${(plainText.length/1024).toFixed(1)}KB)`);
@@ -552,7 +572,7 @@ const handler = async (req: Request): Promise<Response> => {
   } catch (error: any) {
     console.error('Error in send-reply-email function:', error);
     // Mark message as failed so UI shows actionable "Resend" instead of stuck "pending"
-    if (messageId) {
+    if (messageId && !isPreview) {
       try {
         await supabaseClient.from('messages').update({ email_status: 'failed' }).eq('id', messageId);
       } catch (updateErr) {

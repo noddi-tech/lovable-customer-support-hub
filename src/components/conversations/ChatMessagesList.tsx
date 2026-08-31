@@ -12,6 +12,7 @@ import {
   DropdownMenuItem, 
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
+import { EmailPreviewDialog } from '@/components/conversations/EmailPreviewDialog';
 import { MoreHorizontal, Copy, Trash2, Check, CheckCheck, Paperclip, Image, Mail, MessageSquare, AlertCircle, RefreshCw, Loader2, Lock, Edit3 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { EmailRender } from '@/components/ui/email-render';
@@ -52,6 +53,7 @@ export const ChatMessagesList = ({
   const queryClient = useQueryClient();
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [emailPreviewId, setEmailPreviewId] = useState<string | null>(null);
   const { canEditNote, deleteNote } = useNoteMutations();
 
   // Auto-scroll to bottom on new messages
@@ -365,13 +367,15 @@ export const ChatMessagesList = ({
                   </span>
                   {isAgent && !isInternal && (
                     message.emailStatus ? (
-                      <span
-                        className="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-1.5 py-[1px] text-[10px] font-medium text-blue-700 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-300"
-                        title="Visitor was offline — this reply was sent as an email"
+                      <button
+                        type="button"
+                        onClick={() => setEmailPreviewId(message.id)}
+                        className="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-1.5 py-[1px] text-[10px] font-medium text-blue-700 transition-colors hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-300 dark:hover:bg-blue-900/50"
+                        title="Sent as email — click to see how it looked for the customer"
                       >
                         <Mail className="h-2.5 w-2.5" />
                         Sent as email
-                      </span>
+                      </button>
                     ) : (
                       <span
                         className="inline-flex items-center gap-1 rounded-full border border-green-200 bg-green-50 px-1.5 py-[1px] text-[10px] font-medium text-green-700 dark:border-green-800 dark:bg-green-950/40 dark:text-green-300"
@@ -441,6 +445,12 @@ export const ChatMessagesList = ({
       </div>
 
     </ScrollArea>
+
+      <EmailPreviewDialog
+        messageId={emailPreviewId}
+        open={!!emailPreviewId}
+        onOpenChange={(o) => !o && setEmailPreviewId(null)}
+      />
 
       <AlertDialog
         open={!!confirmDeleteId}
