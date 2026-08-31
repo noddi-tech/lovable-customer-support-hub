@@ -319,7 +319,7 @@ export const WidgetSettings: React.FC = () => {
 
               <CardContent className="pt-6">
                 {/* Settings Tab */}
-                <TabsContent value="settings" className="mt-0 space-y-6">
+                <TabsContent value="settings" className="mt-0 space-y-6 min-w-0">
                   {/* Appearance */}
                   <div className="space-y-4">
                     <h4 className="font-medium text-sm flex items-center gap-2">
@@ -531,7 +531,7 @@ export const WidgetSettings: React.FC = () => {
             </Tabs>
           </Card>
         ) : (
-          <Card className="flex-1">
+          <Card className="w-full">
             <CardContent className="flex flex-col items-center justify-center h-64 text-center">
               <MessageCircle className="h-12 w-12 text-muted-foreground/50 mb-4" />
               <h3 className="font-medium">Select or Create a Widget</h3>
