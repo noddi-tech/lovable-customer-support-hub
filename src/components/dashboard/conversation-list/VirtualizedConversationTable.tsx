@@ -2,10 +2,10 @@ import { memo, useMemo } from 'react';
 import { FixedSizeList as List } from 'react-window';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import InfiniteLoader from 'react-window-infinite-loader';
-import { Table, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ConversationTableRow } from './ConversationTableRow';
-import { TableHeaderCell } from './TableHeaderCell';
+import { FlexHeaderCell } from './FlexHeaderCell';
+
 import { useConversationList, type Conversation } from '@/contexts/ConversationListContext';
 import { useTranslation } from 'react-i18next';
 import { Clock, Inbox } from 'lucide-react';
