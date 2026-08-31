@@ -658,8 +658,9 @@ const MessageCardComponent = ({
           "message-content",
           effectiveCollapsed ? "is-collapsed" : "pl-2 pr-2 pb-3 md:pl-16 md:pr-4 md:pb-4"
         )}>
-          {/* Cap measure at ~72ch and relax line-height for comfortable reading */}
-          <div className="space-y-4 overflow-hidden max-w-[72ch] leading-relaxed">
+          {/* Use the full available width; HTML emails (invoices, receipts) need
+              the room. Plain text still stays readable via a generous measure. */}
+          <div className="space-y-4 overflow-hidden max-w-none leading-relaxed">
             {/* Email content or mention-aware note (with inline editor) */}
             {isInternalNote ? (
               isEditingThisNote ? (
