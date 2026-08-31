@@ -110,7 +110,7 @@ export default function ServiceTickets() {
             Refresh
           </Button>
           <Button size="sm" className="flex-1 sm:flex-none" onClick={() => setCreateOpen(true)}>
-            <Plus className="mr-1.5 h-4 w-4" /> New ticket
+            <Plus className="mr-1.5 h-4 w-4" /> New ops ticket
           </Button>
         </div>
       </div>
