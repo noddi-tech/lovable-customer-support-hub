@@ -26,6 +26,7 @@ import {
   Star,
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { SidebarTrigger } from '@/components/ui/sidebar';
 
 const sectionIcons: Record<string, typeof MessageSquare> = {
   interactions: MessageSquare,
