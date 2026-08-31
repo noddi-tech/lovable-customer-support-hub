@@ -80,5 +80,9 @@
   "rateSubmit": "Send tilbakemelding",
   "rateThanks": "Takk for tilbakemeldingen!",
   "transcriptLabel": "Send meg en kopi av chatten på e-post",
-  "transcriptSend": "Send utskrift"
+  "transcriptSend": "Send utskrift",
+  "sendAnother": "Send en ny melding",
+  "backToHome": "Tilbake",
+  "yourMessages": "Dine meldinger",
+  "awaitingReply": "Vi svarer på e-post"
 }

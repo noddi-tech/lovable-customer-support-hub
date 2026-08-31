@@ -10,6 +10,8 @@ import {
   storeChatSession,
   readStoredChatSession,
   isIdentified,
+  readStoredSubmissions,
+  type StoredSubmission,
   type WidgetIdentity,
   type ChatEscalation,
 } from '../api';
@@ -70,6 +72,8 @@ function getCustomerLanguage(configLanguage: string): string {
 export const WidgetPanel: React.FC<WidgetPanelProps> = ({ config, onClose, positionOverride, identity }) => {
   const [view, setView] = useState<WidgetView>('home');
   const [showSuccess, setShowSuccess] = useState(false);
+  const [submissions, setSubmissions] = useState<StoredSubmission[]>(() => readStoredSubmissions());
+  const [activeSubmission, setActiveSubmission] = useState<StoredSubmission | null>(null);
   const [chatSession, setChatSession] = useState<ChatSession | null>(null);
   const [isStartingChat, setIsStartingChat] = useState(false);
   const [chatError, setChatError] = useState<string | null>(null);
@@ -109,12 +113,12 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({ config, onClose, posit
     setShowLanguageMenu(false);
   };
 
-  const handleContactSuccess = () => {
+  // Show the confirmation until the visitor navigates away — no auto reset to an
+  // empty home view, and the sent message stays available after reopening.
+  const handleContactSuccess = (submission: StoredSubmission) => {
+    setSubmissions(readStoredSubmissions());
+    setActiveSubmission(submission);
     setShowSuccess(true);
-    setTimeout(() => {
-      setShowSuccess(false);
-      setView('home');
-    }, 3000);
   };
 
   const beginChat = useCallback(async (visitor?: { name?: string; email?: string; message?: string }, escalation?: ChatEscalation) => {
@@ -273,7 +277,7 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({ config, onClose, posit
 
       {/* Content */}
       <div className="noddi-widget-content">
-        {showSuccess ? (
+        {showSuccess && activeSubmission ? (
           <div className="noddi-widget-success">
             <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: config.primaryColor }}>
               <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
@@ -281,6 +285,36 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({ config, onClose, posit
             </svg>
             <h4>{t.messageSent}</h4>
             <p>{t.wellGetBack}</p>
+
+            <div className="noddi-widget-sent-message">
+              <div className="noddi-widget-sent-meta">
+                {new Date(activeSubmission.sentAt).toLocaleString()} · {activeSubmission.email}
+              </div>
+              <div className="noddi-widget-sent-body">{activeSubmission.message}</div>
+            </div>
+
+            <div className="noddi-widget-sent-actions">
+              <button
+                className="noddi-widget-action"
+                onClick={() => {
+                  setShowSuccess(false);
+                  setActiveSubmission(null);
+                  setView('contact');
+                }}
+              >
+                {t.sendAnother || 'Send another message'}
+              </button>
+              <button
+                className="noddi-widget-back"
+                onClick={() => {
+                  setShowSuccess(false);
+                  setActiveSubmission(null);
+                  setView('home');
+                }}
+              >
+                {t.backToHome || 'Back'}
+              </button>
+            </div>
           </div>
         ) : view === 'home' ? (
           <div className="noddi-widget-home">
@@ -347,6 +381,24 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({ config, onClose, posit
                 </button>
               )}
             </div>
+
+            {submissions.length > 0 && (
+              <div className="noddi-widget-history">
+                <p className="noddi-widget-history-title">{t.yourMessages || 'Your messages'}</p>
+                {submissions.map((s) => (
+                  <button
+                    key={`${s.conversationId || s.sentAt}`}
+                    className="noddi-widget-history-item"
+                    onClick={() => { setActiveSubmission(s); setShowSuccess(true); }}
+                  >
+                    <span className="noddi-widget-history-body">{s.message}</span>
+                    <span className="noddi-widget-history-meta">
+                      {new Date(s.sentAt).toLocaleString()} · {t.awaitingReply || "We'll reply by email"}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         ) : view === 'contact' ? (
           <div className="noddi-widget-view">
@@ -362,7 +414,7 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({ config, onClose, posit
             <ContactForm
               widgetKey={config.widgetKey}
               primaryColor={config.primaryColor}
-              onSuccess={() => { setAiTranscript(null); handleContactSuccess(); }}
+              onSuccess={(submission) => { setAiTranscript(null); handleContactSuccess(submission); }}
               language={currentLanguage}
               initialMessage={aiTranscript || undefined}
             />

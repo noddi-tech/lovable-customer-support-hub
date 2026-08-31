@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { submitContactForm, getIdentity } from '../api';
+import { submitContactForm, getIdentity, storeSubmission, type StoredSubmission } from '../api';
 import { getWidgetTranslations } from '../translations';
 
 interface ContactFormProps {
   widgetKey: string;
   primaryColor: string;
-  onSuccess: () => void;
+  /** Receives the message that was just sent so the panel can keep showing it. */
+  onSuccess: (submission: StoredSubmission) => void;
   language: string;
   initialMessage?: string;
 }
@@ -54,10 +55,18 @@ export const ContactForm: React.FC<ContactFormProps> = ({
     setIsSubmitting(false);
     
     if (result.success) {
-      onSuccess(); // Show success view immediately
-      setName('');
-      setEmail('');
+      const submission: StoredSubmission = {
+        conversationId: result.conversationId,
+        name: name.trim(),
+        email: email.trim(),
+        message: message.trim(),
+        sentAt: new Date().toISOString(),
+      };
+      // Keep the message locally so reopening the widget still shows what was sent.
+      storeSubmission(submission);
+      // Keep name/email prefilled for the next message; only clear the message body.
       setMessage('');
+      onSuccess(submission);
     } else {
       setError(result.error || 'Failed to send message');
     }
