@@ -2,6 +2,8 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { logger } from '@/utils/logger';
+import { isPreviewBypassEnabled } from '@/lib/dev-preview-auth';
+import { PreviewBypassBanner } from '@/components/dev/PreviewBypassBanner';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
