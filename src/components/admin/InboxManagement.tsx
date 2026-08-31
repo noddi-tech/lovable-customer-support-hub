@@ -140,18 +140,6 @@ export function InboxManagementContent() {
     },
   });
 
-  // Initialize group email state when opening edit dialog
-  useEffect(() => {
-    if (editingInbox) {
-      const route = (inboundRoutes || []).find(r => r.inbox_id === editingInbox.id);
-      setEditRouteId(route?.id || null);
-      setEditGroupEmail(route?.group_email || '');
-    } else {
-      setEditRouteId(null);
-      setEditGroupEmail('');
-    }
-  }, [editingInbox, inboundRoutes]);
-
   // Create inbox mutation
   const createInboxMutation = useMutation({
     mutationFn: async (inboxData: typeof newInboxData) => {
