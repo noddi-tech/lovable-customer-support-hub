@@ -22,6 +22,8 @@ import { useAccessibleInboxes, useInboxCounts } from '@/hooks/useInteractionsDat
 import { useInboxEmailAddresses } from '@/hooks/useInboxEmailAddresses';
 import { useInboxOutstandingCounts } from '@/hooks/useInboxOutstandingCounts';
 import { useDefaultInbox } from '@/hooks/useDefaultInbox';
+import { groupInboxesByDomain } from '@/utils/inboxGrouping';
+
 
 import { LiveChatQueue } from '@/components/conversations/LiveChatQueue';
 import type { StatusFilter, InboxId } from '@/types/interactions';
