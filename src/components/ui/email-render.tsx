@@ -490,11 +490,18 @@ const EmailRenderComponent: React.FC<EmailRenderProps> = ({
     return isHTML && content.includes('Image blocked for privacy');
   }, [isHTML, content]);
 
-  // Get inline image attachments for lightbox
+  // Get inline image attachments (used to map in-body image clicks)
   const inlineImages = useMemo(() => 
     attachments.filter(a => a.isInline && a.mimeType?.startsWith('image/')),
     [attachments]
   );
+
+  // Every image attachment can be opened in the lightbox — inline or not.
+  const lightboxImages = useMemo(
+    () => attachments.filter(a => a.mimeType?.startsWith('image/')),
+    [attachments]
+  );
+
 
   // Enhanced image processing effect
   useEffect(() => {
@@ -564,10 +571,16 @@ const EmailRenderComponent: React.FC<EmailRenderProps> = ({
         const attachmentImgs = container.querySelectorAll('img[data-attachment="true"]');
         attachmentImgs.forEach((img, idx) => {
           (img as HTMLElement).addEventListener('click', () => {
-            setLightboxIndex(idx);
+            // Map the in-body image to its position in the full image list.
+            const inline = inlineImages[idx];
+            const target = inline
+              ? lightboxImages.findIndex(i => i.filename === inline.filename)
+              : idx;
+            setLightboxIndex(target >= 0 ? target : 0);
             setLightboxOpen(true);
           });
         });
+
         
         setImageProcessingComplete(true);
         
@@ -582,7 +595,7 @@ const EmailRenderComponent: React.FC<EmailRenderProps> = ({
 
     const timer = setTimeout(processImages, 100); // Small delay to ensure DOM is ready
     return () => clearTimeout(timer);
-  }, [isHTML, attachments, messageId]);
+  }, [isHTML, attachments, messageId, inlineImages, lightboxImages]);
 
   // Cleanup object URLs on unmount
   useEffect(() => {
@@ -648,11 +661,11 @@ const EmailRenderComponent: React.FC<EmailRenderProps> = ({
                   attachment={attachment}
                   messageId={messageId}
                   onImageClick={isImage ? () => {
-                    const imgIndex = inlineImages.findIndex(img => img.filename === attachment.filename);
-                    if (imgIndex >= 0) {
-                      setLightboxIndex(imgIndex);
-                      setLightboxOpen(true);
-                    }
+                    const imgIndex = lightboxImages.findIndex(
+                      img => img.filename === attachment.filename && img.isInline === attachment.isInline
+                    );
+                    setLightboxIndex(imgIndex >= 0 ? imgIndex : 0);
+                    setLightboxOpen(true);
                   } : undefined}
                 />
               );
@@ -663,18 +676,19 @@ const EmailRenderComponent: React.FC<EmailRenderProps> = ({
       })()}
       
       
-      {/* Image Lightbox for inline attachments */}
-      {inlineImages.length > 0 && (
+      {/* Image Lightbox for all image attachments (inline + regular) */}
+      {lightboxImages.length > 0 && (
         <ImageLightbox
-          images={inlineImages}
+          images={lightboxImages}
           currentIndex={lightboxIndex}
           isOpen={lightboxOpen}
           messageId={messageId}
           onClose={() => setLightboxOpen(false)}
-          onNext={() => setLightboxIndex(i => (i + 1) % inlineImages.length)}
-          onPrevious={() => setLightboxIndex(i => (i - 1 + inlineImages.length) % inlineImages.length)}
+          onNext={() => setLightboxIndex(i => (i + 1) % lightboxImages.length)}
+          onPrevious={() => setLightboxIndex(i => (i - 1 + lightboxImages.length) % lightboxImages.length)}
           onIndexChange={setLightboxIndex}
         />
+
       )}
     </article>
   );
