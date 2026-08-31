@@ -409,6 +409,7 @@ export const AgentAvailabilityPanel: React.FC<AgentAvailabilityPanelProps> = ({
           No other agents online
         </p>
       )}
-    </div>
+      </CollapsibleContent>
+    </Collapsible>
   );
 };
