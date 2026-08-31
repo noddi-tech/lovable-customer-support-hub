@@ -87,8 +87,9 @@ document.querySelector('#my-help-btn').addEventListener('click', () => {
       }
       
       const result = await response.json();
+      setLastDeploy({ size: result.size ?? null, at: new Date().toLocaleString() });
       toast.success('Widget deployed to production!', {
-        description: `Size: ${result.size || 'unknown'}`,
+        description: `Size: ${result.size || 'unknown'} — hard-refresh host apps to pick it up`,
       });
     } catch (err) {
       toast.error('Failed to deploy widget', {
@@ -98,6 +99,7 @@ document.querySelector('#my-help-btn').addEventListener('click', () => {
       setDeploying(false);
     }
   };
+
 
   const generateSlackFormattedDocs = () => {
     return `*Noddi Contact Widget - Setup Guide*
