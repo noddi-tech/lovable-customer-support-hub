@@ -301,11 +301,16 @@ const App = () => (
                     <DesignSystemProvider>
                       <TooltipProvider>
                         <I18nWrapper>
+                        <ComposeProvider>
                         <EnvBanner />
                         <AppContent />
                         {/* Aircall Workspace Manager - Controls container visibility */}
                         <AircallWorkspaceManager />
+                        {/* Gmail-style compose windows docked at the bottom */}
+                        <ComposeDock />
+                        </ComposeProvider>
                         </I18nWrapper>
+
                          <Toaster />
                          <Sonner />
                        </TooltipProvider>
