@@ -70,10 +70,16 @@ export default function HomePage() {
 
   return (
     <UnifiedAppLayout>
+      {/* Mobile top bar with menu button */}
+      <header className="md:hidden sticky top-0 z-20 flex items-center gap-2 h-14 px-2 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+        <SidebarTrigger className="h-10 w-10" aria-label="Open navigation menu" />
+        <span className="text-base font-semibold text-foreground">Home</span>
+      </header>
+
       <div className="flex-1 overflow-auto p-4 md:p-6 space-y-5">
         {/* Header */}
         <div>
-          <h1 className="text-2xl font-bold text-foreground">
+          <h1 className="text-xl md:text-2xl font-bold text-foreground">
             Welcome back, {firstName} 👋
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
@@ -82,7 +88,7 @@ export default function HomePage() {
         </div>
 
         {/* Stats row */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
           {stats.map(s => (
             <Card
               key={s.label}
