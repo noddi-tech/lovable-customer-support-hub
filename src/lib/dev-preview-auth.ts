@@ -51,9 +51,14 @@ export function disablePreviewBypass(): void {
  */
 export function getDevLoginCredentials(): { email: string; password: string } | null {
   if (!isDevPreview()) return null;
-  const email = (import.meta.env.VITE_DEV_LOGIN_EMAIL as string | undefined) || getRememberedDevLogin()?.email;
+  const email =
+    (import.meta.env.VITE_DEV_LOGIN_EMAIL as string | undefined) ||
+    getRememberedDevLogin()?.email ||
+    DEV_LOGIN_DEFAULT_EMAIL;
   const password =
-    (import.meta.env.VITE_DEV_LOGIN_PASSWORD as string | undefined) || getRememberedDevLogin()?.password;
+    (import.meta.env.VITE_DEV_LOGIN_PASSWORD as string | undefined) ||
+    getRememberedDevLogin()?.password ||
+    DEV_LOGIN_FALLBACK_PASSWORD;
   if (!email || !password) return null;
   return { email, password };
 }
