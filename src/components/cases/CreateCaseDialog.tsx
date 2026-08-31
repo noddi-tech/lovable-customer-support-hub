@@ -97,6 +97,15 @@ export function CreateCaseDialog({
 
         <div className="space-y-4">
           <div className="space-y-1.5">
+            <Label>Customer</Label>
+            <CaseCustomerPicker value={customer} onChange={setCustomer} />
+            <p className="text-xs text-muted-foreground">
+              Every case belongs to a customer. Search an existing one or create a new record.
+            </p>
+          </div>
+
+
+          <div className="space-y-1.5">
             <Label htmlFor="case-title">Title</Label>
             <Input
               id="case-title"
