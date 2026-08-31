@@ -58,6 +58,7 @@ export const InboxList: React.FC<InboxListProps> = ({
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const { data: inboxes = [], isLoading: inboxesLoading } = useAccessibleInboxes();
+  const { data: inboxEmails = {} } = useInboxEmailAddresses();
   const { data: counts, isLoading: countsLoading } = useInboxCounts(selectedInbox || 'all');
 
   // Get the count for a specific filter
