@@ -647,6 +647,8 @@ export const ConversationViewProvider = ({ children, conversationId, conversatio
       const updates: any = {};
       if (status !== undefined) updates.status = status;
       if (isArchived !== undefined) updates.is_archived = isArchived;
+      // Archiving always closes the conversation as well.
+      if (isArchived === true) updates.status = 'closed';
       
       const { error } = await supabase
         .from('conversations')
@@ -655,7 +657,7 @@ export const ConversationViewProvider = ({ children, conversationId, conversatio
       if (error) throw error;
       
       // Return the updates so we can use them in onSuccess
-      return { status, isArchived };
+      return { status: updates.status ?? status, isArchived };
     },
     onSuccess: (result) => {
       // Optimistically update conversation cache with actual status change

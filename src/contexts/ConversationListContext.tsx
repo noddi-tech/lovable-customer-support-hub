@@ -533,8 +533,8 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
     const idChunks = chunkArray(ids, 20);
     try {
       for (const chunk of idChunks) {
-        const updatePayload: Record<string, any> = { is_archived: true };
-        if (alsoClose) updatePayload.status = 'closed';
+        // Archiving always closes the conversation as well.
+        const updatePayload: Record<string, any> = { is_archived: true, status: 'closed' };
         
         const { error } = await supabase
           .from('conversations')
@@ -877,24 +877,14 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
     if (selectedIds.length === 0) return;
 
     const ids = expandThreadIds(selectedIds);
-    const nonClosedCount = ids.filter(id => {
-      const conv = conversations.find(c => c.id === id);
-      return conv && conv.status !== 'closed';
-    }).length;
-
-    if (nonClosedCount > 0) {
-      dispatch({
-        type: 'OPEN_ARCHIVE_DIALOG',
-        payload: { open: true, ids, nonClosedCount, totalCount: ids.length },
-      });
-    } else {
-      // All already closed, archive directly
+    // Archiving always closes the conversation as well.
+    {
       const idChunks = chunkArray(ids, 20);
       try {
         for (const chunk of idChunks) {
           const { error } = await supabase
             .from('conversations')
-            .update({ is_archived: true })
+            .update({ is_archived: true, status: 'closed' })
             .in('id', chunk);
           if (error) throw error;
         }
