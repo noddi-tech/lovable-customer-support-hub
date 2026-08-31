@@ -193,10 +193,12 @@ Config API: ${supabaseUrl}/functions/v1/widget-config?key=${widgetKey}`;
             Deploy Widget
           </CardTitle>
           <CardDescription>
-            Push the latest widget bundle to production
+            Publishes the current widget bundle (built into the <code>deploy-widget</code> edge
+            function) to public storage at <code>{widgetScriptUrl}</code>. Every host site loads
+            that single file, so this is what makes widget code changes go live.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
           <Button
             onClick={handleDeploy}
             disabled={deploying}
@@ -214,8 +216,31 @@ Config API: ${supabaseUrl}/functions/v1/widget-config?key=${widgetKey}`;
               </>
             )}
           </Button>
+
+          {lastDeploy && (
+            <p className="text-xs text-muted-foreground">
+              Last deploy from this browser: {lastDeploy.at}
+              {lastDeploy.size ? ` — ${(lastDeploy.size / 1024).toFixed(1)} KB` : ''}
+            </p>
+          )}
+
+          <div className="rounded-lg border bg-background/60 p-4 text-sm space-y-2">
+            <p className="font-medium">What happens when you deploy</p>
+            <ol className="list-decimal pl-5 space-y-1 text-muted-foreground">
+              <li>The bundled widget script is uploaded to the public <code>widget</code> storage bucket, overwriting <code>widget.js</code>.</li>
+              <li>Host sites pick up the new file on their next load — the CDN caches it for up to ~1 hour, so hard-refresh (or add <code>?v=</code> cache-buster) to verify immediately.</li>
+              <li>No change is needed in the host app: config, locales and identity are read at runtime.</li>
+            </ol>
+            <p className="font-medium pt-2">Verify after deploying</p>
+            <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
+              <li>Open DevTools on the host site and check <code>window.NoddiWidget</code> exposes the expected methods (e.g. <code>identify</code>, <code>clearIdentity</code>).</li>
+              <li>Open the contact form while logged in — name and email should be prefilled.</li>
+              <li>Fetch <code>{widgetScriptUrl}</code> directly to confirm the served file contains your change.</li>
+            </ul>
+          </div>
         </CardContent>
       </Card>
+
 
       <Card>
         <CardHeader>
