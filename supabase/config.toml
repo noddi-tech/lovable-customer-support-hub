@@ -397,3 +397,6 @@ verify_jwt = false
 # Cron-driven daily; expires + hard-deletes old tokens. Service-role internal logic only.
 [functions.cleanup-expired-form-tokens]
 verify_jwt = false
+
+[functions.noddi-tickets]
+verify_jwt = true
