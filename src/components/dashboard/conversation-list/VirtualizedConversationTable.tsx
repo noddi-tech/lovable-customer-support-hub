@@ -171,6 +171,16 @@ const VirtualizedConversationTable = memo(({ onSelectConversation, selectedConve
             onSort={handleSort}
             className="w-48 shrink-0"
           />
+          {showInboxColumn && (
+            <FlexHeaderCell
+              label={t('dashboard.conversationList.inbox', 'Inbox')}
+              sortKey="inbox"
+              currentSort={state.tableSort}
+              onSort={handleSort}
+              className="w-40 shrink-0"
+            />
+          )}
+
           <FlexHeaderCell
             label={t('dashboard.conversationList.conversation', 'Conversation')}
             sortKey="subject"
