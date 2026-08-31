@@ -26,6 +26,7 @@ import { useTranslation } from 'react-i18next';
 import { useDateFormatting } from '@/hooks/useDateFormatting';
 import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useConversationView } from '@/contexts/ConversationViewContext';
 import { NoddiCustomerDetails } from '@/components/dashboard/voice/NoddiCustomerDetails';
 import { CustomerNoddiTicketsCard } from '@/components/noddi-tickets/CustomerNoddiTicketsCard';
@@ -647,6 +648,7 @@ export const CustomerSidePanel = ({
       </div>
 
       {/* Status Management - Fixed at top, always visible */}
+      <TooltipProvider delayDuration={200}>
       <div className="p-4 border-b border-border space-y-3 flex-shrink-0">
         <h4 className="text-xs font-semibold text-muted-foreground uppercase mb-3">
           Status & Actions
@@ -655,36 +657,48 @@ export const CustomerSidePanel = ({
         {/* Status Dropdown */}
         <div className="space-y-1.5">
           <span className="text-xs text-muted-foreground">Status</span>
-          <Select
-            value={conversation.status}
-            onValueChange={async (value) => {
-              setStatusLoading(true);
-              await updateStatus({ status: value });
-              setStatusLoading(false);
-            }}
-            disabled={statusLoading}
-          >
-            <SelectTrigger className="h-8 text-xs">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="open">
-                <span className="flex items-center gap-1.5">
-                  <CircleDot className="h-3 w-3" /> Open
-                </span>
-              </SelectItem>
-              <SelectItem value="pending">
-                <span className="flex items-center gap-1.5">
-                  <Clock className="h-3 w-3" /> Pending
-                </span>
-              </SelectItem>
-              <SelectItem value="closed">
-                <span className="flex items-center gap-1.5">
-                  <CheckCircle2 className="h-3 w-3" /> Closed
-                </span>
-              </SelectItem>
-            </SelectContent>
-          </Select>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div>
+                <Select
+                  value={conversation.status}
+                  onValueChange={async (value) => {
+                    setStatusLoading(true);
+                    await updateStatus({ status: value });
+                    setStatusLoading(false);
+                  }}
+                  disabled={statusLoading}
+                >
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="open">
+                      <span className="flex items-center gap-1.5">
+                        <CircleDot className="h-3 w-3" /> Open
+                        <kbd className="ml-1 rounded border border-border bg-muted px-1 text-[10px] font-mono">O</kbd>
+                      </span>
+                    </SelectItem>
+                    <SelectItem value="pending">
+                      <span className="flex items-center gap-1.5">
+                        <Clock className="h-3 w-3" /> Pending
+                        <kbd className="ml-1 rounded border border-border bg-muted px-1 text-[10px] font-mono">P</kbd>
+                      </span>
+                    </SelectItem>
+                    <SelectItem value="closed">
+                      <span className="flex items-center gap-1.5">
+                        <CheckCircle2 className="h-3 w-3" /> Closed
+                        <kbd className="ml-1 rounded border border-border bg-muted px-1 text-[10px] font-mono">C</kbd>
+                      </span>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent side="left" className="max-w-[220px]">
+              Change the conversation status. Shortcuts: O = Open, P = Pending, C = Closed.
+            </TooltipContent>
+          </Tooltip>
         </div>
         
         <Separator className="my-3" />
@@ -693,67 +707,106 @@ export const CustomerSidePanel = ({
         <h4 className="text-xs font-semibold text-muted-foreground uppercase mb-3">Quick Actions</h4>
         
         <div className="grid grid-cols-2 gap-2">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="justify-start gap-2"
-            onClick={() => {
-              dispatch({ type: 'SET_ASSIGN_DIALOG', payload: { open: true, userId: '', loading: false } });
-            }}
-          >
-            <UserPlus className="h-4 w-4" />
-            <span className="text-xs">Assign</span>
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="justify-start gap-2"
+                onClick={() => {
+                  dispatch({ type: 'SET_ASSIGN_DIALOG', payload: { open: true, userId: '', loading: false } });
+                }}
+              >
+                <UserPlus className="h-4 w-4" />
+                <span className="text-xs">Assign</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="left" className="max-w-[220px]">
+              Assign this conversation to a teammate so it shows up in their queue.
+            </TooltipContent>
+          </Tooltip>
           
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="justify-start gap-2"
-            onClick={() => {
-              dispatch({ type: 'SET_TAG_DIALOG', payload: true });
-            }}
-          >
-            <Tag className="h-4 w-4" />
-            <span className="text-xs">Add Tag</span>
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="justify-start gap-2"
+                onClick={() => {
+                  dispatch({ type: 'SET_TAG_DIALOG', payload: true });
+                }}
+              >
+                <Tag className="h-4 w-4" />
+                <span className="text-xs">Add Tag</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="left" className="max-w-[220px]">
+              Add a label to categorise this conversation for search and reporting.
+            </TooltipContent>
+          </Tooltip>
           
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="justify-start gap-2"
-            onClick={() => {
-              dispatch({ type: 'SET_SNOOZE_DIALOG', payload: { open: true, date: new Date(), time: '09:00' } });
-            }}
-          >
-            <Clock className="h-4 w-4" />
-            <span className="text-xs">Snooze</span>
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="justify-start gap-2"
+                onClick={() => {
+                  dispatch({ type: 'SET_SNOOZE_DIALOG', payload: { open: true, date: new Date(), time: '09:00' } });
+                }}
+              >
+                <Clock className="h-4 w-4" />
+                <span className="text-xs">Snooze</span>
+                <kbd className="ml-auto rounded border border-border bg-muted px-1 text-[10px] font-mono">S</kbd>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="left" className="max-w-[220px]">
+              Hide the conversation until a chosen time, then bring it back to the inbox. Shortcut: S
+            </TooltipContent>
+          </Tooltip>
           
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="justify-start gap-2"
-            onClick={async () => {
-              await updateStatus({ isArchived: true });
-            }}
-          >
-            <Archive className="h-4 w-4" />
-            <span className="text-xs">Archive</span>
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="justify-start gap-2"
+                onClick={async () => {
+                  await updateStatus({ isArchived: true });
+                }}
+              >
+                <Archive className="h-4 w-4" />
+                <span className="text-xs">Archive</span>
+                <kbd className="ml-auto rounded border border-border bg-muted px-1 text-[10px] font-mono">A</kbd>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="left" className="max-w-[220px]">
+              Move the conversation out of the active list while keeping it searchable. Shortcut: A
+            </TooltipContent>
+          </Tooltip>
         </div>
         
-        <Button 
-          variant="outline" 
-          size="sm" 
-          className="w-full justify-start gap-2 text-destructive hover:text-destructive mt-2"
-          onClick={() => {
-            dispatch({ type: 'SET_DELETE_DIALOG', payload: { open: true, messageId: null } });
-          }}
-        >
-          <Trash2 className="h-4 w-4" />
-          <span className="text-xs">Delete</span>
-        </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="w-full justify-start gap-2 text-destructive hover:text-destructive mt-2"
+              onClick={() => {
+                dispatch({ type: 'SET_DELETE_DIALOG', payload: { open: true, messageId: null } });
+              }}
+            >
+              <Trash2 className="h-4 w-4" />
+              <span className="text-xs">Delete</span>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="left" className="max-w-[220px]">
+            Permanently delete this conversation. This cannot be undone.
+          </TooltipContent>
+        </Tooltip>
       </div>
+      </TooltipProvider>
+
 
       {/* Customer Info Section - Scrollable */}
       <div className="flex-1 overflow-y-auto relative" style={{ isolation: 'isolate' }}>
