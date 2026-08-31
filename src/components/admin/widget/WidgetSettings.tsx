@@ -17,6 +17,7 @@ import { WidgetAnalytics } from './WidgetAnalytics';
 import { WidgetTranslationEditor } from './WidgetTranslationEditor';
 import { Heading } from '@/components/ui/heading';
 import { Badge } from '@/components/ui/badge';
+import { WidgetDeployPanel } from './WidgetDeployPanel';
 import { SUPPORTED_WIDGET_LANGUAGES } from '@/widget/translations';
 
 interface WidgetConfig {
