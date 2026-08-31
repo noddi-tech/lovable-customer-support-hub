@@ -23,7 +23,12 @@ export function useOpenConversationsBadge() {
 
   const count = useMemo(() => {
     if (!data) return 0;
-    if (inboxId) return data[inboxId]?.open ?? 0;
+    if (inboxId) {
+      return inboxId
+        .split(',')
+        .filter(Boolean)
+        .reduce((sum, id) => sum + (data[id]?.open ?? 0), 0);
+    }
     return Object.values(data).reduce((sum, c) => sum + c.open, 0);
   }, [data, inboxId]);
 
