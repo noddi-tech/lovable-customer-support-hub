@@ -55,10 +55,18 @@ export const ContactForm: React.FC<ContactFormProps> = ({
     setIsSubmitting(false);
     
     if (result.success) {
-      onSuccess(); // Show success view immediately
-      setName('');
-      setEmail('');
+      const submission: StoredSubmission = {
+        conversationId: result.conversationId,
+        name: name.trim(),
+        email: email.trim(),
+        message: message.trim(),
+        sentAt: new Date().toISOString(),
+      };
+      // Keep the message locally so reopening the widget still shows what was sent.
+      storeSubmission(submission);
+      // Keep name/email prefilled for the next message; only clear the message body.
       setMessage('');
+      onSuccess(submission);
     } else {
       setError(result.error || 'Failed to send message');
     }
