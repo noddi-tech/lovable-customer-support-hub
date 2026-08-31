@@ -75,6 +75,19 @@ export function isGoogleAuthUser(user: User | null | undefined): boolean {
 }
 
 /**
+ * True when the **current session** was established with Google (last used
+ * provider), regardless of any other identity linked to the same account.
+ * Used so a Google employee login is never gated by Navio token roles.
+ */
+export function isGoogleSignedInSession(user: User | null | undefined): boolean {
+  if (!user) return false;
+  const meta = (user.app_metadata ?? {}) as Record<string, unknown>;
+  const provider = typeof meta.provider === "string" ? meta.provider : "";
+  if (provider === "google") return isGoogleAuthUser(user);
+  return false;
+}
+
+/**
  * Ensure a product IdP (`custom:navio`) session has a Support Hub profile.
  * Does **not** grant super_admin — data scope comes from navio membership claims.
  *
