@@ -13,6 +13,7 @@ import {
   Phone
 } from 'lucide-react';
 import { NoddiCustomerDetails } from '@/components/dashboard/voice/NoddiCustomerDetails';
+import { CustomerTimeline } from '@/components/cases/CustomerTimeline';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
@@ -655,6 +656,12 @@ export const ChatCustomerPanel: React.FC<ChatCustomerPanelProps> = ({
             </CardContent>
           </Card>
         )}
+
+        {/* Unified customer history (merged in from the old case side panel) */}
+        <CustomerTimeline
+          customerId={customer?.id ?? null}
+          currentConversationId={conversationId}
+        />
       </div>
     </div>
   );

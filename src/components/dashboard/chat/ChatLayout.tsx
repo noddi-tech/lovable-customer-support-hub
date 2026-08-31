@@ -5,7 +5,7 @@ import { LiveChatQueue } from '@/components/conversations/LiveChatQueue';
 import { ChatFilters, type ChatFilterType } from './ChatFilters';
 import { ChatConversationList } from './ChatConversationList';
 import { ChatEmptyState } from './ChatEmptyState';
-import { ChatCaseSidePanel } from './ChatCaseSidePanel';
+
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -190,8 +190,8 @@ export const ChatLayout: React.FC = () => {
 
         <ResizableHandle withHandle />
 
-        {/* Middle panel: Selected Chat View */}
-        <ResizablePanel defaultSize={45}>
+        {/* Right panel: Selected Chat View (customer history lives in Customer Details) */}
+        <ResizablePanel defaultSize={65}>
           {selectedConversationId ? (
             <ConversationView
               conversationId={selectedConversationId}
@@ -201,19 +201,6 @@ export const ChatLayout: React.FC = () => {
             <ChatEmptyState />
           )}
         </ResizablePanel>
-
-        {selectedConversationId && (
-          <>
-            <ResizableHandle withHandle />
-            {/* Right panel: case + unified customer history */}
-            <ResizablePanel defaultSize={20} minSize={15} maxSize={35}>
-              <ChatCaseSidePanel
-                conversationId={selectedConversationId}
-                className="h-full overflow-y-auto border-l bg-background"
-              />
-            </ResizablePanel>
-          </>
-        )}
       </ResizablePanelGroup>
     </div>
   );
