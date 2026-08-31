@@ -86,8 +86,8 @@ export function useDesktopEmailNotifications() {
             .maybeSingle();
 
           if (!conversation) return;
-          const channel = conversation.channel || 'email';
-          const isChat = channel === 'chat' || channel === 'live_chat' || channel === 'widget';
+          const channel: string = conversation.channel || 'email';
+          const isChat = ['chat', 'live_chat', 'widget'].includes(channel);
           if (!isChat && channel !== 'email') return;
 
           const customer = conversation.customer as { full_name?: string | null; email?: string | null } | null;
