@@ -19,6 +19,8 @@ import { Inbox, Mail, Users, Archive, Star, Clock, CheckCircle, Trash2 } from 'l
 import { cn } from '@/lib/utils';
 import { useAccessibleInboxes, useInboxCounts } from '@/hooks/useInteractionsData';
 import { useInboxEmailAddresses } from '@/hooks/useInboxEmailAddresses';
+import { useInboxOutstandingCounts } from '@/hooks/useInboxOutstandingCounts';
+
 import { LiveChatQueue } from '@/components/conversations/LiveChatQueue';
 import type { StatusFilter, InboxId } from '@/types/interactions';
 
@@ -59,7 +61,40 @@ export const InboxList: React.FC<InboxListProps> = ({
   const [searchParams] = useSearchParams();
   const { data: inboxes = [], isLoading: inboxesLoading } = useAccessibleInboxes();
   const { data: inboxEmails = {} } = useInboxEmailAddresses();
+  const { data: outstanding = {} } = useInboxOutstandingCounts();
   const { data: counts, isLoading: countsLoading } = useInboxCounts(selectedInbox || 'all');
+
+  const allOutstanding = React.useMemo(
+    () =>
+      Object.values(outstanding).reduce(
+        (acc, o) => ({ open: acc.open + o.open, pending: acc.pending + o.pending }),
+        { open: 0, pending: 0 },
+      ),
+    [outstanding],
+  );
+
+  const OutstandingBadges: React.FC<{ open: number; pending: number }> = ({ open, pending }) => {
+    if (!open && !pending) return null;
+    return (
+      <span className="flex items-center gap-1 flex-shrink-0">
+        {open > 0 && (
+          <Badge variant="secondary" className="h-5 px-1.5 text-[10px] font-medium" title={`${open} open`}>
+            {open}
+          </Badge>
+        )}
+        {pending > 0 && (
+          <Badge
+            variant="outline"
+            className="h-5 px-1.5 text-[10px] font-medium text-orange-600 border-orange-500/40"
+            title={`${pending} pending`}
+          >
+            {pending}
+          </Badge>
+        )}
+      </span>
+    );
+  };
+
 
   // Get the count for a specific filter
   const getFilterCount = (filter: StatusFilter): number => {
@@ -127,14 +162,14 @@ export const InboxList: React.FC<InboxListProps> = ({
         ) : (
           <Select value={selectedInbox || ''} onValueChange={handleInboxChange}>
             <SelectTrigger className="w-full min-w-0 h-auto py-1.5 bg-background border-border focus:ring-ring">
-              <div className="flex items-start gap-2 min-w-0 overflow-hidden text-left">
+              <div className="flex items-start gap-2 min-w-0 overflow-hidden text-left w-full">
                 {selectedInbox && selectedInbox !== 'all' ? (
                   <>
                     <div 
                       className="w-2 h-2 rounded-full flex-shrink-0 mt-1.5"
                       style={{ backgroundColor: inboxes.find(i => i.id === selectedInbox)?.color || '#6B7280' }}
                     />
-                    <div className="min-w-0 flex flex-col leading-tight">
+                    <div className="min-w-0 flex flex-col leading-tight flex-1">
                       <span className="truncate">
                         {inboxes.find(i => i.id === selectedInbox)?.name || 'Select inbox'}
                       </span>
@@ -144,9 +179,16 @@ export const InboxList: React.FC<InboxListProps> = ({
                         </span>
                       )}
                     </div>
+                    <OutstandingBadges
+                      open={outstanding[selectedInbox]?.open || 0}
+                      pending={outstanding[selectedInbox]?.pending || 0}
+                    />
                   </>
                 ) : (
-                  <span className="truncate">All Inboxes</span>
+                  <>
+                    <span className="truncate flex-1">All Inboxes</span>
+                    <OutstandingBadges open={allOutstanding.open} pending={allOutstanding.pending} />
+                  </>
                 )}
               </div>
             </SelectTrigger>
@@ -156,8 +198,10 @@ export const InboxList: React.FC<InboxListProps> = ({
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-muted-foreground/50" />
                   <span>All Inboxes</span>
+                  <OutstandingBadges open={allOutstanding.open} pending={allOutstanding.pending} />
                 </div>
               </SelectItem>
+
               {inboxes.map((inbox) => {
                 const email = inboxEmails[inbox.id];
 
@@ -197,18 +241,23 @@ export const InboxList: React.FC<InboxListProps> = ({
 
                 return (
                   <SelectItem key={inbox.id} value={inbox.id}>
-                    <div className="flex items-start gap-2 min-w-0">
+                    <div className="flex items-start gap-2 min-w-0 w-full">
                       <div 
                         className="w-2 h-2 rounded-full flex-shrink-0 mt-1.5"
                         style={{ backgroundColor: inbox.color || '#6B7280' }}
                       />
-                      <div className="min-w-0 flex flex-col leading-tight">
+                      <div className="min-w-0 flex flex-col leading-tight flex-1">
                         <span className="truncate">{inbox.name}</span>
                         <span className="text-[11px] text-muted-foreground truncate">
                           {email}
                         </span>
                       </div>
+                      <OutstandingBadges
+                        open={outstanding[inbox.id]?.open || 0}
+                        pending={outstanding[inbox.id]?.pending || 0}
+                      />
                     </div>
+
                   </SelectItem>
                 );
               })}
