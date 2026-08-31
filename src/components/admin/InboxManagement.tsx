@@ -184,42 +184,8 @@ export function InboxManagementContent() {
     }
   });
 
-  // Update inbox mutation
-  const updateInboxMutation = useMutation({
-    mutationFn: async ({ id, updates }: { id: string; updates: Partial<InboxData> }) => {
-      const { error } = await supabase
-        .from('inboxes')
-        .update(updates)
-        .eq('id', id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['inboxes'] });
-      setEditingInbox(null);
-      toast.success('Inbox updated successfully');
-    },
-    onError: (error) => {
-      toast.error('Failed to update inbox: ' + error.message);
-    }
-  });
 
-  // Update sending/receiving address (inbound route group_email)
-  const updateGroupEmailMutation = useMutation({
-    mutationFn: async ({ routeId, groupEmail }: { routeId: string; groupEmail: string }) => {
-      const { error } = await supabase
-        .from('inbound_routes')
-        .update({ group_email: groupEmail })
-        .eq('id', routeId);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['inbound_routes'] });
-      toast.success('Sending address updated');
-    },
-    onError: (error) => {
-      toast.error('Failed to update sending address: ' + error.message);
-    }
-  });
+
 
   // Bulk delete conversations mutation
   const bulkDeleteConversationsMutation = useMutation({
