@@ -80,6 +80,9 @@ const VirtualizedConversationTable = memo(({ onSelectConversation, selectedConve
     dispatch,
   } = useConversationList();
   const { t } = useTranslation();
+  // Show the inbox column only when the list spans every inbox.
+  const showInboxColumn = !selectedInboxId || selectedInboxId === 'all';
+
 
   const conversations = useMemo(() => paginatedConversations, [paginatedConversations]);
   const conversationCount = conversations.length;
