@@ -34,6 +34,54 @@ export function getBrand(): string {
   return brand;
 }
 
+// Optional extra context of the host site (locale, environment, source app,
+// logged-in Noddi user, booking/order in flight, SPA pathname, release).
+// Passed through to the backend and shown to agents on the conversation.
+export interface WidgetContext {
+  locale?: string;
+  environment?: string;
+  source_app?: string;
+  noddi_user_id?: string;
+  service_department_id?: string;
+  booking_id?: string;
+  order_id?: string;
+  pathname?: string;
+  app_version?: string;
+}
+
+const CONTEXT_LIMITS: Record<keyof WidgetContext, number> = {
+  locale: 20,
+  environment: 20,
+  source_app: 40,
+  noddi_user_id: 64,
+  service_department_id: 64,
+  booking_id: 64,
+  order_id: 64,
+  pathname: 300,
+  app_version: 40,
+};
+
+let widgetContext: WidgetContext = {};
+
+export function setWidgetContext(value: Partial<Record<keyof WidgetContext, unknown>> = {}) {
+  const next: Record<string, string> = {};
+  for (const key of Object.keys(CONTEXT_LIMITS) as (keyof WidgetContext)[]) {
+    const raw = value[key];
+    if (raw === undefined || raw === null || raw === '') continue;
+    next[key] = String(raw).trim().slice(0, CONTEXT_LIMITS[key]);
+  }
+  widgetContext = next as WidgetContext;
+}
+
+export function getWidgetContext(): WidgetContext | undefined {
+  // Always report the live SPA pathname unless the host set one explicitly.
+  const ctx: WidgetContext = { ...widgetContext };
+  if (!ctx.pathname && typeof window !== 'undefined') {
+    ctx.pathname = `${window.location.pathname}${window.location.search}`.slice(0, 300);
+  }
+  return Object.keys(ctx).length > 0 ? ctx : undefined;
+}
+
 /** Headers for calls to the Noddi proxy edge functions. */
 export function proxyHeaders(): Record<string, string> {
   return { 'Content-Type': 'application/json', 'x-widget-key': widgetKey };
@@ -70,7 +118,7 @@ export async function submitContactForm(data: SubmitContactData): Promise<{ succ
     const response = await fetch(`${apiBaseUrl}/widget-submit`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ brand: brand || undefined, ...data }),
+      body: JSON.stringify({ brand: brand || undefined, context: getWidgetContext(), ...data }),
     });
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
@@ -127,7 +175,7 @@ export async function startChat(data: StartChatData): Promise<ChatSession | null
     const response = await fetch(`${apiBaseUrl}/widget-chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'start', brand: brand || undefined, ...data }),
+      body: JSON.stringify({ action: 'start', brand: brand || undefined, context: getWidgetContext(), ...data }),
     });
     if (!response.ok) return null;
     return await response.json();
