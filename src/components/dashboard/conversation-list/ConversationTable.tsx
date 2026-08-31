@@ -51,7 +51,15 @@ export const ConversationTable = memo<ConversationTableProps>(({
     (ids: string[], selected: boolean) => dispatch({ type: 'SET_BULK_SELECTION', payload: { ids, selected } }),
     [dispatch],
   );
-  const handleBulkSelect = useBulkRangeSelect(orderedIds, setSelection);
+  const rangeSelect = useBulkRangeSelect(orderedIds, setSelection);
+  // Cmd/Ctrl- or Shift-click starts selection mode implicitly.
+  const handleBulkSelect = useCallback(
+    (id: string, selected: boolean, shiftKey?: boolean) => {
+      dispatch({ type: 'ENABLE_BULK_MODE' });
+      rangeSelect(id, selected, shiftKey);
+    },
+    [dispatch, rangeSelect],
+  );
 
   const allSelected = state.bulkSelectionMode &&
     filteredConversations.length > 0 &&
