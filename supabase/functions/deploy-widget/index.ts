@@ -1083,17 +1083,31 @@ const WIDGET_JS = `
     }
   }
 
+  // NoddiWidget('update', { locale }) — re-language the widget mid-session.
+  function update(opts) {
+    if (!opts || typeof opts !== 'object') return;
+    const next = normalizeLang(opts.locale || (opts.context && opts.context.locale));
+    if (next && next !== state.lang) {
+      hostLocale = next;
+      state.lang = next;
+      render();
+    }
+  }
+
   const api = function(cmd, opts) {
     console.log('[Noddi] API called:', cmd, opts);
     if (cmd === 'init') init(opts);
     else if (cmd === 'open') { state.isOpen = true; render(); }
     else if (cmd === 'close') { state.isOpen = false; render(); }
     else if (cmd === 'toggle') { state.isOpen = !state.isOpen; render(); }
+    else if (cmd === 'update') update(opts);
   };
   api.init = init;
   api.open = function() { state.isOpen = true; render(); };
   api.close = function() { state.isOpen = false; render(); };
   api.toggle = function() { state.isOpen = !state.isOpen; render(); };
+  api.update = update;
+
   api.q = (window.NoddiWidget && window.NoddiWidget.q) || [];
 
   console.log('[Noddi] Setting up global API, existing queue:', api.q);
