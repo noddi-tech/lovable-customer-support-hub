@@ -1006,6 +1006,8 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
     bulkDelete,
     bulkAssign,
     agents: agentsData,
+    selectedInboxId,
+
   };
 
   return (
