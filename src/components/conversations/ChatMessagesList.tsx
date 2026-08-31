@@ -12,6 +12,7 @@ import {
   DropdownMenuItem, 
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
+import { EmailPreviewDialog } from '@/components/conversations/EmailPreviewDialog';
 import { MoreHorizontal, Copy, Trash2, Check, CheckCheck, Paperclip, Image, Mail, MessageSquare, AlertCircle, RefreshCw, Loader2, Lock, Edit3 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { EmailRender } from '@/components/ui/email-render';
@@ -52,6 +53,7 @@ export const ChatMessagesList = ({
   const queryClient = useQueryClient();
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [emailPreviewId, setEmailPreviewId] = useState<string | null>(null);
   const { canEditNote, deleteNote } = useNoteMutations();
 
   // Auto-scroll to bottom on new messages
@@ -443,6 +445,12 @@ export const ChatMessagesList = ({
       </div>
 
     </ScrollArea>
+
+      <EmailPreviewDialog
+        messageId={emailPreviewId}
+        open={!!emailPreviewId}
+        onOpenChange={(o) => !o && setEmailPreviewId(null)}
+      />
 
       <AlertDialog
         open={!!confirmDeleteId}
