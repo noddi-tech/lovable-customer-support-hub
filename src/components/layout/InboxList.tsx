@@ -20,6 +20,7 @@ import { cn } from '@/lib/utils';
 import { useAccessibleInboxes, useInboxCounts } from '@/hooks/useInteractionsData';
 import { useInboxEmailAddresses } from '@/hooks/useInboxEmailAddresses';
 import { useInboxOutstandingCounts } from '@/hooks/useInboxOutstandingCounts';
+import { useDefaultInbox } from '@/hooks/useDefaultInbox';
 
 import { LiveChatQueue } from '@/components/conversations/LiveChatQueue';
 import type { StatusFilter, InboxId } from '@/types/interactions';
