@@ -17,8 +17,39 @@ import { useVisitorOnlineStatus } from "@/hooks/useVisitorOnlineStatus";
 import { useChatMessageNotifications } from "@/hooks/useChatMessageNotifications";
 import { logger } from "@/utils/logger";
 import { useQueryClient } from "@tanstack/react-query";
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow, isToday, isYesterday, format } from 'date-fns';
 import { useConversationView } from "@/contexts/ConversationViewContext";
+
+/** Sticky day heading between messages so long threads are scannable */
+function DaySeparator({ date }: { date: Date }) {
+  const label = isToday(date)
+    ? 'Today'
+    : isYesterday(date)
+      ? 'Yesterday'
+      : format(date, 'd MMM yyyy');
+  return (
+    <div className="sticky top-0 z-10 flex items-center gap-3 py-2">
+      <div className="h-px flex-1 bg-border" />
+      <span className="rounded-full border bg-background px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground shadow-sm">
+        {label}
+      </span>
+      <div className="h-px flex-1 bg-border" />
+    </div>
+  );
+}
+
+/** Divider marking the first message the agent has not seen yet */
+function UnreadDivider() {
+  return (
+    <div className="flex items-center gap-3 py-2">
+      <div className="h-px flex-1 bg-primary/40" />
+      <span className="rounded-full bg-primary px-2.5 py-0.5 text-[11px] font-medium text-primary-foreground">
+        New messages
+      </span>
+      <div className="h-px flex-1 bg-primary/40" />
+    </div>
+  );
+}
 
 interface ProgressiveMessagesListProps {
   conversationId: string;
@@ -54,6 +85,25 @@ export const ProgressiveMessagesList = forwardRef<ProgressiveMessagesListRef, Pr
   const [expandedMessageIds, setExpandedMessageIds] = useState<Set<string>>(new Set());
   const [allExpanded, setAllExpanded] = useState(false);
   const [isBulkToggling, setIsBulkToggling] = useState(false);
+
+  // Timestamp of the agent's previous visit — drives the "New messages" divider.
+  // Captured once per mount so the divider does not jump while reading.
+  const lastViewedAtRef = useRef<number | null>(null);
+  if (lastViewedAtRef.current === null) {
+    const stored = typeof window !== 'undefined'
+      ? window.localStorage.getItem(`conv-last-viewed:${conversationId}`)
+      : null;
+    lastViewedAtRef.current = stored ? Number(stored) : 0;
+  }
+  useEffect(() => {
+    return () => {
+      try {
+        window.localStorage.setItem(`conv-last-viewed:${conversationId}`, String(Date.now()));
+      } catch {
+        /* storage unavailable — divider simply won't persist */
+      }
+    };
+  }, [conversationId]);
   
   // Create conversation-specific normalization context
   const normalizationCtx = useMemo(() => createNormalizationContext({
@@ -470,12 +520,29 @@ export const ProgressiveMessagesList = forwardRef<ProgressiveMessagesListRef, Pr
             </div>
           ) : (
               // Reverse to show oldest first (ASC)
-              [...messages].reverse().map((message, index) => {
+              (() => {
+                const ordered = [...messages].reverse();
+                const lastViewedAt = lastViewedAtRef.current ?? 0;
+                const firstUnreadIndex = lastViewedAt
+                  ? ordered.findIndex(
+                      (m) =>
+                        m.authorType === 'customer' &&
+                        new Date(m.createdAt).getTime() > lastViewedAt,
+                    )
+                  : -1;
+                let lastDayKey = '';
+                return ordered.map((message, index) => {
                 const isNewest = index === messages.length - 1;
                 const isPinned = message.isInternalNote && message.originalMessage?.is_pinned;
+                const createdAt = new Date(message.createdAt);
+                const dayKey = format(createdAt, 'yyyy-MM-dd');
+                const showDay = dayKey !== lastDayKey;
+                lastDayKey = dayKey;
                 return (
+                  <div key={message.dedupKey || message.id}>
+                  {showDay && <DaySeparator date={createdAt} />}
+                  {index === firstUnreadIndex && <UnreadDivider />}
                   <MessageCard
-                    key={message.dedupKey || message.id}
                     message={message}
                     conversation={conversation}
                     isFirstInThread={index === 0}
@@ -489,8 +556,10 @@ export const ProgressiveMessagesList = forwardRef<ProgressiveMessagesListRef, Pr
                     onEditDraft={(id, content) => editDraft(id)}
                     onDismissDraft={dismissDraft}
                   />
+                  </div>
                 );
-              })
+                });
+              })()
           )}
           
           {/* Load older messages button at BOTTOM with improved styling */}
