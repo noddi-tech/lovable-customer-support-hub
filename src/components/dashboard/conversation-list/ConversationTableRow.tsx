@@ -367,7 +367,15 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
           </div>
         </div>
 
+        {/* Received */}
+        <div className="p-2 w-36 shrink-0">
+          <span className="text-xs text-muted-foreground truncate block" title={computedValues.receivedAt}>
+            {computedValues.receivedAt}
+          </span>
+        </div>
+
         {/* Waiting */}
+
         <div className="p-2 w-20 shrink-0">
           <span className="text-xs text-muted-foreground">{computedValues.waitingTime}</span>
         </div>
