@@ -89,7 +89,7 @@ export function CreateNoddiTicketDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-xl">
+      <DialogContent className="max-h-[90svh] w-[calc(100%-2rem)] max-w-xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Create ticket</DialogTitle>
           <DialogDescription>
@@ -119,7 +119,7 @@ export function CreateNoddiTicketDialog({
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label>Service department</Label>
               <Select value={departmentId} onValueChange={setDepartmentId} disabled={loadingDepartments}>

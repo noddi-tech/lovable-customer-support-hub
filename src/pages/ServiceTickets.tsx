@@ -129,7 +129,7 @@ export default function ServiceTickets() {
 
       <NoddiTicketTable tickets={tickets} isLoading={isLoading} onSelect={handleSelect} />
 
-      <div className="flex items-center justify-between text-sm text-muted-foreground">
+      <div className="flex flex-col items-start gap-2 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
         <span>
           {total > 0
             ? `Showing ${page * PAGE_SIZE + 1}–${Math.min((page + 1) * PAGE_SIZE, total)} of ${total}`
