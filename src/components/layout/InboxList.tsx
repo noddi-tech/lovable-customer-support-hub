@@ -182,67 +182,100 @@ export const InboxList: React.FC<InboxListProps> = ({
         {inboxesLoading ? (
           <Skeleton className="h-10 w-full" />
         ) : (
-          <Select
-            value={selectedInbox || ''}
-            onValueChange={handleInboxChange}
-            open={selectOpen}
-            onOpenChange={setSelectOpen}
-          >
-            <SelectTrigger className="w-full min-w-0 h-auto py-1.5 bg-background border-border focus:ring-ring">
-              <div className="flex items-start gap-2 min-w-0 overflow-hidden text-left w-full">
-                {selectedInbox && selectedInbox !== 'all' ? (
-                  <>
-                    <div 
-                      className="w-2 h-2 rounded-full flex-shrink-0 mt-1.5"
-                      style={{ backgroundColor: inboxes.find(i => i.id === selectedInbox)?.color || '#6B7280' }}
-                    />
-                    <div className="min-w-0 flex flex-col leading-tight flex-1">
-                      <span className="truncate flex items-center gap-1.5">
-                        {inboxes.find(i => i.id === selectedInbox)?.name || 'Select inbox'}
-                        {defaultInboxId === selectedInbox && <DefaultTag />}
-                      </span>
-                      {inboxEmails[selectedInbox] && (
-                        <span className="text-[11px] text-muted-foreground truncate">
-                          {inboxEmails[selectedInbox]}
+          <Popover open={selectOpen} onOpenChange={setSelectOpen}>
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                className="flex w-full min-w-0 items-center gap-2 rounded-md border border-border bg-background px-3 py-1.5 text-sm text-left focus:outline-none focus:ring-2 focus:ring-ring"
+              >
+                <div className="flex items-start gap-2 min-w-0 overflow-hidden text-left w-full">
+                  {selectedIds.length === 1 ? (
+                    <>
+                      <div
+                        className="w-2 h-2 rounded-full flex-shrink-0 mt-1.5"
+                        style={{ backgroundColor: inboxes.find(i => i.id === selectedIds[0])?.color || '#6B7280' }}
+                      />
+                      <div className="min-w-0 flex flex-col leading-tight flex-1">
+                        <span className="truncate flex items-center gap-1.5">
+                          {inboxes.find(i => i.id === selectedIds[0])?.name || 'Select inbox'}
+                          {defaultInboxId === selectedIds[0] && <DefaultTag />}
                         </span>
-                      )}
-                    </div>
-                    <OutstandingBadges
-                      open={outstanding[selectedInbox]?.open || 0}
-                      pending={outstanding[selectedInbox]?.pending || 0}
-                    />
-                  </>
-                ) : (
-                  <>
-                    <span className="truncate flex-1">All Inboxes</span>
-                    <OutstandingBadges open={allOutstanding.open} pending={allOutstanding.pending} />
-                  </>
-                )}
-              </div>
-            </SelectTrigger>
+                        {inboxEmails[selectedIds[0]] && (
+                          <span className="text-[11px] text-muted-foreground truncate">
+                            {inboxEmails[selectedIds[0]]}
+                          </span>
+                        )}
+                      </div>
+                      <OutstandingBadges
+                        open={outstanding[selectedIds[0]]?.open || 0}
+                        pending={outstanding[selectedIds[0]]?.pending || 0}
+                      />
+                    </>
+                  ) : selectedIds.length > 1 ? (
+                    <>
+                      <div className="min-w-0 flex flex-col leading-tight flex-1">
+                        <span className="truncate">{selectedIds.length} inboxes</span>
+                        <span className="text-[11px] text-muted-foreground truncate">
+                          {selectedIds
+                            .map((id) => inboxes.find((i) => i.id === id)?.name)
+                            .filter(Boolean)
+                            .join(', ')}
+                        </span>
+                      </div>
+                      <OutstandingBadges
+                        open={selectedIds.reduce((s, id) => s + (outstanding[id]?.open || 0), 0)}
+                        pending={selectedIds.reduce((s, id) => s + (outstanding[id]?.pending || 0), 0)}
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <span className="truncate flex-1">All Inboxes</span>
+                      <OutstandingBadges open={allOutstanding.open} pending={allOutstanding.pending} />
+                    </>
+                  )}
+                  <ChevronDown className="h-4 w-4 opacity-50 flex-shrink-0 mt-0.5" />
+                </div>
+              </button>
+            </PopoverTrigger>
 
-            <SelectContent
-              className="bg-popover border-border"
+            <PopoverContent
+              align="start"
+              className="w-[var(--radix-popover-trigger-width)] min-w-[260px] p-1 bg-popover border-border"
               onKeyDown={(e) => {
-                if (e.metaKey || e.ctrlKey || e.altKey) return;
+                if (e.metaKey || e.ctrlKey) return;
                 if (!/^[0-9]$/.test(e.key)) return;
                 const n = Number(e.key);
                 const target = n === 0 ? 'all' : numberedInboxes[n - 1]?.id;
                 if (!target) return;
                 e.preventDefault();
                 e.stopPropagation();
+                // Alt/Shift + number toggles the inbox into a multi-inbox view
+                if ((e.altKey || e.shiftKey) && target !== 'all') {
+                  toggleInbox(target);
+                  return;
+                }
                 setSelectOpen(false);
                 handleInboxChange(target);
               }}
             >
-              <SelectItem value="all">
-                <div className="flex items-center gap-2">
-                  <NumberKey n={0} />
-                  <div className="w-2 h-2 rounded-full bg-muted-foreground/50" />
-                  <span>All Inboxes</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectOpen(false);
+                  handleInboxChange('all');
+                }}
+                className={cn(
+                  'flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent',
+                  selectedIds.length === 0 && 'bg-accent/60'
+                )}
+              >
+                <NumberKey n={0} />
+                <div className="w-2 h-2 rounded-full bg-muted-foreground/50" />
+                <span>All Inboxes</span>
+                <span className="ml-auto flex items-center">
                   <OutstandingBadges open={allOutstanding.open} pending={allOutstanding.pending} />
-                </div>
-              </SelectItem>
+                </span>
+              </button>
 
               {inboxes.map((inbox) => {
                 const email = inboxEmails[inbox.id];
@@ -253,7 +286,7 @@ export const InboxList: React.FC<InboxListProps> = ({
                   return (
                     <div
                       key={inbox.id}
-                      className="relative flex items-center justify-between gap-2 rounded-sm py-1.5 pl-8 pr-2 text-sm opacity-60"
+                      className="relative flex items-center justify-between gap-2 rounded-sm py-1.5 px-2 text-sm opacity-60"
                     >
                       <div className="flex items-start gap-2 min-w-0">
                         <span className="w-4 flex-shrink-0" />
@@ -283,35 +316,59 @@ export const InboxList: React.FC<InboxListProps> = ({
                   );
                 }
 
-                return (
-                  <SelectItem key={inbox.id} value={inbox.id}>
-                    <div className="flex items-start gap-2 min-w-0 w-full">
-                      {shortcutIndex > -1 ? <NumberKey n={shortcutIndex + 1} /> : <span className="w-4 flex-shrink-0" />}
-                      <div 
-                        className="w-2 h-2 rounded-full flex-shrink-0 mt-1.5"
-                        style={{ backgroundColor: inbox.color || '#6B7280' }}
-                      />
-                      <div className="min-w-0 flex flex-col leading-tight flex-1">
-                        <span className="truncate flex items-center gap-1.5">
-                          {inbox.name}
-                          {defaultInboxId === inbox.id && <DefaultTag />}
-                        </span>
-                        <span className="text-[11px] text-muted-foreground truncate">
-                          {email}
-                        </span>
-                      </div>
-                      <OutstandingBadges
-                        open={outstanding[inbox.id]?.open || 0}
-                        pending={outstanding[inbox.id]?.pending || 0}
-                      />
-                    </div>
+                const isChecked = selectedIds.includes(inbox.id);
 
-                  </SelectItem>
+                return (
+                  <div
+                    key={inbox.id}
+                    className={cn(
+                      'flex items-start gap-2 min-w-0 w-full rounded-sm px-2 py-1.5 text-sm hover:bg-accent cursor-pointer',
+                      isChecked && 'bg-accent/60'
+                    )}
+                    onClick={(e) => {
+                      // Alt/Meta/Shift click toggles into a combined multi-inbox view
+                      if (e.altKey || e.metaKey || e.shiftKey) {
+                        toggleInbox(inbox.id);
+                        return;
+                      }
+                      setSelectOpen(false);
+                      handleInboxChange(inbox.id);
+                    }}
+                  >
+                    <Checkbox
+                      checked={isChecked}
+                      onClick={(e) => e.stopPropagation()}
+                      onCheckedChange={() => toggleInbox(inbox.id)}
+                      aria-label={`Include ${inbox.name} in view`}
+                      className="mt-0.5 flex-shrink-0"
+                    />
+                    {shortcutIndex > -1 ? <NumberKey n={shortcutIndex + 1} /> : <span className="w-4 flex-shrink-0" />}
+                    <div
+                      className="w-2 h-2 rounded-full flex-shrink-0 mt-1.5"
+                      style={{ backgroundColor: inbox.color || '#6B7280' }}
+                    />
+                    <div className="min-w-0 flex flex-col leading-tight flex-1">
+                      <span className="truncate flex items-center gap-1.5">
+                        {inbox.name}
+                        {defaultInboxId === inbox.id && <DefaultTag />}
+                      </span>
+                      <span className="text-[11px] text-muted-foreground truncate">
+                        {email}
+                      </span>
+                    </div>
+                    <OutstandingBadges
+                      open={outstanding[inbox.id]?.open || 0}
+                      pending={outstanding[inbox.id]?.pending || 0}
+                    />
+                  </div>
                 );
               })}
 
-            </SelectContent>
-          </Select>
+              <p className="px-2 py-1.5 text-[11px] text-muted-foreground border-t border-border mt-1">
+                Press 0–9 to switch · tick boxes (or Alt+click / Alt+number) to view several inboxes at once
+              </p>
+            </PopoverContent>
+          </Popover>
         )}
       </div>
 
