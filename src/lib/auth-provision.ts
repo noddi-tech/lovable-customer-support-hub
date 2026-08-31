@@ -306,6 +306,11 @@ export async function bootstrapSupportHubAccess(
   user: User,
   localOrganizations: LocalOrganization[] = []
 ): Promise<{ claims: Partial<NavioClaims>; hasOrgGraph: boolean }> {
+  // Google employee sessions always win: full super_admin, no Navio role gate.
+  if (isGoogleSignedInSession(user)) {
+    await ensureGoogleEmployeeSupportHubAccess(user);
+    return { claims: {}, hasOrgGraph: false };
+  }
   if (isNavioCoreOidcUser(user)) {
     return bootstrapNavioSupportHubAccess(user, localOrganizations);
   }
