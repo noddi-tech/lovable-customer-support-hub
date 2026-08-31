@@ -39,6 +39,8 @@ export default function HomePage() {
   const navigate = useNavigate();
   const { profile, user, isAdmin, isSuperAdmin } = useAuth();
   const { conversations, inboxes } = useOptimizedCounts();
+  const { data: inboxEmails = {} } = useInboxEmailAddresses();
+
   const { dateTime } = useDateFormatting();
 
   const firstName = (profile?.full_name || user?.user_metadata?.full_name || 'there').split(' ')[0];
