@@ -153,7 +153,7 @@ export async function createConversationAndSend(
         is_internal: false,
         email_status: 'pending',
         email_subject: input.subject,
-        ...(attachmentsMeta ? { attachments: attachmentsMeta } : {}),
+        ...(attachmentsMeta ? { attachments: attachmentsMeta as unknown as never } : {}),
       })
       .select('id')
       .single();
