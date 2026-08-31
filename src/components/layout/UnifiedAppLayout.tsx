@@ -8,6 +8,7 @@ import { UIProbe } from '@/dev/UIProbe';
 import { useDesktopEmailNotifications } from '@/hooks/useDesktopEmailNotifications';
 import { useNotificationPermissionPrompt } from '@/hooks/useNotificationPermissionPrompt';
 import { useOpenConversationsBadge } from '@/hooks/useOpenConversationsBadge';
+import { WhatsNewDialog } from '@/features/whats-new/WhatsNewDialog';
 
 interface UnifiedAppLayoutProps {
   children: React.ReactNode;
@@ -51,6 +52,7 @@ export const UnifiedAppLayout: React.FC<UnifiedAppLayoutProps> = ({
       {import.meta.env.DEV && import.meta.env.VITE_UI_PROBE === '1' && <UIProbe />}
       <SearchCommandPalette open={searchOpen} onOpenChange={setSearchOpen} />
       <QuickInboxSwitcher open={inboxSwitcherOpen} onOpenChange={setInboxSwitcherOpen} />
+      <WhatsNewDialog />
 
       <div className="h-svh flex w-full bg-background">
         {/* Sidebar Navigation */}
