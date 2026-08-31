@@ -82,6 +82,7 @@ export const AppMainNav = () => {
 
   const groupLabels: Record<string, string> = {
     notifications: t('navigation.notifications', 'Notifications'),
+    support: t('navigation.support', 'Support'),
     interactions: t('navigation.interactions', 'Interactions'),
     marketing: t('navigation.marketing', 'Marketing'), 
     operations: t('navigation.operations', 'Operations'),
@@ -90,7 +91,7 @@ export const AppMainNav = () => {
     super_admin: t('navigation.superAdmin', 'Super Admin')
   };
 
-  const groupOrder = ['notifications', 'interactions', 'marketing', 'operations', 'settings', 'admin', 'super_admin'];
+  const groupOrder = ['notifications', 'support', 'interactions', 'marketing', 'operations', 'settings', 'admin', 'super_admin'];
 
   const handleSignOut = async () => {
     try {

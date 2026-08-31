@@ -32,11 +32,6 @@ export const OperationsSidebar: React.FC = () => {
 
   const operationsItems = [
     {
-      title: 'Ops Tickets',
-      path: '/operations/tickets',
-      icon: Ticket
-    },
-    {
       title: 'Recruitment',
       path: '/operations/recruitment',
       icon: Users
