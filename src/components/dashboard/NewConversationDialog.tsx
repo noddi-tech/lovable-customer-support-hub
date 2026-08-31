@@ -14,6 +14,7 @@ import { Plus, Mail, User, Users, MessageSquare, Sparkles, Languages, Loader2, F
 import { Badge } from '@/components/ui/badge';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useInboxEmailAddresses } from '@/hooks/useInboxEmailAddresses';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { useTranslation } from 'react-i18next';
@@ -108,6 +109,7 @@ export const NewConversationDialog: React.FC<NewConversationDialogProps> = ({ ch
       return data as InboxData[];
     }
   });
+  const { data: inboxEmails = {} } = useInboxEmailAddresses();
 
   // Set default inbox when inboxes load
   React.useEffect(() => {
@@ -756,9 +758,14 @@ export const NewConversationDialog: React.FC<NewConversationDialogProps> = ({ ch
                   <SelectContent>
                     {inboxes.map((inbox) => (
                       <SelectItem key={inbox.id} value={inbox.id}>
-                        <div className="flex items-center space-x-2">
+                        <div className="flex items-center space-x-2 min-w-0">
                           <div className="w-3 h-3 rounded-full" style={{ backgroundColor: inbox.color }} />
-                          <span>{inbox.name}</span>
+                          <span className="truncate">{inbox.name}</span>
+                          {inboxEmails[inbox.id] && (
+                            <span className="text-xs text-muted-foreground truncate">
+                              ({inboxEmails[inbox.id]})
+                            </span>
+                          )}
                         </div>
                       </SelectItem>
                     ))}
