@@ -39,21 +39,23 @@ export const NoddiCustomerSearch = ({
   showEmailSearch = false,
   conversationEmail
 }: NoddiCustomerSearchProps) => {
-  const [searchFirstName, setSearchFirstName] = useState('');
-  const [searchLastName, setSearchLastName] = useState('');
+  const [searchName, setSearchName] = useState('');
   const [searchResults, setSearchResults] = useState<Customer[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [searchMode, setSearchMode] = useState<'name' | 'email'>('name');
   const [alternativeEmail, setAlternativeEmail] = useState('');
 
   const handleNameSearch = async () => {
-    const firstName = searchFirstName.trim();
-    const lastName = searchLastName.trim();
-    
+    // One box: first token is the first name, the rest is the last name.
+    const parts = searchName.trim().split(/\s+/).filter(Boolean);
+    const firstName = parts[0] || '';
+    const lastName = parts.slice(1).join(' ');
+
     if (firstName.length < 2) {
-      toast.error('Please enter at least 2 characters for first name');
+      toast.error('Please enter at least 2 characters for the name');
       return;
     }
+
 
     setIsSearching(true);
     setSearchResults([]);
@@ -152,19 +154,18 @@ export const NoddiCustomerSearch = ({
 
   const handleSelectCustomer = (customer: Customer) => {
     onSelectCustomer(customer);
-    setSearchFirstName('');
-    setSearchLastName('');
+    setSearchName('');
     setAlternativeEmail('');
     setSearchResults([]);
   };
 
   const handleClearCustomer = () => {
     onSelectCustomer(null);
-    setSearchFirstName('');
-    setSearchLastName('');
+    setSearchName('');
     setAlternativeEmail('');
     setSearchResults([]);
   };
+
 
   if (selectedCustomer) {
     return (
@@ -239,49 +240,34 @@ export const NoddiCustomerSearch = ({
       {searchMode === 'name' && (
         <div className="space-y-3">
           <div className="space-y-1.5">
-            <Label htmlFor="first-name">
-              First Name <span className="text-destructive">*</span>
+            <Label htmlFor="customer-name">
+              Name <span className="text-destructive">*</span>
             </Label>
-            <Input
-              id="first-name"
-              value={searchFirstName}
-              onChange={(e) => setSearchFirstName(e.target.value)}
-              placeholder="e.g., Joachim"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && searchFirstName.length >= 2) handleNameSearch();
-              }}
-            />
+            <div className="flex gap-2">
+              <Input
+                id="customer-name"
+                value={searchName}
+                onChange={(e) => setSearchName(e.target.value)}
+                placeholder="e.g., Joachim Rathke"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && searchName.trim().length >= 2) handleNameSearch();
+                }}
+              />
+              <Button
+                type="button"
+                onClick={handleNameSearch}
+                disabled={searchName.trim().length < 2 || isSearching}
+              >
+                {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Search'}
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              First name required; add a last name to narrow the results.
+            </p>
           </div>
-
-          <div className="space-y-1.5">
-            <Label htmlFor="last-name">
-              Last Name <span className="text-sm text-muted-foreground">(optional)</span>
-            </Label>
-            <Input
-              id="last-name"
-              value={searchLastName}
-              onChange={(e) => setSearchLastName(e.target.value)}
-              placeholder="e.g., Rathke"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && searchFirstName.length >= 2) handleNameSearch();
-              }}
-            />
-          </div>
-
-          <Button
-            type="button"
-            onClick={handleNameSearch}
-            disabled={!searchFirstName || searchFirstName.length < 2 || isSearching}
-            className="w-full"
-          >
-            {isSearching ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              'Search'
-            )}
-          </Button>
         </div>
       )}
+
 
       {searchMode === 'email' && showEmailSearch && (
         <div className="space-y-2">
