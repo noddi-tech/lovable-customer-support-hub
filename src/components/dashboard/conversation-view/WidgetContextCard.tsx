@@ -15,11 +15,20 @@ const LABELS: Record<string, string> = {
   service_department_id: 'Department',
   booking_id: 'Booking',
   order_id: 'Order',
+  license_plate: 'License plate',
+  car: 'Car',
   pathname: 'Route',
   app_version: 'App version',
 };
 
 const ORDER = Object.keys(LABELS);
+
+const IDENTITY_LABELS: Record<string, string> = {
+  name: 'Name',
+  email: 'Email',
+  phone: 'Phone',
+  user_id: 'User ID',
+};
 
 /**
  * Shows the optional context the embedding site sent at widget init
@@ -35,7 +44,16 @@ export const WidgetContextCard: React.FC<WidgetContextCardProps> = ({ metadata, 
       .map((key) => ({ key, label: LABELS[key], value: String(ctx[key]) }));
   }, [metadata]);
 
-  if (entries.length === 0) return null;
+  const identityEntries = useMemo(() => {
+    const meta = (metadata && typeof metadata === 'object' ? metadata : {}) as Record<string, any>;
+    const identity = meta.identity;
+    if (!identity || typeof identity !== 'object') return [];
+    return Object.keys(IDENTITY_LABELS)
+      .filter((key) => identity[key])
+      .map((key) => ({ key, label: IDENTITY_LABELS[key], value: String(identity[key]) }));
+  }, [metadata]);
+
+  if (entries.length === 0 && identityEntries.length === 0) return null;
 
   const meta = (metadata && typeof metadata === 'object' ? metadata : {}) as Record<string, any>;
   const isNonProd =
@@ -52,6 +70,21 @@ export const WidgetContextCard: React.FC<WidgetContextCardProps> = ({ metadata, 
           </Badge>
         )}
       </div>
+      {identityEntries.length > 0 && (
+        <div className="space-y-1">
+          <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
+            Identified by the host app (unverified)
+          </div>
+          <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
+            {identityEntries.map(({ key, label, value }) => (
+              <React.Fragment key={key}>
+                <dt className="text-muted-foreground whitespace-nowrap">{label}</dt>
+                <dd className="text-foreground break-all">{value}</dd>
+              </React.Fragment>
+            ))}
+          </dl>
+        </div>
+      )}
       <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
         {entries.map(({ key, label, value }) => (
           <React.Fragment key={key}>
