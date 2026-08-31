@@ -142,10 +142,12 @@ export const ComposeWindow: React.FC<ComposeWindowProps> = ({ draft }) => {
   // Default inbox once inboxes are known
   React.useEffect(() => {
     if (!draft.inboxId && inboxes.length > 0) {
-      const def = inboxes.find((i) => i.is_default) || inboxes[0];
+      const configured = inboxes.filter((i) => inboxEmails[i.id]);
+      const pool = configured.length > 0 ? configured : inboxes;
+      const def = pool.find((i) => i.is_default) || pool[0];
       updateDraft(draft.id, { inboxId: def.id });
     }
-  }, [inboxes, draft.inboxId, draft.id, updateDraft]);
+  }, [inboxes, inboxEmails, draft.inboxId, draft.id, updateDraft]);
 
   const parsedEmails = useMemo(
     () => (draft.bulkMode ? parseEmails(draft.bulkEmails) : []),
@@ -485,17 +487,23 @@ export const ComposeWindow: React.FC<ComposeWindowProps> = ({ draft }) => {
               <SelectValue placeholder={t('conversation.selectInbox')} />
             </SelectTrigger>
             <SelectContent>
-              {inboxes.map((inbox) => (
-                <SelectItem key={inbox.id} value={inbox.id}>
-                  <div className="flex items-center gap-2 min-w-0">
-                    <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: inbox.color }} />
-                    <span className="truncate">{inbox.name}</span>
-                    {inboxEmails[inbox.id] && (
-                      <span className="text-xs text-muted-foreground truncate">({inboxEmails[inbox.id]})</span>
-                    )}
-                  </div>
-                </SelectItem>
-              ))}
+              {inboxes.map((inbox) => {
+                const email = inboxEmails[inbox.id];
+                return (
+                  <SelectItem key={inbox.id} value={inbox.id} disabled={!email}>
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div
+                        className="w-2.5 h-2.5 rounded-full shrink-0"
+                        style={{ backgroundColor: email ? inbox.color : undefined }}
+                      />
+                      <span className={cn('truncate', !email && 'text-muted-foreground')}>{inbox.name}</span>
+                      <span className="text-xs text-muted-foreground truncate">
+                        {email ? `(${email})` : '(not configured)'}
+                      </span>
+                    </div>
+                  </SelectItem>
+                );
+              })}
             </SelectContent>
           </Select>
         </div>
