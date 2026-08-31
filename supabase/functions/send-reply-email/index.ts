@@ -377,14 +377,32 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Brand name for the header fallback (inbox name, else sender display name)
     let brandName: string | null = senderDisplayName || null;
+    let inboxNameForBrand: string | null = null;
     if (inboxId) {
       const { data: brandInbox } = await supabaseClient
         .from('inboxes')
         .select('name')
         .eq('id', inboxId)
         .maybeSingle();
-      brandName = brandInbox?.name || brandName;
+      inboxNameForBrand = brandInbox?.name || null;
+      brandName = inboxNameForBrand || brandName;
     }
+
+    // Brand theme mirrored from noddi-frontend design tokens (Noddi / Dekkfix).
+    const brandTheme = resolveBrandTheme(inboxNameForBrand, brandName, fromEmail, senderDisplayName);
+
+    // Neutral/white header colors stored on the template count as "unset" so the
+    // brand colors apply; explicit brand colors still win.
+    const isNeutralColor = (c?: string | null) => {
+      const v = String(c || '').trim().toLowerCase();
+      return !v || v === '#fff' || v === '#ffffff' || v === 'white' || v === 'transparent';
+    };
+    const headerBackgroundColor = isNeutralColor(templateSettings.header_background_color)
+      ? brandTheme.headerBg
+      : templateSettings.header_background_color;
+    const headerTextColor = isNeutralColor(templateSettings.header_background_color)
+      ? brandTheme.headerText
+      : templateSettings.header_text_color;
 
     // Build HTML content using the shared, reusable email layout
     const rawContent = String(message.content || '');
@@ -396,15 +414,15 @@ const handler = async (req: Request): Promise<Response> => {
       signatureHtml: signature,
       headerContent: templateSettings.header_content,
       footerContent: templateSettings.footer_content,
-      headerBackgroundColor: templateSettings.header_background_color,
-      headerTextColor: templateSettings.header_text_color,
-      footerBackgroundColor: templateSettings.footer_background_color,
-      footerTextColor: templateSettings.footer_text_color,
+      headerBackgroundColor,
+      headerTextColor,
       bodyBackgroundColor: templateSettings.body_background_color,
       bodyTextColor: templateSettings.body_text_color,
       brandName,
+      brandTheme,
       preheader: htmlToPlainText(bodyHtml).slice(0, 140),
     });
+
     const plainText = isHtmlBody ? htmlToPlainText(rawContent) : rawContent;
 
     // Preview mode: render the exact customer-facing email without sending anything.
