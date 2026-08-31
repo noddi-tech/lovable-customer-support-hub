@@ -42,6 +42,9 @@ The `q` queue means you can call `NoddiWidget(...)` before the script finishes l
 | `serviceDepartmentId` | `string \| number` | — | Service department to route/filter by. |
 | `bookingId` | `string \| number` | — | Booking the visitor is currently in. |
 | `orderId` | `string \| number` | — | Order the visitor is currently in. |
+| `bookingSlug` | `string` | — | Booking slug for draft flows that have no numeric id yet. Max 80 chars. |
+| `context` | `WidgetHostContext` | — | **Preferred.** Nested object holding all of the fields above; merged over the flat ones. |
+| `identity` | `WidgetIdentity` | — | Known visitor at boot; same as calling `identify` right after `init`. |
 | `pathname` | `string` | live location | SPA route. Defaults to `location.pathname + search` at conversation creation, since `page_url` is often just the entry URL. Max 300 chars. |
 | `appVersion` | `string` | — | Host app release, to correlate reports with deploys. Max 40 chars. |
 
@@ -119,6 +122,26 @@ Stored on `conversations.metadata.context` (and on the chat session metadata) an
 
 ---
 
+### Typed contract
+
+A versioned type definition ships with the hub: [`docs/widget-host.d.ts`](./widget-host.d.ts),
+also served at `https://support.noddi.co/docs/widget-host.d.ts`. Copy it into your app and type
+your wrapper with `WidgetHostCommands` instead of `Record<string, unknown>`.
+
+### Prefer the nested `context` object
+
+The flat keys stay supported, but the stable shape is one nested object:
+
+```js
+NoddiWidget('update', {
+  context: { pathname: location.pathname, bookingSlug: draft.slug },
+});
+```
+
+Unknown keys are dropped server-side; the allow-list is the `WidgetHostContext` type.
+
+---
+
 ## 5. Identifying logged-in users
 
 If your app knows who the visitor is, call `identify` after `init` (and after login).
@@ -134,11 +157,15 @@ NoddiWidget('identify', {
 });
 ```
 
-On logout, clear it:
+On logout, clear the visitor **without** tearing the widget down:
 
 ```js
-NoddiWidget('shutdown');   // clears identity and the stored chat session
+NoddiWidget('clearIdentity');       // or: NoddiWidget('identify', null)
 ```
+
+Both clear the stored identity *and* the stored chat session (`noddi_chat_session`)
+while the widget stays booted, so logout is just `clearIdentity` + `update` — no
+re-`init` dance. `NoddiWidget('shutdown')` is now an alias for the same behaviour.
 
 Rules:
 - The widget key is public, so identity is an **unverified hint**. It is shown to
@@ -154,11 +181,21 @@ When the user navigates to another booking, car or route, push the change withou
 re-initialising:
 
 ```js
-NoddiWidget('update', { bookingId: newBooking.id, pathname: location.pathname });
+NoddiWidget('update', {
+  brand: 'Noddi Bilpleie',              // mid-session brand switch (multi-brand SPAs)
+  context: {
+    locale: 'nb-NO',
+    environment: 'staging',
+    bookingId: newBooking.id,
+    pathname: location.pathname,
+  },
+});
 ```
 
-Context is captured when a conversation is created, so `update` affects the *next*
-chat or form submission.
+`update` accepts **every** field `init` accepts — including `brand`, `locale` and
+`environment` — and merges them over the current values. Context and brand are read
+when a conversation is created, so an `update` affects the *next* chat or form
+submission (no logout/reboot needed for a language change).
 
 ---
 
@@ -182,8 +219,15 @@ These work out of the box, no host-app changes needed:
 NoddiWidget('open');    // or NoddiWidget.open()
 NoddiWidget('close');
 NoddiWidget('toggle');
+NoddiWidget('clearIdentity');
 NoddiWidget('shutdown');
+
+NoddiWidget('isReady');               // boolean — true once the widget is mounted
+NoddiWidget('onReady', () => { ... }); // fires immediately if already booted
 ```
+
+`open` / `close` / `toggle` issued before boot are queued and replayed, so a custom
+launcher can either queue them or gate its button on `isReady()` / `onReady`.
 
 Custom launcher example:
 
@@ -212,4 +256,6 @@ NoddiWidget('init', {
 - [ ] `bookingId` / `orderId` passed when the widget opens inside a booking or order flow.
 - [ ] `identify` called after login and `shutdown` called on logout.
 - [ ] `update` called when the user switches booking/car or navigates in a SPA.
-- [ ] If using a custom launcher: `showButton: false` and open via `onReady`.
+- [ ] If using a custom launcher: `showButton: false` and enable the button from `onReady` / `isReady()`.
+- [ ] Logout uses `clearIdentity` (not a full re-`init`).
+- [ ] Host wrapper typed with `WidgetHostCommands` from `widget-host.d.ts`.
