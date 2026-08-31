@@ -9,7 +9,7 @@ import {
     Users,
   BarChart3,
   Settings,
-  Cog,
+
   User,
   Bell,
   Shield,
