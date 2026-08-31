@@ -8375,10 +8375,18 @@ export type Database = {
         Args: { p_action_type: string }
         Returns: boolean
       }
+      is_noise_conversation: {
+        Args: { p_metadata: Json; p_subject: string }
+        Returns: boolean
+      }
       is_org_admin: { Args: { _org_id: string }; Returns: boolean }
       is_org_member: { Args: { _org_id: string }; Returns: boolean }
       is_organization_member: { Args: { _org_id: string }; Returns: boolean }
       is_super_admin: { Args: never; Returns: boolean }
+      link_conversation_to_case: {
+        Args: { p_conversation_id: string }
+        Returns: string
+      }
       list_conversations_optimized: {
         Args: {
           p_assigned_to_id?: string
