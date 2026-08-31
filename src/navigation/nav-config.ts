@@ -9,7 +9,7 @@ import {
     Users,
   BarChart3,
   Settings,
-  Cog,
+
   User,
   Bell,
   Shield,
@@ -132,13 +132,7 @@ export const NAV_ITEMS: NavItem[] = [
   },
 
   // Settings (Personal)
-  { 
-    id: "settings-general", 
-    label: "General", 
-    to: "/settings", 
-    icon: Cog, 
-    group: "settings" 
-  },
+  // General settings moved into the account menu (Settings dialog)
   // Profile moved to the account menu at the bottom of the sidebar
   // Notifications consolidated into the single top-level Notifications entry
   // Single Admin Portal link - visible only to admins

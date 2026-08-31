@@ -37,12 +37,6 @@ export const SettingsSidebar: React.FC = () => {
 
   const generalSettingsItems = [
     {
-      title: t('settings.tabs.general', 'General'),
-      icon: Settings,
-      path: '/settings',
-      exact: true
-    },
-    {
       title: t('settings.tabs.profile', 'Profile'),
       icon: User,
       path: '/settings/profile'
@@ -71,9 +65,7 @@ export const SettingsSidebar: React.FC = () => {
           <SidebarMenu>
             {generalSettingsItems.map((item) => {
               const Icon = item.icon;
-              const itemIsActive = item.exact 
-                ? location.pathname === item.path
-                : isActive(item.path);
+              const itemIsActive = isActive(item.path);
               
               return (
                 <SidebarMenuItem key={item.path}>
