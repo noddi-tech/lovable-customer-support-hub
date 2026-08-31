@@ -6,6 +6,8 @@ import { SearchCommandPalette } from '@/components/search/SearchCommandPalette';
 import { QuickInboxSwitcher } from './QuickInboxSwitcher';
 import { UIProbe } from '@/dev/UIProbe';
 import { useDesktopEmailNotifications } from '@/hooks/useDesktopEmailNotifications';
+import { useNotificationPermissionPrompt } from '@/hooks/useNotificationPermissionPrompt';
+import { useOpenConversationsBadge } from '@/hooks/useOpenConversationsBadge';
 
 interface UnifiedAppLayoutProps {
   children: React.ReactNode;
