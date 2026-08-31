@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { submitContactForm } from '../api';
+import { submitContactForm, getIdentity } from '../api';
 import { getWidgetTranslations } from '../translations';
 
 interface ContactFormProps {
