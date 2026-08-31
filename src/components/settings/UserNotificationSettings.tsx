@@ -4,6 +4,7 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { useNotificationPreferences, NotificationPreferences } from '@/hooks/useNotificationPreferences';
 import { Mail, Bell, Calendar, Loader2, AtSign } from 'lucide-react';
+import { DesktopEmailNotificationSettings } from './DesktopEmailNotificationSettings';
 
 interface NotificationToggleProps {
   id: string;
@@ -60,6 +61,9 @@ export function UserNotificationSettings() {
 
   return (
     <div className="space-y-6">
+      {/* Desktop / browser notifications */}
+      <DesktopEmailNotificationSettings />
+
       {/* Mentions */}
       <Card>
         <CardHeader>

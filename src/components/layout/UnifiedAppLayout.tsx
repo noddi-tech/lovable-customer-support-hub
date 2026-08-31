@@ -4,6 +4,7 @@ import { SidebarProvider } from '@/components/ui/sidebar';
 import { AppMainNav } from './AppMainNav';
 import { SearchCommandPalette } from '@/components/search/SearchCommandPalette';
 import { UIProbe } from '@/dev/UIProbe';
+import { useDesktopEmailNotifications } from '@/hooks/useDesktopEmailNotifications';
 
 interface UnifiedAppLayoutProps {
   children: React.ReactNode;
@@ -15,6 +16,9 @@ export const UnifiedAppLayout: React.FC<UnifiedAppLayoutProps> = ({
   const [searchOpen, setSearchOpen] = useState(false);
   const location = useLocation();
   const section = location.pathname.split('/').slice(0, 3).join('/');
+
+  // Desktop notifications for newly arrived emails (opt-in, per device)
+  useDesktopEmailNotifications();
 
   // Global Cmd+K / Ctrl+K shortcut
   useEffect(() => {
