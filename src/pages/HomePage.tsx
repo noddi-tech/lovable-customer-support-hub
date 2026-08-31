@@ -195,6 +195,33 @@ export default function HomePage() {
                                 <Button
                                   variant="ghost"
                                   size="icon"
+                                  aria-label={isDefault ? `Clear default inbox` : `Set ${inbox.name} as default inbox`}
+                                  className={cn(
+                                    'h-7 w-7',
+                                    isDefault ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+                                  )}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setDefaultInbox(isDefault ? null : inbox.id);
+                                  }}
+                                >
+                                  <Star className={cn('h-4 w-4', isDefault && 'fill-current')} />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                {isDefault ? 'This is your default inbox' : 'Set as my default inbox'}
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )}
+
+                        {isConfigured && (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
                                   aria-label={`Configure ${inbox.name}`}
                                   className="h-7 w-7 text-muted-foreground hover:text-foreground"
                                   onClick={(e) => {
