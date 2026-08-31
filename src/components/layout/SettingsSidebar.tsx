@@ -37,12 +37,6 @@ export const SettingsSidebar: React.FC = () => {
 
   const generalSettingsItems = [
     {
-      title: t('settings.tabs.general', 'General'),
-      icon: Settings,
-      path: '/settings',
-      exact: true
-    },
-    {
       title: t('settings.tabs.profile', 'Profile'),
       icon: User,
       path: '/settings/profile'

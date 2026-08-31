@@ -34,6 +34,7 @@ import {
 import { AgentAvailabilityPanel } from './AgentAvailabilityPanel';
 
 import { MyAccountDialog } from './MyAccountDialog';
+import { PreferencesDialog } from './PreferencesDialog';
 
 
 export const AppMainNav = () => {
@@ -46,6 +47,7 @@ export const AppMainNav = () => {
   const { notifications: unreadNotifications } = useOptimizedCounts();
   const { dateTime, timezone } = useDateFormatting();
   const [accountOpen, setAccountOpen] = useState(false);
+  const [preferencesOpen, setPreferencesOpen] = useState(false);
 
   
   const isCollapsed = state === 'collapsed' && !isMobile;
@@ -249,7 +251,7 @@ export const AppMainNav = () => {
               <Bell className="mr-2 h-4 w-4" />
               <span>{t('header.notificationSettings', 'Notification settings')}</span>
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => navigate('/settings')}>
+            <DropdownMenuItem onSelect={() => setTimeout(() => setPreferencesOpen(true), 0)}>
               <Settings className="mr-2 h-4 w-4" />
               <span>{t('header.settings', 'Settings')}</span>
             </DropdownMenuItem>
@@ -266,6 +268,7 @@ export const AppMainNav = () => {
         </DropdownMenu>
 
         <MyAccountDialog open={accountOpen} onOpenChange={setAccountOpen} />
+        <PreferencesDialog open={preferencesOpen} onOpenChange={setPreferencesOpen} />
 
 
 
