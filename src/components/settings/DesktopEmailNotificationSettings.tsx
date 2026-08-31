@@ -31,6 +31,18 @@ export function DesktopEmailNotificationSettings() {
     toast.success('Desktop notifications enabled for new emails');
   };
 
+  const handleRecheck = () => {
+    const current = refreshPermission();
+    if (current === 'granted') {
+      setEnabled(true);
+      toast.success('Desktop notifications enabled for new emails');
+    } else if (current === 'denied') {
+      toast.error('Still blocked — allow notifications in your browser site settings, then reload.');
+    } else {
+      toast.info('Permission reset — flip the toggle to ask again.');
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
