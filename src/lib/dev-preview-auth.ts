@@ -42,3 +42,17 @@ export function disablePreviewBypass(): void {
     /* no-op */
   }
 }
+
+/**
+ * Dev-only credentials for the one-click "Dev sign-in" button.
+ * Set VITE_DEV_LOGIN_EMAIL / VITE_DEV_LOGIN_PASSWORD in your local .env
+ * (never in a production build). Signing in with these produces a REAL
+ * Supabase session — real JWT, real RLS scope for that user.
+ */
+export function getDevLoginCredentials(): { email: string; password: string } | null {
+  if (!isDevPreview()) return null;
+  const email = import.meta.env.VITE_DEV_LOGIN_EMAIL as string | undefined;
+  const password = import.meta.env.VITE_DEV_LOGIN_PASSWORD as string | undefined;
+  if (!email || !password) return null;
+  return { email, password };
+}
