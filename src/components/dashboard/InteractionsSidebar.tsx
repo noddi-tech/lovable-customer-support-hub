@@ -112,14 +112,16 @@ export const InteractionsSidebar: React.FC<InteractionsSidebarProps> = ({
     >
       <SidebarContent className="p-0">
         {/* New Conversation Button */}
-        <div className="p-1">
+        <div className="p-1 space-y-1">
           <NewConversationDialog>
             <Button className="w-full gap-1 h-6 text-xs" size="sm">
               <Plus className="h-2.5 w-2.5" />
               {t('sidebar.newConversation', 'New Conversation')}
             </Button>
           </NewConversationDialog>
+          <DraftsList className="w-full justify-start h-6 text-xs" />
         </div>
+
 
         <Separator />
 
