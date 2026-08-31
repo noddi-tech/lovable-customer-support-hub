@@ -661,11 +661,11 @@ const EmailRenderComponent: React.FC<EmailRenderProps> = ({
                   attachment={attachment}
                   messageId={messageId}
                   onImageClick={isImage ? () => {
-                    const imgIndex = inlineImages.findIndex(img => img.filename === attachment.filename);
-                    if (imgIndex >= 0) {
-                      setLightboxIndex(imgIndex);
-                      setLightboxOpen(true);
-                    }
+                    const imgIndex = lightboxImages.findIndex(
+                      img => img.filename === attachment.filename && img.isInline === attachment.isInline
+                    );
+                    setLightboxIndex(imgIndex >= 0 ? imgIndex : 0);
+                    setLightboxOpen(true);
                   } : undefined}
                 />
               );
@@ -676,18 +676,19 @@ const EmailRenderComponent: React.FC<EmailRenderProps> = ({
       })()}
       
       
-      {/* Image Lightbox for inline attachments */}
-      {inlineImages.length > 0 && (
+      {/* Image Lightbox for all image attachments (inline + regular) */}
+      {lightboxImages.length > 0 && (
         <ImageLightbox
-          images={inlineImages}
+          images={lightboxImages}
           currentIndex={lightboxIndex}
           isOpen={lightboxOpen}
           messageId={messageId}
           onClose={() => setLightboxOpen(false)}
-          onNext={() => setLightboxIndex(i => (i + 1) % inlineImages.length)}
-          onPrevious={() => setLightboxIndex(i => (i - 1 + inlineImages.length) % inlineImages.length)}
+          onNext={() => setLightboxIndex(i => (i + 1) % lightboxImages.length)}
+          onPrevious={() => setLightboxIndex(i => (i - 1 + lightboxImages.length) % lightboxImages.length)}
           onIndexChange={setLightboxIndex}
         />
+
       )}
     </article>
   );
