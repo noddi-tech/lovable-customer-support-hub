@@ -6,7 +6,7 @@ import { formatPlainTextEmail } from './plainTextEmailFormatter';
 import { createPlaceholder, rewriteImageSources } from './imageAssetHandler';
 import { parseQuotedEmail } from '@/lib/parseQuotedEmail';
 import { logger } from '@/utils/logger';
-import { buildAttachmentUrl } from '@/utils/attachmentUrl';
+import { buildAttachmentUrl, buildEmailImageProxyUrl } from '@/utils/attachmentUrl';
 
 /**
  * Detect signature-like blocks at the end of HTML emails and wrap in .email-signature.
@@ -253,22 +253,19 @@ export const sanitizeEmailHTML = (
       node.setAttribute('style', 'max-width: 100%; height: auto; display: block;');
       node.setAttribute('referrerpolicy', 'no-referrer');
       
-      // Block external HTTP images
-      if (src && src.startsWith('http:')) {
-        node.setAttribute('data-original-src', src);
-        node.setAttribute('src', createPlaceholder('mixed-content'));
-        node.setAttribute('alt', (node.getAttribute('alt') || 'Image') + ' (HTTP image blocked for security)');
-        node.setAttribute('data-blocked', 'http-blocked');
-        node.setAttribute('title', 'HTTP image blocked to prevent mixed content warnings');
-      }
-      // Block external images by default for privacy
-      else if (src && 
+      // Remote images are fetched server-side through email-image-proxy, so
+      // anything already pointing at our functions is allowed through.
+      const isAppOwned = !!src && (
+        src.includes('/functions/v1/get-attachment') ||
+        src.includes('/functions/v1/email-image-proxy')
+      );
+
+      // Block anything remote that somehow escaped the proxy rewrite
+      if (!isAppOwned && src &&
                !src.startsWith('cid:') && 
                !src.startsWith('/') && 
                !src.startsWith('data:') && 
-               !src.startsWith('blob:') &&
-               !src.includes('/supabase/functions/v1/get-attachment') &&
-               !src.includes('/functions/v1/get-attachment')) {
+               !src.startsWith('blob:')) {
         node.setAttribute('data-original-src', src);
         node.setAttribute('src', '');
         node.setAttribute('alt', node.getAttribute('alt') || 'Image blocked for privacy');
@@ -469,6 +466,39 @@ export const sanitizeEmailHTML = (
         }
       }
       return match;
+    });
+
+  // Route remote images through the server-side proxy so emails render with
+  // their original artwork (logos, banners, spacers) without exposing the
+  // agent's IP/cookies to the sender. Runs before sanitization so the final
+  // src is an https URL DOMPurify accepts.
+  processedContent = processedContent.replace(
+    /<img\b[^>]*>/gi,
+    (imgTag) => {
+      const srcMatch = imgTag.match(/\ssrc=["']([^"']+)["']/i);
+      const src = srcMatch?.[1];
+      if (!src) return imgTag;
+      if (!/^https?:\/\//i.test(src)) return imgTag;
+      // Already an app-owned URL (attachments / proxy) — leave alone.
+      if (src.includes('/functions/v1/get-attachment') || src.includes('/functions/v1/email-image-proxy')) {
+        return imgTag;
+      }
+      const proxied = buildEmailImageProxyUrl(src);
+      return imgTag
+        .replace(srcMatch![0], ` src="${proxied}"`)
+        // srcset would bypass the proxy, so drop it.
+        .replace(/\ssrcset=["'][^"']*["']/gi, '')
+        + '';
+    }
+  ).replace(/\sdata-proxied-src=["'][^"']*["']/gi, '');
+
+  // Same treatment for CSS background images and legacy background attributes.
+  processedContent = processedContent
+    .replace(/\sbackground=["'](https?:\/\/[^"']+)["']/gi, (_m, url) =>
+      ` background="${buildEmailImageProxyUrl(url)}"`)
+    .replace(/url\(\s*(['"]?)(https?:\/\/[^'")]+)\1\s*\)/gi, (match, _q, url) => {
+      if (String(url).includes('/functions/v1/')) return match;
+      return `url("${buildEmailImageProxyUrl(url)}")`;
     });
 
   // Sanitize the HTML
