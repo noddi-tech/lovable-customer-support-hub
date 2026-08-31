@@ -65,6 +65,12 @@ export default function HomePage() {
 
   const sections = ['interactions', 'marketing', 'operations', 'settings'] as const;
 
+  const inboxGroups = useMemo(
+    () => groupInboxesByDomain(inboxes.filter(i => i.is_active), inboxEmails),
+    [inboxes, inboxEmails],
+  );
+
+
   const stats = [
     { label: 'Open', value: conversations.open, icon: MailOpen },
     { label: 'Unread', value: conversations.unread, icon: Mail },
