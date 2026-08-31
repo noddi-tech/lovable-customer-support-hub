@@ -203,10 +203,10 @@ export const Auth: React.FC = () => {
     }
   };
 
-  // Dev-only: sign in as the configured admin test user with a REAL session.
+  // Dev-only: sign in as a real user (real JWT + RLS scope) with one click.
   const handleDevSignIn = async () => {
-    const creds = getDevLoginCredentials();
-    if (!creds) return;
+    const creds = { email: devEmail.trim(), password: devPassword };
+    if (!creds.email || !creds.password) return;
     setLoading(true);
     setError('');
     try {
@@ -214,13 +214,15 @@ export const Auth: React.FC = () => {
       disablePreviewBypass();
       const { error } = await supabase.auth.signInWithPassword(creds);
       if (error) throw error;
+      rememberDevLogin(creds.email, creds.password);
       navigate(nextPath || '/', { replace: true });
     } catch (err: any) {
-      setError(err?.message || 'Dev sign-in failed. Check VITE_DEV_LOGIN_* in .env.');
+      setError(err?.message || 'Dev sign-in failed — check the email/password.');
     } finally {
       setLoading(false);
     }
   };
+
 
   const handlePasswordUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
