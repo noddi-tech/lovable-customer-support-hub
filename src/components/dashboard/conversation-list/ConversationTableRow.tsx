@@ -111,7 +111,7 @@ interface ConversationTableRowProps {
   isSelected: boolean;
   onSelect: (conversation: Conversation) => void;
   isBulkSelected?: boolean;
-  onBulkSelect?: (id: string, selected: boolean) => void;
+  onBulkSelect?: (id: string, selected: boolean, shiftKey?: boolean) => void;
   showBulkCheckbox?: boolean;
   style?: React.CSSProperties;
 }
@@ -181,17 +181,27 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
     dispatch({ type: 'OPEN_DELETE_DIALOG', payload: conversation.id });
   }, [dispatch, conversation.id]);
 
-  const handleRowClick = useCallback(() => {
+  // Remembers whether the last pointer interaction held Shift so range
+  // selection works even though Radix's onCheckedChange has no event.
+  const shiftKeyRef = useRef(false);
+
+  const handleRowClick = useCallback((e: React.MouseEvent) => {
     if (showBulkCheckbox && onBulkSelect) {
-      onBulkSelect(conversation.id, !isBulkSelected);
+      onBulkSelect(conversation.id, !isBulkSelected, e.shiftKey);
     } else {
       onSelect(conversation);
     }
   }, [onSelect, conversation, showBulkCheckbox, onBulkSelect, isBulkSelected]);
 
+  const handleCheckboxClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    shiftKeyRef.current = e.shiftKey;
+  }, []);
+
   const handleCheckboxChange = useCallback((checked: boolean) => {
     if (onBulkSelect) {
-      onBulkSelect(conversation.id, checked);
+      onBulkSelect(conversation.id, checked, shiftKeyRef.current);
+      shiftKeyRef.current = false;
     }
   }, [onBulkSelect, conversation.id]);
 
@@ -252,7 +262,7 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
         <div className="flex items-start gap-3">
           {showBulkCheckbox && (
             <div className="pt-1 shrink-0">
-              <Checkbox checked={isBulkSelected} onCheckedChange={handleCheckboxChange} onClick={(e) => e.stopPropagation()} />
+              <Checkbox checked={isBulkSelected} onCheckedChange={handleCheckboxChange} onClick={handleCheckboxClick} />
             </div>
           )}
           <Avatar className="h-9 w-9 ring-1 ring-border shrink-0 mt-0.5">
@@ -339,7 +349,7 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
       <div style={style} className={cn("flex items-center px-4 border-b", rowClasses)} onClick={handleRowClick}>
         {showBulkCheckbox && (
           <div className="w-10 p-2 shrink-0">
-            <Checkbox checked={isBulkSelected} onCheckedChange={handleCheckboxChange} onClick={(e) => e.stopPropagation()} />
+            <Checkbox checked={isBulkSelected} onCheckedChange={handleCheckboxChange} onClick={handleCheckboxClick} />
           </div>
         )}
 
@@ -492,7 +502,7 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
     <TableRow className={rowClasses} onClick={handleRowClick}>
       {showBulkCheckbox && (
         <TableCell className="w-10 p-2">
-          <Checkbox checked={isBulkSelected} onCheckedChange={handleCheckboxChange} onClick={(e) => e.stopPropagation()} />
+          <Checkbox checked={isBulkSelected} onCheckedChange={handleCheckboxChange} onClick={handleCheckboxClick} />
         </TableCell>
       )}
 
