@@ -1,6 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { checkRateLimit as checkDurableRateLimit, clientIp, rateLimitResponse } from '../_shared/rate-limit.ts';
-import { sanitizeWidgetContext } from '../_shared/widget-context.ts';
+import { sanitizeWidgetContext, sanitizeWidgetIdentity } from '../_shared/widget-context.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -17,6 +17,8 @@ interface StartChatRequest {
   pageUrl?: string;
   brand?: string;
   context?: Record<string, unknown>;
+  identity?: Record<string, unknown>;
+  escalation?: { from?: string; conversationId?: string; transcript?: string };
 }
 
 interface MessageRequest {
@@ -41,7 +43,64 @@ interface PingRequest {
   sessionId: string;
 }
 
-type ChatRequest = StartChatRequest | MessageRequest | EndChatRequest | TypingRequest | PingRequest;
+interface AttachmentRequest {
+  action: 'attachment';
+  sessionId: string;
+  content?: string;
+  file: { filename: string; mimeType: string; data: string };
+}
+
+interface RateRequest {
+  action: 'rate';
+  sessionId: string;
+  rating: number;
+  comment?: string;
+}
+
+interface TranscriptRequest {
+  action: 'transcript';
+  sessionId: string;
+  email: string;
+}
+
+type ChatRequest =
+  | StartChatRequest
+  | MessageRequest
+  | EndChatRequest
+  | TypingRequest
+  | PingRequest
+  | AttachmentRequest
+  | RateRequest
+  | TranscriptRequest;
+
+const ATTACHMENT_BUCKET = 'chat-attachments';
+const MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024;
+const ALLOWED_ATTACHMENT_TYPES = [
+  'image/png',
+  'image/jpeg',
+  'image/gif',
+  'image/webp',
+  'application/pdf',
+];
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+/** Storage-safe filename: ASCII only, no path separators. */
+function safeFilename(name: string): string {
+  const cleaned = (name || 'file')
+    .normalize('NFKD')
+    .replace(/[^\x00-\x7F]/g, '')
+    .replace(/[^A-Za-z0-9._-]/g, '_')
+    .replace(/_{2,}/g, '_')
+    .slice(0, 80);
+  return cleaned.replace(/^[._-]+/, '') || 'file';
+}
 
 // ========== Rate Limiting ==========
 const rateLimits = new Map<string, { count: number; resetAt: number }>();
@@ -138,6 +197,12 @@ Deno.serve(async (req) => {
         return await handleTyping(supabase, body);
       case 'ping':
         return await handlePing(supabase, body);
+      case 'attachment':
+        return await handleAttachment(supabase, body);
+      case 'rate':
+        return await handleRate(supabase, body);
+      case 'transcript':
+        return await handleTranscript(supabase, body);
       default:
         return new Response(
           JSON.stringify({ error: 'Invalid action' }),
@@ -159,6 +224,10 @@ async function handleStartChat(supabase: any, data: StartChatRequest) {
   const brand = typeof data.brand === 'string' ? data.brand.trim().slice(0, 40) || undefined : undefined;
   // Optional extra host-site context (locale, environment, source app, ids...)
   const context = sanitizeWidgetContext(data.context);
+  // Host-app identity hint — informational only, never an authorization signal.
+  const identity = sanitizeWidgetIdentity(data.identity);
+  const effectiveName = visitorName || identity?.name;
+  const effectiveEmail = (visitorEmail || identity?.email)?.toLowerCase();
 
   // Validate required fields
   if (!widgetKey || !visitorId) {
@@ -235,11 +304,11 @@ async function handleStartChat(supabase: any, data: StartChatRequest) {
   // Find or create customer
   let customerId: string | null = null;
   
-  if (visitorEmail) {
+  if (effectiveEmail) {
     const { data: existingCustomer } = await supabase
       .from('customers')
       .select('id')
-      .eq('email', visitorEmail.toLowerCase())
+      .eq('email', effectiveEmail)
       .eq('organization_id', organization_id)
       .single();
 
@@ -247,10 +316,10 @@ async function handleStartChat(supabase: any, data: StartChatRequest) {
       customerId = existingCustomer.id;
       
       // Update customer name if provided
-      if (visitorName) {
+      if (effectiveName) {
         await supabase
           .from('customers')
-          .update({ full_name: visitorName, updated_at: new Date().toISOString() })
+          .update({ full_name: effectiveName, updated_at: new Date().toISOString() })
           .eq('id', customerId);
       }
     } else {
@@ -258,8 +327,8 @@ async function handleStartChat(supabase: any, data: StartChatRequest) {
       const { data: newCustomer, error: customerError } = await supabase
         .from('customers')
         .insert({
-          email: visitorEmail.toLowerCase(),
-          full_name: visitorName || null,
+          email: effectiveEmail,
+          full_name: effectiveName || null,
           organization_id,
         })
         .select('id')
@@ -279,7 +348,7 @@ async function handleStartChat(supabase: any, data: StartChatRequest) {
       inbox_id,
       customer_id: customerId,
       channel: 'widget',
-      subject: `Live chat from ${visitorName || visitorEmail || 'Visitor'}`,
+      subject: `Live chat from ${effectiveName || effectiveEmail || 'Visitor'}`,
       preview_text: 'Chat started...',
       status: 'open',
       priority: 'normal',
@@ -291,6 +360,7 @@ async function handleStartChat(supabase: any, data: StartChatRequest) {
         brand,
         visitor_id: visitorId,
         ...(context ? { context } : {}),
+        ...(identity ? { identity } : {}),
       },
     })
     .select('id')
@@ -311,10 +381,15 @@ async function handleStartChat(supabase: any, data: StartChatRequest) {
       conversation_id: conversation.id,
       widget_config_id: widgetConfig.id,
       visitor_id: visitorId,
-      visitor_name: visitorName,
-      visitor_email: visitorEmail?.toLowerCase(),
+      visitor_name: effectiveName,
+      visitor_email: effectiveEmail,
       status: 'waiting',
-      metadata: { page_url: pageUrl, brand, ...(context ? { context } : {}) },
+      metadata: {
+        page_url: pageUrl,
+        brand,
+        ...(context ? { context } : {}),
+        ...(identity ? { identity } : {}),
+      },
     })
     .select('id, status, started_at')
     .single();
@@ -325,6 +400,20 @@ async function handleStartChat(supabase: any, data: StartChatRequest) {
       JSON.stringify({ error: 'Failed to create chat session' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
+  }
+
+  // Carry the AI conversation over so the agent sees the full history.
+  const transcript = typeof data.escalation?.transcript === 'string'
+    ? data.escalation.transcript.slice(0, 8000).trim()
+    : '';
+  if (transcript) {
+    await supabase.from('messages').insert({
+      conversation_id: conversation.id,
+      content: `Handed over from the AI assistant:\n\n${transcript}`,
+      sender_type: 'system',
+      content_type: 'text',
+      is_internal: true,
+    });
   }
 
   return new Response(
