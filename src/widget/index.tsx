@@ -2,7 +2,7 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { Widget, WidgetAPI } from './Widget';
 import type { WidgetInitOptions } from './types';
-import { setIdentity, clearIdentity, updateWidgetContext, contextFromInitOptions } from './api';
+import { setIdentity, clearIdentity, updateWidgetContext, contextFromInitOptions, setBrand } from './api';
 // @ts-ignore - Vite handles this import
 import widgetStyles from './styles/widget.css?inline';
 
@@ -10,6 +10,20 @@ import widgetStyles from './styles/widget.css?inline';
 let widgetAPI: WidgetAPI | null = null;
 let pendingCommands: Array<() => void> = [];
 let initOptions: WidgetInitOptions | null = null;
+let isReadyFlag = false;
+let readyCallbacks: Array<() => void> = [];
+
+/** True once the widget is mounted and programmatic commands take effect. */
+function isReady() {
+  return isReadyFlag;
+}
+
+/** NoddiWidget('onReady', cb) — fires immediately when already booted. */
+function onReady(callback?: () => void) {
+  if (typeof callback !== 'function') return;
+  if (isReadyFlag) callback();
+  else readyCallbacks.push(callback);
+}
 
 // Queue for commands before initialization
 declare global {
@@ -20,9 +34,12 @@ declare global {
       open?: () => void;
       close?: () => void;
       toggle?: () => void;
-      identify?: (options: Record<string, unknown>) => void;
+      identify?: (options: Record<string, unknown> | null) => void;
+      clearIdentity?: () => void;
       update?: (options: Record<string, unknown>) => void;
       shutdown?: () => void;
+      isReady?: () => boolean;
+      onReady?: (callback: () => void) => void;
       (command: string, options?: any): void;
     };
     noddi: (command: string, options?: any) => void;
@@ -72,12 +89,15 @@ function initializeWidget(options: WidgetInitOptions) {
       options={options} 
       onMount={(api) => {
         widgetAPI = api;
+        isReadyFlag = true;
         console.log('[Noddi] Widget API mounted, flushing', pendingCommands.length, 'pending commands');
         pendingCommands.forEach(cmd => cmd());
         pendingCommands = [];
         if (initOptions?.onReady) {
           initOptions.onReady();
         }
+        readyCallbacks.forEach(cb => { try { cb(); } catch (e) { console.error('[Noddi] onReady callback failed', e); } });
+        readyCallbacks = [];
       }}
     />
   );
@@ -116,8 +136,12 @@ function toggleWidget() {
   }
 }
 
-/** NoddiWidget('identify', { userId, email, name, phone }) */
+/** NoddiWidget('identify', { userId, email, name, phone }) — pass null to clear. */
 function identifyVisitor(options?: any) {
+  if (options === null) {
+    clearVisitorIdentity();
+    return;
+  }
   if (!options || typeof options !== 'object') return;
   setIdentity({
     user_id: options.userId ?? options.user_id,
@@ -128,17 +152,26 @@ function identifyVisitor(options?: any) {
   widgetAPI?.refreshIdentity?.();
 }
 
-/** NoddiWidget('update', { bookingId, context: {...} }) — merge new context mid-session. */
+/**
+ * NoddiWidget('clearIdentity') — forget the visitor and any open chat while
+ * staying booted (logout without a re-init).
+ */
+function clearVisitorIdentity() {
+  clearIdentity();
+  widgetAPI?.reset?.();
+}
+
+/** NoddiWidget('update', { brand, locale, bookingId, context: {...} }) — merge mid-session. */
 function updateWidget(options?: any) {
   if (!options || typeof options !== 'object') return;
+  if (typeof options.brand === 'string' && options.brand) setBrand(options.brand);
   updateWidgetContext({ ...contextFromInitOptions(options), ...(options.context || {}) });
-  if (options.identity) identifyVisitor(options.identity);
+  if (options.identity !== undefined) identifyVisitor(options.identity);
 }
 
 /** NoddiWidget('shutdown') — forget the visitor on logout. */
 function shutdownWidget() {
-  clearIdentity();
-  widgetAPI?.reset?.();
+  clearVisitorIdentity();
 }
 
 // Process queued commands
@@ -154,7 +187,7 @@ function processQueue() {
 }
 
 // Centralized command handler
-function handleCommand(command: string, options?: any) {
+function handleCommand(command: string, options?: any): any {
   switch (command) {
     case 'init':
       if (options?.widgetKey) {
@@ -171,7 +204,15 @@ function handleCommand(command: string, options?: any) {
       toggleWidget();
       break;
     case 'identify':
-      identifyVisitor(options);
+      identifyVisitor(options === undefined ? undefined : options);
+      break;
+    case 'clearIdentity':
+      clearVisitorIdentity();
+      break;
+    case 'isReady':
+      return isReady();
+    case 'onReady':
+      onReady(options);
       break;
     case 'update':
       updateWidget(options);
@@ -189,7 +230,7 @@ console.log('[Noddi] Setting up global API');
 window.NoddiWidget = Object.assign(
   function(command: string, options?: any) {
     console.log('[Noddi] NoddiWidget called:', command, options);
-    handleCommand(command, options);
+    return handleCommand(command, options);
   },
   {
     init: initializeWidget,
@@ -197,8 +238,11 @@ window.NoddiWidget = Object.assign(
     close: closeWidget,
     toggle: toggleWidget,
     identify: identifyVisitor,
+    clearIdentity: clearVisitorIdentity,
     update: updateWidget,
     shutdown: shutdownWidget,
+    isReady,
+    onReady,
     q: window.NoddiWidget?.q || [],
   }
 );
@@ -206,7 +250,7 @@ window.NoddiWidget = Object.assign(
 // Also support the noddi() shorthand from embed code
 window.noddi = function(command: string, options?: any) {
   console.log('[Noddi] noddi() called:', command, options);
-  handleCommand(command, options);
+  return handleCommand(command, options);
 };
 
 console.log('[Noddi] Global API ready, queue length:', window.NoddiWidget.q?.length);
