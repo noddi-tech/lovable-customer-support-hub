@@ -27,7 +27,7 @@ jobs:
       run: npx tsx scripts/lint-tabs-overflow.ts
       
     - name: Run long labels tab tests
-      run: npx vitest --run --reporter=verbose -t "long-labels"
+      run: npx vitest --run --reporter=verbose src/components/ui/__tests__/tabs-long-labels.test.tsx
       
     - name: Report success
       run: echo "✅ All UI guardrails passed!"
