@@ -10,7 +10,11 @@ interface Violation {
   context: string;
 }
 
+/** Hard failures: patterns that are known to break tab layouts. */
 const violations: Violation[] = [];
+/** Advisory only: stylistic hints that must never fail CI. */
+const warnings: Violation[] = [];
+
 
 // Anti-patterns to detect near TabsList usage
 const ANTI_PATTERNS = [
