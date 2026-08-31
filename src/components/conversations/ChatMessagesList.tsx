@@ -12,7 +12,7 @@ import {
   DropdownMenuItem, 
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, Copy, Trash2, Check, CheckCheck, Paperclip, Image, Mail, AlertCircle, RefreshCw, Loader2, Lock, Edit3 } from 'lucide-react';
+import { MoreHorizontal, Copy, Trash2, Check, CheckCheck, Paperclip, Image, Mail, MessageSquare, AlertCircle, RefreshCw, Loader2, Lock, Edit3 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { EmailRender } from '@/components/ui/email-render';
 import { MentionRenderer } from '@/components/ui/mention-renderer';
@@ -358,11 +358,30 @@ export const ChatMessagesList = ({
                   </div>
                 </div>
                 
-                {/* Timestamp + delivery status */}
+                {/* Timestamp + delivery channel + delivery status */}
                 <div className="flex items-center gap-1 mt-1 px-1">
                   <span className="text-xs text-muted-foreground">
                     {formatRelative(new Date(message.createdAt))}
                   </span>
+                  {isAgent && !isInternal && (
+                    message.emailStatus ? (
+                      <span
+                        className="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-1.5 py-[1px] text-[10px] font-medium text-blue-700 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-300"
+                        title="Visitor was offline — this reply was sent as an email"
+                      >
+                        <Mail className="h-2.5 w-2.5" />
+                        Sent as email
+                      </span>
+                    ) : (
+                      <span
+                        className="inline-flex items-center gap-1 rounded-full border border-green-200 bg-green-50 px-1.5 py-[1px] text-[10px] font-medium text-green-700 dark:border-green-800 dark:bg-green-950/40 dark:text-green-300"
+                        title="Delivered live in the chat widget"
+                      >
+                        <MessageSquare className="h-2.5 w-2.5" />
+                        In chat
+                      </span>
+                    )
+                  )}
                   {isAgent && !isInternal && (!message.emailStatus || message.emailStatus === 'sent') && (
                     <CheckCheck className="h-3 w-3 text-primary" />
                   )}

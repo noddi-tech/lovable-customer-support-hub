@@ -492,6 +492,10 @@ export const ConversationViewProvider = ({ children, conversationId, conversatio
           await supabase.from('messages').update({ email_status: 'failed' }).eq('id', message.id);
           toast.warning('Reply saved but email sending failed');
         }
+      } else if (!isInternal) {
+        // Delivered live in the chat widget — clear the "pending email" marker so the
+        // UI can tell chat-delivered replies apart from ones that went out as email.
+        await supabase.from('messages').update({ email_status: null }).eq('id', message.id);
       }
 
       return message;
