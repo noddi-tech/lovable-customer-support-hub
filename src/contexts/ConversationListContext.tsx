@@ -581,7 +581,7 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
   const effectiveInboxId = selectedTab.startsWith('inbox-')
     ? selectedTab.replace('inbox-', '')
     : (selectedInboxId !== 'all' ? selectedInboxId : null);
-  const effectiveInboxIds = React.useMemo(
+  const effectiveInboxIds = useMemo(
     () => (effectiveInboxId ? effectiveInboxId.split(',').filter(Boolean) : []),
     [effectiveInboxId]
   );
