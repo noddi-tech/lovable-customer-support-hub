@@ -36,6 +36,7 @@ The `q` queue means you can call `NoddiWidget(...)` before the script finishes l
 | `showButton` | `boolean` | `true` | Set `false` to hide the floating launcher and open the widget yourself. |
 | `onReady` | `() => void` | — | Called when the widget is mounted and programmatic commands are available. |
 | `supportedLocales` | `string[]` | — | Locales the host app supports, e.g. `['nb-NO', 'en-US', 'sv-SE']`. The language picker shows the intersection with the languages the widget ships (`no`, `en`, `sv`), in **your** order. Omit to keep the full widget set. Max 20 entries, 20 chars each; unknown locales are dropped. |
+| `enableKnowledgeSearch` | `boolean` | — | Host gate for the knowledge-base (help-centre) button on the widget home screen. `false` always hides it; `true` shows it only if the admin widget config also enables knowledge search; omit to keep the admin config alone. Works on `init` and `update`. |
 | `locale` | `string` | — | Visitor language (BCP-47, e.g. `nb-NO`, `en-US`, `sv-SE`, or the frontend codes `nb` / `en` / `se`). Maps to the widget UI languages `no` / `en` / `sv`; anything else falls back to `no`. Sent on `init` or `update` it always wins over the visitor's previously stored language choice. Max 20 chars. |
 | `environment` | `string` | — | `production` / `staging` / `development`. Non-production is badged in the hub so agents can ignore test noise. Max 20 chars. |
 | `sourceApp` | `string` | — | Product surface using this widget key, e.g. `customer`, `partner`, `marketing`. Max 40 chars. |
@@ -102,6 +103,7 @@ NoddiWidget('init', {
   brand: 'noddi',
   locale: 'nb-NO',
   supportedLocales: ['nb-NO', 'en-US', 'sv-SE'],
+  enableKnowledgeSearch: false,          // hide the help-centre button for this embed
   environment: import.meta.env.MODE === 'production' ? 'production' : 'staging',
   sourceApp: 'customer',
   userId: user?.id,
@@ -192,11 +194,12 @@ NoddiWidget('update', {
     pathname: location.pathname,
   },
   supportedLocales: ['nb-NO', 'en-US'],   // re-narrow the language picker
+  enableKnowledgeSearch: true,            // show the help-centre button (if admin allows it)
 });
 ```
 
 `update` accepts **every** field `init` accepts — including `brand`, `locale`,
-`supportedLocales` and `environment` — and merges them over the current values. Context and brand are read
+`supportedLocales`, `enableKnowledgeSearch` and `environment` — and merges them over the current values. Context and brand are read
 when a conversation is created, so an `update` affects the *next* chat or form
 submission (no logout/reboot needed for a language change).
 
