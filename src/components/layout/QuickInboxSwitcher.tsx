@@ -120,39 +120,47 @@ export const QuickInboxSwitcher: React.FC<QuickInboxSwitcherProps> = ({ open, on
             <span>All Inboxes</span>
             <Counts open={allOutstanding.open} pending={allOutstanding.pending} />
           </CommandItem>
-
-          {selectable.map((inbox, idx) => (
-            <CommandItem
-              key={inbox.id}
-              value={`${inbox.name} ${inboxEmails[inbox.id] ?? ''}`}
-              onSelect={() => goToInbox(inbox.id)}
-              className="gap-2"
-            >
-              {idx < 9 ? <NumberKey n={idx + 1} /> : <span className="w-5" />}
-              <div
-                className="w-2 h-2 rounded-full flex-shrink-0"
-                style={{ backgroundColor: inbox.color || '#6B7280' }}
-              />
-              <div className="min-w-0 flex flex-col leading-tight">
-                <span className="truncate flex items-center gap-1.5">
-                  {inbox.name}
-                  {defaultInboxId === inbox.id && (
-                    <Badge variant="outline" className="h-4 px-1.5 text-[9px] border-primary/40 text-primary">
-                      Default
-                    </Badge>
-                  )}
-                </span>
-                <span className="text-[11px] text-muted-foreground truncate">
-                  {inboxEmails[inbox.id]}
-                </span>
-              </div>
-              <Counts
-                open={outstanding[inbox.id]?.open || 0}
-                pending={outstanding[inbox.id]?.pending || 0}
-              />
-            </CommandItem>
-          ))}
         </CommandGroup>
+
+        {groups.map((group) => (
+          <CommandGroup key={group.label} heading={group.label}>
+            {group.inboxes.map((inbox) => {
+              const idx = selectable.findIndex((i) => i.id === inbox.id);
+              return (
+                <CommandItem
+                  key={inbox.id}
+                  value={`${inbox.name} ${inboxEmails[inbox.id] ?? ''}`}
+                  onSelect={() => goToInbox(inbox.id)}
+                  className="gap-2"
+                >
+                  {idx > -1 && idx < 9 ? <NumberKey n={idx + 1} /> : <span className="w-5" />}
+                  <div
+                    className="w-2 h-2 rounded-full flex-shrink-0"
+                    style={{ backgroundColor: inbox.color || '#6B7280' }}
+                  />
+                  <div className="min-w-0 flex flex-col leading-tight">
+                    <span className="truncate flex items-center gap-1.5">
+                      {inbox.name}
+                      {defaultInboxId === inbox.id && (
+                        <Badge variant="outline" className="h-4 px-1.5 text-[9px] border-primary/40 text-primary">
+                          Default
+                        </Badge>
+                      )}
+                    </span>
+                    <span className="text-[11px] text-muted-foreground truncate">
+                      {inboxEmails[inbox.id]}
+                    </span>
+                  </div>
+                  <Counts
+                    open={outstanding[inbox.id]?.open || 0}
+                    pending={outstanding[inbox.id]?.pending || 0}
+                  />
+                </CommandItem>
+              );
+            })}
+          </CommandGroup>
+        ))}
+
       </CommandList>
     </CommandDialog>
   );
