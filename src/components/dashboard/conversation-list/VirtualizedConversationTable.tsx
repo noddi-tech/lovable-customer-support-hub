@@ -78,6 +78,7 @@ const VirtualizedConversationTable = memo(({ onSelectConversation, selectedConve
     isFetchingNextPage,
     state,
     dispatch,
+    selectedInboxId,
   } = useConversationList();
   const { t } = useTranslation();
   // Show the inbox column only when the list spans every inbox.
