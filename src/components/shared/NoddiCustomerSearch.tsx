@@ -39,21 +39,23 @@ export const NoddiCustomerSearch = ({
   showEmailSearch = false,
   conversationEmail
 }: NoddiCustomerSearchProps) => {
-  const [searchFirstName, setSearchFirstName] = useState('');
-  const [searchLastName, setSearchLastName] = useState('');
+  const [searchName, setSearchName] = useState('');
   const [searchResults, setSearchResults] = useState<Customer[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [searchMode, setSearchMode] = useState<'name' | 'email'>('name');
   const [alternativeEmail, setAlternativeEmail] = useState('');
 
   const handleNameSearch = async () => {
-    const firstName = searchFirstName.trim();
-    const lastName = searchLastName.trim();
-    
+    // One box: first token is the first name, the rest is the last name.
+    const parts = searchName.trim().split(/\s+/).filter(Boolean);
+    const firstName = parts[0] || '';
+    const lastName = parts.slice(1).join(' ');
+
     if (firstName.length < 2) {
-      toast.error('Please enter at least 2 characters for first name');
+      toast.error('Please enter at least 2 characters for the name');
       return;
     }
+
 
     setIsSearching(true);
     setSearchResults([]);
