@@ -5,6 +5,8 @@ interface FloatingButtonProps {
   onClick: () => void;
   primaryColor: string;
   position: 'bottom-right' | 'bottom-left';
+  /** Agent replies received while the panel was closed. */
+  unreadCount?: number;
 }
 
 export const FloatingButton: React.FC<FloatingButtonProps> = ({
@@ -12,19 +14,20 @@ export const FloatingButton: React.FC<FloatingButtonProps> = ({
   onClick,
   primaryColor,
   position,
+  unreadCount = 0,
 }) => {
   const positionStyles = position === 'bottom-right' 
     ? { right: '20px' } 
     : { left: '20px' };
 
+  const showBadge = !isOpen && unreadCount > 0;
+
   return (
+    <div className="noddi-widget-button-wrap" style={positionStyles}>
     <button
       onClick={onClick}
       className="noddi-widget-button"
-      style={{
-        ...positionStyles,
-        backgroundColor: primaryColor,
-      }}
+      style={{ position: 'relative', backgroundColor: primaryColor }}
       aria-label={isOpen ? 'Close chat' : 'Open chat'}
     >
       {isOpen ? (
@@ -38,5 +41,11 @@ export const FloatingButton: React.FC<FloatingButtonProps> = ({
         </svg>
       )}
     </button>
+      {showBadge && (
+        <span className="noddi-widget-unread-badge" aria-label={`${unreadCount} unread messages`}>
+          {unreadCount > 9 ? '9+' : unreadCount}
+        </span>
+      )}
+    </div>
   );
 };
