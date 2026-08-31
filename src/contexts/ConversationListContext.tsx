@@ -268,7 +268,10 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
       const includeDeleted = selectedTab === 'deleted';
       
       const { data, error } = await supabase.rpc('get_conversations_with_session_recovery', {
-        inbox_uuid: (selectedInboxId && selectedInboxId !== 'all') ? selectedInboxId : null,
+        // Multi-inbox selections fetch everything and are filtered client-side
+        inbox_uuid: (selectedInboxId && selectedInboxId !== 'all' && !selectedInboxId.includes(','))
+          ? selectedInboxId
+          : null,
         include_deleted: includeDeleted
       });
 
@@ -399,6 +402,7 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
       const effectiveInboxId = selectedTab.startsWith('inbox-')
         ? selectedTab.replace('inbox-', '')
         : (selectedInboxId !== 'all' ? selectedInboxId : null);
+      const effectiveInboxIds = effectiveInboxId ? effectiveInboxId.split(',').filter(Boolean) : [];
 
       const filteredConversations = conversations
         .filter((conversation) => {
@@ -408,7 +412,7 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
           
           const matchesStatus = state.statusFilter === "all" || conversation.status === state.statusFilter;
           const matchesPriority = state.priorityFilter === "all" || conversation.priority === state.priorityFilter;
-          const matchesInbox = !effectiveInboxId || conversation.inbox_id === effectiveInboxId;
+          const matchesInbox = effectiveInboxIds.length === 0 || effectiveInboxIds.includes(conversation.inbox_id || '');
           
           const matchesTab = (() => {
             const isSnoozedActive = !!conversation.snooze_until && new Date(conversation.snooze_until) > new Date();
@@ -577,6 +581,10 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
   const effectiveInboxId = selectedTab.startsWith('inbox-')
     ? selectedTab.replace('inbox-', '')
     : (selectedInboxId !== 'all' ? selectedInboxId : null);
+  const effectiveInboxIds = React.useMemo(
+    () => (effectiveInboxId ? effectiveInboxId.split(',').filter(Boolean) : []),
+    [effectiveInboxId]
+  );
 
   const filteredAndSortedConversations = useMemo(() => {
     const filtered = conversations.filter((conversation) => {
@@ -591,7 +599,7 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
       const matchesStatus = isTabHandlingStatus || state.statusFilter === "all" || conversation.status === state.statusFilter;
       
       const matchesPriority = state.priorityFilter === "all" || conversation.priority === state.priorityFilter;
-      const matchesInbox = !effectiveInboxId || conversation.inbox_id === effectiveInboxId;
+      const matchesInbox = effectiveInboxIds.length === 0 || effectiveInboxIds.includes(conversation.inbox_id || '');
       const convPurpose = (conversation.conversation_type === 'recruitment') ? 'recruitment' : 'support';
       const matchesPurpose = state.purposeFilter === 'all' || convPurpose === state.purposeFilter;
       
@@ -723,12 +731,12 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
           return bTime - aTime;
       }
     });
-  }, [conversations, state.searchQuery, state.statusFilter, state.priorityFilter, state.purposeFilter, state.sortBy, state.tableSort, selectedTab, selectedInboxId, effectiveInboxId]);
+  }, [conversations, state.searchQuery, state.statusFilter, state.priorityFilter, state.purposeFilter, state.sortBy, state.tableSort, selectedTab, selectedInboxId, effectiveInboxId, effectiveInboxIds]);
 
   // Comprehensive debug logging
   logger.debug('Filter state', {
     totalConversations: conversations.length,
-    totalForInbox: effectiveInboxId ? conversations.filter(c => c.inbox_id === effectiveInboxId).length : 0,
+    totalForInbox: effectiveInboxIds.length > 0 ? conversations.filter(c => effectiveInboxIds.includes(c.inbox_id || '')).length : 0,
     filteredCount: filteredAndSortedConversations.length,
     selectedTab,
     selectedInboxId,

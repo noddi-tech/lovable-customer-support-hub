@@ -87,6 +87,26 @@ export async function listAccessibleInboxes(): Promise<Inbox[]> {
  */
 export async function getInboxCounts(inboxId: InboxId): Promise<InboxCounts> {
   try {
+    // Multiple inboxes selected: sum per-inbox counts
+    if (inboxId && inboxId !== 'all' && inboxId.includes(',')) {
+      const ids = inboxId.split(',').filter(Boolean);
+      const results = await Promise.all(ids.map((id) => getInboxCounts(id)));
+      return results.reduce(
+        (acc, c) => ({
+          inboxId,
+          total: acc.total + c.total,
+          open: acc.open + c.open,
+          unread: acc.unread + c.unread,
+          assigned: acc.assigned + c.assigned,
+          pending: acc.pending + c.pending,
+          closed: acc.closed + c.closed,
+          archived: acc.archived + c.archived,
+          deleted: acc.deleted + c.deleted,
+        }),
+        { inboxId, total: 0, open: 0, unread: 0, assigned: 0, pending: 0, closed: 0, archived: 0, deleted: 0 }
+      );
+    }
+
     // Use inbox-specific counts when a specific inbox is selected
     if (inboxId && inboxId !== 'all') {
       const { data, error } = await supabase.rpc('get_inbox_counts', { inbox_uuid: inboxId });
