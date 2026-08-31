@@ -1,48 +1,48 @@
 import en from './en.json';
 import no from './no.json';
-import es from './es.json';
-import fr from './fr.json';
-import de from './de.json';
-import it from './it.json';
-import pt from './pt.json';
-import nl from './nl.json';
 import sv from './sv.json';
-import da from './da.json';
 
 export type WidgetTranslations = typeof en;
 
+// The Noddi customer frontend (packages/noddi-web LanguageCode) only supports
+// nb / en / se, so the widget UI mirrors exactly that set. Other translation
+// files are kept in the repo but are not selectable.
 // Partial: non-English files may lag behind newly added keys; getWidgetTranslations
 // merges them over English so missing keys still resolve.
 const translations: Record<string, Partial<WidgetTranslations>> = {
   en,
   no,
-  es,
-  fr,
-  de,
-  it,
-  pt,
-  nl,
   sv,
-  da,
 };
 
 export const SUPPORTED_WIDGET_LANGUAGES = [
   { code: 'no', name: 'Norsk', flag: '🇳🇴' },
   { code: 'en', name: 'English', flag: '🇬🇧' },
-  { code: 'es', name: 'Español', flag: '🇪🇸' },
-  { code: 'fr', name: 'Français', flag: '🇫🇷' },
-  { code: 'de', name: 'Deutsch', flag: '🇩🇪' },
-  { code: 'it', name: 'Italiano', flag: '🇮🇹' },
-  { code: 'pt', name: 'Português', flag: '🇵🇹' },
-  { code: 'nl', name: 'Nederlands', flag: '🇳🇱' },
   { code: 'sv', name: 'Svenska', flag: '🇸🇪' },
-  { code: 'da', name: 'Dansk', flag: '🇩🇰' },
 ] as const;
+
+export const DEFAULT_WIDGET_LANGUAGE = 'no';
+
+/**
+ * Map a host locale (BCP-47 like `nb-NO`, `en-US`, `sv-SE`, or the frontend
+ * language codes `nb` / `en` / `se`) onto a widget UI language code.
+ * Returns null when the value maps to nothing we support.
+ */
+export function normalizeWidgetLanguage(value?: string | null): string | null {
+  if (!value) return null;
+  const raw = String(value).trim().toLowerCase().replace('_', '-');
+  const base = raw.split('-')[0];
+  if (raw === 'no' || base === 'no' || base === 'nb' || base === 'nn') return 'no';
+  if (base === 'en') return 'en';
+  if (base === 'sv' || base === 'se') return 'sv';
+  return null;
+}
 
 export function getWidgetTranslations(language: string): WidgetTranslations {
   // Merge over English so newly added keys never render as undefined in a
   // language whose file has not been updated yet.
   return { ...en, ...(translations[language] || {}) } as WidgetTranslations;
+
 }
 
 // Default English values (matches database defaults)

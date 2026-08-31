@@ -166,9 +166,14 @@ function clearVisitorIdentity() {
 function updateWidget(options?: any) {
   if (!options || typeof options !== 'object') return;
   if (typeof options.brand === 'string' && options.brand) setBrand(options.brand);
+  const localeChanged =
+    options.locale !== undefined || (options.context && options.context.locale !== undefined);
   updateWidgetContext({ ...contextFromInitOptions(options), ...(options.context || {}) });
   if (options.identity !== undefined) identifyVisitor(options.identity);
+  // Re-mount the panel so the new host locale takes effect immediately.
+  if (localeChanged) widgetAPI?.refreshIdentity?.();
 }
+
 
 /** NoddiWidget('shutdown') — forget the visitor on logout. */
 function shutdownWidget() {

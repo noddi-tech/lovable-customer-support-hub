@@ -14,7 +14,16 @@ import {
   type ChatEscalation,
 } from '../api';
 import { PreChatForm } from './PreChatForm';
-import { getWidgetTranslations, getLocalizedGreeting, getLocalizedResponseTime, SUPPORTED_WIDGET_LANGUAGES } from '../translations';
+import {
+  getWidgetTranslations,
+  getLocalizedGreeting,
+  getLocalizedResponseTime,
+  SUPPORTED_WIDGET_LANGUAGES,
+  DEFAULT_WIDGET_LANGUAGE,
+  normalizeWidgetLanguage,
+} from '../translations';
+import { getWidgetContext } from '../api';
+
 
 interface WidgetPanelProps {
   config: WidgetConfig;
@@ -34,13 +43,20 @@ function getVisitorId(): string {
   return visitorId;
 }
 
-// Get customer's preferred language from localStorage, or fallback to config
+/**
+ * Resolve the widget UI language.
+ * Priority: host-provided locale (context.locale from init/update) → stored
+ * customer choice → widget config → Norwegian.
+ */
 function getCustomerLanguage(configLanguage: string): string {
+  const hostLocale = normalizeWidgetLanguage(getWidgetContext()?.locale);
+  if (hostLocale) return hostLocale;
+
   const savedLanguage = localStorage.getItem('noddi_widget_language');
   if (savedLanguage && SUPPORTED_WIDGET_LANGUAGES.some(l => l.code === savedLanguage)) {
     return savedLanguage;
   }
-  return configLanguage || 'no';
+  return normalizeWidgetLanguage(configLanguage) || DEFAULT_WIDGET_LANGUAGE;
 }
 
 export const WidgetPanel: React.FC<WidgetPanelProps> = ({ config, onClose, positionOverride, identity }) => {
@@ -52,7 +68,16 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({ config, onClose, posit
   const [showLanguageMenu, setShowLanguageMenu] = useState(false);
   const [currentLanguage, setCurrentLanguage] = useState(() => getCustomerLanguage(config.language));
 
+  // Host can change locale mid-session via NoddiWidget('update', { locale }).
+  const hostLocale = normalizeWidgetLanguage(getWidgetContext()?.locale);
+  useEffect(() => {
+    if (hostLocale && hostLocale !== currentLanguage) {
+      setCurrentLanguage(hostLocale);
+    }
+  }, [hostLocale]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const t = getWidgetTranslations(currentLanguage);
+
 
   const handleLanguageChange = (langCode: string) => {
     setCurrentLanguage(langCode);
