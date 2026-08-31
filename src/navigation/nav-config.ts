@@ -14,7 +14,8 @@ import {
   Bell,
   Shield,
   Search,
-  Send
+  Send,
+  FileLock2
 } from "lucide-react";
 
 export type NavItem = {
@@ -153,7 +154,7 @@ export const NAV_ITEMS: NavItem[] = [
     id: "admin-gdpr",
     label: "GDPR Requests",
     to: "/admin/gdpr",
-    icon: Shield,
+    icon: FileLock2,
     group: "settings",
     requiredRole: "admin"
   },
