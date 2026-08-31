@@ -15,6 +15,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { Inbox, Plus, Settings, Trash2, Mail, Users, MessageSquare, RefreshCw } from 'lucide-react';
+import { sortInboxesByName } from '@/lib/sortInboxes';
 
 // Design system color palette for inboxes (HSL converted to hex for display)
 const INBOX_COLOR_PALETTE = [
@@ -105,7 +106,7 @@ export function InboxManagementContent() {
     queryFn: async () => {
       const { data, error } = await supabase.rpc('get_inboxes');
       if (error) throw error;
-      return data as InboxData[];
+      return sortInboxesByName(data as InboxData[]);
     }
   });
 

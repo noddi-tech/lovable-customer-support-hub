@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { logger } from '@/utils/logger';
 import { sanitizeStorageFilename } from '@/utils/storageKey';
+import { sortInboxesByName } from '@/lib/sortInboxes';
 
 interface ConversationViewState {
   replyText: string;
@@ -280,7 +281,7 @@ export const ConversationViewProvider = ({ children, conversationId, conversatio
     queryFn: async () => {
       const { data, error } = await supabase.from('profiles').select('id, user_id, full_name').order('full_name');
       if (error) throw error;
-      return data || [];
+      return sortInboxesByName(data || []);
     },
     enabled: !!user,
   });

@@ -11,6 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { sortInboxesByName } from '@/lib/sortInboxes';
 
 interface EmailAccount {
   id: string;
@@ -51,7 +52,7 @@ export function EmailForwarding({ mode = 'full' }: { mode?: 'full' | 'addAliasOn
     queryFn: async () => {
       const { data, error } = await supabase.rpc("get_inboxes");
       if (error) throw error;
-      return data as Inbox[];
+      return sortInboxesByName(data as Inbox[]);
     },
   });
 
