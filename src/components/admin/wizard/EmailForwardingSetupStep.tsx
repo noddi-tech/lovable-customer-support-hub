@@ -97,18 +97,38 @@ export function EmailForwardingSetupStep({
         }
       }
 
+      // Always derive the parse address from the email's OWN domain, never a stale/other domain
+      const targetAddress = generateForwardingAddress(publicEmail, matchingDomain || undefined);
+      if (targetAddress !== forwardingAddress) {
+        onForwardingAddressGenerated(targetAddress);
+      }
+
       // Re-fetch domain after possible sendgrid-setup upsert
-      let domain = configuredDomain;
-      if (!domain || (emailDomain && !matchingDomain)) {
+      let domain: any = matchingDomain;
+      if (!domain) {
         const { data: freshDomain } = await supabase
           .from('email_domains')
           .select('*')
           .eq('organization_id', profile.organization_id)
           .eq('domain', emailDomain)
           .maybeSingle();
-        if (freshDomain) {
-          domain = freshDomain as any;
-        }
+        domain = freshDomain || null;
+      }
+      if (!domain) {
+        // SendGrid could not finish setup yet (DNS pending) — still register the domain locally
+        const { data: createdDomain, error: domainError } = await supabase
+          .from('email_domains')
+          .insert({
+            organization_id: profile.organization_id,
+            domain: emailDomain,
+            parse_subdomain: 'inbound',
+            provider: 'sendgrid',
+            status: 'pending',
+          })
+          .select()
+          .maybeSingle();
+        if (domainError) throw domainError;
+        domain = createdDomain;
       }
       if (!domain) throw new Error('No configured domain found');
 
@@ -118,14 +138,18 @@ export function EmailForwardingSetupStep({
       const { data: existingRoute } = await supabase
         .from('inbound_routes')
         .select('id')
-        .eq('address', forwardingAddress)
+        .eq('address', targetAddress)
         .eq('organization_id', profile.organization_id)
-        .single();
+        .maybeSingle();
 
       if (existingRoute) {
+        await supabase
+          .from('inbound_routes')
+          .update({ group_email: publicEmail, domain_id: domain.id, is_active: true })
+          .eq('id', existingRoute.id);
         onInboundRouteCreated(existingRoute.id);
         setRouteCreated(true);
-        toast.success("Route already exists!");
+        toast.success("Route already existed — reusing it");
         return;
       }
 
@@ -133,7 +157,7 @@ export function EmailForwardingSetupStep({
       const { data: newRoute, error } = await supabase
         .from('inbound_routes')
         .insert({
-          address: forwardingAddress,
+          address: targetAddress,
           alias_local_part: localPart,
           domain_id: domain.id,
           organization_id: profile.organization_id,
@@ -143,11 +167,30 @@ export function EmailForwardingSetupStep({
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        if ((error as any).code === '23505') {
+          // Race / RLS-hidden duplicate — reuse the existing route
+          const { data: dupe } = await supabase
+            .from('inbound_routes')
+            .select('id')
+            .eq('address', targetAddress)
+            .eq('organization_id', profile.organization_id)
+            .maybeSingle();
+          if (dupe) {
+            onInboundRouteCreated(dupe.id);
+            setRouteCreated(true);
+            toast.success("Route already existed — reusing it");
+            return;
+          }
+          throw new Error(`A forwarding route for ${targetAddress} already exists. Edit it under Email channels instead.`);
+        }
+        throw error;
+      }
 
       onInboundRouteCreated(newRoute.id);
       setRouteCreated(true);
       toast.success("Forwarding route created!");
+
     } catch (error: any) {
       console.error('Failed to create inbound route:', error);
       toast.error(error.message || "Failed to create route");
