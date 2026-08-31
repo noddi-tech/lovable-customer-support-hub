@@ -15,7 +15,8 @@ import {
   Shield,
   Search,
   Send,
-  FileLock2
+  FileLock2,
+  UserRound
 } from "lucide-react";
 
 export type NavItem = {
@@ -54,6 +55,13 @@ export const NAV_ITEMS: NavItem[] = [
     label: "Cases",
     to: "/operations/cases",
     icon: Briefcase,
+    group: "support"
+  },
+  {
+    id: "customers",
+    label: "Customers",
+    to: "/customers",
+    icon: UserRound,
     group: "support"
   },
   {
