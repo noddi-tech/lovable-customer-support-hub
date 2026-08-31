@@ -137,7 +137,7 @@ export function useCases(filters: CaseFilters = {}) {
         q = q.or(`title.ilike.%${term}%,description.ilike.%${term}%`);
       }
 
-      const { data, error } = await q.returns<CaseRecord[]>();
+      const { data, error } = await q;
       if (error) throw error;
       return data ?? [];
     },
@@ -183,8 +183,7 @@ export function useCaseEvents(caseId?: string | null) {
           ),
         )
         .eq('case_id', caseId)
-        .order('created_at', { ascending: false })
-        .returns<CaseEventRecord[]>();
+        .order('created_at', { ascending: false });
       if (error) throw error;
       return data ?? [];
     },
@@ -199,18 +198,7 @@ export function useCaseConversations(caseId?: string | null) {
       const { data, error } = await (supabase.from('conversations') as any)
         .select(sel('id, subject, channel, status, updated_at, preview_text, received_at'))
         .eq('case_id', caseId)
-        .order('updated_at', { ascending: false })
-        .returns<
-          Array<{
-            id: string;
-            subject: string | null;
-            channel: string;
-            status: string;
-            updated_at: string;
-            preview_text: string | null;
-            received_at: string | null;
-          }>
-        >();
+        .order('updated_at', { ascending: false });
       if (error) throw error;
       return data ?? [];
     },
@@ -226,17 +214,7 @@ export function useCaseCategories() {
       const { data, error } = await (supabase.from('case_categories') as any)
         .select(sel('id, name, slug, color, sort_order, is_active'))
         .eq('is_active', true)
-        .order('sort_order')
-        .returns<
-          Array<{
-            id: string;
-            name: string;
-            slug: string;
-            color: string | null;
-            sort_order: number;
-            is_active: boolean;
-          }>
-        >();
+        .order('sort_order');
       if (error) throw error;
       return data ?? [];
     },
@@ -252,8 +230,7 @@ export function useCaseResolutionCodes() {
       const { data, error } = await (supabase.from('case_resolution_codes') as any)
         .select(sel('id, name, slug, sort_order, is_active'))
         .eq('is_active', true)
-        .order('sort_order')
-        .returns<Array<{ id: string; name: string; slug: string; sort_order: number; is_active: boolean }>>();
+        .order('sort_order');
       if (error) throw error;
       return data ?? [];
     },

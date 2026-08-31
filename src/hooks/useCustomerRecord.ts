@@ -66,8 +66,7 @@ export function useCustomerIdentities(customerId?: string | null) {
       const { data, error } = await (supabase.from('customer_identities') as any)
         .select(sel('id, identity_type, value, is_primary, verified, created_at'))
         .eq('customer_id', customerId)
-        .order('is_primary', { ascending: false })
-        .returns<CustomerIdentity[]>();
+        .order('is_primary', { ascending: false });
       if (error) throw error;
       return data ?? [];
     },
@@ -86,7 +85,7 @@ export function useCustomerConversations(customerId?: string | null, excludeConv
         .order('updated_at', { ascending: false })
         .limit(100);
       if (excludeConversationId) q = q.neq('id', excludeConversationId);
-      const { data, error } = await q.returns<CustomerConversationSummary[]>();
+      const { data, error } = await q;
       if (error) throw error;
       return data ?? [];
     },
@@ -173,8 +172,7 @@ export function useCustomerNotes(customerId?: string | null) {
         )
         .eq('customer_id', customerId)
         .order('is_pinned', { ascending: false })
-        .order('created_at', { ascending: false })
-        .returns<CustomerNote[]>();
+        .order('created_at', { ascending: false });
       if (error) throw error;
       return data ?? [];
     },
