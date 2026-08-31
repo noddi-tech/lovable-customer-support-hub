@@ -37,12 +37,28 @@ export interface WidgetInitOptions {
   pathname?: string;
   /** Host app release/version, to correlate reports with deploys. */
   appVersion?: string;
+  /** Licence plate of the car the visitor is working with. */
+  licensePlate?: string;
+  /** Human-readable car description, e.g. 'Tesla Model 3 (2021)'. */
+  car?: string;
+  /** Structured alternative to the flat fields above; merged over them. */
+  context?: Record<string, unknown>;
+  /** Known visitor, passed straight to `identify`. */
+  identity?: WidgetIdentityOptions;
   widgetKey: string;
   apiUrl?: string;
   // Client-side overrides
   showButton?: boolean;      // Default: true - set to false to hide the floating button
   position?: 'bottom-right' | 'bottom-left';  // Override admin config position
   onReady?: () => void;  // Callback when widget is fully initialized and ready for programmatic control
+}
+
+/** Known-visitor hint from the host app (never trusted for privileged actions). */
+export interface WidgetIdentityOptions {
+  userId?: string | number;
+  email?: string;
+  name?: string;
+  phone?: string;
 }
 
 export type WidgetView = 'home' | 'contact' | 'search' | 'chat' | 'ai';
@@ -57,10 +73,18 @@ export interface ChatSession {
   startedAt: string;
 }
 
+export interface ChatAttachment {
+  url: string;
+  name: string;
+  type: string;
+  storagePath?: string;
+}
+
 export interface ChatMessage {
   id: string;
   content: string;
   senderType: 'customer' | 'agent';
   createdAt: string;
   senderName?: string;
+  attachments?: ChatAttachment[];
 }

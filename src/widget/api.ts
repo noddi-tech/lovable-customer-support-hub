@@ -35,7 +35,7 @@ export function getBrand(): string {
 }
 
 // Optional extra context of the host site (locale, environment, source app,
-// logged-in Noddi user, booking/order in flight, SPA pathname, release).
+// logged-in user, booking/order in flight, SPA pathname, release).
 // Passed through to the backend and shown to agents on the conversation.
 export interface WidgetContext {
   locale?: string;
@@ -45,6 +45,8 @@ export interface WidgetContext {
   service_department_id?: string;
   booking_id?: string;
   order_id?: string;
+  license_plate?: string;
+  car?: string;
   pathname?: string;
   app_version?: string;
 }
@@ -57,20 +59,31 @@ const CONTEXT_LIMITS: Record<keyof WidgetContext, number> = {
   service_department_id: 64,
   booking_id: 64,
   order_id: 64,
+  license_plate: 16,
+  car: 80,
   pathname: 300,
   app_version: 40,
 };
 
 let widgetContext: WidgetContext = {};
 
-export function setWidgetContext(value: Partial<Record<keyof WidgetContext, unknown>> = {}) {
+function normalizeContext(value: Partial<Record<keyof WidgetContext, unknown>> = {}) {
   const next: Record<string, string> = {};
   for (const key of Object.keys(CONTEXT_LIMITS) as (keyof WidgetContext)[]) {
     const raw = value[key];
     if (raw === undefined || raw === null || raw === '') continue;
     next[key] = String(raw).trim().slice(0, CONTEXT_LIMITS[key]);
   }
-  widgetContext = next as WidgetContext;
+  return next as WidgetContext;
+}
+
+export function setWidgetContext(value: Partial<Record<keyof WidgetContext, unknown>> = {}) {
+  widgetContext = normalizeContext(value);
+}
+
+/** Merge new context values in mid-session (NoddiWidget('update', { context })). */
+export function updateWidgetContext(value: Partial<Record<keyof WidgetContext, unknown>> = {}) {
+  widgetContext = { ...widgetContext, ...normalizeContext(value) };
 }
 
 export function getWidgetContext(): WidgetContext | undefined {
@@ -81,6 +94,84 @@ export function getWidgetContext(): WidgetContext | undefined {
   }
   return Object.keys(ctx).length > 0 ? ctx : undefined;
 }
+
+/** Map the flat init/update options onto the wire context field names. */
+export function contextFromInitOptions(options: Record<string, any> = {}): Record<string, unknown> {
+  return {
+    locale: options.locale,
+    environment: options.environment,
+    source_app: options.sourceApp ?? options.source_app,
+    user_id: options.userId ?? options.user_id,
+    service_department_id: options.serviceDepartmentId ?? options.service_department_id,
+    booking_id: options.bookingId ?? options.booking_id,
+    order_id: options.orderId ?? options.order_id,
+    license_plate: options.licensePlate ?? options.license_plate,
+    car: options.car,
+    pathname: options.pathname,
+    app_version: options.appVersion ?? options.app_version,
+  };
+}
+
+// ========== Identity ==========
+// NoddiWidget('identify', { userId, email, name, phone }) — an *agent hint*.
+// The widget key is public, so a client-supplied identity is never trusted for
+// privileged actions; those stay behind phone verification.
+
+export interface WidgetIdentity {
+  user_id?: string;
+  email?: string;
+  name?: string;
+  phone?: string;
+}
+
+const IDENTITY_LIMITS: Record<keyof WidgetIdentity, number> = {
+  user_id: 64,
+  email: 160,
+  name: 120,
+  phone: 32,
+};
+
+const IDENTITY_STORAGE_KEY = 'noddi_widget_identity';
+
+let identity: WidgetIdentity = readStoredIdentity();
+
+function readStoredIdentity(): WidgetIdentity {
+  try {
+    const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(IDENTITY_STORAGE_KEY) : null;
+    return raw ? (JSON.parse(raw) as WidgetIdentity) : {};
+  } catch {
+    return {};
+  }
+}
+
+export function setIdentity(value: Partial<Record<keyof WidgetIdentity, unknown>> = {}) {
+  const next: Record<string, string> = {};
+  for (const key of Object.keys(IDENTITY_LIMITS) as (keyof WidgetIdentity)[]) {
+    const raw = value[key];
+    if (raw === undefined || raw === null || raw === '') continue;
+    next[key] = String(raw).trim().slice(0, IDENTITY_LIMITS[key]);
+  }
+  identity = { ...identity, ...next } as WidgetIdentity;
+  try {
+    localStorage.setItem(IDENTITY_STORAGE_KEY, JSON.stringify(identity));
+  } catch { /* storage unavailable */ }
+}
+
+export function getIdentity(): WidgetIdentity {
+  return identity;
+}
+
+export function isIdentified(): boolean {
+  return Boolean(identity.email || identity.user_id);
+}
+
+export function clearIdentity() {
+  identity = {};
+  try {
+    localStorage.removeItem(IDENTITY_STORAGE_KEY);
+  } catch { /* storage unavailable */ }
+}
+
 
 /** Headers for calls to the Noddi proxy edge functions. */
 export function proxyHeaders(): Record<string, string> {
@@ -118,8 +209,14 @@ export async function submitContactForm(data: SubmitContactData): Promise<{ succ
     const response = await fetch(`${apiBaseUrl}/widget-submit`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ brand: brand || undefined, context: getWidgetContext(), ...data }),
+      body: JSON.stringify({
+        brand: brand || undefined,
+        context: getWidgetContext(),
+        identity: isIdentified() ? getIdentity() : undefined,
+        ...data,
+      }),
     });
+
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       if (response.status >= 500 || errorData.debug_status >= 500) {
@@ -161,6 +258,15 @@ export async function searchFaq(widgetKey: string, query: string): Promise<Searc
 
 // ========== Live Chat ==========
 
+export interface ChatEscalation {
+  /** Where the escalation came from — today always the AI assistant. */
+  from: 'ai';
+  /** AI conversation the visitor was in, so agents can trace it. */
+  conversationId?: string;
+  /** Plain-text transcript handed over to the human agent. */
+  transcript: string;
+}
+
 export interface StartChatData {
   widgetKey: string;
   visitorId: string;
@@ -168,14 +274,26 @@ export interface StartChatData {
   visitorEmail?: string;
   pageUrl?: string;
   brand?: string;
+  escalation?: ChatEscalation;
 }
 
 export async function startChat(data: StartChatData): Promise<ChatSession | null> {
   try {
+    const id = getIdentity();
     const response = await fetch(`${apiBaseUrl}/widget-chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'start', brand: brand || undefined, context: getWidgetContext(), ...data }),
+      body: JSON.stringify({
+        action: 'start',
+        brand: brand || undefined,
+        context: getWidgetContext(),
+        identity: isIdentified() ? id : undefined,
+        ...data,
+        // Identity doubles as the visitor name/email when the host app knows them.
+        visitorName: data.visitorName || id.name || undefined,
+        visitorEmail: data.visitorEmail || id.email || undefined,
+      }),
+
     });
     if (!response.ok) return null;
     return await response.json();
@@ -184,6 +302,83 @@ export async function startChat(data: StartChatData): Promise<ChatSession | null
     return null;
   }
 }
+
+/** Current status of a stored session, used to resume a chat after a reload. */
+export async function getChatSession(sessionId: string): Promise<{
+  status: string;
+  assignedAgentName: string | null;
+  messages: ChatMessage[];
+} | null> {
+  try {
+    const response = await fetch(`${apiBaseUrl}/widget-chat?sessionId=${encodeURIComponent(sessionId)}`);
+    if (!response.ok) return null;
+    const data = await response.json();
+    return {
+      status: data.status,
+      assignedAgentName: data.assignedAgentName ?? null,
+      messages: data.messages || [],
+    };
+  } catch {
+    return null;
+  }
+}
+
+export interface ChatAttachmentInput {
+  filename: string;
+  mimeType: string;
+  /** Base64 payload without the data-url prefix. */
+  data: string;
+}
+
+export async function sendChatAttachment(
+  sessionId: string,
+  file: ChatAttachmentInput,
+  caption?: string,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const response = await fetch(`${apiBaseUrl}/widget-chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'attachment', sessionId, file, content: caption }),
+    });
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      return { success: false, error: err.error || 'Upload failed' };
+    }
+    return { success: true };
+  } catch {
+    return { success: false, error: 'Upload failed' };
+  }
+}
+
+/** Post-chat CSAT rating (1-5) with an optional comment. */
+export async function rateChat(sessionId: string, rating: number, comment?: string): Promise<boolean> {
+  try {
+    const response = await fetch(`${apiBaseUrl}/widget-chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'rate', sessionId, rating, comment }),
+    });
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
+/** Ask for a copy of the chat transcript by email. */
+export async function emailChatTranscript(sessionId: string, email: string): Promise<boolean> {
+  try {
+    const response = await fetch(`${apiBaseUrl}/widget-chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'transcript', sessionId, email }),
+    });
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
 
 export async function sendChatMessage(sessionId: string, content: string): Promise<ChatMessage | null> {
   try {
@@ -442,4 +637,40 @@ export async function resolveAddress(widgetKey: string, placeId: string): Promis
   }
   const data = await response.json();
   return data.address;
+}
+
+
+// ========== Session persistence ==========
+// Keeps an open chat resumable across reloads and SPA navigations.
+
+const SESSION_STORAGE_KEY = 'noddi_chat_session';
+
+export interface StoredChatSession {
+  sessionId: string;
+  conversationId: string;
+  /** ISO timestamp of the newest message the visitor has actually seen. */
+  lastSeenAt: string;
+}
+
+export function storeChatSession(session: StoredChatSession | null) {
+  try {
+    if (!session) localStorage.removeItem(SESSION_STORAGE_KEY);
+    else localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session));
+  } catch { /* storage unavailable */ }
+}
+
+export function readStoredChatSession(): StoredChatSession | null {
+  try {
+    const raw = localStorage.getItem(SESSION_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as StoredChatSession;
+    return parsed?.sessionId ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+export function markChatSessionSeen(at: string) {
+  const stored = readStoredChatSession();
+  if (stored) storeChatSession({ ...stored, lastSeenAt: at });
 }
