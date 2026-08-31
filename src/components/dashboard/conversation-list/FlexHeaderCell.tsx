@@ -1,0 +1,53 @@
+import { ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
+
+interface FlexHeaderCellProps {
+  label: string;
+  sortKey: string;
+  currentSort: { key: string; direction: 'asc' | 'desc' | null };
+  onSort: (key: string) => void;
+  className?: string;
+}
+
+/**
+ * Sortable header cell for the virtualized conversation list. Uses a div (not
+ * a <th>) so the header can be a flex row whose widths match the virtualized
+ * flex rows exactly.
+ */
+export const FlexHeaderCell = ({
+  label,
+  sortKey,
+  currentSort,
+  onSort,
+  className,
+}: FlexHeaderCellProps) => {
+  const isActive = currentSort.key === sortKey;
+  const direction = isActive ? currentSort.direction : null;
+
+  const sortIcon =
+    !isActive || direction === null ? (
+      <ArrowUpDown className="h-3 w-3 opacity-50 shrink-0" />
+    ) : direction === 'asc' ? (
+      <ArrowUp className="h-3 w-3 shrink-0" />
+    ) : (
+      <ArrowDown className="h-3 w-3 shrink-0" />
+    );
+
+  return (
+    <div className={cn('p-2', className)}>
+      <Button
+        variant="ghost"
+        size="sm"
+        className={cn(
+          'h-6 px-0 w-full justify-start gap-1 font-medium text-xs hover:bg-transparent',
+          isActive && 'text-primary',
+        )}
+        onClick={() => onSort(sortKey)}
+      >
+        <span className="truncate">{label}</span>
+        {sortIcon}
+      </Button>
+    </div>
+  );
+};
