@@ -6,6 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { useNoddihKundeData } from '@/hooks/useNoddihKundeData';
 import { Check, CheckCheck, Lock, Clock } from 'lucide-react';
 import { PresenceAvatarStack } from '@/components/conversations/PresenceAvatarStack';
+import { getConversationBrand } from '@/lib/conversationBrand';
+import { BrandBadge } from '@/components/dashboard/conversation-list/BrandBadge';
 
 interface ChatConversation {
   id: string;
@@ -14,6 +16,7 @@ interface ChatConversation {
   status: string;
   updated_at: string;
   is_read: boolean;
+  metadata?: unknown;
   last_message_is_internal?: boolean;
   customer: {
     id: string;
@@ -44,6 +47,7 @@ export const ChatListItem: React.FC<ChatListItemProps> = ({
   const isWaiting = conv.session?.status === 'waiting';
   const isActive = conv.session?.status === 'active';
   const initial = customerName.charAt(0).toUpperCase();
+  const brand = getConversationBrand(conv.metadata, 'widget');
 
   // Create customer object for Noddi lookup
   const customer = useMemo(() => ({
@@ -96,6 +100,7 @@ export const ChatListItem: React.FC<ChatListItemProps> = ({
           )}>
             {customerName}
           </span>
+          {brand && <BrandBadge brand={brand} compact />}
           {isNoddiCustomer && (
             <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800">
               Noddi
