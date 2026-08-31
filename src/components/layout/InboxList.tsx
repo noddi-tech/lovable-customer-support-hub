@@ -66,10 +66,10 @@ export const InboxList: React.FC<InboxListProps> = ({
   const { data: counts, isLoading: countsLoading } = useInboxCounts(selectedInbox || 'all');
   const { defaultInboxId } = useDefaultInbox();
 
-  const [selectOpen, setSelectOpen] = useState(false);
+  const [selectOpen, setSelectOpen] = React.useState(false);
 
   // Configured inboxes get keyboard shortcuts 1-9 (0 = All Inboxes)
-  const numberedInboxes = useMemo(
+  const numberedInboxes = React.useMemo(
     () => inboxes.filter((i) => inboxEmails[i.id]).slice(0, 9),
     [inboxes, inboxEmails]
   );
