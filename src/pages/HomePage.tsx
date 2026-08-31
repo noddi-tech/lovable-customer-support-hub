@@ -26,6 +26,7 @@ import {
   Star,
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { SidebarTrigger } from '@/components/ui/sidebar';
 
 const sectionIcons: Record<string, typeof MessageSquare> = {
   interactions: MessageSquare,
@@ -70,10 +71,16 @@ export default function HomePage() {
 
   return (
     <UnifiedAppLayout>
+      {/* Mobile top bar with menu button */}
+      <header className="md:hidden sticky top-0 z-20 flex items-center gap-2 h-14 px-2 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+        <SidebarTrigger className="h-10 w-10" aria-label="Open navigation menu" />
+        <span className="text-base font-semibold text-foreground">Home</span>
+      </header>
+
       <div className="flex-1 overflow-auto p-4 md:p-6 space-y-5">
         {/* Header */}
         <div>
-          <h1 className="text-2xl font-bold text-foreground">
+          <h1 className="text-xl md:text-2xl font-bold text-foreground">
             Welcome back, {firstName} 👋
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
@@ -82,7 +89,7 @@ export default function HomePage() {
         </div>
 
         {/* Stats row */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
           {stats.map(s => (
             <Card
               key={s.label}
@@ -136,8 +143,8 @@ export default function HomePage() {
                     )}
                     onClick={isConfigured ? () => navigate(`/interactions/text/open?inbox=${inbox.id}`) : undefined}
                   >
-                    <CardContent className="p-3 flex items-center justify-between">
-                      <div className="flex items-start gap-3 min-w-0">
+                    <CardContent className="p-3 flex items-center justify-between gap-2">
+                      <div className="flex items-start gap-3 min-w-0 flex-1">
                         <span
                           className="h-2.5 w-2.5 rounded-full shrink-0 mt-1.5"
                           style={{ backgroundColor: isConfigured ? (inbox.color || 'hsl(var(--primary))') : 'hsl(var(--muted-foreground) / 0.4)' }}
@@ -157,7 +164,7 @@ export default function HomePage() {
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2 ml-3 shrink-0">
+                      <div className="flex items-center gap-1 sm:gap-2 shrink-0">
                         {isConfigured ? (
                           <>
                             {inbox.unread_count > 0 && (

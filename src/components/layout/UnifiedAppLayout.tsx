@@ -9,6 +9,7 @@ import { useDesktopEmailNotifications } from '@/hooks/useDesktopEmailNotificatio
 import { useNotificationPermissionPrompt } from '@/hooks/useNotificationPermissionPrompt';
 import { useOpenConversationsBadge } from '@/hooks/useOpenConversationsBadge';
 import { WhatsNewDialog } from '@/features/whats-new/WhatsNewDialog';
+import { MobileEdgeSwipe } from './MobileEdgeSwipe';
 
 interface UnifiedAppLayoutProps {
   children: React.ReactNode;
@@ -53,6 +54,7 @@ export const UnifiedAppLayout: React.FC<UnifiedAppLayoutProps> = ({
       <SearchCommandPalette open={searchOpen} onOpenChange={setSearchOpen} />
       <QuickInboxSwitcher open={inboxSwitcherOpen} onOpenChange={setInboxSwitcherOpen} />
       <WhatsNewDialog />
+      <MobileEdgeSwipe />
 
       <div className="h-svh flex w-full bg-background">
         {/* Sidebar Navigation */}
