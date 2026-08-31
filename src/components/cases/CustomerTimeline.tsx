@@ -45,6 +45,7 @@ export function CustomerTimeline({
   const { dateTime } = useDateFormatting();
   const [filter, setFilter] = useState<'all' | TimelineChannel>('all');
   const [expanded, setExpanded] = useState(false);
+  const [previewItem, setPreviewItem] = useState<TimelineItem | null>(null);
 
   const { items, isLoading } = useCustomerTimeline(customerId, {
     excludeConversationId: currentConversationId,
