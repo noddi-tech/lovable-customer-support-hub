@@ -17,6 +17,7 @@ import { SLABadge } from './SLABadge';
 import { getCustomerDisplay, getCustomerInitial } from '@/utils/customerDisplayName';
 import { useIsMobile } from '@/hooks/use-responsive';
 import { useInboxEmailAddresses } from '@/hooks/useInboxEmailAddresses';
+import { ConversationStatusContextMenu } from './ConversationStatusContextMenu';
 
 /**
  * Small colored pill identifying which inbox a conversation belongs to.
@@ -334,6 +335,7 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
   // --- Virtualized row (div-based) ---
   if (style) {
     return (
+      <ConversationStatusContextMenu conversationId={conversation.id} status={conversation.status}>
       <div style={style} className={cn("flex items-center px-4 border-b", rowClasses)} onClick={handleRowClick}>
         {showBulkCheckbox && (
           <div className="w-10 p-2 shrink-0">
@@ -480,11 +482,13 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
           </DropdownMenu>
         </div>
       </div>
+      </ConversationStatusContextMenu>
     );
   }
 
   // --- Standard table row ---
   return (
+    <ConversationStatusContextMenu conversationId={conversation.id} status={conversation.status}>
     <TableRow className={rowClasses} onClick={handleRowClick}>
       {showBulkCheckbox && (
         <TableCell className="w-10 p-2">
@@ -634,6 +638,7 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
         </DropdownMenu>
       </TableCell>
     </TableRow>
+    </ConversationStatusContextMenu>
   );
 });
 

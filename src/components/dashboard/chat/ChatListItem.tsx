@@ -8,6 +8,7 @@ import { Check, CheckCheck, Lock, Clock } from 'lucide-react';
 import { PresenceAvatarStack } from '@/components/conversations/PresenceAvatarStack';
 import { getConversationBrand } from '@/lib/conversationBrand';
 import { BrandBadge } from '@/components/dashboard/conversation-list/BrandBadge';
+import { ConversationStatusContextMenu } from '@/components/dashboard/conversation-list/ConversationStatusContextMenu';
 
 interface ChatConversation {
   id: string;
@@ -62,6 +63,7 @@ export const ChatListItem: React.FC<ChatListItemProps> = ({
   const isNoddiCustomer = noddiData?.data?.found;
 
   return (
+    <ConversationStatusContextMenu conversationId={conv.id} status={conv.status}>
     <button
       onClick={onSelect}
       className={cn(
@@ -167,5 +169,6 @@ export const ChatListItem: React.FC<ChatListItemProps> = ({
         )}
       </div>
     </button>
+    </ConversationStatusContextMenu>
   );
 };
