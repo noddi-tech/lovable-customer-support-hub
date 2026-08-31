@@ -67,7 +67,7 @@ export function NoddiTicketFilters({ value, onChange, departments }: Props) {
         value={value.category}
         onValueChange={(v) => onChange({ ...value, category: v as NoddiTicketFilterState['category'] })}
       >
-        <SelectTrigger className="w-[180px]">
+        <SelectTrigger className="w-full sm:w-[180px]">
           <SelectValue placeholder="Category" />
         </SelectTrigger>
         <SelectContent>
