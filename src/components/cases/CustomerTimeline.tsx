@@ -157,6 +157,12 @@ export function CustomerTimeline({
           </Button>
         )}
       </CardContent>
+
+      <TimelineItemPreviewDialog
+        item={previewItem}
+        open={!!previewItem}
+        onOpenChange={(o) => !o && setPreviewItem(null)}
+      />
     </Card>
   );
 }
