@@ -6,6 +6,8 @@ import { SearchCommandPalette } from '@/components/search/SearchCommandPalette';
 import { QuickInboxSwitcher } from './QuickInboxSwitcher';
 import { UIProbe } from '@/dev/UIProbe';
 import { useDesktopEmailNotifications } from '@/hooks/useDesktopEmailNotifications';
+import { useNotificationPermissionPrompt } from '@/hooks/useNotificationPermissionPrompt';
+import { useOpenConversationsBadge } from '@/hooks/useOpenConversationsBadge';
 
 interface UnifiedAppLayoutProps {
   children: React.ReactNode;
@@ -19,8 +21,14 @@ export const UnifiedAppLayout: React.FC<UnifiedAppLayoutProps> = ({
   const location = useLocation();
   const section = location.pathname.split('/').slice(0, 3).join('/');
 
-  // Desktop notifications for newly arrived emails (opt-in, per device)
+  // Ask for browser notification permission on first app open (top-level only)
+  useNotificationPermissionPrompt();
+
+  // Desktop notifications for newly arrived emails and chat messages
   useDesktopEmailNotifications();
+
+  // Favicon / app badge with open conversations in the selected inbox
+  useOpenConversationsBadge();
 
   // Global Cmd+K / Ctrl+K (search) and Cmd+D / Ctrl+D (quick inbox switcher)
   useEffect(() => {

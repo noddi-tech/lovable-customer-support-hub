@@ -67,7 +67,7 @@ export function useDesktopEmailNotifications() {
             email_subject: string | null;
           };
 
-          // Only inbound customer emails, never our own replies or internal notes
+          // Only inbound customer messages, never our own replies or internal notes
           if (message.sender_type !== 'customer' || message.is_internal) return;
           if (seenRef.current.has(message.id)) return;
           seenRef.current.add(message.id);
@@ -86,10 +86,12 @@ export function useDesktopEmailNotifications() {
             .maybeSingle();
 
           if (!conversation) return;
-          if (conversation.channel && conversation.channel !== 'email') return;
+          const channel: string = conversation.channel || 'email';
+          const isChat = ['chat', 'live_chat', 'widget'].includes(channel);
+          if (!isChat && channel !== 'email') return;
 
           const customer = conversation.customer as { full_name?: string | null; email?: string | null } | null;
-          const from = customer?.full_name || customer?.email || 'New email';
+          const from = customer?.full_name || customer?.email || (isChat ? 'New chat message' : 'New email');
           const subject = message.email_subject || conversation.subject || '(no subject)';
           const preview = (message.content || '')
             .replace(/<[^>]*>/g, ' ')
@@ -98,9 +100,10 @@ export function useDesktopEmailNotifications() {
             .slice(0, 160);
 
           const notification = await showNotification({
-            title: `${from}: ${subject}`,
-            body: preview || 'New email received',
+            title: isChat ? `💬 ${from}` : `${from}: ${subject}`,
+            body: preview || (isChat ? 'New chat message' : 'New email received'),
             tag: `conversation-${message.conversation_id}`,
+            requireInteraction: isChat,
             data: { conversationId: message.conversation_id },
           });
 
