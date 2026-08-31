@@ -13,6 +13,15 @@ export interface CustomerListRow {
   /** Most recent interaction timestamp across conversations. */
   last_activity_at: string | null;
   conversation_count: number;
+  /** Distinct statuses across this customer's conversations (open/pending/closed). */
+  statuses: string[];
+  /** Distinct brand labels derived from widget conversations. */
+  brands: string[];
+}
+
+/** Display name used for alphabetical ordering. */
+export function customerSortName(c: CustomerListRow): string {
+  return (c.full_name || c.email || c.phone || '\uffff').trim().toLowerCase();
 }
 
 /**
