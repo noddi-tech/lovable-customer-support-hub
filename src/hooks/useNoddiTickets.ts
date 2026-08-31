@@ -34,10 +34,11 @@ export const noddiTicketKeys = {
   departments: ['noddi-tickets', 'departments'] as const,
 };
 
-export function useNoddiTickets(params: NoddiTicketListParams) {
+export function useNoddiTickets(params: NoddiTicketListParams, options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: noddiTicketKeys.list(params),
     queryFn: () => invokeTickets<NoddiPaginated<NoddiTicket>>({ action: 'list', ...params }),
+    enabled: options?.enabled ?? true,
     staleTime: 30_000,
     placeholderData: (previous) => previous,
   });
