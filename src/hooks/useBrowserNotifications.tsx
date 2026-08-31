@@ -31,6 +31,26 @@ export const useBrowserNotifications = () => {
     }
   }, []);
 
+  /** Re-read the live browser permission (e.g. after the user changed it in site settings). */
+  const refreshPermission = useCallback((): NotificationPermission => {
+    if (!('Notification' in window)) return 'denied';
+    const current = Notification.permission as NotificationPermission;
+    setPermission(current);
+    return current;
+  }, []);
+
+  // Keep in sync when the user changes the setting in another tab / browser UI
+  useEffect(() => {
+    if (!isSupported) return;
+    const onFocus = () => setPermission(Notification.permission as NotificationPermission);
+    window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onFocus);
+    return () => {
+      window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onFocus);
+    };
+  }, [isSupported]);
+
   const requestPermission = useCallback(async (): Promise<NotificationPermission> => {
     if (!isSupported) {
       console.warn('Browser notifications are not supported');
@@ -88,6 +108,7 @@ export const useBrowserNotifications = () => {
     permission,
     isSupported,
     requestPermission,
+    refreshPermission,
     showNotification,
   };
 };
