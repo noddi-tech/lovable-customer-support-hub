@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { useDateFormatting } from '@/hooks/useDateFormatting';
-import { useCustomerTimeline, type TimelineChannel } from '@/hooks/useCustomerTimeline';
+import { useCustomerTimeline, type TimelineChannel, type TimelineItem } from '@/hooks/useCustomerTimeline';
+import { TimelineItemPreviewDialog } from '@/components/cases/TimelineItemPreviewDialog';
 import { History, Mail, MessageSquare, Phone, StickyNote, Briefcase } from 'lucide-react';
 
 const CHANNEL_ICONS: Record<TimelineChannel, React.ComponentType<{ className?: string }>> = {
@@ -45,6 +46,7 @@ export function CustomerTimeline({
   const { dateTime } = useDateFormatting();
   const [filter, setFilter] = useState<'all' | TimelineChannel>('all');
   const [expanded, setExpanded] = useState(false);
+  const [previewItem, setPreviewItem] = useState<TimelineItem | null>(null);
 
   const { items, isLoading } = useCustomerTimeline(customerId, {
     excludeConversationId: currentConversationId,
@@ -102,17 +104,15 @@ export function CustomerTimeline({
           <ol className="relative space-y-2 border-l pl-3">
             {visible.map((item) => {
               const Icon = CHANNEL_ICONS[item.channel];
-              const clickable = !!item.href;
               return (
                 <li key={item.id} className="relative">
                   <span className="absolute -left-[19px] top-2 flex h-3 w-3 items-center justify-center rounded-full border bg-background" />
                   <button
                     type="button"
-                    disabled={!clickable}
-                    onClick={() => item.href && navigate(item.href)}
+                    onClick={() => setPreviewItem(item)}
+                    title="Quick preview"
                     className={cn(
-                      'w-full rounded-md border p-2 text-left transition-colors',
-                      clickable ? 'hover:bg-accent/50' : 'cursor-default',
+                      'w-full rounded-md border p-2 text-left transition-colors hover:bg-accent/50',
                     )}
                   >
                     <div className="flex items-center gap-2">
@@ -157,6 +157,12 @@ export function CustomerTimeline({
           </Button>
         )}
       </CardContent>
+
+      <TimelineItemPreviewDialog
+        item={previewItem}
+        open={!!previewItem}
+        onOpenChange={(o) => !o && setPreviewItem(null)}
+      />
     </Card>
   );
 }
