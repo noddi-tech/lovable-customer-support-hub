@@ -48,6 +48,9 @@ export function BulkActionsBar({
           <XSquare className="w-4 h-4 mr-2" />
           Clear
         </Button>
+        <span className="text-xs text-muted-foreground hidden lg:inline">
+          Tip: shift-click to select a range
+        </span>
       </div>
 
       <div className="flex items-center gap-2 flex-wrap">
