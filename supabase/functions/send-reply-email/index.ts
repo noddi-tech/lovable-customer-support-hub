@@ -402,6 +402,21 @@ const handler = async (req: Request): Promise<Response> => {
     });
     const plainText = isHtmlBody ? htmlToPlainText(rawContent) : rawContent;
 
+    // Preview mode: render the exact customer-facing email without sending anything.
+    if (previewOnly) {
+      return new Response(
+        JSON.stringify({
+          preview: true,
+          html: emailHTML,
+          subject,
+          to: toEmail,
+          from: fromEmailFinal,
+          fromName: senderDisplayName || brandName || null,
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
+
     // Monitor email size to prevent Gmail clipping (102KB limit)
     const estimatedSize = emailHTML.length + plainText.length + 2000; // +2KB for headers
     console.log(`📧 Email size: ${(estimatedSize/1024).toFixed(1)}KB (HTML: ${(emailHTML.length/1024).toFixed(1)}KB, Plain: ${(plainText.length/1024).toFixed(1)}KB)`);
