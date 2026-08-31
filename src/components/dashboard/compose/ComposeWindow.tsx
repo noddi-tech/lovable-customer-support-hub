@@ -485,17 +485,23 @@ export const ComposeWindow: React.FC<ComposeWindowProps> = ({ draft }) => {
               <SelectValue placeholder={t('conversation.selectInbox')} />
             </SelectTrigger>
             <SelectContent>
-              {inboxes.map((inbox) => (
-                <SelectItem key={inbox.id} value={inbox.id}>
-                  <div className="flex items-center gap-2 min-w-0">
-                    <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: inbox.color }} />
-                    <span className="truncate">{inbox.name}</span>
-                    {inboxEmails[inbox.id] && (
-                      <span className="text-xs text-muted-foreground truncate">({inboxEmails[inbox.id]})</span>
-                    )}
-                  </div>
-                </SelectItem>
-              ))}
+              {inboxes.map((inbox) => {
+                const email = inboxEmails[inbox.id];
+                return (
+                  <SelectItem key={inbox.id} value={inbox.id} disabled={!email}>
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div
+                        className="w-2.5 h-2.5 rounded-full shrink-0"
+                        style={{ backgroundColor: email ? inbox.color : undefined }}
+                      />
+                      <span className={cn('truncate', !email && 'text-muted-foreground')}>{inbox.name}</span>
+                      <span className="text-xs text-muted-foreground truncate">
+                        {email ? `(${email})` : '(not configured)'}
+                      </span>
+                    </div>
+                  </SelectItem>
+                );
+              })}
             </SelectContent>
           </Select>
         </div>
