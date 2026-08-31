@@ -1255,11 +1255,30 @@ const WIDGET_JS = `
     else if (cmd === 'close') { state.isOpen = false; render(); }
     else if (cmd === 'toggle') { state.isOpen = !state.isOpen; render(); }
     else if (cmd === 'update') update(opts);
+    else if (cmd === 'identify') applyIdentify(opts);
+    else if (cmd === 'clearIdentity') applyClearIdentity();
   };
+
+  function applyIdentify(opts) {
+    if (opts === null || opts === undefined) { applyClearIdentity(); return; }
+    setIdentity(opts);
+    if (container) render();
+  }
+
+  function applyClearIdentity() {
+    clearIdentity();
+    state.prechatEmail = '';
+    state.prechatName = '';
+    if (container) render();
+  }
+
   api.init = init;
   api.open = function() { state.isOpen = true; render(); };
   api.close = function() { state.isOpen = false; render(); };
   api.toggle = function() { state.isOpen = !state.isOpen; render(); };
+  api.identify = applyIdentify;
+  api.clearIdentity = applyClearIdentity;
+  api.getIdentity = function() { return Object.assign({}, identity); };
   api.update = update;
 
   api.q = (window.NoddiWidget && window.NoddiWidget.q) || [];
