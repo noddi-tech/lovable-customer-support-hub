@@ -17,8 +17,9 @@ export const ContactForm: React.FC<ContactFormProps> = ({
   language,
   initialMessage,
 }) => {
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
+  const identity = getIdentity();
+  const [name, setName] = useState(identity.name || '');
+  const [email, setEmail] = useState(identity.email || '');
   const [message, setMessage] = useState(initialMessage || '');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
