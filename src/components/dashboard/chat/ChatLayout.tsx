@@ -158,6 +158,7 @@ export const ChatLayout: React.FC = () => {
       <div className="flex items-center gap-2 px-4 py-3 border-b bg-card">
         <MessageCircle className="h-5 w-5 text-primary" />
         <h1 className="text-lg font-semibold">Live Chat</h1>
+        <div className="ml-auto">{widgetSettingsButton}</div>
       </div>
 
       {/* Main content */}
