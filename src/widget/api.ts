@@ -241,7 +241,40 @@ export interface SubmitContactData {
   brand?: string;
 }
 
-export async function submitContactForm(data: SubmitContactData): Promise<{ success: boolean; error?: string }> {
+/** A contact-form message this visitor sent, kept locally so the widget can show it again. */
+export interface StoredSubmission {
+  conversationId?: string;
+  name: string;
+  email: string;
+  message: string;
+  sentAt: string;
+}
+
+const SUBMISSIONS_KEY = 'noddi_contact_submissions';
+
+export function readStoredSubmissions(): StoredSubmission[] {
+  try {
+    const raw = localStorage.getItem(SUBMISSIONS_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? (parsed as StoredSubmission[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function storeSubmission(submission: StoredSubmission): void {
+  try {
+    const next = [submission, ...readStoredSubmissions()].slice(0, 10);
+    localStorage.setItem(SUBMISSIONS_KEY, JSON.stringify(next));
+  } catch {
+    // storage unavailable — the message is still sent, we just can't show history
+  }
+}
+
+export async function submitContactForm(
+  data: SubmitContactData,
+): Promise<{ success: boolean; error?: string; conversationId?: string }> {
   try {
     const response = await fetch(`${apiBaseUrl}/widget-submit`, {
       method: 'POST',
