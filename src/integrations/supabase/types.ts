@@ -7452,6 +7452,7 @@ export type Database = {
         Args: { p_position_id: string }
         Returns: undefined
       }
+      ensure_google_employee_support_hub_access: { Args: never; Returns: Json }
       execute_automation_rules: {
         Args: {
           p_dry_run?: boolean
