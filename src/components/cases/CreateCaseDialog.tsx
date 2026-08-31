@@ -165,7 +165,7 @@ export function CreateCaseDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={handleSubmit} disabled={!title.trim() || createCase.isPending}>
+          <Button onClick={handleSubmit} disabled={!title.trim() || !selectedCustomerId || createCase.isPending}>
             Create case
           </Button>
         </DialogFooter>
