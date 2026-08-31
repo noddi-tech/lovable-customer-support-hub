@@ -3,6 +3,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useNoddihKundeData } from '@/hooks/useNoddihKundeData';
 import { Check, CheckCheck, Lock, Clock } from 'lucide-react';
 import { PresenceAvatarStack } from '@/components/conversations/PresenceAvatarStack';
@@ -36,12 +37,21 @@ interface ChatListItemProps {
   conv: ChatConversation;
   isSelected: boolean;
   onSelect: () => void;
+  /** True when the chat is ticked for a bulk action. */
+  isBulkSelected?: boolean;
+  /** Shown once at least one chat is ticked. */
+  selectionMode?: boolean;
+  /** Cmd/Ctrl-click toggles one chat, Shift-click selects the range. */
+  onBulkSelect?: (id: string, selected: boolean, shiftKey?: boolean) => void;
 }
 
 export const ChatListItem: React.FC<ChatListItemProps> = ({
   conv,
   isSelected,
   onSelect,
+  isBulkSelected = false,
+  selectionMode = false,
+  onBulkSelect,
 }) => {
   const customerName = conv.session?.visitor_name || conv.customer?.full_name || 'Visitor';
   const customerEmail = conv.session?.visitor_email || conv.customer?.email;
@@ -65,15 +75,34 @@ export const ChatListItem: React.FC<ChatListItemProps> = ({
   return (
     <ConversationStatusContextMenu conversationId={conv.id} status={conv.status}>
     <button
-      onClick={onSelect}
+      onClick={(e) => {
+        const modifierSelect = e.metaKey || e.ctrlKey || e.shiftKey;
+        if (onBulkSelect && (selectionMode || modifierSelect)) {
+          e.preventDefault();
+          window.getSelection?.()?.removeAllRanges();
+          onBulkSelect(conv.id, !isBulkSelected, e.shiftKey);
+          return;
+        }
+        onSelect();
+      }}
       className={cn(
         "w-full flex items-start gap-3 p-3 rounded-lg border text-left transition-all duration-200",
         isSelected
           ? "bg-accent border-accent-foreground/20 shadow-sm"
           : "hover:bg-muted/50 border-transparent",
+        isBulkSelected && "ring-1 ring-primary bg-primary/10",
         !conv.is_read && "bg-primary/5"
       )}
     >
+      {selectionMode && (
+        <span className="pt-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+          <Checkbox
+            checked={isBulkSelected}
+            onCheckedChange={(checked) => onBulkSelect?.(conv.id, checked === true)}
+            aria-label="Select chat"
+          />
+        </span>
+      )}
       {/* Avatar with status indicator */}
       <div className="relative shrink-0">
         <Avatar className="h-10 w-10">
