@@ -8,7 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CaseStatusBadge, CasePriorityBadge, CaseSlaBadge } from '@/components/cases/CaseBadges';
+import { CaseStatusBadge, CasePriorityBadge, CaseSlaBadge, CASE_PRIORITY_DOT } from '@/components/cases/CaseBadges';
 import { CreateCaseDialog } from '@/components/cases/CreateCaseDialog';
 import {
   CASE_PRIORITY_LABELS,
@@ -172,7 +172,13 @@ export default function CasesPage() {
                   <SelectItem value="all">All priorities</SelectItem>
                   {Object.entries(CASE_PRIORITY_LABELS).map(([value, label]) => (
                     <SelectItem key={value} value={value}>
-                      {label}
+                      <span className="flex items-center gap-2">
+                        <span
+                          aria-hidden
+                          className={`h-2 w-2 rounded-full ${CASE_PRIORITY_DOT[value as CasePriority]}`}
+                        />
+                        {label}
+                      </span>
                     </SelectItem>
                   ))}
                 </SelectContent>

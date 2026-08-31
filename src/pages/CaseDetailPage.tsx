@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label';
 import {
   CaseStatusBadge,
   CasePriorityBadge,
+  CASE_PRIORITY_DOT,
   CaseSlaBadge,
   CASE_STATUS_ICONS,
   CASE_STATUS_ICON_COLORS,
@@ -238,7 +239,13 @@ export default function CaseDetailPage() {
                       <SelectContent>
                         {Object.entries(CASE_PRIORITY_LABELS).map(([value, label]) => (
                           <SelectItem key={value} value={value}>
-                            {label}
+                            <span className="flex items-center gap-2">
+                              <span
+                                aria-hidden
+                                className={`h-2 w-2 rounded-full ${CASE_PRIORITY_DOT[value as CasePriority]}`}
+                              />
+                              {label}
+                            </span>
                           </SelectItem>
                         ))}
                       </SelectContent>

@@ -19,6 +19,7 @@ import {
   type CasePriority,
 } from '@/hooks/useCases';
 import { CaseCustomerPicker, useCustomerBasics, type PickedCustomer } from './CaseCustomerPicker';
+import { CASE_PRIORITY_DOT } from './CaseBadges';
 
 interface CreateCaseDialogProps {
   open: boolean;
@@ -136,7 +137,13 @@ export function CreateCaseDialog({
                 <SelectContent>
                   {Object.entries(CASE_PRIORITY_LABELS).map(([value, label]) => (
                     <SelectItem key={value} value={value}>
-                      {label}
+                      <span className="flex items-center gap-2">
+                        <span
+                          aria-hidden
+                          className={`h-2 w-2 rounded-full ${CASE_PRIORITY_DOT[value as CasePriority]}`}
+                        />
+                        {label}
+                      </span>
                     </SelectItem>
                   ))}
                 </SelectContent>

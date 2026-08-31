@@ -59,16 +59,33 @@ export function CaseStatusBadge({ status, className }: { status: CaseStatus; cla
   );
 }
 
+/** Traffic-light scale: green (low) → yellow (normal) → orange (high) → red (urgent). */
 const PRIORITY_STYLES: Record<CasePriority, string> = {
-  low: 'bg-muted text-muted-foreground border-border',
-  normal: 'bg-muted text-muted-foreground border-border',
-  high: 'bg-orange-500/10 text-orange-600 border-orange-500/20 dark:text-orange-400',
-  urgent: 'bg-destructive/10 text-destructive border-destructive/20',
+  low: 'bg-emerald-500/10 text-emerald-700 border-emerald-500/20 dark:text-emerald-400',
+  normal: 'bg-amber-400/10 text-amber-700 border-amber-400/25 dark:text-amber-400',
+  high: 'bg-orange-500/10 text-orange-700 border-orange-500/25 dark:text-orange-400',
+  urgent: 'bg-destructive/10 text-destructive border-destructive/25',
+};
+
+/** Solid dot colour used for the traffic-light indicator. */
+export const CASE_PRIORITY_DOT: Record<CasePriority, string> = {
+  low: 'bg-emerald-500',
+  normal: 'bg-amber-400',
+  high: 'bg-orange-500',
+  urgent: 'bg-destructive',
 };
 
 export function CasePriorityBadge({ priority, className }: { priority: CasePriority; className?: string }) {
   return (
-    <Badge variant="outline" className={cn('font-medium', PRIORITY_STYLES[priority], className)}>
+    <Badge variant="outline" className={cn('gap-1.5 font-medium', PRIORITY_STYLES[priority], className)}>
+      <span
+        aria-hidden
+        className={cn(
+          'h-2 w-2 shrink-0 rounded-full',
+          CASE_PRIORITY_DOT[priority],
+          priority === 'urgent' && 'animate-pulse',
+        )}
+      />
       {CASE_PRIORITY_LABELS[priority]}
     </Badge>
   );
