@@ -23,6 +23,37 @@ export const SUPPORTED_WIDGET_LANGUAGES = [
 
 export const DEFAULT_WIDGET_LANGUAGE = 'no';
 
+export type WidgetLanguage = (typeof SUPPORTED_WIDGET_LANGUAGES)[number];
+
+/**
+ * Sanitize a host-provided `supportedLocales` list: max 20 entries, each max
+ * 20 chars, mapped onto widget UI codes, de-duplicated, host order preserved.
+ */
+export function sanitizeSupportedLocales(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  const out: string[] = [];
+  for (const entry of value.slice(0, 20)) {
+    if (typeof entry !== 'string') continue;
+    const code = normalizeWidgetLanguage(entry.trim().slice(0, 20));
+    if (code && !out.includes(code)) out.push(code);
+  }
+  return out;
+}
+
+/**
+ * Languages the picker should offer: the intersection of the host list with
+ * the languages we ship translations for, in host order. Falls back to the
+ * full widget set when the host sent nothing usable.
+ */
+export function resolveWidgetLanguages(allowed?: string[] | null): readonly WidgetLanguage[] {
+  if (!allowed || allowed.length === 0) return SUPPORTED_WIDGET_LANGUAGES;
+  const picked = allowed
+    .map(code => SUPPORTED_WIDGET_LANGUAGES.find(l => l.code === code))
+    .filter((l): l is WidgetLanguage => Boolean(l));
+  return picked.length > 0 ? picked : SUPPORTED_WIDGET_LANGUAGES;
+}
+
+
 /**
  * Map a host locale (BCP-47 like `nb-NO`, `en-US`, `sv-SE`, or the frontend
  * language codes `nb` / `en` / `se`) onto a widget UI language code.
