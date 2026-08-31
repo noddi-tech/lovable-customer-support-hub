@@ -75,7 +75,16 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
         }, 'ProtectedRoute');
       }
     }
-  }, [user, loading, isProcessingOAuth, navigate]);
+  }, [user, loading, isProcessingOAuth, navigate, previewBypass]);
+
+  if (previewBypass && !user) {
+    return (
+      <>
+        {children}
+        <PreviewBypassBanner />
+      </>
+    );
+  }
 
   // Show loading while authenticating OR processing OAuth
   if (loading || isProcessingOAuth) {
