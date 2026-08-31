@@ -16,6 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { useAccessibleInboxes } from '@/hooks/useInteractionsData';
 import { useInboxEmailAddresses } from '@/hooks/useInboxEmailAddresses';
 import { useInboxOutstandingCounts } from '@/hooks/useInboxOutstandingCounts';
+import { useDefaultInbox } from '@/hooks/useDefaultInbox';
 
 interface QuickInboxSwitcherProps {
   open: boolean;
@@ -29,6 +30,7 @@ export const QuickInboxSwitcher: React.FC<QuickInboxSwitcherProps> = ({ open, on
   const { data: inboxes = [] } = useAccessibleInboxes();
   const { data: inboxEmails = {} } = useInboxEmailAddresses();
   const { data: outstanding = {} } = useInboxOutstandingCounts();
+  const { defaultInboxId } = useDefaultInbox();
 
   // Only configured inboxes are selectable
   const selectable = React.useMemo(
@@ -132,7 +134,14 @@ export const QuickInboxSwitcher: React.FC<QuickInboxSwitcherProps> = ({ open, on
                 style={{ backgroundColor: inbox.color || '#6B7280' }}
               />
               <div className="min-w-0 flex flex-col leading-tight">
-                <span className="truncate">{inbox.name}</span>
+                <span className="truncate flex items-center gap-1.5">
+                  {inbox.name}
+                  {defaultInboxId === inbox.id && (
+                    <Badge variant="outline" className="h-4 px-1.5 text-[9px] border-primary/40 text-primary">
+                      Default
+                    </Badge>
+                  )}
+                </span>
                 <span className="text-[11px] text-muted-foreground truncate">
                   {inboxEmails[inbox.id]}
                 </span>
