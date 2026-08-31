@@ -617,8 +617,8 @@ const WIDGET_JS = `
         html += '<div class="noddi-widget-view">';
         html += '<button class="noddi-widget-back" data-action="back">' + icons.back + t.back + '</button>';
         html += '<form class="noddi-widget-form" data-form="contact">';
-        html += '<div class="noddi-widget-field"><label>' + t.name + '</label><input type="text" name="name" placeholder="' + t.yourName + '" maxlength="100"></div>';
-        html += '<div class="noddi-widget-field"><label>' + t.email + '</label><input type="email" name="email" placeholder="your@email.com" maxlength="255"></div>';
+        html += '<div class="noddi-widget-field"><label>' + t.name + '</label><input type="text" name="name" placeholder="' + t.yourName + '" value="' + escapeAttr(identity.name || '') + '" maxlength="100"></div>';
+        html += '<div class="noddi-widget-field"><label>' + t.email + '</label><input type="email" name="email" placeholder="your@email.com" value="' + escapeAttr(identity.email || '') + '" maxlength="255"></div>';
         html += '<div class="noddi-widget-field"><label>' + t.message + '</label><textarea name="message" placeholder="' + t.howCanWeHelp + '" rows="4" maxlength="2000"></textarea></div>';
         if (state.error) html += '<div class="noddi-widget-error">' + state.error + '</div>';
         html += '<button type="submit" class="noddi-widget-submit" style="background-color:' + config.primaryColor + '"' + (state.isLoading ? ' disabled' : '') + '>' + (state.isLoading ? t.sending : t.sendMessageBtn) + '</button>';
