@@ -13,6 +13,8 @@ import { logger } from '@/utils/logger';
 import { supabase } from '@/integrations/supabase/client';
 import { buildAttachmentUrl } from '@/utils/attachmentUrl';
 import { useCleanedEmailBody } from '@/hooks/useCleanedEmailBody';
+import { OriginalEmailDialog } from '@/components/ui/original-email-dialog';
+
 
 interface EmailRenderProps {
   content: string;
