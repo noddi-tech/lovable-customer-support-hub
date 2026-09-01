@@ -311,7 +311,7 @@ export function InboxManagementContent() {
                   <SelectContent>
                     <SelectItem value="no-department">No service department</SelectItem>
                     {departments?.map(dept => (
-                      <SelectItem key={dept.id} value={dept.id}>{dept.name}</SelectItem>
+                      <SelectItem key={dept.id} value={String(dept.id)}>{dept.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
