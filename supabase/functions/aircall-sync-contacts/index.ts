@@ -186,7 +186,35 @@ Deno.serve(async (req) => {
         errors: [] as string[],
       };
 
-      // Only sync customers we have not pushed yet, or whose name/phone changed
+      // Brand labels assigned on this customer's conversations (email + live chat).
+      // A customer can have several brands; we surface them all on the contact.
+      const brandsByCustomer = new Map<string, string[]>();
+      const customerIds = (customers || []).map((c: any) => c.id);
+      for (let i = 0; i < customerIds.length; i += 200) {
+        const chunk = customerIds.slice(i, i + 200);
+        const { data: convs } = await adminClient
+          .from('conversations')
+          .select('customer_id, metadata')
+          .in('customer_id', chunk);
+        for (const conv of (convs || []) as any[]) {
+          const cmeta = (conv.metadata || {}) as Record<string, any>;
+          const label =
+            (typeof cmeta.brand === 'string' && cmeta.brand.trim()) ||
+            (typeof cmeta.brand_name === 'string' && cmeta.brand_name.trim()) ||
+            '';
+          if (!label || !conv.customer_id) continue;
+          const list = brandsByCustomer.get(conv.customer_id) || [];
+          if (!list.some((b) => b.toLowerCase() === label.toLowerCase())) list.push(label);
+          brandsByCustomer.set(conv.customer_id, list);
+        }
+      }
+      const brandSignature = (customerId: string) =>
+        (brandsByCustomer.get(customerId) || [])
+          .map((b) => b.toLowerCase())
+          .sort()
+          .join(',');
+
+      // Only sync customers we have not pushed yet, or whose name/phone/brands changed
       const pending: Array<{ row: CustomerRow; phone: string }> = [];
       for (const row of (customers || []) as CustomerRow[]) {
         const phone = normalizeToE164(row.phone || '');
@@ -194,7 +222,7 @@ Deno.serve(async (req) => {
         summary.eligible++;
 
         const meta = (row.metadata || {}) as Record<string, any>;
-        const sig = `v2|${row.full_name?.trim()}|${phone}|${row.email || ''}`;
+        const sig = `v3|${row.full_name?.trim()}|${phone}|${row.email || ''}|${brandSignature(row.id)}`;
         if (!body.force && meta.aircall_synced_signature === sig) {
           summary.skipped++;
           continue;
@@ -227,6 +255,9 @@ Deno.serve(async (req) => {
 
 
 
+
+
+
       for (const { row, phone } of batch) {
         try {
           const meta = (row.metadata || {}) as Record<string, any>;
@@ -253,7 +284,10 @@ Deno.serve(async (req) => {
             pushEmail(typeof e === 'string' ? e : e?.email),
           );
 
+          const brands = brandsByCustomer.get(row.id) || [];
+
           const information = [
+            brands.length ? `Brands: ${brands.join(', ')}` : null,
             meta.noddi_user_id ? `Noddi user #${meta.noddi_user_id}` : null,
             `Support Hub: https://support.noddi.co/customers?customer=${row.id}`,
           ]
@@ -264,6 +298,8 @@ Deno.serve(async (req) => {
             first_name,
             last_name,
             information,
+            ...(brands.length ? { company_name: brands.join(', ').slice(0, 255) } : {}),
+
             phone_numbers: phoneValues.slice(0, 5).map((value, i) => ({
               label: i === 0 ? 'Mobile' : 'Other',
               value,
@@ -321,7 +357,9 @@ Deno.serve(async (req) => {
                 ...meta,
                 aircall_contact_id: newId,
                 aircall_synced_at: new Date().toISOString(),
-                aircall_synced_signature: `v2|${row.full_name?.trim()}|${phone}|${row.email || ''}`,
+                aircall_brands: brands,
+                aircall_synced_signature: `v3|${row.full_name?.trim()}|${phone}|${row.email || ''}|${brandSignature(row.id)}`,
+
               },
             })
             .eq('id', row.id);
