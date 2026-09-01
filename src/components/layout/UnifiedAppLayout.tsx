@@ -10,6 +10,7 @@ import { useNotificationPermissionPrompt } from '@/hooks/useNotificationPermissi
 import { useOpenConversationsBadge } from '@/hooks/useOpenConversationsBadge';
 import { WhatsNewDialog } from '@/features/whats-new/WhatsNewDialog';
 import { MobileEdgeSwipe } from './MobileEdgeSwipe';
+import { NewChatAlertBanner } from '@/components/live-chat/NewChatAlertBanner';
 
 interface UnifiedAppLayoutProps {
   children: React.ReactNode;
@@ -54,6 +55,7 @@ export const UnifiedAppLayout: React.FC<UnifiedAppLayoutProps> = ({
       <SearchCommandPalette open={searchOpen} onOpenChange={setSearchOpen} />
       <QuickInboxSwitcher open={inboxSwitcherOpen} onOpenChange={setInboxSwitcherOpen} />
       <WhatsNewDialog />
+      <NewChatAlertBanner />
       <MobileEdgeSwipe />
 
       <div className="h-svh flex w-full bg-background">
