@@ -11,6 +11,10 @@ interface CallsTableProps {
   selectedCallId?: string;
   onRemoveCall?: (callId: string) => void;
   onNavigateToEvents?: (callId: string) => void;
+  bulkSelectedIds?: Set<string>;
+  onBulkSelect?: (id: string, selected: boolean, shiftKey?: boolean) => void;
+  onSelectAll?: (checked: boolean) => void;
+  allBulkSelected?: boolean;
 }
 
 export function CallsTable({
@@ -19,6 +23,10 @@ export function CallsTable({
   selectedCallId,
   onRemoveCall,
   onNavigateToEvents,
+  bulkSelectedIds,
+  onBulkSelect,
+  onSelectAll,
+  allBulkSelected = false,
 }: CallsTableProps) {
   const [sortState, setSortState] = useState<{ key: string; direction: 'asc' | 'desc' | null }>({
     key: '',
