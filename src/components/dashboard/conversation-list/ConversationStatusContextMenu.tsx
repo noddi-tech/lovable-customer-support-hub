@@ -41,12 +41,16 @@ export const ConversationStatusContextMenu: React.FC<ConversationStatusContextMe
   conversationId,
   status,
   assignedToId,
+  brandLabel,
   children,
 }) => {
   const { setStatus } = useConversationStatusActions();
   const { assign } = useConversationAssignActions();
+  const { setBrand } = useConversationBrandActions();
+  const { brands, findBrand } = useNoddiBrands();
   const { data: members = [] } = useTeamMembers();
   const [search, setSearch] = useState('');
+  const currentBrandSlug = findBrand(brandLabel)?.slug ?? null;
 
   const { recent, rest } = useMemo(() => {
     const q = search.trim().toLowerCase();
