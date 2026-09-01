@@ -420,6 +420,48 @@ Deno.serve(async (req: Request) => {
       threadKey = `sg_${crypto.randomUUID()}`;
     }
 
+    // Defense-in-depth fallbacks when RFC headers were stripped or rewritten.
+    // Order: structured Message-ID -> plus-addressed recipient -> hidden body token -> subject code.
+    if (!conversation_id && !helpScoutKey) {
+      const candidates: Array<[string, string | null]> = [
+        ["structured Message-ID", extractConversationIdFromMessageIds(allIds)],
+        ["plus-address", extractConversationIdFromAddress(rcptEmailTagged)],
+        ["body token", extractConversationIdFromBody(text, html)],
+      ];
+
+      for (const [layer, candidateId] of candidates) {
+        if (!candidateId) continue;
+        const { data: convById } = await supabase
+          .from("conversations")
+          .select("id")
+          .eq("id", candidateId)
+          .eq("organization_id", organization_id)
+          .maybeSingle();
+        if (convById?.id) {
+          conversation_id = convById.id;
+          console.log(`[SendGrid-Inbound] Matched thread via ${layer}: ${conversation_id}`);
+          break;
+        }
+      }
+
+      // Final fallback: visible subject code like [#A1B2C3D4]
+      if (!conversation_id) {
+        const subjectRef = extractSubjectRef(subject);
+        if (subjectRef) {
+          const { data: convByRef } = await supabase.rpc("find_conversation_by_short_ref", {
+            p_organization_id: organization_id,
+            p_short_ref: subjectRef,
+          });
+          const refId = Array.isArray(convByRef) ? convByRef[0]?.id ?? convByRef[0] : convByRef;
+          if (refId) {
+            conversation_id = refId as string;
+            console.log(`[SendGrid-Inbound] Matched thread via subject code: ${conversation_id}`);
+          }
+        }
+      }
+    }
+
+
     if (!conversation_id) {
       console.log(`[SendGrid-Inbound] Creating new conversation - Thread: ${threadKey}, Subject: ${subject}`);
 
