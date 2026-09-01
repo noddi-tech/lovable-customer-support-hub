@@ -2028,7 +2028,11 @@ export type Database = {
           customer_id: string
           id: string
           is_pinned: boolean
+          noddi_note_id: number | null
+          noddi_sync_error: string | null
+          noddi_user_group_id: number | null
           organization_id: string
+          synced_to_noddi: boolean
           updated_at: string
         }
         Insert: {
@@ -2038,7 +2042,11 @@ export type Database = {
           customer_id: string
           id?: string
           is_pinned?: boolean
+          noddi_note_id?: number | null
+          noddi_sync_error?: string | null
+          noddi_user_group_id?: number | null
           organization_id: string
+          synced_to_noddi?: boolean
           updated_at?: string
         }
         Update: {
@@ -2048,7 +2056,11 @@ export type Database = {
           customer_id?: string
           id?: string
           is_pinned?: boolean
+          noddi_note_id?: number | null
+          noddi_sync_error?: string | null
+          noddi_user_group_id?: number | null
           organization_id?: string
+          synced_to_noddi?: boolean
           updated_at?: string
         }
         Relationships: [

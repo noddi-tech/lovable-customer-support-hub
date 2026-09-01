@@ -70,15 +70,8 @@ const statusConfig = {
   closed: { icon: XCircle, label: 'Closed', className: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400' },
 };
 
-const channelIcons: Record<string, React.ComponentType<{ className?: string }>> = {
-  email: MessageCircle,
-  chat: MessageCircle,
-  widget: Globe,
-  social: MessageCircle,
-  facebook: MessageCircle,
-  instagram: MessageCircle,
-  whatsapp: MessageCircle,
-};
+// Channel icon + label come from the shared channel map so the Inbox row,
+// the filter chips and the home dashboard always agree on naming.
 
 // --- Utilities ---
 
@@ -149,7 +142,7 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
 
 
   const computedValues = useMemo(() => {
-    const ChannelIcon = channelIcons[conversation.channel] || MessageCircle;
+    const ChannelIcon = channelIcon(conversation.channel);
     const customerDisplay = getCustomerDisplay(
       conversation.customer?.full_name,
       conversation.customer?.email
@@ -325,7 +318,7 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
               <div className="flex items-center gap-1 text-muted-foreground">
                 <computedValues.ChannelIcon className="h-3 w-3" />
                 <span className="text-[10px] capitalize">
-                  {conversation.channel === 'widget' ? 'Chat' : conversation.channel}
+                  {channelLabel(conversation.channel)}
                 </span>
               </div>
               <ConversationBrandBadge conversation={conversation} compact />
@@ -464,7 +457,7 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
           <div className="flex items-center gap-1.5">
             <computedValues.ChannelIcon className="h-3 w-3 text-muted-foreground" />
             <span className="text-xs text-muted-foreground capitalize">
-              {conversation.channel === 'widget' ? 'Chat' : conversation.channel}
+              {channelLabel(conversation.channel)}
             </span>
             {conversation.channel === 'widget' && (conversation.metadata as any)?.chatSessionStatus === 'active' && (
               <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-700 animate-pulse">
@@ -621,7 +614,7 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
         <div className="flex items-center gap-1.5">
           <computedValues.ChannelIcon className="h-3 w-3 text-muted-foreground" />
           <span className="text-xs text-muted-foreground capitalize">
-            {conversation.channel === 'widget' ? 'Chat' : conversation.channel}
+            {channelLabel(conversation.channel)}
           </span>
           {conversation.channel === 'widget' && (conversation.metadata as any)?.chatSessionStatus === 'active' && (
             <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-700 animate-pulse">

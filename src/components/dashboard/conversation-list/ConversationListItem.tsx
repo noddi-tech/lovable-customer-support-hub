@@ -7,6 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { MoreVertical, Archive, Trash2, Clock, MessageCircle, User, Mail, MailOpen, Globe, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { channelIcon, channelLabel } from "@/lib/conversationChannels";
 import { useDateFormatting } from '@/hooks/useDateFormatting';
 import { useConversationList, type Conversation } from "@/contexts/ConversationListContext";
 import { useOptimizedCounts } from '@/hooks/useOptimizedCounts';
@@ -30,15 +31,7 @@ const statusColors = {
   closed: "bg-muted text-muted-foreground",
 };
 
-const channelIcons = {
-  email: MessageCircle,
-  chat: MessageCircle,
-  social: MessageCircle,
-  facebook: MessageCircle,
-  instagram: MessageCircle,
-  whatsapp: MessageCircle,
-  widget: Globe,
-};
+
 
 interface ConversationListItemProps {
   conversation: Conversation;
@@ -82,7 +75,7 @@ export const ConversationListItem = memo<ConversationListItemProps>(({
       'Unknown';
 
     return {
-      ChannelIcon: channelIcons[conversation.channel] || MessageCircle,
+      ChannelIcon: channelIcon(conversation.channel),
       isSnoozed: conversation.snooze_until && new Date(conversation.snooze_until) > new Date(),
       customerName: displayName,
       customerEmail: conversation.customer?.email || applicant?.email,
@@ -304,7 +297,7 @@ export const ConversationListItem = memo<ConversationListItemProps>(({
           <div className="flex items-center gap-2 text-xs text-muted-foreground shrink-0">
             <span className="flex items-center gap-1">
               <computedValues.ChannelIcon className="h-3 w-3" />
-              {conversation.channel}
+              {channelLabel(conversation.channel)}
             </span>
             <div className="flex items-center gap-1">
               <div 

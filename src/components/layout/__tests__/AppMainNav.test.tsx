@@ -48,7 +48,7 @@ describe('AppMainNav Active States', () => {
       </TestWrapper>
     );
 
-    const textMessagesLink = screen.getByRole('link', { name: /text messages/i });
+    const textMessagesLink = screen.getByRole('link', { name: /^inbox$/i });
     expect(textMessagesLink).toHaveAttribute('aria-current', 'page');
   });
 
