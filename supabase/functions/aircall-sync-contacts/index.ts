@@ -225,6 +225,30 @@ Deno.serve(async (req) => {
         }
       }
 
+      // Brand labels assigned on this customer's conversations (email + live chat).
+      // A customer can have several brands; we surface them all on the contact.
+      const brandsByCustomer = new Map<string, string[]>();
+      if (batch.length > 0) {
+        const { data: convs } = await adminClient
+          .from('conversations')
+          .select('customer_id, metadata')
+          .in('customer_id', batch.map(({ row }) => row.id))
+          .limit(2000);
+        for (const conv of (convs || []) as any[]) {
+          const cmeta = (conv.metadata || {}) as Record<string, any>;
+          const label =
+            (typeof cmeta.brand === 'string' && cmeta.brand.trim()) ||
+            (typeof cmeta.brand_name === 'string' && cmeta.brand_name.trim()) ||
+            '';
+          if (!label || !conv.customer_id) continue;
+          const list = brandsByCustomer.get(conv.customer_id) || [];
+          if (!list.some((b) => b.toLowerCase() === label.toLowerCase())) list.push(label);
+          brandsByCustomer.set(conv.customer_id, list);
+        }
+      }
+
+
+
 
 
       for (const { row, phone } of batch) {
