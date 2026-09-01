@@ -108,6 +108,26 @@ export const ConversationTable = memo<ConversationTableProps>(({
     return <InboxZeroCelebration />;
   }
 
+  // Mobile: a plain, scrollable card list — no table chrome, no horizontal scroll.
+  if (isMobile) {
+    return (
+      <div className="flex-1 overflow-y-auto overflow-x-hidden overscroll-contain">
+        <AlmostThereBanner count={filteredConversations.length} />
+        {paginatedConversations.map((conversation) => (
+          <ConversationTableRow
+            key={conversation.id}
+            conversation={conversation}
+            isSelected={selectedConversation?.id === conversation.id}
+            onSelect={onSelectConversation}
+            isBulkSelected={state.selectedConversations.has(conversation.id)}
+            onBulkSelect={handleBulkSelect}
+            showBulkCheckbox={state.bulkSelectionMode}
+          />
+        ))}
+      </div>
+    );
+  }
+
   return (
     <div className="flex-1 overflow-auto">
       <AlmostThereBanner count={filteredConversations.length} />
