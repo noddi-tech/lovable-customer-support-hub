@@ -13,8 +13,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { ArrowLeft, Mail, MessageSquare, Plug2, ExternalLink, UserCheck } from 'lucide-react';
+import { ArrowLeft, Mail, MessageSquare, Plug2, ExternalLink, UserCheck, Tag } from 'lucide-react';
 import { useTeamMembers } from '@/hooks/useTeamMembers';
+import { useNoddiBrands } from '@/hooks/useNoddiBrands';
 
 export const INBOX_COLOR_PALETTE = [
   { value: '#6656D9', label: 'Primary Purple' },
@@ -39,10 +40,12 @@ interface InboxData {
   conversation_count: number;
   sender_display_name: string | null;
   purpose: 'support' | 'recruitment';
-  auto_assignment_rules: { assign_to_profile_id?: string | null } | null;
+  auto_assignment_rules: { assign_to_profile_id?: string | null; default_brand?: string | null } | null;
 }
 
 const NO_AUTO_ASSIGN = 'no-auto-assign';
+const NO_DEFAULT_BRAND = 'no-default-brand';
+
 
 interface InboundRoute { id: string; inbox_id: string | null; address: string; group_email: string | null }
 interface EmailAccount { id: string; inbox_id: string | null; email_address: string; provider: string }
@@ -65,6 +68,8 @@ export function InboxSettingsPage({ inboxId }: { inboxId: string }) {
   const { data: teamMembers } = useTeamMembers();
 
   const { data: departments } = useServiceDepartments();
+
+  const { brands } = useNoddiBrands();
 
   const { data: inboundRoutes } = useQuery({
     queryKey: ['inbound_routes'],
@@ -272,8 +277,38 @@ export function InboxSettingsPage({ inboxId }: { inboxId: string }) {
             Every new email, chat or text conversation landing in this inbox without an owner is assigned to this
             person. Existing conversations are untouched, and agents can always reassign afterwards.
           </p>
+
+          <div className="pt-4 space-y-2 border-t">
+            <Label htmlFor="inbox-default-brand" className="flex items-center gap-2">
+              <Tag className="w-4 h-4" /> Default brand
+            </Label>
+            <Select
+              value={form.auto_assignment_rules?.default_brand || NO_DEFAULT_BRAND}
+              onValueChange={(value) =>
+                setForm({
+                  ...form,
+                  auto_assignment_rules: {
+                    ...(form.auto_assignment_rules || {}),
+                    default_brand: value === NO_DEFAULT_BRAND ? null : value,
+                  },
+                })
+              }
+            >
+              <SelectTrigger id="inbox-default-brand"><SelectValue placeholder="No default brand" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NO_DEFAULT_BRAND}>No default brand</SelectItem>
+                {brands.map((b) => (
+                  <SelectItem key={b.id} value={b.name}>{b.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              New conversations in this inbox are labelled with this brand unless the message already carries one.
+            </p>
+          </div>
         </CardContent>
       </Card>
+
 
       <Card>
         <CardHeader>
