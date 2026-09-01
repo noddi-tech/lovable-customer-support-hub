@@ -8,7 +8,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, X } from 'lucide-react';
 import { useWhatsNew } from './useWhatsNew';
 
 /**
@@ -31,8 +31,18 @@ export const WhatsNewDialog: React.FC = () => {
 
   return (
     <Dialog open={open} onOpenChange={(next) => (next ? setOpen(true) : close())}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
+      <DialogContent className="flex max-h-[85svh] w-[calc(100vw-1.5rem)] max-w-lg flex-col gap-0 overflow-hidden p-0 sm:max-w-lg [&>button]:hidden">
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          onClick={close}
+          aria-label="Dismiss what's new"
+          className="absolute right-2 top-2 z-10 h-10 w-10 rounded-full text-muted-foreground hover:text-foreground"
+        >
+          <X className="h-5 w-5" />
+        </Button>
+        <DialogHeader className="shrink-0 space-y-1.5 border-b p-4 pr-12 text-left sm:p-6 sm:pr-12">
           <div className="flex items-center gap-2 text-primary">
             <Sparkles className="h-4 w-4" />
             <span className="text-xs font-medium uppercase tracking-wide">New in Support Hub</span>
@@ -43,7 +53,7 @@ export const WhatsNewDialog: React.FC = () => {
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain p-4 sm:p-6">
           {unseen.map((item) => {
             const Icon = item.icon;
             return (
@@ -83,8 +93,10 @@ export const WhatsNewDialog: React.FC = () => {
           })}
         </div>
 
-        <DialogFooter>
-          <Button onClick={close}>Got it</Button>
+        <DialogFooter className="shrink-0 gap-2 border-t bg-background p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:p-6">
+          <Button onClick={close} className="h-11 w-full text-base sm:h-10 sm:w-auto sm:text-sm">
+            Got it
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
