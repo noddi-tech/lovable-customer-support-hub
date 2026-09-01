@@ -2444,6 +2444,62 @@ export type Database = {
           },
         ]
       }
+      feature_flags: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          default_variant: string
+          description: string | null
+          enabled: boolean
+          id: string
+          key: string
+          name: string | null
+          organization_id: string | null
+          targeting: Json
+          updated_at: string
+          value_type: string
+          variants: Json
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          default_variant?: string
+          description?: string | null
+          enabled?: boolean
+          id?: string
+          key: string
+          name?: string | null
+          organization_id?: string | null
+          targeting?: Json
+          updated_at?: string
+          value_type?: string
+          variants?: Json
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          default_variant?: string
+          description?: string | null
+          enabled?: boolean
+          id?: string
+          key?: string
+          name?: string | null
+          organization_id?: string | null
+          targeting?: Json
+          updated_at?: string
+          value_type?: string
+          variants?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feature_flags_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gdpr_requests: {
         Row: {
           applicant_email_snapshot: string | null
