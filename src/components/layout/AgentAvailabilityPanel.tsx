@@ -178,7 +178,7 @@ export const AgentAvailabilityPanel: React.FC<AgentAvailabilityPanelProps> = ({
               variant="ghost" 
               size="icon" 
               className="h-9 w-9 relative hover:bg-muted"
-              title={`Chat: ${chatStatus}${showPhoneSection ? `, Phone: ${phoneConnected ? 'logged in' : 'logged out'}` : ''}`}
+              title={`Chat: ${chatStatus}${showPhoneSection ? `, Phone: ${phoneLoggedIn ? "logged in" : "logged out"}` : ''}`}
             >
               {/* Chat status (primary) */}
               <Circle className={cn("h-4 w-4 fill-current", currentChatConfig.color)} />
@@ -186,7 +186,7 @@ export const AgentAvailabilityPanel: React.FC<AgentAvailabilityPanelProps> = ({
               {showPhoneSection && (
                 <div className={cn(
                   "absolute bottom-1 right-1 h-2 w-2 rounded-full border border-background",
-                  phoneConnected ? "bg-green-500" : "bg-muted-foreground"
+                  phoneLoggedIn ? "bg-green-500" : "bg-muted-foreground"
                 )} />
               )}
             </Button>
@@ -228,7 +228,7 @@ export const AgentAvailabilityPanel: React.FC<AgentAvailabilityPanelProps> = ({
                     <Phone className="h-3 w-3" />
                     <span>Phone</span>
                   </div>
-                  {phoneConnected ? (
+                  {phoneLoggedIn ? (
                     <Button
                       variant="outline"
                       size="sm"
@@ -281,7 +281,7 @@ export const AgentAvailabilityPanel: React.FC<AgentAvailabilityPanelProps> = ({
         <span className="flex-1 text-left">Availability</span>
         <Circle className={cn("h-2 w-2 fill-current", currentChatConfig.color)} />
         {showPhoneSection && (
-          <Phone className={cn("h-2.5 w-2.5", phoneConnected ? "text-green-500" : "text-muted-foreground")} />
+          <Phone className={cn("h-2.5 w-2.5", phoneLoggedIn ? "text-green-500" : "text-muted-foreground")} />
         )}
       </CollapsibleTrigger>
 
@@ -372,7 +372,7 @@ export const AgentAvailabilityPanel: React.FC<AgentAvailabilityPanelProps> = ({
             <span>Phone</span>
           </div>
           
-          {phoneConnected ? (
+          {phoneLoggedIn ? (
             // Logged in state
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-2 flex-1 min-w-0">
