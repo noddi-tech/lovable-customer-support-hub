@@ -4,6 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { NotificationSettings } from '@/components/dashboard/voice/NotificationSettings';
 import { VoiceIntegrationsList } from '@/components/admin/VoiceIntegrationsList';
 import { Bell, Phone, Settings } from 'lucide-react';
+import { SidebarTrigger } from '@/components/ui/sidebar';
 
 export default function VoiceSettingsPage() {
   const [soundEnabled, setSoundEnabled] = useState(true);
@@ -11,31 +12,36 @@ export default function VoiceSettingsPage() {
   const [browserNotificationsEnabled, setBrowserNotificationsEnabled] = useState(true);
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-4 p-3 pb-24 sm:space-y-6 sm:p-6 sm:pb-6">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold">Voice Settings</h1>
-        <p className="text-muted-foreground mt-1">
-          Configure your voice system preferences and integrations
-        </p>
+      <div className="flex items-start gap-2">
+        <SidebarTrigger className="mt-1 shrink-0 md:hidden" />
+        <div className="min-w-0">
+          <h1 className="text-xl font-bold sm:text-3xl">Voice Settings</h1>
+          <p className="hidden text-muted-foreground mt-1 sm:block">
+            Configure your voice system preferences and integrations
+          </p>
+        </div>
       </div>
 
       {/* Settings Tabs */}
       <Tabs defaultValue="notifications" className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="notifications" className="gap-2">
+        <div className="-mx-1 overflow-x-auto px-1 pb-1">
+        <TabsList className="w-max">
+          <TabsTrigger value="notifications" className="shrink-0 gap-2">
             <Bell className="h-4 w-4" />
             Notifications
           </TabsTrigger>
-          <TabsTrigger value="integrations" className="gap-2">
+          <TabsTrigger value="integrations" className="shrink-0 gap-2">
             <Phone className="h-4 w-4" />
             Integrations
           </TabsTrigger>
-          <TabsTrigger value="advanced" className="gap-2">
+          <TabsTrigger value="advanced" className="shrink-0 gap-2">
             <Settings className="h-4 w-4" />
             Advanced
           </TabsTrigger>
         </TabsList>
+        </div>
 
         <TabsContent value="notifications" className="space-y-6">
           <Card>
@@ -46,7 +52,7 @@ export default function VoiceSettingsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex justify-center py-8">
+              <div className="flex justify-center py-4 sm:py-8">
                 <NotificationSettings
                   soundEnabled={soundEnabled}
                   onSoundEnabledChange={setSoundEnabled}

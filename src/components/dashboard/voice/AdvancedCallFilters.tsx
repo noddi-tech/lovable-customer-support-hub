@@ -107,7 +107,7 @@ export const AdvancedCallFilters: React.FC<AdvancedCallFiltersProps> = ({
           placeholder="Search by name, phone, or call ID..."
           value={searchValue}
           onChange={(e) => handleSearchChange(e.target.value)}
-          className="pl-9 pr-9"
+          className="h-10 pl-9 pr-9 text-base sm:h-9 sm:text-sm"
           autoFocus={false}
         />
         {searchValue && (
