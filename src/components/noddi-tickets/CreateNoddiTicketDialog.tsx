@@ -37,6 +37,12 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   defaultTitle?: string;
   defaultDescription?: string;
+  /** Noddi user group the ticket relates to (links the ticket to the customer). */
+  userGroupId?: number | null;
+  /** Noddi booking the ticket relates to. */
+  bookingId?: number | null;
+  defaultCategory?: NoddiTicketCategory;
+  defaultPriority?: NoddiTicketPriority;
   onCreated?: (ticketId: number) => void;
 }
 
@@ -45,6 +51,10 @@ export function CreateNoddiTicketDialog({
   onOpenChange,
   defaultTitle = '',
   defaultDescription = '',
+  userGroupId,
+  bookingId,
+  defaultCategory = 'CUSTOMER_ISSUE',
+  defaultPriority = 'NORMAL',
   onCreated,
 }: Props) {
   const { data: departments = [], isLoading: loadingDepartments } = useNoddiServiceDepartments();
