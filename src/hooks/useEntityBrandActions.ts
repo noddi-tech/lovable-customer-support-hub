@@ -46,7 +46,7 @@ export function useEntityBrandActions({ table, invalidateKeys, context, afterSet
 
         const { error } = await supabase
           .from(table)
-          .update({ metadata: metadata as any })
+          .update({ metadata: metadata as never })
           .eq('id', entityId);
 
         if (error) throw error;
