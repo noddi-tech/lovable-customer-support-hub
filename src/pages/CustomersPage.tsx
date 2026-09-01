@@ -212,6 +212,7 @@ export default function CustomersPage() {
                     </span>
                   </div>
                 </button>
+                </div>
                   </ContextMenuTrigger>
                   <ContextMenuContent className="w-52">
                     <ContextMenuLabel className="text-xs text-muted-foreground">Tags</ContextMenuLabel>
