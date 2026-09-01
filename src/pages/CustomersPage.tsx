@@ -46,6 +46,19 @@ export default function CustomersPage() {
   const { getTags } = useEntityTags('customer');
   const { dateTime } = useDateFormatting();
   const { data: allCustomers = [], isLoading } = useCustomersList(search);
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
+  const [isDesktop, setIsDesktop] = useState(() =>
+    typeof window !== 'undefined' ? window.matchMedia('(min-width: 1024px)').matches : true,
+  );
+
+  useEffect(() => {
+    const mql = window.matchMedia('(min-width: 1024px)');
+    const onChange = () => setIsDesktop(mql.matches);
+    mql.addEventListener('change', onChange);
+    onChange();
+    return () => mql.removeEventListener('change', onChange);
+  }, []);
+
 
   const brandOptions = useMemo(() => {
     const set = new Set<string>();
