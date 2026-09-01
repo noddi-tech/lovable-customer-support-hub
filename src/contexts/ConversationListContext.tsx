@@ -9,6 +9,7 @@ import { getConversationBrand } from '@/lib/conversationBrand';
 import { logger } from '@/utils/logger';
 import { groupConversationsByThread } from '@/lib/conversationThreading';
 import { useAgents, toAgentSimple } from '@/hooks/useAgents';
+import { useConversationFilterParams } from '@/hooks/useConversationFilterParams';
 
 export type ConversationStatus = "open" | "pending" | "resolved" | "closed";
 export type ConversationPriority = "low" | "normal" | "high" | "urgent";
