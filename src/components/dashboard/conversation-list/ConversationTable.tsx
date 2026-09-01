@@ -10,6 +10,7 @@ import { useTranslation } from 'react-i18next';
 import { InboxZeroCelebration, AlmostThereBanner } from './InboxZeroCelebration';
 import { useBulkRangeSelect } from '@/hooks/useBulkRangeSelect';
 import { useIsMobile } from '@/hooks/use-responsive';
+import { CONVERSATION_COLUMN_DESCRIPTIONS } from './columnDescriptions';
 
 interface ConversationTableProps {
   onSelectConversation: (conversation: Conversation) => void;
@@ -148,6 +149,7 @@ export const ConversationTable = memo<ConversationTableProps>(({
             <TableHeaderCell
               label=""
               sortKey="channel"
+              description={CONVERSATION_COLUMN_DESCRIPTIONS.channel}
               currentSort={state.tableSort}
               onSort={handleSort}
               className="w-12"
@@ -155,6 +157,7 @@ export const ConversationTable = memo<ConversationTableProps>(({
             <TableHeaderCell
               label={t('dashboard.conversationList.customer', 'Customer')}
               sortKey="customer"
+              description={CONVERSATION_COLUMN_DESCRIPTIONS.customer}
               currentSort={state.tableSort}
               onSort={handleSort}
               className="w-48"
@@ -163,6 +166,7 @@ export const ConversationTable = memo<ConversationTableProps>(({
               <TableHeaderCell
                 label={t('dashboard.conversationList.inbox', 'Inbox')}
                 sortKey="inbox"
+                description={CONVERSATION_COLUMN_DESCRIPTIONS.inbox}
                 currentSort={state.tableSort}
                 onSort={handleSort}
                 className="w-40"
@@ -172,6 +176,7 @@ export const ConversationTable = memo<ConversationTableProps>(({
             <TableHeaderCell
               label={t('dashboard.conversationList.conversation', 'Conversation')}
               sortKey="subject"
+              description={CONVERSATION_COLUMN_DESCRIPTIONS.subject}
               currentSort={state.tableSort}
               onSort={handleSort}
             />
@@ -179,6 +184,7 @@ export const ConversationTable = memo<ConversationTableProps>(({
             <TableHeaderCell
               label={t('dashboard.conversationList.status', 'Status')}
               sortKey="status"
+              description={CONVERSATION_COLUMN_DESCRIPTIONS.status}
               currentSort={state.tableSort}
               onSort={handleSort}
               className="w-32"
@@ -186,6 +192,7 @@ export const ConversationTable = memo<ConversationTableProps>(({
             <TableHeaderCell
               label={t('dashboard.conversationList.priority', 'Priority')}
               sortKey="priority"
+              description={CONVERSATION_COLUMN_DESCRIPTIONS.priority}
               currentSort={state.tableSort}
               onSort={handleSort}
               className="w-24"
@@ -193,6 +200,7 @@ export const ConversationTable = memo<ConversationTableProps>(({
             <TableHeaderCell
               label={t('dashboard.conversationList.received', 'Received')}
               sortKey="received"
+              description={CONVERSATION_COLUMN_DESCRIPTIONS.received}
               currentSort={state.tableSort}
               onSort={handleSort}
               className="w-36"
@@ -200,6 +208,7 @@ export const ConversationTable = memo<ConversationTableProps>(({
             <TableHeaderCell
               label={t('dashboard.conversationList.waiting', 'Waiting')}
               sortKey="waiting"
+              description={CONVERSATION_COLUMN_DESCRIPTIONS.waiting}
               currentSort={state.tableSort}
               onSort={handleSort}
               className="w-20"
@@ -208,6 +217,7 @@ export const ConversationTable = memo<ConversationTableProps>(({
             <TableHeaderCell
               label={t('dashboard.conversationList.sla', 'SLA')}
               sortKey="sla"
+              description={CONVERSATION_COLUMN_DESCRIPTIONS.sla}
               currentSort={state.tableSort}
               onSort={handleSort}
               className="w-20"

@@ -12,6 +12,7 @@ import { useConversationList, type Conversation } from '@/contexts/ConversationL
 import { useTranslation } from 'react-i18next';
 import { Clock, Inbox } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-responsive';
+import { CONVERSATION_COLUMN_DESCRIPTIONS } from './columnDescriptions';
 
 // Separate memoized row component to prevent re-creation on every parent render
 interface VirtualizedRowProps {
@@ -209,6 +210,7 @@ const VirtualizedConversationTable = memo(({ onSelectConversation, selectedConve
             <FlexHeaderCell
               label=""
               sortKey="channel"
+              description={CONVERSATION_COLUMN_DESCRIPTIONS.channel}
               currentSort={state.tableSort}
               onSort={handleSort}
               className="w-12 shrink-0"
@@ -216,6 +218,7 @@ const VirtualizedConversationTable = memo(({ onSelectConversation, selectedConve
           <FlexHeaderCell
             label={t('dashboard.conversationList.customer', 'Customer')}
             sortKey="customer"
+            description={CONVERSATION_COLUMN_DESCRIPTIONS.customer}
             currentSort={state.tableSort}
             onSort={handleSort}
             className="w-48 shrink-0"
@@ -224,6 +227,7 @@ const VirtualizedConversationTable = memo(({ onSelectConversation, selectedConve
             <FlexHeaderCell
               label={t('dashboard.conversationList.inbox', 'Inbox')}
               sortKey="inbox"
+              description={CONVERSATION_COLUMN_DESCRIPTIONS.inbox}
               currentSort={state.tableSort}
               onSort={handleSort}
               className="w-40 shrink-0"
@@ -233,6 +237,7 @@ const VirtualizedConversationTable = memo(({ onSelectConversation, selectedConve
           <FlexHeaderCell
             label={t('dashboard.conversationList.conversation', 'Conversation')}
             sortKey="subject"
+            description={CONVERSATION_COLUMN_DESCRIPTIONS.subject}
             currentSort={state.tableSort}
             onSort={handleSort}
             className="flex-1 min-w-0"
@@ -240,6 +245,7 @@ const VirtualizedConversationTable = memo(({ onSelectConversation, selectedConve
           <FlexHeaderCell
             label={t('dashboard.conversationList.status', 'Status')}
             sortKey="status"
+            description={CONVERSATION_COLUMN_DESCRIPTIONS.status}
             currentSort={state.tableSort}
             onSort={handleSort}
             className="w-32 shrink-0"
@@ -247,6 +253,7 @@ const VirtualizedConversationTable = memo(({ onSelectConversation, selectedConve
           <FlexHeaderCell
             label={t('dashboard.conversationList.priority', 'Priority')}
             sortKey="priority"
+            description={CONVERSATION_COLUMN_DESCRIPTIONS.priority}
             currentSort={state.tableSort}
             onSort={handleSort}
             className="w-24 shrink-0"
@@ -254,6 +261,7 @@ const VirtualizedConversationTable = memo(({ onSelectConversation, selectedConve
           <FlexHeaderCell
             label={t('dashboard.conversationList.received', 'Received')}
             sortKey="received"
+            description={CONVERSATION_COLUMN_DESCRIPTIONS.received}
             currentSort={state.tableSort}
             onSort={handleSort}
             className="w-36 shrink-0"
@@ -261,6 +269,7 @@ const VirtualizedConversationTable = memo(({ onSelectConversation, selectedConve
           <FlexHeaderCell
             label={t('dashboard.conversationList.waiting', 'Waiting')}
             sortKey="waiting"
+            description={CONVERSATION_COLUMN_DESCRIPTIONS.waiting}
             currentSort={state.tableSort}
             onSort={handleSort}
             className="w-20 shrink-0"
@@ -268,6 +277,7 @@ const VirtualizedConversationTable = memo(({ onSelectConversation, selectedConve
           <FlexHeaderCell
             label={t('dashboard.conversationList.sla', 'SLA')}
             sortKey="sla"
+            description={CONVERSATION_COLUMN_DESCRIPTIONS.sla}
             currentSort={state.tableSort}
             onSort={handleSort}
             className="w-28 shrink-0"
