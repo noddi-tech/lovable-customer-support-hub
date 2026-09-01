@@ -297,7 +297,7 @@ export const ConversationListItem = memo<ConversationListItemProps>(({
           <div className="flex items-center gap-2 text-xs text-muted-foreground shrink-0">
             <span className="flex items-center gap-1">
               <computedValues.ChannelIcon className="h-3 w-3" />
-              {conversation.channel}
+              {channelLabel(conversation.channel)}
             </span>
             <div className="flex items-center gap-1">
               <div 
