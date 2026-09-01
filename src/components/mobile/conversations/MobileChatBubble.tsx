@@ -75,6 +75,14 @@ export const MobileChatBubble = ({ message, customerName, onRequestDeleteNote }:
 
   const content = resolveContent(message);
   const isPlainText = !/<[a-z][\s\S]*>/i.test(content);
+  const attachments: EmailAttachment[] = (message.originalMessage?.attachments || []).map((a: any) => ({
+    filename: a.name || a.filename || 'file',
+    mimeType: a.type || a.mimeType || 'application/octet-stream',
+    size: a.size || 0,
+    contentId: a.contentId || a.content_id,
+    isInline: a.isInline || false,
+    storageKey: a.storageKey || a.storage_key,
+  }));
 
   const handleResendEmail = async () => {
     try {
