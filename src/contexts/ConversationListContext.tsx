@@ -545,7 +545,7 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
     try {
       for (const chunk of idChunks) {
         // Archiving always closes the conversation as well.
-        const updatePayload: Record<string, any> = { is_archived: true, status: 'closed' };
+        const updatePayload: Record<string, any> = { is_archived: true, status: 'closed', is_read: true };
         
         const { error } = await supabase
           .from('conversations')
