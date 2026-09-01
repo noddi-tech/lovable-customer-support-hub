@@ -61,6 +61,8 @@ export const ChatListItem: React.FC<ChatListItemProps> = ({
   const isActive = conv.session?.status === 'active';
   const initial = customerName.charAt(0).toUpperCase();
   const brand = getConversationBrand(conv.metadata, 'widget');
+  const { getTags } = useEntityTags('conversation');
+  const chatTags = getTags(conv.id);
 
   // Create customer object for Noddi lookup
   const customer = useMemo(() => ({

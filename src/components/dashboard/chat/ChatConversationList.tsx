@@ -54,6 +54,7 @@ export const ChatConversationList: React.FC<ChatConversationListProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [brandFilter, setBrandFilter] = useState<string>('all');
   const [tagFilter, setTagFilter] = useState<string[]>([]);
+  const { getTags: getChatTags } = useEntityTags('conversation');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const { setStatus } = useConversationStatusActions();
 
