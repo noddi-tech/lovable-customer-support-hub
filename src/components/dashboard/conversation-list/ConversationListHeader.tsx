@@ -25,6 +25,8 @@ import { useIsMobile } from "@/hooks/use-responsive";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
+import { useAccessibleInboxes } from "@/hooks/useInteractionsData";
+import { useInboxOutstandingCounts } from "@/hooks/useInboxOutstandingCounts";
 
 interface ConversationListHeaderProps {
   onToggleCollapse?: () => void;
@@ -46,6 +48,8 @@ export const ConversationListHeader = ({
   const [showMigrator, setShowMigrator] = useState(false);
   const [showThreadMerger, setShowThreadMerger] = useState(false);
   const isMobile = useIsMobile();
+  const { data: inboxes = [] } = useAccessibleInboxes();
+  const { data: outstanding = {} } = useInboxOutstandingCounts();
 
   const unreadCount = filteredConversations.filter(c => !c.is_read).length;
 
@@ -314,6 +318,81 @@ export const ConversationListHeader = ({
             placeholder={t('dashboard.conversationList.searchPlaceholder', 'Search conversations...')}
             className="h-10 pl-8 text-base"
           />
+        </div>
+      )}
+
+      {/* Mobile: inbox switcher + status / purpose filter chips */}
+      {isMobile && (
+        <div className="mt-2 space-y-2">
+          <Select
+            value={selectedInboxId && selectedInboxId !== 'all' && !selectedInboxId.includes(',') ? selectedInboxId : 'all'}
+            onValueChange={(value) => onInboxChange?.(value)}
+          >
+            <SelectTrigger className="h-10 w-full text-sm">
+              <span className="flex items-center gap-2 min-w-0">
+                <Inbox className="h-4 w-4 shrink-0 text-muted-foreground" />
+                <SelectValue placeholder={t('dashboard.conversationList.allInboxes', 'All inboxes')} />
+              </span>
+            </SelectTrigger>
+            <SelectContent className="max-h-[50vh]">
+              <SelectItem value="all">{t('dashboard.conversationList.allInboxes', 'All inboxes')}</SelectItem>
+              {inboxes.map((inbox) => {
+                const counts = outstanding[inbox.id];
+                const open = counts?.open ?? 0;
+                return (
+                  <SelectItem key={inbox.id} value={inbox.id}>
+                    <span className="flex items-center gap-2">
+                      <span className="truncate">{inbox.name}</span>
+                      {open > 0 && (
+                        <Badge variant="secondary" className="h-4 px-1 text-[10px]">{open}</Badge>
+                      )}
+                    </span>
+                  </SelectItem>
+                );
+              })}
+            </SelectContent>
+          </Select>
+
+          <div className="flex items-center gap-1.5 overflow-x-auto -mx-1.5 px-1.5 pb-0.5">
+            {([
+              { v: 'all', label: t('dashboard.conversationList.allStatus', 'All Status') },
+              { v: 'open', label: t('dashboard.conversationList.open', 'Open') },
+              { v: 'pending', label: t('dashboard.conversationList.pending', 'Pending') },
+              { v: 'closed', label: t('dashboard.conversationList.closed', 'Closed') },
+            ] as const).map((opt) => (
+              <button
+                key={opt.v}
+                type="button"
+                onClick={() => dispatch({ type: 'SET_STATUS_FILTER', payload: opt.v })}
+                className={`shrink-0 rounded-full border px-3 h-8 text-xs transition-colors ${
+                  state.statusFilter === opt.v
+                    ? 'bg-primary text-primary-foreground border-primary'
+                    : 'border-input bg-background text-muted-foreground'
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+            <span className="shrink-0 w-px h-5 bg-border mx-0.5" />
+            {([
+              { v: 'all', label: 'Alle' },
+              { v: 'support', label: 'Kundesupport' },
+              { v: 'recruitment', label: 'Rekruttering' },
+            ] as const).map((opt) => (
+              <button
+                key={opt.v}
+                type="button"
+                onClick={() => dispatch({ type: 'SET_PURPOSE_FILTER', payload: opt.v })}
+                className={`shrink-0 rounded-full border px-3 h-8 text-xs transition-colors ${
+                  state.purposeFilter === opt.v
+                    ? 'bg-primary text-primary-foreground border-primary'
+                    : 'border-input bg-background text-muted-foreground'
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
         </div>
       )}
 
