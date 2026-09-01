@@ -16,7 +16,7 @@ const corsHeaders = {
 
 const API_BASE = (Deno.env.get('NODDI_API_BASE') || 'https://api.noddi.co').replace(/\/+$/, '');
 const NODDI_TOKEN = Deno.env.get('NODDI_API_TOKEN') || '';
-const CACHE_TTL_MS = 5 * 60 * 1000;
+const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours, refetched on expiry
 
 interface SlimBrand {
   id: number;
@@ -72,10 +72,12 @@ Deno.serve(async (req) => {
     // The backend accepts `Token <key>`; older deployments used `Api-Key <key>`.
     const authSchemes = NODDI_TOKEN ? [`Token ${NODDI_TOKEN}`, `Api-Key ${NODDI_TOKEN}`] : [''];
     let res: Response | null = null;
+    let usedAuth = '';
     for (const auth of authSchemes) {
       const headers = auth ? { ...baseHeaders, Authorization: auth } : baseHeaders;
-      res = await fetch(`${API_BASE}/v1/brands/?page_size=100`, { headers });
+      res = await fetch(`${API_BASE}/v1/brands/?page_size=200`, { headers });
       console.log(`[noddi-brands] GET /v1/brands/ (${auth.split(' ')[0] || 'anon'}) -> ${res.status}`);
+      usedAuth = auth;
       if (res.status !== 401 && res.status !== 403) break;
     }
     if (!res) throw new Error('No response from Noddi API');
@@ -95,14 +97,32 @@ Deno.serve(async (req) => {
       );
     }
 
-    const payload = await res.json();
-    const results: Record<string, unknown>[] = Array.isArray(payload)
-      ? payload
-      : Array.isArray(payload?.results)
-        ? payload.results
-        : Array.isArray(payload?.data)
-          ? payload.data
-          : [];
+    const rowsOf = (payload: any): Record<string, unknown>[] =>
+      Array.isArray(payload)
+        ? payload
+        : Array.isArray(payload?.results)
+          ? payload.results
+          : Array.isArray(payload?.data)
+            ? payload.data
+            : [];
+
+    // Walk every page so no brand is missed.
+    const authHeaders = { ...baseHeaders, ...(usedAuth ? { Authorization: usedAuth } : {}) };
+    let payload = await res.json();
+    const results: Record<string, unknown>[] = rowsOf(payload);
+    let next: unknown = payload?.next;
+    let guard = 0;
+    while (typeof next === 'string' && next && guard++ < 20) {
+      const pageRes = await fetch(next, { headers: authHeaders });
+      if (!pageRes.ok) {
+        console.error(`[noddi-brands] page fetch failed [${pageRes.status}]`);
+        break;
+      }
+      payload = await pageRes.json();
+      results.push(...rowsOf(payload));
+      next = payload?.next;
+    }
+
     console.log(`[noddi-brands] parsed ${results.length} brand rows`);
     const brands = results
       .map((r: Record<string, unknown>) => toSlim(r))

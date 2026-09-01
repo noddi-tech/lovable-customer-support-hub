@@ -22,18 +22,28 @@ const normalize = (value: string) =>
  * still categorise a conversation.
  */
 const FALLBACK_BRANDS: NoddiBrand[] = [
-  { id: -1, name: 'Noddi', slug: 'noddi', domain: 'noddi.no', logo_url: null },
-  { id: -2, name: 'Dekkfix', slug: 'dekkfix', domain: 'dekkfix.no', logo_url: null },
-  { id: -3, name: 'Trønderdekk', slug: 'tronderdekk', domain: 'tronderdekk.no', logo_url: null },
-  { id: -4, name: 'Navio', slug: 'navio', domain: 'naviosolutions.com', logo_url: null },
+  { id: -1, name: 'Alfa Dekk', slug: 'alfa-dekk', domain: 'alfa-dekk', logo_url: null },
+  { id: -2, name: 'BestDrive', slug: 'bestdrive', domain: 'bestdrive', logo_url: null },
+  { id: -3, name: 'Boligbyggelaget TOBB', slug: 'boligbyggelaget-tobb', domain: 'tobb', logo_url: null },
+  { id: -4, name: 'Coming soon', slug: 'coming-soon', domain: 'coming-soon', logo_url: null },
+  { id: -5, name: 'Dekkfix', slug: 'dekkfix', domain: 'dekkfix', logo_url: null },
+  { id: -6, name: 'Dekkstra', slug: 'dekkstra', domain: 'dekkstra', logo_url: null },
+  { id: -7, name: 'Dekkteam', slug: 'dekkteam', domain: 'dekkteam', logo_url: null },
+  { id: -8, name: 'Elite Bilvask', slug: 'elite-bilvask', domain: 'elitebilvask', logo_url: null },
+  { id: -9, name: 'Hurtigruta Carglass', slug: 'hurtigruta-carglass', domain: 'carglass', logo_url: null },
+  { id: -10, name: 'Lotus Cars', slug: 'lotus', domain: 'lotus', logo_url: null },
+  { id: -11, name: 'Noddi', slug: 'noddi', domain: 'noddi', logo_url: null },
+  { id: -12, name: 'Shine', slug: 'shine', domain: 'shine', logo_url: null },
+  { id: -13, name: 'Trønderdekk', slug: 'tronderdekk', domain: 'tronderdekk', logo_url: null },
 ];
 
 /** Brand catalog from the Noddi backend (names + logos), cached for the session. */
 export function useNoddiBrands() {
   const query = useQuery({
     queryKey: ['noddi-brands'],
-    staleTime: 30 * 60 * 1000,
-    gcTime: 60 * 60 * 1000,
+    // Cached for hours; refetched automatically once the cache expires.
+    staleTime: 6 * 60 * 60 * 1000,
+    gcTime: 12 * 60 * 60 * 1000,
     retry: 1,
     queryFn: async (): Promise<NoddiBrand[]> => {
       const { data, error } = await supabase.functions.invoke('noddi-brands', { method: 'GET' });
