@@ -1,6 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { isServiceRoleRequest } from "../_shared/caller.ts";
 import { requireUser } from "../_shared/auth.ts";
+import { navioSourceHeaders, captureNavioSourceVersion } from "../_shared/navio-source.ts";
 
 
 // Configuration constants
@@ -14,6 +15,7 @@ function noddiAuthHeaders(): HeadersInit {
     "Authorization": `Token ${noddiToken}`,
     "Accept": "application/json",
     "Content-Type": "application/json",
+    ...navioSourceHeaders(),
   };
 }
 
@@ -760,6 +762,7 @@ function mapCacheRowToUnified(cacheRow: any, email: string, remainingTtl: number
 }
 
 Deno.serve(async (req) => {
+  captureNavioSourceVersion(req);
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: cors });
   }

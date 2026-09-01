@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { navioSourceHeaders, captureNavioSourceVersion } from "../_shared/navio-source.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -56,6 +57,7 @@ async function callMcpTool(name: string, args: Record<string, any>): Promise<any
 }
 
 Deno.serve(async (req) => {
+  captureNavioSourceVersion(req);
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -146,6 +148,7 @@ Deno.serve(async (req) => {
         method: 'POST',
         headers: {
           'Authorization': `Token ${NODDI_API_TOKEN}`,
+          ...navioSourceHeaders(),
           'Accept': 'application/json',
           'Content-Type': 'application/json',
         },

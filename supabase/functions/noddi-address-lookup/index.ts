@@ -1,11 +1,13 @@
 import { corsHeaders } from "../_shared/cors.ts";
 import { isAllowedProxyCaller } from "../_shared/caller.ts";
 import { checkRateLimit, clientIp, rateLimitResponse } from "../_shared/rate-limit.ts";
+import { navioSourceHeaders, captureNavioSourceVersion } from "../_shared/navio-source.ts";
 
 const API_BASE = (Deno.env.get("NODDI_API_BASE") || "https://api.noddi.co").replace(/\/+$/, "");
 const NODDI_TOKEN = Deno.env.get("NODDI_API_TOKEN") || "";
 
 Deno.serve(async (req) => {
+  captureNavioSourceVersion(req);
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -36,6 +38,7 @@ Deno.serve(async (req) => {
       const res = await fetch(url, {
         headers: {
           Authorization: `Token ${NODDI_TOKEN}`,
+          ...navioSourceHeaders(),
           Accept: "application/json",
           "Content-Type": "application/json",
         },
@@ -69,6 +72,7 @@ Deno.serve(async (req) => {
         method: "POST",
         headers: {
           Authorization: `Token ${NODDI_TOKEN}`,
+          ...navioSourceHeaders(),
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ place_id }),
