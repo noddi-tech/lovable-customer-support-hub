@@ -28,6 +28,7 @@ import {
   Clock,
   Settings2,
   Star,
+  Tag,
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { SidebarTrigger } from '@/components/ui/sidebar';
