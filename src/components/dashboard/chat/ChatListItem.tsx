@@ -73,7 +73,11 @@ export const ChatListItem: React.FC<ChatListItemProps> = ({
   const isNoddiCustomer = noddiData?.data?.found;
 
   return (
-    <ConversationStatusContextMenu conversationId={conv.id} status={conv.status}>
+    <ConversationStatusContextMenu
+      conversationId={conv.id}
+      status={conv.status}
+      brandLabel={brand?.label ?? null}
+    >
     <button
       onClick={(e) => {
         const modifierSelect = e.metaKey || e.ctrlKey || e.shiftKey;

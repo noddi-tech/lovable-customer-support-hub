@@ -64,6 +64,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from '@/integrations/supabase/client';
+import { ConversationBrandPicker } from './ConversationBrandPicker';
 import { WidgetContextCard } from './WidgetContextCard';
 
 interface ConversationViewContentProps {
@@ -281,7 +282,15 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
               )}
             </div>
 
+            {/* Brand (auto-set by the widget, manually overridable here) */}
+            <ConversationBrandPicker
+              conversationId={conversation.id}
+              metadata={(conversation as any).metadata}
+              channel={conversation.channel}
+            />
+
             {/* Status dropdown */}
+
             <Select 
               value={conversation?.status || 'open'} 
               onValueChange={(status) => updateStatus({ status })}
