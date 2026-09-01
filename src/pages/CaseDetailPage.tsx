@@ -36,7 +36,7 @@ import {
   type CaseStatus,
 } from '@/hooks/useCases';
 import { useDateFormatting } from '@/hooks/useDateFormatting';
-import { ArrowLeft, CheckCircle2, Mail, MessageSquare, Phone, UserRound } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Mail, MessageSquare, Phone, UserRound, Wrench } from 'lucide-react';
 
 function useOrgAgents() {
   const { profile } = useAuth();
