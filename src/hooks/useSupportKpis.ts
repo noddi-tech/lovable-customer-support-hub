@@ -66,6 +66,10 @@ export interface ChannelRow {
   awaiting_us: number;
   median_first_response_minutes: number | null;
   resolution_rate_pct: number | null;
+  /** Same metrics for the immediately preceding window of equal length. */
+  prev_received?: number | null;
+  prev_closed?: number | null;
+  prev_median_first_response_minutes?: number | null;
 }
 
 export interface ChannelOverview {
@@ -138,4 +142,5 @@ export const CHANNEL_LABELS: Record<string, string> = {
   email: 'Email',
   widget: 'Live chat',
   cases: 'Cases',
+  voice: 'Voice calls',
 };
