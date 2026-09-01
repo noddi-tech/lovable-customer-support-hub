@@ -19,6 +19,8 @@ import { MobileChatMessageList } from './MobileChatMessageList';
 import { MobileCustomerSummaryCard } from './MobileCustomerSummaryCard';
 import { ChatReplyInput } from '@/components/conversations/ChatReplyInput';
 import { cn } from '@/lib/utils';
+import { DescribedSelectItem } from '@/components/ui/described-select-item';
+import { CONVERSATION_STATUS_DESCRIPTIONS } from '@/lib/option-descriptions';
 
 interface MobileChatConversationViewProps {
   conversationId: string;

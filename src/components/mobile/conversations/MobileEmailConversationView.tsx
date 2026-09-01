@@ -18,6 +18,8 @@ import { MobileEmailMessageCard } from './MobileEmailMessageCard';
 import { MobileCustomerSummaryCard } from './MobileCustomerSummaryCard';
 import { LazyReplyArea } from '@/components/conversations/LazyReplyArea';
 import { cn } from '@/lib/utils';
+import { DescribedSelectItem } from '@/components/ui/described-select-item';
+import { CONVERSATION_STATUS_DESCRIPTIONS } from '@/lib/option-descriptions';
 
 interface MobileEmailConversationViewProps {
   conversationId: string;

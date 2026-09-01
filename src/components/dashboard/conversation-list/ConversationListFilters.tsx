@@ -1,6 +1,8 @@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useConversationList } from "@/contexts/ConversationListContext";
 import { useTranslation } from "react-i18next";
+import { DescribedSelectItem } from '@/components/ui/described-select-item';
+import { CONVERSATION_STATUS_DESCRIPTIONS, PRIORITY_DESCRIPTIONS } from '@/lib/option-descriptions';
 
 export const ConversationListFilters = () => {
   const { state, dispatch } = useConversationList();

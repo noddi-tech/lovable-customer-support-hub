@@ -7,6 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { NoddiCustomerDetails } from '@/components/dashboard/voice/NoddiCustomerDetails';
+import { DescribedSelectItem } from '@/components/ui/described-select-item';
+import { CONVERSATION_STATUS_DESCRIPTIONS, PRIORITY_DESCRIPTIONS } from '@/lib/option-descriptions';
 
 interface ConversationSidebarProps {
   conversationId?: string;

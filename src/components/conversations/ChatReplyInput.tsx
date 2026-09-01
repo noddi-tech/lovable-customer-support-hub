@@ -37,6 +37,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
+import { DescribedSelectItem } from '@/components/ui/described-select-item';
+import { REPLY_SEND_STATUS_DESCRIPTIONS } from '@/lib/option-descriptions';
 
 const LANGUAGES = [
   { code: 'auto', label: 'Auto Detect' },
