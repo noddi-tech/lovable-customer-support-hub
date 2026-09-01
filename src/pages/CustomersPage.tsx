@@ -33,15 +33,15 @@ export default function CustomersPage() {
 
   const brandOptions = useMemo(() => {
     const set = new Set<string>();
-    allCustomers.forEach((c) => c.brands.forEach((b) => set.add(b)));
+    allCustomers.forEach((c) => (c?.brands ?? []).forEach((b) => set.add(b)));
     return Array.from(set).sort((a, b) => a.localeCompare(b));
   }, [allCustomers]);
 
   const customers = useMemo(
     () =>
       allCustomers.filter((c) => {
-        if (statusFilter !== 'all' && !c.statuses.includes(statusFilter)) return false;
-        if (brandFilter !== 'all' && !c.brands.includes(brandFilter)) return false;
+        if (statusFilter !== 'all' && !(c?.statuses ?? []).includes(statusFilter)) return false;
+        if (brandFilter !== 'all' && !(c?.brands ?? []).includes(brandFilter)) return false;
         return true;
       }),
     [allCustomers, statusFilter, brandFilter],
