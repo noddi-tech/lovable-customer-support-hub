@@ -1,9 +1,9 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { UserPlus, UserMinus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { useTeamMembers } from '@/hooks/useTeamMembers';
+import { MemberOptionContent } from '@/components/shared/MemberPicker';
+import { useMemberSearch } from '@/components/shared/MemberPicker';
 
 interface BulkAssignMenuProps {
   onAssign: (memberId: string | null) => void | Promise<void>;
@@ -19,19 +19,9 @@ export const BulkAssignMenu: React.FC<BulkAssignMenuProps> = ({
   size = 'sm',
   label = 'Assign',
 }) => {
-  const { data: members = [] } = useTeamMembers();
   const [search, setSearch] = useState('');
   const [open, setOpen] = useState(false);
-
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return members;
-    return members.filter(
-      (m) =>
-        (m.full_name || '').toLowerCase().includes(q) ||
-        (m.email || '').toLowerCase().includes(q),
-    );
-  }, [members, search]);
+  const { members: filtered } = useMemberSearch(search);
 
   const pick = async (id: string | null) => {
     setOpen(false);
@@ -73,13 +63,7 @@ export const BulkAssignMenu: React.FC<BulkAssignMenuProps> = ({
               onClick={() => pick(m.id)}
               className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm hover:bg-accent"
             >
-              <Avatar className="h-5 w-5">
-                <AvatarImage src={m.avatar_url} />
-                <AvatarFallback className="text-[10px]">
-                  {(m.full_name || m.email || '?').trim().charAt(0).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-              <span className="min-w-0 flex-1 truncate">{m.full_name || m.email}</span>
+              <MemberOptionContent member={m} />
             </button>
           ))}
           {filtered.length === 0 && (

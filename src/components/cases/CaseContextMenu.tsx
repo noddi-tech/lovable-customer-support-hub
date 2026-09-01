@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import {
   ContextMenu,
   ContextMenuContent,
@@ -11,11 +11,10 @@ import {
   ContextMenuTrigger,
 } from '@/components/ui/context-menu';
 import { TagContextMenuItems } from '@/components/tags/TagContextMenuItems';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Check, UserMinus, UserPlus, Flag, CircleDot } from 'lucide-react';
 import { toast } from 'sonner';
-import { useTeamMembers, type TeamMember } from '@/hooks/useTeamMembers';
+import { MemberOptionContent, memberLabel, useMemberSearch } from '@/components/shared/MemberPicker';
 import {
   CASE_PRIORITY_LABELS,
   CASE_STATUS_LABELS,
@@ -38,9 +37,6 @@ interface CaseContextMenuProps {
   children: React.ReactNode;
 }
 
-const initials = (member: TeamMember) =>
-  (member.full_name || member.email || '?').trim().charAt(0).toUpperCase();
-
 /** Right-click menu on a case row: quick assign owner, change status or priority. */
 export const CaseContextMenu: React.FC<CaseContextMenuProps> = ({
   caseId,
@@ -50,18 +46,9 @@ export const CaseContextMenu: React.FC<CaseContextMenuProps> = ({
   children,
 }) => {
   const { mutateAsync: updateCase } = useUpdateCase();
-  const { data: members = [] } = useTeamMembers();
   const [search, setSearch] = useState('');
+  const { members: filtered } = useMemberSearch(search);
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return members.filter(
-      (m) =>
-        !q ||
-        (m.full_name || '').toLowerCase().includes(q) ||
-        (m.email || '').toLowerCase().includes(q),
-    );
-  }, [members, search]);
 
   const apply = async (updates: Record<string, unknown>, message: string) => {
     await updateCase({ id: caseId, updates });
@@ -95,20 +82,14 @@ export const CaseContextMenu: React.FC<CaseContextMenuProps> = ({
                   key={member.id}
                   className="gap-2"
                   onSelect={() =>
-                    apply(
-                      { owner_id: member.id },
-                      `Assigned to ${member.full_name || member.email}`,
-                    )
+                    apply({ owner_id: member.id }, `Assigned to ${memberLabel(member)}`)
                   }
                 >
-                  <Avatar className="h-5 w-5">
-                    <AvatarImage src={member.avatar_url || undefined} />
-                    <AvatarFallback className="text-[10px]">{initials(member)}</AvatarFallback>
-                  </Avatar>
-                  <span className="flex-1 truncate">{member.full_name || member.email}</span>
+                  <MemberOptionContent member={member} />
                   {ownerId === member.id && <Check className="h-3.5 w-3.5 shrink-0 text-primary" />}
                 </ContextMenuItem>
               ))}
+
               {filtered.length === 0 && (
                 <div className="px-3 py-4 text-sm text-muted-foreground">No people found</div>
               )}
