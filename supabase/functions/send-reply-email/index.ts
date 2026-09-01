@@ -3,6 +3,7 @@ import { renderEmailLayout, plainTextToHtml, htmlToPlainText } from '../_shared/
 import { buildPriorityHeaders } from '../_shared/email-priority.ts';
 import { resolveBrandTheme } from '../_shared/brand-theme.ts';
 import { getCompanyInfo, renderCompanyFooterHtml } from '../_shared/email-company-info.ts';
+import { buildBodyToken, buildHtmlToken, buildStructuredMessageId } from '../_shared/email-threading.ts';
 
 
 const corsHeaders = {
