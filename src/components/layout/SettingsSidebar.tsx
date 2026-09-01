@@ -18,8 +18,7 @@ import {
   Settings,
   Shield,
   Bell,
-  Home
-} from 'lucide-react';
+  Home, Tag as TagIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useAuth } from '@/hooks/useAuth';
@@ -45,6 +44,11 @@ export const SettingsSidebar: React.FC = () => {
       title: t('settings.tabs.notifications', 'Notifications'),
       icon: Bell,
       path: '/settings/notifications'
+    },
+    {
+      title: t('settings.tabs.tags', 'Tags'),
+      icon: TagIcon,
+      path: '/settings/tags'
     }
   ];
 
