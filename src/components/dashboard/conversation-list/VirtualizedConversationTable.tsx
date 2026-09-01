@@ -206,6 +206,13 @@ const VirtualizedConversationTable = memo(({ onSelectConversation, selectedConve
               <Checkbox checked={allSelected} onCheckedChange={handleSelectAll} />
             </div>
           )}
+            <FlexHeaderCell
+              label=""
+              sortKey="channel"
+              currentSort={state.tableSort}
+              onSort={handleSort}
+              className="w-12 shrink-0"
+            />
           <FlexHeaderCell
             label={t('dashboard.conversationList.customer', 'Customer')}
             sortKey="customer"
@@ -243,13 +250,6 @@ const VirtualizedConversationTable = memo(({ onSelectConversation, selectedConve
             currentSort={state.tableSort}
             onSort={handleSort}
             className="w-24 shrink-0"
-          />
-          <FlexHeaderCell
-            label={t('dashboard.conversationList.channel', 'Channel')}
-            sortKey="channel"
-            currentSort={state.tableSort}
-            onSort={handleSort}
-            className="w-28 shrink-0"
           />
           <FlexHeaderCell
             label={t('dashboard.conversationList.received', 'Received')}
