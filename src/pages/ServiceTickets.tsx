@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Plus, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { NoddiTicketTable } from '@/components/noddi-tickets/NoddiTicketTable';
 import {
@@ -88,41 +89,45 @@ export default function ServiceTickets() {
   };
 
   return (
-    <div className="space-y-4 p-4 md:p-6">
+    <div className="h-full overflow-y-auto overscroll-contain space-y-4 p-3 pb-24 md:p-6 md:pb-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
-        <div className="min-w-0">
+        <div className="flex min-w-0 items-start gap-2">
+          <SidebarTrigger className="mt-0.5 shrink-0 md:hidden" />
+          <div className="min-w-0">
           <h1 className="text-xl font-semibold tracking-tight md:text-2xl">Ops tickets</h1>
           <p className="text-xs text-muted-foreground md:text-sm">
             Creates operational tickets for a service department in Navio. Tickets live in the Navio
             backend and show up in their app — Support Hub only reads and creates them.
           </p>
-
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
             size="sm"
-            className="flex-1 sm:flex-none"
+            className="h-10 flex-1 sm:h-9 sm:flex-none"
             onClick={() => refetch()}
             disabled={isFetching}
           >
             <RefreshCw className={`mr-1.5 h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
-          <Button size="sm" className="flex-1 sm:flex-none" onClick={() => setCreateOpen(true)}>
+          <Button size="sm" className="h-10 flex-1 sm:h-9 sm:flex-none" onClick={() => setCreateOpen(true)}>
             <Plus className="mr-1.5 h-4 w-4" /> New ops ticket
           </Button>
         </div>
       </div>
 
       <Tabs value={statusTab} onValueChange={setStatusTab}>
-        <TabsList className="h-auto min-w-0 flex-wrap justify-start gap-1">
+        <div className="-mx-1 overflow-x-auto px-1 pb-1">
+        <TabsList className="h-auto w-max min-w-0 justify-start gap-1">
           {STATUS_TABS.map((tab) => (
-            <TabsTrigger key={tab.value} value={tab.value}>
+            <TabsTrigger key={tab.value} value={tab.value} className="shrink-0">
               {tab.label}
             </TabsTrigger>
           ))}
         </TabsList>
+        </div>
       </Tabs>
 
 
@@ -139,7 +144,8 @@ export default function ServiceTickets() {
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
-            size="sm"
+            size="icon"
+            className="h-10 w-10 sm:h-8 sm:w-8"
             disabled={page === 0 || isFetching}
             onClick={() => setPage((p) => Math.max(0, p - 1))}
           >
@@ -150,7 +156,8 @@ export default function ServiceTickets() {
           </span>
           <Button
             variant="outline"
-            size="sm"
+            size="icon"
+            className="h-10 w-10 sm:h-8 sm:w-8"
             disabled={page + 1 >= totalPages || isFetching}
             onClick={() => setPage((p) => p + 1)}
           >

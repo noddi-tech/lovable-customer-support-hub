@@ -42,7 +42,7 @@ export function NoddiTicketFilters({ value, onChange, departments }: Props) {
           value={value.search}
           onChange={(e) => onChange({ ...value, search: e.target.value })}
           placeholder="Search tickets in Noddi…"
-          className="pl-8"
+          className="h-10 pl-8 text-base sm:h-9 sm:text-sm"
         />
       </div>
 
@@ -50,7 +50,7 @@ export function NoddiTicketFilters({ value, onChange, departments }: Props) {
         value={value.priority}
         onValueChange={(v) => onChange({ ...value, priority: v as NoddiTicketFilterState['priority'] })}
       >
-        <SelectTrigger className="w-full sm:w-[150px]">
+        <SelectTrigger className="h-10 w-full sm:h-9 sm:w-[150px]">
           <SelectValue placeholder="Priority" />
         </SelectTrigger>
         <SelectContent>
@@ -67,7 +67,7 @@ export function NoddiTicketFilters({ value, onChange, departments }: Props) {
         value={value.category}
         onValueChange={(v) => onChange({ ...value, category: v as NoddiTicketFilterState['category'] })}
       >
-        <SelectTrigger className="w-full sm:w-[180px]">
+        <SelectTrigger className="h-10 w-full sm:h-9 sm:w-[180px]">
           <SelectValue placeholder="Category" />
         </SelectTrigger>
         <SelectContent>
@@ -84,7 +84,7 @@ export function NoddiTicketFilters({ value, onChange, departments }: Props) {
         value={value.departmentId ? String(value.departmentId) : 'ALL'}
         onValueChange={(v) => onChange({ ...value, departmentId: v === 'ALL' ? null : Number(v) })}
       >
-        <SelectTrigger className="col-span-2 w-full sm:w-[200px]">
+        <SelectTrigger className="col-span-2 h-10 w-full sm:h-9 sm:w-[200px]">
           <SelectValue placeholder="Department" />
         </SelectTrigger>
         <SelectContent>
