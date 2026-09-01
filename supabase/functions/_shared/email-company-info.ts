@@ -1,3 +1,4 @@
+import { navioSourceHeaders } from './navio-source.ts';
 /**
  * Company / legal information used in the footer of outgoing support emails.
  *
@@ -72,6 +73,7 @@ interface SoRecord {
 
 const noddiHeaders = (): Record<string, string> => ({
   Accept: 'application/json',
+  ...navioSourceHeaders(),
   ...(NODDI_TOKEN ? { Authorization: `Token ${NODDI_TOKEN}` } : {}),
 });
 

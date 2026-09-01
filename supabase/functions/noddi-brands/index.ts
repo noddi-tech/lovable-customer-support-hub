@@ -1,4 +1,5 @@
 /**
+import { navioSourceHeaders, captureNavioSourceVersion } from "../_shared/navio-source.ts";
  * Proxy for the Noddi backend brand catalog.
  *
  * Returns a slim list of brands (id, name, slug, domain, logo url) used by the
@@ -38,6 +39,7 @@ const toSlim = (raw: Record<string, unknown>): SlimBrand => {
 };
 
 Deno.serve(async (req) => {
+  captureNavioSourceVersion(req);
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -49,7 +51,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const headers: Record<string, string> = { Accept: 'application/json' };
+    const headers: Record<string, string> = { Accept: 'application/json', ...navioSourceHeaders() };
     if (NODDI_TOKEN) headers.Authorization = `Api-Key ${NODDI_TOKEN}`;
 
     const res = await fetch(`${API_BASE}/v1/brands/?page_size=100`, { headers });

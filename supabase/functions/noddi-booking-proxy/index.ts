@@ -1,6 +1,7 @@
 import { corsHeaders } from "../_shared/cors.ts";
 import { isAllowedProxyCaller } from "../_shared/caller.ts";
 import { checkRateLimit, clientIp, rateLimitResponse } from "../_shared/rate-limit.ts";
+import { navioSourceHeaders, captureNavioSourceVersion } from "../_shared/navio-source.ts";
 
 
 const API_BASE = (Deno.env.get("NODDI_API_BASE") || "https://api.noddi.co").replace(/\/+$/, "");
@@ -14,13 +15,15 @@ const SERVICE_TYPE_LABELS: Record<string, string> = {
 };
 const NODDI_TOKEN = Deno.env.get("NODDI_API_TOKEN") || "";
 
-const headers: HeadersInit = {
+const headers = (): HeadersInit => ({
   Authorization: `Token ${NODDI_TOKEN}`,
   Accept: "application/json",
   "Content-Type": "application/json",
-};
+  ...navioSourceHeaders(),
+});
 
 Deno.serve(async (req) => {
+  captureNavioSourceVersion(req);
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -48,7 +51,7 @@ Deno.serve(async (req) => {
           return jsonResponse({ error: "license_plate required" }, 400);
         }
         const url = `${API_BASE}/v1/cars/from-license-plate-number/?brand_domains=noddi&country_code=${encodeURIComponent(country_code)}&number=${encodeURIComponent(license_plate)}`;
-        const res = await fetch(url, { headers });
+        const res = await fetch(url, { headers: headers() });
         if (!res.ok) {
           const text = await res.text();
           console.error("Car lookup error:", res.status, text);
@@ -74,7 +77,7 @@ Deno.serve(async (req) => {
           });
         }
         const url = `${API_BASE}/v1/sales-item-booking-categories/for-new-booking/?address_id=${encodeURIComponent(address_id)}`;
-        const res = await fetch(url, { headers });
+        const res = await fetch(url, { headers: headers() });
         if (!res.ok) {
           const text = await res.text();
           console.error("List services error:", res.status, text);
@@ -121,7 +124,7 @@ Deno.serve(async (req) => {
 
         const res = await fetch(`${API_BASE}/v1/sales-items/initial-available-for-booking/`, {
           method: "POST",
-          headers,
+          headers: headers(),
           body: JSON.stringify(payload),
         });
         if (!res.ok) {
@@ -144,7 +147,7 @@ Deno.serve(async (req) => {
         const edPayload: any = { address_id: eAddr, cars: carsForApi };
         const res = await fetch(`${API_BASE}/v1/delivery-windows/earliest-date/`, {
           method: "POST",
-          headers,
+          headers: headers(),
           body: JSON.stringify(edPayload),
         });
         if (!res.ok) {
@@ -160,7 +163,7 @@ Deno.serve(async (req) => {
       case "latest_date": {
         const { address_id: lAddr } = body;
         const url = `${API_BASE}/v1/delivery-windows/latest-date/${lAddr ? `?address_id=${encodeURIComponent(lAddr)}` : ''}`;
-        const res = await fetch(url, { headers });
+        const res = await fetch(url, { headers: headers() });
         if (!res.ok) {
           const text = await res.text();
           console.error("Latest date error:", res.status, text);
@@ -237,7 +240,7 @@ Deno.serve(async (req) => {
             url += `&selected_sales_item_ids=${encodeURIComponent(id)}`;
           }
         }
-        const res = await fetch(url, { headers });
+        const res = await fetch(url, { headers: headers() });
         if (!res.ok) {
           const text = await res.text();
           console.error("Delivery windows REST fallback error:", res.status, text, "URL:", url);
@@ -260,7 +263,7 @@ Deno.serve(async (req) => {
             url += `&sales_items_ids=${encodeURIComponent(id)}`;
           }
         }
-        const res = await fetch(url, { headers });
+        const res = await fetch(url, { headers: headers() });
         if (!res.ok) {
           const text = await res.text();
           console.error("Service departments error:", res.status, text);
@@ -311,7 +314,7 @@ Deno.serve(async (req) => {
 
         const res = await fetch(`${API_BASE}/v1/bookings/`, {
           method: "POST",
-          headers,
+          headers: headers(),
           body: JSON.stringify(cartPayload),
         });
         if (!res.ok) {
@@ -333,7 +336,7 @@ Deno.serve(async (req) => {
         if (phone) params.set("phone", phone);
         if (email) params.set("email", email);
         const url = `${API_BASE}/v1/users/customer-lookup-support/?${params.toString()}`;
-        const res = await fetch(url, { headers });
+        const res = await fetch(url, { headers: headers() });
         if (!res.ok) {
           const text = await res.text();
           console.error("Customer lookup error:", res.status, text);
@@ -399,7 +402,7 @@ Deno.serve(async (req) => {
 
         const res = await fetch(`${API_BASE}/v1/bookings/${booking_id}/`, {
           method: "PATCH",
-          headers,
+          headers: headers(),
           body: JSON.stringify(patchPayload),
         });
         if (!res.ok) {

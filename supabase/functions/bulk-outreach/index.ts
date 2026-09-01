@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
+import { navioSourceHeaders, captureNavioSourceVersion } from "../_shared/navio-source.ts";
 
 const API_BASE = (Deno.env.get("NODDI_API_BASE") || "https://api.noddi.co").replace(/\/+$/, "");
 const NODDI_TOKEN = Deno.env.get("NODDI_API_TOKEN") || "";
@@ -9,6 +10,7 @@ function noddiHeaders(): HeadersInit {
     Authorization: `Token ${NODDI_TOKEN}`,
     Accept: "application/json",
     "Content-Type": "application/json",
+    ...navioSourceHeaders(),
   };
 }
 
@@ -522,6 +524,7 @@ function extractEmailFromBooking(booking: any): string | null {
 }
 
 Deno.serve(async (req) => {
+  captureNavioSourceVersion(req);
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }

@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { navioSourceHeaders, captureNavioSourceVersion } from "../_shared/navio-source.ts";
 
 const API_BASE = (Deno.env.get("NODDI_API_BASE") || "https://api.noddi.co").replace(/\/+$/, "");
 const noddiToken = Deno.env.get("NODDI_API_TOKEN") || "";
@@ -13,6 +14,7 @@ function noddiAuthHeaders(): HeadersInit {
     "Authorization": `Token ${noddiToken}`,
     "Accept": "application/json",
     "Content-Type": "application/json",
+    ...navioSourceHeaders(),
   };
 }
 
@@ -23,6 +25,7 @@ const json = (data: any, status = 200) =>
   });
 
 Deno.serve(async (req) => {
+  captureNavioSourceVersion(req);
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: cors });
   }

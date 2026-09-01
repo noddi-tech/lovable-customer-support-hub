@@ -2,6 +2,7 @@
 // The Support Hub NEVER stores tickets locally — every read/write goes to Noddi.
 import { corsHeaders } from "../_shared/cors.ts";
 import { requireUser } from "../_shared/auth.ts";
+import { navioSourceHeaders, captureNavioSourceVersion } from "../_shared/navio-source.ts";
 
 const API_BASE = (Deno.env.get("NODDI_API_BASE") || "https://api.noddi.co").replace(/\/+$/, "");
 const NODDI_TOKEN = Deno.env.get("NODDI_API_TOKEN") || "";
@@ -17,6 +18,7 @@ function noddiHeaders(): HeadersInit {
     Authorization: `Token ${NODDI_TOKEN}`,
     Accept: "application/json",
     "Content-Type": "application/json",
+    ...navioSourceHeaders(),
   };
 }
 
@@ -94,6 +96,7 @@ function ticketId(payload: Record<string, unknown>): number | null {
 }
 
 Deno.serve(async (req) => {
+  captureNavioSourceVersion(req);
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
