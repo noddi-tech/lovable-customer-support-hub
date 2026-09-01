@@ -56,7 +56,12 @@ export const AppMainNav = () => {
   const isCollapsed = state === 'collapsed' && !isMobile;
   const isAdmin = checkIsAdmin();
   const groupedItems = getGroupedNavItems(isAdmin, isSuperAdmin);
-  
+  const showLoadingShell = permissionsLoading && !navHasResolvedOnce;
+
+  useEffect(() => {
+    if (!permissionsLoading) navHasResolvedOnce = true;
+  }, [permissionsLoading]);
+
   // Log nav matches in dev mode
   useEffect(() => {
     logNavMatch(location.pathname);
