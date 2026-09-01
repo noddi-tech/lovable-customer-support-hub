@@ -96,3 +96,57 @@ export async function requireAdmin(
     admin: { ...result.user, isSuperAdmin, organizationIds: adminOrgs },
   };
 }
+
+/** True when the request is signed with the service-role key (trusted internal caller). */
+export function isServiceRoleRequest(req: Request): boolean {
+  if (!SERVICE_ROLE_KEY) return false;
+  const header = req.headers.get('Authorization') ?? '';
+  const bearer = header.startsWith('Bearer ') ? header.slice(7).trim() : '';
+  const apikey = req.headers.get('apikey')?.trim() ?? '';
+  return bearer === SERVICE_ROLE_KEY || apikey === SERVICE_ROLE_KEY;
+}
+
+export interface MemberContext extends AuthedUser {
+  isSuperAdmin: boolean;
+  organizationIds: string[];
+}
+
+/**
+ * Resolves the calling user and asserts they are an active member of `organizationId`.
+ * Super admins pass for any org. Service-role callers bypass entirely.
+ */
+export async function requireOrgMember(
+  req: Request,
+  organizationId: string,
+): Promise<{ member: MemberContext } | { response: Response }> {
+  if (isServiceRoleRequest(req)) {
+    return {
+      member: { id: 'service-role', email: null, isSuperAdmin: true, organizationIds: [organizationId] },
+    };
+  }
+
+  const result = await requireUser(req);
+  if ('response' in result) return result;
+
+  const client = serviceClient();
+  const { data: roles } = await client
+    .from('user_roles')
+    .select('role')
+    .eq('user_id', result.user.id);
+
+  const isSuperAdmin = (roles ?? []).some((r: { role: string }) => r.role === 'super_admin');
+
+  const { data: memberships } = await client
+    .from('organization_memberships')
+    .select('organization_id')
+    .eq('user_id', result.user.id)
+    .eq('status', 'active');
+
+  const orgIds = (memberships ?? []).map((m: { organization_id: string }) => m.organization_id);
+
+  if (!isSuperAdmin && !orgIds.includes(organizationId)) {
+    return { response: json({ error: 'Forbidden: not a member of this organization' }, 403) };
+  }
+
+  return { member: { ...result.user, isSuperAdmin, organizationIds: orgIds } };
+}

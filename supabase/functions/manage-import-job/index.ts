@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { corsHeaders } from '../_shared/cors.ts';
+import { requireOrgMember } from '../_shared/auth.ts';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -19,6 +20,23 @@ Deno.serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    // Authorization: the job must belong to an organization the caller is a member of.
+    const { data: job, error: jobError } = await supabase
+      .from('import_jobs')
+      .select('id, organization_id')
+      .eq('id', jobId)
+      .maybeSingle();
+
+    if (jobError || !job) {
+      return new Response(
+        JSON.stringify({ error: 'Import job not found' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const auth = await requireOrgMember(req, job.organization_id);
+    if ('response' in auth) return auth.response;
 
     let updateData: any = {
       updated_at: new Date().toISOString()

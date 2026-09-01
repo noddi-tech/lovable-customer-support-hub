@@ -1,5 +1,6 @@
 // Call notification edge function - handles call event notifications
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.53.0';
+import { requireOrgMember } from '../_shared/auth.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -27,6 +28,17 @@ Deno.serve(async (req) => {
 
     const payload: CallNotificationPayload = await req.json();
     const { callId, eventType, customerPhone, customerName, assignedToId, organizationId } = payload;
+
+    if (!organizationId) {
+      return new Response(
+        JSON.stringify({ error: 'organizationId is required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Authorization: caller must belong to the target organization (or be an internal service).
+    const auth = await requireOrgMember(req, organizationId);
+    if ('response' in auth) return auth.response;
 
     // Determine notification title and message based on event type
     let title = '';
