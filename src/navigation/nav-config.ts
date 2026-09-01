@@ -92,7 +92,7 @@ export const NAV_ITEMS: NavItem[] = [
   },
   { 
     id: "chat", 
-    label: "Chat",
+    label: "Live Chat",
     description: "Live website chat queue with active visitors and chat history.", 
     to: "/interactions/chat", 
     icon: MessageCircle, 
