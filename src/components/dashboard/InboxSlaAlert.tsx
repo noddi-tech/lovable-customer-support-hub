@@ -1,7 +1,7 @@
 import { AlertTriangle, ArrowRight, Timer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { formatCountdown } from '@/components/dashboard/conversation-list/SLABadge';
+import { formatCountdown } from '@/lib/sla';
 import type { InboxSlaRisk } from '@/hooks/useSlaRisk';
 
 const CHANNEL_LABELS: Record<string, string> = {
@@ -74,5 +74,3 @@ export function InboxSlaAlert({ risk, onFix }: InboxSlaAlertProps) {
     </div>
   );
 }
-
-export default InboxSlaAlert;
