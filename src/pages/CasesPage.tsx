@@ -11,6 +11,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { CaseStatusBadge, CasePriorityBadge, CaseSlaBadge, CASE_PRIORITY_DOT } from '@/components/cases/CaseBadges';
 import { CreateCaseDialog } from '@/components/cases/CreateCaseDialog';
 import { CaseContextMenu } from '@/components/cases/CaseContextMenu';
+import { TagFilterSelect, matchesTagFilter } from '@/components/tags/TagFilterSelect';
+import { TagBadgeList } from '@/components/tags/TagBadge';
+import { useEntityTags } from '@/hooks/useEntityTags';
 
 import {
   CASE_PRIORITY_LABELS,
@@ -58,6 +61,8 @@ export default function CasesPage() {
   const navigate = useNavigate();
   const [view, setView] = useState<CaseQueueView>('mine');
   const [search, setSearch] = useState('');
+  const [tagFilter, setTagFilter] = useState<string[]>([]);
+  const { getTags: getCaseTags } = useEntityTags('case');
   const [categoryId, setCategoryId] = useState<string>('all');
   const [priority, setPriority] = useState<string>('all');
   const [createOpen, setCreateOpen] = useState(false);
@@ -210,6 +215,7 @@ export default function CasesPage() {
                   ))}
                 </SelectContent>
               </Select>
+              <TagFilterSelect value={tagFilter} onChange={setTagFilter} />
             </div>
           </div>
         </header>
@@ -234,7 +240,9 @@ export default function CasesPage() {
             </Card>
           ) : (
             <div className="space-y-2">
-              {cases.map((c) => (
+              {cases
+                .filter((c) => matchesTagFilter(getCaseTags(c.id).map((t) => t.id), tagFilter))
+                .map((c) => (
                 <CaseContextMenu
                   key={c.id}
                   caseId={c.id}
@@ -263,6 +271,7 @@ export default function CasesPage() {
                       {c.category && <span>{c.category.name}</span>}
                       <span>Updated {dateTime(c.updated_at)}</span>
                       <CaseSlaBadge record={c} />
+                      <TagBadgeList tags={getCaseTags(c.id)} compact max={3} />
                     </div>
                   </button>
                 </CaseContextMenu>
