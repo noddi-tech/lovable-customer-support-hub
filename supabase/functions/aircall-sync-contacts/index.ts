@@ -321,7 +321,7 @@ Deno.serve(async (req) => {
                 ...meta,
                 aircall_contact_id: newId,
                 aircall_synced_at: new Date().toISOString(),
-                aircall_synced_signature: `${row.full_name?.trim()}|${phone}|${row.email || ''}`,
+                aircall_synced_signature: `v2|${row.full_name?.trim()}|${phone}|${row.email || ''}`,
               },
             })
             .eq('id', row.id);
