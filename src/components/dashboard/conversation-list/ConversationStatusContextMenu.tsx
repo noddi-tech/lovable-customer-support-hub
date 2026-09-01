@@ -12,16 +12,21 @@ import {
 } from '@/components/ui/context-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
-import { Clock, XCircle, MessageCircle, UserPlus, UserMinus, Check } from 'lucide-react';
+import { Clock, XCircle, MessageCircle, UserPlus, UserMinus, Check, Tag, Ban } from 'lucide-react';
 import { useConversationStatusActions } from '@/hooks/useConversationStatusActions';
 import { useConversationAssignActions, getRecentAssigneeIds } from '@/hooks/useConversationAssignActions';
 import { useTeamMembers, type TeamMember } from '@/hooks/useTeamMembers';
+import { useConversationBrandActions } from '@/hooks/useConversationBrandActions';
+import { useNoddiBrands } from '@/hooks/useNoddiBrands';
+import { getBrandColor } from '@/lib/conversationBrand';
 
 interface ConversationStatusContextMenuProps {
   conversationId: string;
   status?: string;
   /** Currently assigned profile id, used to show a checkmark. */
   assignedToId?: string | null;
+  /** Current brand label (from conversation metadata), used to show a checkmark. */
+  brandLabel?: string | null;
   children: React.ReactNode;
 }
 
@@ -36,12 +41,16 @@ export const ConversationStatusContextMenu: React.FC<ConversationStatusContextMe
   conversationId,
   status,
   assignedToId,
+  brandLabel,
   children,
 }) => {
   const { setStatus } = useConversationStatusActions();
   const { assign } = useConversationAssignActions();
+  const { setBrand } = useConversationBrandActions();
+  const { brands, findBrand } = useNoddiBrands();
   const { data: members = [] } = useTeamMembers();
   const [search, setSearch] = useState('');
+  const currentBrandSlug = findBrand(brandLabel)?.slug ?? null;
 
   const { recent, rest } = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -112,6 +121,38 @@ export const ConversationStatusContextMenu: React.FC<ConversationStatusContextMe
             <ContextMenuItem onSelect={() => assign(conversationId, null)}>
               <UserMinus className="w-4 h-4 mr-2" />
               Unassign
+            </ContextMenuItem>
+          </ContextMenuSubContent>
+        </ContextMenuSub>
+        <ContextMenuSeparator />
+        <ContextMenuLabel className="text-xs text-muted-foreground">Brand</ContextMenuLabel>
+        <ContextMenuSub>
+          <ContextMenuSubTrigger>
+            <Tag className="w-4 h-4 mr-2" />
+            Set brand…
+          </ContextMenuSubTrigger>
+          <ContextMenuSubContent className="w-56 max-h-72 overflow-y-auto">
+            {brands.length === 0 && (
+              <div className="px-3 py-4 text-sm text-muted-foreground">No brands available</div>
+            )}
+            {brands.map((b) => {
+              const color = getBrandColor(b.slug);
+              return (
+                <ContextMenuItem key={b.id} className="gap-2" onSelect={() => setBrand(conversationId, b.name)}>
+                  {b.logo_url ? (
+                    <img src={b.logo_url} alt="" loading="lazy" className="h-4 w-4 rounded-sm object-contain shrink-0" />
+                  ) : (
+                    <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: color }} />
+                  )}
+                  <span className="truncate flex-1" style={{ color }}>{b.name}</span>
+                  {currentBrandSlug === b.slug && <Check className="w-3.5 h-3.5 text-primary shrink-0" />}
+                </ContextMenuItem>
+              );
+            })}
+            <ContextMenuSeparator />
+            <ContextMenuItem onSelect={() => setBrand(conversationId, null)}>
+              <Ban className="w-4 h-4 mr-2" />
+              Clear brand
             </ContextMenuItem>
           </ContextMenuSubContent>
         </ContextMenuSub>

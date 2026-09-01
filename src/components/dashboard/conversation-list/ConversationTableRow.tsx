@@ -362,7 +362,7 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
   // --- Virtualized row (div-based) ---
   if (style) {
     return (
-      <ConversationStatusContextMenu conversationId={conversation.id} status={conversation.status}>
+      <ConversationStatusContextMenu conversationId={conversation.id} status={conversation.status} brandLabel={(conversation.metadata as any)?.brand ?? (conversation.metadata as any)?.brand_name ?? null}>
       <div style={style} className={cn("flex items-center px-4 border-b", rowClasses)} onClick={handleRowClick}>
         {showBulkCheckbox && (
           <div className="w-10 p-2 shrink-0">
@@ -515,7 +515,7 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
 
   // --- Standard table row ---
   return (
-    <ConversationStatusContextMenu conversationId={conversation.id} status={conversation.status}>
+    <ConversationStatusContextMenu conversationId={conversation.id} status={conversation.status} brandLabel={(conversation.metadata as any)?.brand ?? (conversation.metadata as any)?.brand_name ?? null}>
     <TableRow className={rowClasses} onClick={handleRowClick}>
       {showBulkCheckbox && (
         <TableCell className="w-10 p-2">

@@ -23,7 +23,6 @@ export function getConversationBrand(
   metadata: unknown,
   channel?: string | null,
 ): ConversationBrand | null {
-  if (channel && channel !== 'widget') return null;
   const meta = (metadata ?? {}) as Record<string, unknown>;
 
   const explicit =
@@ -35,6 +34,9 @@ export function getConversationBrand(
     const label = explicit.trim().slice(0, 40);
     return { label, key: label.toLowerCase(), inferred: false };
   }
+
+  // URL inference only makes sense for widget conversations.
+  if (channel && channel !== 'widget') return null;
 
   const pageUrl = typeof meta.page_url === 'string' ? meta.page_url : '';
   if (pageUrl) {
