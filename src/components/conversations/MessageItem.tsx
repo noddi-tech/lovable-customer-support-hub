@@ -11,8 +11,11 @@ import {
   Paperclip,
   MoreVertical,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  AlertCircle,
+  ArrowDown
 } from "lucide-react";
+import { getMessagePriority, EMAIL_PRIORITY_LABELS } from "@/lib/emailPriority";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { type EmailAttachment } from "@/utils/emailFormatting";
 import { useDateFormatting } from "@/hooks/useDateFormatting";
