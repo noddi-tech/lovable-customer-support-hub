@@ -133,6 +133,8 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
   const { data: inboxEmails } = useInboxEmailAddresses();
   const { t } = useTranslation();
   const isMobile = useIsMobile();
+  const { getTags } = useEntityTags('conversation');
+  const conversationTags = getTags(conversation.id);
 
   // Only surface the inbox column/badge when the list isn't already scoped to
   // a single inbox — in the "All inboxes" view it's essential context.
