@@ -87,7 +87,7 @@ export const ENABLE_QUOTED_SEGMENTATION = false;
 
 // Feature flag: library-backed cleaner (@u22n/mailtools + email-reply-parser).
 // Off by default; override per session with ?cleanv2=1 (see src/lib/emailClean.ts).
-export const ENABLE_LIB_EMAIL_CLEAN = false;
+export const ENABLE_LIB_EMAIL_CLEAN = true;
 
 // Feature flag for showing quoted content in UI
 const SHOW_QUOTED = true; // Always parse quoted messages so they're available for extraction
