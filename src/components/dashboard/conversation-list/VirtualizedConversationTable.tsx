@@ -251,22 +251,6 @@ const VirtualizedConversationTable = memo(({ onSelectConversation, selectedConve
             className="w-32 shrink-0"
           />
           <FlexHeaderCell
-            label={t('dashboard.conversationList.priority', 'Priority')}
-            sortKey="priority"
-            description={CONVERSATION_COLUMN_DESCRIPTIONS.priority}
-            currentSort={state.tableSort}
-            onSort={handleSort}
-            className="w-24 shrink-0"
-          />
-          <FlexHeaderCell
-            label={t('dashboard.conversationList.received', 'Received')}
-            sortKey="received"
-            description={CONVERSATION_COLUMN_DESCRIPTIONS.received}
-            currentSort={state.tableSort}
-            onSort={handleSort}
-            className="w-36 shrink-0"
-          />
-          <FlexHeaderCell
             label={t('dashboard.conversationList.waiting', 'Waiting')}
             sortKey="waiting"
             description={CONVERSATION_COLUMN_DESCRIPTIONS.waiting}
@@ -282,6 +266,23 @@ const VirtualizedConversationTable = memo(({ onSelectConversation, selectedConve
             onSort={handleSort}
             className="w-28 shrink-0"
           />
+          <FlexHeaderCell
+            label={t('dashboard.conversationList.priority', 'Priority')}
+            sortKey="priority"
+            description={CONVERSATION_COLUMN_DESCRIPTIONS.priority}
+            currentSort={state.tableSort}
+            onSort={handleSort}
+            className="w-24 shrink-0"
+          />
+          <FlexHeaderCell
+            label={t('dashboard.conversationList.received', 'Received')}
+            sortKey="received"
+            description={CONVERSATION_COLUMN_DESCRIPTIONS.received}
+            currentSort={state.tableSort}
+            onSort={handleSort}
+            className="w-36 shrink-0"
+          />
+
           <div className="w-12 p-2 shrink-0" />
         </div>
       </div>
