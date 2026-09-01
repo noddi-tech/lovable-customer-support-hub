@@ -34,7 +34,9 @@ export const EnvBanner = () => {
     } else {
       root.style.removeProperty('--env-banner-h');
     }
-    return () => root.style.removeProperty('--env-banner-h');
+    return () => {
+      root.style.removeProperty('--env-banner-h');
+    };
   }, [label]);
 
   if (!label) return null; // production — stay silent
