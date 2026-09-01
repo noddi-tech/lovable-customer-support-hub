@@ -460,8 +460,16 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
+    // Hidden thread token: survives quoted replies even when headers and
+    // subject are stripped, so inbound matching can still find this thread.
+    const threadTokenHtml = buildHtmlToken(message.conversation_id);
+    const htmlWithToken = /<\/body>/i.test(emailHTML)
+      ? emailHTML.replace(/<\/body>/i, `${threadTokenHtml}</body>`)
+      : `${emailHTML}${threadTokenHtml}`;
+    const plainText = `${plainTextBody}\n\n${buildBodyToken(message.conversation_id)}`;
+
     // Monitor email size to prevent Gmail clipping (102KB limit)
-    const estimatedSize = emailHTML.length + plainText.length + 2000; // +2KB for headers
+    const estimatedSize = htmlWithToken.length + plainText.length + 2000; // +2KB for headers
     console.log(`📧 Email size: ${(estimatedSize/1024).toFixed(1)}KB (HTML: ${(emailHTML.length/1024).toFixed(1)}KB, Plain: ${(plainText.length/1024).toFixed(1)}KB)`);
     
     if (estimatedSize > 90000) {  // Warn at 90KB (before 102KB limit)
