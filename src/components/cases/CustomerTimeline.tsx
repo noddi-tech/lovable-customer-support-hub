@@ -47,6 +47,8 @@ export function CustomerTimeline({
   const [filter, setFilter] = useState<'all' | TimelineChannel>('all');
   const [expanded, setExpanded] = useState(false);
   const [previewItem, setPreviewItem] = useState<TimelineItem | null>(null);
+  // Collapsed by default in every side panel — history is reference material, not the main task.
+  const [sectionOpen, setSectionOpen] = useState(false);
 
   const { items, isLoading } = useCustomerTimeline(customerId, {
     excludeConversationId: currentConversationId,
@@ -64,15 +66,30 @@ export function CustomerTimeline({
   return (
     <Card className={className}>
       <CardHeader className="pb-2">
-        <CardTitle className="flex items-center gap-2 text-sm">
-          <History className="h-4 w-4" /> Customer history
-          {items.length > 0 && (
-            <Badge variant="outline" className="ml-auto text-[10px]">
-              {items.length}
-            </Badge>
-          )}
+        <CardTitle className="text-sm">
+          <button
+            type="button"
+            onClick={() => setSectionOpen((v) => !v)}
+            aria-expanded={sectionOpen}
+            className="flex w-full items-center gap-2 text-left"
+          >
+            <History className="h-4 w-4" /> Customer history
+            {items.length > 0 && (
+              <Badge variant="outline" className="ml-auto text-[10px]">
+                {items.length}
+              </Badge>
+            )}
+            <ChevronDown
+              className={cn(
+                'h-4 w-4 shrink-0 text-muted-foreground transition-transform',
+                items.length > 0 ? '' : 'ml-auto',
+                sectionOpen && 'rotate-180',
+              )}
+            />
+          </button>
         </CardTitle>
       </CardHeader>
+      {sectionOpen && (
       <CardContent className="space-y-2">
         <div className="flex flex-wrap gap-1">
           {FILTERS.map((f) => (
@@ -157,6 +174,7 @@ export function CustomerTimeline({
           </Button>
         )}
       </CardContent>
+      )}
 
       <TimelineItemPreviewDialog
         item={previewItem}
