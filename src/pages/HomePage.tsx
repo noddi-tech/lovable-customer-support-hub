@@ -18,6 +18,7 @@ import { InboxMetricsDialog } from '@/components/dashboard/InboxMetricsDialog';
 import { SupportOverviewSection } from '@/components/dashboard/SupportOverviewSection';
 import { InboxSlaAlert } from '@/components/dashboard/InboxSlaAlert';
 import { useSlaRiskByInbox } from '@/hooks/useSlaRisk';
+import { getInboxHealth } from '@/lib/inboxHealth';
 
 import {
   Inbox,
@@ -169,6 +170,14 @@ export default function HomePage() {
                  const isDefault = defaultInboxId === inbox.id;
                 const defaults = inboxDefaults[inbox.id];
                 const slaRisk = slaRiskByInbox.get(inbox.id);
+                const health = isConfigured
+                  ? getInboxHealth({
+                      open: inbox.open_count ?? 0,
+                      unread: inbox.unread_count ?? 0,
+                      breached: slaRisk?.breached ?? 0,
+                      atRisk: slaRisk?.atRisk ?? 0,
+                    })
+                  : null;
 
 
                 return (
@@ -194,6 +203,16 @@ export default function HomePage() {
                         />
                         <div className="min-w-0 flex flex-col leading-tight">
                           <span className={cn('flex flex-wrap items-center gap-1.5 text-[15px] font-medium sm:text-sm', isConfigured ? 'text-foreground' : 'text-muted-foreground')}>
+                            {isConfigured && health && (
+                              <span
+                                role="img"
+                                aria-label={`Inbox health: ${health.label}`}
+                                title={`${health.label} — ${health.description}`}
+                                className="text-base leading-none"
+                              >
+                                {health.emoji}
+                              </span>
+                            )}
                             <span className="break-words">{inbox.name}</span>
                             {isDefault && (
                               <Badge variant="outline" className="h-4 px-1.5 text-[9px] border-primary/40 text-primary">
