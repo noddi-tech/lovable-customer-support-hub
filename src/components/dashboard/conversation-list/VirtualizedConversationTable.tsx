@@ -10,6 +10,7 @@ import { useBulkRangeSelect } from '@/hooks/useBulkRangeSelect';
 import { useConversationList, type Conversation } from '@/contexts/ConversationListContext';
 import { useTranslation } from 'react-i18next';
 import { Clock, Inbox } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-responsive';
 
 // Separate memoized row component to prevent re-creation on every parent render
 interface VirtualizedRowProps {
@@ -65,6 +66,7 @@ interface VirtualizedConversationTableProps {
 }
 
 const ITEM_HEIGHT = 52;
+const MOBILE_ITEM_HEIGHT = 100;
 const HEADER_HEIGHT = 40;
 const OVERSCAN_COUNT = 5;
 
@@ -81,6 +83,7 @@ const VirtualizedConversationTable = memo(({ onSelectConversation, selectedConve
     selectedInboxId,
   } = useConversationList();
   const { t } = useTranslation();
+  const isMobile = useIsMobile();
   // Show the inbox column only when the list spans every inbox.
   const showInboxColumn = !selectedInboxId || selectedInboxId === 'all';
 
@@ -178,6 +181,7 @@ const VirtualizedConversationTable = memo(({ onSelectConversation, selectedConve
         Fixed header. Rendered as a flex row (not a <table>) so the column
         widths line up exactly with the virtualized flex rows below.
       */}
+      {!isMobile && (
       <div className="bg-card border-b">
         <div className="flex items-center px-4">
           {state.bulkSelectionMode && (
@@ -254,6 +258,7 @@ const VirtualizedConversationTable = memo(({ onSelectConversation, selectedConve
           <div className="w-12 p-2 shrink-0" />
         </div>
       </div>
+      )}
 
 
       {/* Virtualized Table Body */}
@@ -273,7 +278,7 @@ const VirtualizedConversationTable = memo(({ onSelectConversation, selectedConve
                   height={safeHeight}
                   width={width}
                   itemCount={hasNextPage ? conversationCount + 1 : conversationCount}
-                  itemSize={ITEM_HEIGHT}
+                  itemSize={isMobile ? MOBILE_ITEM_HEIGHT : ITEM_HEIGHT}
                   itemData={itemData}
                   onItemsRendered={onItemsRendered}
                   overscanCount={OVERSCAN_COUNT}
