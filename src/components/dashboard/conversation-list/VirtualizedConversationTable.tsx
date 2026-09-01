@@ -5,6 +5,7 @@ import InfiniteLoader from 'react-window-infinite-loader';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ConversationTableRow } from './ConversationTableRow';
 import { FlexHeaderCell } from './FlexHeaderCell';
+import { SlaAlertBanner } from './SlaAlertBanner';
 import { useBulkRangeSelect } from '@/hooks/useBulkRangeSelect';
 
 import { useConversationList, type Conversation } from '@/contexts/ConversationListContext';
@@ -265,7 +266,7 @@ const VirtualizedConversationTable = memo(({ onSelectConversation, selectedConve
             sortKey="sla"
             currentSort={state.tableSort}
             onSort={handleSort}
-            className="w-20 shrink-0"
+            className="w-28 shrink-0"
           />
           <div className="w-12 p-2 shrink-0" />
         </div>
