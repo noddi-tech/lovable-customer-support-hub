@@ -1350,3 +1350,32 @@
   color: #6b7280;
   padding: 4px 8px;
 }
+
+/* Post-chat "was your problem solved?" prompt */
+.noddi-chat-resolved-row {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.noddi-chat-resolved-option {
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid #e5e7eb;
+  background: white;
+  color: #374151;
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.noddi-chat-resolved-option:hover {
+  background: #f3f4f6;
+}
+
+.noddi-chat-resolved-option.active {
+  color: white;
+}
