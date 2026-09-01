@@ -29,6 +29,7 @@ import { useAccessibleInboxes } from "@/hooks/useInteractionsData";
 import { useInboxOutstandingCounts } from "@/hooks/useInboxOutstandingCounts";
 import { getConversationBrand } from "@/lib/conversationBrand";
 import { BrandFilterSelect } from "./BrandFilterSelect";
+import { TagFilterSelect } from "@/components/tags/TagFilterSelect";
 
 interface ConversationListHeaderProps {
   onToggleCollapse?: () => void;
@@ -82,12 +83,13 @@ export const ConversationListHeader = ({
     );
   }, [conversations]);
 
-  const hasActiveFilters = state.searchQuery || state.statusFilter !== 'all' || state.priorityFilter !== 'all' || state.brandFilter !== 'all';
+  const hasActiveFilters = state.searchQuery || state.statusFilter !== 'all' || state.priorityFilter !== 'all' || state.brandFilter !== 'all' || state.tagFilter.length > 0;
   
   const activeFilterCount = [
     state.statusFilter !== 'all',
     state.priorityFilter !== 'all',
     state.brandFilter !== 'all',
+    state.tagFilter.length > 0,
     state.searchQuery.length > 0
   ].filter(Boolean).length;
 
@@ -96,6 +98,7 @@ export const ConversationListHeader = ({
     dispatch({ type: 'SET_STATUS_FILTER', payload: 'all' });
     dispatch({ type: 'SET_PRIORITY_FILTER', payload: 'all' });
     dispatch({ type: 'SET_BRAND_FILTER', payload: 'all' });
+    dispatch({ type: 'SET_TAG_FILTER', payload: [] });
   };
 
   const getFilterLabel = () => {
@@ -325,6 +328,13 @@ export const ConversationListHeader = ({
             onChange={(value) => dispatch({ type: 'SET_BRAND_FILTER', payload: value })}
             options={brandOptions}
             triggerClassName="h-7 text-[10px] px-2"
+          />
+
+          {/* Tag filter */}
+          <TagFilterSelect
+            value={state.tagFilter}
+            onChange={(value) => dispatch({ type: 'SET_TAG_FILTER', payload: value })}
+            className="h-7 text-[10px] px-2"
           />
 
           {/* Sort Select */}

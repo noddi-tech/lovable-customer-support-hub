@@ -8,6 +8,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { MoreVertical, Archive, Trash2, MessageCircle, Mail, MailOpen, Globe, Clock, CheckCircle, XCircle, Reply, Lock } from 'lucide-react';
 import { getConversationBrand } from '@/lib/conversationBrand';
 import { BrandBadge } from './BrandBadge';
+import { TagBadgeList } from '@/components/tags/TagBadge';
+import { useEntityTags } from '@/hooks/useEntityTags';
 import { cn } from '@/lib/utils';
 import { useDateFormatting } from '@/hooks/useDateFormatting';
 import { useConversationList, type Conversation } from '@/contexts/ConversationListContext';
@@ -325,6 +327,7 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
                 </span>
               </div>
               <ConversationBrandBadge conversation={conversation} compact />
+              <TagBadgeList tags={conversationTags} compact max={2} />
               {showNewBadge && (
                 <Badge className="bg-primary text-primary-foreground px-1.5 py-0 text-[9px]">New</Badge>
               )}
@@ -466,6 +469,7 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
               </Badge>
             )}
             <ConversationBrandBadge conversation={conversation} />
+            <TagBadgeList tags={conversationTags} compact max={3} />
           </div>
         </div>
 
