@@ -299,8 +299,7 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
     return (
     <div className="space-y-4">
       {/* Collapse control */}
-      <div className="flex items-center justify-between px-2">
-        <span className="text-xs font-semibold text-foreground/70">Filters</span>
+      <div className="flex items-center justify-end px-2">
         <span className="flex items-center gap-1">
           <kbd className="rounded border border-border bg-muted px-1 text-[10px] text-muted-foreground">⌘M</kbd>
           <FilterToggleButton collapsed={false} />
