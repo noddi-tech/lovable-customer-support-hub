@@ -72,7 +72,7 @@ export default function CustomerDetailPage() {
   return (
     <UnifiedAppLayout>
       <div className="flex h-full flex-col overflow-hidden">
-        <header className="sticky top-0 z-10 border-b bg-background/95 px-4 py-3 backdrop-blur sm:px-6">
+        <header className="sticky top-0 z-10 border-b bg-background/95 px-3 py-3 backdrop-blur sm:px-6">
           <div className="flex items-center gap-2">
             <SidebarTrigger className="md:hidden" />
             <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
@@ -82,8 +82,9 @@ export default function CustomerDetailPage() {
             <h1 className="min-w-0 flex-1 truncate text-base font-semibold">
               {customer.full_name || customer.email || 'Customer'}
             </h1>
-            <Button size="sm" onClick={() => setCreateCaseOpen(true)}>
-              <Plus className="mr-1.5 h-4 w-4" /> New case
+            <Button size="sm" className="h-9 shrink-0 px-2.5 sm:px-3" onClick={() => setCreateCaseOpen(true)}>
+              <Plus className="h-4 w-4 sm:mr-1.5" />
+              <span className="hidden sm:inline">New case</span>
             </Button>
           </div>
           <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
@@ -95,15 +96,17 @@ export default function CustomerDetailPage() {
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+        <div className="flex-1 overflow-y-auto overscroll-contain p-3 pb-24 sm:p-6 sm:pb-6">
           <div className="grid gap-4 lg:grid-cols-3">
             <div className="space-y-4 lg:col-span-2">
               <Tabs defaultValue="timeline">
-                <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1">
-                  <TabsTrigger value="timeline">Timeline</TabsTrigger>
-                  <TabsTrigger value="cases">Cases ({cases.length})</TabsTrigger>
-                  <TabsTrigger value="calls">Calls ({calls.length})</TabsTrigger>
+                <div className="-mx-1 overflow-x-auto px-1 pb-1">
+                <TabsList className="flex h-auto w-max justify-start gap-1">
+                  <TabsTrigger value="timeline" className="shrink-0">Timeline</TabsTrigger>
+                  <TabsTrigger value="cases" className="shrink-0">Cases ({cases.length})</TabsTrigger>
+                  <TabsTrigger value="calls" className="shrink-0">Calls ({calls.length})</TabsTrigger>
                 </TabsList>
+                </div>
 
                 <TabsContent value="timeline" className="mt-3 space-y-2">
                   {conversations.length === 0 ? (
@@ -113,7 +116,7 @@ export default function CustomerDetailPage() {
                       <button
                         key={c.id}
                         onClick={() => navigate(`/c/${c.id}`)}
-                        className="w-full rounded-md border bg-card p-2.5 text-left transition-colors hover:bg-accent/50"
+                        className="w-full rounded-md border bg-card p-3 text-left transition-colors hover:bg-accent/50 active:bg-accent/60 sm:p-2.5"
                       >
                         <div className="flex items-center gap-2">
                           {c.channel === 'email' ? (
@@ -145,7 +148,7 @@ export default function CustomerDetailPage() {
                       <button
                         key={c.id}
                         onClick={() => navigate(`/operations/cases/${c.id}`)}
-                        className="w-full rounded-md border bg-card p-2.5 text-left transition-colors hover:bg-accent/50"
+                        className="w-full rounded-md border bg-card p-3 text-left transition-colors hover:bg-accent/50 active:bg-accent/60 sm:p-2.5"
                       >
                         <div className="flex flex-wrap items-center gap-2">
                           <span className="font-mono text-xs text-muted-foreground">#{c.case_number}</span>
