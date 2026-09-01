@@ -163,6 +163,14 @@ export const NAV_ITEMS: NavItem[] = [
     group: "settings",
     requiredRole: "admin"
   },
+  {
+    id: "admin-edge-functions",
+    label: "Edge Functions",
+    to: "/admin/edge-functions",
+    icon: FunctionSquare,
+    group: "settings",
+    requiredRole: "admin"
+  },
 
 
 ];
