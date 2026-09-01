@@ -146,10 +146,11 @@ onClick={() => {
                 {conversation.is_archived && (
                   <Badge variant="outline" className="text-xs">Archived</Badge>
                 )}
-                {(() => {
-                  const brand = getConversationBrand((conversation as any).metadata, conversation.channel);
-                  return brand ? <BrandBadge brand={brand} size="md" /> : null;
-                })()}
+                <ConversationBrandPicker
+                  conversationId={conversation.id}
+                  metadata={(conversation as any).metadata}
+                  channel={conversation.channel}
+                />>
                 <HeaderCaseChip
                   conversationId={conversation.id}
                   caseId={(conversation as any).case_id}
