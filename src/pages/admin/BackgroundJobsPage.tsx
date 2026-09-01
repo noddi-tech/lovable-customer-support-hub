@@ -28,6 +28,7 @@ import {
   Clock,
   Loader2,
   PauseCircle,
+  Play,
   RefreshCw,
   Timer,
   XCircle,
@@ -38,6 +39,9 @@ import {
   useBackgroundJobRuns,
   describeSchedule,
   formatDuration,
+  nextRunAt,
+  canRunManually,
+  useRunBackgroundJob,
   type BackgroundJob,
 } from '@/hooks/useBackgroundJobs';
 
@@ -144,6 +148,7 @@ const RunHistoryDialog: React.FC<{
 const BackgroundJobsPage: React.FC = () => {
   const { data: jobs = [], isLoading, isFetching, error, refetch } = useBackgroundJobs();
   const [selected, setSelected] = React.useState<BackgroundJob | null>(null);
+  const runJob = useRunBackgroundJob();
 
   const totals = React.useMemo(() => {
     return {
