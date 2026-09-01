@@ -5,13 +5,17 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useNoddihKundeData } from '@/hooks/useNoddihKundeData';
-import { Check, CheckCheck, Lock, Clock } from 'lucide-react';
+import { Check, CheckCheck, Lock, Clock, AlertTriangle } from 'lucide-react';
 import { PresenceAvatarStack } from '@/components/conversations/PresenceAvatarStack';
 import { getConversationBrand } from '@/lib/conversationBrand';
 import { BrandBadge } from '@/components/dashboard/conversation-list/BrandBadge';
 import { TagBadgeList } from '@/components/tags/TagBadge';
 import { useEntityTags } from '@/hooks/useEntityTags';
 import { ConversationStatusContextMenu } from '@/components/dashboard/conversation-list/ConversationStatusContextMenu';
+import { formatCountdown } from '@/lib/sla';
+
+/** Chats due within this window are flagged as about to breach. */
+const SLA_AT_RISK_WINDOW_MS = 60 * 60 * 1000;
 
 interface ChatConversation {
   id: string;
@@ -21,6 +25,7 @@ interface ChatConversation {
   updated_at: string;
   is_read: boolean;
   metadata?: unknown;
+  sla_breach_at?: string | null;
   last_message_is_internal?: boolean;
   customer: {
     id: string;
@@ -62,6 +67,21 @@ export const ChatListItem: React.FC<ChatListItemProps> = ({
   const initial = customerName.charAt(0).toUpperCase();
   const brand = getConversationBrand(conv.metadata, 'widget');
   const { getTags } = useEntityTags('conversation');
+
+  // SLA badge: red once the deadline has passed, orange when it is close.
+  const slaState = useMemo(() => {
+    if (!conv.sla_breach_at) return null;
+    if (conv.status === 'closed' || conv.status === 'resolved') return null;
+    const due = new Date(conv.sla_breach_at).getTime();
+    if (!Number.isFinite(due)) return null;
+    const remaining = due - Date.now();
+    if (remaining > SLA_AT_RISK_WINDOW_MS) return null;
+    return {
+      breached: remaining <= 0,
+      countdown: formatCountdown(remaining),
+      dueLabel: new Date(due).toLocaleString(),
+    };
+  }, [conv.sla_breach_at, conv.status]);
   const chatTags = getTags(conv.id);
 
   // Create customer object for Noddi lookup
@@ -156,7 +176,27 @@ export const ChatListItem: React.FC<ChatListItemProps> = ({
               LIVE
             </Badge>
           )}
+          {slaState && (
+            <Badge
+              variant="outline"
+              title={
+                slaState.breached
+                  ? `SLA breached ${slaState.countdown} ago (due ${slaState.dueLabel})`
+                  : `SLA due in ${slaState.countdown} (${slaState.dueLabel})`
+              }
+              className={cn(
+                'text-[10px] px-1.5 py-0',
+                slaState.breached
+                  ? 'bg-red-50 text-red-700 border-red-300 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800'
+                  : 'bg-orange-50 text-orange-700 border-orange-300 dark:bg-orange-900/20 dark:text-orange-400 dark:border-orange-800',
+              )}
+            >
+              <AlertTriangle className="h-3 w-3 mr-0.5" />
+              {slaState.breached ? `SLA ${slaState.countdown} over` : `SLA ${slaState.countdown}`}
+            </Badge>
+          )}
           {conv.last_message_is_internal && (
+
             <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-yellow-50 text-yellow-800 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-800">
               <Lock className="h-3 w-3 mr-0.5" />
               Note
