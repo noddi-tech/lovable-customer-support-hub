@@ -124,7 +124,7 @@ Deno.serve(async (req) => {
 
         const res = await fetch(`${API_BASE}/v1/sales-items/initial-available-for-booking/`, {
           method: "POST",
-          headers,
+          headers: headers(),
           body: JSON.stringify(payload),
         });
         if (!res.ok) {
@@ -147,7 +147,7 @@ Deno.serve(async (req) => {
         const edPayload: any = { address_id: eAddr, cars: carsForApi };
         const res = await fetch(`${API_BASE}/v1/delivery-windows/earliest-date/`, {
           method: "POST",
-          headers,
+          headers: headers(),
           body: JSON.stringify(edPayload),
         });
         if (!res.ok) {
@@ -314,7 +314,7 @@ Deno.serve(async (req) => {
 
         const res = await fetch(`${API_BASE}/v1/bookings/`, {
           method: "POST",
-          headers,
+          headers: headers(),
           body: JSON.stringify(cartPayload),
         });
         if (!res.ok) {
@@ -402,7 +402,7 @@ Deno.serve(async (req) => {
 
         const res = await fetch(`${API_BASE}/v1/bookings/${booking_id}/`, {
           method: "PATCH",
-          headers,
+          headers: headers(),
           body: JSON.stringify(patchPayload),
         });
         if (!res.ok) {
