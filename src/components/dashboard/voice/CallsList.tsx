@@ -552,6 +552,7 @@ export const CallsList = ({ showTimeFilter = true, dateFilter, onNavigateToEvent
             allBulkSelected={selection.allSelected}
           />
         </div>
+      ) : (
         <div className="space-y-6">
           <CallGroup
             title="Active Calls"
