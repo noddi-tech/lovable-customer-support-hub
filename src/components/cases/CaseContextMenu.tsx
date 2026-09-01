@@ -14,7 +14,7 @@ import { TagContextMenuItems } from '@/components/tags/TagContextMenuItems';
 import { Input } from '@/components/ui/input';
 import { Check, UserMinus, UserPlus, Flag, CircleDot } from 'lucide-react';
 import { toast } from 'sonner';
-import { MemberOptionContent, memberLabel, useMemberSearch } from '@/components/shared/MemberPicker';
+import { MemberOptionContent, memberLabel, rememberAssignee, useMemberSearch } from '@/components/shared/MemberPicker';
 import {
   CASE_PRIORITY_LABELS,
   CASE_STATUS_LABELS,
@@ -47,7 +47,12 @@ export const CaseContextMenu: React.FC<CaseContextMenuProps> = ({
 }) => {
   const { mutateAsync: updateCase } = useUpdateCase();
   const [search, setSearch] = useState('');
-  const { members: filtered } = useMemberSearch(search);
+  const { recent, rest } = useMemberSearch(search);
+
+  const assignOwner = (member: { id: string }) => {
+    rememberAssignee(member.id);
+    return apply({ owner_id: member.id }, `Assigned to ${memberLabel(member as never)}`);
+  };
 
 
   const apply = async (updates: Record<string, unknown>, message: string) => {
@@ -77,20 +82,36 @@ export const CaseContextMenu: React.FC<CaseContextMenuProps> = ({
               />
             </div>
             <div className="max-h-64 overflow-y-auto pb-1">
-              {filtered.map((member) => (
+              {recent.length > 0 && (
+                <>
+                  <ContextMenuLabel className="px-3 py-1 text-[11px] uppercase tracking-wide text-muted-foreground">
+                    Recent
+                  </ContextMenuLabel>
+                  {recent.map((member) => (
+                    <ContextMenuItem
+                      key={`recent-${member.id}`}
+                      className="gap-2"
+                      onSelect={() => assignOwner(member)}
+                    >
+                      <MemberOptionContent member={member} />
+                      {ownerId === member.id && <Check className="h-3.5 w-3.5 shrink-0 text-primary" />}
+                    </ContextMenuItem>
+                  ))}
+                  <ContextMenuSeparator />
+                </>
+              )}
+              {rest.map((member) => (
                 <ContextMenuItem
                   key={member.id}
                   className="gap-2"
-                  onSelect={() =>
-                    apply({ owner_id: member.id }, `Assigned to ${memberLabel(member)}`)
-                  }
+                  onSelect={() => assignOwner(member)}
                 >
                   <MemberOptionContent member={member} />
                   {ownerId === member.id && <Check className="h-3.5 w-3.5 shrink-0 text-primary" />}
                 </ContextMenuItem>
               ))}
 
-              {filtered.length === 0 && (
+              {recent.length === 0 && rest.length === 0 && (
                 <div className="px-3 py-4 text-sm text-muted-foreground">No people found</div>
               )}
             </div>
