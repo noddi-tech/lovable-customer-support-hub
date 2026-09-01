@@ -185,8 +185,25 @@ export default function HomePage() {
                           <span className="text-xs text-muted-foreground break-all sm:text-[11px]">
                             {isConfigured ? email : 'Not configured'}
                           </span>
+                          {(defaults?.brand || defaults?.assigneeName) && (
+                            <span className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
+                              {defaults.brand && (
+                                <span className="flex items-center gap-1" title="Default brand for new conversations">
+                                  <Tag className="h-3 w-3 shrink-0" />
+                                  <span className="truncate">{defaults.brand}</span>
+                                </span>
+                              )}
+                              {defaults.assigneeName && (
+                                <span className="flex items-center gap-1" title="New conversations are assigned to this person">
+                                  <UserCheck className="h-3 w-3 shrink-0" />
+                                  <span className="truncate">{defaults.assigneeName}</span>
+                                </span>
+                              )}
+                            </span>
+                          )}
                         </div>
                       </div>
+
 
                       <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 pl-[22px]">
 
