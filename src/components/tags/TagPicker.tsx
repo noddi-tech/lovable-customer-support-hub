@@ -68,8 +68,10 @@ export const TagPickerList: React.FC<TagPickerListProps> = ({ selectedIds, onTog
             </button>
           );
         })}
-        {filtered.length === 0 && !search.trim() && (
-          <p className="px-2 py-3 text-xs text-muted-foreground">No tags yet.</p>
+        {filtered.length === 0 && (
+          <p className="px-2 py-3 text-xs text-muted-foreground">
+            {search.trim() ? 'No matching tags.' : 'No tags yet.'}
+          </p>
         )}
       </div>
 
