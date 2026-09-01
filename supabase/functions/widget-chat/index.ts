@@ -25,6 +25,8 @@ interface MessageRequest {
   action: 'message';
   sessionId: string;
   content: string;
+  /** Widget UI language at the time the visitor typed the message (e.g. "nb", "en"). */
+  locale?: string;
 }
 
 interface EndChatRequest {
