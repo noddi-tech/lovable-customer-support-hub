@@ -112,7 +112,26 @@ export const AppMainNav = () => {
 
   return (
     <Sidebar collapsible="icon">
-      <SidebarHeader className="px-2 py-3 space-y-3">
+      <SidebarHeader className="px-2 py-2 space-y-2">
+        {/* Collapse toggle */}
+        <div className={cn("flex items-center", isCollapsed ? "justify-center" : "justify-between")}>
+          {!isCollapsed && (
+            <span className="pl-2 text-[10px] leading-tight text-sidebar-foreground/50">
+              Close sidebar · Cmd/Ctrl + B
+            </span>
+          )}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleSidebar}
+            title="Toggle sidebar (Cmd/Ctrl + B)"
+            aria-label="Toggle sidebar"
+            className="h-7 w-7 shrink-0"
+          >
+            {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+          </Button>
+        </div>
+
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton asChild tooltip="Home">
@@ -130,6 +149,7 @@ export const AppMainNav = () => {
         )}
 
       </SidebarHeader>
+
 
       <SidebarContent>
         {groupOrder.map(groupKey => {
