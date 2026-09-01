@@ -106,7 +106,9 @@ const { data: conversationCounts = {}, isLoading } = useQuery({
       const { data, error } = await supabase
         .from('notifications')
         .select('*')
-        .eq('is_read', false);
+        .eq('is_read', false)
+        // Personal feed only: mentions, assignments, calls
+        .or('type.ilike.%mention%,type.ilike.%assign%,type.ilike.%call%,type.ilike.%voicemail%');
       
       if (error) {
         console.error('Error fetching notification count:', error);
