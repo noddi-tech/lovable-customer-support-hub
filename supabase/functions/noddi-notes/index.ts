@@ -105,11 +105,19 @@ Deno.serve(async (req) => {
         });
       }
 
+      case "get": {
+        const id = noteId(payload);
+        if (!id) return json({ error: "note_id required" }, 400);
+        return await callNoddi(`/v1/user-group-notes/${id}/`);
+      }
+
       case "delete": {
         const id = noteId(payload);
         if (!id) return json({ error: "note_id required" }, 400);
+        // Noddi soft-deletes the note and replies 204 No Content.
         return await callNoddi(`/v1/user-group-notes/${id}/`, { method: "DELETE" });
       }
+
 
       default:
         return json({ error: `Unknown action: ${action}` }, 400);
