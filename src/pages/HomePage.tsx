@@ -18,6 +18,7 @@ import { InboxMetricsDialog } from '@/components/dashboard/InboxMetricsDialog';
 import { SupportOverviewSection } from '@/components/dashboard/SupportOverviewSection';
 import { InboxSlaAlert } from '@/components/dashboard/InboxSlaAlert';
 import { useSlaRiskByInbox } from '@/hooks/useSlaRisk';
+import { getInboxHealth } from '@/lib/inboxHealth';
 
 import {
   Inbox,
