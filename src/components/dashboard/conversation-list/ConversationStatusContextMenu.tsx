@@ -18,7 +18,7 @@ import { useConversationAssignActions, getRecentAssigneeIds } from '@/hooks/useC
 import { useTeamMembers, type TeamMember } from '@/hooks/useTeamMembers';
 import { useConversationBrandActions } from '@/hooks/useConversationBrandActions';
 import { useNoddiBrands } from '@/hooks/useNoddiBrands';
-import { getBrandColor } from '@/lib/conversationBrand';
+import { useBrandSearch, BrandSearchInput, BrandOptionContent } from '@/components/dashboard/conversation-list/BrandSearch';
 
 interface ConversationStatusContextMenuProps {
   conversationId: string;
@@ -51,6 +51,7 @@ export const ConversationStatusContextMenu: React.FC<ConversationStatusContextMe
   const { data: members = [] } = useTeamMembers();
   const [search, setSearch] = useState('');
   const currentBrandSlug = findBrand(brandLabel)?.slug ?? null;
+  const { search: brandSearch, setSearch: setBrandSearch, filtered: filteredBrands } = useBrandSearch(brands);
 
   const { recent, rest } = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -131,30 +132,17 @@ export const ConversationStatusContextMenu: React.FC<ConversationStatusContextMe
             <Tag className="w-4 h-4 mr-2" />
             Set brand…
           </ContextMenuSubTrigger>
-          <ContextMenuSubContent className="w-56 max-h-72 overflow-y-auto">
-            {brands.length === 0 && (
-              <div className="px-3 py-4 text-sm text-muted-foreground">No brands available</div>
+          <ContextMenuSubContent className="w-60 max-h-80 overflow-y-auto p-1">
+            <BrandSearchInput value={brandSearch} onChange={setBrandSearch} />
+            {filteredBrands.length === 0 && (
+              <div className="px-3 py-4 text-sm text-muted-foreground">No brands found</div>
             )}
-            {brands.map((b) => {
-              const color = getBrandColor(b.slug);
-              return (
-                <ContextMenuItem key={b.id} className="gap-2" onSelect={() => setBrand(conversationId, b.name)}>
-                  {b.logo_url ? (
-                    <img src={b.logo_url} alt="" loading="lazy" className="h-5 w-5 rounded-sm object-contain shrink-0" />
-                  ) : (
-                    <span
-                      className="h-5 w-5 rounded-sm shrink-0 grid place-items-center text-[10px] font-semibold text-white"
-                      style={{ backgroundColor: color }}
-                      aria-hidden
-                    >
-                      {b.name.charAt(0).toUpperCase()}
-                    </span>
-                  )}
-                  <span className="truncate flex-1" style={{ color }}>{b.name}</span>
-                  {currentBrandSlug === b.slug && <Check className="w-3.5 h-3.5 text-primary shrink-0" />}
-                </ContextMenuItem>
-              );
-            })}
+            {filteredBrands.map((b) => (
+              <ContextMenuItem key={b.id} className="gap-2" onSelect={() => setBrand(conversationId, b.name)}>
+                <BrandOptionContent brand={b} />
+                {currentBrandSlug === b.slug && <Check className="w-3.5 h-3.5 text-primary shrink-0" />}
+              </ContextMenuItem>
+            ))}
             <ContextMenuSeparator />
             <ContextMenuItem onSelect={() => setBrand(conversationId, null)}>
               <Ban className="w-4 h-4 mr-2" />
