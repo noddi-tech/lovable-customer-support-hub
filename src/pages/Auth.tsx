@@ -341,7 +341,7 @@ export const Auth: React.FC = () => {
   return pageShell(
     <>
       <CardHeader className="text-center">
-        <CardTitle className="text-2xl font-bold">Support Hub</CardTitle>
+        <CardTitle as="h1" className="text-2xl font-bold">Sign in to Support Hub</CardTitle>
       </CardHeader>
 
       <CardContent className="space-y-4">
