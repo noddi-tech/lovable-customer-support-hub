@@ -11,6 +11,7 @@ import { ConversationList } from './ConversationList';
 import { ResponsiveContainer } from '@/components/admin/design/components/layouts/ResponsiveContainer';
 import { useInteractionsNavigation } from '@/hooks/useInteractionsNavigation';
 import { useAccessibleInboxes, useConversations, useThread, useReply } from '@/hooks/useInteractionsData';
+import { useDefaultInbox } from '@/hooks/useDefaultInbox';
 import { useAuth } from '@/hooks/useAuth';
 import type { ConversationRow } from '@/types/interactions';
 import { formatDistanceToNow } from 'date-fns';
