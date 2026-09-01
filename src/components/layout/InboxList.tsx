@@ -440,7 +440,7 @@ export const InboxList: React.FC<InboxListProps> = ({
                 </span>
               </div>
               
-              {countsLoading ? (
+              {countsLoading && !counts ? (
                 <Skeleton className="h-5 w-8" />
               ) : (
                 <Badge 

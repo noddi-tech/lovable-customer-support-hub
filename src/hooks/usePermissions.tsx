@@ -44,6 +44,10 @@ export function usePermissions() {
       return rolePermissions?.map(rp => rp.permission) || [];
     },
     enabled: !!user,
+    // Keep permissions warm so remounting the layout on navigation never
+    // falls back to the sidebar loading shell.
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
   });
 
   const hasPermission = (permission: Permission) => {
