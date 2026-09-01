@@ -1,0 +1,2 @@
+REVOKE EXECUTE ON FUNCTION public.get_inboxes() FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.get_inboxes() FROM anon;
