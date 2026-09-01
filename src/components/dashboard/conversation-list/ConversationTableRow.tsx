@@ -268,7 +268,7 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
         )} 
         onClick={handleRowClick}
       >
-        <div className="flex items-start gap-3">
+        <div className="flex items-start gap-3 w-full min-w-0">
           {showBulkCheckbox && (
             <div className="pt-1 shrink-0">
               <Checkbox checked={isBulkSelected} onCheckedChange={handleCheckboxChange} onClick={handleCheckboxClick} />
