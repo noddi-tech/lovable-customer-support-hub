@@ -441,11 +441,7 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
           
           const matchesStatus = state.statusFilter === "all" || conversation.status === state.statusFilter;
           const matchesPriority = state.priorityFilter === "all" || conversation.priority === state.priorityFilter;
-          const matchesTags = matchesTagFilter(
-        (conversationTags.get(conversation.id) || []).map((t) => t.id),
-        state.tagFilter,
-      );
-      const matchesInbox = effectiveInboxIds.length === 0 || effectiveInboxIds.includes(conversation.inbox_id || '');
+          const matchesInbox = effectiveInboxIds.length === 0 || effectiveInboxIds.includes(conversation.inbox_id || '');
           
           const matchesTab = (() => {
             const isSnoozedActive = !!conversation.snooze_until && new Date(conversation.snooze_until) > new Date();
@@ -628,6 +624,10 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
       const matchesPriority = state.priorityFilter === "all" || conversation.priority === state.priorityFilter;
       const matchesBrand = state.brandFilter === 'all' ||
         (getConversationBrand(conversation.metadata, conversation.channel)?.key ?? 'unknown') === state.brandFilter;
+      const matchesTags = matchesTagFilter(
+        (conversationTags.get(conversation.id) || []).map((t) => t.id),
+        state.tagFilter,
+      );
       const matchesInbox = effectiveInboxIds.length === 0 || effectiveInboxIds.includes(conversation.inbox_id || '');
       const convPurpose = (conversation.conversation_type === 'recruitment') ? 'recruitment' : 'support';
       const matchesPurpose = state.purposeFilter === 'all' || convPurpose === state.purposeFilter;
