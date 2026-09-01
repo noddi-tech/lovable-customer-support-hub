@@ -13,7 +13,8 @@ import { Separator } from '@/components/ui/separator';
 import { NAV_ITEMS } from '@/navigation/nav-config';
 import { cn } from '@/lib/utils';
 import { groupInboxesByDomain } from '@/utils/inboxGrouping';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
+import { InboxMetricsDialog } from '@/components/dashboard/InboxMetricsDialog';
 
 import {
   Inbox,
@@ -29,6 +30,7 @@ import {
   Settings2,
   Star,
   Tag,
+  Gauge,
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { SidebarTrigger } from '@/components/ui/sidebar';
@@ -56,6 +58,7 @@ export default function HomePage() {
   const { defaultInboxId, setDefaultInbox } = useDefaultInbox();
 
   const { dateTime } = useDateFormatting();
+  const [metricsInbox, setMetricsInbox] = useState<{ id: string; name: string } | null>(null);
 
   const firstName = (profile?.full_name || user?.user_metadata?.full_name || 'there').split(' ')[0];
 
@@ -274,6 +277,28 @@ export default function HomePage() {
                                 <Button
                                   variant="ghost"
                                   size="icon"
+                                  aria-label={`Support KPIs for ${inbox.name}`}
+                                  className="h-9 w-9 sm:h-7 sm:w-7 text-muted-foreground hover:text-foreground"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setMetricsInbox({ id: inbox.id, name: inbox.name });
+                                  }}
+                                >
+                                  <Gauge className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>SLA & support KPIs</TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )}
+
+                        {isConfigured && (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
                                   aria-label={`Configure ${inbox.name}`}
                                   className="h-7 w-7 text-muted-foreground hover:text-foreground"
                                   onClick={(e) => {
@@ -288,6 +313,7 @@ export default function HomePage() {
                             </Tooltip>
                           </TooltipProvider>
                         )}
+
                       </div>
                     </CardContent>
                   </Card>
@@ -335,6 +361,13 @@ export default function HomePage() {
           );
         })}
       </div>
+
+      <InboxMetricsDialog
+        open={Boolean(metricsInbox)}
+        onOpenChange={(open) => { if (!open) setMetricsInbox(null); }}
+        inboxId={metricsInbox?.id ?? null}
+        inboxName={metricsInbox?.name ?? ''}
+      />
     </UnifiedAppLayout>
   );
 }
