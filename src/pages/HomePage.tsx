@@ -65,25 +65,6 @@ export default function HomePage() {
           </p>
         </div>
 
-        {/* Stats row */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-          {stats.map(s => (
-            <Card
-              key={s.label}
-              className="cursor-pointer hover:shadow-md transition-shadow"
-              onClick={() => navigate(`/interactions/text/${s.filter}?inbox=all`)}
-            >
-              <CardContent className="p-3 relative">
-                <s.icon className="h-4 w-4 text-muted-foreground/50 absolute top-3 right-3" />
-                <p className="text-2xl font-bold text-foreground">{s.value}</p>
-                <p className="text-sm text-muted-foreground mt-1">{s.label}</p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        <Separator />
-
         {/* Channel overview + gamified leaderboard */}
         <SupportOverviewSection />
 
@@ -107,6 +88,24 @@ export default function HomePage() {
                 Manage inboxes
               </Button>
             </div>
+
+            {/* Stats row */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-4">
+              {stats.map(s => (
+                <Card
+                  key={s.label}
+                  className="cursor-pointer hover:shadow-md transition-shadow"
+                  onClick={() => navigate(`/interactions/text/${s.filter}?inbox=all`)}
+                >
+                  <CardContent className="p-3 relative">
+                    <s.icon className="h-4 w-4 text-muted-foreground/50 absolute top-3 right-3" />
+                    <p className="text-2xl font-bold text-foreground">{s.value}</p>
+                    <p className="text-sm text-muted-foreground mt-1">{s.label}</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
             <div className="space-y-4">
               {inboxGroups.map(group => (
                 <div key={group.label}>
