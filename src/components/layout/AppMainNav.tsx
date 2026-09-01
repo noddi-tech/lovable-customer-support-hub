@@ -223,29 +223,31 @@ export const AppMainNav = () => {
                     
                     return (
                       <SidebarMenuItem key={item.id}>
-                        <SidebarMenuButton asChild tooltip={item.label}>
-                          <NavLink 
-                            to={item.to} 
-                            end={item.to === '/'}
-                            onClick={handleNavClick}
-                            className={cn(
-                              getNavClassName(itemIsActive),
-                              groupKey === 'super_admin' && itemIsActive && "bg-yellow-500/10 text-yellow-600 dark:text-yellow-500 font-medium"
-                            )}
-                            {...(itemIsActive && { "aria-current": "page" })}
-                          >
-                            <Icon className="mr-2 h-4 w-4 shrink-0" />
+                        <NavHint title={item.label} description={item.description}>
+                          <SidebarMenuButton asChild tooltip={item.label}>
+                            <NavLink 
+                              to={item.to} 
+                              end={item.to === '/'}
+                              onClick={handleNavClick}
+                              className={cn(
+                                getNavClassName(itemIsActive),
+                                groupKey === 'super_admin' && itemIsActive && "bg-yellow-500/10 text-yellow-600 dark:text-yellow-500 font-medium"
+                              )}
+                              {...(itemIsActive && { "aria-current": "page" })}
+                            >
+                              <Icon className="mr-2 h-4 w-4 shrink-0" />
 
-                            {!isCollapsed && (
-                              <span className="flex-1 flex items-center justify-between">
-                                <span>{item.label}</span>
-                                {showBadge && (
-                                  <SidebarCounter count={badgeCount} variant="unread" />
-                                )}
-                              </span>
-                            )}
-                          </NavLink>
-                        </SidebarMenuButton>
+                              {!isCollapsed && (
+                                <span className="flex-1 flex items-center justify-between">
+                                  <span>{item.label}</span>
+                                  {showBadge && (
+                                    <SidebarCounter count={badgeCount} variant="unread" />
+                                  )}
+                                </span>
+                              )}
+                            </NavLink>
+                          </SidebarMenuButton>
+                        </NavHint>
                       </SidebarMenuItem>
                     );
                   })}
