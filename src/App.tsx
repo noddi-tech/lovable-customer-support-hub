@@ -98,6 +98,39 @@ const AppContent = () => {
   // Emergency Escape handler removed — Radix UI handles Escape natively.
   // The old handler force-clicked triggers, racing with dialog close logic.
 
+  // Backspace/Delete navigates back, unless the user is typing or a modal is open
+  useEffect(() => {
+    const handleBack = (e: KeyboardEvent) => {
+      if (e.key !== 'Backspace' && e.key !== 'Delete') return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+
+      const target = e.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.tagName === 'SELECT' ||
+          target.isContentEditable ||
+          target.closest('[contenteditable="true"]'))
+      ) {
+        return;
+      }
+
+      // Skip while a dialog, popover, dropdown or sheet is open
+      if (document.querySelector('[role="dialog"], [role="alertdialog"], [data-radix-popper-content-wrapper]')) {
+        return;
+      }
+
+      e.preventDefault();
+      const idx = (window.history.state as { idx?: number } | null)?.idx ?? 0;
+      if (idx > 0) navigate(-1);
+      else navigate('/home');
+    };
+
+    window.addEventListener('keydown', handleBack);
+    return () => window.removeEventListener('keydown', handleBack);
+  }, [navigate]);
+
   return (
     <URLSanitizer>
     <Routes>
