@@ -18,6 +18,13 @@ import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-responsive';
 import { SidebarTrigger } from '@/components/ui/sidebar';
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from '@/components/ui/context-menu';
 
 const VALID_TABS: NotificationCategory[] = ['unread', 'mentions', 'calls', 'text', 'email', 'tickets', 'assigned'];
 
@@ -65,8 +72,13 @@ const NotificationsPage = () => {
     markAsRead,
     markAllAsRead,
     deleteNotification,
+    markMany,
+    deleteMany,
     isMarkingAllRead,
   } = useNotificationFilters(selectedCategory);
+
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [lastClickedId, setLastClickedId] = useState<string | null>(null);
 
   const handleNavigate = (notification: EnhancedNotification) => {
     const data = notification.data || {};
@@ -132,6 +144,63 @@ const NotificationsPage = () => {
 
     return result;
   }, [notifications, searchQuery, sortConfig]);
+
+  // ---- Multi-select (cmd/ctrl click = toggle, shift click = range) ----
+  const handleRowClick = (n: EnhancedNotification, e: React.MouseEvent) => {
+    if (e.metaKey || e.ctrlKey) {
+      e.preventDefault();
+      setSelectedIds(prev =>
+        prev.includes(n.id) ? prev.filter(id => id !== n.id) : [...prev, n.id]
+      );
+      setLastClickedId(n.id);
+      return;
+    }
+
+    if (e.shiftKey) {
+      e.preventDefault();
+      const anchor = lastClickedId ?? n.id;
+      const from = sortedAndFiltered.findIndex(x => x.id === anchor);
+      const to = sortedAndFiltered.findIndex(x => x.id === n.id);
+      if (from !== -1 && to !== -1) {
+        const [start, end] = from <= to ? [from, to] : [to, from];
+        const rangeIds = sortedAndFiltered.slice(start, end + 1).map(x => x.id);
+        setSelectedIds(prev => Array.from(new Set([...prev, ...rangeIds])));
+      }
+      return;
+    }
+
+    if (selectedIds.length > 0) {
+      setSelectedIds([]);
+    }
+    setLastClickedId(n.id);
+    handleNavigate(n);
+  };
+
+  const handleContextMenuOpen = (n: EnhancedNotification) => {
+    // Right-clicking a row outside the current selection selects just that row
+    if (!selectedIds.includes(n.id)) {
+      setSelectedIds([n.id]);
+      setLastClickedId(n.id);
+    }
+  };
+
+  const targetIds = (n: EnhancedNotification) =>
+    selectedIds.includes(n.id) && selectedIds.length > 0 ? selectedIds : [n.id];
+
+  const bulkMarkRead = (ids: string[], isRead: boolean) => {
+    markMany({ ids, isRead });
+    toast.success(
+      `${ids.length} notification${ids.length === 1 ? '' : 's'} marked as ${isRead ? 'read' : 'unread'}`
+    );
+    setSelectedIds([]);
+  };
+
+  const bulkDelete = (ids: string[]) => {
+    deleteMany(ids);
+    toast.success(`${ids.length} notification${ids.length === 1 ? '' : 's'} deleted`);
+    setSelectedIds([]);
+  };
+
 
   return (
     <UnifiedAppLayout>
@@ -231,6 +300,25 @@ const NotificationsPage = () => {
                   <p className="mt-2 text-xs text-muted-foreground">
                     Showing the {sortedAndFiltered.length} most recent of {totalUnread} unread notifications.
                   </p>
+                )}
+                {!isMobile && selectedIds.length > 0 && (
+                  <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+                    <span>{selectedIds.length} selected</span>
+                    <Button variant="outline" size="sm" className="h-7" onClick={() => bulkMarkRead(selectedIds, true)}>
+                      Mark as read
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 text-destructive hover:text-destructive"
+                      onClick={() => bulkDelete(selectedIds)}
+                    >
+                      Delete
+                    </Button>
+                    <Button variant="ghost" size="sm" className="h-7" onClick={() => setSelectedIds([])}>
+                      Clear
+                    </Button>
+                  </div>
                 )}
               </div>
 
@@ -340,14 +428,17 @@ const NotificationsPage = () => {
                     ) : (
                       sortedAndFiltered.map((n) => {
                         const Icon = categoryIcons[n.category] || Bell;
+                        const isSelected = selectedIds.includes(n.id);
                         return (
+                          <ContextMenu key={n.id}>
+                          <ContextMenuTrigger asChild onContextMenu={() => handleContextMenuOpen(n)}>
                           <TableRow
-                            key={n.id}
                             className={cn(
-                              'cursor-pointer',
-                              !n.is_read && 'bg-muted/30'
+                              'cursor-pointer select-none',
+                              !n.is_read && 'bg-muted/30',
+                              isSelected && 'bg-primary/10 hover:bg-primary/15'
                             )}
-                            onClick={() => handleNavigate(n)}
+                            onClick={(e) => handleRowClick(n, e)}
                           >
                             {/* Status dot */}
                             <TableCell className="w-[40px]">
@@ -428,9 +519,48 @@ const NotificationsPage = () => {
                                 </Button>
                               </div>
                             </TableCell>
-                          </TableRow>
-                        );
-                      })
+                           </TableRow>
+                          </ContextMenuTrigger>
+                          <ContextMenuContent className="w-56">
+                            <ContextMenuItem onSelect={() => bulkMarkRead(targetIds(n), true)}>
+                              <Check className="mr-2 h-4 w-4" />
+                              Mark as read
+                              {targetIds(n).length > 1 && ` (${targetIds(n).length})`}
+                            </ContextMenuItem>
+                            <ContextMenuItem onSelect={() => bulkMarkRead(targetIds(n), false)}>
+                              <Bell className="mr-2 h-4 w-4" />
+                              Mark as unread
+                              {targetIds(n).length > 1 && ` (${targetIds(n).length})`}
+                            </ContextMenuItem>
+                            <ContextMenuSeparator />
+                            <ContextMenuItem onSelect={() => handleNavigate(n)}>
+                              <Eye className="mr-2 h-4 w-4" />
+                              Open
+                            </ContextMenuItem>
+                            <ContextMenuItem
+                              onSelect={() => setSelectedIds(sortedAndFiltered.map(x => x.id))}
+                            >
+                              <CheckCheck className="mr-2 h-4 w-4" />
+                              Select all
+                            </ContextMenuItem>
+                            {selectedIds.length > 0 && (
+                              <ContextMenuItem onSelect={() => setSelectedIds([])}>
+                                Clear selection
+                              </ContextMenuItem>
+                            )}
+                            <ContextMenuSeparator />
+                            <ContextMenuItem
+                              className="text-destructive focus:text-destructive"
+                              onSelect={() => bulkDelete(targetIds(n))}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete
+                              {targetIds(n).length > 1 && ` (${targetIds(n).length})`}
+                            </ContextMenuItem>
+                          </ContextMenuContent>
+                          </ContextMenu>
+                         );
+                       })
                     )}
                   </TableBody>
                 </Table>

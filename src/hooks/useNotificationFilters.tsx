@@ -256,6 +256,36 @@ export const useNotificationFilters = (selectedCategory: NotificationCategory = 
     },
   });
 
+  const invalidateAll = () => {
+    queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    queryClient.invalidateQueries({ queryKey: ['unread-notifications-count'] });
+    queryClient.invalidateQueries({ queryKey: ['notifications-unread-total'] });
+    queryClient.invalidateQueries({ queryKey: ['all-counts'] });
+  };
+
+  // Bulk mark as read / unread
+  const markManyMutation = useMutation({
+    mutationFn: async ({ ids, isRead }: { ids: string[]; isRead: boolean }) => {
+      if (!ids.length) return;
+      const { error } = await supabase
+        .from('notifications')
+        .update({ is_read: isRead })
+        .in('id', ids);
+      if (error) throw error;
+    },
+    onSuccess: invalidateAll,
+  });
+
+  // Bulk delete
+  const deleteManyMutation = useMutation({
+    mutationFn: async (ids: string[]) => {
+      if (!ids.length) return;
+      const { error } = await supabase.from('notifications').delete().in('id', ids);
+      if (error) throw error;
+    },
+    onSuccess: invalidateAll,
+  });
+
   return {
     notifications: filteredNotifications,
     groupedNotifications,
@@ -267,6 +297,9 @@ export const useNotificationFilters = (selectedCategory: NotificationCategory = 
     markAsRead: markAsReadMutation.mutate,
     markAllAsRead: markAllAsReadMutation.mutate,
     deleteNotification: deleteNotificationMutation.mutate,
+    markMany: markManyMutation.mutate,
+    deleteMany: deleteManyMutation.mutate,
+    isBulkPending: markManyMutation.isPending || deleteManyMutation.isPending,
     isMarkingRead: markAsReadMutation.isPending,
     isMarkingAllRead: markAllAsReadMutation.isPending,
     isDeleting: deleteNotificationMutation.isPending,
