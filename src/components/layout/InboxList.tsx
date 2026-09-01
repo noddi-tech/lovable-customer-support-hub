@@ -23,6 +23,9 @@ import { useInboxEmailAddresses } from '@/hooks/useInboxEmailAddresses';
 import { useInboxOutstandingCounts } from '@/hooks/useInboxOutstandingCounts';
 import { useDefaultInbox } from '@/hooks/useDefaultInbox';
 import { groupInboxesByDomain } from '@/utils/inboxGrouping';
+import { BrandFilterSelect } from '@/components/dashboard/conversation-list/BrandFilterSelect';
+import { TagFilterSelect } from '@/components/tags/TagFilterSelect';
+import { useConversationFilterParams } from '@/hooks/useConversationFilterParams';
 
 
 import { LiveChatQueue } from '@/components/conversations/LiveChatQueue';
@@ -68,6 +71,7 @@ export const InboxList: React.FC<InboxListProps> = ({
   const { data: outstanding = {} } = useInboxOutstandingCounts();
   const { data: counts, isLoading: countsLoading } = useInboxCounts(selectedInbox || 'all');
   const { defaultInboxId } = useDefaultInbox();
+  const { brand, tags, setBrand, setTags } = useConversationFilterParams();
 
   const [selectOpen, setSelectOpen] = React.useState(false);
 
@@ -448,6 +452,46 @@ export const InboxList: React.FC<InboxListProps> = ({
               )}
             </Button>
           ))}
+        </div>
+
+        {/* Brand & tag filters - kept in the same sidebar as the status filters */}
+        <div className="space-y-2 pt-2 border-t border-border">
+          <div className="space-y-1">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Brand
+            </span>
+            <BrandFilterSelect
+              value={brand}
+              onChange={setBrand}
+              options={[]}
+              triggerClassName="w-full h-8 text-xs px-2"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Tags
+            </span>
+            <TagFilterSelect
+              value={tags}
+              onChange={setTags}
+              className="w-full h-8 justify-start text-xs"
+            />
+          </div>
+
+          {(brand !== 'all' || tags.length > 0) && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 w-full justify-start px-2 text-xs text-muted-foreground"
+              onClick={() => {
+                setBrand('all');
+                setTags([]);
+              }}
+            >
+              Clear brand & tag filters
+            </Button>
+          )}
         </div>
       </div>
     </div>
