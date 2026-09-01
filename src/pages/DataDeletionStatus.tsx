@@ -1,7 +1,7 @@
 // Public status page for Meta data-deletion requests.
 // Reachable at /data-deletion-status/:code without authentication.
-// The table itself is not publicly readable — lookup goes through the
-// get_meta_deletion_request_status RPC, which returns status fields for one
+// The table itself is not publicly readable — lookup goes through the public
+// meta-deletion-status edge function, which returns status fields for one
 // exact confirmation code only.
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
