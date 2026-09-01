@@ -75,10 +75,10 @@ export default function HomePage() {
 
 
   const stats = [
-    { label: 'Open', value: conversations.open, icon: MailOpen },
-    { label: 'Unread', value: conversations.unread, icon: Mail },
-    { label: 'Assigned to me', value: conversations.assigned, icon: UserCheck },
-    { label: 'Pending', value: conversations.pending, icon: Clock },
+    { label: 'Open', filter: 'open', value: conversations.open, icon: MailOpen },
+    { label: 'Unread', filter: 'unread', value: conversations.unread, icon: Mail },
+    { label: 'Assigned to me', filter: 'assigned', value: conversations.assigned, icon: UserCheck },
+    { label: 'Pending', filter: 'pending', value: conversations.pending, icon: Clock },
   ];
 
   return (
