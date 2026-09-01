@@ -86,7 +86,10 @@ Deno.serve(async (req) => {
     }
 
     const cronKey = Deno.env.get('AIRCALL_SYNC_CRON_SECRET');
-    const isCron = !!cronKey && req.headers.get('x-cron-key') === cronKey;
+    const authHeaderRaw = req.headers.get('Authorization') || '';
+    const isCron =
+      (!!cronKey && req.headers.get('x-cron-key') === cronKey) ||
+      authHeaderRaw === `Bearer ${serviceKey}`;
 
     // ---- Determine which organizations to sync -------------------------
     let organizationIds: string[] = [];
