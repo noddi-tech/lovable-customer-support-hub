@@ -34,6 +34,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
+import { useAuth } from '@/hooks/useAuth';
 import {
   useBackgroundJobs,
   useBackgroundJobRuns,
@@ -149,6 +150,7 @@ const BackgroundJobsPage: React.FC = () => {
   const { data: jobs = [], isLoading, isFetching, error, refetch } = useBackgroundJobs();
   const [selected, setSelected] = React.useState<BackgroundJob | null>(null);
   const runJob = useRunBackgroundJob();
+  const { user, userRoles = [] } = useAuth();
 
   const totals = React.useMemo(() => {
     return {
