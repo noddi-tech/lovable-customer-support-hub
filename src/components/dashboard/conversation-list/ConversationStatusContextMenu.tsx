@@ -12,16 +12,21 @@ import {
 } from '@/components/ui/context-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
-import { Clock, XCircle, MessageCircle, UserPlus, UserMinus, Check } from 'lucide-react';
+import { Clock, XCircle, MessageCircle, UserPlus, UserMinus, Check, Tag, Ban } from 'lucide-react';
 import { useConversationStatusActions } from '@/hooks/useConversationStatusActions';
 import { useConversationAssignActions, getRecentAssigneeIds } from '@/hooks/useConversationAssignActions';
 import { useTeamMembers, type TeamMember } from '@/hooks/useTeamMembers';
+import { useConversationBrandActions } from '@/hooks/useConversationBrandActions';
+import { useNoddiBrands } from '@/hooks/useNoddiBrands';
+import { getBrandColor } from '@/lib/conversationBrand';
 
 interface ConversationStatusContextMenuProps {
   conversationId: string;
   status?: string;
   /** Currently assigned profile id, used to show a checkmark. */
   assignedToId?: string | null;
+  /** Current brand label (from conversation metadata), used to show a checkmark. */
+  brandLabel?: string | null;
   children: React.ReactNode;
 }
 
