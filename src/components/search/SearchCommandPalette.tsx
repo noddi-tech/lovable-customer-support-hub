@@ -31,6 +31,8 @@ import {
   type NavPage,
   type NavScope,
 } from '@/lib/navigation-registry';
+import { PaletteAvailabilityActions } from '@/components/search/PaletteAvailabilityActions';
+
 
 interface SearchCommandPaletteProps {
   open: boolean;
@@ -176,7 +178,12 @@ export const SearchCommandPalette: React.FC<SearchCommandPaletteProps> = ({
         )}
 
         <CommandList>
+          {activeScope === 'app' && (
+            <PaletteAvailabilityActions onDone={() => handleOpenChange(false)} />
+          )}
+
           {/* Pages / navigation */}
+
           {groupedPages.map(([group, items]) => (
             <CommandGroup
               key={`${activeScope}-${group}`}
