@@ -996,17 +996,27 @@ async function handleTranscript(supabase: any, data: TranscriptRequest) {
     })
     .join('');
 
-  const html = `<div style="font-family:Arial,sans-serif;font-size:14px;color:#111">
-    <h2 style="font-size:18px">Your chat transcript</h2>
-    ${rows || '<p>No messages were exchanged.</p>'}
-  </div>`;
+  const html = `<h2 style="margin:0 0 16px;font-size:18px;">Your chat transcript</h2>
+    ${rows || '<p>No messages were exchanged.</p>'}`;
 
-  const { error: sendError } = await supabase.functions.invoke('send-email', {
-    body: { to: email, subject: 'Your chat transcript', html },
+  // Brand the transcript like every other outgoing email (header + company footer).
+  const brand =
+    (session.metadata?.context?.brand as string | undefined) ||
+    (session.metadata?.brand as string | undefined) ||
+    null;
+
+  const { data: sendResult, error: sendError } = await supabase.functions.invoke('send-email', {
+    body: {
+      to: email,
+      subject: 'Your chat transcript',
+      html,
+      brand,
+      preheader: 'A copy of your chat with support',
+    },
   });
 
-  if (sendError) {
-    console.error('Error sending transcript:', sendError);
+  if (sendError || (sendResult && sendResult.error)) {
+    console.error('Error sending transcript:', sendError || sendResult?.error);
     return new Response(
       JSON.stringify({ error: 'Failed to send transcript' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
