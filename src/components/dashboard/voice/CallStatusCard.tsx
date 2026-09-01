@@ -9,6 +9,7 @@ import { CallActionButton } from './CallActionButton';
 import { formatDistanceToNow } from 'date-fns';
 import { getMonitoredPhoneForCall } from '@/utils/phoneNumberUtils';
 import { ManualEndCallDialog } from './ManualEndCallDialog';
+import { CallBrandPicker } from './CallBrandPicker';
 
 interface CallStatusCardProps {
   call: Call;
@@ -241,6 +242,11 @@ export const CallStatusCard: React.FC<CallStatusCardProps> = ({ call, onViewDeta
             </div>
           )}
           
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-muted-foreground">Brand:</span>
+            <CallBrandPicker callId={call.id} metadata={(call as any).metadata} />
+          </div>
+
           <div className="flex justify-between">
             <span className="text-sm text-muted-foreground">Started:</span>
             <span className="text-sm">

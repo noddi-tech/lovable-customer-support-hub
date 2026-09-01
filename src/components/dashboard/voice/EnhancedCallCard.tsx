@@ -8,6 +8,9 @@ import { Call } from '@/hooks/useCalls';
 import { SidebarCounter } from '@/components/ui/sidebar-counter';
 import { CallCustomerInfo } from './CallCustomerInfo';
 import { formatPhoneNumber } from '@/utils/phoneNumberUtils';
+import { getConversationBrand } from '@/lib/conversationBrand';
+import { BrandBadge } from '@/components/dashboard/conversation-list/BrandBadge';
+import { CallBrandContextMenu } from './CallBrandContextMenu';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -39,6 +42,7 @@ export const EnhancedCallCard: React.FC<EnhancedCallCardProps> = ({
   notesCount = 0,
 }) => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const brand = getConversationBrand((call as any).metadata, 'voice');
 
   const formatDuration = (seconds?: number) => {
     if (!seconds) return '0:00';
@@ -107,6 +111,7 @@ export const EnhancedCallCard: React.FC<EnhancedCallCardProps> = ({
   };
 
   return (
+    <CallBrandContextMenu callId={call.id} metadata={(call as any).metadata}>
     <Card 
       className={`group cursor-pointer border-l-4 ${getBorderColor()} ${getCallAge()} ${
         isSelected ? 'ring-2 ring-primary ring-offset-2' : ''
@@ -163,6 +168,7 @@ export const EnhancedCallCard: React.FC<EnhancedCallCardProps> = ({
                 {notesCount > 0 && (
                   <SidebarCounter count={notesCount} variant="default" />
                 )}
+                {brand && <BrandBadge brand={brand} compact />}
               </div>
             </div>
           </div>
@@ -194,5 +200,6 @@ export const EnhancedCallCard: React.FC<EnhancedCallCardProps> = ({
         </AlertDialogContent>
       </AlertDialog>
     </Card>
+    </CallBrandContextMenu>
   );
 };
