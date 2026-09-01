@@ -58,6 +58,8 @@ export const ChatMessagesList = ({
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [emailPreviewId, setEmailPreviewId] = useState<string | null>(null);
   const { canEditNote, deleteNote } = useNoteMutations();
+  const { data: csat } = useChatCsat(conversationId);
+
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
