@@ -3,6 +3,7 @@ import { canGoBackInApp, getConversationBackPath } from '@/utils/conversationNav
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ConversationBrandPicker } from "./ConversationBrandPicker";
+import { EntityTagPicker } from '@/components/tags/TagPicker';
 import { HeaderCaseChip } from "@/components/cases/HeaderCaseChip";
 
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -150,6 +151,7 @@ onClick={() => {
                   metadata={(conversation as any).metadata}
                   channel={conversation.channel}
                 />
+                <EntityTagPicker entityType="conversation" entityId={conversation.id} />
                 <HeaderCaseChip
                   conversationId={conversation.id}
                   caseId={(conversation as any).case_id}
