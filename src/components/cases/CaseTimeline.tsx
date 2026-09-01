@@ -1,6 +1,16 @@
 import { CASE_STATUS_LABELS, useCaseEvents, type CaseStatus } from '@/hooks/useCases';
 import { useDateFormatting } from '@/hooks/useDateFormatting';
 import { Skeleton } from '@/components/ui/skeleton';
+import { CaseStatusBadge } from '@/components/cases/CaseBadges';
+import {
+  ArrowRight,
+  CalendarClock,
+  Flag,
+  PlusCircle,
+  RefreshCcw,
+  UserRound,
+  type LucideIcon,
+} from 'lucide-react';
 
 const EVENT_LABELS: Record<string, string> = {
   created: 'Case created',
@@ -9,6 +19,17 @@ const EVENT_LABELS: Record<string, string> = {
   priority_changed: 'Priority changed',
   due_changed: 'Due date changed',
 };
+
+const EVENT_ICONS: Record<string, LucideIcon> = {
+  created: PlusCircle,
+  status_changed: RefreshCcw,
+  owner_changed: UserRound,
+  priority_changed: Flag,
+  due_changed: CalendarClock,
+};
+
+const isStatus = (value: string | null): value is CaseStatus =>
+  !!value && value in CASE_STATUS_LABELS;
 
 function formatValue(eventType: string, value: string | null) {
   if (!value) return '—';
@@ -23,6 +44,7 @@ function formatValue(eventType: string, value: string | null) {
   }
   return value;
 }
+
 
 export function CaseTimeline({ caseId }: { caseId: string }) {
   const { data: events = [], isLoading } = useCaseEvents(caseId);
