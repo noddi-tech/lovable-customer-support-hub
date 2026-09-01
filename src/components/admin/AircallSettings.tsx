@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Phone, Plus, X, Shield, Settings, CheckCircle, AlertCircle, TestTube, PhoneCall, Globe, AlertTriangle, RefreshCw } from 'lucide-react';
+import { Phone, Plus, X, Shield, Settings, CheckCircle, AlertCircle, TestTube, PhoneCall, Globe, AlertTriangle, RefreshCw, Users } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,6 +13,7 @@ import { useTranslation } from 'react-i18next';
 import { useToast } from '@/hooks/use-toast';
 import { useVoiceIntegrations } from '@/hooks/useVoiceIntegrations';
 import { formatRelativeTime } from '@/utils/dateFormatting';
+import { useAircallContactSync } from '@/hooks/useAircallContactSync';
 
 interface CallEventConfig {
   eventType: string;
@@ -54,6 +55,7 @@ export const AircallSettings = () => {
   const [everywhereApiId, setEverywhereApiId] = useState('');
   const [everywhereApiToken, setEverywhereApiToken] = useState('');
   const [everywhereDomain, setEverywhereDomain] = useState('');
+  const [syncContacts, setSyncContacts] = useState(false);
   
   // Credential testing
   const [isTestingCredentials, setIsTestingCredentials] = useState(false);
@@ -63,6 +65,11 @@ export const AircallSettings = () => {
     error?: string;
     timestamp?: Date;
   } | null>(null);
+
+  // Customer → Aircall contact sync
+  const contactSync = useAircallContactSync(
+    Boolean(existingConfig?.configuration?.aircallEverywhere?.syncContacts)
+  );
 
   // Load existing configuration when it changes
   useEffect(() => {
@@ -83,6 +90,7 @@ export const AircallSettings = () => {
         setEverywhereApiId(everywhereConfig.apiId || '');
         setEverywhereApiToken(everywhereConfig.apiToken || '');
         setEverywhereDomain(everywhereConfig.domainName || '');
+        setSyncContacts(everywhereConfig.syncContacts || false);
       }
     } else {
       // Set default phone number if no config exists
@@ -186,7 +194,8 @@ export const AircallSettings = () => {
         enabled: everywhereEnabled,
         apiId: everywhereApiId,
         apiToken: everywhereApiToken,
-        domainName: everywhereDomain.trim() || undefined // Only store if explicitly provided
+        domainName: everywhereDomain.trim() || undefined, // Only store if explicitly provided
+        syncContacts
       }
     };
 
@@ -665,6 +674,129 @@ export const AircallSettings = () => {
                   Make sure your API credentials are configured correctly in Aircall Dashboard.
                 </AlertDescription>
               </Alert>
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Customer Contact Sync */}
+      <Card className="bg-gradient-surface border-border/50 shadow-surface">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-primary">
+            <Users className="w-5 h-5" />
+            Customer Contact Sync
+          </CardTitle>
+          <CardDescription>
+            Push customers that have both a name and a phone number to Aircall as company contacts,
+            so incoming calls show the customer name.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <Label htmlFor="aircall-sync-contacts" className="text-sm font-medium">
+                Sync customers to Aircall contacts
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                Runs nightly and can be triggered manually. Requires Aircall API credentials.
+              </p>
+            </div>
+            <Switch
+              id="aircall-sync-contacts"
+              checked={syncContacts}
+              onCheckedChange={setSyncContacts}
+            />
+          </div>
+
+          {syncContacts && (
+            <>
+              <Separator />
+
+              {!everywhereApiId || !everywhereApiToken ? (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    Add your Aircall API ID and API Token above (and save) before syncing contacts.
+                  </AlertDescription>
+                </Alert>
+              ) : (
+                <>
+                  {contactSync.preview && (
+                    <div className="grid grid-cols-3 gap-3 text-center">
+                      <div className="rounded-lg border bg-card/50 p-3">
+                        <p className="text-lg font-semibold">{contactSync.preview.eligible}</p>
+                        <p className="text-xs text-muted-foreground">Eligible customers</p>
+                      </div>
+                      <div className="rounded-lg border bg-card/50 p-3">
+                        <p className="text-lg font-semibold">{contactSync.preview.skipped}</p>
+                        <p className="text-xs text-muted-foreground">Already in Aircall</p>
+                      </div>
+                      <div className="rounded-lg border bg-card/50 p-3">
+                        <p className="text-lg font-semibold">{contactSync.preview.pending ?? 0}</p>
+                        <p className="text-xs text-muted-foreground">Waiting to sync</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {contactSync.previewError && (
+                    <Alert variant="destructive">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>{contactSync.previewError.message}</AlertDescription>
+                    </Alert>
+                  )}
+
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() => contactSync.syncNow({ force: false })}
+                      disabled={contactSync.isSyncing}
+                      variant="outline"
+                      className="flex-1"
+                    >
+                      <RefreshCw className={`h-4 w-4 mr-2 ${contactSync.isSyncing ? 'animate-spin' : ''}`} />
+                      {contactSync.isSyncing ? 'Syncing…' : 'Sync now'}
+                    </Button>
+                    <Button
+                      onClick={() => contactSync.refetchPreview()}
+                      disabled={contactSync.isSyncing || contactSync.isLoadingPreview}
+                      variant="ghost"
+                    >
+                      Refresh counts
+                    </Button>
+                  </div>
+
+                  {contactSync.lastResult && (
+                    <Alert variant={contactSync.lastResult.failed ? 'destructive' : 'default'}>
+                      {contactSync.lastResult.failed ? (
+                        <AlertCircle className="h-4 w-4" />
+                      ) : (
+                        <CheckCircle className="h-4 w-4" />
+                      )}
+                      <AlertDescription className="text-xs">
+                        {contactSync.lastResult.created} created, {contactSync.lastResult.updated} updated,{' '}
+                        {contactSync.lastResult.skipped} unchanged, {contactSync.lastResult.failed} failed.
+                        {contactSync.lastResult.remaining > 0 && (
+                          <> {contactSync.lastResult.remaining} customers remain — run again to continue.</>
+                        )}
+                        {contactSync.lastResult.errors?.length ? (
+                          <ul className="mt-2 ml-4 list-disc">
+                            {contactSync.lastResult.errors.map((err, i) => (
+                              <li key={i}>{err}</li>
+                            ))}
+                          </ul>
+                        ) : null}
+                      </AlertDescription>
+                    </Alert>
+                  )}
+
+                  <Alert>
+                    <Shield className="h-4 w-4" />
+                    <AlertDescription className="text-xs">
+                      Contacts are shared across your whole Aircall workspace. Aircall limits us to 60 API
+                      calls per minute, so large batches are paced and continue on the next run.
+                    </AlertDescription>
+                  </Alert>
+                </>
+              )}
             </>
           )}
         </CardContent>

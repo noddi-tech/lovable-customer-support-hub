@@ -84,6 +84,9 @@ verify_jwt = false
 [functions.test-aircall-credentials]
 verify_jwt = true
 
+[functions.aircall-sync-contacts]
+verify_jwt = false
+
 [functions.noddi-search-by-name]
 verify_jwt = true
 
