@@ -11,13 +11,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Helper to safely create a RFC 5322 Message-ID using the sender domain
-function createMessageId(fromEmail: string) {
-  const domain = fromEmail.split('@')[1] || 'mail.local';
-  const id = (crypto as any).randomUUID?.() || Math.random().toString(36).slice(2);
-  return `<msg-${id}@${domain}>`;
-}
-
 // Extract an email address from a "Name <email>" or bare "email" string
 function extractEmail(s: string): string | null {
   const match = s.match(/<([^>]+)>/) || s.match(/([^\s,<>"]+@[^\s,<>"]+)/);
@@ -507,7 +500,8 @@ const handler = async (req: Request): Promise<Response> => {
       }
     }
 
-    const messageIdHeader = createMessageId(fromEmailFinal);
+    // Structured Message-ID: one header lookup resolves the thread directly.
+    const messageIdHeader = buildStructuredMessageId(message.conversation_id, fromEmailFinal);
     const headers: Record<string, string> = {
       'Message-ID': messageIdHeader,
     };
@@ -550,7 +544,7 @@ const handler = async (req: Request): Promise<Response> => {
       subject,
       content: [
         { type: 'text/plain', value: plainText },
-        { type: 'text/html', value: emailHTML },
+        { type: 'text/html', value: htmlWithToken },
       ],
       headers,
       ...(sgAttachments.length > 0 ? { attachments: sgAttachments } : {}),
