@@ -655,7 +655,8 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
             return !!conversation.assigned_to 
               && conversation.assigned_to.id === profile?.id
               && conversation.status !== 'closed'
-              && !conversation.is_archived              && !isSnoozedActive 
+              && !conversation.is_archived
+              && !isSnoozedActive 
               && !conversation.is_deleted;
           case "closed":
             return conversation.status === 'closed' 
