@@ -1629,6 +1629,7 @@ export type Database = {
           inbox_id: string | null
           is_archived: boolean | null
           is_read: boolean | null
+          last_assigned_to_id: string | null
           last_message_is_internal: boolean | null
           last_message_sender_type: string | null
           memories_extracted_at: string | null
@@ -1665,6 +1666,7 @@ export type Database = {
           inbox_id?: string | null
           is_archived?: boolean | null
           is_read?: boolean | null
+          last_assigned_to_id?: string | null
           last_message_is_internal?: boolean | null
           last_message_sender_type?: string | null
           memories_extracted_at?: string | null
@@ -1701,6 +1703,7 @@ export type Database = {
           inbox_id?: string | null
           is_archived?: boolean | null
           is_read?: boolean | null
+          last_assigned_to_id?: string | null
           last_message_is_internal?: boolean | null
           last_message_sender_type?: string | null
           memories_extracted_at?: string | null
