@@ -76,9 +76,9 @@ export const NAV_ITEMS: NavItem[] = [
   // Interactions - hierarchical paths
   { 
     id: "text", 
-    label: "Text Messages", 
+    label: "Inbox", 
     to: "/interactions/text", 
-    icon: MessageSquare, 
+    icon: Inbox, 
     group: "interactions" 
   },
   { 

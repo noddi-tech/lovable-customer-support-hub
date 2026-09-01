@@ -35,8 +35,8 @@ export const InteractionsSidebar: React.FC = () => {
 
   const interactionItems = [
     {
-      title: 'Text Messages',
-      icon: MessageSquare,
+      title: 'Inbox',
+      icon: Inbox,
       path: '/interactions/text',
       badge: undefined // Will be dynamic later
     },
@@ -56,7 +56,7 @@ export const InteractionsSidebar: React.FC = () => {
 
   const quickFilters = [
     {
-      title: 'Inbox',
+      title: 'All open',
       icon: Inbox,
       path: '/interactions/text#inbox'
     },
