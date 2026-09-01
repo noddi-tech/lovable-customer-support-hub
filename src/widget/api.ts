@@ -451,12 +451,16 @@ export async function emailChatTranscript(sessionId: string, email: string): Pro
 }
 
 
-export async function sendChatMessage(sessionId: string, content: string): Promise<ChatMessage | null> {
+export async function sendChatMessage(
+  sessionId: string,
+  content: string,
+  locale?: string,
+): Promise<ChatMessage | null> {
   try {
     const response = await fetch(`${apiBaseUrl}/widget-chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'message', sessionId, content }),
+      body: JSON.stringify({ action: 'message', sessionId, content, locale }),
     });
     if (!response.ok) return null;
     return await response.json();

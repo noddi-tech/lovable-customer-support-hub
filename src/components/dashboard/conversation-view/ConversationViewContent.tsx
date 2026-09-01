@@ -41,6 +41,7 @@ const MobileEmailConversationView = lazy(() => import('@/components/mobile/conve
 import { PresenceAvatarStack } from '@/components/conversations/PresenceAvatarStack';
 import { TagDialog } from './TagDialog';
 import { SnoozeDialog } from './SnoozeDialog';
+import { getLanguageFlag, getLanguageLabel } from '@/utils/languageLabels';
 import { useVisitorOnlineStatus } from '@/hooks/useVisitorOnlineStatus';
 import { formatDistanceToNow } from 'date-fns';
 import { 
@@ -246,6 +247,15 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
                     )}
                   >
                     {onlineStatus?.hasLeft ? 'Left' : onlineStatus?.isOnline ? 'Online' : 'Offline'}
+                  </Badge>
+                )}
+                {!isMobile && onlineStatus?.locale && (
+                  <Badge
+                    variant="outline"
+                    className="text-xs shrink-0"
+                    title={`Widget language: ${getLanguageLabel(onlineStatus.locale)}`}
+                  >
+                    {getLanguageFlag(onlineStatus.locale)} {getLanguageLabel(onlineStatus.locale)}
                   </Badge>
                 )}
                 {!isMobile && conversation.is_archived && (

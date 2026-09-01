@@ -104,7 +104,7 @@ export const LiveChat: React.FC<LiveChatProps> = ({
     setInputValue('');
     handleTyping(false);
 
-    const result = await sendChatMessage(session.id, content);
+    const result = await sendChatMessage(session.id, content, language);
     
     if (result) {
       // Immediately refetch to show the new message

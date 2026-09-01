@@ -25,6 +25,8 @@ interface MessageRequest {
   action: 'message';
   sessionId: string;
   content: string;
+  /** Widget UI language at the time the visitor typed the message (e.g. "nb", "en"). */
+  locale?: string;
 }
 
 interface EndChatRequest {
@@ -431,6 +433,10 @@ async function handleStartChat(supabase: any, data: StartChatRequest) {
 
 async function handleSendMessage(supabase: any, data: MessageRequest) {
   const { sessionId, content } = data;
+  // Widget UI language for this message — lets agents see language switches mid-chat.
+  const locale = typeof data.locale === 'string' && /^[a-zA-Z]{2}([-_][a-zA-Z0-9]{2,8})?$/.test(data.locale.trim())
+    ? data.locale.trim().toLowerCase()
+    : undefined;
 
   if (!sessionId || !content?.trim()) {
     return new Response(
@@ -442,7 +448,7 @@ async function handleSendMessage(supabase: any, data: MessageRequest) {
   // Get session with visitor_id for rate limiting
   const { data: session, error: sessionError } = await supabase
     .from('widget_chat_sessions')
-    .select('id, conversation_id, status, visitor_id')
+    .select('id, conversation_id, status, visitor_id, metadata')
     .eq('id', sessionId)
     .single();
 
@@ -484,6 +490,7 @@ async function handleSendMessage(supabase: any, data: MessageRequest) {
       content: sanitizedContent,
       sender_type: 'customer',
       content_type: 'text',
+      ...(locale ? { metadata: { locale } } : {}),
     })
     .select('id, content, sender_type, created_at')
     .single();
@@ -497,10 +504,17 @@ async function handleSendMessage(supabase: any, data: MessageRequest) {
   }
 
   // Update session last_message_at and conversation preview
+  const sessionMeta = (session.metadata || {}) as Record<string, unknown>;
+  const sessionContext = (sessionMeta.context || {}) as Record<string, unknown>;
+  const sessionUpdate: Record<string, unknown> = { last_message_at: new Date().toISOString() };
+  if (locale && sessionContext.locale !== locale) {
+    sessionUpdate.metadata = { ...sessionMeta, context: { ...sessionContext, locale } };
+  }
+
   await Promise.all([
     supabase
       .from('widget_chat_sessions')
-      .update({ last_message_at: new Date().toISOString() })
+      .update(sessionUpdate)
       .eq('id', sessionId),
     supabase
       .from('conversations')

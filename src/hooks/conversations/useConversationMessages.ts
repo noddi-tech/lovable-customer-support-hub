@@ -103,7 +103,7 @@ export function useConversationMessages(conversationId?: string, normalizationCo
         .select(`
           id, content, content_type, sender_type, sender_id, 
           is_internal, attachments, created_at, email_subject, email_headers, 
-          external_id, email_message_id, email_status
+          external_id, email_message_id, email_status, metadata
         `)
         .eq('conversation_id', conversationId)
         .order('created_at', { ascending: false })
