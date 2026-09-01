@@ -33,7 +33,8 @@ import {
   ArrowLeft,
   ScrollText,
   MessageCircle,
-  Briefcase
+  Briefcase,
+  Flag
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useTranslation } from 'react-i18next';
@@ -72,6 +73,11 @@ const AdminSidebar = () => {
       title: t('admin.general'),
       url: '/admin/general',
       icon: Settings
+    },
+    {
+      title: 'Feature Flags',
+      url: '/admin/feature-flags',
+      icon: Flag
     },
     {
       title: 'System Health',

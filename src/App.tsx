@@ -10,6 +10,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { queryClient, persister } from '@/lib/persistedQueryClient';
 import { AuthProvider } from "@/components/auth/AuthContext";
+import { FeatureFlagsProvider } from "@/contexts/FeatureFlagsContext";
 import { AircallProvider } from "@/contexts/AircallContext";
 import { DesignSystemProvider } from "@/contexts/DesignSystemContext";
 import { RealtimeProvider } from "@/contexts/RealtimeProvider";
@@ -222,6 +223,7 @@ const AppContent = () => {
       <Route path="/admin/voice" element={<Navigate to="/admin/integrations" replace />} />
       <Route path="/admin/design" element={<ProtectedRoute><AdminRoute><Settings /></AdminRoute></ProtectedRoute>} />
       <Route path="/admin/design/components" element={<ProtectedRoute><AdminRoute><AdminDesignComponentsPage /></AdminRoute></ProtectedRoute>} />
+      <Route path="/admin/feature-flags" element={<ProtectedRoute><AdminRoute><Settings /></AdminRoute></ProtectedRoute>} />
       <Route path="/admin/health" element={<ProtectedRoute><AdminRoute><Settings /></AdminRoute></ProtectedRoute>} />
       <Route path="/admin/edge-functions" element={<ProtectedRoute><AdminRoute><Settings /></AdminRoute></ProtectedRoute>} />
       <Route path="/admin/import" element={<ProtectedRoute><AdminRoute><Settings /></AdminRoute></ProtectedRoute>} />
@@ -343,7 +345,9 @@ const App = () => (
       >
         <BrowserRouter>
           <AuthProvider>
+            <FeatureFlagsProvider>
             <RealtimeProvider>
+
               <ConversationPresenceProvider>
                 <ErrorBoundary fallback={<AppErrorFallback />}>
                   <AircallProvider>
@@ -368,6 +372,7 @@ const App = () => (
                 </ErrorBoundary>
               </ConversationPresenceProvider>
             </RealtimeProvider>
+            </FeatureFlagsProvider>
           </AuthProvider>
         </BrowserRouter>
       </PersistQueryClientProvider>
