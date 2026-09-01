@@ -452,7 +452,9 @@ export const ChatMessagesList = ({
                 )}
               </div>
             </div>
+            </Fragment>
           );
+
         })}
         
         {/* Typing indicator - shows when customer is typing */}
