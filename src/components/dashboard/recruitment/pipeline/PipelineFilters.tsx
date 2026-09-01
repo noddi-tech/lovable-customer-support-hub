@@ -22,7 +22,7 @@ const PipelineFilters: React.FC<Props> = ({ value, onChange, totalCount }) => {
   const openPositions = (positions ?? []).filter((p) => p.status === 'open');
 
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
       <Select
         value={value.positionId}
         onValueChange={(v) => onChange({ ...value, positionId: v })}

@@ -38,7 +38,7 @@ export function QuarantineToolbar({ selectedIds, onClear }: Props) {
   };
 
   return (
-    <div className="sticky bottom-4 z-30 mx-auto w-full max-w-3xl rounded-lg border bg-background shadow-lg p-3 flex items-center gap-3">
+    <div className="sticky bottom-4 z-30 mx-auto w-full max-w-3xl rounded-lg border bg-background shadow-lg p-3 flex flex-col gap-3 sm:flex-row sm:items-center">
       <span className="text-sm font-medium">{selectedIds.length} valgt</span>
       <div className="flex-1" />
       <Select value={stageId} onValueChange={setStageId}>

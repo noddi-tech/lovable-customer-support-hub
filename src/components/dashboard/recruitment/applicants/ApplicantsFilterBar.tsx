@@ -52,7 +52,7 @@ const ApplicantsFilterBar: React.FC<Props> = ({ value, onChange }) => {
 
   return (
     <div className="flex gap-3 items-center flex-wrap">
-      <div className="relative flex-1 min-w-[260px] max-w-md">
+      <div className="relative w-full flex-1 sm:min-w-[260px] sm:max-w-md">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
           value={searchInput}
