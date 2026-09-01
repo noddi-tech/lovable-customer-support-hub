@@ -44,38 +44,67 @@ export const TagFilterSelect: React.FC<TagFilterSelectProps> = ({ value, onChang
       : `${value.length} tag${value.length > 1 ? 's' : ''}`;
 
   return (
-    <DropdownMenu>
+    <DropdownMenu
+      modal={false}
+      onOpenChange={(open) => {
+        if (!open) setShowCreate(false);
+      }}
+    >
       <DropdownMenuTrigger asChild>
         <Button variant="outline" size="sm" className={cn('h-9 gap-1.5 text-sm', className)}>
           <TagIcon className="h-3.5 w-3.5" />
           {label}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="bg-popover z-50 max-h-72 overflow-y-auto w-56">
-        <DropdownMenuItem onSelect={(e) => { e.preventDefault(); onChange([]); }} className="gap-2">
-          <Check className={cn('h-3.5 w-3.5', value.length === 0 ? 'opacity-100' : 'opacity-0')} />
-          All tags
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        {tags.map((tag) => (
-          <DropdownMenuItem
-            key={tag.id}
-            onSelect={(e) => { e.preventDefault(); toggle(tag.id); }}
-            className="gap-2"
-          >
-            <Check className={cn('h-3.5 w-3.5 shrink-0', value.includes(tag.id) ? 'opacity-100' : 'opacity-0')} />
-            <TagBadge tag={tag} />
-          </DropdownMenuItem>
-        ))}
-        {tags.length > 0 && <DropdownMenuSeparator />}
-        <DropdownMenuItem onSelect={(e) => { e.preventDefault(); toggle(UNTAGGED); }} className="gap-2">
-          <Check className={cn('h-3.5 w-3.5', value.includes(UNTAGGED) ? 'opacity-100' : 'opacity-0')} />
-          Untagged
-        </DropdownMenuItem>
+      <DropdownMenuContent
+        align="end"
+        className={cn('bg-popover z-50 max-h-72 overflow-y-auto', showCreate ? 'w-auto p-0' : 'w-56')}
+      >
+        {showCreate ? (
+          <TagCreateForm
+            onCancel={() => setShowCreate(false)}
+            onCreate={async (name, color) => {
+              await createTag.mutateAsync({ name, color });
+              setShowCreate(false);
+            }}
+          />
+        ) : (
+          <>
+            <DropdownMenuItem onSelect={(e) => { e.preventDefault(); onChange([]); }} className="gap-2">
+              <Check className={cn('h-3.5 w-3.5', value.length === 0 ? 'opacity-100' : 'opacity-0')} />
+              All tags
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            {tags.map((tag) => (
+              <DropdownMenuItem
+                key={tag.id}
+                onSelect={(e) => { e.preventDefault(); toggle(tag.id); }}
+                className="gap-2"
+              >
+                <Check className={cn('h-3.5 w-3.5 shrink-0', value.includes(tag.id) ? 'opacity-100' : 'opacity-0')} />
+                <TagBadge tag={tag} />
+              </DropdownMenuItem>
+            ))}
+            {tags.length > 0 && <DropdownMenuSeparator />}
+            <DropdownMenuItem onSelect={(e) => { e.preventDefault(); toggle(UNTAGGED); }} className="gap-2">
+              <Check className={cn('h-3.5 w-3.5', value.includes(UNTAGGED) ? 'opacity-100' : 'opacity-0')} />
+              Untagged
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onSelect={(e) => { e.preventDefault(); setShowCreate(true); }}
+              className="gap-2"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Create tag
+            </DropdownMenuItem>
+          </>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );
 };
+
 
 /** Shared predicate: does an entity's tag list satisfy the filter? */
 export function matchesTagFilter(tagIds: string[], filter: string[]): boolean {
