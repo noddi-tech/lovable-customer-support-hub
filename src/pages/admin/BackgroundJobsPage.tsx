@@ -242,10 +242,90 @@ const BackgroundJobsPage: React.FC = () => {
             </CardContent>
           </Card>
         ) : (
-          <Card>
+          <>
+          {/* Mobile: card list */}
+          <div className="space-y-3 md:hidden">
+            {jobs.map((job) => {
+              const next = job.active ? nextRunAt(job.schedule) : null;
+              const runnable = canRunManually(job);
+              const isRunning = runJob.isPending && runJob.variables === job.jobid;
+              return (
+                <Card key={job.jobid}>
+                  <CardContent className="space-y-3 p-4">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          {!job.active && <PauseCircle className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />}
+                          <span className="truncate text-sm font-medium">{job.jobname}</span>
+                        </div>
+                        <p className="truncate text-xs text-muted-foreground">{extractTarget(job.command)}</p>
+                      </div>
+                      <StatusBadge status={job.last_status} />
+                    </div>
+
+                    <dl className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs">
+                      <div>
+                        <dt className="text-muted-foreground">Schedule</dt>
+                        <dd className="font-medium">{describeSchedule(job.schedule)}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-muted-foreground">Last run</dt>
+                        <dd className="font-medium">{fmtRelative(job.last_start)}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-muted-foreground">Next run</dt>
+                        <dd className="font-medium">
+                          {next ? fmtRelative(next.toISOString()) : job.active ? '—' : 'Paused'}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-muted-foreground">Duration / avg</dt>
+                        <dd className="font-medium">
+                          {formatDuration(job.last_duration_ms)} / {formatDuration(job.avg_duration_ms)}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-muted-foreground">Runs / fails (24h)</dt>
+                        <dd className="font-medium">
+                          {job.runs_24h}
+                          {' / '}
+                          <span className={Number(job.failures_24h) > 0 ? 'text-destructive' : ''}>
+                            {job.failures_24h}
+                          </span>
+                        </dd>
+                      </div>
+                    </dl>
+
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1"
+                        disabled={!runnable || runJob.isPending}
+                        onClick={() => runJob.mutate(job.jobid)}
+                      >
+                        {isRunning ? (
+                          <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Play className="mr-1.5 h-3.5 w-3.5" />
+                        )}
+                        Run
+                      </Button>
+                      <Button variant="ghost" size="sm" className="flex-1" onClick={() => setSelected(job)}>
+                        History
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+
+          <Card className="hidden md:block">
             <CardContent className="p-0 overflow-x-auto">
               <TooltipProvider>
                 <Table>
+
                   <TableHeader>
                     <TableRow>
                       <TableHead>Job</TableHead>
