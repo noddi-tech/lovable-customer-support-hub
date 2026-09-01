@@ -18,6 +18,7 @@ import { SidebarCounter } from '@/components/ui/sidebar-counter';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useAuth } from '@/hooks/useAuth';
 import { useOptimizedCounts } from '@/hooks/useOptimizedCounts';
+import { useSidebarNavCounts } from '@/hooks/useSidebarNavCounts';
 import { useDateFormatting } from '@/hooks/useDateFormatting';
 import { getGroupedNavItems, logNavMatch } from '@/navigation/nav-config';
 import { cn } from '@/lib/utils';
@@ -43,6 +44,7 @@ export const AppMainNav = () => {
   const { isAdmin: checkIsAdmin, isLoading: permissionsLoading } = usePermissions();
   const { user, profile, signOut, isSuperAdmin } = useAuth();
   const { notifications: unreadNotifications } = useOptimizedCounts();
+  const navCounts = useSidebarNavCounts();
   const { dateTime, timezone } = useDateFormatting();
 
   
@@ -152,7 +154,13 @@ export const AppMainNav = () => {
                   {items.map((item) => {
                     const Icon = item.icon;
                     const itemIsActive = isActive(item.to);
-                    const showBadge = item.showBadge && item.id === 'notifications' && unreadNotifications > 0;
+                    const badgeCount =
+                      item.id === 'notifications' ? unreadNotifications :
+                      item.id === 'text' ? navCounts.text :
+                      item.id === 'chat' ? navCounts.chat :
+                      item.id === 'cases' ? navCounts.cases : 0;
+                    const showBadge = badgeCount > 0;
+                    
                     
                     return (
                       <SidebarMenuItem key={item.id}>
@@ -167,12 +175,22 @@ export const AppMainNav = () => {
                             )}
                             {...(itemIsActive && { "aria-current": "page" })}
                           >
-                            <Icon className={cn("mr-2 h-4 w-4", showBadge && "text-destructive")} />
+                            <span className="relative mr-2 flex h-4 w-4 items-center justify-center">
+                              <Icon className={cn("h-4 w-4", showBadge && "text-destructive")} />
+                              {showBadge && (
+                                <span
+                                  aria-hidden
+                                  className="absolute -top-1.5 -right-2 min-w-[15px] h-[15px] px-1 rounded-full bg-destructive text-destructive-foreground text-[9px] leading-[15px] font-semibold text-center"
+                                >
+                                  {badgeCount > 99 ? '99+' : badgeCount}
+                                </span>
+                              )}
+                            </span>
                             {!isCollapsed && (
                               <span className="flex-1 flex items-center justify-between">
                                 <span>{item.label}</span>
                                 {showBadge && (
-                                  <SidebarCounter count={unreadNotifications} variant="unread" />
+                                  <SidebarCounter count={badgeCount} variant="unread" />
                                 )}
                               </span>
                             )}
