@@ -575,6 +575,22 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
       )}
 
       {/* Dialogs */}
+      <CreateNoddiTicketDialog
+        open={opsTicketOpen}
+        onOpenChange={setOpsTicketOpen}
+        defaultTitle={conversation.subject || `Support request from ${customerDisplay?.name || 'customer'}`}
+        defaultDescription={[
+          `Created from a ${conversation.channel === 'widget' ? 'live chat' : conversation.channel || 'support'} conversation in the Support Hub.`,
+          conversation.customer?.email ? `Customer: ${customerDisplay?.name || ''} (${conversation.customer.email})` : null,
+          conversation.customer?.phone ? `Phone: ${conversation.customer.phone}` : null,
+          `Conversation: ${window.location.origin}/conversations/${conversationId}`,
+        ]
+          .filter(Boolean)
+          .join('\n')}
+        userGroupId={noddiData?.data?.user_group_id ?? null}
+        onCreated={() => toast.success('Operations ticket created in Navio')}
+      />
+
       <TagDialog
         open={state.tagDialogOpen}
         onOpenChange={(open) => dispatch({ type: 'SET_TAG_DIALOG', payload: open })}
