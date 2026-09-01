@@ -47,6 +47,22 @@ export interface WidgetIdentity {
   phone?: string;
 }
 
+/**
+ * Brand colours from the host app, mirroring the backend Brand model
+ * (color_primary / color_secondary / color_accent). Accepts hex, rgb(),
+ * hsl() or CSS colour names. Invalid values are ignored.
+ */
+export interface WidgetTheme {
+  /** Header, primary buttons, customer bubbles, launcher. */
+  primaryColor?: string;
+  /** Secondary buttons, badges, subtle surfaces. Defaults to primary. */
+  secondaryColor?: string;
+  /** Links, focus rings, selected states. Defaults to secondary. */
+  accentColor?: string;
+  /** Text/icon colour on top of primary. Auto-derived for contrast when omitted. */
+  onPrimaryColor?: string;
+}
+
 export interface WidgetInitOptions {
   /** Required. Public widget key from Admin → Widget settings. */
   widgetKey: string;
@@ -69,6 +85,8 @@ export interface WidgetInitOptions {
   context?: WidgetHostContext;
   /** Known visitor at boot; equivalent to calling `identify` after init. */
   identity?: WidgetIdentity;
+  /** Brand colours; overrides the colour configured in Admin → Widget. */
+  theme?: WidgetTheme;
   /** Override the backend base URL (self-hosting / staging). */
   apiUrl?: string;
   /** Hide the floating launcher and drive the widget yourself. */
@@ -88,6 +106,8 @@ export interface WidgetUpdateOptions extends WidgetHostContext {
   context?: WidgetHostContext;
   /** `null` clears the visitor (same as `clearIdentity`). */
   identity?: WidgetIdentity | null;
+  /** Apply new brand colours mid-session (theme switch / multi-brand SPAs). */
+  theme?: WidgetTheme;
 }
 
 export interface WidgetHostCommands {
