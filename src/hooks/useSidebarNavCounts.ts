@@ -26,14 +26,12 @@ export const useSidebarNavCounts = (): SidebarNavCounts => {
     retry: false,
     queryFn: async (): Promise<SidebarNavCounts> => {
       const [textRes, chatRes, casesRes] = await Promise.all([
-        supabase
-          .from('conversations')
+        (supabase.from('conversations') as any)
           .select('id', { count: 'exact', head: true })
           .eq('is_read', false)
           .eq('is_archived', false)
           .neq('status', 'closed'),
-        supabase
-          .from('chat_sessions')
+        (supabase.from('widget_chat_sessions') as any)
           .select('id', { count: 'exact', head: true })
           .in('status', ['waiting', 'active']),
         (supabase.from('cases') as any)
