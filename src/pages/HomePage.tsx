@@ -152,7 +152,8 @@ export default function HomePage() {
 
                 const email = inboxEmails[inbox.id];
                 const isConfigured = Boolean(email);
-                const isDefault = defaultInboxId === inbox.id;
+                 const isDefault = defaultInboxId === inbox.id;
+                const defaults = inboxDefaults[inbox.id];
 
                 return (
                   <Card
