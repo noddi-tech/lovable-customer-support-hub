@@ -216,31 +216,39 @@ export default function CasesPage() {
           ) : (
             <div className="space-y-2">
               {cases.map((c) => (
-                <button
+                <CaseContextMenu
                   key={c.id}
-                  onClick={() => navigate(`/operations/cases/${c.id}`)}
-                  className="w-full rounded-lg border bg-card p-3 text-left transition-colors hover:bg-accent/50"
+                  caseId={c.id}
+                  status={c.status}
+                  priority={c.priority}
+                  ownerId={c.owner_id}
                 >
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-mono text-xs text-muted-foreground">#{c.case_number}</span>
-                    <span className="min-w-0 flex-1 truncate font-medium">{c.title}</span>
-                    <CaseStatusBadge status={c.status} />
-                    <CasePriorityBadge priority={c.priority} />
-                  </div>
-                  <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                    {c.customer && (
-                      <span className="inline-flex items-center gap-1">
-                        <UserRound className="h-3 w-3" />
-                        {c.customer.full_name || c.customer.email || 'Unknown customer'}
-                      </span>
-                    )}
-                    <span>Owner: {c.owner?.full_name ?? 'Unassigned'}</span>
-                    {c.category && <span>{c.category.name}</span>}
-                    <span>Updated {dateTime(c.updated_at)}</span>
-                    <CaseSlaBadge record={c} />
-                  </div>
-                </button>
+                  <button
+                    onClick={() => navigate(`/operations/cases/${c.id}`)}
+                    className="w-full rounded-lg border bg-card p-3 text-left transition-colors hover:bg-accent/50"
+                  >
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-mono text-xs text-muted-foreground">#{c.case_number}</span>
+                      <span className="min-w-0 flex-1 truncate font-medium">{c.title}</span>
+                      <CaseStatusBadge status={c.status} />
+                      <CasePriorityBadge priority={c.priority} />
+                    </div>
+                    <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                      {c.customer && (
+                        <span className="inline-flex items-center gap-1">
+                          <UserRound className="h-3 w-3" />
+                          {c.customer.full_name || c.customer.email || 'Unknown customer'}
+                        </span>
+                      )}
+                      <span>Owner: {c.owner?.full_name ?? 'Unassigned'}</span>
+                      {c.category && <span>{c.category.name}</span>}
+                      <span>Updated {dateTime(c.updated_at)}</span>
+                      <CaseSlaBadge record={c} />
+                    </div>
+                  </button>
+                </CaseContextMenu>
               ))}
+
             </div>
           )}
         </div>
