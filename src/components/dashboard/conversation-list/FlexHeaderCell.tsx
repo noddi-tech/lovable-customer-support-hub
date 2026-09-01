@@ -1,6 +1,7 @@
 import { ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface FlexHeaderCellProps {
   label: string;
@@ -8,6 +9,8 @@ interface FlexHeaderCellProps {
   currentSort: { key: string; direction: 'asc' | 'desc' | null };
   onSort: (key: string) => void;
   className?: string;
+  /** Hover explanation of what the column shows. */
+  description?: string;
 }
 
 /**
@@ -21,6 +24,7 @@ export const FlexHeaderCell = ({
   currentSort,
   onSort,
   className,
+  description,
 }: FlexHeaderCellProps) => {
   const isActive = currentSort.key === sortKey;
   const direction = isActive ? currentSort.direction : null;
@@ -34,8 +38,7 @@ export const FlexHeaderCell = ({
       <ArrowDown className="h-3 w-3 shrink-0" />
     );
 
-  return (
-    <div className={cn('p-2', className)}>
+  const button = (
       <Button
         variant="ghost"
         size="sm"
@@ -48,6 +51,21 @@ export const FlexHeaderCell = ({
         <span className="truncate">{label}</span>
         {sortIcon}
       </Button>
+  );
+
+  return (
+    <div className={cn('p-2', className)}>
+      {description ? (
+        <Tooltip delayDuration={300}>
+          <TooltipTrigger asChild>{button}</TooltipTrigger>
+          <TooltipContent side="bottom" className="max-w-[260px] text-xs leading-relaxed">
+            <p className="font-medium">{label || 'Channel'}</p>
+            <p className="opacity-80">{description}</p>
+          </TooltipContent>
+        </Tooltip>
+      ) : (
+        button
+      )}
     </div>
   );
 };

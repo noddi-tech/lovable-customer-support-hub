@@ -2,6 +2,7 @@ import { forwardRef } from 'react';
 import { ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface TableHeaderCellProps {
   label: string;
@@ -10,6 +11,8 @@ interface TableHeaderCellProps {
   onSort: (key: string) => void;
   className?: string;
   align?: 'left' | 'center' | 'right';
+  /** Hover explanation of what the column shows. */
+  description?: string;
 }
 
 export const TableHeaderCell = forwardRef<HTMLTableCellElement, TableHeaderCellProps>(({
@@ -18,7 +21,8 @@ export const TableHeaderCell = forwardRef<HTMLTableCellElement, TableHeaderCellP
   currentSort,
   onSort,
   className,
-  align = 'left'
+  align = 'left',
+  description
 }, ref) => {
   const isActive = currentSort.key === sortKey;
   const direction = isActive ? currentSort.direction : null;
@@ -37,8 +41,7 @@ export const TableHeaderCell = forwardRef<HTMLTableCellElement, TableHeaderCellP
     return <ArrowDown className="h-3 w-3" />;
   };
 
-  return (
-    <th ref={ref} className={cn("h-10 px-2", className)}>
+  const button = (
       <Button
         variant="ghost"
         size="sm"
@@ -54,6 +57,21 @@ export const TableHeaderCell = forwardRef<HTMLTableCellElement, TableHeaderCellP
         <span className="truncate">{label}</span>
         {getSortIcon()}
       </Button>
+  );
+
+  return (
+    <th ref={ref} className={cn("h-10 px-2", className)}>
+      {description ? (
+        <Tooltip delayDuration={300}>
+          <TooltipTrigger asChild>{button}</TooltipTrigger>
+          <TooltipContent side="bottom" className="max-w-[260px] text-xs leading-relaxed">
+            <p className="font-medium">{label || 'Channel'}</p>
+            <p className="opacity-80">{description}</p>
+          </TooltipContent>
+        </Tooltip>
+      ) : (
+        button
+      )}
     </th>
   );
 });
