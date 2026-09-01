@@ -14,6 +14,12 @@ import { CaseContextMenu } from '@/components/cases/CaseContextMenu';
 import { TagFilterSelect, matchesTagFilter } from '@/components/tags/TagFilterSelect';
 import { TagBadgeList } from '@/components/tags/TagBadge';
 import { useEntityTags } from '@/hooks/useEntityTags';
+import { BulkTagMenu } from '@/components/tags/BulkTagMenu';
+import { BulkAssignMenu } from '@/components/shared/BulkAssignMenu';
+import { SelectionToolbar } from '@/components/shared/SelectionToolbar';
+import { useListSelection } from '@/hooks/useListSelection';
+import { Checkbox } from '@/components/ui/checkbox';
+import { toast } from 'sonner';
 
 import {
   CASE_PRIORITY_LABELS,
