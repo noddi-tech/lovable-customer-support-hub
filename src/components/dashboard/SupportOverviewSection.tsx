@@ -48,6 +48,17 @@ const CHANNEL_DESCRIPTIONS: Record<string, string> = {
 
 const MEDALS = ['🥇', '🥈', '🥉'];
 
+/** Plain-English explanations for the leaderboard metrics, shown on hover. */
+const METRIC_DESCRIPTIONS = {
+  resolved:
+    'Conversations assigned to this teammate that were closed in the last 30 days. It measures throughput — how much of the queue they actually finished, not just touched. The arrow compares it with the 30 days before that.',
+  firstReply:
+    'Median time from a conversation arriving to this teammate sending its first non-internal reply. Median is used so one forgotten thread cannot distort the picture. It is the number customers feel most: how long they waited before hearing from a human. Lower is better, so a downward arrow is green.',
+  resolveTime:
+    'Median time from a conversation being created to it being closed by this teammate. It tracks how long a customer lives with an unsolved problem, and catches tickets that get a fast first reply but then stall. Lower is better, so a downward arrow is green.',
+} as const;
+
+
 /**
  * Arrow + percentage change against the equally long preceding window.
  * Green means "better" — for times, lower is better.
