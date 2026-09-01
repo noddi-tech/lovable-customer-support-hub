@@ -15,6 +15,7 @@ import {
   Search,
   Send,
   FileLock2,
+  Timer,
   UserRound
 } from "lucide-react";
 
@@ -154,6 +155,15 @@ export const NAV_ITEMS: NavItem[] = [
     group: "settings",
     requiredRole: "admin"
   },
+  {
+    id: "admin-background-jobs",
+    label: "Background Jobs",
+    to: "/admin/background-jobs",
+    icon: Timer,
+    group: "settings",
+    requiredRole: "admin"
+  },
+
 
 ];
 
