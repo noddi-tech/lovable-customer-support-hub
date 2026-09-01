@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, useInfiniteQuery, keepPreviousData } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { logger } from '@/utils/logger';
@@ -79,6 +79,9 @@ export function useInboxCounts(inboxId: InboxId) {
     queryKey: ['inboxCounts', inboxId],
     queryFn: () => getInboxCounts(inboxId),
     enabled: !!inboxId,
+    // Show the previous numbers while the new inbox's counts load instead of
+    // collapsing the sidebar filters into skeletons.
+    placeholderData: keepPreviousData,
     staleTime: 15 * 1000, // 15 seconds
     gcTime: 5 * 60 * 1000, // 5 minutes
     refetchOnMount: true,
