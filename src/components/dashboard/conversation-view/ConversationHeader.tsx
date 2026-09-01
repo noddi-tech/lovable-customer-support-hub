@@ -27,6 +27,8 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useConversationView } from "@/contexts/ConversationViewContext";
 import { ArchiveConfirmDialog } from "@/components/dashboard/conversation-list/ArchiveConfirmDialog";
+import { DescribedSelectItem } from '@/components/ui/described-select-item';
+import { CONVERSATION_STATUS_DESCRIPTIONS } from '@/lib/option-descriptions';
 export const ConversationHeader = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
@@ -119,24 +121,24 @@ onClick={() => {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="open">
+                    <DescribedSelectItem value="open" title="Open" description={CONVERSATION_STATUS_DESCRIPTIONS.open}>
                       <div className="flex items-center gap-2">
                         <CircleDot className="h-3 w-3" />
                         Open
                       </div>
-                    </SelectItem>
-                    <SelectItem value="pending">
+                    </DescribedSelectItem>
+                    <DescribedSelectItem value="pending" title="Pending" description={CONVERSATION_STATUS_DESCRIPTIONS.pending}>
                       <div className="flex items-center gap-2">
                         <Clock className="h-3 w-3" />
                         Pending
                       </div>
-                    </SelectItem>
-                    <SelectItem value="closed">
+                    </DescribedSelectItem>
+                    <DescribedSelectItem value="closed" title="Closed" description={CONVERSATION_STATUS_DESCRIPTIONS.closed}>
                       <div className="flex items-center gap-2">
                         <CheckCircle2 className="h-3 w-3" />
                         Closed
                       </div>
-                    </SelectItem>
+                    </DescribedSelectItem>
                   </SelectContent>
                 </Select>
                 

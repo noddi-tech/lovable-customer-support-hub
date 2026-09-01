@@ -18,6 +18,8 @@ import { MobileEmailMessageCard } from './MobileEmailMessageCard';
 import { MobileCustomerSummaryCard } from './MobileCustomerSummaryCard';
 import { LazyReplyArea } from '@/components/conversations/LazyReplyArea';
 import { cn } from '@/lib/utils';
+import { DescribedSelectItem } from '@/components/ui/described-select-item';
+import { CONVERSATION_STATUS_DESCRIPTIONS } from '@/lib/option-descriptions';
 
 interface MobileEmailConversationViewProps {
   conversationId: string;
@@ -99,9 +101,9 @@ export const MobileEmailConversationView: React.FC<MobileEmailConversationViewPr
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="open"><div className="flex items-center gap-1"><CircleDot className="h-3 w-3" />Open</div></SelectItem>
-            <SelectItem value="pending"><div className="flex items-center gap-1"><Clock className="h-3 w-3" />Pending</div></SelectItem>
-            <SelectItem value="closed"><div className="flex items-center gap-1"><CheckCircle2 className="h-3 w-3" />Closed</div></SelectItem>
+            <DescribedSelectItem value="open" title="Open" description={CONVERSATION_STATUS_DESCRIPTIONS.open}><div className="flex items-center gap-1"><CircleDot className="h-3 w-3" />Open</div></DescribedSelectItem>
+            <DescribedSelectItem value="pending" title="Pending" description={CONVERSATION_STATUS_DESCRIPTIONS.pending}><div className="flex items-center gap-1"><Clock className="h-3 w-3" />Pending</div></DescribedSelectItem>
+            <DescribedSelectItem value="closed" title="Closed" description={CONVERSATION_STATUS_DESCRIPTIONS.closed}><div className="flex items-center gap-1"><CheckCircle2 className="h-3 w-3" />Closed</div></DescribedSelectItem>
           </SelectContent>
         </Select>
       </div>

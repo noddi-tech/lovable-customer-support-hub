@@ -7,6 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { NoddiCustomerDetails } from '@/components/dashboard/voice/NoddiCustomerDetails';
+import { DescribedSelectItem } from '@/components/ui/described-select-item';
+import { CONVERSATION_STATUS_DESCRIPTIONS, PRIORITY_DESCRIPTIONS } from '@/lib/option-descriptions';
 
 interface ConversationSidebarProps {
   conversationId?: string;
@@ -96,10 +98,10 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="open">Open</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="resolved">Resolved</SelectItem>
-                  <SelectItem value="closed">Closed</SelectItem>
+                  <DescribedSelectItem value="open" title="Open" description={CONVERSATION_STATUS_DESCRIPTIONS.open}>Open</DescribedSelectItem>
+                  <DescribedSelectItem value="pending" title="Pending" description={CONVERSATION_STATUS_DESCRIPTIONS.pending}>Pending</DescribedSelectItem>
+                  <DescribedSelectItem value="resolved" title="Resolved" description={CONVERSATION_STATUS_DESCRIPTIONS.resolved}>Resolved</DescribedSelectItem>
+                  <DescribedSelectItem value="closed" title="Closed" description={CONVERSATION_STATUS_DESCRIPTIONS.closed}>Closed</DescribedSelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -112,10 +114,10 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="low">Low</SelectItem>
-                  <SelectItem value="normal">Normal</SelectItem>
-                  <SelectItem value="high">High</SelectItem>
-                  <SelectItem value="urgent">Urgent</SelectItem>
+                  <DescribedSelectItem value="low" title="Low" description={PRIORITY_DESCRIPTIONS.low}>Low</DescribedSelectItem>
+                  <DescribedSelectItem value="normal" title="Normal" description={PRIORITY_DESCRIPTIONS.normal}>Normal</DescribedSelectItem>
+                  <DescribedSelectItem value="high" title="High" description={PRIORITY_DESCRIPTIONS.high}>High</DescribedSelectItem>
+                  <DescribedSelectItem value="urgent" title="Urgent" description={PRIORITY_DESCRIPTIONS.urgent}>Urgent</DescribedSelectItem>
                 </SelectContent>
               </Select>
             </div>

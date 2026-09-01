@@ -37,6 +37,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
+import { DescribedSelectItem } from '@/components/ui/described-select-item';
+import { REPLY_SEND_STATUS_DESCRIPTIONS } from '@/lib/option-descriptions';
 
 const LANGUAGES = [
   { code: 'auto', label: 'Auto Detect' },
@@ -723,9 +725,9 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="closed">Send & Close</SelectItem>
-                <SelectItem value="open">Send & Keep Open</SelectItem>
-                <SelectItem value="pending">Send & Pending</SelectItem>
+                <DescribedSelectItem value="closed" title="Send & Close" description={REPLY_SEND_STATUS_DESCRIPTIONS.closed}>Send & Close</DescribedSelectItem>
+                <DescribedSelectItem value="open" title="Send & Keep Open" description={REPLY_SEND_STATUS_DESCRIPTIONS.open}>Send & Keep Open</DescribedSelectItem>
+                <DescribedSelectItem value="pending" title="Send & Pending" description={REPLY_SEND_STATUS_DESCRIPTIONS.pending}>Send & Pending</DescribedSelectItem>
               </SelectContent>
             </Select>
           )}
