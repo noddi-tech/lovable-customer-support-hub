@@ -83,78 +83,21 @@ export const AgentAvailabilityPanel: React.FC<AgentAvailabilityPanelProps> = ({
   // Chat availability
   const { status: chatStatus, setStatus: setChatStatus, isLoading: chatLoading, isUpdating: chatUpdating } = useAgentAvailability();
   const { data: onlineAgents = [], isLoading: agentsLoading } = useOnlineAgents();
-  
-  // Phone availability (Aircall)
-  const { 
-    isConnected: phoneConnected, 
-    isInitialized: phoneInitialized,
-    openLoginModal,
-    initializePhone,
-    logout: phoneLogout,
+  // Phone availability (Aircall) — shared with the command palette
+  const {
+    isLoggedIn: phoneLoggedIn,
+    isConfigured: showPhoneSection,
+    isLoading: integrationsLoading,
     error: phoneError,
-  } = useAircallPhone();
+    login: handlePhoneLogin,
+    logout: handlePhoneLogout,
+  } = usePhoneSession();
 
-  // A stored Aircall session means the user is logged in even if the SDK
-  // connection is still (re)establishing or was blocked by the browser.
-  const [storedLogin, setStoredLogin] = React.useState<boolean>(() => {
-    try {
-      return aircallPhone.getLoginStatus();
-    } catch {
-      return false;
-    }
-  });
-
-  React.useEffect(() => {
-    const sync = () => {
-      try {
-        setStoredLogin(aircallPhone.getLoginStatus());
-      } catch {
-        /* ignore */
-      }
-    };
-    sync();
-    const interval = window.setInterval(sync, 5000);
-    window.addEventListener('storage', sync);
-    return () => {
-      window.clearInterval(interval);
-      window.removeEventListener('storage', sync);
-    };
-  }, [phoneConnected]);
-
-  const phoneLoggedIn = phoneConnected || storedLogin;
-  
-  
-  // Check if Aircall is configured
-  const { getIntegrationByProvider, isLoading: integrationsLoading } = useVoiceIntegrations();
-  const aircallConfig = getIntegrationByProvider('aircall');
-  const showPhoneSection = aircallConfig?.is_active && 
-    aircallConfig?.configuration?.aircallEverywhere?.enabled;
-  
   const currentChatConfig = chatStatusConfig[chatStatus];
-  
+
   // Filter out current user and show only other online agents
   const otherAgents = onlineAgents.filter(a => a.chat_availability === 'online' || a.chat_availability === 'away');
 
-  const handlePhoneLogin = () => {
-    console.log('[AgentAvailabilityPanel] Phone login requested');
-    
-    if (!phoneInitialized) {
-      console.log('[AgentAvailabilityPanel] SDK not initialized, initializing first');
-      initializePhone();
-      return;
-    }
-    
-    openLoginModal();
-  };
-
-  const handlePhoneLogout = () => {
-    console.log('[AgentAvailabilityPanel] Phone logout requested');
-    phoneLogout?.();
-    setStoredLogin(false);
-    toast.success('Logged out of phone system', {
-      description: 'You will not receive phone calls until you log in again',
-    });
-  };
 
   // Loading state
   if (chatLoading || integrationsLoading) {
