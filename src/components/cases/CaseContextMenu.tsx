@@ -22,7 +22,12 @@ import {
   type CasePriority,
   type CaseStatus,
 } from '@/hooks/useCases';
-import { CASE_PRIORITY_DOT } from '@/components/cases/CaseBadges';
+import {
+  CASE_PRIORITY_DOT,
+  CASE_STATUS_ICONS,
+  CASE_STATUS_ICON_COLORS,
+} from '@/components/cases/CaseBadges';
+
 
 interface CaseContextMenuProps {
   caseId: string;
