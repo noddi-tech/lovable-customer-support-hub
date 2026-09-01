@@ -43,7 +43,7 @@ export const ConversationListHeader = ({
   bulkSelectionMode = false,
   onToggleBulkMode
 }: ConversationListHeaderProps) => {
-  const { state, dispatch, filteredConversations, markAllAsRead, isMarkingAllAsRead, hasNextPage, isFetchingNextPage } = useConversationList();
+  const { state, dispatch, conversations, filteredConversations, markAllAsRead, isMarkingAllAsRead, hasNextPage, isFetchingNextPage } = useConversationList();
   const { t } = useTranslation();
   const [showMigrator, setShowMigrator] = useState(false);
   const [showThreadMerger, setShowThreadMerger] = useState(false);
@@ -52,6 +52,21 @@ export const ConversationListHeader = ({
   const { data: outstanding = {} } = useInboxOutstandingCounts();
 
   const unreadCount = filteredConversations.filter(c => !c.is_read).length;
+
+  const statusCounts = useMemo(() => {
+    const base = (conversations ?? []).filter((c: any) =>
+      state.purposeFilter === 'all' || !state.purposeFilter
+        ? true
+        : (c.conversation_type ?? 'support') === state.purposeFilter
+    );
+    return {
+      all: base.length,
+      open: base.filter((c: any) => c.status === 'open').length,
+      pending: base.filter((c: any) => c.status === 'pending').length,
+      closed: base.filter((c: any) => c.status === 'closed').length,
+    };
+  }, [conversations, state.purposeFilter]);
+
 
   const hasActiveFilters = state.searchQuery || state.statusFilter !== 'all' || state.priorityFilter !== 'all';
   
