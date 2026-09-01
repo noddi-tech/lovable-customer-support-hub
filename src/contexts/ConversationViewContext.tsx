@@ -6,6 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { logger } from '@/utils/logger';
 import { sanitizeStorageFilename } from '@/utils/storageKey';
 import { sortInboxesByName } from '@/lib/sortInboxes';
+import type { EmailPriority } from '@/lib/emailPriority';
 
 interface ConversationViewState {
   replyText: string;
@@ -157,7 +158,7 @@ interface ConversationViewContextType {
   isLoading: boolean;
   messagesLoading: boolean;
   conversationIds?: string | string[];
-  sendReply: (content: string, isInternal: boolean, status?: string, files?: File[], replyAll?: boolean) => Promise<string | undefined>;
+  sendReply: (content: string, isInternal: boolean, status?: string, files?: File[], replyAll?: boolean, priority?: EmailPriority) => Promise<string | undefined>;
   assignConversation: (userId: string) => Promise<void>;
   moveConversation: (inboxId: string) => Promise<void>;
   updateStatus: (updates: { status?: string; isArchived?: boolean }) => Promise<void>;
@@ -222,7 +223,8 @@ export const ConversationViewProvider = ({ children, conversationId, conversatio
           created_at,
           assigned_to_id,
           email_subject,
-          email_headers
+          email_headers,
+          metadata
         `)
         .eq('conversation_id', conversationId)
         .order('created_at', { ascending: true });
@@ -299,7 +301,7 @@ export const ConversationViewProvider = ({ children, conversationId, conversatio
 
   // Send reply mutation
   const sendReplyMutation = useMutation({
-    mutationFn: async ({ content, isInternal, status, files, replyAll }: { content: string; isInternal: boolean; status?: string; files?: File[]; replyAll?: boolean }) => {
+    mutationFn: async ({ content, isInternal, status, files, replyAll, priority }: { content: string; isInternal: boolean; status?: string; files?: File[]; replyAll?: boolean; priority?: EmailPriority }) => {
       if (!conversationId) throw new Error('No conversation ID');
 
       // Upload attachments to storage if any.
@@ -359,6 +361,7 @@ export const ConversationViewProvider = ({ children, conversationId, conversatio
           content_type: 'text/plain',
           email_status: isInternal ? null : 'pending',
           ...(attachmentsMeta ? { attachments: attachmentsMeta } : {}),
+          ...(priority && priority !== 'normal' ? { metadata: { email_priority: priority } } : {}),
         })
         .select()
         .single();
@@ -820,10 +823,10 @@ export const ConversationViewProvider = ({ children, conversationId, conversatio
     },
   });
 
-  const sendReply = async (content: string, isInternal: boolean, status?: string, files?: File[], replyAll?: boolean): Promise<string | undefined> => {
+  const sendReply = async (content: string, isInternal: boolean, status?: string, files?: File[], replyAll?: boolean, priority?: EmailPriority): Promise<string | undefined> => {
     dispatch({ type: 'SET_SEND_LOADING', payload: true });
     try {
-      const message = await sendReplyMutation.mutateAsync({ content, isInternal, status, files, replyAll });
+      const message = await sendReplyMutation.mutateAsync({ content, isInternal, status, files, replyAll, priority });
       return message?.id;
     } finally {
       dispatch({ type: 'SET_SEND_LOADING', payload: false });

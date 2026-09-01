@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 import { renderEmailLayout, plainTextToHtml, htmlToPlainText } from '../_shared/email-layout.ts';
+import { buildPriorityHeaders } from '../_shared/email-priority.ts';
 import { resolveBrandTheme } from '../_shared/brand-theme.ts';
 import { getCompanyInfo, renderCompanyFooterHtml } from '../_shared/email-company-info.ts';
 
@@ -511,6 +512,13 @@ const handler = async (req: Request): Promise<Response> => {
     } else if (inReplyToId) {
       const normalized = inReplyToId.startsWith('<') ? inReplyToId : `<${inReplyToId}>`;
       headers['References'] = normalized;
+    }
+
+    // Importance flag chosen by the agent in the composer (stored on the message).
+    const outgoingPriority = (message as any)?.metadata?.email_priority as string | undefined;
+    if (outgoingPriority === 'high' || outgoingPriority === 'low') {
+      Object.assign(headers, buildPriorityHeaders(outgoingPriority));
+      console.log('Sending with email priority:', outgoingPriority);
     }
 
     // Extract CC recipients from conversation history for Reply All (only if replyAll is true)
