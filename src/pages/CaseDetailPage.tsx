@@ -105,6 +105,14 @@ export default function CaseDetailPage() {
             </Button>
             <span className="font-mono text-xs text-muted-foreground">#{record.case_number}</span>
             <h1 className="min-w-0 flex-1 truncate text-base font-semibold">{record.title}</h1>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setOpsTicketOpen(true)}
+              title="Create an operations ticket in Navio for this case"
+            >
+              <Wrench className="mr-1.5 h-4 w-4" /> Ops ticket
+            </Button>
             {!isClosed && (
               <Button size="sm" onClick={() => setCloseOpen(true)}>
                 <CheckCircle2 className="mr-1.5 h-4 w-4" /> Resolve
