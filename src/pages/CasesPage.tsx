@@ -88,6 +88,21 @@ export default function CasesPage() {
   );
 
   const { data: cases = [], isLoading } = useCases(filters);
+  const { mutateAsync: updateCase } = useUpdateCase();
+
+  const visibleCases = useMemo(
+    () => cases.filter((c) => matchesTagFilter(getCaseTags(c.id).map((t) => t.id), tagFilter)),
+    [cases, getCaseTags, tagFilter],
+  );
+  const orderedIds = useMemo(() => visibleCases.map((c) => c.id), [visibleCases]);
+  const selection = useListSelection(orderedIds);
+
+  const bulkUpdate = async (updates: Record<string, unknown>, message: string) => {
+    const ids = selection.ids;
+    await Promise.all(ids.map((id) => updateCase({ id, updates })));
+    toast.success(`${message} (${ids.length})`);
+    selection.clear();
+  };
 
   return (
     <UnifiedAppLayout>
