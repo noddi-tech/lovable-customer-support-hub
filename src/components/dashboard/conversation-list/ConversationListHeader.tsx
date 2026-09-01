@@ -392,9 +392,12 @@ export const ConversationListHeader = ({
                   <SelectItem key={inbox.id} value={inbox.id}>
                     <span className="flex items-center gap-2">
                       <span className="truncate">{inbox.name}</span>
-                      {open > 0 && (
-                        <Badge variant="secondary" className="h-4 px-1 text-[10px]">{open}</Badge>
-                      )}
+                      <Badge
+                        variant="secondary"
+                        className={`h-4 px-1 text-[10px] ${open === 0 ? 'text-muted-foreground' : ''}`}
+                      >
+                        {open}
+                      </Badge>
                     </span>
                   </SelectItem>
                 );

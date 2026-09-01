@@ -115,14 +115,15 @@ export const InboxList: React.FC<InboxListProps> = ({
   );
 
   const OutstandingBadges: React.FC<{ open: number; pending: number }> = ({ open, pending }) => {
-    if (!open && !pending) return null;
     return (
       <span className="flex items-center gap-1 flex-shrink-0">
-        {open > 0 && (
-          <Badge variant="secondary" className="h-5 px-1.5 text-[10px] font-medium" title={`${open} open`}>
-            {open}
-          </Badge>
-        )}
+        <Badge
+          variant="secondary"
+          className={cn('h-5 px-1.5 text-[10px] font-medium', open === 0 && 'text-muted-foreground')}
+          title={`${open} open`}
+        >
+          {open}
+        </Badge>
         {pending > 0 && (
           <Badge
             variant="outline"
