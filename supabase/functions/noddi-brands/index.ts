@@ -24,6 +24,8 @@ interface SlimBrand {
   slug: string;
   domain: string | null;
   logo_url: string | null;
+  /** Brand primary color from the Noddi catalog (hex), used to color labels. */
+  color_primary: string | null;
 }
 
 let cache: { at: number; brands: SlimBrand[] } | null = null;
@@ -40,6 +42,15 @@ const pickUrl = (value: unknown): string | null => {
   return null;
 };
 
+const pickColor = (value: unknown): string | null => {
+  if (typeof value !== 'string') return null;
+  const v = value.trim();
+  if (/^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(v)) return v;
+  if (/^([0-9a-f]{6})$/i.test(v)) return `#${v}`;
+  if (/^(rgb|hsl)a?\(/i.test(v)) return v;
+  return null;
+};
+
 const toSlim = (raw: Record<string, unknown>): SlimBrand => ({
   id: Number(raw.id),
   name: String(raw.name ?? raw.title ?? ''),
@@ -52,7 +63,9 @@ const toSlim = (raw: Record<string, unknown>): SlimBrand => ({
     pickUrl(raw.image) ??
     pickUrl(raw.favicon) ??
     null,
+  color_primary: pickColor(raw.color_primary) ?? pickColor(raw.color_button_primary) ?? null,
 });
+
 
 Deno.serve(async (req) => {
   captureNavioSourceVersion(req);
