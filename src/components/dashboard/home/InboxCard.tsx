@@ -1,4 +1,4 @@
-import { Gauge, Settings2, Star, Tag, UserCheck } from 'lucide-react';
+import { Gauge, Mail, MailOpen, Settings2, Star, Tag, UserCheck } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -116,37 +116,7 @@ export function InboxCard({
       )}
       onClick={isConfigured ? onOpen : undefined}
     >
-      <CardContent className="relative flex min-h-[64px] flex-col gap-1.5 p-3 pt-6">
-        {/* health emoji / colour dot pinned to the very top-left corner */}
-        <span className="absolute left-2 top-1.5 leading-none">
-          {health ? (
-            <span
-              role="img"
-              aria-label={`Inbox health: ${health.label}`}
-              title={`${health.label} — ${health.description}`}
-              className="text-sm leading-none"
-            >
-              {health.emoji}
-            </span>
-          ) : (
-            <span
-              className="block h-2.5 w-2.5 rounded-full"
-              style={{
-                backgroundColor: isConfigured
-                  ? inbox.color || 'hsl(var(--primary))'
-                  : 'hsl(var(--muted-foreground) / 0.4)',
-              }}
-            />
-          )}
-        </span>
-
-        {/* SLA chip pinned to the very top-right corner */}
-        {isConfigured && slaRisk && (
-          <span className="absolute right-2 top-1.5">
-            <InboxSlaAlert risk={slaRisk} onFix={onFixSla} compact />
-          </span>
-        )}
-
+      <CardContent className="flex min-h-[64px] flex-col gap-1.5 p-3">
         <div className="flex min-w-0 flex-col leading-tight">
           <span
             className={cn(
@@ -156,10 +126,22 @@ export function InboxCard({
           >
             {health && (
               <span
-                className="h-2 w-2 shrink-0 rounded-full"
-                style={{ backgroundColor: inbox.color || 'hsl(var(--primary))' }}
-              />
+                role="img"
+                aria-label={`Inbox health: ${health.label}`}
+                title={`${health.label} — ${health.description}`}
+                className="shrink-0 text-sm leading-none"
+              >
+                {health.emoji}
+              </span>
             )}
+            <span
+              className="h-2 w-2 shrink-0 rounded-full"
+              style={{
+                backgroundColor: isConfigured
+                  ? inbox.color || 'hsl(var(--primary))'
+                  : 'hsl(var(--muted-foreground) / 0.4)',
+              }}
+            />
             <span className="truncate" title={inbox.name}>
               {inbox.name}
             </span>
@@ -172,6 +154,7 @@ export function InboxCard({
               </Badge>
             )}
           </span>
+
 
           <span className="block truncate text-xs text-muted-foreground sm:text-[11px]" title={email}>
             {isConfigured ? email : 'Not configured'}
@@ -203,24 +186,66 @@ export function InboxCard({
 
         {isConfigured ? (
           <div className="mt-auto flex flex-col gap-1.5 pt-1">
-            <div className="flex min-w-0 flex-nowrap items-center gap-1.5 overflow-hidden">
-              {inbox.unread_count > 0 && (
-                <Badge
-                  variant="destructive"
-                  className="h-5 shrink-0 px-1.5 text-[10px] font-medium"
-                  title="Conversations nobody has read yet"
-                >
-                  {inbox.unread_count} unread
-                </Badge>
-              )}
-              <Badge
-                variant="secondary"
-                className="h-5 shrink-0 px-1.5 text-[10px] font-medium"
-                title="Conversations still open in this inbox"
-              >
-                {inbox.open_count} open
-              </Badge>
-            </div>
+            <TooltipProvider delayDuration={200}>
+              <div className="flex min-w-0 flex-nowrap items-center gap-1.5 overflow-hidden">
+                {inbox.unread_count > 0 && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Badge
+                        variant="destructive"
+                        className="h-5 shrink-0 gap-1 px-1.5 text-[10px] font-medium"
+                      >
+                        <Mail className="h-3 w-3" />
+                        <span className="tabular-nums">{inbox.unread_count}</span>
+                      </Badge>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-[240px] text-xs leading-relaxed">
+                      <p className="font-medium">Unread</p>
+                      <p className="text-muted-foreground">
+                        Conversations in this inbox nobody on the team has opened yet.
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                )}
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Badge
+                      variant="secondary"
+                      className="h-5 shrink-0 gap-1 px-1.5 text-[10px] font-medium"
+                    >
+                      <MailOpen className="h-3 w-3" />
+                      <span className="tabular-nums">{inbox.open_count}</span>
+                    </Badge>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-[240px] text-xs leading-relaxed">
+                    <p className="font-medium">Open</p>
+                    <p className="text-muted-foreground">
+                      Conversations still open here — not closed, archived or snoozed.
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+                {slaRisk && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="shrink-0">
+                        <InboxSlaAlert risk={slaRisk} onFix={onFixSla} compact />
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-[260px] text-xs leading-relaxed">
+                      <p className="font-medium">
+                        {slaRisk.breached > 0 ? 'SLA breached' : 'SLA at risk'}
+                      </p>
+                      <p className="text-muted-foreground">
+                        {slaRisk.breached > 0
+                          ? `${slaRisk.breached} conversation${slaRisk.breached === 1 ? '' : 's'} passed the promised first-reply deadline${slaRisk.atRisk > 0 ? `, ${slaRisk.atRisk} more about to` : ''}. Click to jump to them.`
+                          : `${slaRisk.atRisk} conversation${slaRisk.atRisk === 1 ? '' : 's'} will breach the promised reply time within the hour. Click to jump to them.`}
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                )}
+              </div>
+            </TooltipProvider>
+
 
             {/* action icons on their own line */}
             <TooltipProvider delayDuration={200}>
