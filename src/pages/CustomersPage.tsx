@@ -21,6 +21,7 @@ import { TagContextMenuItems } from '@/components/tags/TagContextMenuItems';
 import { TagBadgeList } from '@/components/tags/TagBadge';
 import { TagFilterSelect, matchesTagFilter } from '@/components/tags/TagFilterSelect';
 import { useEntityTags } from '@/hooks/useEntityTags';
+import { getBrandColor } from '@/lib/conversationBrand';
 
 const STATUS_OPTIONS = [
   { value: 'open', label: 'Open' },
@@ -156,7 +157,15 @@ export default function CustomersPage() {
                         </span>
                       )}
                       {(c.brands ?? []).map((b) => (
-                        <Badge key={b} variant="outline" className="h-5 px-1.5 text-[10px] font-normal">
+                        <Badge
+                          key={b}
+                          variant="outline"
+                          className="h-5 px-1.5 text-[10px] font-normal"
+                          style={{
+                            borderColor: getBrandColor(b),
+                            color: getBrandColor(b),
+                          }}
+                        >
                           {b}
                         </Badge>
                       ))}
