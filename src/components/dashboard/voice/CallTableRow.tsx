@@ -33,6 +33,9 @@ interface CallTableRowProps {
   onClick: () => void;
   onRemove?: (callId: string) => void;
   onNavigateToEvents?: (callId: string) => void;
+  isBulkSelected?: boolean;
+  onBulkSelect?: (id: string, selected: boolean, shiftKey?: boolean) => void;
+  showBulkCheckbox?: boolean;
 }
 
 export const CallTableRow = memo<CallTableRowProps>(({
@@ -41,6 +44,9 @@ export const CallTableRow = memo<CallTableRowProps>(({
   onClick,
   onRemove,
   onNavigateToEvents,
+  isBulkSelected = false,
+  onBulkSelect,
+  showBulkCheckbox = false,
 }) => {
   const { notes } = useCallNotes(call.id);
   const notesCount = notes?.length || 0;
