@@ -91,6 +91,8 @@ export function CreateNoddiTicketDialog({
       category,
       priority,
       type,
+      ...(userGroupId ? { user_group_id: userGroupId } : {}),
+      ...(bookingId ? { booking_id: bookingId } : {}),
     });
     onOpenChange(false);
     setTitle('');
