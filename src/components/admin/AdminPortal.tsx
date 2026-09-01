@@ -21,6 +21,7 @@ import { HelpScoutImport } from './HelpScoutImport';
 import { EmailIntegrationWizard } from './EmailIntegrationWizard';
 import { IntegrationSettings } from './IntegrationSettings';
 import { AdminDashboard } from './AdminDashboard';
+import { EdgeFunctionsOverview } from './EdgeFunctionsOverview';
 import { WidgetSettings } from './widget';
 import { AiChatbotSettings as AiChatbotSettingsContent } from './AiChatbotSettings';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
