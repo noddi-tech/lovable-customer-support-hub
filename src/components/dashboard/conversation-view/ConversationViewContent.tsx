@@ -116,6 +116,18 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
   const [showNoddiPanel, setShowNoddiPanel] = useState(true);
   const [opsTicketOpen, setOpsTicketOpen] = useState(false);
 
+  // Cmd/Ctrl + J toggles the customer details sidebar
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'j') {
+        e.preventDefault();
+        setShowNoddiPanel((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
   // Fetch Noddi data for customer display
   const { data: noddiData } = useNoddihKundeData(conversation.customer || null);
 
@@ -385,8 +397,8 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
               variant="ghost"
               size="icon"
               className="h-8 w-8 text-muted-foreground hover:text-foreground"
-              aria-label={showNoddiPanel ? 'Hide customer details' : 'Show customer details'}
-              title={showNoddiPanel ? 'Hide customer details' : 'Show customer details'}
+              aria-label={showNoddiPanel ? 'Hide customer details (⌘J)' : 'Show customer details (⌘J)'}
+              title={showNoddiPanel ? 'Hide customer details (⌘J / Ctrl+J)' : 'Show customer details (⌘J / Ctrl+J)'}
               onClick={() => setShowNoddiPanel(!showNoddiPanel)}
             >
               {showNoddiPanel ? <PanelRightClose className="h-4 w-4" /> : <PanelRightOpen className="h-4 w-4" />}

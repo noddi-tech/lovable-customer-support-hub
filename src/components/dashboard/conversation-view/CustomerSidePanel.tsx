@@ -812,24 +812,6 @@ export const CustomerSidePanel = ({
       <div className="flex-1 overflow-y-auto relative" style={{ isolation: 'isolate' }}>
         <div className="p-3 space-y-3">
 
-          {/* Case linkage — makes follow-up survive beyond this thread */}
-          <ConversationCaseSection
-            conversationId={conversation.id}
-            caseId={conversation.case_id}
-            customerId={conversation.customer?.id}
-            subject={conversation.subject}
-            inboxId={conversation.inbox_id}
-            channel={conversation.channel}
-          />
-
-          {/* Unified history across email, chat, phone, notes and cases */}
-          <CustomerTimeline
-            customerId={conversation.customer?.id}
-            currentConversationId={conversation.id}
-          />
-
-
-          
           {/* Enhanced Noddi Customer Details Component */}
           <NoddiCustomerDetails
             customerId={conversation.customer?.id}
@@ -842,6 +824,30 @@ export const CustomerSidePanel = ({
             onUserGroupChange={handleUserGroupChange}
             selectedUserGroupId={selectedUserGroupId}
           />
+
+          {/* Case linkage — makes follow-up survive beyond this thread */}
+          <ConversationCaseSection
+            conversationId={conversation.id}
+            caseId={conversation.case_id}
+            customerId={conversation.customer?.id}
+            subject={conversation.subject}
+            inboxId={conversation.inbox_id}
+            channel={conversation.channel}
+          />
+
+          {/* Shortcut hint for toggling this sidebar */}
+          <p className="text-[11px] text-muted-foreground">
+            Tip: press{' '}
+            <kbd className="rounded border border-border bg-muted px-1 font-mono text-[10px]">⌘J</kbd>
+            {' '}(<kbd className="rounded border border-border bg-muted px-1 font-mono text-[10px]">Ctrl+J</kbd>) to open or collapse the customer details sidebar.
+          </p>
+
+          {/* Unified history across email, chat, phone, notes and cases */}
+          <CustomerTimeline
+            customerId={conversation.customer?.id}
+            currentConversationId={conversation.id}
+          />
+
 
           {/* Open Noddi tickets for this customer (matched on user group / car) */}
           <CustomerNoddiTicketsCard
