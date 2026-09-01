@@ -51,6 +51,7 @@ export default function HomePage() {
   const { profile, user, isAdmin, isSuperAdmin } = useAuth();
   const { conversations, inboxes } = useOptimizedCounts();
   const { data: inboxEmails = {} } = useInboxEmailAddresses();
+  const { data: inboxDefaults = {} } = useInboxDefaults();
   const { defaultInboxId, setDefaultInbox } = useDefaultInbox();
 
   const { dateTime } = useDateFormatting();
