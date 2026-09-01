@@ -175,9 +175,8 @@ export const AppMainNav = () => {
                             )}
                             {...(itemIsActive && { "aria-current": "page" })}
                           >
-                            <span className="mr-2 flex h-4 w-4 items-center justify-center">
-                              <Icon className="h-4 w-4" />
-                            </span>
+                            <Icon className="mr-2 h-4 w-4 shrink-0" />
+
                             {!isCollapsed && (
                               <span className="flex-1 flex items-center justify-between">
                                 <span>{item.label}</span>
