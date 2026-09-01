@@ -718,10 +718,11 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
             return 0;
         }
       });
+      return { list: sorted, hiddenCount };
     }
 
     // Otherwise use legacy sortBy - use received_at for time-based sorting
-    return filtered.sort((a, b) => {
+    const sortedByRecency = filtered.sort((a, b) => {
       // Use received_at (last message arrival) instead of updated_at
       const aTime = new Date(a.received_at || a.updated_at).getTime();
       const bTime = new Date(b.received_at || b.updated_at).getTime();
