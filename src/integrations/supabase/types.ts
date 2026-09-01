@@ -8588,6 +8588,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      run_background_job_now: { Args: { _jobid: number }; Returns: Json }
       sanitize_debug_data: { Args: { data: Json }; Returns: Json }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
