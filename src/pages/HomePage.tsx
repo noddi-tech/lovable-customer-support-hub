@@ -122,7 +122,13 @@ export default function HomePage() {
 
         <Separator />
 
+        {/* Channel overview + gamified leaderboard */}
+        <SupportOverviewSection />
+
+        <Separator />
+
         {/* Inboxes */}
+
         {inboxes.length > 0 && (
           <div>
             <div className="flex items-center justify-between mb-4">
