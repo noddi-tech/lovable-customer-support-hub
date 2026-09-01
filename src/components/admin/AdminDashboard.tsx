@@ -145,6 +145,13 @@ export function AdminDashboard() {
       path: "/admin/knowledge"
     },
     {
+      title: "Edge Functions",
+      description: "All backend functions, auth mode and secrets",
+      icon: FunctionSquare,
+      path: "/admin/edge-functions",
+      badge: `${EDGE_FUNCTIONS.length} functions`
+    },
+    {
       title: "General Settings",
       description: "Organization preferences and config",
       icon: Settings,
