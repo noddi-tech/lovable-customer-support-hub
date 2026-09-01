@@ -7,22 +7,13 @@ export interface InboxOutstanding {
   total: number;
 }
 
-/** Strip reply/forward prefixes so "Re: X" and "X" collapse into one thread. */
-const threadKey = (email: string | null | undefined, subject: string | null | undefined) => {
-  const normalizedSubject = (subject || '')
-    .toLowerCase()
-    .replace(/^(re:|fwd?:|fw:|aw:|sv:|vs:)\s*/gi, '')
-    .trim();
-  return `${(email || '').toLowerCase()}|${normalizedSubject}`;
-};
-
 /**
  * Per-inbox counts of outstanding work (open + pending conversations).
- * Used by the inbox selector so agents can see the workload at a glance.
  *
- * The list view groups conversations into threads (same customer + same
- * subject) and hides archived/deleted/snoozed rows, so this hook applies the
- * exact same rules — otherwise the badge shows e.g. 31 while the list has 3.
+ * Uses the same thread grouping as the conversation list: conversations are
+ * collapsed per customer email + normalised subject, and the newest message in
+ * the thread decides its status. That way an older "open" row inside a thread
+ * that has since been closed no longer inflates the badge.
  */
 export const useInboxOutstandingCounts = () => {
   return useQuery({
@@ -30,45 +21,25 @@ export const useInboxOutstandingCounts = () => {
     staleTime: 60_000,
     refetchInterval: 120_000,
     queryFn: async (): Promise<Record<string, InboxOutstanding>> => {
-      const { data, error } = await supabase
-        .from('conversations')
-        .select('inbox_id, status, subject, is_archived, deleted_at, snooze_until, customer:customers(email)')
-        .in('status', ['open', 'pending'])
-        .limit(5000);
-
+      const { data, error } = await (supabase.rpc as any)('get_inbox_outstanding_counts');
       if (error) throw error;
 
-      type Row = {
-        inbox_id: string | null;
-        status: string;
-        subject: string | null;
-        is_archived: boolean | null;
-        deleted_at: string | null;
-        snooze_until: string | null;
-        customer?: { email: string | null } | null;
-      };
-
-      const now = Date.now();
-      const seen = new Set<string>();
       const map: Record<string, InboxOutstanding> = {};
-
-      for (const row of (data || []) as unknown as Row[]) {
+      for (const row of (data || []) as Array<{
+        inbox_id: string | null;
+        open_count: number;
+        pending_count: number;
+        total_count: number;
+      }>) {
         if (!row.inbox_id) continue;
-        if (row.is_archived) continue;
-        if (row.deleted_at) continue;
-        if (row.snooze_until && new Date(row.snooze_until).getTime() > now) continue;
-
-        // Count each thread once, matching the list view's thread grouping.
-        const key = `${row.inbox_id}|${threadKey(row.customer?.email, row.subject)}`;
-        if (seen.has(key)) continue;
-        seen.add(key);
-
-        const entry = (map[row.inbox_id] ||= { open: 0, pending: 0, total: 0 });
-        if (row.status === 'open') entry.open += 1;
-        else if (row.status === 'pending') entry.pending += 1;
-        entry.total += 1;
+        map[row.inbox_id] = {
+          open: Number(row.open_count) || 0,
+          pending: Number(row.pending_count) || 0,
+          total: Number(row.total_count) || 0,
+        };
       }
       return map;
     },
   });
 };
+
