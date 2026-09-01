@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { LazyReplyArea } from "./LazyReplyArea";
 import { useVisitorTyping } from "@/hooks/useVisitorTyping";
 import { useVisitorOnlineStatus } from "@/hooks/useVisitorOnlineStatus";
+import { getLanguageFlag, getLanguageLabel } from "@/utils/languageLabels";
 import { useChatMessageNotifications } from "@/hooks/useChatMessageNotifications";
 import { logger } from "@/utils/logger";
 import { useQueryClient } from "@tanstack/react-query";
@@ -406,6 +407,13 @@ export const ProgressiveMessagesList = forwardRef<ProgressiveMessagesListRef, Pr
               {onlineStatus?.isOnline ? 'Online' : 'Offline'}
             </Badge>
             
+            {/* Widget language of the visitor's session */}
+            {onlineStatus?.locale && (
+              <Badge variant="outline" className="text-xs" title={`Widget language: ${getLanguageLabel(onlineStatus.locale)}`}>
+                {getLanguageFlag(onlineStatus.locale)} {getLanguageLabel(onlineStatus.locale)}
+              </Badge>
+            )}
+
             {/* Show last seen if offline */}
             {!onlineStatus?.isOnline && onlineStatus?.lastSeenAt && (
               <span className="text-xs text-muted-foreground">
