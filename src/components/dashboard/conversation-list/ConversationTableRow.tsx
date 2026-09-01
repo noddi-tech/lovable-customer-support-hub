@@ -21,6 +21,7 @@ import { getCustomerDisplay, getCustomerInitial } from '@/utils/customerDisplayN
 import { useIsMobile } from '@/hooks/use-responsive';
 import { useInboxEmailAddresses } from '@/hooks/useInboxEmailAddresses';
 import { ConversationStatusContextMenu } from './ConversationStatusContextMenu';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 /**
  * Small colored pill identifying which inbox a conversation belongs to.
@@ -369,7 +370,43 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
           </div>
         )}
 
-        {/* Customer */}
+        {/* Channel (icon only, first column) */}
+        <div className="p-2 w-12 shrink-0 flex items-center justify-center">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="relative inline-flex items-center justify-center">
+                <computedValues.ChannelIcon className="h-4 w-4 text-muted-foreground" />
+                {conversation.channel === 'widget' && (conversation.metadata as any)?.chatSessionStatus === 'active' && (
+                  <span className="absolute -top-0.5 -right-1 h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                )}
+              </span>
+            </TooltipTrigger>
+            <TooltipContent side="right" className="capitalize">
+              {channelLabel(conversation.channel)}
+              {conversation.channel === 'widget' && (conversation.metadata as any)?.chatSessionStatus === 'active' && ' — live'}
+            </TooltipContent>
+          </Tooltip>
+        </div>
+
+        {/* Channel (icon only, first column) */}
+      <TableCell className="p-2 w-12">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="relative inline-flex items-center justify-center">
+              <computedValues.ChannelIcon className="h-4 w-4 text-muted-foreground" />
+              {conversation.channel === 'widget' && (conversation.metadata as any)?.chatSessionStatus === 'active' && (
+                <span className="absolute -top-0.5 -right-1 h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              )}
+            </span>
+          </TooltipTrigger>
+          <TooltipContent side="right" className="capitalize">
+            {channelLabel(conversation.channel)}
+            {conversation.channel === 'widget' && (conversation.metadata as any)?.chatSessionStatus === 'active' && ' — live'}
+          </TooltipContent>
+        </Tooltip>
+      </TableCell>
+
+      {/* Customer */}
         <div className="p-2 w-48 shrink-0">
           <div className="flex items-center gap-2 min-w-0">
             <Avatar className="h-6 w-6 ring-1 ring-muted shrink-0">
@@ -452,22 +489,6 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
 
         {/* Priority */}
         <div className="p-2 w-24 shrink-0">{PriorityBadge}</div>
-
-        {/* Channel */}
-        <div className="p-2 w-28 shrink-0">
-          <div className="flex items-center gap-1.5">
-            <computedValues.ChannelIcon className="h-3 w-3 text-muted-foreground" />
-            <span className="text-xs text-muted-foreground capitalize">
-              {channelLabel(conversation.channel)}
-            </span>
-            {conversation.channel === 'widget' && (conversation.metadata as any)?.chatSessionStatus === 'active' && (
-              <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-700 animate-pulse">
-                LIVE
-              </Badge>
-            )}
-            <ConversationBrandBadge conversation={conversation} />
-          </div>
-        </div>
 
         {/* Received */}
         <div className="p-2 w-36 shrink-0">
@@ -609,21 +630,6 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
 
       {/* Priority */}
       <TableCell className="p-2 w-24">{PriorityBadge}</TableCell>
-
-      {/* Channel */}
-      <TableCell className="p-2 w-28">
-        <div className="flex items-center gap-1.5">
-          <computedValues.ChannelIcon className="h-3 w-3 text-muted-foreground" />
-          <span className="text-xs text-muted-foreground capitalize">
-            {channelLabel(conversation.channel)}
-          </span>
-          {conversation.channel === 'widget' && (conversation.metadata as any)?.chatSessionStatus === 'active' && (
-            <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-700 animate-pulse">
-              LIVE
-            </Badge>
-          )}
-        </div>
-      </TableCell>
 
       {/* Received */}
       <TableCell className="p-2 w-36">
