@@ -49,6 +49,18 @@ export function getConversationBrand(
   return null;
 }
 
+/**
+ * Canonical brand colors, mirrored from the email templates
+ * (`supabase/functions/_shared/brand-theme.ts`) so a brand looks the same in
+ * live chat, conversation lists and outgoing mail.
+ */
+const BRAND_THEME_COLORS: Array<{ match: RegExp; color: string }> = [
+  { match: /dekkfix/, color: '#229799' },
+  { match: /tr.?nderdekk/, color: '#0F766E' },
+  { match: /navio/, color: '#1F6FEB' },
+  { match: /noddi/, color: '#35155A' },
+];
+
 const BRAND_COLORS = [
   '#0ea5e9',
   '#8b5cf6',
@@ -61,6 +73,10 @@ const BRAND_COLORS = [
 ];
 
 export function getBrandColor(key: string): string {
+  const normalized = (key || '').toLowerCase().replace(/[^a-z0-9]+/g, '');
+  const theme = BRAND_THEME_COLORS.find((t) => t.match.test(normalized));
+  if (theme) return theme.color;
+
   let hash = 0;
   for (let i = 0; i < key.length; i++) hash = (hash * 31 + key.charCodeAt(i)) >>> 0;
   return BRAND_COLORS[hash % BRAND_COLORS.length];
