@@ -129,7 +129,7 @@ const AdminSidebar = () => {
       icon: Crown
     },
     {
-      title: 'Organizations',
+      title: 'Service Organizations',
       url: '/super-admin/organizations',
       icon: Building
     },

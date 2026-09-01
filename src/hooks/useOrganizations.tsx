@@ -61,6 +61,8 @@ export function useOrganizations() {
       logo_url?: string;
       primary_color?: string;
       sender_display_name?: string;
+      /** Link to the Navio backend service organization this tenant mirrors. */
+      navio_organization_id?: number | null;
     }) => {
       if (!isSuperAdmin) {
         throw new Error('Only super admins can create organizations');
