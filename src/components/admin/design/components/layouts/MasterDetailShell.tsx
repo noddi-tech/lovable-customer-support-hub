@@ -110,11 +110,10 @@ export const MasterDetailShell: React.FC<MasterDetailShellProps> = ({
               )}
             </div>
           ) : (
-            <ScrollArea className="h-full" aria-label={centerPaneLabel}>
-              <div className="p-4">
-                {center}
-              </div>
-            </ScrollArea>
+            /* The list manages its own sticky header, scrolling body and footer. */
+            <div className="h-full min-h-0 flex flex-col" aria-label={centerPaneLabel}>
+              {center}
+            </div>
           )}
         </div>
         
