@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { useTranslation } from 'react-i18next';
 import { InboxZeroCelebration, AlmostThereBanner } from './InboxZeroCelebration';
 import { useBulkRangeSelect } from '@/hooks/useBulkRangeSelect';
+import { useIsMobile } from '@/hooks/use-responsive';
 
 interface ConversationTableProps {
   onSelectConversation: (conversation: Conversation) => void;
