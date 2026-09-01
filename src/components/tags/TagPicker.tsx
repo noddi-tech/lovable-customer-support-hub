@@ -78,14 +78,13 @@ export const TagPickerList: React.FC<TagPickerListProps> = ({ selectedIds, onTog
         )}
       </div>
 
-      {onCreate && (
-        <div className="border-t p-2">
-          <Button size="sm" variant="outline" className="w-full" onClick={() => openCreate(search.trim())}>
-            <Plus className="h-3.5 w-3.5 mr-1" />
-            {search.trim() ? `Create "${search.trim()}"` : 'Create tag'}
-          </Button>
-        </div>
-      )}
+      <div className="border-t p-2">
+        <Button size="sm" variant="outline" className="w-full" onClick={() => setShowCreate(true)}>
+          <Plus className="h-3.5 w-3.5 mr-1" />
+          {search.trim() ? `Create "${search.trim()}"` : 'Create tag'}
+        </Button>
+      </div>
+
     </div>
   );
 };
