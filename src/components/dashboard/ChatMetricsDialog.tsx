@@ -1,20 +1,11 @@
 import { useState } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Loader2, MessageSquare } from 'lucide-react';
+import { MessageSquare } from 'lucide-react';
 import { MetricTile, attainmentTone } from '@/components/dashboard/MetricTile';
+import { MetricsDialogShell } from '@/components/dashboard/shared/MetricsDialogShell';
 import { useChatSupportMetrics } from '@/hooks/useSupportKpis';
 import { formatMinutes, formatPct } from '@/hooks/useInboxSupportMetrics';
 import { useNoddiBrands } from '@/hooks/useNoddiBrands';
-
-const RANGES = [7, 30, 90] as const;
 
 interface ChatMetricsDialogProps {
   open: boolean;
@@ -27,43 +18,19 @@ export function ChatMetricsDialog({ open, onOpenChange }: ChatMetricsDialogProps
   const { findBrand } = useNoddiBrands();
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <MessageSquare className="h-4 w-4" /> Live chat KPIs
-          </DialogTitle>
-          <DialogDescription>
-            Chat performance in total and per brand. Hover any tile to see what it measures.
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="flex items-center gap-1">
-          {RANGES.map((r) => (
-            <Button
-              key={r}
-              size="sm"
-              variant={days === r ? 'secondary' : 'ghost'}
-              className="h-7 px-2 text-xs"
-              onClick={() => setDays(r)}
-            >
-              Last {r} days
-            </Button>
-          ))}
-        </div>
-
-        {isLoading && (
-          <div className="flex items-center justify-center gap-2 py-10 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" /> Calculating chat metrics…
-          </div>
-        )}
-        {error && (
-          <p className="py-6 text-sm text-destructive">
-            Could not load chat metrics: {(error as Error).message}
-          </p>
-        )}
-
-        {data && !isLoading && (
+    <MetricsDialogShell
+      open={open}
+      onOpenChange={onOpenChange}
+      icon={MessageSquare}
+      title="Live chat KPIs"
+      description="Chat performance in total and per brand. Hover any tile to see what it measures."
+      days={days}
+      onDaysChange={setDays}
+      isLoading={isLoading}
+      loadingLabel="Calculating chat metrics…"
+      error={(error as Error) ?? null}
+    >
+      {data && (
           <div className="space-y-5">
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               <MetricTile
@@ -174,10 +141,9 @@ export function ChatMetricsDialog({ open, onOpenChange }: ChatMetricsDialogProps
                 Brand comes from the conversation's brand label, falling back to the widget's company name.
               </p>
             </div>
-          </div>
-        )}
-      </DialogContent>
-    </Dialog>
+        </div>
+      )}
+    </MetricsDialogShell>
   );
 }
 
