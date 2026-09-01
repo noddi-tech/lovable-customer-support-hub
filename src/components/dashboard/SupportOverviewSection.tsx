@@ -13,6 +13,7 @@ import {
   Zap,
   Timer,
   Medal,
+  Phone,
   ArrowUpRight,
   ArrowDownRight,
 } from 'lucide-react';
@@ -31,6 +32,7 @@ const CHANNEL_ICONS: Record<string, typeof Mail> = {
   email: Mail,
   widget: MessageSquare,
   cases: Briefcase,
+  voice: Phone,
 };
 
 const CHANNEL_DESCRIPTIONS: Record<string, string> = {
@@ -40,6 +42,8 @@ const CHANNEL_DESCRIPTIONS: Record<string, string> = {
     'Live chat conversations started in the last 30 days. "Waiting" counts open chats where the visitor sent the last message — in chat these should be answered within minutes.',
   cases:
     'Cases opened in the last 30 days. "Open" counts every case that is not resolved or closed; "waiting" counts the ones that sit with us (open, in progress or waiting internally).',
+  voice:
+    'Phone calls in the last 30 days. "Open" counts calls ringing or on hold right now; "waiting" counts missed calls and voicemails in the window that may need a call back.',
 };
 
 const MEDALS = ['🥇', '🥈', '🥉'];
@@ -96,6 +100,12 @@ function ChannelStat({ row }: { row: ChannelRow }) {
             </div>
             <div className="mt-1 flex items-baseline gap-2">
               <span className="text-xl font-semibold tabular-nums">{row.received}</span>
+              <Trend
+                current={row.received}
+                previous={row.prev_received}
+                higherIsBetter
+                label="volume"
+              />
               <span className="text-[11px] text-muted-foreground">last 30 days</span>
             </div>
             <div className="mt-1 flex flex-wrap gap-1.5 text-[11px]">
@@ -108,9 +118,17 @@ function ChannelStat({ row }: { row: ChannelRow }) {
               >
                 {row.awaiting_us} waiting
               </Badge>
-              <Badge variant="secondary" className="text-[10px]">
-                {formatMinutes(row.median_first_response_minutes)} 1st reply
-              </Badge>
+              {row.median_first_response_minutes != null && (
+                <Badge variant="secondary" className="gap-1 text-[10px]">
+                  {formatMinutes(row.median_first_response_minutes)} 1st reply
+                  <Trend
+                    current={row.median_first_response_minutes}
+                    previous={row.prev_median_first_response_minutes}
+                    higherIsBetter={false}
+                    label="median first reply"
+                  />
+                </Badge>
+              )}
             </div>
           </div>
         </TooltipTrigger>
