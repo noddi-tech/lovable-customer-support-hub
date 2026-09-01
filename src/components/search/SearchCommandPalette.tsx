@@ -31,6 +31,8 @@ import {
   type NavPage,
   type NavScope,
 } from '@/lib/navigation-registry';
+import { PaletteAvailabilityActions } from '@/components/search/PaletteAvailabilityActions';
+
 
 interface SearchCommandPaletteProps {
   open: boolean;
