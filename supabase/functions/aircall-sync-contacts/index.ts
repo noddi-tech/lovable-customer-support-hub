@@ -231,12 +231,53 @@ Deno.serve(async (req) => {
         try {
           const meta = (row.metadata || {}) as Record<string, any>;
           const { first_name, last_name } = splitName(row.full_name || '');
+          const extra = identitiesByCustomer.get(row.id) || { emails: [], phones: [] };
+
+          // Phones: primary first, then any alternative verified numbers
+          const phoneValues = [phone];
+          for (const raw of extra.phones) {
+            const normalized = normalizeToE164(raw);
+            if (normalized && !phoneValues.includes(normalized)) phoneValues.push(normalized);
+          }
+
+          // Emails: primary, alternative identities, and Noddi alternates in metadata
+          const emailValues: string[] = [];
+          const pushEmail = (value?: string | null) => {
+            const clean = (value || '').trim().toLowerCase();
+            if (clean && clean.includes('@') && !emailValues.includes(clean)) emailValues.push(clean);
+          };
+          pushEmail(row.email);
+          pushEmail(meta.primary_noddi_email);
+          extra.emails.forEach(pushEmail);
+          (Array.isArray(meta.alternative_emails) ? meta.alternative_emails : []).forEach((e: any) =>
+            pushEmail(typeof e === 'string' ? e : e?.email),
+          );
+
+          const information = [
+            meta.noddi_user_id ? `Noddi user #${meta.noddi_user_id}` : null,
+            `Support Hub: https://support.noddi.co/customers?customer=${row.id}`,
+          ]
+            .filter(Boolean)
+            .join('\n');
+
           const payload: Record<string, unknown> = {
             first_name,
             last_name,
-            phone_numbers: [{ label: 'Mobile', value: phone }],
-            ...(row.email ? { emails: [{ label: 'Work', value: row.email }] } : {}),
+            information,
+            phone_numbers: phoneValues.slice(0, 5).map((value, i) => ({
+              label: i === 0 ? 'Mobile' : 'Other',
+              value,
+            })),
+            ...(emailValues.length
+              ? {
+                  emails: emailValues.slice(0, 5).map((value, i) => ({
+                    label: i === 0 ? 'Work' : 'Other',
+                    value,
+                  })),
+                }
+              : {}),
           };
+
 
           // Resolve the existing Aircall contact: known id first, then search by phone
           let contactId: number | null = meta.aircall_contact_id ?? null;
