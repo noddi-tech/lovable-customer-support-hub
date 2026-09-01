@@ -432,6 +432,7 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
                 Awaiting reply
               </Badge>
             )}
+            <TagBadgeList tags={conversationTags} compact max={3} className="shrink-0" />
             {/* Hover reply button */}
             <Button
               variant="ghost"
