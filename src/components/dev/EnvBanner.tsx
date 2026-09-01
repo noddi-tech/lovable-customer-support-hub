@@ -2,6 +2,10 @@
  * Slim environment banner shown at the very top of the app.
  * Renders nothing on production (published domain + prod build).
  */
+import { useEffect } from 'react';
+
+const BANNER_HEIGHT = '1.25rem';
+
 export const EnvBanner = () => {
   const host = typeof window !== 'undefined' ? window.location.hostname : '';
   const isDev = import.meta.env.DEV === true;
