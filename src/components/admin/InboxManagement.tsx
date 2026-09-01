@@ -392,7 +392,7 @@ export function InboxManagementContent() {
 
       {/* Inbox Grid */}
       {isLoadingInboxes ? (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {[...Array(3)].map((_, i) => (
             <Card key={i} className="animate-pulse">
               <CardHeader>
@@ -406,22 +406,22 @@ export function InboxManagementContent() {
           ))}
         </div>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {inboxes?.map((inbox) => (
             <Card key={inbox.id} className="relative bg-gradient-surface border-border/50 shadow-surface hover:shadow-glow transition-shadow">
               <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex min-w-0 flex-wrap items-center gap-2">
                     <div 
-                      className="w-3 h-3 rounded-full" 
+                      className="w-3 h-3 shrink-0 rounded-full" 
                       style={{ backgroundColor: inbox.color }}
                     />
-                    <CardTitle className="text-lg">{inbox.name}</CardTitle>
+                    <CardTitle className="text-lg break-words min-w-0">{inbox.name}</CardTitle>
                     {inbox.is_default && (
                       <Badge variant="secondary">Default</Badge>
                     )}
                   </div>
-                  <div className="flex gap-1">
+                  <div className="flex shrink-0 gap-1">
                     <Button 
                       variant="ghost" 
                       size="sm"
@@ -474,7 +474,7 @@ export function InboxManagementContent() {
                     </AlertDialog>
                   </div>
                 </div>
-                <CardDescription>{inbox.description || 'No description'}</CardDescription>
+                <CardDescription className="break-words">{inbox.description || 'No description'}</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
@@ -485,12 +485,12 @@ export function InboxManagementContent() {
                     </span>
                     <Badge variant="outline">{inbox.conversation_count}</Badge>
                   </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="flex items-center gap-2">
+                  <div className="flex items-center justify-between gap-3 text-sm">
+                    <span className="flex shrink-0 items-center gap-2">
                       <Users className="w-4 h-4" />
                       Department
                     </span>
-                    <span className="text-muted-foreground">
+                    <span className="min-w-0 truncate text-right text-muted-foreground">
                       {getDepartmentName(inbox.department_id)}
                     </span>
                   </div>
@@ -505,7 +505,7 @@ export function InboxManagementContent() {
                       <Mail className="w-4 h-4" />
                       Connected email(s)
                     </span>
-                    <div className="text-muted-foreground">
+                    <div className="text-muted-foreground break-words">
                       {(() => {
                         const routes = inboundRoutes?.filter(r => r.inbox_id === inbox.id) || [];
                         const accounts = (emailAccounts || []).filter(a => a.inbox_id === inbox.id);
@@ -516,15 +516,15 @@ export function InboxManagementContent() {
                           <ul className="list-disc pl-5 space-y-1">
                             {accounts.map((a) => (
                               <li key={`acct-${a.id}`}>
-                                <span className="font-medium">{a.email_address}</span>
+                                <span className="font-medium break-all">{a.email_address}</span>
                                 <span className="ml-2 text-xs">({a.provider})</span>
                               </li>
                             ))}
                             {routes.map((r) => (
                               <li key={`route-${r.id}`}>
-                                <span className="font-medium">{r.group_email || 'Public email not set'}</span>
+                                <span className="font-medium break-all">{r.group_email || 'Public email not set'}</span>
                                 <span className="ml-2">→ forwards to </span>
-                                <code className="font-mono text-xs px-1.5 py-0.5 rounded bg-muted/50">{r.address}</code>
+                                <code className="font-mono text-xs px-1.5 py-0.5 rounded bg-muted/50 break-all">{r.address}</code>
                               </li>
                             ))}
                           </ul>
