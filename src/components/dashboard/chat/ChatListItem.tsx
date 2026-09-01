@@ -9,6 +9,8 @@ import { Check, CheckCheck, Lock, Clock } from 'lucide-react';
 import { PresenceAvatarStack } from '@/components/conversations/PresenceAvatarStack';
 import { getConversationBrand } from '@/lib/conversationBrand';
 import { BrandBadge } from '@/components/dashboard/conversation-list/BrandBadge';
+import { TagBadgeList } from '@/components/tags/TagBadge';
+import { useEntityTags } from '@/hooks/useEntityTags';
 import { ConversationStatusContextMenu } from '@/components/dashboard/conversation-list/ConversationStatusContextMenu';
 
 interface ChatConversation {
@@ -136,6 +138,7 @@ export const ChatListItem: React.FC<ChatListItemProps> = ({
             {customerName}
           </span>
           {brand && <BrandBadge brand={brand} compact />}
+          <TagBadgeList tags={chatTags} compact max={2} />
           {isNoddiCustomer && (
             <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800">
               Noddi

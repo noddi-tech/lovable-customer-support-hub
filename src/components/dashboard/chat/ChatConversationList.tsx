@@ -12,6 +12,8 @@ import { useBulkRangeSelect } from '@/hooks/useBulkRangeSelect';
 import { useConversationStatusActions } from '@/hooks/useConversationStatusActions';
 import { ChatListItem } from './ChatListItem';
 import { BrandFilterSelect } from '@/components/dashboard/conversation-list/BrandFilterSelect';
+import { TagFilterSelect, matchesTagFilter } from '@/components/tags/TagFilterSelect';
+import { useEntityTags } from '@/hooks/useEntityTags';
 import { getConversationBrand } from '@/lib/conversationBrand';
 import type { ChatFilterType } from './ChatFilters';
 
@@ -51,6 +53,7 @@ export const ChatConversationList: React.FC<ChatConversationListProps> = ({
   const organizationId = profile?.organization_id;
   const [searchQuery, setSearchQuery] = useState('');
   const [brandFilter, setBrandFilter] = useState<string>('all');
+  const [tagFilter, setTagFilter] = useState<string[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const { setStatus } = useConversationStatusActions();
 
@@ -144,6 +147,8 @@ export const ChatConversationList: React.FC<ChatConversationListProps> = ({
         if (brandKey !== brandFilter) return false;
       }
 
+      if (!matchesTagFilter(getChatTags(conv.id).map((t) => t.id), tagFilter)) return false;
+
       if (!query) return true;
 
       const name = conv.session?.visitor_name || conv.customer?.full_name || '';
@@ -156,7 +161,7 @@ export const ChatConversationList: React.FC<ChatConversationListProps> = ({
         preview.toLowerCase().includes(query)
       );
     });
-  }, [conversations, searchQuery, brandFilter]);
+  }, [conversations, searchQuery, brandFilter, tagFilter, getChatTags]);
 
   const orderedIds = useMemo(
     () => filteredConversations.map(c => c.id),
@@ -233,6 +238,8 @@ export const ChatConversationList: React.FC<ChatConversationListProps> = ({
           options={brandOptions}
           triggerClassName="h-9 w-full text-sm"
         />
+
+        <TagFilterSelect value={tagFilter} onChange={setTagFilter} className="w-full justify-start" />
       </div>
 
       {selectionMode && (
