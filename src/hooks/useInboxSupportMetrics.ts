@@ -46,15 +46,17 @@ export function useInboxSupportMetrics(
   inboxId: string | null,
   days: number,
   enabled = true,
+  channel: string | null = null,
 ) {
   return useQuery({
-    queryKey: ['inbox_support_metrics', inboxId, days],
+    queryKey: ['inbox_support_metrics', inboxId, days, channel],
     enabled,
     staleTime: 60_000,
     queryFn: async (): Promise<InboxSupportMetrics> => {
       const { data, error } = await supabase.rpc('get_inbox_support_metrics', {
         p_inbox_id: inboxId,
         p_days: days,
+        p_channel: channel,
       } as never);
       if (error) throw error;
       return data as unknown as InboxSupportMetrics;
