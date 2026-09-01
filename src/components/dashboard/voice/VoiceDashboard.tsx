@@ -29,12 +29,15 @@ import { useDailyCallMetrics } from '@/hooks/useDailyCallMetrics';
 import { useAircallPhone } from '@/hooks/useAircallPhone';
 import { useRealtimeConnectionManager } from '@/hooks/useRealtimeConnectionManager';
 import { useQueryClient } from '@tanstack/react-query';
+import { VoiceMetricsDialog } from './VoiceMetricsDialog';
+import { MetricsButton } from '@/components/dashboard/shared/ChannelPageHeader';
 
 export const VoiceDashboard = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('recent');
+  const [metricsOpen, setMetricsOpen] = useState(false);
   const [metricsCollapsed, setMetricsCollapsed] = useState(() => {
     const saved = localStorage.getItem('voiceDashboardMetricsCollapsed');
     return saved ? JSON.parse(saved) : false;
@@ -93,15 +96,8 @@ export const VoiceDashboard = () => {
             onRefresh={handleRefresh}
           />
           
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => navigate('/voice/analytics')}
-            className="h-10 flex-1 gap-2 sm:h-9 sm:flex-none"
-          >
-            <BarChart3 className="h-4 w-4" />
-            View Analytics
-          </Button>
+          <MetricsButton onClick={() => setMetricsOpen(true)} />
+
           
           <Button 
             variant="outline" 
@@ -114,6 +110,8 @@ export const VoiceDashboard = () => {
           </Button>
         </div>
       </div>
+
+      <VoiceMetricsDialog open={metricsOpen} onOpenChange={setMetricsOpen} />
 
       {/* Quick Stats - Collapsible */}
       <Collapsible
