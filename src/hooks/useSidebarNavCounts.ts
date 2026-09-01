@@ -75,6 +75,12 @@ export const useSidebarNavCounts = (): SidebarNavCounts => {
       .channel('sidebar-nav-counts')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'conversations' }, invalidate)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'widget_chat_sessions' }, invalidate)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'cases' }, () => {
+        if (timer) clearTimeout(timer);
+        timer = setTimeout(() => {
+          queryClient.invalidateQueries({ queryKey: ['case-queue-counts'] });
+        }, 2000);
+      })
       .subscribe();
 
     return () => {
