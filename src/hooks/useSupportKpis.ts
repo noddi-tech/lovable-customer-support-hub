@@ -105,6 +105,11 @@ export interface LeaderboardRow {
   avg_first_response_minutes: number | null;
   median_first_response_minutes: number | null;
   score: number;
+  /** Same metrics for the immediately preceding window of equal length. */
+  prev_resolved?: number | null;
+  prev_first_replies?: number | null;
+  prev_median_first_response_minutes?: number | null;
+  prev_median_resolve_minutes?: number | null;
 }
 
 export interface Leaderboard {
