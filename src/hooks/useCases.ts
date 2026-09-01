@@ -334,6 +334,36 @@ export function useMyCaseCounts() {
   });
 }
 
+export function useCaseQueueCounts() {
+  const { profile } = useAuth();
+  const profileId = profile?.id;
+  const orgId = profile?.organization_id;
+  return useQuery({
+    queryKey: ['case-queue-counts', profileId, orgId],
+    enabled: !!orgId,
+    refetchInterval: 60_000,
+    queryFn: async () => {
+      const head = () => (supabase.from('cases') as any).select('id', { count: 'exact', head: true });
+      const [mine, overdue, unassigned, waiting, open, closed] = await Promise.all([
+        head().eq('owner_id', profileId ?? '').in('status', OPEN_CASE_STATUSES),
+        head().in('status', OPEN_CASE_STATUSES).not('due_at', 'is', null).lt('due_at', new Date().toISOString()),
+        head().is('owner_id', null).in('status', OPEN_CASE_STATUSES),
+        head().in('status', ['waiting_customer', 'waiting_internal']),
+        head().in('status', OPEN_CASE_STATUSES),
+        head().in('status', ['resolved', 'closed']),
+      ]);
+      return {
+        mine: mine.count ?? 0,
+        overdue: overdue.count ?? 0,
+        unassigned: unassigned.count ?? 0,
+        waiting: waiting.count ?? 0,
+        open: open.count ?? 0,
+        closed: closed.count ?? 0,
+      } as Record<CaseQueueView, number>;
+    },
+  });
+}
+
 export function useCaseCategories() {
   const { profile } = useAuth();
   const orgId = profile?.organization_id;

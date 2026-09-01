@@ -20,7 +20,7 @@ import { NewConversationDialog } from "../NewConversationDialog";
 import { useConversationList } from "@/contexts/ConversationListContext";
 import { useTranslation } from "react-i18next";
 import type { SortBy } from "@/contexts/ConversationListContext";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useIsMobile } from "@/hooks/use-responsive";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Input } from "@/components/ui/input";
@@ -43,7 +43,7 @@ export const ConversationListHeader = ({
   bulkSelectionMode = false,
   onToggleBulkMode
 }: ConversationListHeaderProps) => {
-  const { state, dispatch, filteredConversations, markAllAsRead, isMarkingAllAsRead, hasNextPage, isFetchingNextPage } = useConversationList();
+  const { state, dispatch, conversations, filteredConversations, markAllAsRead, isMarkingAllAsRead, hasNextPage, isFetchingNextPage } = useConversationList();
   const { t } = useTranslation();
   const [showMigrator, setShowMigrator] = useState(false);
   const [showThreadMerger, setShowThreadMerger] = useState(false);
@@ -52,6 +52,21 @@ export const ConversationListHeader = ({
   const { data: outstanding = {} } = useInboxOutstandingCounts();
 
   const unreadCount = filteredConversations.filter(c => !c.is_read).length;
+
+  const statusCounts = useMemo(() => {
+    const base = (conversations ?? []).filter((c: any) =>
+      state.purposeFilter === 'all' || !state.purposeFilter
+        ? true
+        : (c.conversation_type ?? 'support') === state.purposeFilter
+    );
+    return {
+      all: base.length,
+      open: base.filter((c: any) => c.status === 'open').length,
+      pending: base.filter((c: any) => c.status === 'pending').length,
+      closed: base.filter((c: any) => c.status === 'closed').length,
+    };
+  }, [conversations, state.purposeFilter]);
+
 
   const hasActiveFilters = state.searchQuery || state.statusFilter !== 'all' || state.priorityFilter !== 'all';
   
@@ -355,24 +370,32 @@ export const ConversationListHeader = ({
 
           <div className="flex items-center gap-1.5 overflow-x-auto -mx-1.5 px-1.5 pb-0.5">
             {([
-              { v: 'all', label: t('dashboard.conversationList.allStatus', 'All Status') },
-              { v: 'open', label: t('dashboard.conversationList.open', 'Open') },
-              { v: 'pending', label: t('dashboard.conversationList.pending', 'Pending') },
-              { v: 'closed', label: t('dashboard.conversationList.closed', 'Closed') },
+              { v: 'all', label: t('dashboard.conversationList.allStatus', 'All Status'), count: statusCounts.all },
+              { v: 'open', label: t('dashboard.conversationList.open', 'Open'), count: statusCounts.open },
+              { v: 'pending', label: t('dashboard.conversationList.pending', 'Pending'), count: statusCounts.pending },
+              { v: 'closed', label: t('dashboard.conversationList.closed', 'Closed'), count: statusCounts.closed },
             ] as const).map((opt) => (
               <button
                 key={opt.v}
                 type="button"
                 onClick={() => dispatch({ type: 'SET_STATUS_FILTER', payload: opt.v })}
-                className={`shrink-0 rounded-full border px-3 h-8 text-xs transition-colors ${
+                className={`shrink-0 inline-flex items-center gap-1.5 rounded-full border px-3 h-8 text-xs transition-colors ${
                   state.statusFilter === opt.v
                     ? 'bg-primary text-primary-foreground border-primary'
                     : 'border-input bg-background text-muted-foreground'
                 }`}
               >
                 {opt.label}
+                <span
+                  className={`inline-flex h-4 min-w-[18px] items-center justify-center rounded-full px-1 text-[10px] ${
+                    state.statusFilter === opt.v ? 'bg-primary-foreground/20' : 'bg-muted text-foreground/70'
+                  }`}
+                >
+                  {opt.count}
+                </span>
               </button>
             ))}
+
             <span className="shrink-0 w-px h-5 bg-border mx-0.5" />
             {([
               { v: 'all', label: 'Alle' },
