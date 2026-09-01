@@ -260,8 +260,10 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
       <div 
         style={style} 
         className={cn(
-          "px-3 py-3 border-b border-border cursor-pointer active:bg-muted/70 transition-colors",
+          "px-3 py-2.5 border-b border-border cursor-pointer active:bg-muted/70 transition-colors select-none overflow-hidden",
+          style ? "flex items-center" : "min-h-[88px] flex items-center",
           isSelected && "bg-primary/8",
+          isBulkSelected && "bg-primary/10",
           !conversation.is_read && "bg-primary/5"
         )} 
         onClick={handleRowClick}
