@@ -21,6 +21,7 @@ import { TagContextMenuItems } from '@/components/tags/TagContextMenuItems';
 import { TagBadgeList } from '@/components/tags/TagBadge';
 import { TagFilterSelect, matchesTagFilter } from '@/components/tags/TagFilterSelect';
 import { useEntityTags } from '@/hooks/useEntityTags';
+import { getBrandColor } from '@/lib/conversationBrand';
 
 const STATUS_OPTIONS = [
   { value: 'open', label: 'Open' },
