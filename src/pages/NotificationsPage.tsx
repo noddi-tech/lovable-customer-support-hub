@@ -18,6 +18,13 @@ import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-responsive';
 import { SidebarTrigger } from '@/components/ui/sidebar';
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from '@/components/ui/context-menu';
 
 const VALID_TABS: NotificationCategory[] = ['unread', 'mentions', 'calls', 'text', 'email', 'tickets', 'assigned'];
 
