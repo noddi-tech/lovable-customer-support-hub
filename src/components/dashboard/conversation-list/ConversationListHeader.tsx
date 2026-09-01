@@ -23,6 +23,8 @@ import type { SortBy } from "@/contexts/ConversationListContext";
 import { useState } from "react";
 import { useIsMobile } from "@/hooks/use-responsive";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import { Input } from "@/components/ui/input";
+import { Search } from "lucide-react";
 
 interface ConversationListHeaderProps {
   onToggleCollapse?: () => void;
@@ -299,6 +301,21 @@ export const ConversationListHeader = ({
           </Select>
         </div>
       </div>
+
+      {/* Mobile: full-width search (the inbox rail is hidden on phones) */}
+      {isMobile && (
+        <div className="relative mt-2">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+          <Input
+            type="search"
+            inputMode="search"
+            value={state.searchQuery}
+            onChange={(e) => dispatch({ type: 'SET_SEARCH_QUERY', payload: e.target.value })}
+            placeholder={t('dashboard.conversationList.searchPlaceholder', 'Search conversations...')}
+            className="h-10 pl-8 text-base"
+          />
+        </div>
+      )}
 
       {/* Mobile dialogs (rendered outside the overflow menu) */}
       {isMobile && (
