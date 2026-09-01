@@ -94,6 +94,36 @@ export const AgentAvailabilityPanel: React.FC<AgentAvailabilityPanelProps> = ({
     logout: phoneLogout,
     error: phoneError,
   } = useAircallPhone();
+
+  // A stored Aircall session means the user is logged in even if the SDK
+  // connection is still (re)establishing or was blocked by the browser.
+  const [storedLogin, setStoredLogin] = React.useState<boolean>(() => {
+    try {
+      return aircallPhone.getLoginStatus();
+    } catch {
+      return false;
+    }
+  });
+
+  React.useEffect(() => {
+    const sync = () => {
+      try {
+        setStoredLogin(aircallPhone.getLoginStatus());
+      } catch {
+        /* ignore */
+      }
+    };
+    sync();
+    const interval = window.setInterval(sync, 5000);
+    window.addEventListener('storage', sync);
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener('storage', sync);
+    };
+  }, [phoneConnected]);
+
+  const phoneLoggedIn = phoneConnected || storedLogin;
+  
   
   // Check if Aircall is configured
   const { getIntegrationByProvider, isLoading: integrationsLoading } = useVoiceIntegrations();
