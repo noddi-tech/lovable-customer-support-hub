@@ -169,6 +169,14 @@ export default function HomePage() {
                  const isDefault = defaultInboxId === inbox.id;
                 const defaults = inboxDefaults[inbox.id];
                 const slaRisk = slaRiskByInbox.get(inbox.id);
+                const health = isConfigured
+                  ? getInboxHealth({
+                      open: inbox.open_count ?? 0,
+                      unread: inbox.unread_count ?? 0,
+                      breached: slaRisk?.breached ?? 0,
+                      atRisk: slaRisk?.atRisk ?? 0,
+                    })
+                  : null;
 
 
                 return (
