@@ -290,7 +290,6 @@ export const ChatConversationList: React.FC<ChatConversationListProps> = ({
             <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setSelectedIds(new Set())} aria-label="Clear selection">
               <X className="h-3.5 w-3.5" />
             </Button>
-            </Button>
           </div>
         </div>
       )}
