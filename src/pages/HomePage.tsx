@@ -16,6 +16,8 @@ import { groupInboxesByDomain } from '@/utils/inboxGrouping';
 import { useMemo, useState } from 'react';
 import { InboxMetricsDialog } from '@/components/dashboard/InboxMetricsDialog';
 import { SupportOverviewSection } from '@/components/dashboard/SupportOverviewSection';
+import { InboxSlaAlert } from '@/components/dashboard/InboxSlaAlert';
+import { useSlaRiskByInbox } from '@/hooks/useSlaRisk';
 
 import {
   Inbox,
@@ -54,6 +56,7 @@ export default function HomePage() {
   const navigate = useNavigate();
   const { profile, user, isAdmin, isSuperAdmin } = useAuth();
   const { conversations, inboxes } = useOptimizedCounts();
+  const { byInbox: slaRiskByInbox } = useSlaRiskByInbox();
   const { data: inboxEmails = {} } = useInboxEmailAddresses();
   const { data: inboxDefaults = {} } = useInboxDefaults();
   const { defaultInboxId, setDefaultInbox } = useDefaultInbox();
@@ -165,6 +168,8 @@ export default function HomePage() {
                 const isConfigured = Boolean(email);
                  const isDefault = defaultInboxId === inbox.id;
                 const defaults = inboxDefaults[inbox.id];
+                const slaRisk = slaRiskByInbox.get(inbox.id);
+
 
                 return (
                   <Card
@@ -175,7 +180,9 @@ export default function HomePage() {
                       isConfigured
                         ? 'cursor-pointer hover:shadow-md'
                         : 'cursor-not-allowed opacity-60 bg-muted/30',
-                      isDefault && 'ring-1 ring-primary/50'
+                      isDefault && 'ring-1 ring-primary/50',
+                      slaRisk?.breached && 'ring-2 ring-red-500 border-red-400',
+                      !slaRisk?.breached && slaRisk?.atRisk && 'ring-2 ring-amber-400 border-amber-300'
                     )}
                     onClick={isConfigured ? () => navigate(`/interactions/text/open?inbox=${inbox.id}`) : undefined}
                   >
@@ -216,6 +223,17 @@ export default function HomePage() {
                         </div>
                       </div>
 
+                      {isConfigured && slaRisk && (
+                        <InboxSlaAlert
+                          risk={slaRisk}
+                          onFix={() =>
+                            navigate(
+                              `/interactions/text/open?inbox=${inbox.id}` +
+                                (slaRisk.nextConversationId ? `&m=${slaRisk.nextConversationId}` : ''),
+                            )
+                          }
+                        />
+                      )}
 
                       <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 pl-[22px]">
 

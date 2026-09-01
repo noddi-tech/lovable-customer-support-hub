@@ -489,7 +489,7 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
         </div>
 
         {/* SLA */}
-        <div className="p-2 w-20 shrink-0">
+        <div className="p-2 w-28 shrink-0">
           <SLABadge status={conversation.slaStatus as any} slaBreachAt={conversation.sla_breach_at} />
         </div>
 
@@ -645,7 +645,7 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
       </TableCell>
 
       {/* SLA */}
-      <TableCell className="p-2 w-20">
+      <TableCell className="p-2 w-28">
         <SLABadge status={conversation.slaStatus as any} slaBreachAt={conversation.sla_breach_at} />
       </TableCell>
 
