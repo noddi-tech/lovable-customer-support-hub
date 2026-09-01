@@ -303,6 +303,7 @@ const VirtualizedConversationTable = memo(({ onSelectConversation, selectedConve
           }}
         </AutoSizer>
       </div>
+      </div>
     </div>
   );
 });
