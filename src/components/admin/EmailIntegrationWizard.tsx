@@ -85,7 +85,8 @@ export function EmailIntegrationWizard({ open, onOpenChange }: EmailIntegrationW
           name: newInboxName,
           description: newInboxDescription || null,
           color: newInboxColor,
-          department_id: newInboxDepartmentId === 'no-department' ? null : newInboxDepartmentId,
+          navio_department_id:
+            newInboxDepartmentId === 'no-department' ? null : Number(newInboxDepartmentId),
           organization_id: profile.organization_id,
           is_default: false,
           auto_assignment_rules: {},
