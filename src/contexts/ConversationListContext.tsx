@@ -259,7 +259,33 @@ interface ConversationListProviderProps {
 }
 
 export const ConversationListProvider = ({ children, selectedTab, selectedInboxId }: ConversationListProviderProps) => {
-  const [state, dispatch] = useReducer(conversationListReducer, initialState);
+  const [state, baseDispatch] = useReducer(conversationListReducer, initialState);
+
+  // Brand + tag filters are mirrored in the URL so the interactions sidebar
+  // (rendered outside this provider) can drive the same filters.
+  const { brand: brandParam, tags: tagsParam, tagsParamRaw, setBrand, setTags } = (() => {
+    const p = useConversationFilterParams();
+    return { ...p, tagsParamRaw: p.tagsParam };
+  })();
+
+  const dispatch = useMemo<typeof baseDispatch>(
+    () => (action: ConversationListAction) => {
+      if (action.type === 'SET_BRAND_FILTER') setBrand(action.payload);
+      if (action.type === 'SET_TAG_FILTER') setTags(action.payload);
+      baseDispatch(action);
+    },
+    [setBrand, setTags]
+  );
+
+  useEffect(() => {
+    baseDispatch({ type: 'SET_BRAND_FILTER', payload: brandParam });
+  }, [brandParam]);
+
+  useEffect(() => {
+    baseDispatch({ type: 'SET_TAG_FILTER', payload: tagsParamRaw ? tagsParamRaw.split(',').filter(Boolean) : [] });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tagsParamRaw]);
+
   const queryClient = useQueryClient();
   const { user, profile } = useAuth();
   const { tagsByEntity: conversationTags } = useEntityTags('conversation');
