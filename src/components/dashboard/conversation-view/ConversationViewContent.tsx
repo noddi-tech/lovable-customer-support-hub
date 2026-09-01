@@ -114,6 +114,7 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
 
   const [sidePanelCollapsed, setSidePanelCollapsed] = React.useState(false);
   const [showNoddiPanel, setShowNoddiPanel] = useState(true);
+  const [opsTicketOpen, setOpsTicketOpen] = useState(false);
 
   // Fetch Noddi data for customer display
   const { data: noddiData } = useNoddihKundeData(conversation.customer || null);
