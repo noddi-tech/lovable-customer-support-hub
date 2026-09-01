@@ -165,7 +165,7 @@ const BackgroundJobsPage: React.FC = () => {
   return (
     <UnifiedAppLayout>
     <div className="h-full overflow-auto">
-      <div className="max-w-7xl mx-auto p-4 md:p-6 space-y-4 md:space-y-6">
+      <div className="w-full max-w-[1920px] mx-auto p-4 md:p-6 space-y-4 md:space-y-6">
         <div className="flex items-start justify-between gap-3 flex-wrap">
           <div>
             <h1 className="text-2xl font-semibold text-foreground">Background Jobs</h1>
@@ -275,7 +275,7 @@ const BackgroundJobsPage: React.FC = () => {
                               <div className="font-medium text-sm">{job.jobname}</div>
                               <Tooltip>
                                 <TooltipTrigger asChild>
-                                  <div className="text-xs text-muted-foreground truncate max-w-[260px]">
+                                  <div className="text-xs text-muted-foreground truncate max-w-[260px] lg:max-w-[420px] xl:max-w-[640px]">
                                     {extractTarget(job.command)}
                                   </div>
                                 </TooltipTrigger>
