@@ -156,7 +156,15 @@ export default function CustomersPage() {
                         </span>
                       )}
                       {(c.brands ?? []).map((b) => (
-                        <Badge key={b} variant="outline" className="h-5 px-1.5 text-[10px] font-normal">
+                        <Badge
+                          key={b}
+                          variant="outline"
+                          className="h-5 px-1.5 text-[10px] font-normal"
+                          style={{
+                            borderColor: getBrandColor(b),
+                            color: getBrandColor(b),
+                          }}
+                        >
                           {b}
                         </Badge>
                       ))}
