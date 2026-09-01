@@ -16,7 +16,7 @@ const corsHeaders = {
 
 const API_BASE = (Deno.env.get('NODDI_API_BASE') || 'https://api.noddi.co').replace(/\/+$/, '');
 const NODDI_TOKEN = Deno.env.get('NODDI_API_TOKEN') || '';
-const CACHE_TTL_MS = 5 * 60 * 1000;
+const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours, refetched on expiry
 
 interface SlimBrand {
   id: number;
