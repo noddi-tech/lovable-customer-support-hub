@@ -355,24 +355,32 @@ export const ConversationListHeader = ({
 
           <div className="flex items-center gap-1.5 overflow-x-auto -mx-1.5 px-1.5 pb-0.5">
             {([
-              { v: 'all', label: t('dashboard.conversationList.allStatus', 'All Status') },
-              { v: 'open', label: t('dashboard.conversationList.open', 'Open') },
-              { v: 'pending', label: t('dashboard.conversationList.pending', 'Pending') },
-              { v: 'closed', label: t('dashboard.conversationList.closed', 'Closed') },
+              { v: 'all', label: t('dashboard.conversationList.allStatus', 'All Status'), count: statusCounts.all },
+              { v: 'open', label: t('dashboard.conversationList.open', 'Open'), count: statusCounts.open },
+              { v: 'pending', label: t('dashboard.conversationList.pending', 'Pending'), count: statusCounts.pending },
+              { v: 'closed', label: t('dashboard.conversationList.closed', 'Closed'), count: statusCounts.closed },
             ] as const).map((opt) => (
               <button
                 key={opt.v}
                 type="button"
                 onClick={() => dispatch({ type: 'SET_STATUS_FILTER', payload: opt.v })}
-                className={`shrink-0 rounded-full border px-3 h-8 text-xs transition-colors ${
+                className={`shrink-0 inline-flex items-center gap-1.5 rounded-full border px-3 h-8 text-xs transition-colors ${
                   state.statusFilter === opt.v
                     ? 'bg-primary text-primary-foreground border-primary'
                     : 'border-input bg-background text-muted-foreground'
                 }`}
               >
                 {opt.label}
+                <span
+                  className={`inline-flex h-4 min-w-[18px] items-center justify-center rounded-full px-1 text-[10px] ${
+                    state.statusFilter === opt.v ? 'bg-primary-foreground/20' : 'bg-muted text-foreground/70'
+                  }`}
+                >
+                  {opt.count}
+                </span>
               </button>
             ))}
+
             <span className="shrink-0 w-px h-5 bg-border mx-0.5" />
             {([
               { v: 'all', label: 'Alle' },
