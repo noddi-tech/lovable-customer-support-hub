@@ -2,8 +2,7 @@ import { useState } from "react";
 import { canGoBackInApp, getConversationBackPath } from '@/utils/conversationNavigation';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { getConversationBrand } from "@/lib/conversationBrand";
-import { BrandBadge } from "@/components/dashboard/conversation-list/BrandBadge";
+import { ConversationBrandPicker } from "./ConversationBrandPicker";
 import { HeaderCaseChip } from "@/components/cases/HeaderCaseChip";
 
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -150,7 +149,7 @@ onClick={() => {
                   conversationId={conversation.id}
                   metadata={(conversation as any).metadata}
                   channel={conversation.channel}
-                />>
+                />
                 <HeaderCaseChip
                   conversationId={conversation.id}
                   caseId={(conversation as any).case_id}
