@@ -433,6 +433,10 @@ async function handleStartChat(supabase: any, data: StartChatRequest) {
 
 async function handleSendMessage(supabase: any, data: MessageRequest) {
   const { sessionId, content } = data;
+  // Widget UI language for this message — lets agents see language switches mid-chat.
+  const locale = typeof data.locale === 'string' && /^[a-zA-Z]{2}([-_][a-zA-Z0-9]{2,8})?$/.test(data.locale.trim())
+    ? data.locale.trim().toLowerCase()
+    : undefined;
 
   if (!sessionId || !content?.trim()) {
     return new Response(
