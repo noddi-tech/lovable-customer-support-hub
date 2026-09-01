@@ -165,8 +165,8 @@ export default function HomePage() {
                     )}
                     onClick={isConfigured ? () => navigate(`/interactions/text/open?inbox=${inbox.id}`) : undefined}
                   >
-                    <CardContent className="p-3 flex items-center justify-between gap-2">
-                      <div className="flex items-start gap-3 min-w-0 flex-1">
+                    <CardContent className="p-3 flex flex-col gap-2">
+                      <div className="flex items-start gap-3 min-w-0">
                         <span
                           className="h-2.5 w-2.5 rounded-full shrink-0 mt-1.5"
                           style={{ backgroundColor: isConfigured ? (inbox.color || 'hsl(var(--primary))') : 'hsl(var(--muted-foreground) / 0.4)' }}
@@ -180,13 +180,14 @@ export default function HomePage() {
                               </Badge>
                             )}
                           </span>
-                          <span className="text-[11px] text-muted-foreground truncate">
+                          <span className="text-[11px] text-muted-foreground break-all">
                             {isConfigured ? email : 'Not configured'}
                           </span>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+                      <div className="flex flex-wrap items-center gap-1 sm:gap-2 pl-[22px]">
+
                         {isConfigured ? (
                           <>
                             {inbox.unread_count > 0 && (
