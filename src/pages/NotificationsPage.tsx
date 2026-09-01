@@ -59,6 +59,7 @@ const NotificationsPage = () => {
   const {
     notifications,
     unreadCounts,
+    totalUnread,
     isLoading,
     refetch,
     markAsRead,
@@ -226,6 +227,11 @@ const NotificationsPage = () => {
                     className="pl-9 h-10 text-base sm:h-9 sm:text-sm"
                   />
                 </div>
+                {totalUnread > sortedAndFiltered.length && (
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    Showing the {sortedAndFiltered.length} most recent of {totalUnread} unread notifications.
+                  </p>
+                )}
               </div>
 
               {isMobile ? (
