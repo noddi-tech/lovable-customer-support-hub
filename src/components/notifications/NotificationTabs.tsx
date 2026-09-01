@@ -42,8 +42,9 @@ export const NotificationTabs: React.FC<NotificationTabsProps> = ({
   };
 
   return (
-    <Tabs value={selectedCategory} onValueChange={handleTabChange}>
-      <TabsList className="h-auto p-1 bg-muted/50">
+    <Tabs value={selectedCategory} onValueChange={handleTabChange} className="w-full">
+      <div className="-mx-1 overflow-x-auto px-1 pb-1">
+      <TabsList className="h-auto w-max p-1 bg-muted/50">
         {tabConfig.map(({ id, label, icon: Icon }) => {
           const count = unreadCounts[id];
           return (
@@ -51,7 +52,7 @@ export const NotificationTabs: React.FC<NotificationTabsProps> = ({
               key={id}
               value={id}
               className={cn(
-                "flex items-center gap-2 px-4 py-2 data-[state=active]:bg-background",
+                "flex shrink-0 items-center gap-2 px-3 py-2 sm:px-4 data-[state=active]:bg-background",
                 "data-[state=active]:shadow-sm"
               )}
             >
@@ -69,6 +70,7 @@ export const NotificationTabs: React.FC<NotificationTabsProps> = ({
           );
         })}
       </TabsList>
+      </div>
     </Tabs>
   );
 };
