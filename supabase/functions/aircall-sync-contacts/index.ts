@@ -212,6 +212,54 @@ Deno.serve(async (req) => {
         for (const call of (brandedCalls || []) as any[]) addBrand(call.customer_id, call.metadata);
       }
 
+      // Custom tags assigned to the customer, their conversations and their calls
+      const tagsByCustomer = new Map<string, string[]>();
+      const addTagLabel = (customerId: string | null | undefined, label: string) => {
+        const clean = (label || '').trim();
+        if (!clean || !customerId) return;
+        const list = tagsByCustomer.get(customerId) || [];
+        if (!list.some((t) => t.toLowerCase() === clean.toLowerCase())) list.push(clean);
+        tagsByCustomer.set(customerId, list);
+      };
+      if (customerIds.length > 0) {
+        // conversation / call ids owned by these customers, so their tags land on the contact too
+        const convIdToCustomer = new Map<string, string>();
+        const callIdToCustomer = new Map<string, string>();
+        for (let i = 0; i < customerIds.length; i += 200) {
+          const chunk = customerIds.slice(i, i + 200);
+          const [{ data: convRows }, { data: callRows }] = await Promise.all([
+            adminClient.from('conversations').select('id, customer_id').in('customer_id', chunk),
+            adminClient.from('calls').select('id, customer_id').in('customer_id', chunk),
+          ]);
+          for (const r of (convRows || []) as any[]) convIdToCustomer.set(r.id, r.customer_id);
+          for (const r of (callRows || []) as any[]) callIdToCustomer.set(r.id, r.customer_id);
+        }
+
+        const { data: tagRows } = await adminClient
+          .from('tag_links')
+          .select('entity_type, entity_id, tags(name)')
+          .eq('organization_id', organizationId)
+          .in('entity_type', ['customer', 'conversation', 'call']);
+
+        for (const link of (tagRows || []) as any[]) {
+          const name = link?.tags?.name;
+          if (!name) continue;
+          if (link.entity_type === 'customer' && customerIds.includes(link.entity_id)) {
+            addTagLabel(link.entity_id, name);
+          } else if (link.entity_type === 'conversation') {
+            addTagLabel(convIdToCustomer.get(link.entity_id), name);
+          } else if (link.entity_type === 'call') {
+            addTagLabel(callIdToCustomer.get(link.entity_id), name);
+          }
+        }
+      }
+
+      const tagSignature = (customerId: string) =>
+        (tagsByCustomer.get(customerId) || [])
+          .map((t) => t.toLowerCase())
+          .sort()
+          .join(',');
+
       const brandSignature = (customerId: string) =>
         (brandsByCustomer.get(customerId) || [])
           .map((b) => b.toLowerCase())
@@ -226,7 +274,7 @@ Deno.serve(async (req) => {
         summary.eligible++;
 
         const meta = (row.metadata || {}) as Record<string, any>;
-        const sig = `v3|${row.full_name?.trim()}|${phone}|${row.email || ''}|${brandSignature(row.id)}`;
+        const sig = `v4|${row.full_name?.trim()}|${phone}|${row.email || ''}|${brandSignature(row.id)}|${tagSignature(row.id)}`;
         if (!body.force && meta.aircall_synced_signature === sig) {
           summary.skipped++;
           continue;
@@ -289,9 +337,11 @@ Deno.serve(async (req) => {
           );
 
           const brands = brandsByCustomer.get(row.id) || [];
+          const customTags = tagsByCustomer.get(row.id) || [];
 
           const information = [
             brands.length ? `Brands: ${brands.join(', ')}` : null,
+            customTags.length ? `Tags: ${customTags.join(', ')}` : null,
             meta.noddi_user_id ? `Noddi user #${meta.noddi_user_id}` : null,
             `Support Hub: https://support.noddi.co/customers?customer=${row.id}`,
           ]
@@ -362,7 +412,8 @@ Deno.serve(async (req) => {
                 aircall_contact_id: newId,
                 aircall_synced_at: new Date().toISOString(),
                 aircall_brands: brands,
-                aircall_synced_signature: `v3|${row.full_name?.trim()}|${phone}|${row.email || ''}|${brandSignature(row.id)}`,
+                aircall_tags: customTags,
+                aircall_synced_signature: `v4|${row.full_name?.trim()}|${phone}|${row.email || ''}|${brandSignature(row.id)}|${tagSignature(row.id)}`,
 
               },
             })
