@@ -341,7 +341,9 @@ export function useCaseQueueCounts() {
   return useQuery({
     queryKey: ['case-queue-counts', profileId, orgId],
     enabled: !!orgId,
-    refetchInterval: 60_000,
+    refetchInterval: 30_000,
+    refetchOnWindowFocus: true,
+    staleTime: 15_000,
     queryFn: async () => {
       const head = () => (supabase.from('cases') as any).select('id', { count: 'exact', head: true });
       const [mine, overdue, unassigned, waiting, open, closed] = await Promise.all([
