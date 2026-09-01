@@ -258,6 +258,12 @@ export function SupportOverviewSection() {
 
   const leaders = board?.leaders ?? [];
 
+  // Only surface channels that carry real traffic — a channel with nothing in
+  // either window and nothing open is a placeholder, not a KPI.
+  const activeChannels = (overview?.channels ?? []).filter(
+    (row) => row.received > 0 || (row.prev_received ?? 0) > 0 || row.open > 0 || row.closed > 0,
+  );
+
   return (
     <div className="space-y-3">
       <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
@@ -274,7 +280,7 @@ export function SupportOverviewSection() {
             ) : (
               <>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                  {(overview?.channels ?? []).map((row) => (
+                  {activeChannels.map((row) => (
                     <ChannelStat key={row.channel} row={row} />
                   ))}
                 </div>
