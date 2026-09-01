@@ -76,6 +76,8 @@ interface ConversationListState {
   priorityFilter: string;
   /** Brand key from conversation metadata, 'all' or 'unknown' (no brand). */
   brandFilter: string;
+  /** Selected tag ids, or the UNTAGGED sentinel. Empty means no tag filter. */
+  tagFilter: string[];
   purposeFilter: PurposeFilter;
   sortBy: SortBy;
   deleteDialogOpen: boolean;
@@ -94,6 +96,7 @@ type ConversationListAction =
   | { type: 'SET_STATUS_FILTER'; payload: string }
   | { type: 'SET_PRIORITY_FILTER'; payload: string }
   | { type: 'SET_BRAND_FILTER'; payload: string }
+  | { type: 'SET_TAG_FILTER'; payload: string[] }
   | { type: 'SET_PURPOSE_FILTER'; payload: PurposeFilter }
   | { type: 'SET_SORT_BY'; payload: SortBy }
   | { type: 'TOGGLE_FILTERS' }
@@ -126,6 +129,7 @@ const initialState: ConversationListState = {
   statusFilter: 'all',
   priorityFilter: 'all',
   brandFilter: 'all',
+  tagFilter: [],
   purposeFilter: loadPurposeFilter(),
   sortBy: 'latest',
   deleteDialogOpen: false,
@@ -152,6 +156,8 @@ function conversationListReducer(state: ConversationListState, action: Conversat
       return { ...state, priorityFilter: action.payload, currentPage: 1 };
     case 'SET_BRAND_FILTER':
       return { ...state, brandFilter: action.payload, currentPage: 1 };
+    case 'SET_TAG_FILTER':
+      return { ...state, tagFilter: action.payload, currentPage: 1 };
     case 'SET_SORT_BY':
       return { ...state, sortBy: action.payload };
     case 'TOGGLE_FILTERS':
@@ -432,7 +438,11 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
           
           const matchesStatus = state.statusFilter === "all" || conversation.status === state.statusFilter;
           const matchesPriority = state.priorityFilter === "all" || conversation.priority === state.priorityFilter;
-          const matchesInbox = effectiveInboxIds.length === 0 || effectiveInboxIds.includes(conversation.inbox_id || '');
+          const matchesTags = matchesTagFilter(
+        (conversationTags.get(conversation.id) || []).map((t) => t.id),
+        state.tagFilter,
+      );
+      const matchesInbox = effectiveInboxIds.length === 0 || effectiveInboxIds.includes(conversation.inbox_id || '');
           
           const matchesTab = (() => {
             const isSnoozedActive = !!conversation.snooze_until && new Date(conversation.snooze_until) > new Date();
@@ -756,7 +766,7 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
       }
     });
     return { list: sortedByRecency, hiddenCount };
-  }, [conversations, state.searchQuery, state.statusFilter, state.priorityFilter, state.brandFilter, state.purposeFilter, state.sortBy, state.tableSort, selectedTab, selectedInboxId, effectiveInboxId, effectiveInboxIds]);
+  }, [conversations, state.searchQuery, state.statusFilter, state.priorityFilter, state.brandFilter, state.tagFilter, conversationTags, state.purposeFilter, state.sortBy, state.tableSort, selectedTab, selectedInboxId, effectiveInboxId, effectiveInboxIds]);
 
   // Comprehensive debug logging
   logger.debug('Filter state', {
