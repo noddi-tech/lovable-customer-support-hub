@@ -14,6 +14,8 @@ import {
   CASE_PRIORITY_LABELS,
   useCaseCategories,
   useCases,
+  useCaseQueueCounts,
+
   type CasePriority,
   type CaseQueueView,
 } from '@/hooks/useCases';
