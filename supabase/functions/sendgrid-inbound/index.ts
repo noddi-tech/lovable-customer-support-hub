@@ -1,6 +1,13 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { sanitizeStorageFilename } from '../_shared/storage.ts';
 import { parseEmailPriority } from '../_shared/email-priority.ts';
+import {
+  extractConversationIdFromAddress,
+  extractConversationIdFromBody,
+  extractConversationIdFromMessageIds,
+  extractSubjectRef,
+  stripPlusTag,
+} from '../_shared/email-threading.ts';
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
