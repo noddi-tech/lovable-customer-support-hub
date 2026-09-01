@@ -23,6 +23,7 @@ export interface VoiceIntegrationConfig {
       apiId: string;
       apiToken: string;
       domainName?: string;
+      syncContacts?: boolean;
     };
   };
 }
