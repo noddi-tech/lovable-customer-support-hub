@@ -11,15 +11,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useBulkRangeSelect } from '@/hooks/useBulkRangeSelect';
 import { useConversationStatusActions } from '@/hooks/useConversationStatusActions';
 import { ChatListItem } from './ChatListItem';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { BrandFilterSelect } from '@/components/dashboard/conversation-list/BrandFilterSelect';
-import { getConversationBrand, getBrandColor } from '@/lib/conversationBrand';
+import { getConversationBrand } from '@/lib/conversationBrand';
 import type { ChatFilterType } from './ChatFilters';
 
 interface ChatConversation {
