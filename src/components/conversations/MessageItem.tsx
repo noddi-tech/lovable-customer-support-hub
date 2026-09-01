@@ -103,6 +103,27 @@ export const MessageItem = ({ message, conversation, onEdit, onDelete }: Message
                     {attachments.length}
                   </Badge>
                 )}
+
+                {(() => {
+                  const priority = getMessagePriority(message);
+                  if (priority === 'normal') return null;
+                  const high = priority === 'high';
+                  return (
+                    <Badge
+                      variant="outline"
+                      className={cn(
+                        "text-xs",
+                        high
+                          ? "border-destructive/40 text-destructive bg-destructive/10"
+                          : "text-muted-foreground"
+                      )}
+                      title={EMAIL_PRIORITY_LABELS[priority]}
+                    >
+                      {high ? <AlertCircle className="w-3 h-3 mr-1" /> : <ArrowDown className="w-3 h-3 mr-1" />}
+                      {high ? 'High' : 'Low'}
+                    </Badge>
+                  );
+                })()}
               </div>
               
               {/* Recipients line */}

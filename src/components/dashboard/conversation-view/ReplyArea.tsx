@@ -198,6 +198,7 @@ export const ReplyArea = () => {
         dispatch({ type: 'SET_IS_INTERNAL_NOTE', payload: false });
         setMentionedUserIds([]);
         setAttachments([]);
+        setPriority('normal');
         clearConversation();
 
         // Process mentions after successful send
