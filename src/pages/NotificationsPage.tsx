@@ -72,8 +72,13 @@ const NotificationsPage = () => {
     markAsRead,
     markAllAsRead,
     deleteNotification,
+    markMany,
+    deleteMany,
     isMarkingAllRead,
   } = useNotificationFilters(selectedCategory);
+
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [lastClickedId, setLastClickedId] = useState<string | null>(null);
 
   const handleNavigate = (notification: EnhancedNotification) => {
     const data = notification.data || {};
