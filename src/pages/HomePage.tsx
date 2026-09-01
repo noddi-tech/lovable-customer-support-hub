@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils';
 import { groupInboxesByDomain } from '@/utils/inboxGrouping';
 import { useMemo, useState } from 'react';
 import { InboxMetricsDialog } from '@/components/dashboard/InboxMetricsDialog';
+import { SupportOverviewSection } from '@/components/dashboard/SupportOverviewSection';
 
 import {
   Inbox,
@@ -122,7 +123,13 @@ export default function HomePage() {
 
         <Separator />
 
+        {/* Channel overview + gamified leaderboard */}
+        <SupportOverviewSection />
+
+        <Separator />
+
         {/* Inboxes */}
+
         {inboxes.length > 0 && (
           <div>
             <div className="flex items-center justify-between mb-4">
