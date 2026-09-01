@@ -89,5 +89,9 @@ export const useSidebarNavCounts = (): SidebarNavCounts => {
     };
   }, [user, loading, queryClient]);
 
-  return data ?? { text: 0, chat: 0, cases: 0 };
+  return {
+    text: data?.text ?? 0,
+    chat: data?.chat ?? 0,
+    cases: caseCounts?.open ?? 0,
+  };
 };
