@@ -23,6 +23,8 @@ import {
 } from '@/components/cases/CaseBadges';
 import { CaseTimeline } from '@/components/cases/CaseTimeline';
 import { CloseCaseDialog } from '@/components/cases/CloseCaseDialog';
+import { CreateNoddiTicketDialog } from '@/components/noddi-tickets/CreateNoddiTicketDialog';
+import { toast } from 'sonner';
 import {
   CASE_PRIORITY_LABELS,
   CASE_STATUS_LABELS,
