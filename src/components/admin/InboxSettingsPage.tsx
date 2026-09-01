@@ -16,6 +16,8 @@ import { toast } from 'sonner';
 import { ArrowLeft, Mail, MessageSquare, Plug2, ExternalLink, UserCheck, Tag } from 'lucide-react';
 import { useTeamMembers } from '@/hooks/useTeamMembers';
 import { useNoddiBrands } from '@/hooks/useNoddiBrands';
+import { InboxSlaSettings } from '@/components/admin/InboxSlaSettings';
+
 
 export const INBOX_COLOR_PALETTE = [
   { value: '#6656D9', label: 'Primary Purple' },
