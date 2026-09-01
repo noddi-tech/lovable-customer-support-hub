@@ -136,6 +136,14 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
   // a single inbox — in the "All inboxes" view it's essential context.
   const showInboxColumn = !selectedInboxId || selectedInboxId === 'all';
 
+  // Closed/archived threads are handled — don't keep flagging them as "New".
+  const showNewBadge =
+    !conversation.is_read &&
+    conversation.status !== 'closed' &&
+    !conversation.is_archived;
+
+
+
   const computedValues = useMemo(() => {
     const ChannelIcon = channelIcons[conversation.channel] || MessageCircle;
     const customerDisplay = getCustomerDisplay(
