@@ -73,12 +73,18 @@ async function getServiceOrganizations(): Promise<Response> {
       headers: { ...corsHeaders, "Content-Type": "application/json", "X-Cache": "hit" },
     });
   }
-  const res = await callNoddi(`/v1/service-organizations/minimal/?page_size=200`);
+  // Newer deployments expose the slim `/minimal/` variant; fall back to the
+  // full list endpoint when it is not available.
+  let res = await callNoddi(`/v1/service-organizations/minimal/?page_size=200`);
+  if (res.status === 404) {
+    res = await callNoddi(`/v1/service-organizations/?page_size=200`);
+  }
   if (res.ok) {
     const body = await res.clone().text();
     organizationsCache = { body, at: Date.now() };
   }
   return res;
+
 }
 
 const TICKET_STATUSES = ["OPEN", "SNOOZED", "RESOLVED", "ARCHIVED"];
