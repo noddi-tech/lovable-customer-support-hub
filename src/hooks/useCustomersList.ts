@@ -91,6 +91,26 @@ export function useCustomersList(search?: string) {
         if (brand) entry.brands.add(brand.label);
       });
 
+      // Voice: brands attributed through calls (Aircall brand tags land in metadata).
+      const { data: calls } = await (supabase.from('calls') as any)
+        .select(sel('customer_id, metadata'))
+        .in('customer_id', ids)
+        .limit(1000);
+
+      ((calls ?? []) as Array<{ customer_id: string | null; metadata: unknown }>).forEach((call) => {
+        if (!call.customer_id) return;
+        const brand = getConversationBrand(call.metadata, 'voice');
+        if (!brand) return;
+        let entry = stats.get(call.customer_id);
+        if (!entry) {
+          entry = { last: null, count: 0, statuses: new Set(), brands: new Set() };
+          stats.set(call.customer_id, entry);
+        }
+        entry.brands.add(brand.label);
+      });
+
+
+
       return customers
         .map((c) => {
           const entry = stats.get(c.id);
