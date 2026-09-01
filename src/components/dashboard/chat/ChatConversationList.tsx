@@ -247,15 +247,28 @@ export const ChatConversationList: React.FC<ChatConversationListProps> = ({
     <div className="flex flex-col h-full">
       {/* Search + brand filter */}
       <div className="p-2 border-b space-y-2">
-        <div className="relative">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search chats..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-8 h-9 text-sm"
-          />
+        <div className="flex items-center gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search chats..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-8 h-9 text-sm"
+            />
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-9 shrink-0 px-2 text-xs"
+            onClick={() => setKpisOpen(true)}
+            title="Live chat KPIs"
+          >
+            <BarChart3 className="h-4 w-4 sm:mr-1.5" />
+            <span className="hidden sm:inline">KPIs</span>
+          </Button>
         </div>
+
 
         <BrandFilterSelect
           value={brandFilter}
