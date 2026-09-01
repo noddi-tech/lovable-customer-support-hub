@@ -16,7 +16,7 @@ export const BrandBadge: React.FC<BrandBadgeProps> = ({ brand, compact, size = '
   const { findBrand } = useNoddiBrands();
   const match = findBrand(brand.label);
   const label = match?.name ?? brand.label;
-  const color = getBrandColor(match?.slug ?? brand.key);
+  const color = match?.color_primary || getBrandColor(match?.slug ?? brand.key);
   const logo = match?.logo_url ?? null;
 
   const dot = size === 'md' ? 'h-2 w-2' : 'h-1.5 w-1.5';
