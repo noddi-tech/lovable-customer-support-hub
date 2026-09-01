@@ -15,8 +15,8 @@ import {
 } from '@/components/ui/select';
 import { useCustomersList } from '@/hooks/useCustomersList';
 import { useDateFormatting } from '@/hooks/useDateFormatting';
-import { Mail, Phone, Search, UserRound, MessageSquare } from 'lucide-react';
-import { ContextMenu, ContextMenuContent, ContextMenuLabel, ContextMenuTrigger } from '@/components/ui/context-menu';
+import { Mail, Phone, Search, UserRound, MessageSquare, StickyNote } from 'lucide-react';
+import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuLabel, ContextMenuSeparator, ContextMenuTrigger } from '@/components/ui/context-menu';
 import { TagContextMenuItems } from '@/components/tags/TagContextMenuItems';
 import { TagBadgeList } from '@/components/tags/TagBadge';
 import { TagFilterSelect, matchesTagFilter } from '@/components/tags/TagFilterSelect';
@@ -28,6 +28,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { getBrandColor } from '@/lib/conversationBrand';
 import { CustomerDetailsSidebar } from '@/components/customers/CustomerDetailsSidebar';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
+import { AddCustomerNoteDialog } from '@/components/customers/AddCustomerNoteDialog';
 import { cn } from '@/lib/utils';
 
 
@@ -47,6 +48,9 @@ export default function CustomersPage() {
   const { dateTime } = useDateFormatting();
   const { data: allCustomers = [], isLoading } = useCustomersList(search);
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
+  // Right-click "Add note" target. Opened on a deferred tick so the Radix
+  // context menu finishes closing before the dialog takes focus.
+  const [noteTarget, setNoteTarget] = useState<{ id: string; name: string } | null>(null);
   const [isDesktop, setIsDesktop] = useState(() =>
     typeof window !== 'undefined' ? window.matchMedia('(min-width: 1024px)').matches : true,
   );
@@ -243,6 +247,16 @@ export default function CustomersPage() {
                 </div>
                   </ContextMenuTrigger>
                   <ContextMenuContent className="w-52">
+                    <ContextMenuItem
+                      onSelect={() => {
+                        const name = c.full_name || c.email || c.phone || 'this customer';
+                        setTimeout(() => setNoteTarget({ id: c.id, name }), 0);
+                      }}
+                    >
+                      <StickyNote className="mr-2 h-4 w-4" />
+                      Add note
+                    </ContextMenuItem>
+                    <ContextMenuSeparator />
                     <ContextMenuLabel className="text-xs text-muted-foreground">Tags</ContextMenuLabel>
                     <TagContextMenuItems entityType="customer" entityId={c.id} />
                   </ContextMenuContent>
@@ -261,6 +275,16 @@ export default function CustomersPage() {
           />
         )}
         </div>
+
+        {noteTarget && (
+          <AddCustomerNoteDialog
+            key={noteTarget.id}
+            customerId={noteTarget.id}
+            customerName={noteTarget.name}
+            open
+            onOpenChange={(o) => !o && setNoteTarget(null)}
+          />
+        )}
 
         <Sheet
           open={!!selectedCustomerId && !isDesktop}
