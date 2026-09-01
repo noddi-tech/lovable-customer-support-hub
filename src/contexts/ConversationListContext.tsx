@@ -3,6 +3,8 @@ import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tansta
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
+import { matchesTagFilter } from '@/components/tags/TagFilterSelect';
+import { useEntityTags } from '@/hooks/useEntityTags';
 import { getConversationBrand } from '@/lib/conversationBrand';
 import { logger } from '@/utils/logger';
 import { groupConversationsByThread } from '@/lib/conversationThreading';
@@ -688,7 +690,7 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
         }
       })();
 
-      const visible = matchesSearch && matchesStatus && matchesPriority && matchesBrand && matchesInbox && matchesPurpose && matchesTab;
+      const visible = matchesSearch && matchesStatus && matchesPriority && matchesBrand && matchesTags && matchesInbox && matchesPurpose && matchesTab;
 
       // Track rows that belong to this inbox/tab but are hidden by the
       // search / status / priority / purpose filter chips, so the UI can say
