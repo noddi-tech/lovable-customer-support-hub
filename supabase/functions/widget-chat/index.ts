@@ -504,10 +504,17 @@ async function handleSendMessage(supabase: any, data: MessageRequest) {
   }
 
   // Update session last_message_at and conversation preview
+  const sessionMeta = (session.metadata || {}) as Record<string, unknown>;
+  const sessionContext = (sessionMeta.context || {}) as Record<string, unknown>;
+  const sessionUpdate: Record<string, unknown> = { last_message_at: new Date().toISOString() };
+  if (locale && sessionContext.locale !== locale) {
+    sessionUpdate.metadata = { ...sessionMeta, context: { ...sessionContext, locale } };
+  }
+
   await Promise.all([
     supabase
       .from('widget_chat_sessions')
-      .update({ last_message_at: new Date().toISOString() })
+      .update(sessionUpdate)
       .eq('id', sessionId),
     supabase
       .from('conversations')
