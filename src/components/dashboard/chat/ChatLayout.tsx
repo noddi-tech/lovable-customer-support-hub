@@ -10,6 +10,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { MessageCircle, Settings } from 'lucide-react';
+import { LiveChatSlaDialog } from './LiveChatSlaDialog';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { SidebarTrigger } from '@/components/ui/sidebar';
@@ -26,23 +27,24 @@ export const ChatLayout: React.FC = () => {
   const { profile, isAdmin } = useAuth();
   const isMobile = useIsMobile();
   const organizationId = profile?.organization_id;
+  const [slaOpen, setSlaOpen] = useState(false);
 
-  const widgetSettingsButton = isAdmin ? (
+  const widgetSettingsButton = (
     <Tooltip>
       <TooltipTrigger asChild>
         <Button
           variant="ghost"
           size="icon"
           className="h-8 w-8"
-          aria-label="Widget settings"
-          onClick={() => navigate('/admin/widget')}
+          aria-label="Live chat service levels"
+          onClick={() => setSlaOpen(true)}
         >
           <Settings className="h-4 w-4" />
         </Button>
       </TooltipTrigger>
-      <TooltipContent>Widget settings (Admin portal)</TooltipContent>
+      <TooltipContent>Live chat SLA &amp; performance</TooltipContent>
     </Tooltip>
-  ) : null;
+  );
 
   // Map URL filter to our filter type
   const currentFilter: ChatFilterType = 
@@ -148,6 +150,8 @@ export const ChatLayout: React.FC = () => {
             onSelect={handleSelectChat}
           />
         </div>
+
+        <LiveChatSlaDialog open={slaOpen} onOpenChange={setSlaOpen} canEdit={isAdmin} />
       </div>
     );
   }
@@ -202,6 +206,8 @@ export const ChatLayout: React.FC = () => {
           )}
         </ResizablePanel>
       </ResizablePanelGroup>
+
+      <LiveChatSlaDialog open={slaOpen} onOpenChange={setSlaOpen} canEdit={isAdmin} />
     </div>
   );
 };

@@ -6847,6 +6847,7 @@ export type Database = {
       }
       sla_policies: {
         Row: {
+          channel: string | null
           created_at: string
           first_response_minutes: number
           id: string
@@ -6858,6 +6859,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          channel?: string | null
           created_at?: string
           first_response_minutes?: number
           id?: string
@@ -6869,6 +6871,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          channel?: string | null
           created_at?: string
           first_response_minutes?: number
           id?: string
@@ -8155,6 +8158,10 @@ export type Database = {
         | { Args: { p_age?: string }; Returns: number }
       create_test_notification: { Args: never; Returns: undefined }
       current_profile_id: { Args: never; Returns: string }
+      delete_channel_sla_policy: {
+        Args: { p_channel: string; p_inbox_id?: string; p_priority: string }
+        Returns: undefined
+      }
       delete_email_account: { Args: { account_id: string }; Returns: undefined }
       delete_inbox_sla_policy: {
         Args: { p_inbox_id: string; p_priority: string }
@@ -8324,6 +8331,18 @@ export type Database = {
         }[]
       }
       get_channel_overview_metrics: { Args: { p_days?: number }; Returns: Json }
+      get_channel_sla_policies: {
+        Args: { p_channel: string }
+        Returns: {
+          channel: string
+          first_response_minutes: number
+          id: string
+          inbox_id: string
+          is_active: boolean
+          priority: string
+          resolution_minutes: number
+        }[]
+      }
       get_chat_support_metrics: { Args: { p_days?: number }; Returns: Json }
       get_conversations: {
         Args: {
@@ -8485,10 +8504,12 @@ export type Database = {
           total_count: number
         }[]
       }
-      get_inbox_support_metrics: {
-        Args: { p_days?: number; p_inbox_id?: string }
-        Returns: Json
-      }
+      get_inbox_support_metrics:
+        | { Args: { p_days?: number; p_inbox_id?: string }; Returns: Json }
+        | {
+            Args: { p_channel?: string; p_days?: number; p_inbox_id?: string }
+            Returns: Json
+          }
       get_inboxes: {
         Args: never
         Returns: {
@@ -8778,6 +8799,17 @@ export type Database = {
       update_pipeline_stages: {
         Args: { p_new_stages: Json; p_pipeline_id: string }
         Returns: Json
+      }
+      upsert_channel_sla_policy: {
+        Args: {
+          p_channel: string
+          p_first_response_minutes: number
+          p_inbox_id?: string
+          p_is_active?: boolean
+          p_priority: string
+          p_resolution_minutes: number
+        }
+        Returns: string
       }
       upsert_inbox_sla_policy: {
         Args: {
