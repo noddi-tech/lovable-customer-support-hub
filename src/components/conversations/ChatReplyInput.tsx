@@ -151,7 +151,25 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
         .single();
 
       const messageContent = content || (uploadedAttachments.length > 0 ? '[Attachment]' : '');
-      
+
+      // Decide up-front whether the visitor is live in the widget. If they are,
+      // the reply is delivered in the chat and no email is involved at all —
+      // so the message must not be flagged with an email status.
+      let isLive = false;
+      if (!isInternalNote) {
+        const { data: sessions } = await supabase
+          .from('widget_chat_sessions')
+          .select('id, last_seen_at, status')
+          .eq('conversation_id', conversationId)
+          .in('status', ['active', 'waiting'])
+          .order('last_seen_at', { ascending: false })
+          .limit(1);
+
+        const activeSession = sessions?.[0];
+        isLive = !!activeSession?.last_seen_at &&
+          new Date(activeSession.last_seen_at) > new Date(Date.now() - 90_000);
+      }
+
       const { data: insertedMsg, error } = await supabase
         .from('messages')
         .insert({
@@ -161,7 +179,7 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
           sender_id: user.id,
           is_internal: isInternalNote,
           attachments: uploadedAttachments.length > 0 ? uploadedAttachments : null,
-          email_status: isInternalNote ? null : 'sending',
+          email_status: isInternalNote || isLive ? null : 'sending',
         })
         .select('id')
         .single();
@@ -170,7 +188,7 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
 
       // For non-internal messages: update status + send email if not live
       if (!isInternalNote) {
-        console.log('[ChatReplyInput] Updating conversation status:', { conversationId, replyStatus });
+        console.log('[ChatReplyInput] Updating conversation status:', { conversationId, replyStatus, isLive });
         const { error: statusError } = await supabase
           .from('conversations')
           .update({ 
@@ -185,17 +203,6 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
           throw new Error(`Failed to update status: ${statusError.message}`);
         }
 
-        const { data: activeSession } = await supabase
-          .from('widget_chat_sessions')
-          .select('id, last_seen_at, status')
-          .eq('conversation_id', conversationId)
-          .in('status', ['active', 'waiting'])
-          .maybeSingle();
-
-        const isLive = activeSession?.last_seen_at && 
-          new Date(activeSession.last_seen_at) > new Date(Date.now() - 60000) &&
-          activeSession.status === 'active';
-
         if (!isLive && insertedMsg?.id) {
           const { error: emailError } = await supabase.functions.invoke('send-reply-email', {
             body: { messageId: insertedMsg.id }
@@ -207,6 +214,7 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
           }
         }
       }
+
 
       // Track AI suggestion usage (same pattern as email ReplyArea via ConversationViewContext)
       if (!isInternalNote && insertedMsg?.id && state.selectedAiSuggestion) {
