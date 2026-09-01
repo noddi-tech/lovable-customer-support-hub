@@ -33,7 +33,7 @@ export default function CustomersPage() {
 
   const brandOptions = useMemo(() => {
     const set = new Set<string>();
-    allCustomers.forEach((c) => c.brands.forEach((b) => set.add(b)));
+    allCustomers.forEach((c) => (c?.brands ?? []).forEach((b) => set.add(b)));
     return Array.from(set).sort((a, b) => a.localeCompare(b));
   }, [allCustomers]);
 
