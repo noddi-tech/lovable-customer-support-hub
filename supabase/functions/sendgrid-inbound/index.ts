@@ -485,7 +485,9 @@ Deno.serve(async (req: Request) => {
           status: "open",
           is_read: false,
           received_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
+          // Escalate on a high-importance follow-up; never downgrade an existing thread.
+          ...(emailPriority === "high" ? { priority: "high" } : {}),
         })
         .eq("id", conversation_id);
       
