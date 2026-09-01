@@ -40,8 +40,8 @@ export default function CustomersPage() {
   const customers = useMemo(
     () =>
       allCustomers.filter((c) => {
-        if (statusFilter !== 'all' && !c.statuses.includes(statusFilter)) return false;
-        if (brandFilter !== 'all' && !c.brands.includes(brandFilter)) return false;
+        if (statusFilter !== 'all' && !(c?.statuses ?? []).includes(statusFilter)) return false;
+        if (brandFilter !== 'all' && !(c?.brands ?? []).includes(brandFilter)) return false;
         return true;
       }),
     [allCustomers, statusFilter, brandFilter],
