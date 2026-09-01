@@ -64,6 +64,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from '@/integrations/supabase/client';
+import { ConversationBrandPicker } from './ConversationBrandPicker';
 import { WidgetContextCard } from './WidgetContextCard';
 
 interface ConversationViewContentProps {
