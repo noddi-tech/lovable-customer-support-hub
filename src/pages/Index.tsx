@@ -135,20 +135,6 @@ const Index = () => {
             </React.Suspense>
           );
         }
-        if (subSection === 'operations-settings') {
-          return (
-            <div className="flex items-center justify-center h-full p-8 text-center">
-              <div className="max-w-md">
-                <h2 className="text-2xl font-semibold mb-4 text-foreground">
-                  Operations Settings
-                </h2>
-                <p className="text-muted-foreground">
-                  Configure operations workflows and preferences.
-                </p>
-              </div>
-            </div>
-          );
-        }
         // Default to service tickets
         return <ServiceTicketsInterface />;
       
