@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { renderBrandedEmail, isFullHtmlDocument } from "../_shared/branded-email.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -12,6 +13,12 @@ interface EmailRequest {
   from_email?: string;
   from_name?: string;
   headers?: Record<string, string>;
+  /** Brand hint ("noddi", "dekkfix", inbox name...) used for header/footer branding. */
+  brand?: string;
+  /** Set to true to send the HTML as-is, without the branded header/footer. */
+  skip_layout?: boolean;
+  /** Optional inbox preview line. */
+  preheader?: string;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -26,7 +33,7 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     const body: EmailRequest = await req.json();
-    const { to, subject, html, from_email, from_name, headers } = body;
+    const { to, subject, html, from_email, from_name, headers, brand, skip_layout, preheader } = body;
 
     if (!to || !subject || !html) {
       return new Response(
@@ -38,11 +45,23 @@ const handler = async (req: Request): Promise<Response> => {
     const senderEmail = from_email || "noreply@noddi.no";
     const senderName = from_name || "Noddi Support";
 
+    // Every outgoing email uses the shared branded layout (header + company
+    // footer), unless the caller already provides a complete HTML document or
+    // explicitly opts out.
+    const finalHtml =
+      skip_layout || isFullHtmlDocument(html)
+        ? html
+        : await renderBrandedEmail({
+            bodyHtml: html,
+            brandHints: [brand, from_name, senderEmail, subject],
+            preheader,
+          });
+
     const sgPayload: any = {
       personalizations: [{ to: [{ email: to }] }],
       from: { email: senderEmail, name: senderName },
       subject,
-      content: [{ type: "text/html", value: html }],
+      content: [{ type: "text/html", value: finalHtml }],
     };
 
     if (headers && Object.keys(headers).length > 0) {
