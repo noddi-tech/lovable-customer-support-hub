@@ -208,7 +208,7 @@ export default function HomePage() {
                           <Button
                             variant="outline"
                             size="sm"
-                            className="h-7 px-2 text-[11px]"
+                            className="h-9 px-3 text-xs sm:h-7 sm:px-2 sm:text-[11px]"
                             onClick={(e) => {
                               e.stopPropagation();
                               navigate(`/admin/inboxes/${inbox.id}`);
@@ -228,7 +228,7 @@ export default function HomePage() {
                                   size="icon"
                                   aria-label={isDefault ? `Clear default inbox` : `Set ${inbox.name} as default inbox`}
                                   className={cn(
-                                    'h-7 w-7',
+                                    'h-9 w-9 sm:h-7 sm:w-7',
                                     isDefault ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
                                   )}
                                   onClick={(e) => {
