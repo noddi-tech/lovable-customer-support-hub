@@ -911,7 +911,7 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
         for (const chunk of idChunks) {
           const { error } = await supabase
             .from('conversations')
-            .update({ is_archived: true, status: 'closed' })
+            .update({ is_archived: true, status: 'closed', is_read: true })
             .in('id', chunk);
           if (error) throw error;
         }
