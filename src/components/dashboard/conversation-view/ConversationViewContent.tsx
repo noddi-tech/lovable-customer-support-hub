@@ -281,7 +281,15 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
               )}
             </div>
 
+            {/* Brand (auto-set by the widget, manually overridable here) */}
+            <ConversationBrandPicker
+              conversationId={conversation.id}
+              metadata={(conversation as any).metadata}
+              channel={conversation.channel}
+            />
+
             {/* Status dropdown */}
+
             <Select 
               value={conversation?.status || 'open'} 
               onValueChange={(status) => updateStatus({ status })}
