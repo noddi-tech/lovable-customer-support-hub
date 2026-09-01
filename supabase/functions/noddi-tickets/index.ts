@@ -60,6 +60,27 @@ async function getServiceDepartments(): Promise<Response> {
   return res;
 }
 
+/**
+ * Service organizations (the Navio-side owner of bookings/tickets) change very
+ * rarely too, so they share the same warm in-memory cache strategy and are only
+ * refetched once the TTL expires.
+ */
+let organizationsCache: { body: string; at: number } | null = null;
+
+async function getServiceOrganizations(): Promise<Response> {
+  if (organizationsCache && Date.now() - organizationsCache.at < DEPARTMENTS_TTL_MS) {
+    return new Response(organizationsCache.body, {
+      headers: { ...corsHeaders, "Content-Type": "application/json", "X-Cache": "hit" },
+    });
+  }
+  const res = await callNoddi(`/v1/service-organizations/minimal/?page_size=200`);
+  if (res.ok) {
+    const body = await res.clone().text();
+    organizationsCache = { body, at: Date.now() };
+  }
+  return res;
+}
+
 const TICKET_STATUSES = ["OPEN", "SNOOZED", "RESOLVED", "ARCHIVED"];
 const TICKET_PRIORITIES = ["LOW", "NORMAL", "HIGH", "URGENT"];
 const TICKET_CATEGORIES = [
@@ -272,6 +293,9 @@ Deno.serve(async (req) => {
 
       case "departments":
         return await getServiceDepartments();
+
+      case "organizations":
+        return await getServiceOrganizations();
 
       case "tags":
         return await callNoddi(`/v1/tags/?page_size=200`);
