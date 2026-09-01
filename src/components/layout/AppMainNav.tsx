@@ -32,6 +32,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { AgentAvailabilityPanel } from './AgentAvailabilityPanel';
 /**
  * Once the nav has rendered with resolved permissions we never show the
@@ -111,6 +112,31 @@ export const AppMainNav = () => {
     }
   };
 
+  /**
+   * Hover hint explaining what a nav entry is for. Skipped when the sidebar is
+   * collapsed — SidebarMenuButton already renders its own label tooltip there.
+   */
+  const NavHint = ({
+    title,
+    description,
+    children,
+  }: {
+    title: string;
+    description?: string;
+    children: React.ReactNode;
+  }) => {
+    if (!description || isCollapsed || isMobile) return <>{children}</>;
+    return (
+      <Tooltip delayDuration={350}>
+        <TooltipTrigger asChild>{children}</TooltipTrigger>
+        <TooltipContent side="right" align="start" className="max-w-[260px]">
+          <p className="text-xs font-medium">{title}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
+        </TooltipContent>
+      </Tooltip>
+    );
+  };
+
   if (showLoadingShell) {
     return (
       <Sidebar collapsible="offcanvas">
@@ -145,12 +171,14 @@ export const AppMainNav = () => {
 
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild tooltip="Home">
-              <NavLink to="/home" onClick={handleNavClick} className="hover:bg-muted/50">
-                <Home className="mr-2 h-4 w-4" />
-                {!isCollapsed && <span className="font-semibold">Home</span>}
-              </NavLink>
-            </SidebarMenuButton>
+            <NavHint title="Home" description="Overview dashboard with today's activity and quick links to every area.">
+              <SidebarMenuButton asChild tooltip="Home">
+                <NavLink to="/home" onClick={handleNavClick} className="hover:bg-muted/50">
+                  <Home className="mr-2 h-4 w-4" />
+                  {!isCollapsed && <span className="font-semibold">Home</span>}
+                </NavLink>
+              </SidebarMenuButton>
+            </NavHint>
           </SidebarMenuItem>
         </SidebarMenu>
         {!isCollapsed && (
@@ -195,29 +223,31 @@ export const AppMainNav = () => {
                     
                     return (
                       <SidebarMenuItem key={item.id}>
-                        <SidebarMenuButton asChild tooltip={item.label}>
-                          <NavLink 
-                            to={item.to} 
-                            end={item.to === '/'}
-                            onClick={handleNavClick}
-                            className={cn(
-                              getNavClassName(itemIsActive),
-                              groupKey === 'super_admin' && itemIsActive && "bg-yellow-500/10 text-yellow-600 dark:text-yellow-500 font-medium"
-                            )}
-                            {...(itemIsActive && { "aria-current": "page" })}
-                          >
-                            <Icon className="mr-2 h-4 w-4 shrink-0" />
+                        <NavHint title={item.label} description={item.description}>
+                          <SidebarMenuButton asChild tooltip={item.label}>
+                            <NavLink 
+                              to={item.to} 
+                              end={item.to === '/'}
+                              onClick={handleNavClick}
+                              className={cn(
+                                getNavClassName(itemIsActive),
+                                groupKey === 'super_admin' && itemIsActive && "bg-yellow-500/10 text-yellow-600 dark:text-yellow-500 font-medium"
+                              )}
+                              {...(itemIsActive && { "aria-current": "page" })}
+                            >
+                              <Icon className="mr-2 h-4 w-4 shrink-0" />
 
-                            {!isCollapsed && (
-                              <span className="flex-1 flex items-center justify-between">
-                                <span>{item.label}</span>
-                                {showBadge && (
-                                  <SidebarCounter count={badgeCount} variant="unread" />
-                                )}
-                              </span>
-                            )}
-                          </NavLink>
-                        </SidebarMenuButton>
+                              {!isCollapsed && (
+                                <span className="flex-1 flex items-center justify-between">
+                                  <span>{item.label}</span>
+                                  {showBadge && (
+                                    <SidebarCounter count={badgeCount} variant="unread" />
+                                  )}
+                                </span>
+                              )}
+                            </NavLink>
+                          </SidebarMenuButton>
+                        </NavHint>
                       </SidebarMenuItem>
                     );
                   })}
