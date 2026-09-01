@@ -69,6 +69,9 @@ export const AdminPortal = () => {
       case 'health':
         return <SystemHealthPage />;
 
+      case 'edge-functions':
+        return <EdgeFunctionsOverview />;
+
       case 'voice':
         // Redirect to integrations tab
         return (
