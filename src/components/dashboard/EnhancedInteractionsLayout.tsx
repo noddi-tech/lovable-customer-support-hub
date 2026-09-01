@@ -11,6 +11,7 @@ import { ConversationList } from './ConversationList';
 import { ResponsiveContainer } from '@/components/admin/design/components/layouts/ResponsiveContainer';
 import { useInteractionsNavigation } from '@/hooks/useInteractionsNavigation';
 import { useAccessibleInboxes, useConversations, useThread, useReply } from '@/hooks/useInteractionsData';
+import { useDefaultInbox } from '@/hooks/useDefaultInbox';
 import { useAuth } from '@/hooks/useAuth';
 import type { ConversationRow } from '@/types/interactions';
 import { formatDistanceToNow } from 'date-fns';
@@ -122,21 +123,26 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
   const threadParam = new URLSearchParams(window.location.search).get('thread');
   const conversationIds = threadParam ? threadParam.split(',') : conversationId;
   
-  // Get accessible inboxes and set default if needed
+  // Get accessible inboxes and the user's starred default inbox (if any)
   const { data: inboxes = [] } = useAccessibleInboxes();
-  
+  const { defaultInboxId, isLoading: defaultInboxLoading } = useDefaultInbox();
+
+  // Fall back to the user's starred inbox; when no inbox is starred, show all inboxes
+  const fallbackInboxId =
+    defaultInboxId && inboxes.some((i) => i.id === defaultInboxId) ? defaultInboxId : 'all';
+
   // Determine effective inbox ID
-  const effectiveInboxId = inbox || selectedInboxId || inboxes[0]?.id || 'all';
+  const effectiveInboxId = inbox || selectedInboxId || fallbackInboxId;
   const effectiveStatus = status || 'all';
   const effectiveSearch = search || searchQuery;
 
-  // Set default inbox if none selected - use stable reference to setInbox
+  // Apply the starred default inbox to the URL once; never auto-pick an arbitrary inbox
   const { setInbox: navigationSetInbox } = navigation;
   useEffect(() => {
-    if (!isDetail && !inbox && !selectedInboxId && inboxes.length > 0) {
-      navigationSetInbox(inboxes[0].id);
+    if (!isDetail && !inbox && !selectedInboxId && !defaultInboxLoading && fallbackInboxId !== 'all') {
+      navigationSetInbox(fallbackInboxId);
     }
-  }, [isDetail, inbox, selectedInboxId, inboxes, navigationSetInbox]);
+  }, [isDetail, inbox, selectedInboxId, defaultInboxLoading, fallbackInboxId, navigationSetInbox]);
 
   // Get conversations and thread data
   // Exclude 'widget' channel since those are now in the dedicated Chat section
