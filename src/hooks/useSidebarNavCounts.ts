@@ -21,6 +21,9 @@ export const useSidebarNavCounts = (): SidebarNavCounts => {
   const queryClient = useQueryClient();
   const organizationId = profile?.organization_id;
 
+  // Reuse the exact same query the Cases page uses, so the badge always matches "All open"
+  const { data: caseCounts } = useCaseQueueCounts();
+
   const { data } = useQuery({
     queryKey: ['sidebar-nav-counts', organizationId],
     enabled: !!user && !loading,
