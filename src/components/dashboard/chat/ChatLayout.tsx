@@ -15,7 +15,6 @@ import { ChatMetricsDialog } from '@/components/dashboard/ChatMetricsDialog';
 import { ChannelPageHeader } from '@/components/dashboard/shared/ChannelPageHeader';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { SidebarTrigger } from '@/components/ui/sidebar';
 import { useIsMobile } from '@/hooks/use-responsive';
 
 // Direct import - lazy loading was causing context provider issues

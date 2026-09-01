@@ -22,7 +22,6 @@ import { useTranslation } from "react-i18next";
 import type { SortBy } from "@/contexts/ConversationListContext";
 import { useMemo, useState } from "react";
 import { useIsMobile } from "@/hooks/use-responsive";
-import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import { useAccessibleInboxes } from "@/hooks/useInteractionsData";
