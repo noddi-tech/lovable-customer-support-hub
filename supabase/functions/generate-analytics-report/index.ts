@@ -44,6 +44,11 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Authorization: caller must belong to the requested organization.
+    const auth = await requireOrgMember(req, organizationId);
+    if ('response' in auth) return auth.response;
+
+
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     const startDate = new Date(Date.now() - periodDays * 24 * 60 * 60 * 1000).toISOString();
 
