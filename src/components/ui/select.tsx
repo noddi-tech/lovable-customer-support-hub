@@ -81,7 +81,9 @@ const nodeText = (node: React.ReactNode): string => {
   return ""
 }
 
-const isSelectItem = (node: React.ReactNode): node is React.ReactElement =>
+const isSelectItem = (
+  node: React.ReactNode
+): node is React.ReactElement<{ children?: React.ReactNode }> =>
   React.isValidElement(node) &&
   (node.type === SelectItem || node.type === SelectPrimitive.Item)
 
