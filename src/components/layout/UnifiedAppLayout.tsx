@@ -11,6 +11,7 @@ import { useOpenConversationsBadge } from '@/hooks/useOpenConversationsBadge';
 import { WhatsNewDialog } from '@/features/whats-new/WhatsNewDialog';
 import { MobileEdgeSwipe } from './MobileEdgeSwipe';
 import { NewChatAlertBanner } from '@/components/live-chat/NewChatAlertBanner';
+import { MobileBottomNav } from './MobileBottomNav';
 
 interface UnifiedAppLayoutProps {
   children: React.ReactNode;
@@ -81,12 +82,15 @@ export const UnifiedAppLayout: React.FC<UnifiedAppLayoutProps> = ({
         {/* Sidebar Navigation */}
         <AppMainNav />
 
-        {/* Main Content Area */}
-        <main className="flex-1 min-h-0 w-full max-w-none overflow-auto bg-background">
-          <div key={section} className="h-full animate-fade-in">
-            {children}
-          </div>
-        </main>
+        {/* Main Content Area + phone tab bar */}
+        <div className="flex min-w-0 flex-1 flex-col">
+          <main className="flex-1 min-h-0 w-full max-w-none overflow-auto bg-background">
+            <div key={section} className="h-full animate-fade-in">
+              {children}
+            </div>
+          </main>
+          <MobileBottomNav />
+        </div>
       </div>
     </SidebarProvider>
   );
