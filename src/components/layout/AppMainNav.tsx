@@ -71,12 +71,13 @@ export const AppMainNav = () => {
     cn(isItemActive ? "bg-muted text-primary font-medium" : "hover:bg-muted/50");
 
   const handleNavClick = () => {
+    // Only auto-close the mobile drawer (it overlays content).
+    // On desktop the sidebar stays as the user left it.
     if (isMobile) {
       setOpenMobile(false);
-    } else {
-      setOpen(false);
     }
   };
+
 
   const groupLabels: Record<string, string> = {
     notifications: t('navigation.notifications', 'Notifications'),
