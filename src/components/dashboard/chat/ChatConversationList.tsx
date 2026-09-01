@@ -344,6 +344,8 @@ export const ChatConversationList: React.FC<ChatConversationListProps> = ({
           </div>
         </ScrollArea>
       )}
+
+      <ChatMetricsDialog open={kpisOpen} onOpenChange={setKpisOpen} />
     </div>
   );
 };
