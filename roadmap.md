@@ -24,3 +24,6 @@
 - [x] Reporting: contact reasons, resolution mix, avg resolution time, agent load
 - [x] Taxonomy editor (categories + resolution codes)
 - [ ] Repeat-contact rate and FRT-vs-SLA trend over time
+
+## Build health
+- [x] Fix all current preview typecheck/build errors

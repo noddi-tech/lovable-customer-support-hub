@@ -206,18 +206,6 @@ const AircallLoginModalComponent: React.FC<AircallLoginModalProps> = ({
             </Alert>
           )}
 
-          {/* Brave Warning (after 5 seconds) */}
-          {browserInfo?.type === 'brave' && elapsedTime >= 5 && (
-            <Alert className="border-orange-500/50 bg-orange-50 dark:bg-orange-950/20">
-              <Shield className="h-4 w-4 text-orange-600" />
-              <AlertDescription className="ml-2">
-                <strong>{t('aircall.login.browser.braveDetected')}</strong>
-                <br />
-                <span className="text-sm">{t('aircall.login.browser.braveInstructions')}</span>
-              </AlertDescription>
-            </Alert>
-          )}
-
           {/* Status Message */}
           <div className="flex items-center gap-3 p-4 rounded-lg bg-muted">
             {verificationStatus === 'checking' ? (
