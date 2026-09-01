@@ -11,6 +11,8 @@ import { formatPhoneNumber } from '@/utils/phoneNumberUtils';
 import { useCallNotes } from '@/hooks/useCallNotes';
 import { getConversationBrand } from '@/lib/conversationBrand';
 import { BrandBadge } from '@/components/dashboard/conversation-list/BrandBadge';
+import { TagBadgeList } from '@/components/tags/TagBadge';
+import { useEntityTags } from '@/hooks/useEntityTags';
 import { CallBrandContextMenu } from './CallBrandContextMenu';
 
 const statusColors = {
@@ -98,6 +100,8 @@ export const CallTableRow = memo<CallTableRowProps>(({
   const customerEmail = call.customer_email || call.customers?.email;
   const customerInitial = customerName[0]?.toUpperCase() || 'U';
   const brand = getConversationBrand(call.metadata, 'voice');
+  const { getTags: getCallTags } = useEntityTags('call');
+  const callTags = getCallTags(call.id);
 
   return (
     <CallBrandContextMenu callId={call.id} metadata={call.metadata}>
@@ -139,6 +143,7 @@ export const CallTableRow = memo<CallTableRowProps>(({
           <div className="min-w-0 flex-1">
             <div className="text-sm truncate">{customerName}</div>
             {brand && <BrandBadge brand={brand} compact className="mt-0.5" />}
+            <TagBadgeList tags={callTags} compact max={2} className="mt-0.5" />
             {customerEmail && (
               <div className="text-xs text-muted-foreground truncate hidden xl:block">
                 {customerEmail}

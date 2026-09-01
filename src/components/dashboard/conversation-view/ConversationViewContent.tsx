@@ -65,6 +65,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from '@/integrations/supabase/client';
 import { ConversationBrandPicker } from './ConversationBrandPicker';
+import { EntityTagPicker } from '@/components/tags/TagPicker';
 import { WidgetContextCard } from './WidgetContextCard';
 
 interface ConversationViewContentProps {
@@ -288,6 +289,9 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
               metadata={(conversation as any).metadata}
               channel={conversation.channel}
             />
+
+            {/* Custom tags */}
+            <EntityTagPicker entityType="conversation" entityId={conversation.id} />
 
             {/* Status dropdown */}
 

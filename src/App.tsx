@@ -173,6 +173,7 @@ const AppContent = () => {
       <Route path="/settings/general" element={<Navigate to="/settings" replace />} />
       <Route path="/settings/profile" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
       <Route path="/settings/notifications" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+      <Route path="/settings/tags" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
       <Route path="/settings/email-templates" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
       
       {/* ========== ADMIN ========== */}

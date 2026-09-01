@@ -3,6 +3,8 @@ import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tansta
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
+import { matchesTagFilter } from '@/components/tags/TagFilterSelect';
+import { useEntityTags } from '@/hooks/useEntityTags';
 import { getConversationBrand } from '@/lib/conversationBrand';
 import { logger } from '@/utils/logger';
 import { groupConversationsByThread } from '@/lib/conversationThreading';
@@ -76,6 +78,8 @@ interface ConversationListState {
   priorityFilter: string;
   /** Brand key from conversation metadata, 'all' or 'unknown' (no brand). */
   brandFilter: string;
+  /** Selected tag ids, or the UNTAGGED sentinel. Empty means no tag filter. */
+  tagFilter: string[];
   purposeFilter: PurposeFilter;
   sortBy: SortBy;
   deleteDialogOpen: boolean;
@@ -94,6 +98,7 @@ type ConversationListAction =
   | { type: 'SET_STATUS_FILTER'; payload: string }
   | { type: 'SET_PRIORITY_FILTER'; payload: string }
   | { type: 'SET_BRAND_FILTER'; payload: string }
+  | { type: 'SET_TAG_FILTER'; payload: string[] }
   | { type: 'SET_PURPOSE_FILTER'; payload: PurposeFilter }
   | { type: 'SET_SORT_BY'; payload: SortBy }
   | { type: 'TOGGLE_FILTERS' }
@@ -126,6 +131,7 @@ const initialState: ConversationListState = {
   statusFilter: 'all',
   priorityFilter: 'all',
   brandFilter: 'all',
+  tagFilter: [],
   purposeFilter: loadPurposeFilter(),
   sortBy: 'latest',
   deleteDialogOpen: false,
@@ -152,6 +158,8 @@ function conversationListReducer(state: ConversationListState, action: Conversat
       return { ...state, priorityFilter: action.payload, currentPage: 1 };
     case 'SET_BRAND_FILTER':
       return { ...state, brandFilter: action.payload, currentPage: 1 };
+    case 'SET_TAG_FILTER':
+      return { ...state, tagFilter: action.payload, currentPage: 1 };
     case 'SET_SORT_BY':
       return { ...state, sortBy: action.payload };
     case 'TOGGLE_FILTERS':
@@ -253,6 +261,7 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
   const [state, dispatch] = useReducer(conversationListReducer, initialState);
   const queryClient = useQueryClient();
   const { user, profile } = useAuth();
+  const { tagsByEntity: conversationTags } = useEntityTags('conversation');
 
 
   // Fetch agents for assignment - uses shared hook for consistent caching
@@ -615,6 +624,10 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
       const matchesPriority = state.priorityFilter === "all" || conversation.priority === state.priorityFilter;
       const matchesBrand = state.brandFilter === 'all' ||
         (getConversationBrand(conversation.metadata, conversation.channel)?.key ?? 'unknown') === state.brandFilter;
+      const matchesTags = matchesTagFilter(
+        (conversationTags.get(conversation.id) || []).map((t) => t.id),
+        state.tagFilter,
+      );
       const matchesInbox = effectiveInboxIds.length === 0 || effectiveInboxIds.includes(conversation.inbox_id || '');
       const convPurpose = (conversation.conversation_type === 'recruitment') ? 'recruitment' : 'support';
       const matchesPurpose = state.purposeFilter === 'all' || convPurpose === state.purposeFilter;
@@ -678,7 +691,7 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
         }
       })();
 
-      const visible = matchesSearch && matchesStatus && matchesPriority && matchesBrand && matchesInbox && matchesPurpose && matchesTab;
+      const visible = matchesSearch && matchesStatus && matchesPriority && matchesBrand && matchesTags && matchesInbox && matchesPurpose && matchesTab;
 
       // Track rows that belong to this inbox/tab but are hidden by the
       // search / status / priority / purpose filter chips, so the UI can say
@@ -756,7 +769,7 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
       }
     });
     return { list: sortedByRecency, hiddenCount };
-  }, [conversations, state.searchQuery, state.statusFilter, state.priorityFilter, state.brandFilter, state.purposeFilter, state.sortBy, state.tableSort, selectedTab, selectedInboxId, effectiveInboxId, effectiveInboxIds]);
+  }, [conversations, state.searchQuery, state.statusFilter, state.priorityFilter, state.brandFilter, state.tagFilter, conversationTags, state.purposeFilter, state.sortBy, state.tableSort, selectedTab, selectedInboxId, effectiveInboxId, effectiveInboxIds]);
 
   // Comprehensive debug logging
   logger.debug('Filter state', {

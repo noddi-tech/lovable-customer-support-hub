@@ -19,6 +19,7 @@ import { useTeamMembers, type TeamMember } from '@/hooks/useTeamMembers';
 import { useConversationBrandActions } from '@/hooks/useConversationBrandActions';
 import { useNoddiBrands } from '@/hooks/useNoddiBrands';
 import { useBrandSearch, BrandSearchInput, BrandOptionContent } from '@/components/dashboard/conversation-list/BrandSearch';
+import { TagContextMenuItems } from '@/components/tags/TagContextMenuItems';
 
 interface ConversationStatusContextMenuProps {
   conversationId: string;
@@ -150,6 +151,9 @@ export const ConversationStatusContextMenu: React.FC<ConversationStatusContextMe
             </ContextMenuItem>
           </ContextMenuSubContent>
         </ContextMenuSub>
+        <ContextMenuSeparator />
+        <ContextMenuLabel className="text-xs text-muted-foreground">Tags</ContextMenuLabel>
+        <TagContextMenuItems entityType="conversation" entityId={conversationId} />
         <ContextMenuSeparator />
         <ContextMenuLabel className="text-xs text-muted-foreground">Change status</ContextMenuLabel>
         <ContextMenuItem

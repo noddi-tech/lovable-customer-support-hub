@@ -19,6 +19,8 @@ import { EnhancedCallCard } from './EnhancedCallCard';
 import { AdvancedCallFilters, CallFilters } from './AdvancedCallFilters';
 import { BadgeGuide } from './BadgeGuide';
 import { CallsTable } from './CallsTable';
+import { TagFilterSelect, matchesTagFilter } from '@/components/tags/TagFilterSelect';
+import { useEntityTags } from '@/hooks/useEntityTags';
 import { SyncCustomerNamesButton } from './SyncCustomerNamesButton';
 import { useIsMobile } from '@/hooks/use-responsive';
 
@@ -35,9 +37,11 @@ export const CallsList = ({ showTimeFilter = true, dateFilter, onNavigateToEvent
   const { t } = useTranslation();
   const isMobile = useIsMobile();
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [tagFilter, setTagFilter] = useState<string[]>([]);
   const [directionFilter, setDirectionFilter] = useState<string>('all');
   const [timeRangeStart, setTimeRangeStart] = useState<Date | null>(null);
   const [selectedCall, setSelectedCall] = useState<any>(null);
+  const { getTags: getCallTags } = useEntityTags('call');
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
   
@@ -97,6 +101,7 @@ export const CallsList = ({ showTimeFilter = true, dateFilter, onNavigateToEvent
     // Legacy status filter (for backward compatibility)
     if (statusFilter !== 'all' && call.status !== statusFilter) return false;
     if (directionFilter !== 'all' && call.direction !== directionFilter) return false;
+    if (!matchesTagFilter(getCallTags(call.id).map((t) => t.id), tagFilter)) return false;
     
     // Handle specific date filters (today/yesterday)
     if (dateFilter) {
@@ -491,6 +496,8 @@ export const CallsList = ({ showTimeFilter = true, dateFilter, onNavigateToEvent
               <SelectItem value="outbound">Outbound</SelectItem>
             </SelectContent>
           </Select>
+
+          <TagFilterSelect value={tagFilter} onChange={setTagFilter} className="h-10 sm:h-9" />
         </div>
       </div>
 

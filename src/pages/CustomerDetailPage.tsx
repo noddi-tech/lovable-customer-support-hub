@@ -4,6 +4,7 @@ import { UnifiedAppLayout } from '@/components/layout/UnifiedAppLayout';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { EntityTagPicker } from '@/components/tags/TagPicker';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -92,6 +93,7 @@ export default function CustomerDetailPage() {
             {customer.phone && <span>{customer.phone}</span>}
             <Badge variant="outline">{conversations.length} conversations</Badge>
             <Badge variant="outline">{openCases.length} open cases</Badge>
+            <EntityTagPicker entityType="customer" entityId={customer.id} />
             <span>Customer since {dateTime(customer.created_at, false)}</span>
           </div>
         </header>

@@ -10,6 +10,8 @@ import { CallCustomerInfo } from './CallCustomerInfo';
 import { formatPhoneNumber } from '@/utils/phoneNumberUtils';
 import { getConversationBrand } from '@/lib/conversationBrand';
 import { BrandBadge } from '@/components/dashboard/conversation-list/BrandBadge';
+import { TagBadgeList } from '@/components/tags/TagBadge';
+import { useEntityTags } from '@/hooks/useEntityTags';
 import { CallBrandContextMenu } from './CallBrandContextMenu';
 import {
   AlertDialog,
@@ -43,6 +45,8 @@ export const EnhancedCallCard: React.FC<EnhancedCallCardProps> = ({
 }) => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const brand = getConversationBrand((call as any).metadata, 'voice');
+  const { getTags: getCallTags } = useEntityTags('call');
+  const cardTags = getCallTags(call.id);
 
   const formatDuration = (seconds?: number) => {
     if (!seconds) return '0:00';
@@ -169,6 +173,7 @@ export const EnhancedCallCard: React.FC<EnhancedCallCardProps> = ({
                   <SidebarCounter count={notesCount} variant="default" />
                 )}
                 {brand && <BrandBadge brand={brand} compact />}
+                <TagBadgeList tags={cardTags} compact max={2} />
               </div>
             </div>
           </div>

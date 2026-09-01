@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { CallBrandPicker } from './CallBrandPicker';
+import { EntityTagPicker } from '@/components/tags/TagPicker';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -121,6 +122,7 @@ export const CallDetailsDialog = ({ call, isOpen, onClose, onNavigateToEvents, o
           
           <div className="flex items-center gap-2 pt-4 pr-8">
             <CallBrandPicker callId={call.id} metadata={(call as any).metadata} />
+            <EntityTagPicker entityType="call" entityId={call.id} />
             <Button
               variant="outline"
               size="sm"

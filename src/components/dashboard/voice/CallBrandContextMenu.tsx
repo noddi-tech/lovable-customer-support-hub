@@ -16,6 +16,7 @@ import {
   BrandSearchInput,
   BrandOptionContent,
 } from '@/components/dashboard/conversation-list/BrandSearch';
+import { TagContextMenuItems } from '@/components/tags/TagContextMenuItems';
 
 interface CallBrandContextMenuProps {
   callId: string;
@@ -58,6 +59,9 @@ export const CallBrandContextMenu: React.FC<CallBrandContextMenuProps> = ({
           <Ban className="w-4 h-4 mr-2" />
           Clear brand
         </ContextMenuItem>
+        <ContextMenuSeparator />
+        <ContextMenuLabel className="text-xs text-muted-foreground">Tags</ContextMenuLabel>
+        <TagContextMenuItems entityType="call" entityId={callId} />
       </ContextMenuContent>
     </ContextMenu>
   );

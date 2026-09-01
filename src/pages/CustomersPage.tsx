@@ -16,6 +16,11 @@ import {
 import { useCustomersList } from '@/hooks/useCustomersList';
 import { useDateFormatting } from '@/hooks/useDateFormatting';
 import { Mail, Phone, Search, UserRound, MessageSquare } from 'lucide-react';
+import { ContextMenu, ContextMenuContent, ContextMenuLabel, ContextMenuTrigger } from '@/components/ui/context-menu';
+import { TagContextMenuItems } from '@/components/tags/TagContextMenuItems';
+import { TagBadgeList } from '@/components/tags/TagBadge';
+import { TagFilterSelect, matchesTagFilter } from '@/components/tags/TagFilterSelect';
+import { useEntityTags } from '@/hooks/useEntityTags';
 
 const STATUS_OPTIONS = [
   { value: 'open', label: 'Open' },
@@ -28,6 +33,8 @@ export default function CustomersPage() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [brandFilter, setBrandFilter] = useState('all');
+  const [tagFilter, setTagFilter] = useState<string[]>([]);
+  const { getTags } = useEntityTags('customer');
   const { dateTime } = useDateFormatting();
   const { data: allCustomers = [], isLoading } = useCustomersList(search);
 
@@ -42,9 +49,10 @@ export default function CustomersPage() {
       allCustomers.filter((c) => {
         if (statusFilter !== 'all' && !(c?.statuses ?? []).includes(statusFilter)) return false;
         if (brandFilter !== 'all' && !(c?.brands ?? []).includes(brandFilter)) return false;
+        if (!matchesTagFilter(getTags(c?.id).map((t) => t.id), tagFilter)) return false;
         return true;
       }),
-    [allCustomers, statusFilter, brandFilter],
+    [allCustomers, statusFilter, brandFilter, tagFilter, getTags],
   );
 
 
@@ -101,6 +109,7 @@ export default function CustomersPage() {
                 ))}
               </SelectContent>
             </Select>
+            <TagFilterSelect value={tagFilter} onChange={setTagFilter} className="h-10 sm:h-9" />
             </div>
           </div>
         </header>
@@ -121,8 +130,9 @@ export default function CustomersPage() {
           ) : (
             <div className="space-y-2">
               {customers.map((c) => (
+                <ContextMenu key={c.id}>
+                  <ContextMenuTrigger asChild>
                 <button
-                  key={c.id}
                   type="button"
                   onClick={() => navigate(`/customers/${c.id}`)}
                   className="flex w-full items-center gap-3 rounded-lg border bg-card px-3 py-3.5 text-left transition-colors hover:bg-accent/50 active:bg-accent/60 sm:px-4 sm:py-3"
@@ -150,6 +160,7 @@ export default function CustomersPage() {
                           {b}
                         </Badge>
                       ))}
+                      <TagBadgeList tags={getTags(c.id)} compact />
                     </div>
                   </div>
                   <div className="flex shrink-0 flex-col items-end gap-1 sm:flex-row sm:items-center sm:gap-3">
@@ -170,6 +181,12 @@ export default function CustomersPage() {
                     </span>
                   </div>
                 </button>
+                  </ContextMenuTrigger>
+                  <ContextMenuContent className="w-52">
+                    <ContextMenuLabel className="text-xs text-muted-foreground">Tags</ContextMenuLabel>
+                    <TagContextMenuItems entityType="customer" entityId={c.id} />
+                  </ContextMenuContent>
+                </ContextMenu>
               ))}
             </div>
           )}

@@ -20,6 +20,7 @@ import { TimezoneSettings } from '@/components/settings/TimezoneSettings';
 import { UserNotificationSettings } from '@/components/settings/UserNotificationSettings';
 import { UserProfileSettings } from '@/components/settings/UserProfileSettings';
 import { AccountInfoCard } from '@/components/settings/AccountInfoCard';
+import { TagManagementSettings } from '@/components/settings/TagManagementSettings';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
@@ -129,6 +130,9 @@ export default function Settings() {
       case '/settings/notifications':
         return <UserNotificationSettings />;
       
+      case '/settings/tags':
+        return <TagManagementSettings />;
+
       case '/settings/departments':
         return <DepartmentManagement />;
       
