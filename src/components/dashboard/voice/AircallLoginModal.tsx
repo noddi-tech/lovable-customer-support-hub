@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Loader2, CheckCircle, XCircle, ExternalLink, Chrome, Shield, Cookie, HelpCircle, AlertCircle } from 'lucide-react';
+import { Loader2, CheckCircle, XCircle, ExternalLink, Chrome, Cookie, HelpCircle, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useTranslation } from 'react-i18next';
@@ -202,18 +202,6 @@ const AircallLoginModalComponent: React.FC<AircallLoginModalProps> = ({
                   <Chrome className="h-4 w-4 mr-2" />
                   {t('aircall.login.browser.downloadChrome')}
                 </Button>
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {/* Brave Warning (after 5 seconds) */}
-          {browserInfo?.type === 'brave' && elapsedTime >= 5 && (
-            <Alert className="border-orange-500/50 bg-orange-50 dark:bg-orange-950/20">
-              <Shield className="h-4 w-4 text-orange-600" />
-              <AlertDescription className="ml-2">
-                <strong>{t('aircall.login.browser.braveDetected')}</strong>
-                <br />
-                <span className="text-sm">{t('aircall.login.browser.braveInstructions')}</span>
               </AlertDescription>
             </Alert>
           )}
