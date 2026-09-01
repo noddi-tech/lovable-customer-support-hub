@@ -170,6 +170,10 @@ export const CaseContextMenu: React.FC<CaseContextMenuProps> = ({
             ))}
           </ContextMenuSubContent>
         </ContextMenuSub>
+
+        <ContextMenuSeparator />
+        <ContextMenuLabel className="text-xs text-muted-foreground">Tags</ContextMenuLabel>
+        <TagContextMenuItems entityType="case" entityId={caseId} />
       </ContextMenuContent>
     </ContextMenu>
   );
