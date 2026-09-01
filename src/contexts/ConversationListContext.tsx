@@ -263,10 +263,7 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
 
   // Brand + tag filters are mirrored in the URL so the interactions sidebar
   // (rendered outside this provider) can drive the same filters.
-  const { brand: brandParam, tags: tagsParam, tagsParamRaw, setBrand, setTags } = (() => {
-    const p = useConversationFilterParams();
-    return { ...p, tagsParamRaw: p.tagsParam };
-  })();
+  const { brand: brandParam, tagsParam: tagsParamRaw, setBrand, setTags } = useConversationFilterParams();
 
   const dispatch = useMemo<typeof baseDispatch>(
     () => (action: ConversationListAction) => {
