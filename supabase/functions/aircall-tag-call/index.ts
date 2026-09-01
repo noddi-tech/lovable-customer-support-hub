@@ -152,9 +152,6 @@ Deno.serve(async (req) => {
     }
 
     // Keep any non-brand tags the agent added in Aircall, replace previous brand tags
-    const brandTagNames = new Set(existingTags.map((t) => t.id));
-    void brandTagNames;
-
     const keptTags: number[] = [];
     const callRes = await fetch(`${AIRCALL_API}/calls/${call.external_id}`, {
       headers: { Authorization: auth, 'Content-Type': 'application/json' },
