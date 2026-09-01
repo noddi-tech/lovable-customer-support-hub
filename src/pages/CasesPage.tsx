@@ -10,6 +10,8 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CaseStatusBadge, CasePriorityBadge, CaseSlaBadge, CASE_PRIORITY_DOT } from '@/components/cases/CaseBadges';
 import { CreateCaseDialog } from '@/components/cases/CreateCaseDialog';
+import { CaseContextMenu } from '@/components/cases/CaseContextMenu';
+
 import {
   CASE_PRIORITY_LABELS,
   useCaseCategories,
