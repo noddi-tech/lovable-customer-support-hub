@@ -150,6 +150,8 @@ export const ChatLayout: React.FC = () => {
             onSelect={handleSelectChat}
           />
         </div>
+
+        <LiveChatSlaDialog open={slaOpen} onOpenChange={setSlaOpen} canEdit={isAdmin} />
       </div>
     );
   }
@@ -204,6 +206,8 @@ export const ChatLayout: React.FC = () => {
           )}
         </ResizablePanel>
       </ResizablePanelGroup>
+
+      <LiveChatSlaDialog open={slaOpen} onOpenChange={setSlaOpen} canEdit={isAdmin} />
     </div>
   );
 };
