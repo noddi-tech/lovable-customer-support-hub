@@ -98,15 +98,29 @@ function LeaderRow({ row, rank }: { row: LeaderboardRow; rank: number }) {
         <div className="flex flex-wrap gap-x-3 text-[11px] text-muted-foreground">
           <span className="inline-flex items-center gap-1">
             <Trophy className="h-3 w-3" /> {row.resolved} resolved
+            <Trend current={row.resolved} previous={row.prev_resolved} higherIsBetter label="resolved" />
           </span>
           <span className="inline-flex items-center gap-1">
             <Zap className="h-3 w-3" /> {formatMinutes(row.median_first_response_minutes)} first reply
+            <Trend
+              current={row.median_first_response_minutes}
+              previous={row.prev_median_first_response_minutes}
+              higherIsBetter={false}
+              label="median first reply"
+            />
           </span>
           <span className="inline-flex items-center gap-1">
             <Timer className="h-3 w-3" /> {formatMinutes(row.median_resolve_minutes)} to resolve
+            <Trend
+              current={row.median_resolve_minutes}
+              previous={row.prev_median_resolve_minutes}
+              higherIsBetter={false}
+              label="median time to resolve"
+            />
           </span>
         </div>
       </div>
+
       <Badge variant={rank === 0 ? 'default' : 'secondary'} className="tabular-nums">
         {row.score} pts
       </Badge>
