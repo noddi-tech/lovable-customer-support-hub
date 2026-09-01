@@ -9,7 +9,10 @@ const corsHeaders = {
 const AIRCALL_API = 'https://api.aircall.io/v1';
 // Aircall allows 60 requests/minute. We use ~2 requests per customer, so we pace
 // requests to stay comfortably below the limit.
-const REQUEST_INTERVAL_MS = 1100;
+const REQUEST_INTERVAL_MS = 1050;
+// Edge functions are killed after ~150s of wall clock. At ~2s per contact a large
+// batch would never finish, so we stop cleanly before that and report what is left.
+const MAX_RUN_MS = 110_000;
 const DEFAULT_BATCH_SIZE = 100;
 const MAX_BATCH_SIZE = 250;
 
