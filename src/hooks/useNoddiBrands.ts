@@ -17,6 +17,17 @@ const normalize = (value: string) =>
     .replace(/\.(no|co|com|se|dk)$/i, '')
     .replace(/[^a-z0-9]+/g, '');
 
+/**
+ * Known brands, used only when the Noddi catalog is unreachable so agents can
+ * still categorise a conversation.
+ */
+const FALLBACK_BRANDS: NoddiBrand[] = [
+  { id: -1, name: 'Noddi', slug: 'noddi', domain: 'noddi.no', logo_url: null },
+  { id: -2, name: 'Dekkfix', slug: 'dekkfix', domain: 'dekkfix.no', logo_url: null },
+  { id: -3, name: 'Trønderdekk', slug: 'tronderdekk', domain: 'tronderdekk.no', logo_url: null },
+  { id: -4, name: 'Navio', slug: 'navio', domain: 'naviosolutions.com', logo_url: null },
+];
+
 /** Brand catalog from the Noddi backend (names + logos), cached for the session. */
 export function useNoddiBrands() {
   const query = useQuery({
