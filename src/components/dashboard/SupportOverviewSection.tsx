@@ -163,30 +163,67 @@ function LeaderRow({ row, rank }: { row: LeaderboardRow; rank: number }) {
       </Avatar>
       <div className="min-w-0 flex-1">
         <div className="truncate text-sm font-medium">{name}</div>
-        <div className="flex flex-wrap gap-x-3 text-[11px] text-muted-foreground">
-          <span className="inline-flex items-center gap-1">
-            <Trophy className="h-3 w-3" /> {row.resolved} resolved
-            <Trend current={row.resolved} previous={row.prev_resolved} higherIsBetter label="resolved" />
-          </span>
-          <span className="inline-flex items-center gap-1">
-            <Zap className="h-3 w-3" /> {formatMinutes(row.median_first_response_minutes)} first reply
-            <Trend
-              current={row.median_first_response_minutes}
-              previous={row.prev_median_first_response_minutes}
-              higherIsBetter={false}
-              label="median first reply"
-            />
-          </span>
-          <span className="inline-flex items-center gap-1">
-            <Timer className="h-3 w-3" /> {formatMinutes(row.median_resolve_minutes)} to resolve
-            <Trend
-              current={row.median_resolve_minutes}
-              previous={row.prev_median_resolve_minutes}
-              higherIsBetter={false}
-              label="median time to resolve"
-            />
-          </span>
-        </div>
+        <TooltipProvider delayDuration={150}>
+          <div className="flex flex-wrap gap-x-3 text-[11px] text-muted-foreground">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="inline-flex cursor-help items-center gap-1">
+                  <Trophy className="h-3 w-3" /> {row.resolved} resolved
+                  <Trend
+                    current={row.resolved}
+                    previous={row.prev_resolved}
+                    higherIsBetter
+                    label="resolved"
+                  />
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="max-w-[280px] text-xs leading-relaxed">
+                <p className="font-medium">Resolved conversations</p>
+                <p className="text-muted-foreground">
+                  {METRIC_DESCRIPTIONS.resolved}
+                </p>
+              </TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="inline-flex cursor-help items-center gap-1">
+                  <Zap className="h-3 w-3" /> {formatMinutes(row.median_first_response_minutes)} first
+                  reply
+                  <Trend
+                    current={row.median_first_response_minutes}
+                    previous={row.prev_median_first_response_minutes}
+                    higherIsBetter={false}
+                    label="median first reply"
+                  />
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="max-w-[280px] text-xs leading-relaxed">
+                <p className="font-medium">Median first reply time</p>
+                <p className="text-muted-foreground">{METRIC_DESCRIPTIONS.firstReply}</p>
+              </TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="inline-flex cursor-help items-center gap-1">
+                  <Timer className="h-3 w-3" /> {formatMinutes(row.median_resolve_minutes)} to resolve
+                  <Trend
+                    current={row.median_resolve_minutes}
+                    previous={row.prev_median_resolve_minutes}
+                    higherIsBetter={false}
+                    label="median time to resolve"
+                  />
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="max-w-[280px] text-xs leading-relaxed">
+                <p className="font-medium">Median time to resolve</p>
+                <p className="text-muted-foreground">{METRIC_DESCRIPTIONS.resolveTime}</p>
+              </TooltipContent>
+            </Tooltip>
+          </div>
+        </TooltipProvider>
+
       </div>
 
       <Badge variant={rank === 0 ? 'default' : 'secondary'} className="tabular-nums">
