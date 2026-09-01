@@ -472,7 +472,6 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
               </Badge>
             )}
             <ConversationBrandBadge conversation={conversation} />
-            <TagBadgeList tags={conversationTags} compact max={3} />
           </div>
         </div>
 
