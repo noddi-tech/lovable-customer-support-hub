@@ -208,7 +208,7 @@ export const ChatConversationList: React.FC<ChatConversationListProps> = ({
       const ids = [...selectedIds];
       const { error } = await supabase
         .from('conversations')
-        .update({ assigned_to: memberId })
+        .update({ assigned_to_id: memberId })
         .in('id', ids);
       if (error) {
         toast.error('Failed to assign chats');
@@ -289,7 +289,6 @@ export const ChatConversationList: React.FC<ChatConversationListProps> = ({
             <BulkTagMenu entityType="conversation" entityIds={[...selectedIds]} className="h-7 px-2 text-xs" />
             <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setSelectedIds(new Set())} aria-label="Clear selection">
               <X className="h-3.5 w-3.5" />
-            </Button>
             </Button>
           </div>
         </div>
