@@ -186,28 +186,32 @@ Deno.serve(async (req) => {
         errors: [] as string[],
       };
 
-      // Brand labels assigned on this customer's conversations (email + live chat).
-      // A customer can have several brands; we surface them all on the contact.
+      // Brand labels assigned on this customer's conversations (email + live chat)
+      // and on their phone calls. A customer can have several brands; we surface
+      // them all on the contact.
       const brandsByCustomer = new Map<string, string[]>();
       const customerIds = (customers || []).map((c: any) => c.id);
+      const addBrand = (customerId: string | null, meta: Record<string, any> | null) => {
+        const m = meta || {};
+        const label =
+          (typeof m.brand === 'string' && m.brand.trim()) ||
+          (typeof m.brand_name === 'string' && m.brand_name.trim()) ||
+          '';
+        if (!label || !customerId) return;
+        const list = brandsByCustomer.get(customerId) || [];
+        if (!list.some((b) => b.toLowerCase() === label.toLowerCase())) list.push(label);
+        brandsByCustomer.set(customerId, list);
+      };
       for (let i = 0; i < customerIds.length; i += 200) {
         const chunk = customerIds.slice(i, i + 200);
-        const { data: convs } = await adminClient
-          .from('conversations')
-          .select('customer_id, metadata')
-          .in('customer_id', chunk);
-        for (const conv of (convs || []) as any[]) {
-          const cmeta = (conv.metadata || {}) as Record<string, any>;
-          const label =
-            (typeof cmeta.brand === 'string' && cmeta.brand.trim()) ||
-            (typeof cmeta.brand_name === 'string' && cmeta.brand_name.trim()) ||
-            '';
-          if (!label || !conv.customer_id) continue;
-          const list = brandsByCustomer.get(conv.customer_id) || [];
-          if (!list.some((b) => b.toLowerCase() === label.toLowerCase())) list.push(label);
-          brandsByCustomer.set(conv.customer_id, list);
-        }
+        const [{ data: convs }, { data: brandedCalls }] = await Promise.all([
+          adminClient.from('conversations').select('customer_id, metadata').in('customer_id', chunk),
+          adminClient.from('calls').select('customer_id, metadata').in('customer_id', chunk),
+        ]);
+        for (const conv of (convs || []) as any[]) addBrand(conv.customer_id, conv.metadata);
+        for (const call of (brandedCalls || []) as any[]) addBrand(call.customer_id, call.metadata);
       }
+
       const brandSignature = (customerId: string) =>
         (brandsByCustomer.get(customerId) || [])
           .map((b) => b.toLowerCase())

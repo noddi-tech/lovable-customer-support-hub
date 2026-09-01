@@ -44,6 +44,22 @@ export function useCallBrandActions() {
         toast.success(brandName ? `Brand set to ${brandName}` : 'Brand cleared');
         queryClient.invalidateQueries({ queryKey: ['calls'] });
         queryClient.invalidateQueries({ queryKey: ['active-calls'] });
+
+        // Mirror the brand label onto the call in Aircall as a tag, so the same
+        // categorisation is visible to anyone working in the Aircall phone.
+        const { data: tagResult, error: tagError } = await supabase.functions.invoke(
+          'aircall-tag-call',
+          { body: { callId, brandName } },
+        );
+        if (tagError || (tagResult && tagResult.success === false)) {
+          logger.warn(
+            'Failed to sync call brand tag to Aircall',
+            tagError || tagResult,
+            'useCallBrandActions',
+          );
+          toast.warning('Brand saved, but the Aircall tag could not be updated');
+        }
+
       } catch (error) {
         logger.error('Failed to set call brand', error, 'useCallBrandActions');
         toast.error('Failed to set brand');
