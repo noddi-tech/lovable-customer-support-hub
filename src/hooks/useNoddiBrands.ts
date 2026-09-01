@@ -35,7 +35,16 @@ export function useNoddiBrands() {
     },
   });
 
-  const brands = query.data ?? [];
+/**
+ * Known brands, used only when the Noddi catalog is unreachable so agents can
+ * still categorise a conversation. Colors come from the shared brand theme.
+ */
+const FALLBACK_BRANDS: NoddiBrand[] = [
+  { id: -1, name: 'Noddi', slug: 'noddi', domain: 'noddi.no', logo_url: null },
+  { id: -2, name: 'Dekkfix', slug: 'dekkfix', domain: 'dekkfix.no', logo_url: null },
+  { id: -3, name: 'Trønderdekk', slug: 'tronderdekk', domain: 'tronderdekk.no', logo_url: null },
+  { id: -4, name: 'Navio', slug: 'navio', domain: 'naviosolutions.com', logo_url: null },
+];
 
   /** Resolve a brand from a label/key such as "Noddi Bilpleie" or "app.noddi.no". */
   const findBrand = (label: string | null | undefined): NoddiBrand | null => {
