@@ -426,6 +426,7 @@ const NotificationsPage = () => {
                   </TableBody>
                 </Table>
               </div>
+              )}
             </>
           )}
         </div>
