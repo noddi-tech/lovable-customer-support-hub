@@ -62,6 +62,7 @@ export default function CaseDetailPage() {
   const updateCase = useUpdateCase();
   const { dateTime } = useDateFormatting();
   const [closeOpen, setCloseOpen] = useState(false);
+  const [customerPanelId, setCustomerPanelId] = useState<string | null>(null);
 
   if (isLoading) {
     return (
