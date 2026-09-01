@@ -101,11 +101,13 @@ export const QuickInboxSwitcher: React.FC<QuickInboxSwitcherProps> = ({ open, on
 
   const Counts: React.FC<{ open: number; pending: number }> = ({ open: o, pending }) => (
     <span className="ml-auto flex items-center gap-1">
-      {o > 0 && (
-        <Badge variant="secondary" className="h-5 px-1.5 text-[10px]" title={`${o} open`}>
-          {o}
-        </Badge>
-      )}
+      <Badge
+        variant="secondary"
+        className={`h-5 px-1.5 text-[10px] ${o === 0 ? 'text-muted-foreground' : ''}`}
+        title={`${o} open`}
+      >
+        {o}
+      </Badge>
       {pending > 0 && (
         <Badge
           variant="outline"
