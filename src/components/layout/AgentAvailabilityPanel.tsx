@@ -4,6 +4,7 @@ import { useAgentAvailability, type AvailabilityStatus } from '@/hooks/useAgentA
 import { useOnlineAgents } from '@/hooks/useOnlineAgents';
 import { useAircallPhone } from '@/hooks/useAircallPhone';
 import { useVoiceIntegrations } from '@/hooks/useVoiceIntegrations';
+import { aircallPhone } from '@/lib/aircall-phone';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { toast } from 'sonner';
