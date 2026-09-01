@@ -117,53 +117,68 @@ export function InboxCard({
       onClick={isConfigured ? onOpen : undefined}
     >
       <CardContent className="flex min-h-[64px] flex-col gap-2 p-3.5 sm:p-3">
-        <div className="flex items-start gap-3 min-w-0">
-          <span
-            className="h-2.5 w-2.5 rounded-full shrink-0 mt-1.5"
-            style={{
-              backgroundColor: isConfigured
-                ? inbox.color || 'hsl(var(--primary))'
-                : 'hsl(var(--muted-foreground) / 0.4)',
-            }}
-          />
-          <div className="min-w-0 flex flex-col leading-tight">
+        <div className="flex items-start gap-2 min-w-0">
+          {health ? (
+            <span
+              role="img"
+              aria-label={`Inbox health: ${health.label}`}
+              title={`${health.label} — ${health.description}`}
+              className="mt-0.5 shrink-0 text-base leading-none"
+            >
+              {health.emoji}
+            </span>
+          ) : (
+            <span
+              className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full"
+              style={{
+                backgroundColor: isConfigured
+                  ? inbox.color || 'hsl(var(--primary))'
+                  : 'hsl(var(--muted-foreground) / 0.4)',
+              }}
+            />
+          )}
+          <div className="min-w-0 flex flex-1 flex-col leading-tight">
             <span
               className={cn(
-                'flex flex-wrap items-center gap-1.5 text-[15px] font-medium sm:text-sm',
+                'flex items-center gap-1.5 text-[15px] font-medium sm:text-sm min-w-0',
                 isConfigured ? 'text-foreground' : 'text-muted-foreground',
               )}
             >
               {health && (
                 <span
-                  role="img"
-                  aria-label={`Inbox health: ${health.label}`}
-                  title={`${health.label} — ${health.description}`}
-                  className="text-base leading-none"
-                >
-                  {health.emoji}
-                </span>
+                  className="h-2 w-2 shrink-0 rounded-full"
+                  style={{ backgroundColor: inbox.color || 'hsl(var(--primary))' }}
+                />
               )}
-              <span className="break-words">{inbox.name}</span>
+              <span className="truncate" title={inbox.name}>
+                {inbox.name}
+              </span>
               {isDefault && (
-                <Badge variant="outline" className="h-4 px-1.5 text-[9px] border-primary/40 text-primary">
+                <Badge
+                  variant="outline"
+                  className="h-4 shrink-0 px-1.5 text-[9px] border-primary/40 text-primary"
+                >
                   Default
                 </Badge>
               )}
             </span>
-            <span className="text-xs text-muted-foreground break-all sm:text-[11px]">
+            <span className="truncate text-xs text-muted-foreground sm:text-[11px]" title={email}>
               {isConfigured ? email : 'Not configured'}
             </span>
             {(defaults?.brand || defaults?.assigneeName) && (
-              <span className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
+              <span className="mt-1 flex items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground min-w-0">
                 {defaults.brand && (
-                  <span className="flex items-center gap-1" title="Default brand for new conversations">
+                  <span
+                    className="flex min-w-0 items-center gap-1"
+                    title="Default brand for new conversations"
+                  >
                     <Tag className="h-3 w-3 shrink-0" />
                     <span className="truncate">{defaults.brand}</span>
                   </span>
                 )}
                 {defaults.assigneeName && (
                   <span
-                    className="flex items-center gap-1"
+                    className="flex min-w-0 items-center gap-1"
                     title="New conversations are assigned to this person"
                   >
                     <UserCheck className="h-3 w-3 shrink-0" />
@@ -173,9 +188,10 @@ export function InboxCard({
               </span>
             )}
           </div>
+
+          {isConfigured && slaRisk && <InboxSlaAlert risk={slaRisk} onFix={onFixSla} compact />}
         </div>
 
-        {isConfigured && slaRisk && <InboxSlaAlert risk={slaRisk} onFix={onFixSla} />}
 
         <div className="mt-auto flex items-center gap-2 pl-[22px] pt-1">
           {isConfigured ? (

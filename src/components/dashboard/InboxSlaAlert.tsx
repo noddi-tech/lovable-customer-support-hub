@@ -13,13 +13,59 @@ const CHANNEL_LABELS: Record<string, string> = {
 interface InboxSlaAlertProps {
   risk: InboxSlaRisk;
   onFix: () => void;
+  /** Corner chip variant used on the home inbox cards. */
+  compact?: boolean;
 }
 
 /** Impossible-to-miss SLA warning on an inbox card, with a direct call to action. */
-export function InboxSlaAlert({ risk, onFix }: InboxSlaAlertProps) {
+export function InboxSlaAlert({ risk, onFix, compact = false }: InboxSlaAlertProps) {
   const hasBreached = risk.breached > 0;
   const remaining = risk.nextDeadline ? new Date(risk.nextDeadline).getTime() - Date.now() : null;
   const channels = risk.channels.map((c) => CHANNEL_LABELS[c] ?? c).join(', ');
+  const countdown =
+    remaining === null ? null : remaining <= 0 ? formatCountdown(remaining) : formatCountdown(remaining);
+
+  if (compact) {
+    const full = [
+      hasBreached ? `${risk.breached} SLA breached` : `${risk.atRisk} breaking within the hour`,
+      hasBreached && risk.atRisk > 0 ? `${risk.atRisk} at risk` : null,
+      channels || null,
+      remaining === null
+        ? 'deadline unknown'
+        : remaining <= 0
+          ? `overdue by ${countdown}`
+          : `next in ${countdown}`,
+    ]
+      .filter(Boolean)
+      .join(' · ');
+
+    return (
+      <button
+        type="button"
+        role="alert"
+        title={`${full} — click to fix`}
+        aria-label={`${full}. Fix now`}
+        onClick={(e) => {
+          e.stopPropagation();
+          onFix();
+        }}
+        className={cn(
+          'inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full border px-1.5 py-0.5 text-[10px] font-semibold leading-none transition-colors',
+          hasBreached
+            ? 'border-red-400 bg-red-50 text-red-700 hover:bg-red-100 dark:border-red-800 dark:bg-red-950/40 dark:text-red-300'
+            : 'border-amber-400 bg-amber-50 text-amber-800 hover:bg-amber-100 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-300',
+        )}
+      >
+        {hasBreached ? (
+          <AlertTriangle className="h-3 w-3 shrink-0" />
+        ) : (
+          <Timer className="h-3 w-3 shrink-0" />
+        )}
+        <span className="tabular-nums">{hasBreached ? risk.breached : risk.atRisk}</span>
+        {countdown && <span className="font-normal opacity-80 tabular-nums">{countdown}</span>}
+      </button>
+    );
+  }
 
   return (
     <div
