@@ -51,8 +51,8 @@ export const useSidebarNavCounts = (): SidebarNavCounts => {
       const chatActive = (chatRes as any)?.count ?? 0;
 
       return {
-        // Text = all open conversations minus the live-chat ones (those get their own badge)
-        text: Math.max(textOpen - chatActive, 0),
+        // Inbox badge must match the "All inboxes" open count exactly (live chats included)
+        text: textOpen,
         chat: chatActive,
         cases: 0, // filled in from useCaseQueueCounts below
       };
