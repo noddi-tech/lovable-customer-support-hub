@@ -504,6 +504,16 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
                   </Button>
                 </>
               )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setOpsTicketOpen(true)}
+                className="gap-1 h-7"
+                title="Create an operations ticket in Navio for this conversation"
+              >
+                <Wrench className="h-3.5 w-3.5" />
+                {!isMobile && <span className="text-xs">Ops ticket</span>}
+              </Button>
               {/* Mobile: Status dropdown inline */}
               {isMobile && (
                 <Select 
