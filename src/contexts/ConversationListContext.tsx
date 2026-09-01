@@ -385,7 +385,8 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
         .from('conversations')
         .update({ 
           status: 'closed',
-          is_archived: true 
+          is_archived: true,
+          is_read: true
         })
         .eq('id', conversationId);
       
