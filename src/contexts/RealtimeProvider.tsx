@@ -54,13 +54,9 @@ export const RealtimeProvider: React.FC<{ children: ReactNode }> = ({ children }
                             previousStatusRef.current === 'error';
     const isNowConnected = connectionStatus === 'connected';
     
-    // Only show toast once per recovery cycle
+    // Recovery toast intentionally disabled — it fired on every page load.
     if (wasDisconnected && isNowConnected && !hasShownRecoveryToastRef.current) {
       hasShownRecoveryToastRef.current = true;
-      toast.success('Live updates restored', {
-        description: 'Real-time connection has been re-established.',
-        duration: 3000,
-      });
     }
     
     // Reset the flag when we go back to disconnected/error state
