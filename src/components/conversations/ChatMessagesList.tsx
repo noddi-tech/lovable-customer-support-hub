@@ -84,6 +84,20 @@ export const ChatMessagesList = ({
     (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
   );
 
+  // Widget language per customer message — flag the first one and every switch after it.
+  const languageMarkers = new Map<string, { from: string | null; to: string }>();
+  let previousLocale: string | null = null;
+  for (const message of sortedMessages) {
+    if (message.authorType !== 'customer' || message.isInternalNote) continue;
+    const locale = normalizeLocale((message.originalMessage as any)?.metadata?.locale);
+    if (!locale) continue;
+    if (locale !== previousLocale) {
+      languageMarkers.set(message.id, { from: previousLocale, to: locale });
+      previousLocale = locale;
+    }
+  }
+
+
   const getInitials = (name?: string, email?: string) => {
     if (name) {
       return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
