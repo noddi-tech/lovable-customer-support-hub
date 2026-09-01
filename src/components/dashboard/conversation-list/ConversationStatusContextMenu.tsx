@@ -125,6 +125,38 @@ export const ConversationStatusContextMenu: React.FC<ConversationStatusContextMe
           </ContextMenuSubContent>
         </ContextMenuSub>
         <ContextMenuSeparator />
+        <ContextMenuLabel className="text-xs text-muted-foreground">Brand</ContextMenuLabel>
+        <ContextMenuSub>
+          <ContextMenuSubTrigger>
+            <Tag className="w-4 h-4 mr-2" />
+            Set brand…
+          </ContextMenuSubTrigger>
+          <ContextMenuSubContent className="w-56 max-h-72 overflow-y-auto">
+            {brands.length === 0 && (
+              <div className="px-3 py-4 text-sm text-muted-foreground">No brands available</div>
+            )}
+            {brands.map((b) => {
+              const color = getBrandColor(b.slug);
+              return (
+                <ContextMenuItem key={b.id} className="gap-2" onSelect={() => setBrand(conversationId, b.name)}>
+                  {b.logo_url ? (
+                    <img src={b.logo_url} alt="" loading="lazy" className="h-4 w-4 rounded-sm object-contain shrink-0" />
+                  ) : (
+                    <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: color }} />
+                  )}
+                  <span className="truncate flex-1" style={{ color }}>{b.name}</span>
+                  {currentBrandSlug === b.slug && <Check className="w-3.5 h-3.5 text-primary shrink-0" />}
+                </ContextMenuItem>
+              );
+            })}
+            <ContextMenuSeparator />
+            <ContextMenuItem onSelect={() => setBrand(conversationId, null)}>
+              <Ban className="w-4 h-4 mr-2" />
+              Clear brand
+            </ContextMenuItem>
+          </ContextMenuSubContent>
+        </ContextMenuSub>
+        <ContextMenuSeparator />
         <ContextMenuLabel className="text-xs text-muted-foreground">Change status</ContextMenuLabel>
         <ContextMenuItem
           disabled={status === 'pending'}
