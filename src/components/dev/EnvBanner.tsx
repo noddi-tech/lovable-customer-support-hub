@@ -26,11 +26,22 @@ export const EnvBanner = () => {
     tone = 'bg-amber-500 text-black';
   }
 
+  // Reserve space so the banner pushes the app down instead of covering it.
+  useEffect(() => {
+    const root = document.documentElement;
+    if (label) {
+      root.style.setProperty('--env-banner-h', BANNER_HEIGHT);
+    } else {
+      root.style.removeProperty('--env-banner-h');
+    }
+    return () => root.style.removeProperty('--env-banner-h');
+  }, [label]);
+
   if (!label) return null; // production — stay silent
 
   return (
     <div
-      className={`fixed inset-x-0 top-0 z-[9999] h-5 flex items-center justify-center text-[10px] font-semibold tracking-wide uppercase pointer-events-none ${tone}`}
+      className={`sticky inset-x-0 top-0 z-[9999] h-5 flex items-center justify-center text-[10px] font-semibold tracking-wide uppercase ${tone}`}
     >
       {label}
     </div>
