@@ -220,6 +220,8 @@ interface ConversationListContextType {
   toggleConversationRead: (id: string, currentReadState: boolean) => void;
   filteredConversations: Conversation[];
   paginatedConversations: Conversation[];
+  /** Rows in this inbox/tab hidden by the active filter chips. */
+  hiddenByFiltersCount: number;
   bulkMarkAsRead: () => void;
   bulkMarkAsUnread: () => void;
   bulkChangeStatus: (status: string) => void;
@@ -590,7 +592,8 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
     [effectiveInboxId]
   );
 
-  const filteredAndSortedConversations = useMemo(() => {
+  const { list: filteredAndSortedConversations, hiddenCount: hiddenByFiltersCount } = useMemo(() => {
+    let hiddenCount = 0;
     const filtered = conversations.filter((conversation) => {
       const matchesSearch = 
         (conversation.subject || '').toLowerCase().includes(state.searchQuery.toLowerCase()) ||
@@ -666,12 +669,19 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
         }
       })();
 
-      return matchesSearch && matchesStatus && matchesPriority && matchesInbox && matchesPurpose && matchesTab;
+      const visible = matchesSearch && matchesStatus && matchesPriority && matchesInbox && matchesPurpose && matchesTab;
+
+      // Track rows that belong to this inbox/tab but are hidden by the
+      // search / status / priority / purpose filter chips, so the UI can say
+      // "hidden by filters" instead of celebrating a false inbox zero.
+      if (!visible && matchesInbox && matchesTab) hiddenCount++;
+
+      return visible;
     });
 
     // Apply table sorting if a column is sorted
     if (state.tableSort.direction) {
-      return filtered.sort((a, b) => {
+      const sorted = filtered.sort((a, b) => {
         const multiplier = state.tableSort.direction === 'asc' ? 1 : -1;
         
         switch (state.tableSort.key) {
@@ -710,10 +720,11 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
             return 0;
         }
       });
+      return { list: sorted, hiddenCount };
     }
 
     // Otherwise use legacy sortBy - use received_at for time-based sorting
-    return filtered.sort((a, b) => {
+    const sortedByRecency = filtered.sort((a, b) => {
       // Use received_at (last message arrival) instead of updated_at
       const aTime = new Date(a.received_at || a.updated_at).getTime();
       const bTime = new Date(b.received_at || b.updated_at).getTime();
@@ -735,6 +746,7 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
           return bTime - aTime;
       }
     });
+    return { list: sortedByRecency, hiddenCount };
   }, [conversations, state.searchQuery, state.statusFilter, state.priorityFilter, state.purposeFilter, state.sortBy, state.tableSort, selectedTab, selectedInboxId, effectiveInboxId, effectiveInboxIds]);
 
   // Comprehensive debug logging
@@ -999,6 +1011,7 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
     isMarkingAllAsRead: markAllAsReadMutation.isPending,
     toggleConversationRead,
     filteredConversations: filteredAndSortedConversations,
+    hiddenByFiltersCount,
     paginatedConversations: filteredAndSortedConversations.slice(
       (state.currentPage - 1) * state.pageSize,
       state.currentPage * state.pageSize
