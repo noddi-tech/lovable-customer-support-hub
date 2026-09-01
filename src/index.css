@@ -416,8 +416,8 @@ Optimized for accessibility with WCAG AA compliance.
     max-height: none;
   }
 
-  /* Email table rendering - Force ALL tables to full width */
-  .email-render__html-content table,
+  /* Email table rendering - Force ALL tables to full width (legacy/plain emails) */
+  .email-render__html-content:not(.email-render--rich) table,
   .email-render__plain-content table {
     border-collapse: collapse;
     width: 100% !important;
@@ -427,20 +427,26 @@ Optimized for accessibility with WCAG AA compliance.
   }
 
   /* Override ANY table with width attribute */
-  .email-render__html-content table[width] {
+  .email-render__html-content:not(.email-render--rich) table[width] {
     width: 100% !important;
     max-width: 100% !important;
   }
 
   /* Override inline style widths on tables */
-  .email-render__html-content table[style*="width"] {
+  .email-render__html-content:not(.email-render--rich) table[style*="width"] {
     width: 100% !important;
     max-width: 100% !important;
   }
 
   /* Override wrapper divs with fixed widths */
-  .email-render__html-content div[style*="width"] {
+  .email-render__html-content:not(.email-render--rich) div[style*="width"] {
     width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* Designed emails: keep the layout, just never overflow the panel */
+  .email-render__html-content.email-render--rich table,
+  .email-render__html-content.email-render--rich div {
     max-width: 100% !important;
   }
 
@@ -458,12 +464,12 @@ Optimized for accessibility with WCAG AA compliance.
   }
 
   /* Force minimal height and no padding on ALL table cells - override inline styles */
-  .email-render__html-content td,
-  .email-render__html-content th,
-  .email-render__html-content td[height],
-  .email-render__html-content td[style*="height"],
-  .email-render__html-content td[style*="padding"],
-  .email-render__html-content th[style*="padding"] {
+  .email-render__html-content:not(.email-render--rich) td,
+  .email-render__html-content:not(.email-render--rich) th,
+  .email-render__html-content:not(.email-render--rich) td[height],
+  .email-render__html-content:not(.email-render--rich) td[style*="height"],
+  .email-render__html-content:not(.email-render--rich) td[style*="padding"],
+  .email-render__html-content:not(.email-render--rich) th[style*="padding"] {
     height: auto !important;
     min-height: 0 !important;
     padding: 0 !important;
@@ -481,18 +487,18 @@ Optimized for accessibility with WCAG AA compliance.
   }
 
   /* COMPRESSION: Table structure has zero line-height to collapse empty rows */
-  .email-render__html-content table,
-  .email-render__html-content tbody,
-  .email-render__html-content thead,
-  .email-render__html-content tr {
+  .email-render__html-content:not(.email-render--rich) table,
+  .email-render__html-content:not(.email-render--rich) tbody,
+  .email-render__html-content:not(.email-render--rich) thead,
+  .email-render__html-content:not(.email-render--rich) tr {
     line-height: 0 !important;
     border-spacing: 0 !important;
     border-collapse: collapse !important;
   }
 
   /* Table cells: MINIMAL padding by default to collapse spacer rows */
-  .email-render__html-content td,
-  .email-render__html-content th {
+  .email-render__html-content:not(.email-render--rich) td,
+  .email-render__html-content:not(.email-render--rich) th {
     font-size: 0.9rem !important;
     line-height: 1.5 !important;
     margin: 0 !important;
@@ -502,14 +508,14 @@ Optimized for accessibility with WCAG AA compliance.
   }
 
   /* Product/order tables - RESTORE readable padding */
-  .email-render__html-content table[cellpadding] td,
-  .email-render__html-content table[cellpadding] th,
-  .email-render__html-content [class*="order-items"] td,
-  .email-render__html-content [class*="order-items"] th,
-  .email-render__html-content [class*="order-details"] td,
-  .email-render__html-content [class*="order-details"] th,
-  .email-render__html-content [class*="product"] td,
-  .email-render__html-content [class*="product"] th {
+  .email-render__html-content:not(.email-render--rich) table[cellpadding] td,
+  .email-render__html-content:not(.email-render--rich) table[cellpadding] th,
+  .email-render__html-content:not(.email-render--rich) [class*="order-items"] td,
+  .email-render__html-content:not(.email-render--rich) [class*="order-items"] th,
+  .email-render__html-content:not(.email-render--rich) [class*="order-details"] td,
+  .email-render__html-content:not(.email-render--rich) [class*="order-details"] th,
+  .email-render__html-content:not(.email-render--rich) [class*="product"] td,
+  .email-render__html-content:not(.email-render--rich) [class*="product"] th {
     padding: 10px !important; /* Restore for data tables */
   }
 
@@ -521,13 +527,15 @@ Optimized for accessibility with WCAG AA compliance.
     font-size: 0 !important;
   }
 
-  /* Spacer cells (bgcolor/background only, no class) - collapse them */
-  .email-render__html-content td[bgcolor]:not([class]),
-  .email-render__html-content td[background]:not([class]) {
+  /* Spacer cells (bgcolor/background only, no class) - collapse them.
+     Only for legacy emails: designed emails use bgcolor for real coloured bars. */
+  .email-render__html-content:not(.email-render--rich) td[bgcolor]:not([class]),
+  .email-render__html-content:not(.email-render--rich) td[background]:not([class]) {
     font-size: 0 !important;
     line-height: 0 !important;
     height: 0 !important;
   }
+
 
   /* Headings inside table cells - scaled down */
   .email-render__html-content td h1,
@@ -565,13 +573,13 @@ Optimized for accessibility with WCAG AA compliance.
   }
 
   /* Text elements inside cells and non-table text */
-  .email-render__html-content span,
-  .email-render__html-content a,
-  .email-render__html-content strong,
-  .email-render__html-content b,
-  .email-render__html-content em,
-  .email-render__html-content i,
-  .email-render__html-content li {
+  .email-render__html-content:not(.email-render--rich) span,
+  .email-render__html-content:not(.email-render--rich) a,
+  .email-render__html-content:not(.email-render--rich) strong,
+  .email-render__html-content:not(.email-render--rich) b,
+  .email-render__html-content:not(.email-render--rich) em,
+  .email-render__html-content:not(.email-render--rich) i,
+  .email-render__html-content:not(.email-render--rich) li {
     font-size: 0.9rem !important;
     line-height: 1.5 !important;
     margin: 0 !important;
@@ -579,9 +587,15 @@ Optimized for accessibility with WCAG AA compliance.
   }
 
   /* Limit logo/header image heights - exclude attachment images */
-  .email-render__html-content img:not([data-attachment]):not(.email-attachment-image) {
+  .email-render__html-content:not(.email-render--rich) img:not([data-attachment]):not(.email-attachment-image) {
     max-height: 72px !important;
   }
+
+  /* Designed emails: cap logos generously instead of flattening them */
+  .email-render__html-content.email-render--rich img:not([data-attachment]):not(.email-attachment-image) {
+    max-height: 160px;
+  }
+
 
   /* Inline signature images - cap at 80px (logos, headshots) */
   .email-render__html-content img.email-inline-image {
@@ -618,13 +632,15 @@ Optimized for accessibility with WCAG AA compliance.
     opacity: 0.85;
   }
 
-  /* Override inline margin/padding styles on divs */
-  .email-render__html-content div,
-  .email-render__html-content div[style*="padding"],
-  .email-render__html-content div[style*="margin"] {
+  /* Override inline margin/padding styles on divs (plain/legacy emails only —
+     designed emails keep their own spacing, see .email-render--rich) */
+  .email-render__html-content:not(.email-render--rich) div,
+  .email-render__html-content:not(.email-render--rich) div[style*="padding"],
+  .email-render__html-content:not(.email-render--rich) div[style*="margin"] {
     padding: 0 !important;
     margin: 0 !important;
   }
+
 
   /* Hide true spacer images (1-15px height and spacer/transparent URLs) */
   .email-render__html-content img[width="1"],

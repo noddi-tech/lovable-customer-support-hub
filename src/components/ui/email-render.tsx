@@ -458,13 +458,23 @@ const EmailRenderComponent: React.FC<EmailRenderProps> = ({
       }, true);
       debug.groupEnd();
       
+      // Designed/branded emails (styled table layouts, coloured cells, embedded
+      // CSS) must keep their own spacing, widths and colours — the aggressive
+      // flattening rules in index.css only apply to legacy/plain HTML.
+      const isRichDesign =
+        /<style[\s>]/i.test(sanitizedContent) ||
+        /role=["']presentation["']/i.test(sanitizedContent) ||
+        /<td[^>]+bgcolor=/i.test(sanitizedContent) ||
+        (sanitizedContent.match(/style="/gi)?.length ?? 0) >= 10;
+
       return (
         <div 
           ref={htmlContentRef}
-          className="email-render__html-content prose prose-sm dark:prose-invert max-w-none overflow-x-auto [&_table]:max-w-full [&_img]:max-w-full [&_img]:h-auto [&_.email-signature]:text-xs [&_.email-signature]:text-muted-foreground [&_.email-signature]:mt-4 [&_.email-signature]:pt-3 [&_.email-signature]:border-t"
+          className={`email-render__html-content${isRichDesign ? ' email-render--rich' : ''} prose prose-sm dark:prose-invert max-w-none overflow-x-auto [&_table]:max-w-full [&_img]:max-w-full [&_img]:h-auto [&_.email-signature]:text-xs [&_.email-signature]:text-muted-foreground [&_.email-signature]:mt-4 [&_.email-signature]:pt-3 [&_.email-signature]:border-t`}
           dangerouslySetInnerHTML={{ __html: sanitizedContent }}
         />
       );
+
     } else {
       // Plain text - format as structured HTML for consistency
       // contentToRender is already formatted HTML from processedContent memo
