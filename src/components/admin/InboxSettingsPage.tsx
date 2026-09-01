@@ -40,6 +40,7 @@ interface InboxData {
   conversation_count: number;
   sender_display_name: string | null;
   purpose: 'support' | 'recruitment';
+  ai_draft_enabled: boolean;
   auto_assignment_rules: { assign_to_profile_id?: string | null; default_brand?: string | null } | null;
 }
 

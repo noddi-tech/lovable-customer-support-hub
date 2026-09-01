@@ -682,14 +682,27 @@ Deno.serve(async (req: Request) => {
     // Personal-feed policy: no new_email notifications are generated.
     // The inbox queues own follow-up for new emails and customer replies.
 
-    // Fire-and-forget: generate AI draft reply
-    supabase.functions.invoke('generate-email-draft', {
-      body: {
-        conversationId: conversation_id,
-        messageId: insertedMessage?.id,
-        organizationId: organization_id,
-      },
-    }).catch((err: any) => console.warn('[SendGrid-Inbound] Draft generation failed:', err));
+    // Fire-and-forget: generate AI draft reply (only when enabled for this inbox)
+    let aiDraftEnabled = true;
+    if (inbox_id) {
+      const { data: draftCfg } = await supabase
+        .from('inboxes')
+        .select('ai_draft_enabled')
+        .eq('id', inbox_id)
+        .maybeSingle();
+      aiDraftEnabled = draftCfg?.ai_draft_enabled !== false;
+    }
+    if (aiDraftEnabled) {
+      supabase.functions.invoke('generate-email-draft', {
+        body: {
+          conversationId: conversation_id,
+          messageId: insertedMessage?.id,
+          organizationId: organization_id,
+        },
+      }).catch((err: any) => console.warn('[SendGrid-Inbound] Draft generation failed:', err));
+    } else {
+      console.log(`[SendGrid-Inbound] AI drafts disabled for inbox ${inbox_id} — skipping draft generation`);
+    }
 
     console.log(`[SendGrid-Inbound] Successfully processed email - Conversation: ${conversation_id}, Customer: ${customer_id}`);
     return new Response(JSON.stringify({ ok: true }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
