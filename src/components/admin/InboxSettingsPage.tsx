@@ -69,7 +69,7 @@ export function InboxSettingsPage({ inboxId }: { inboxId: string }) {
 
   const { data: departments } = useServiceDepartments();
 
-  const { brands } = useNoddiBrands();
+  const { brands, isLoading: brandsLoading } = useNoddiBrands();
 
   const { data: inboundRoutes } = useQuery({
     queryKey: ['inbound_routes'],
