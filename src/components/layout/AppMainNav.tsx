@@ -280,7 +280,25 @@ export const AppMainNav = () => {
             </>
           )}
         </Button>
+
+        {/* Build / release info */}
+        {!isCollapsed && (
+          <div
+            className="px-2 pt-1 text-center text-[10px] leading-tight text-sidebar-foreground/50"
+            title={`Commit ${__APP_COMMIT__} · built ${__APP_BUILD_TIME__}`}
+          >
+            <div>v{__APP_COMMIT__.slice(0, 7)}</div>
+            <div>
+              {new Intl.DateTimeFormat('en-GB', {
+                dateStyle: 'medium',
+                timeStyle: 'short',
+                timeZone: 'Europe/Oslo',
+              }).format(new Date(__APP_BUILD_TIME__))}
+            </div>
+          </div>
+        )}
       </SidebarFooter>
+
     </Sidebar>
   );
 };
