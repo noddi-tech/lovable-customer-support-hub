@@ -118,7 +118,21 @@ const RunHistoryDialog: React.FC<{
           <p className="text-sm text-muted-foreground py-6 text-center">No runs recorded yet.</p>
         ) : (
           <div className="max-h-[60vh] overflow-auto">
-            <Table>
+            <div className="space-y-2 sm:hidden">
+              {runs.map((run) => (
+                <div key={run.runid} className="rounded-md border p-3 text-xs space-y-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-medium">{fmtTime(run.start_time)}</span>
+                    <StatusBadge status={run.status} />
+                  </div>
+                  <div className="text-muted-foreground">Duration: {formatDuration(run.duration_ms)}</div>
+                  {run.return_message && (
+                    <div className="text-muted-foreground break-words">{run.return_message}</div>
+                  )}
+                </div>
+              ))}
+            </div>
+            <Table className="hidden sm:table">
               <TableHeader>
                 <TableRow>
                   <TableHead>Started</TableHead>
@@ -455,6 +469,7 @@ const BackgroundJobsPage: React.FC = () => {
               </TooltipProvider>
             </CardContent>
           </Card>
+          </>
         )}
       </div>
 
