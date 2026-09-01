@@ -271,7 +271,7 @@ export const ChatConversationList: React.FC<ChatConversationListProps> = ({
             aria-label="Select all chats"
           />
           <span className="text-xs font-medium">{selectedIds.size} selected</span>
-          <div className="ml-auto flex items-center gap-1">
+          <div className="ml-auto flex flex-wrap items-center gap-1">
             <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => applyBulkStatus('open')}>
               Open
             </Button>
@@ -281,8 +281,11 @@ export const ChatConversationList: React.FC<ChatConversationListProps> = ({
             <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => applyBulkStatus('closed')}>
               Close
             </Button>
+            <BulkAssignMenu onAssign={applyBulkAssign} className="h-7 px-2 text-xs" />
+            <BulkTagMenu entityType="conversation" entityIds={[...selectedIds]} className="h-7 px-2 text-xs" />
             <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setSelectedIds(new Set())} aria-label="Clear selection">
               <X className="h-3.5 w-3.5" />
+            </Button>
             </Button>
           </div>
         </div>
