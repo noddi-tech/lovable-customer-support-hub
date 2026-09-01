@@ -32,10 +32,7 @@ export const TagContextMenuItems: React.FC<TagContextMenuItemsProps> = ({ entity
           <span className="ml-auto text-xs text-muted-foreground">{assigned.length}</span>
         )}
       </ContextMenuSubTrigger>
-      <ContextMenuSubContent
-        className="p-0 bg-popover z-50 w-auto"
-        onCloseAutoFocus={(e) => e.preventDefault()}
-      >
+      <ContextMenuSubContent className="p-0 bg-popover z-50 w-auto">
         {/* Same searchable list (with inline tag creation) as the detail-view picker */}
         <TagPickerList
           selectedIds={assigned.map((t) => t.id)}
