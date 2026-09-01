@@ -32,7 +32,7 @@ export const useSidebarNavCounts = (): SidebarNavCounts => {
     refetchOnWindowFocus: true,
     retry: false,
     queryFn: async (): Promise<SidebarNavCounts> => {
-      const [allCountsRes, chatRes, casesRes] = await Promise.all([
+      const [allCountsRes, chatRes] = await Promise.all([
         // Same RPC the inbox list uses, so the badge matches "All inboxes"
         (supabase.rpc as any)('get_all_counts'),
         (() => {
@@ -44,9 +44,6 @@ export const useSidebarNavCounts = (): SidebarNavCounts => {
           if (organizationId) q = q.eq('organization_id', organizationId);
           return q;
         })(),
-        (supabase.from('cases') as any)
-          .select('id', { count: 'exact', head: true })
-          .in('status', OPEN_CASE_STATUSES),
       ]);
 
       const row = (allCountsRes as any)?.data?.[0];
