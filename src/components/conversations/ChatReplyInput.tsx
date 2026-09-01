@@ -325,6 +325,7 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
         .from('conversations')
         .update({ 
           status: 'closed',
+          is_read: true,
           updated_at: new Date().toISOString(),
         })
         .eq('id', conversationId);

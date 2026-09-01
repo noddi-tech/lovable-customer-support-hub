@@ -652,6 +652,9 @@ export const ConversationViewProvider = ({ children, conversationId, conversatio
       if (isArchived !== undefined) updates.is_archived = isArchived;
       // Archiving always closes the conversation as well.
       if (isArchived === true) updates.status = 'closed';
+      // Closing marks the conversation as read.
+      if (updates.status === 'closed') updates.is_read = true;
+      
       
       const { error } = await supabase
         .from('conversations')

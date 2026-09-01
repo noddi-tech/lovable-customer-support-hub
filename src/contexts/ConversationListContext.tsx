@@ -385,7 +385,8 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
         .from('conversations')
         .update({ 
           status: 'closed',
-          is_archived: true 
+          is_archived: true,
+          is_read: true
         })
         .eq('id', conversationId);
       
@@ -457,6 +458,8 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
               case "assigned":
                 return !!conversation.assigned_to 
                   && conversation.assigned_to.id === profile?.id
+                  && conversation.status !== 'closed'
+                  && !conversation.is_archived
                   && !isSnoozedActive 
                   && !conversation.is_deleted;
               case "closed":
@@ -545,7 +548,7 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
     try {
       for (const chunk of idChunks) {
         // Archiving always closes the conversation as well.
-        const updatePayload: Record<string, any> = { is_archived: true, status: 'closed' };
+        const updatePayload: Record<string, any> = { is_archived: true, status: 'closed', is_read: true };
         
         const { error } = await supabase
           .from('conversations')
@@ -651,6 +654,8 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
           case "assigned":
             return !!conversation.assigned_to 
               && conversation.assigned_to.id === profile?.id
+              && conversation.status !== 'closed'
+              && !conversation.is_archived
               && !isSnoozedActive 
               && !conversation.is_deleted;
           case "closed":
@@ -882,7 +887,7 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
       for (const chunk of idChunks) {
         const { error } = await supabase
           .from('conversations')
-          .update({ status })
+          .update(status === 'closed' ? { status, is_read: true } : { status })
           .in('id', chunk);
         
         if (error) throw error;
@@ -911,7 +916,7 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
         for (const chunk of idChunks) {
           const { error } = await supabase
             .from('conversations')
-            .update({ is_archived: true, status: 'closed' })
+            .update({ is_archived: true, status: 'closed', is_read: true })
             .in('id', chunk);
           if (error) throw error;
         }
