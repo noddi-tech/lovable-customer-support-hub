@@ -1,6 +1,5 @@
 import React from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { getBrandColor } from '@/lib/conversationBrand';
 import { useNoddiBrands } from '@/hooks/useNoddiBrands';
 import { cn } from '@/lib/utils';
 
@@ -21,7 +20,7 @@ interface BrandFilterSelectProps {
 /**
  * Brand filter used by the conversation list and the live-chat list, so both
  * views filter on the brand shown in their badges. Logos come from the Noddi
- * brand catalog; brands without a logo fall back to a colored dot.
+ * brand catalog; brands without a logo fall back to their initial.
  */
 export const BrandFilterSelect: React.FC<BrandFilterSelectProps> = ({
   value,

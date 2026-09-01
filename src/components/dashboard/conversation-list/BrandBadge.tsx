@@ -3,6 +3,17 @@ import { cn } from '@/lib/utils';
 import { getBrandColor, type ConversationBrand } from '@/lib/conversationBrand';
 import { useNoddiBrands } from '@/hooks/useNoddiBrands';
 
+/** Adds transparency to a hex/rgb color so the same value works for border + fill. */
+const withAlpha = (color: string, alpha: number): string => {
+  const hex = /^#([0-9a-f]{6})$/i.exec(color)?.[1] ?? /^#([0-9a-f]{3})$/i.exec(color)?.[1];
+  if (hex) {
+    const full = hex.length === 3 ? hex.split('').map((c) => c + c).join('') : hex;
+    const [r, g, b] = [0, 2, 4].map((i) => parseInt(full.slice(i, i + 2), 16));
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  }
+  return color;
+};
+
 interface BrandBadgeProps {
   brand: ConversationBrand;
   compact?: boolean;
@@ -34,7 +45,7 @@ export const BrandBadge: React.FC<BrandBadgeProps> = ({ brand, compact, size = '
         size === 'md' ? 'text-xs px-2 py-0.5 gap-1.5' : compact ? 'text-[9px]' : 'text-[10px]',
         className,
       )}
-      style={{ borderColor: `${color}66`, backgroundColor: `${color}14`, color }}
+      style={{ borderColor: withAlpha(color, 0.4), backgroundColor: withAlpha(color, 0.08), color }}
     >
       {logo ? (
         <img
