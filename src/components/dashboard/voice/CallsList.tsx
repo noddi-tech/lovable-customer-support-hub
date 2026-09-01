@@ -20,6 +20,7 @@ import { AdvancedCallFilters, CallFilters } from './AdvancedCallFilters';
 import { BadgeGuide } from './BadgeGuide';
 import { CallsTable } from './CallsTable';
 import { SyncCustomerNamesButton } from './SyncCustomerNamesButton';
+import { useIsMobile } from '@/hooks/use-responsive';
 
 interface CallsListProps {
   showTimeFilter?: boolean;
@@ -32,6 +33,7 @@ interface CallsListProps {
 
 export const CallsList = ({ showTimeFilter = true, dateFilter, onNavigateToEvents, onSelectCall, selectedCallId }: CallsListProps) => {
   const { t } = useTranslation();
+  const isMobile = useIsMobile();
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [directionFilter, setDirectionFilter] = useState<string>('all');
   const [timeRangeStart, setTimeRangeStart] = useState<Date | null>(null);
@@ -429,18 +431,18 @@ export const CallsList = ({ showTimeFilter = true, dateFilter, onNavigateToEvent
       {/* Badge Guide */}
       <BadgeGuide />
       
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h3 className="text-lg font-semibold">Call History</h3>
+          <h3 className="text-base font-semibold sm:text-lg">Call History</h3>
           <p className="text-sm text-muted-foreground">
             {filteredCalls.length} call{filteredCalls.length !== 1 ? 's' : ''} found
           </p>
         </div>
         
         {/* View Mode Toggle & Filters */}
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <SyncCustomerNamesButton calls={calls} />
-          <div className="flex items-center border rounded-md">
+          <div className="hidden items-center border rounded-md sm:flex">
             <Button 
               variant={viewMode === 'table' ? 'default' : 'ghost'} 
               size="sm" 
@@ -458,7 +460,7 @@ export const CallsList = ({ showTimeFilter = true, dateFilter, onNavigateToEvent
               <LayoutGrid className="h-4 w-4" />
             </Button>
           </div>
-          <Filter className="h-4 w-4 text-muted-foreground" />
+          <Filter className="hidden h-4 w-4 text-muted-foreground sm:block" />
           
           {showTimeFilter && (
             <TimeRangeFilter
@@ -468,7 +470,7 @@ export const CallsList = ({ showTimeFilter = true, dateFilter, onNavigateToEvent
           )}
           
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-32">
+            <SelectTrigger className="h-10 w-[calc(50%-0.25rem)] sm:h-9 sm:w-32">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
@@ -480,7 +482,7 @@ export const CallsList = ({ showTimeFilter = true, dateFilter, onNavigateToEvent
           </Select>
           
           <Select value={directionFilter} onValueChange={setDirectionFilter}>
-            <SelectTrigger className="w-32">
+            <SelectTrigger className="h-10 w-[calc(50%-0.25rem)] sm:h-9 sm:w-32">
               <SelectValue placeholder="Direction" />
             </SelectTrigger>
             <SelectContent>
@@ -520,7 +522,7 @@ export const CallsList = ({ showTimeFilter = true, dateFilter, onNavigateToEvent
             </p>
           </CardContent>
         </Card>
-      ) : viewMode === 'table' ? (
+      ) : viewMode === 'table' && !isMobile ? (
         <CallsTable
           calls={filteredCalls}
           onCallClick={openCallDetails}

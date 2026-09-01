@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
+import { SidebarTrigger } from '@/components/ui/sidebar';
+import { useIsMobile } from '@/hooks/use-responsive';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { 
   Phone, 
@@ -30,6 +32,7 @@ import { useQueryClient } from '@tanstack/react-query';
 
 export const VoiceDashboard = () => {
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('recent');
   const [metricsCollapsed, setMetricsCollapsed] = useState(() => {
@@ -62,7 +65,7 @@ export const VoiceDashboard = () => {
   };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4 sm:space-y-5">
       {/* Aircall Connection Prompt */}
       {!isConnected && (
         <AircallConnectionPrompt
@@ -72,15 +75,18 @@ export const VoiceDashboard = () => {
         />
       )}
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Voice Dashboard</h1>
-          <p className="text-muted-foreground mt-1">
-            Manage calls, voicemails, and callbacks in one place
-          </p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-start gap-2">
+          <SidebarTrigger className="mt-1 shrink-0 md:hidden" />
+          <div className="min-w-0">
+            <h1 className="text-xl font-bold sm:text-3xl">Voice Dashboard</h1>
+            <p className="hidden text-muted-foreground mt-1 sm:block">
+              Manage calls, voicemails, and callbacks in one place
+            </p>
+          </div>
         </div>
         
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <LiveDataIndicator 
             isLive={realtimeConnected} 
             lastUpdated={lastConnected || new Date()}
@@ -91,7 +97,7 @@ export const VoiceDashboard = () => {
             variant="outline" 
             size="sm"
             onClick={() => navigate('/voice/analytics')}
-            className="gap-2"
+            className="h-10 flex-1 gap-2 sm:h-9 sm:flex-none"
           >
             <BarChart3 className="h-4 w-4" />
             View Analytics
@@ -101,7 +107,7 @@ export const VoiceDashboard = () => {
             variant="outline" 
             size="sm"
             onClick={() => navigate('/voice/settings')}
-            className="gap-2"
+            className="h-10 flex-1 gap-2 sm:h-9 sm:flex-none"
           >
             <Settings className="h-4 w-4" />
             Settings
@@ -147,7 +153,7 @@ export const VoiceDashboard = () => {
         </div>
         
         <CollapsibleContent>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 pb-2">
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-2 lg:grid-cols-4 pb-2 sm:gap-4">
             <CallMetricsCard
               title="Calls Today"
               value={metrics.totalCalls}
@@ -184,29 +190,29 @@ export const VoiceDashboard = () => {
 
       {/* Main Content */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="recent" className="gap-2">
-            <Phone className="h-4 w-4" />
-            Recent Calls
+        <TabsList className="grid w-full grid-cols-4 gap-1">
+          <TabsTrigger value="recent" className="gap-1.5 px-1 text-xs sm:gap-2 sm:px-3 sm:text-sm">
+            <Phone className="h-4 w-4 shrink-0" />
+            <span className="truncate">{isMobile ? 'Recent' : 'Recent Calls'}</span>
           </TabsTrigger>
-          <TabsTrigger value="callbacks" className="gap-2">
-            <PhoneCall className="h-4 w-4" />
-            Callbacks
+          <TabsTrigger value="callbacks" className="gap-1.5 px-1 text-xs sm:gap-2 sm:px-3 sm:text-sm">
+            <PhoneCall className="h-4 w-4 shrink-0" />
+            <span className="truncate">Callbacks</span>
           </TabsTrigger>
-          <TabsTrigger value="voicemails" className="gap-2">
-            <Voicemail className="h-4 w-4" />
-            Voicemails
+          <TabsTrigger value="voicemails" className="gap-1.5 px-1 text-xs sm:gap-2 sm:px-3 sm:text-sm">
+            <Voicemail className="h-4 w-4 shrink-0" />
+            <span className="truncate">{isMobile ? 'Voicemail' : 'Voicemails'}</span>
           </TabsTrigger>
-          <TabsTrigger value="missed" className="gap-2">
-            <PhoneMissed className="h-4 w-4" />
-            Missed
+          <TabsTrigger value="missed" className="gap-1.5 px-1 text-xs sm:gap-2 sm:px-3 sm:text-sm">
+            <PhoneMissed className="h-4 w-4 shrink-0" />
+            <span className="truncate">Missed</span>
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="recent" className="space-y-4">
           <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
+            <CardHeader className="p-4 sm:p-6">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <CardTitle>Recent Calls</CardTitle>
                   <CardDescription>
@@ -224,7 +230,7 @@ export const VoiceDashboard = () => {
                 </Button>
               </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-3 sm:p-6 sm:pt-0">
               <CallsList />
             </CardContent>
           </Card>
@@ -232,8 +238,8 @@ export const VoiceDashboard = () => {
 
         <TabsContent value="callbacks" className="space-y-4">
           <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
+            <CardHeader className="p-4 sm:p-6">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <CardTitle>Callback Requests</CardTitle>
                   <CardDescription>
@@ -246,7 +252,7 @@ export const VoiceDashboard = () => {
                 </Button>
               </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-3 sm:p-6 sm:pt-0">
               <CallbackRequestsList />
             </CardContent>
           </Card>
@@ -260,7 +266,7 @@ export const VoiceDashboard = () => {
                 Unread voicemail messages
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-3 sm:p-6 sm:pt-0">
               <VoicemailsList />
             </CardContent>
           </Card>
@@ -268,8 +274,8 @@ export const VoiceDashboard = () => {
 
         <TabsContent value="missed" className="space-y-4">
           <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
+            <CardHeader className="p-4 sm:p-6">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <CardTitle>Missed Calls</CardTitle>
                   <CardDescription>
@@ -281,7 +287,7 @@ export const VoiceDashboard = () => {
                 </Button>
               </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-3 sm:p-6 sm:pt-0">
               <CallsList />
             </CardContent>
           </Card>
@@ -294,7 +300,7 @@ export const VoiceDashboard = () => {
           <CardTitle>Quick Actions</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-3 md:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <Button 
               variant="outline" 
               className="h-20 flex-col gap-2"

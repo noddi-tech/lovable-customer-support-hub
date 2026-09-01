@@ -8,6 +8,7 @@ import { CalendarIcon, ArrowLeft } from 'lucide-react';
 import { format } from 'date-fns';
 import { LiveDataIndicator } from '@/components/dashboard/voice/LiveDataIndicator';
 import { useNavigate } from 'react-router-dom';
+import { SidebarTrigger } from '@/components/ui/sidebar';
 
 export default function VoiceAnalyticsPage() {
   const navigate = useNavigate();
@@ -18,28 +19,29 @@ export default function VoiceAnalyticsPage() {
   const [isLive, setIsLive] = useState(true);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 p-3 pb-24 sm:space-y-6 sm:p-0 sm:pb-0">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <SidebarTrigger className="shrink-0 md:hidden" />
           <Button
             variant="ghost"
             size="sm"
             onClick={() => navigate('/voice')}
-            className="gap-2"
+            className="shrink-0 gap-2 px-2 sm:px-3"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back to Inbox
+            <span className="hidden sm:inline">Back to Inbox</span>
           </Button>
-          <div>
-            <h1 className="text-3xl font-bold">Voice Analytics</h1>
-            <p className="text-muted-foreground mt-1">
+          <div className="min-w-0">
+            <h1 className="truncate text-xl font-bold sm:text-3xl">Voice Analytics</h1>
+            <p className="hidden text-muted-foreground mt-1 sm:block">
               Insights and performance metrics for your voice operations
             </p>
           </div>
         </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <LiveDataIndicator 
               isLive={isLive} 
               lastUpdated={new Date()}
@@ -48,12 +50,12 @@ export default function VoiceAnalyticsPage() {
             
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" className="gap-2">
+                <Button variant="outline" className="h-10 gap-2 sm:h-9">
                   <CalendarIcon className="h-4 w-4" />
                   {format(dateRange.from, 'MMM dd')} - {format(dateRange.to, 'MMM dd')}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="end">
+              <PopoverContent className="w-[min(20rem,calc(100vw-1.5rem))] p-0 sm:w-auto" align="end">
                 <div className="p-3 space-y-2">
                   <div className="space-y-1">
                     <p className="text-sm font-medium">Date Range</p>
@@ -61,7 +63,7 @@ export default function VoiceAnalyticsPage() {
                       Select a range to filter analytics
                     </p>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
                     <Button
                       size="sm"
                       variant="outline"
