@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useServiceDepartments, type ServiceDepartment } from '@/hooks/useServiceDepartments';
 import type {
   NoddiPaginated,
   NoddiTicket,
