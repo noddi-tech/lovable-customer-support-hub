@@ -229,7 +229,33 @@ export default function CustomersPage() {
             </div>
           )}
         </div>
+
+        {selectedCustomerId && (
+          <CustomerDetailsSidebar
+            key={selectedCustomerId}
+            customerId={selectedCustomerId}
+            onClose={() => setSelectedCustomerId(null)}
+            className="hidden w-[380px] shrink-0 border-l lg:flex"
+          />
+        )}
+        </div>
+
+        <Sheet
+          open={!!selectedCustomerId && !isDesktop}
+          onOpenChange={(o) => !o && setSelectedCustomerId(null)}
+        >
+          <SheetContent side="right" className="w-full max-w-[420px] p-0 sm:max-w-[420px]">
+            {selectedCustomerId && (
+              <CustomerDetailsSidebar
+                customerId={selectedCustomerId}
+                onClose={() => setSelectedCustomerId(null)}
+                className="h-full"
+              />
+            )}
+          </SheetContent>
+        </Sheet>
       </div>
+
     </UnifiedAppLayout>
   );
 }
