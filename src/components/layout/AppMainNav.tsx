@@ -264,39 +264,21 @@ export const AppMainNav = () => {
 
 
 
-        {/* Collapse toggle */}
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={toggleSidebar}
-          className="w-full flex items-center justify-center gap-2"
-        >
-          {isCollapsed ? (
-            <ChevronRight className="h-4 w-4" />
-          ) : (
-            <>
-              <ChevronLeft className="h-4 w-4" />
-              <span>Collapse</span>
-            </>
-          )}
-        </Button>
-
         {/* Build / release info */}
         {!isCollapsed && (
           <div
-            className="px-2 pt-1 text-center text-[10px] leading-tight text-sidebar-foreground/50"
+            className="px-2 pt-0.5 text-center text-[9px] leading-tight text-sidebar-foreground/50 truncate"
             title={`Commit ${__APP_COMMIT__} · built ${__APP_BUILD_TIME__}`}
           >
-            <div>v{__APP_COMMIT__.slice(0, 7)}</div>
-            <div>
-              {new Intl.DateTimeFormat('en-GB', {
-                dateStyle: 'medium',
-                timeStyle: 'short',
-                timeZone: 'Europe/Oslo',
-              }).format(new Date(__APP_BUILD_TIME__))}
-            </div>
+            v{__APP_COMMIT__.slice(0, 7)} ·{' '}
+            {new Intl.DateTimeFormat('en-GB', {
+              dateStyle: 'short',
+              timeStyle: 'short',
+              timeZone: 'Europe/Oslo',
+            }).format(new Date(__APP_BUILD_TIME__))}
           </div>
         )}
+
       </SidebarFooter>
 
     </Sidebar>
