@@ -8,6 +8,8 @@ export interface NoddiBrand {
   slug: string;
   domain: string | null;
   logo_url: string | null;
+  /** Brand primary color (hex) from the Noddi catalog, used to color brand labels. */
+  color_primary?: string | null;
 }
 
 const normalize = (value: string) =>
