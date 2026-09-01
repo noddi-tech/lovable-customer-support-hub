@@ -1,5 +1,5 @@
-import React from 'react';
-import { Check, Tag as TagIcon } from 'lucide-react';
+import React, { useState } from 'react';
+import { Check, Plus, Tag as TagIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useTags } from '@/hooks/useTags';
 import { TagBadge } from '@/components/tags/TagBadge';
+import { TagCreateForm } from '@/components/tags/TagCreateForm';
 import { cn } from '@/lib/utils';
 
 export const UNTAGGED = '__untagged__';
@@ -23,7 +24,9 @@ interface TagFilterSelectProps {
 
 /** Multi-select tag filter used by every taggable list. */
 export const TagFilterSelect: React.FC<TagFilterSelectProps> = ({ value, onChange, className }) => {
-  const { tags } = useTags();
+  const { tags, createTag } = useTags();
+  const [showCreate, setShowCreate] = useState(false);
+
 
   const toggle = (id: string) => {
     if (id === UNTAGGED) {
