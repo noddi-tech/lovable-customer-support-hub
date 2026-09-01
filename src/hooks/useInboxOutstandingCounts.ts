@@ -17,8 +17,13 @@ export interface InboxOutstanding {
  */
 export const useInboxOutstandingCounts = () => {
   return useQuery({
-    queryKey: ['inbox-outstanding-counts'],
+    // v2: bumped so stale persisted counts from the old (row-based) query are dropped
+    queryKey: ['inbox-outstanding-counts', 'v2'],
     staleTime: 60_000,
+    // The query cache is persisted for 24h, so always revalidate on mount —
+    // otherwise the badge can show a long-stale count.
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
     refetchInterval: 120_000,
     queryFn: async (): Promise<Record<string, InboxOutstanding>> => {
       const { data, error } = await (supabase.rpc as any)('get_inbox_outstanding_counts');
