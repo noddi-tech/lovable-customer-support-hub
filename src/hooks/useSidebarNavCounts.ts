@@ -1,4 +1,5 @@
-import { useQuery } from '@tanstack/react-query';
+import { useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { OPEN_CASE_STATUSES } from '@/hooks/useCases';
@@ -11,41 +12,76 @@ export interface SidebarNavCounts {
 
 /**
  * Counts used for the small number overlays on the sidebar nav icons.
- * - text: unread text (email/SMS) conversations
- * - chat: live chat sessions waiting or active
+ * - text: open text conversations (same source as the inbox list "All inboxes" count)
+ * - chat: active live chat conversations (widget channel, open/pending)
  * - cases: cases in an open state
  */
 export const useSidebarNavCounts = (): SidebarNavCounts => {
-  const { user, loading } = useAuth();
+  const { user, loading, profile } = useAuth();
+  const queryClient = useQueryClient();
+  const organizationId = profile?.organization_id;
 
   const { data } = useQuery({
-    queryKey: ['sidebar-nav-counts'],
+    queryKey: ['sidebar-nav-counts', organizationId],
     enabled: !!user && !loading,
-    staleTime: 60_000,
-    refetchInterval: 120_000,
+    staleTime: 15_000,
+    refetchInterval: 30_000,
+    refetchOnWindowFocus: true,
     retry: false,
     queryFn: async (): Promise<SidebarNavCounts> => {
-      const [textRes, chatRes, casesRes] = await Promise.all([
-        (supabase.from('conversations') as any)
-          .select('id', { count: 'exact', head: true })
-          .eq('is_read', false)
-          .eq('is_archived', false)
-          .neq('status', 'closed'),
-        (supabase.from('widget_chat_sessions') as any)
-          .select('id', { count: 'exact', head: true })
-          .in('status', ['waiting', 'active']),
+      const [allCountsRes, chatRes, casesRes] = await Promise.all([
+        // Same RPC the inbox list uses, so the badge matches "All inboxes"
+        (supabase.rpc as any)('get_all_counts'),
+        (() => {
+          let q = (supabase.from('conversations') as any)
+            .select('id', { count: 'exact', head: true })
+            .eq('channel', 'widget')
+            .in('status', ['open', 'pending'])
+            .is('deleted_at', null);
+          if (organizationId) q = q.eq('organization_id', organizationId);
+          return q;
+        })(),
         (supabase.from('cases') as any)
           .select('id', { count: 'exact', head: true })
           .in('status', OPEN_CASE_STATUSES),
       ]);
 
+      const row = (allCountsRes as any)?.data?.[0];
+      const textOpen = Number(row?.conversations_open) || 0;
+      const chatActive = (chatRes as any)?.count ?? 0;
+
       return {
-        text: textRes.count ?? 0,
-        chat: chatRes.count ?? 0,
-        cases: casesRes.count ?? 0,
+        // Text = all open conversations minus the live-chat ones (those get their own badge)
+        text: Math.max(textOpen - chatActive, 0),
+        chat: chatActive,
+        cases: (casesRes as any)?.count ?? 0,
       };
     },
   });
+
+  // Keep the badges fresh when conversations or chat sessions change
+  useEffect(() => {
+    if (!user || loading) return;
+
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const invalidate = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ['sidebar-nav-counts'] });
+      }, 2000);
+    };
+
+    const channel = supabase
+      .channel('sidebar-nav-counts')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'conversations' }, invalidate)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'widget_chat_sessions' }, invalidate)
+      .subscribe();
+
+    return () => {
+      if (timer) clearTimeout(timer);
+      supabase.removeChannel(channel);
+    };
+  }, [user, loading, queryClient]);
 
   return data ?? { text: 0, chat: 0, cases: 0 };
 };
