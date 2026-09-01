@@ -15,6 +15,7 @@ import {
   Search,
   Send,
   FileLock2,
+  Timer,
   UserRound
 } from "lucide-react";
 
