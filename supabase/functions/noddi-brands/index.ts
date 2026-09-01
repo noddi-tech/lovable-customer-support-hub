@@ -1,11 +1,12 @@
 /**
-import { navioSourceHeaders, captureNavioSourceVersion } from "../_shared/navio-source.ts";
  * Proxy for the Noddi backend brand catalog.
  *
  * Returns a slim list of brands (id, name, slug, domain, logo url) used by the
  * support hub to show which brand a live-chat conversation came from.
  * Responses are cached in-memory for a few minutes to avoid hammering the API.
  */
+
+import { navioSourceHeaders, captureNavioSourceVersion } from '../_shared/navio-source.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -27,16 +28,31 @@ interface SlimBrand {
 
 let cache: { at: number; brands: SlimBrand[] } | null = null;
 
-const toSlim = (raw: Record<string, unknown>): SlimBrand => {
-  const logo = raw.logo as { url?: string } | null | undefined;
-  return {
-    id: Number(raw.id),
-    name: String(raw.name ?? ''),
-    slug: String(raw.slug ?? ''),
-    domain: typeof raw.domain === 'string' ? raw.domain : null,
-    logo_url: logo && typeof logo.url === 'string' ? logo.url : null,
-  };
+const pickUrl = (value: unknown): string | null => {
+  if (typeof value === 'string' && value.startsWith('http')) return value;
+  if (value && typeof value === 'object') {
+    const obj = value as Record<string, unknown>;
+    for (const key of ['url', 'src', 'file', 'image', 'original']) {
+      const nested = obj[key];
+      if (typeof nested === 'string' && nested.startsWith('http')) return nested;
+    }
+  }
+  return null;
 };
+
+const toSlim = (raw: Record<string, unknown>): SlimBrand => ({
+  id: Number(raw.id),
+  name: String(raw.name ?? raw.title ?? ''),
+  slug: String(raw.slug ?? raw.code ?? raw.domain ?? ''),
+  domain: typeof raw.domain === 'string' ? raw.domain : null,
+  logo_url:
+    pickUrl(raw.logo) ??
+    pickUrl(raw.logo_url) ??
+    pickUrl(raw.icon) ??
+    pickUrl(raw.image) ??
+    pickUrl(raw.favicon) ??
+    null,
+});
 
 Deno.serve(async (req) => {
   captureNavioSourceVersion(req);
@@ -51,10 +67,18 @@ Deno.serve(async (req) => {
       });
     }
 
-    const headers: Record<string, string> = { Accept: 'application/json', ...navioSourceHeaders() };
-    if (NODDI_TOKEN) headers.Authorization = `Api-Key ${NODDI_TOKEN}`;
+    const baseHeaders: Record<string, string> = { Accept: 'application/json', ...navioSourceHeaders() };
 
-    const res = await fetch(`${API_BASE}/v1/brands/?page_size=100`, { headers });
+    // The backend accepts `Token <key>`; older deployments used `Api-Key <key>`.
+    const authSchemes = NODDI_TOKEN ? [`Token ${NODDI_TOKEN}`, `Api-Key ${NODDI_TOKEN}`] : [''];
+    let res: Response | null = null;
+    for (const auth of authSchemes) {
+      const headers = auth ? { ...baseHeaders, Authorization: auth } : baseHeaders;
+      res = await fetch(`${API_BASE}/v1/brands/?page_size=100`, { headers });
+      console.log(`[noddi-brands] GET /v1/brands/ (${auth.split(' ')[0] || 'anon'}) -> ${res.status}`);
+      if (res.status !== 401 && res.status !== 403) break;
+    }
+    if (!res) throw new Error('No response from Noddi API');
 
     if (!res.ok) {
       const body = await res.text();
@@ -72,7 +96,14 @@ Deno.serve(async (req) => {
     }
 
     const payload = await res.json();
-    const results = Array.isArray(payload?.results) ? payload.results : [];
+    const results: Record<string, unknown>[] = Array.isArray(payload)
+      ? payload
+      : Array.isArray(payload?.results)
+        ? payload.results
+        : Array.isArray(payload?.data)
+          ? payload.data
+          : [];
+    console.log(`[noddi-brands] parsed ${results.length} brand rows`);
     const brands = results
       .map((r: Record<string, unknown>) => toSlim(r))
       .filter((b: SlimBrand) => b.name && b.slug);

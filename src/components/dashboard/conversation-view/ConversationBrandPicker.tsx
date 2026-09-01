@@ -66,9 +66,15 @@ export const ConversationBrandPicker: React.FC<ConversationBrandPickerProps> = (
           return (
             <DropdownMenuItem key={b.id} className="gap-2" onSelect={() => setBrand(conversationId, b.name)}>
               {b.logo_url ? (
-                <img src={b.logo_url} alt="" loading="lazy" className="h-4 w-4 rounded-sm object-contain shrink-0" />
+                <img src={b.logo_url} alt="" loading="lazy" className="h-5 w-5 rounded-sm object-contain shrink-0" />
               ) : (
-                <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: color }} />
+                <span
+                  className="h-5 w-5 rounded-sm shrink-0 grid place-items-center text-[10px] font-semibold text-white"
+                  style={{ backgroundColor: color }}
+                  aria-hidden
+                >
+                  {b.name.charAt(0).toUpperCase()}
+                </span>
               )}
               <span className="truncate flex-1" style={{ color }}>{b.name}</span>
               {currentSlug === b.slug && <Check className="w-3.5 h-3.5 text-primary shrink-0" />}
