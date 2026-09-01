@@ -26,6 +26,8 @@ export type NavItem = {
   label: string;
   to: string;
   icon: any;
+  /** Short explanation shown on hover in the sidebar. */
+  description?: string;
   group: "notifications" | "support" | "interactions" | "marketing" | "operations" | "settings";
   requiredRole?: "admin" | "super_admin";
   showBadge?: boolean;
@@ -35,7 +37,8 @@ export const NAV_ITEMS: NavItem[] = [
   // Search - Global search page
   { 
     id: "search", 
-    label: "Search", 
+    label: "Search",
+    description: "Search across conversations, customers, cases and knowledge in one place.", 
     to: "/search", 
     icon: Search, 
     group: "notifications"
@@ -44,7 +47,8 @@ export const NAV_ITEMS: NavItem[] = [
   // Notifications - Above interactions
   { 
     id: "notifications", 
-    label: "Notifications", 
+    label: "Notifications",
+    description: "Your mentions, assignments and system alerts, newest first.", 
     to: "/notifications", 
     icon: Bell, 
     group: "notifications",
@@ -55,6 +59,7 @@ export const NAV_ITEMS: NavItem[] = [
   {
     id: "cases",
     label: "Cases",
+    description: "Structured support cases that group related conversations and follow-ups.",
     to: "/operations/cases",
     icon: Briefcase,
     group: "support"
@@ -62,6 +67,7 @@ export const NAV_ITEMS: NavItem[] = [
   {
     id: "customers",
     label: "Customers",
+    description: "Customer profiles with contact details, bookings and interaction history.",
     to: "/customers",
     icon: UserRound,
     group: "support"
@@ -69,6 +75,7 @@ export const NAV_ITEMS: NavItem[] = [
   {
     id: "service-tickets",
     label: "Ops Tickets",
+    description: "Operational tickets raised for field or back-office teams to resolve.",
     to: "/operations/tickets",
     icon: Ticket,
     group: "support"
@@ -77,21 +84,24 @@ export const NAV_ITEMS: NavItem[] = [
   // Interactions - hierarchical paths
   { 
     id: "text", 
-    label: "Inbox", 
+    label: "Inbox",
+    description: "Shared email and SMS inbox with all conversation threads and replies.", 
     to: "/interactions/text", 
     icon: Inbox, 
     group: "interactions" 
   },
   { 
     id: "chat", 
-    label: "Chat", 
+    label: "Chat",
+    description: "Live website chat queue with active visitors and chat history.", 
     to: "/interactions/chat", 
     icon: MessageCircle, 
     group: "interactions" 
   },
   { 
     id: "voice", 
-    label: "Voice Calls", 
+    label: "Voice Calls",
+    description: "Phone call log, recordings and voice call handling.", 
     to: "/interactions/voice", 
     icon: Phone, 
     group: "interactions" 
@@ -100,14 +110,16 @@ export const NAV_ITEMS: NavItem[] = [
   // Marketing - hierarchical paths
   { 
     id: "campaigns", 
-    label: "Campaigns", 
+    label: "Campaigns",
+    description: "Plan and send marketing campaigns to customer segments.", 
     to: "/marketing/campaigns", 
     icon: Megaphone, 
     group: "marketing" 
   },
   { 
     id: "newsletters", 
-    label: "Newsletters", 
+    label: "Newsletters",
+    description: "Create, schedule and review newsletter sends.", 
     to: "/marketing/newsletters", 
     icon: Mail, 
     group: "marketing" 
@@ -116,21 +128,24 @@ export const NAV_ITEMS: NavItem[] = [
   // Operations - hierarchical paths
   { 
     id: "recruitment", 
-    label: "Recruitment", 
+    label: "Recruitment",
+    description: "Applicant pipeline and hiring workflow for operations roles.", 
     to: "/operations/recruitment", 
     icon: Users, 
     group: "operations" 
   },
   { 
     id: "ops-analytics", 
-    label: "Operations Analytics", 
+    label: "Operations Analytics",
+    description: "Operational dashboards and performance reporting.", 
     to: "/operations/analytics", 
     icon: BarChart3, 
     group: "operations" 
   },
   { 
     id: "bulk-outreach", 
-    label: "Bulk Outreach", 
+    label: "Bulk Outreach",
+    description: "Send templated messages to many customers at once.", 
     to: "/operations/bulk-outreach", 
     icon: Send, 
     group: "operations" 
@@ -143,7 +158,8 @@ export const NAV_ITEMS: NavItem[] = [
   // Single Admin Portal link - visible only to admins
   { 
     id: "admin-portal", 
-    label: "Admin Portal", 
+    label: "Admin Portal",
+    description: "Organisation setup: users, inboxes, AI, integrations and policies.", 
     to: "/admin", 
     icon: Shield, 
     group: "settings",
@@ -152,6 +168,7 @@ export const NAV_ITEMS: NavItem[] = [
   {
     id: "admin-gdpr",
     label: "GDPR Requests",
+    description: "Handle data access and deletion requests from customers.",
     to: "/admin/gdpr",
     icon: FileLock2,
     group: "settings",
@@ -160,6 +177,7 @@ export const NAV_ITEMS: NavItem[] = [
   {
     id: "admin-background-jobs",
     label: "Background Jobs",
+    description: "Monitor scheduled jobs and background processing runs.",
     to: "/admin/background-jobs",
     icon: Timer,
     group: "settings",
@@ -168,6 +186,7 @@ export const NAV_ITEMS: NavItem[] = [
   {
     id: "admin-edge-functions",
     label: "Edge Functions",
+    description: "Inspect edge function deployments, logs and health.",
     to: "/admin/edge-functions",
     icon: FunctionSquare,
     group: "settings",
