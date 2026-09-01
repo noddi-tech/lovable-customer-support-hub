@@ -88,7 +88,6 @@ export const AgentAvailabilityPanel: React.FC<AgentAvailabilityPanelProps> = ({
   const { 
     isConnected: phoneConnected, 
     isInitialized: phoneInitialized,
-    initializationPhase,
     openLoginModal,
     initializePhone,
     logout: phoneLogout,
