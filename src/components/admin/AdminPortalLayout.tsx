@@ -348,7 +348,7 @@ const LayoutContent: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   const location = useLocation();
   const isFullHeight = location.pathname === '/admin/ai-chatbot';
   return (
-    <div className={cn(isFullHeight ? "px-4 py-2 h-full flex flex-col" : "py-6 px-8 max-w-7xl mx-auto")}>
+    <div className={cn(isFullHeight ? "px-4 py-2 h-full flex flex-col" : "py-4 px-4 sm:py-6 sm:px-6 lg:px-8 max-w-7xl mx-auto")}>
       {children}
     </div>
   );
