@@ -423,12 +423,17 @@ export async function sendChatAttachment(
 }
 
 /** Post-chat CSAT rating (1-5) with an optional comment. */
-export async function rateChat(sessionId: string, rating: number, comment?: string): Promise<boolean> {
+export async function rateChat(
+  sessionId: string,
+  rating: number,
+  comment?: string,
+  resolved?: boolean | null,
+): Promise<boolean> {
   try {
     const response = await fetch(`${apiBaseUrl}/widget-chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'rate', sessionId, rating, comment }),
+      body: JSON.stringify({ action: 'rate', sessionId, rating, comment, resolved }),
     });
     return response.ok;
   } catch {

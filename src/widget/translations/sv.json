@@ -72,5 +72,8 @@
   "backToHome": "Tillbaka",
   "yourMessages": "Dina meddelanden",
   "awaitingReply": "Vi svarar via e-post",
-  "markResolved": "Markera som löst"
+  "markResolved": "Markera som löst",
+  "resolvedQuestion": "Blev ditt problem löst?",
+  "resolvedYes": "Ja, det löstes",
+  "resolvedNo": "Nej, inte löst"
 }

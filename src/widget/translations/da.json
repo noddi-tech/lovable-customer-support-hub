@@ -67,5 +67,8 @@
   "invalidPin": "Ugyldig kode, prøv venligst igen",
   "codeSent": "Kode sendt!",
   "resendCode": "Send kode igen",
-  "sendingCode": "Sender..."
+  "sendingCode": "Sender...",
+  "resolvedQuestion": "Blev dit problem løst?",
+  "resolvedYes": "Ja, det blev løst",
+  "resolvedNo": "Nej, ikke løst"
 }

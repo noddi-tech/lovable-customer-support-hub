@@ -67,5 +67,8 @@
   "invalidPin": "Ongeldige code, probeer het opnieuw",
   "codeSent": "Code verzonden!",
   "resendCode": "Code opnieuw versturen",
-  "sendingCode": "Verzenden..."
+  "sendingCode": "Verzenden...",
+  "resolvedQuestion": "Is je probleem opgelost?",
+  "resolvedYes": "Ja, opgelost",
+  "resolvedNo": "Nee, niet opgelost"
 }
