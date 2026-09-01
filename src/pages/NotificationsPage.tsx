@@ -350,6 +350,9 @@ const NotificationsPage = () => {
                           <div className="flex-1 min-w-0">
                             <p className={cn('text-sm', !n.is_read && 'font-semibold')}>{n.title}</p>
                             <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{n.message}</p>
+                            {n.data?.customer_email && (
+                              <p className="text-xs text-muted-foreground/80 truncate mt-0.5">{n.data.customer_email}</p>
+                            )}
                             <div className="flex items-center gap-1.5 mt-1">
                               <span className="text-[11px] text-muted-foreground">
                                 {formatDistanceToNow(new Date(n.created_at), { addSuffix: true })}
@@ -467,6 +470,9 @@ const NotificationsPage = () => {
                                   {n.title}
                                 </p>
                                 <p className="text-xs text-muted-foreground line-clamp-1">{n.message}</p>
+                                {n.data?.customer_email && (
+                                  <p className="text-xs text-muted-foreground/80 truncate">{n.data.customer_email}</p>
+                                )}
                                 <div className="flex gap-1.5 mt-1">
                                   {n.priority === 'urgent' && (
                                     <Badge variant="destructive" className="text-[10px] h-4 px-1.5">Urgent</Badge>

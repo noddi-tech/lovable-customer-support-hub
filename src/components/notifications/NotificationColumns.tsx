@@ -78,6 +78,9 @@ export const getNotificationColumns = ({
             {n.title}
           </p>
           <p className="text-xs text-muted-foreground line-clamp-1">{n.message}</p>
+          {n.data?.customer_email && (
+            <p className="text-xs text-muted-foreground/80 truncate">{n.data.customer_email}</p>
+          )}
           <div className="flex gap-1.5 mt-1">
             {n.priority === 'urgent' && (
               <Badge variant="destructive" className="text-[10px] h-4 px-1.5">Urgent</Badge>
