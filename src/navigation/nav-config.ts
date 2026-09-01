@@ -16,7 +16,8 @@ import {
   Send,
   FileLock2,
   Timer,
-  UserRound
+  UserRound,
+  FunctionSquare
 } from "lucide-react";
 
 export type NavItem = {
@@ -160,6 +161,14 @@ export const NAV_ITEMS: NavItem[] = [
     label: "Background Jobs",
     to: "/admin/background-jobs",
     icon: Timer,
+    group: "settings",
+    requiredRole: "admin"
+  },
+  {
+    id: "admin-edge-functions",
+    label: "Edge Functions",
+    to: "/admin/edge-functions",
+    icon: FunctionSquare,
     group: "settings",
     requiredRole: "admin"
   },

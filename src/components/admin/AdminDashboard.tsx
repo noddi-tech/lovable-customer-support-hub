@@ -18,8 +18,10 @@ import {
   ArrowRight,
   CheckCircle2,
   AlertCircle,
-  RefreshCw
+  RefreshCw,
+  FunctionSquare
 } from "lucide-react";
+import { EDGE_FUNCTIONS } from "@/data/edge-functions.generated";
 
 interface NavigationCard {
   title: string;
@@ -143,6 +145,13 @@ export function AdminDashboard() {
       description: "AI training and response templates",
       icon: Brain,
       path: "/admin/knowledge"
+    },
+    {
+      title: "Edge Functions",
+      description: "All backend functions, auth mode and secrets",
+      icon: FunctionSquare,
+      path: "/admin/edge-functions",
+      badge: `${EDGE_FUNCTIONS.length} functions`
     },
     {
       title: "General Settings",
