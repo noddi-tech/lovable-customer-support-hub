@@ -131,6 +131,9 @@ export const CallsList = ({ showTimeFilter = true, dateFilter, onNavigateToEvent
     return true;
   });
 
+  const orderedCallIds = useMemo(() => filteredCalls.map((c: any) => c.id as string), [filteredCalls]);
+  const selection = useListSelection(orderedCallIds);
+
   // Smart grouping: Urgent, Active, Recent, Earlier
   const groupedCalls = useMemo(() => {
     const now = new Date();
