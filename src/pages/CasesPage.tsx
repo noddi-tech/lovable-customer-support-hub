@@ -30,14 +30,15 @@ import {
 } from '@/components/ui/tooltip';
 import { BarChart3, Plus, Search, Briefcase, UserRound, HelpCircle } from 'lucide-react';
 
-const VIEWS: Array<{ value: CaseQueueView; label: string }> = [
-  { value: 'mine', label: 'My cases' },
-  { value: 'overdue', label: 'Overdue' },
-  { value: 'unassigned', label: 'Unassigned' },
-  { value: 'waiting', label: 'Waiting' },
-  { value: 'open', label: 'All open' },
-  { value: 'closed', label: 'Resolved' },
+const VIEWS: Array<{ value: CaseQueueView; label: string; icon: LucideIcon }> = [
+  { value: 'mine', label: 'My cases', icon: UserRound },
+  { value: 'overdue', label: 'Overdue', icon: AlertTriangle },
+  { value: 'unassigned', label: 'Unassigned', icon: UserX },
+  { value: 'waiting', label: 'Waiting', icon: Hourglass },
+  { value: 'open', label: 'All open', icon: CircleDot },
+  { value: 'closed', label: 'Resolved', icon: CheckCircle2 },
 ];
+
 
 export default function CasesPage() {
   const navigate = useNavigate();
