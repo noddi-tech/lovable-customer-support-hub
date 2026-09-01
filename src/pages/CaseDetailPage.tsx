@@ -65,6 +65,7 @@ export default function CaseDetailPage() {
   const { dateTime } = useDateFormatting();
   const [closeOpen, setCloseOpen] = useState(false);
   const [customerPanelId, setCustomerPanelId] = useState<string | null>(null);
+  const [opsTicketOpen, setOpsTicketOpen] = useState(false);
 
   if (isLoading) {
     return (
