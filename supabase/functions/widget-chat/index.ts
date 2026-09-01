@@ -621,12 +621,19 @@ async function handleGetMessages(supabase: any, sessionId: string, since: string
     const attachments = [] as Array<{ url: string; name: string; type: string }>;
     for (const att of raw) {
       const path = att?.storagePath || att?.storage_path;
-      if (!path) continue;
-      const { data: signed } = await supabase.storage
-        .from(ATTACHMENT_BUCKET)
-        .createSignedUrl(path, 3600);
-      if (signed?.signedUrl) {
-        attachments.push({ url: signed.signedUrl, name: att.name || 'file', type: att.type || '' });
+      let url: string | null = null;
+      if (path) {
+        const { data: signed } = await supabase.storage
+          .from(att?.bucket || ATTACHMENT_BUCKET)
+          .createSignedUrl(path, 3600);
+        url = signed?.signedUrl ?? null;
+      }
+      // Agent-side uploads may only carry a URL (already-signed or public).
+      if (!url && typeof att?.url === 'string' && att.url.startsWith('http')) {
+        url = att.url;
+      }
+      if (url) {
+        attachments.push({ url, name: att.name || 'file', type: att.type || '' });
       }
     }
     return {
