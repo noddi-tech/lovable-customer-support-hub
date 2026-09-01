@@ -265,7 +265,7 @@ export const WidgetSettings: React.FC = () => {
                 )}
                 {inboxes.filter(inbox => !widgetConfigs.some(w => w.inbox_id === inbox.id)).length > 0 && (
                   <Select onValueChange={(inboxId) => createWidgetMutation.mutate(inboxId)}>
-                    <SelectTrigger className="w-[200px]">
+                    <SelectTrigger className="w-full sm:w-[200px]">
                       <Plus className="h-4 w-4 mr-2" />
                       <span>Create Widget</span>
                     </SelectTrigger>

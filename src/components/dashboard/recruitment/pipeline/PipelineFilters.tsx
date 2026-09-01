@@ -27,7 +27,7 @@ const PipelineFilters: React.FC<Props> = ({ value, onChange, totalCount }) => {
         value={value.positionId}
         onValueChange={(v) => onChange({ ...value, positionId: v })}
       >
-        <SelectTrigger className="w-[220px]">
+        <SelectTrigger className="w-full sm:w-[220px]">
           <SelectValue placeholder="Stilling" />
         </SelectTrigger>
         <SelectContent>
@@ -44,7 +44,7 @@ const PipelineFilters: React.FC<Props> = ({ value, onChange, totalCount }) => {
         value={value.assignedTo}
         onValueChange={(v) => onChange({ ...value, assignedTo: v })}
       >
-        <SelectTrigger className="w-[200px]">
+        <SelectTrigger className="w-full sm:w-[200px]">
           <SelectValue placeholder="Tilordnet" />
         </SelectTrigger>
         <SelectContent>

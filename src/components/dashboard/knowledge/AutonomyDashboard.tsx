@@ -290,7 +290,7 @@ export function AutonomyDashboard({ organizationId }: AutonomyDashboardProps) {
                               })
                             }
                           >
-                            <SelectTrigger className="w-[130px]">
+                            <SelectTrigger className="w-full sm:w-[130px]">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>

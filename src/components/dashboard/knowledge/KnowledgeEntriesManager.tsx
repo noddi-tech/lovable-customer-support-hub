@@ -257,7 +257,7 @@ export function KnowledgeEntriesManager({ organizationId }: { organizationId: st
               />
             </div>
             <Select value={filterSource} onValueChange={setFilterSource}>
-              <SelectTrigger className="w-[200px]">
+              <SelectTrigger className="w-full sm:w-[200px]">
                 <SelectValue placeholder="Filter by category" />
               </SelectTrigger>
               <SelectContent>

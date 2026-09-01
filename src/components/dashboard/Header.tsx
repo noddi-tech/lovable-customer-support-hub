@@ -114,7 +114,7 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
           <div className="hidden sm:block min-w-[180px]">
             <Select value={(typeof selectedInboxId === 'string' ? selectedInboxId : 'all') || 'all'} onValueChange={(v) => onInboxChange?.(v)}>
-              <SelectTrigger className="w-[200px]">
+              <SelectTrigger className="w-full sm:w-[200px]">
                 <SelectValue placeholder={t('dashboard.header.allInboxes')} />
               </SelectTrigger>
               <SelectContent className="z-[60]">

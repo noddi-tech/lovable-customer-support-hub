@@ -63,7 +63,7 @@ const ApplicantsFilterBar: React.FC<Props> = ({ value, onChange }) => {
       </div>
 
       <Select value={value.source} onValueChange={(v) => onChange({ ...value, source: v })}>
-        <SelectTrigger className="w-[180px]">
+        <SelectTrigger className="w-full sm:w-[180px]">
           <SelectValue placeholder="Kilde" />
         </SelectTrigger>
         <SelectContent>
@@ -79,7 +79,7 @@ const ApplicantsFilterBar: React.FC<Props> = ({ value, onChange }) => {
         value={value.positionId}
         onValueChange={(v) => onChange({ ...value, positionId: v })}
       >
-        <SelectTrigger className="w-[220px]">
+        <SelectTrigger className="w-full sm:w-[220px]">
           <SelectValue placeholder="Stilling" />
         </SelectTrigger>
         <SelectContent>
@@ -93,7 +93,7 @@ const ApplicantsFilterBar: React.FC<Props> = ({ value, onChange }) => {
       </Select>
 
       <Select value={value.stageId} onValueChange={(v) => onChange({ ...value, stageId: v })}>
-        <SelectTrigger className="w-[200px]">
+        <SelectTrigger className="w-full sm:w-[200px]">
           <SelectValue placeholder="Status" />
         </SelectTrigger>
         <SelectContent>
@@ -109,7 +109,7 @@ const ApplicantsFilterBar: React.FC<Props> = ({ value, onChange }) => {
         value={value.scoreTier ?? 'all'}
         onValueChange={(v) => onChange({ ...value, scoreTier: v as any })}
       >
-        <SelectTrigger className="w-[180px]">
+        <SelectTrigger className="w-full sm:w-[180px]">
           <SelectValue placeholder="Poeng" />
         </SelectTrigger>
         <SelectContent>

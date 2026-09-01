@@ -42,7 +42,7 @@ export function QuarantineToolbar({ selectedIds, onClear }: Props) {
       <span className="text-sm font-medium">{selectedIds.length} valgt</span>
       <div className="flex-1" />
       <Select value={stageId} onValueChange={setStageId}>
-        <SelectTrigger className="w-[220px]">
+        <SelectTrigger className="w-full sm:w-[220px]">
           <SelectValue placeholder="Flytt til steg (valgfritt)" />
         </SelectTrigger>
         <SelectContent>

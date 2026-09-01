@@ -61,7 +61,7 @@ export function EmailTemplatesTab() {
           />
         </div>
         <Select value={filter} onValueChange={(v) => setFilter(v as TemplateFilter)}>
-          <SelectTrigger className="w-[160px]">
+          <SelectTrigger className="w-full sm:w-[160px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
