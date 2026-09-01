@@ -2,10 +2,12 @@ import React, { useMemo, useState } from 'react';
 import { Check, Plus, Search, Tag as TagIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { useTags, TAG_COLORS, type Tag } from '@/hooks/useTags';
+import { useTags, type Tag } from '@/hooks/useTags';
 import { useEntityTags, type TaggableEntity } from '@/hooks/useEntityTags';
 import { TagBadge } from '@/components/tags/TagBadge';
+import { TagCreateForm } from '@/components/tags/TagCreateForm';
 import { cn } from '@/lib/utils';
+
 
 interface TagPickerListProps {
   selectedIds: string[];
