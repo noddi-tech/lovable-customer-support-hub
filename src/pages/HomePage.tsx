@@ -254,29 +254,111 @@ export default function HomePage() {
                         />
                       )}
 
-                      <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 pl-[22px]">
-
-
+                      <div className="mt-auto flex items-center gap-2 pl-[22px] pt-1">
                         {isConfigured ? (
                           <>
-                            {inbox.unread_count > 0 && (
+                            <div className="flex min-w-0 flex-1 items-center gap-1.5">
+                              {inbox.unread_count > 0 && (
+                                <Badge
+                                  variant="destructive"
+                                  className="h-5 shrink-0 px-1.5 text-[10px] font-medium"
+                                  title="Conversations nobody has read yet"
+                                >
+                                  {inbox.unread_count} unread
+                                </Badge>
+                              )}
                               <Badge
-                                variant="destructive"
-                                className="text-[10px] px-1.5 py-0"
-                                title="Unread conversations"
+                                variant="secondary"
+                                className="h-5 shrink-0 px-1.5 text-[10px] font-medium"
+                                title="Conversations still open in this inbox"
                               >
-                                {inbox.unread_count} unread
+                                {inbox.open_count} open
                               </Badge>
-                            )}
-                            <Badge variant="secondary" title="Open conversations">
-                              {inbox.open_count} open
-                            </Badge>
+                            </div>
+
+                            <TooltipProvider delayDuration={200}>
+                              <div className="flex shrink-0 items-center gap-0.5 rounded-md border border-border/60 bg-muted/40 p-0.5">
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      aria-label={isDefault ? 'Clear default inbox' : `Set ${inbox.name} as default inbox`}
+                                      className={cn(
+                                        'h-8 w-8 rounded-[5px] sm:h-7 sm:w-7',
+                                        isDefault ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+                                      )}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setDefaultInbox(isDefault ? null : inbox.id);
+                                      }}
+                                    >
+                                      <Star className={cn('h-4 w-4', isDefault && 'fill-current')} />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top" className="max-w-[240px] text-xs leading-relaxed">
+                                    <p className="font-medium">{isDefault ? 'Default inbox' : 'Set as default'}</p>
+                                    <p className="text-muted-foreground">
+                                      {isDefault
+                                        ? 'Conversations open in this inbox first. Click to clear it and go back to All inboxes.'
+                                        : 'Star it and Conversations will open straight into this inbox instead of All inboxes.'}
+                                    </p>
+                                  </TooltipContent>
+                                </Tooltip>
+
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      aria-label={`Support KPIs for ${inbox.name}`}
+                                      className="h-8 w-8 rounded-[5px] text-muted-foreground hover:text-foreground sm:h-7 sm:w-7"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setMetricsInbox({ id: inbox.id, name: inbox.name });
+                                      }}
+                                    >
+                                      <Gauge className="h-4 w-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top" className="max-w-[240px] text-xs leading-relaxed">
+                                    <p className="font-medium">SLA &amp; support KPIs</p>
+                                    <p className="text-muted-foreground">
+                                      Response and resolution times, SLA attainment and current backlog for this inbox.
+                                    </p>
+                                  </TooltipContent>
+                                </Tooltip>
+
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      aria-label={`Configure ${inbox.name}`}
+                                      className="h-8 w-8 rounded-[5px] text-muted-foreground hover:text-foreground sm:h-7 sm:w-7"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        navigate(`/admin/inboxes/${inbox.id}`);
+                                      }}
+                                    >
+                                      <Settings2 className="h-4 w-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top" className="max-w-[240px] text-xs leading-relaxed">
+                                    <p className="font-medium">Inbox settings</p>
+                                    <p className="text-muted-foreground">
+                                      Email address, signature, default brand and assignee, SLA targets and automation for this inbox.
+                                    </p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </div>
+                            </TooltipProvider>
                           </>
                         ) : (
                           <Button
                             variant="outline"
                             size="sm"
-                            className="h-9 px-3 text-xs sm:h-7 sm:px-2 sm:text-[11px]"
+                            className="h-8 px-3 text-xs sm:h-7 sm:px-2 sm:text-[11px]"
                             onClick={(e) => {
                               e.stopPropagation();
                               navigate(`/admin/inboxes/${inbox.id}`);
@@ -286,78 +368,6 @@ export default function HomePage() {
                             Configure
                           </Button>
                         )}
-
-                        {isConfigured && (
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  aria-label={isDefault ? `Clear default inbox` : `Set ${inbox.name} as default inbox`}
-                                  className={cn(
-                                    'h-9 w-9 sm:h-7 sm:w-7',
-                                    isDefault ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
-                                  )}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setDefaultInbox(isDefault ? null : inbox.id);
-                                  }}
-                                >
-                                  <Star className={cn('h-4 w-4', isDefault && 'fill-current')} />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                {isDefault ? 'This is your default inbox' : 'Set as my default inbox'}
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        )}
-
-                        {isConfigured && (
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  aria-label={`Support KPIs for ${inbox.name}`}
-                                  className="h-9 w-9 sm:h-7 sm:w-7 text-muted-foreground hover:text-foreground"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setMetricsInbox({ id: inbox.id, name: inbox.name });
-                                  }}
-                                >
-                                  <Gauge className="h-4 w-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>SLA & support KPIs</TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        )}
-
-                        {isConfigured && (
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  aria-label={`Configure ${inbox.name}`}
-                                  className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    navigate(`/admin/inboxes/${inbox.id}`);
-                                  }}
-                                >
-                                  <Settings2 className="h-4 w-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>Configure this inbox</TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        )}
-
                       </div>
                     </CardContent>
                   </Card>
