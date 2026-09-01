@@ -168,6 +168,8 @@ export default function HomePage() {
                 const isConfigured = Boolean(email);
                  const isDefault = defaultInboxId === inbox.id;
                 const defaults = inboxDefaults[inbox.id];
+                const slaRisk = slaRiskByInbox.get(inbox.id);
+
 
                 return (
                   <Card
