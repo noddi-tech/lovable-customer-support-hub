@@ -16,7 +16,8 @@ import {
   Send,
   FileLock2,
   Timer,
-  UserRound
+  UserRound,
+  FunctionSquare
 } from "lucide-react";
 
 export type NavItem = {
