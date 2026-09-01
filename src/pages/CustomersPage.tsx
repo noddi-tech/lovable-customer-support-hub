@@ -158,7 +158,7 @@ export default function CustomersPage() {
                 <button
                   type="button"
                   onClick={() => navigate(`/customers/${c.id}`)}
-                  className="flex w-full items-center gap-3 rounded-lg border bg-card px-3 py-3.5 text-left transition-colors hover:bg-accent/50 active:bg-accent/60 sm:px-4 sm:py-3"
+                  className="flex min-w-0 flex-1 items-center gap-3 py-3.5 pr-3 text-left sm:py-3 sm:pr-4"
                 >
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted">
                     <UserRound className="h-4 w-4 text-muted-foreground" />
