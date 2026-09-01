@@ -51,6 +51,8 @@ export function NotificationsList({ context = 'all' }: NotificationsListProps = 
       const { data, error } = await supabase
         .from('notifications')
         .select('*')
+        // Personal feed only: mentions, assignments, calls
+        .or('type.ilike.%mention%,type.ilike.%assign%,type.ilike.%call%,type.ilike.%voicemail%')
         .order('created_at', { ascending: false });
       
       if (error) throw error;
