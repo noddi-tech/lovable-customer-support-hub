@@ -75,7 +75,6 @@
         "date-fns": "^4.1.0",
         "date-fns-tz": "^3.2.0",
         "dompurify": "^3.3.0",
-        "email-reply-parser": "^2.3.9",
         "embla-carousel-react": "^8.3.0",
         "esbuild": "^0.27.4",
         "gemoji": "^8.1.0",
@@ -931,8 +930,6 @@
     "ee-first": ["ee-first@1.1.1", "", {}, "sha512-WMwm9LhRUo+WUaRN+vRuETqG89IgZphVSNkdFgeb6sS/E4OrDIN7t48CAewSHXc6C8lefD8KKfr5vY61brQlow=="],
 
     "electron-to-chromium": ["electron-to-chromium@1.5.45", "", {}, "sha512-vOzZS6uZwhhbkZbcRyiy99Wg+pYFV5hk+5YaECvx0+Z31NR3Tt5zS6dze2OepT6PCTzVzT0dIJItti+uAW5zmw=="],
-
-    "email-reply-parser": ["email-reply-parser@2.3.9", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/email-reply-parser/-/email-reply-parser-2.3.9.tgz", { "peerDependencies": { "re2": "1.x" }, "optionalPeers": ["re2"] }, "sha512-k5w4cjqLSZABTyxkFHQLnMKJgrK2l6mPptmOnQHlwIosw86S05Xnupy4PPdw8XdXv/kXzn2PAnLfFMNFVUH4YQ=="],
 
     "email-validator": ["email-validator@2.0.4", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/email-validator/-/email-validator-2.0.4.tgz", {}, "sha512-gYCwo7kh5S3IDyZPLZf6hSS0MnZT8QmJFqYvbqlDZSbwdZlY6QZWxJ4i/6UhITOJ4XzyI647Bm2MXKCLqnJ4nQ=="],
 

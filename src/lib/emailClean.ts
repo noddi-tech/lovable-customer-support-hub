@@ -3,7 +3,7 @@
  *
  * Layers, in order:
  *   1. HTML  -> @u22n/mailtools parseMessage (quotations + signatures + remote content)
- *   2. Text  -> email-reply-parser (visible turn only)
+ *   2. Text  -> built-in reply stripper (visible turn only, browser-safe)
  *   3. Norwegian / Outlook second pass (Fra:/Sendt:, "Den ... skrev:") — the
  *      libraries do not cover these reliably.
  *   4. Safety net: never return an (almost) empty body when the original had content.
@@ -13,7 +13,7 @@
  * "show trimmed content" expander.
  */
 
-import EmailReplyParser from 'email-reply-parser';
+
 import { parseMessage } from '@u22n/mailtools';
 import { sanitizeEmailHTML } from '@/utils/htmlSanitizer';
 import { ENABLE_LIB_EMAIL_CLEAN } from '@/lib/parseQuotedEmail';
@@ -121,6 +121,31 @@ export function cutAtScandinavianMarkers(text: string): { visible: string; remov
  * Clean a plain-text body: visible turn only, quotes and signatures removed.
  * Synchronous — safe to call from normalizeMessage and list previews.
  */
+/**
+ * Browser-safe reply stripper: cuts at the first quote/reply marker.
+ * Replaces `email-reply-parser`, which is Node-only (uses `createRequire`).
+ */
+const REPLY_CUT_PATTERNS: RegExp[] = [
+  /^\s*-{2,}\s*Original Message\s*-{2,}\s*$/i,
+  /^\s*-{2,}\s*Opprinnelig melding\s*-{2,}\s*$/i,
+  /^\s*_{10,}\s*$/,
+  /^\s*On\b.{0,200}\bwrote:\s*$/i,
+  /^\s*.{0,120}\bwrote:\s*$/i,
+  /^\s*>/,
+];
+
+function stripPlainTextReply(text: string): string {
+  const lines = text.split('\n');
+  for (let i = 0; i < lines.length; i++) {
+    if (REPLY_CUT_PATTERNS.some((re) => re.test(lines[i]))) {
+      const head = lines.slice(0, i).join('\n').trim();
+      if (head.length >= MIN_VISIBLE_LENGTH) return head;
+      return text.trim();
+    }
+  }
+  return text.trim();
+}
+
 export function cleanPlainTextBody(text: string): CleanResult {
   const source = (text ?? '').trim();
   if (!source || !isLibCleanEnabled()) {
@@ -129,11 +154,12 @@ export function cleanPlainTextBody(text: string): CleanResult {
 
   let visible = source;
   try {
-    visible = new EmailReplyParser().parseReply(source).trim();
+    visible = stripPlainTextReply(source);
   } catch (error) {
-    logger.debug('email-reply-parser failed, keeping original', { error: String(error) }, 'EmailClean');
+    logger.debug('plain-text reply strip failed, keeping original', { error: String(error) }, 'EmailClean');
     visible = source;
   }
+
 
   const scandinavian = cutAtScandinavianMarkers(visible);
   if (scandinavian.visible) visible = scandinavian.visible;
