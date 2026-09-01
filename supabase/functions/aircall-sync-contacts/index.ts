@@ -194,7 +194,7 @@ Deno.serve(async (req) => {
         summary.eligible++;
 
         const meta = (row.metadata || {}) as Record<string, any>;
-        const sig = `${row.full_name?.trim()}|${phone}|${row.email || ''}`;
+        const sig = `v2|${row.full_name?.trim()}|${phone}|${row.email || ''}`;
         if (!body.force && meta.aircall_synced_signature === sig) {
           summary.skipped++;
           continue;
@@ -209,6 +209,23 @@ Deno.serve(async (req) => {
         results.push({ ...summary, dryRun: true, pending: pending.length });
         continue;
       }
+
+      // Extra identities (alternative emails / phones) for richer Aircall contacts
+      const identitiesByCustomer = new Map<string, { emails: string[]; phones: string[] }>();
+      if (batch.length > 0) {
+        const { data: identities } = await adminClient
+          .from('customer_identities')
+          .select('customer_id, identity_type, value')
+          .in('customer_id', batch.map(({ row }) => row.id));
+        for (const identity of (identities || []) as any[]) {
+          const entry = identitiesByCustomer.get(identity.customer_id) || { emails: [], phones: [] };
+          if (identity.identity_type === 'email' && identity.value) entry.emails.push(identity.value);
+          if (identity.identity_type === 'phone' && identity.value) entry.phones.push(identity.value);
+          identitiesByCustomer.set(identity.customer_id, entry);
+        }
+      }
+
+
 
       for (const { row, phone } of batch) {
         try {
