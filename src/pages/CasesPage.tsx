@@ -44,6 +44,8 @@ export default function CasesPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const { dateTime } = useDateFormatting();
   const { data: categories = [] } = useCaseCategories();
+  const { data: queueCounts } = useCaseQueueCounts();
+
 
   const filters = useMemo(
     () => ({
