@@ -390,23 +390,6 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
           </Tooltip>
         </div>
 
-        {/* Channel (icon only, first column) */}
-      <TableCell className="p-2 w-12">
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <span className="relative inline-flex items-center justify-center">
-              <computedValues.ChannelIcon className="h-4 w-4 text-muted-foreground" />
-              {conversation.channel === 'widget' && (conversation.metadata as any)?.chatSessionStatus === 'active' && (
-                <span className="absolute -top-0.5 -right-1 h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              )}
-            </span>
-          </TooltipTrigger>
-          <TooltipContent side="right" className="capitalize">
-            {channelLabel(conversation.channel)}
-            {conversation.channel === 'widget' && (conversation.metadata as any)?.chatSessionStatus === 'active' && ' — live'}
-          </TooltipContent>
-        </Tooltip>
-      </TableCell>
 
       {/* Customer */}
         <div className="p-2 w-48 shrink-0">
@@ -557,6 +540,24 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
           <Checkbox checked={isBulkSelected} onCheckedChange={handleCheckboxChange} onClick={handleCheckboxClick} />
         </TableCell>
       )}
+
+      {/* Channel (icon only, first column) */}
+      <TableCell className="p-2 w-12">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="relative inline-flex items-center justify-center">
+              <computedValues.ChannelIcon className="h-4 w-4 text-muted-foreground" />
+              {conversation.channel === 'widget' && (conversation.metadata as any)?.chatSessionStatus === 'active' && (
+                <span className="absolute -top-0.5 -right-1 h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              )}
+            </span>
+          </TooltipTrigger>
+          <TooltipContent side="right" className="capitalize">
+            {channelLabel(conversation.channel)}
+            {conversation.channel === 'widget' && (conversation.metadata as any)?.chatSessionStatus === 'active' && ' — live'}
+          </TooltipContent>
+        </Tooltip>
+      </TableCell>
 
       {/* Customer */}
       <TableCell className="p-2 w-48">
