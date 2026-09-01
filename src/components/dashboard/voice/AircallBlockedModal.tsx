@@ -98,9 +98,16 @@ const AircallBlockedModalComponent: React.FC<AircallBlockedModalProps> = ({
           <Alert className="border-orange-500/50 bg-orange-50 dark:bg-orange-950/20">
             <Cookie className="h-4 w-4 text-orange-600" />
             <AlertDescription className="ml-2">
-              <strong>Third-Party Cookies Blocked</strong>
+              <strong>
+                {browserInfo?.type === 'brave'
+                  ? 'Brave Shields is blocking the Aircall phone'
+                  : 'Your browser is blocking the Aircall phone'}
+              </strong>
               <br />
-              Aircall requires third-party cookies to function. Your browser is currently blocking them.
+              The phone runs inside an embedded Aircall window (phone.aircall.io). That window needs
+              third-party cookies to keep you signed in — without them Aircall's requests are rejected
+              and you see cross-origin / cookie warnings. Nothing is wrong with your account; it is a
+              browser privacy setting.
               {browserInfo && (
                 <div className="mt-3 space-y-1 text-sm">
                   <div className="font-semibold">How to enable cookies in {browserInfo.name}:</div>
