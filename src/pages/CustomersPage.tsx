@@ -163,9 +163,14 @@ export default function CustomersPage() {
                   />
                 <button
                   type="button"
-                  onClick={() => navigate(`/customers/${c.id}`)}
-                  className="flex min-w-0 flex-1 items-center gap-3 py-3.5 pr-3 text-left sm:py-3 sm:pr-4"
+                  onClick={() => setSelectedCustomerId(c.id)}
+                  onDoubleClick={() => navigate(`/customers/${c.id}`)}
+                  className={cn(
+                    'flex min-w-0 flex-1 items-center gap-3 py-3.5 pr-3 text-left sm:py-3 sm:pr-4',
+                    selectedCustomerId === c.id && 'bg-accent/40',
+                  )}
                 >
+
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted">
                     <UserRound className="h-4 w-4 text-muted-foreground" />
                   </div>
