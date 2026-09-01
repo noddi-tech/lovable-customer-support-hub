@@ -113,6 +113,22 @@ export const useNotificationFilters = (selectedCategory: NotificationCategory = 
     staleTime: 30000,
   });
 
+  // Exact unread count from the database (the list above is capped at 100 rows)
+  const { data: totalUnread = 0 } = useQuery({
+    queryKey: ['notifications-unread-total', user?.id],
+    enabled: !!user,
+    staleTime: 30000,
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from('notifications')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', user!.id)
+        .eq('is_read', false);
+      if (error) throw error;
+      return count ?? 0;
+    },
+  });
+
   // Enhance notifications with priority and category
   const enhancedNotifications = useMemo(() => {
     if (!user) return [];
@@ -180,8 +196,12 @@ export const useNotificationFilters = (selectedCategory: NotificationCategory = 
       counts[n.category]++;
     });
 
+    // The list query is capped at 100 rows, so trust the exact DB count for the
+    // overall unread total (per-category counts remain based on the loaded page).
+    counts.unread = Math.max(counts.unread, totalUnread);
+
     return counts;
-  }, [enhancedNotifications]);
+  }, [enhancedNotifications, totalUnread]);
 
   // Mark as read mutation
   const markAsReadMutation = useMutation({
@@ -195,6 +215,7 @@ export const useNotificationFilters = (selectedCategory: NotificationCategory = 
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
       queryClient.invalidateQueries({ queryKey: ['unread-notifications-count'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications-unread-total'] });
       queryClient.invalidateQueries({ queryKey: ['all-counts'] });
     },
   });
@@ -213,6 +234,7 @@ export const useNotificationFilters = (selectedCategory: NotificationCategory = 
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
       queryClient.invalidateQueries({ queryKey: ['unread-notifications-count'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications-unread-total'] });
       queryClient.invalidateQueries({ queryKey: ['all-counts'] });
     },
   });
@@ -229,6 +251,7 @@ export const useNotificationFilters = (selectedCategory: NotificationCategory = 
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
       queryClient.invalidateQueries({ queryKey: ['unread-notifications-count'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications-unread-total'] });
       queryClient.invalidateQueries({ queryKey: ['all-counts'] });
     },
   });
@@ -237,6 +260,7 @@ export const useNotificationFilters = (selectedCategory: NotificationCategory = 
     notifications: filteredNotifications,
     groupedNotifications,
     unreadCounts,
+    totalUnread,
     isLoading,
     error,
     refetch,
