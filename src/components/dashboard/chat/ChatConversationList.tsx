@@ -208,7 +208,7 @@ export const ChatConversationList: React.FC<ChatConversationListProps> = ({
       const ids = [...selectedIds];
       const { error } = await supabase
         .from('conversations')
-        .update({ assigned_to: memberId })
+        .update({ assigned_to_id: memberId })
         .in('id', ids);
       if (error) {
         toast.error('Failed to assign chats');
