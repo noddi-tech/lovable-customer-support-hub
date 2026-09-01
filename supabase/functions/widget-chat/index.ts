@@ -1,6 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { checkRateLimit as checkDurableRateLimit, clientIp, rateLimitResponse } from '../_shared/rate-limit.ts';
 import { sanitizeWidgetContext, sanitizeWidgetIdentity } from '../_shared/widget-context.ts';
+import { resolveWidgetBrand } from '../_shared/noddi-brand-catalog.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -226,7 +227,9 @@ Deno.serve(async (req) => {
 async function handleStartChat(supabase: any, data: StartChatRequest) {
   const { widgetKey, visitorId, visitorName, visitorEmail, pageUrl } = data;
   // Optional brand of the host site (sent by the embedding frontend)
-  const brand = typeof data.brand === 'string' ? data.brand.trim().slice(0, 40) || undefined : undefined;
+  // Always resolved against the Noddi brand catalog so we never store a raw host.
+  const requestedBrand = typeof data.brand === 'string' ? data.brand.trim().slice(0, 40) || undefined : undefined;
+  const brand = await resolveWidgetBrand(requestedBrand, pageUrl);
   // Optional extra host-site context (locale, environment, source app, ids...)
   const context = sanitizeWidgetContext(data.context);
   // Host-app identity hint — informational only, never an authorization signal.
