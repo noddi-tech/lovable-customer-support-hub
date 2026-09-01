@@ -178,10 +178,9 @@ export function InboxMetricsDialog({ open, onOpenChange, inboxId, inboxName }: I
                 arrival to close.
               </span>
             </div>
-          </div>
-        )}
-      </DialogContent>
-    </Dialog>
+        </div>
+      )}
+    </MetricsDialogShell>
   );
 }
 
