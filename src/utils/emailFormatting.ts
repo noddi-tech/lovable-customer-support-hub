@@ -284,26 +284,28 @@ export const sanitizeEmailHTML = (
           const property = rule.split(':')[0]?.trim().toLowerCase();
           const baseProperties = [
             'color', 'background-color', 'background', 'font-family', 'font-size', 'font-weight',
-            'text-decoration', 'text-align', 'margin', 'padding', 'border',
-            'border-color', 'border-width', 'border-style', 'line-height', 'max-width',
+            'font-style', 'text-decoration', 'text-align', 'text-transform', 'letter-spacing',
+            'word-spacing', 'white-space', 'margin', 'padding', 'border',
+            'border-color', 'border-width', 'border-style', 'border-radius', 'line-height',
+            'width', 'min-width', 'max-width',
             'margin-top', 'margin-bottom', 'margin-left', 'margin-right',
             'padding-top', 'padding-bottom', 'padding-left', 'padding-right',
             'border-top', 'border-bottom', 'border-left', 'border-right',
-            'height', 'max-height', 'display'
+            'height', 'min-height', 'max-height', 'display', 'vertical-align',
+            'background-image', 'background-repeat', 'background-position', 'background-size',
+            'list-style', 'list-style-type', 'opacity', 'overflow'
           ];
           
           const tableProperties = [
-            'width', 'height', 'min-width', 'min-height', 'max-height',
-            'vertical-align', 'text-indent', 'letter-spacing', 'word-spacing',
             'border-collapse', 'border-spacing', 'table-layout',
-            'background-image', 'background-repeat', 'background-position', 'background-size',
-            'display', 'white-space', 'overflow', 'visibility',
+            'text-indent', 'visibility',
             'cellpadding', 'cellspacing'
           ];
           
           const allowedProperties = isTableElement 
             ? [...baseProperties, ...tableProperties]
             : baseProperties;
+
           
           return allowedProperties.includes(property);
         })
