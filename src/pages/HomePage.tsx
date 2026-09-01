@@ -194,6 +194,16 @@ export default function HomePage() {
                         />
                         <div className="min-w-0 flex flex-col leading-tight">
                           <span className={cn('flex flex-wrap items-center gap-1.5 text-[15px] font-medium sm:text-sm', isConfigured ? 'text-foreground' : 'text-muted-foreground')}>
+                            {isConfigured && health && (
+                              <span
+                                role="img"
+                                aria-label={`Inbox health: ${health.label}`}
+                                title={`${health.label} — ${health.description}`}
+                                className="text-base leading-none"
+                              >
+                                {health.emoji}
+                              </span>
+                            )}
                             <span className="break-words">{inbox.name}</span>
                             {isDefault && (
                               <Badge variant="outline" className="h-4 px-1.5 text-[9px] border-primary/40 text-primary">
