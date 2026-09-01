@@ -7,7 +7,7 @@ import { auth, defineMcp } from "npm:@lovable.dev/mcp-js@0.26.2";
 
 // src/lib/mcp/tools/search-conversations.ts
 import { defineTool } from "npm:@lovable.dev/mcp-js@0.26.2";
-import { z } from "npm:zod@^3.23.8";
+import { z } from "npm:zod@^3.25.76";
 
 // src/lib/mcp/supabase.ts
 import { createClient } from "npm:@supabase/supabase-js@^2.53.0";
@@ -116,7 +116,7 @@ var search_conversations_default = defineTool({
 
 // src/lib/mcp/tools/get-conversation.ts
 import { defineTool as defineTool2 } from "npm:@lovable.dev/mcp-js@0.26.2";
-import { z as z2 } from "npm:zod@^3.23.8";
+import { z as z2 } from "npm:zod@^3.25.76";
 var get_conversation_default = defineTool2({
   name: "get_conversation",
   title: "Get conversation with messages",
@@ -177,7 +177,7 @@ var get_conversation_default = defineTool2({
 
 // src/lib/mcp/tools/list-my-conversations.ts
 import { defineTool as defineTool3 } from "npm:@lovable.dev/mcp-js@0.26.2";
-import { z as z3 } from "npm:zod@^3.23.8";
+import { z as z3 } from "npm:zod@^3.25.76";
 var list_my_conversations_default = defineTool3({
   name: "list_my_conversations",
   title: "List my assigned conversations",
@@ -233,7 +233,7 @@ var list_my_conversations_default = defineTool3({
 
 // src/lib/mcp/tools/add-internal-note.ts
 import { defineTool as defineTool4 } from "npm:@lovable.dev/mcp-js@0.26.2";
-import { z as z4 } from "npm:zod@^3.23.8";
+import { z as z4 } from "npm:zod@^3.25.76";
 var add_internal_note_default = defineTool4({
   name: "add_internal_note",
   title: "Add internal note",
