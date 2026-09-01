@@ -220,6 +220,8 @@ interface ConversationListContextType {
   toggleConversationRead: (id: string, currentReadState: boolean) => void;
   filteredConversations: Conversation[];
   paginatedConversations: Conversation[];
+  /** Rows in this inbox/tab hidden by the active filter chips. */
+  hiddenByFiltersCount: number;
   bulkMarkAsRead: () => void;
   bulkMarkAsUnread: () => void;
   bulkChangeStatus: (status: string) => void;
@@ -1009,6 +1011,7 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
     isMarkingAllAsRead: markAllAsReadMutation.isPending,
     toggleConversationRead,
     filteredConversations: filteredAndSortedConversations,
+    hiddenByFiltersCount,
     paginatedConversations: filteredAndSortedConversations.slice(
       (state.currentPage - 1) * state.pageSize,
       state.currentPage * state.pageSize
