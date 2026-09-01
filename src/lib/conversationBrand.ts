@@ -56,7 +56,7 @@ export function getConversationBrand(
  */
 const BRAND_THEME_COLORS: Array<{ match: RegExp; color: string }> = [
   { match: /dekkfix/, color: '#229799' },
-  { match: /tr[oø]nderdekk/, color: '#0F766E' },
+  { match: /tr.?nderdekk/, color: '#0F766E' },
   { match: /navio/, color: '#1F6FEB' },
   { match: /noddi/, color: '#35155A' },
 ];
