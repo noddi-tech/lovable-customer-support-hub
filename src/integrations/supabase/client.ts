@@ -9,10 +9,17 @@ const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
+// Sent on every call so backend proxies can tag Noddi API requests with the
+// running Support Hub version (X-Navio-Source-Version).
+const APP_VERSION = typeof __APP_COMMIT__ !== 'undefined' ? __APP_COMMIT__ : 'unknown';
+
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
     storage: brokeredPreviewStorage(),
     persistSession: true,
     autoRefreshToken: true,
-  }
+  },
+  global: {
+    headers: { 'x-app-version': APP_VERSION },
+  },
 });
