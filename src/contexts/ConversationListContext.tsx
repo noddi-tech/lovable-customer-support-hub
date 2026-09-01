@@ -635,7 +635,7 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
     [effectiveInboxId]
   );
 
-  const { list: filteredAndSortedConversations, hiddenCount: hiddenByFiltersCount } = useMemo(() => {
+  const { list: preChannelConversations, hiddenCount: hiddenByFiltersCount } = useMemo(() => {
     let hiddenCount = 0;
     const filtered = conversations.filter((conversation) => {
       const matchesSearch = 
