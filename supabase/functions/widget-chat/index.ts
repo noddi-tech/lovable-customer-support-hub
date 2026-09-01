@@ -448,7 +448,7 @@ async function handleSendMessage(supabase: any, data: MessageRequest) {
   // Get session with visitor_id for rate limiting
   const { data: session, error: sessionError } = await supabase
     .from('widget_chat_sessions')
-    .select('id, conversation_id, status, visitor_id')
+    .select('id, conversation_id, status, visitor_id, metadata')
     .eq('id', sessionId)
     .single();
 
@@ -490,6 +490,7 @@ async function handleSendMessage(supabase: any, data: MessageRequest) {
       content: sanitizedContent,
       sender_type: 'customer',
       content_type: 'text',
+      ...(locale ? { metadata: { locale } } : {}),
     })
     .select('id, content, sender_type, created_at')
     .single();
