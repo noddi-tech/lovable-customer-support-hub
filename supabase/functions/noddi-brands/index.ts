@@ -1,5 +1,4 @@
 /**
-import { navioSourceHeaders, captureNavioSourceVersion } from "../_shared/navio-source.ts";
  * Proxy for the Noddi backend brand catalog.
  *
  * Returns a slim list of brands (id, name, slug, domain, logo url) used by the
