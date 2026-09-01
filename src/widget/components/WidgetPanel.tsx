@@ -16,6 +16,7 @@ import {
   type ChatEscalation,
 } from '../api';
 import { PreChatForm } from './PreChatForm';
+import { formatBuildStamp } from '../version';
 import {
   getWidgetTranslations,
   getLocalizedGreeting,
