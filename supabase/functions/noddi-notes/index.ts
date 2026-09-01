@@ -38,18 +38,6 @@ async function callNoddi(path: string, init: RequestInit = {}) {
   return json(body ?? {});
 }
 
-/** Posts each candidate body until one is accepted (400s mean wrong field names). */
-async function tryBodies(path: string, method: string, bodies: Record<string, unknown>[]) {
-  let last: Response | null = null;
-  for (const body of bodies) {
-    const res = await callNoddi(path, { method, body: JSON.stringify(body) });
-    if (res.ok) return res;
-    last = res;
-    if (res.status !== 400) break;
-  }
-  return last ?? json({ error: "Noddi API error" }, 502);
-}
-
 function userGroupId(payload: Record<string, unknown>): number | null {
   const id = Number(payload.user_group_id);
   return Number.isInteger(id) && id > 0 ? id : null;
@@ -86,18 +74,7 @@ Deno.serve(async (req) => {
       case "list": {
         const id = userGroupId(payload);
         if (!id) return json({ error: "user_group_id required" }, 400);
-        const qs = new URLSearchParams({
-          user_group_ids: String(id),
-          ordering: "-created_at",
-          page_size: "100",
-        });
-        let res = await callNoddi(`/v1/user-group-notes/?${qs.toString()}`);
-        if (res.status === 400 || res.status === 404) {
-          // Older deployments filter on a singular `user_group` query param.
-          const alt = new URLSearchParams({ user_group: String(id), page_size: "100" });
-          res = await callNoddi(`/v1/user-group-notes/?${alt.toString()}`);
-        }
-        return res;
+        return await callNoddi(`/v1/user-groups/${id}/notes/?page_size=100`);
       }
 
       case "create": {
@@ -105,14 +82,12 @@ Deno.serve(async (req) => {
         const content = noteText(payload);
         if (!id) return json({ error: "user_group_id required" }, 400);
         if (!content) return json({ error: "content is required" }, 400);
-        // Field naming differs between Navio API versions; try the variants in
-        // order and keep the first one the API accepts.
-        return await tryBodies(`/v1/user-group-notes/`, "POST", [
-          { user_group: id, note: content },
-          { user_group_id: id, note: content },
-          { user_group: id, content },
-          { user_group_id: id, text: content },
-        ]);
+        // Noddi requires title + content + sort_index on create.
+        const title = String(payload.title || content.split("\n")[0] || "Support Hub note").slice(0, 120);
+        return await callNoddi(`/v1/user-groups/${id}/notes/`, {
+          method: "POST",
+          body: JSON.stringify({ title, content, sort_index: 0 }),
+        });
       }
 
       case "update": {
@@ -120,11 +95,14 @@ Deno.serve(async (req) => {
         const content = noteText(payload);
         if (!id) return json({ error: "note_id required" }, 400);
         if (!content) return json({ error: "content is required" }, 400);
-        return await tryBodies(`/v1/user-group-notes/${id}/`, "PATCH", [
-          { note: content },
-          { content },
-          { text: content },
-        ]);
+        const body: Record<string, unknown> = { content };
+        if (typeof payload.title === "string" && payload.title.trim()) {
+          body.title = payload.title.trim().slice(0, 120);
+        }
+        return await callNoddi(`/v1/user-group-notes/${id}/`, {
+          method: "PATCH",
+          body: JSON.stringify(body),
+        });
       }
 
       case "delete": {
