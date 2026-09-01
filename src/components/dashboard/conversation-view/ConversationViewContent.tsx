@@ -43,6 +43,8 @@ const MobileEmailConversationView = lazy(() => import('@/components/mobile/conve
 import { PresenceAvatarStack } from '@/components/conversations/PresenceAvatarStack';
 import { TagDialog } from './TagDialog';
 import { SnoozeDialog } from './SnoozeDialog';
+import { CreateNoddiTicketDialog } from '@/components/noddi-tickets/CreateNoddiTicketDialog';
+import { Wrench } from 'lucide-react';
 import { getLanguageFlag, getLanguageLabel } from '@/utils/languageLabels';
 import { useVisitorOnlineStatus } from '@/hooks/useVisitorOnlineStatus';
 import { formatDistanceToNow } from 'date-fns';
@@ -112,6 +114,7 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
 
   const [sidePanelCollapsed, setSidePanelCollapsed] = React.useState(false);
   const [showNoddiPanel, setShowNoddiPanel] = useState(true);
+  const [opsTicketOpen, setOpsTicketOpen] = useState(false);
 
   // Fetch Noddi data for customer display
   const { data: noddiData } = useNoddihKundeData(conversation.customer || null);
@@ -501,6 +504,16 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
                   </Button>
                 </>
               )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setOpsTicketOpen(true)}
+                className="gap-1 h-7"
+                title="Create an operations ticket in Navio for this conversation"
+              >
+                <Wrench className="h-3.5 w-3.5" />
+                {!isMobile && <span className="text-xs">Ops ticket</span>}
+              </Button>
               {/* Mobile: Status dropdown inline */}
               {isMobile && (
                 <Select 
@@ -562,6 +575,22 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
       )}
 
       {/* Dialogs */}
+      <CreateNoddiTicketDialog
+        open={opsTicketOpen}
+        onOpenChange={setOpsTicketOpen}
+        defaultTitle={conversation.subject || `Support request from ${customerDisplay?.displayName || 'customer'}`}
+        defaultDescription={[
+          `Created from a ${conversation.channel === 'widget' ? 'live chat' : conversation.channel || 'support'} conversation in the Support Hub.`,
+          conversation.customer?.email ? `Customer: ${customerDisplay?.displayName || ''} (${conversation.customer.email})` : null,
+          conversation.customer?.phone ? `Phone: ${conversation.customer.phone}` : null,
+          `Conversation: ${window.location.origin}/conversations/${conversationId}`,
+        ]
+          .filter(Boolean)
+          .join('\n')}
+        userGroupId={noddiData?.data?.user_group_id ?? null}
+        onCreated={() => toast.success('Operations ticket created in Navio')}
+      />
+
       <TagDialog
         open={state.tagDialogOpen}
         onOpenChange={(open) => dispatch({ type: 'SET_TAG_DIALOG', payload: open })}

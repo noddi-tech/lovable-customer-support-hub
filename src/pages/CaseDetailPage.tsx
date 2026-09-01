@@ -23,6 +23,8 @@ import {
 } from '@/components/cases/CaseBadges';
 import { CaseTimeline } from '@/components/cases/CaseTimeline';
 import { CloseCaseDialog } from '@/components/cases/CloseCaseDialog';
+import { CreateNoddiTicketDialog } from '@/components/noddi-tickets/CreateNoddiTicketDialog';
+import { toast } from 'sonner';
 import {
   CASE_PRIORITY_LABELS,
   CASE_STATUS_LABELS,
@@ -34,7 +36,7 @@ import {
   type CaseStatus,
 } from '@/hooks/useCases';
 import { useDateFormatting } from '@/hooks/useDateFormatting';
-import { ArrowLeft, CheckCircle2, Mail, MessageSquare, Phone, UserRound } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Mail, MessageSquare, Phone, UserRound, Wrench } from 'lucide-react';
 
 function useOrgAgents() {
   const { profile } = useAuth();
@@ -63,6 +65,7 @@ export default function CaseDetailPage() {
   const { dateTime } = useDateFormatting();
   const [closeOpen, setCloseOpen] = useState(false);
   const [customerPanelId, setCustomerPanelId] = useState<string | null>(null);
+  const [opsTicketOpen, setOpsTicketOpen] = useState(false);
 
   if (isLoading) {
     return (
@@ -102,6 +105,14 @@ export default function CaseDetailPage() {
             </Button>
             <span className="font-mono text-xs text-muted-foreground">#{record.case_number}</span>
             <h1 className="min-w-0 flex-1 truncate text-base font-semibold">{record.title}</h1>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setOpsTicketOpen(true)}
+              title="Create an operations ticket in Navio for this case"
+            >
+              <Wrench className="mr-1.5 h-4 w-4" /> Ops ticket
+            </Button>
             {!isClosed && (
               <Button size="sm" onClick={() => setCloseOpen(true)}>
                 <CheckCircle2 className="mr-1.5 h-4 w-4" /> Resolve
@@ -326,6 +337,21 @@ export default function CaseDetailPage() {
       </div>
 
       <CloseCaseDialog open={closeOpen} onOpenChange={setCloseOpen} record={record} />
+
+      <CreateNoddiTicketDialog
+        open={opsTicketOpen}
+        onOpenChange={setOpsTicketOpen}
+        defaultTitle={record.title}
+        defaultDescription={[
+          `Created from case #${record.case_number} in the Support Hub.`,
+          record.description ? `\n${record.description}` : null,
+          `\nCase: ${window.location.origin}/operations/cases/${record.id}`,
+        ]
+          .filter(Boolean)
+          .join('\n')}
+        defaultPriority={record.priority === 'urgent' || record.priority === 'high' ? 'HIGH' : 'NORMAL'}
+        onCreated={() => toast.success('Operations ticket created in Navio')}
+      />
 
       <Sheet open={!!customerPanelId} onOpenChange={(o) => !o && setCustomerPanelId(null)}>
         <SheetContent side="right" className="w-full max-w-[420px] p-0 sm:max-w-[420px]">

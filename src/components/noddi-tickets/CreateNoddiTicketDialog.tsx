@@ -37,6 +37,12 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   defaultTitle?: string;
   defaultDescription?: string;
+  /** Noddi user group the ticket relates to (links the ticket to the customer). */
+  userGroupId?: number | null;
+  /** Noddi booking the ticket relates to. */
+  bookingId?: number | null;
+  defaultCategory?: NoddiTicketCategory;
+  defaultPriority?: NoddiTicketPriority;
   onCreated?: (ticketId: number) => void;
 }
 
@@ -45,6 +51,10 @@ export function CreateNoddiTicketDialog({
   onOpenChange,
   defaultTitle = '',
   defaultDescription = '',
+  userGroupId,
+  bookingId,
+  defaultCategory = 'CUSTOMER_ISSUE',
+  defaultPriority = 'NORMAL',
   onCreated,
 }: Props) {
   const { data: departments = [], isLoading: loadingDepartments } = useNoddiServiceDepartments();
@@ -53,16 +63,18 @@ export function CreateNoddiTicketDialog({
   const [title, setTitle] = useState(defaultTitle);
   const [description, setDescription] = useState(defaultDescription);
   const [departmentId, setDepartmentId] = useState<string>('');
-  const [category, setCategory] = useState<NoddiTicketCategory>('CUSTOMER_ISSUE');
-  const [priority, setPriority] = useState<NoddiTicketPriority>('NORMAL');
+  const [category, setCategory] = useState<NoddiTicketCategory>(defaultCategory);
+  const [priority, setPriority] = useState<NoddiTicketPriority>(defaultPriority);
   const [type, setType] = useState<NoddiTicketType>('TASK');
 
   useEffect(() => {
     if (open) {
       setTitle(defaultTitle);
       setDescription(defaultDescription);
+      setCategory(defaultCategory);
+      setPriority(defaultPriority);
     }
-  }, [open, defaultTitle, defaultDescription]);
+  }, [open, defaultTitle, defaultDescription, defaultCategory, defaultPriority]);
 
   useEffect(() => {
     if (!departmentId && departments.length) setDepartmentId(String(departments[0].id));
@@ -79,6 +91,8 @@ export function CreateNoddiTicketDialog({
       category,
       priority,
       type,
+      ...(userGroupId ? { user_group_id: userGroupId } : {}),
+      ...(bookingId ? { booking_id: bookingId } : {}),
     });
     onOpenChange(false);
     setTitle('');
