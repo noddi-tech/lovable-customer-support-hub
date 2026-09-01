@@ -52,7 +52,7 @@ Deno.serve(async (req) => {
     }
 
     const headers: Record<string, string> = { Accept: 'application/json', ...navioSourceHeaders() };
-    if (NODDI_TOKEN) headers.Authorization = `Api-Key ${NODDI_TOKEN}`;
+    if (NODDI_TOKEN) headers.Authorization = `Token ${NODDI_TOKEN}`;
 
     const res = await fetch(`${API_BASE}/v1/brands/?page_size=100`, { headers });
 
