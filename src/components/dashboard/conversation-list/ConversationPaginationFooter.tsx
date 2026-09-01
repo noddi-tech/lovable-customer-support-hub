@@ -25,7 +25,7 @@ export const ConversationPaginationFooter = memo(() => {
   return (
     <div className="flex items-center justify-between px-3 py-1.5 border-t bg-muted/30 text-xs text-muted-foreground shrink-0">
       {/* Left: total count */}
-      <span>
+      <span className="truncate">
         {t('dashboard.conversationList.totalItems', 'Total of {{count}} item(s)', { count: displayCount })}
       </span>
 
@@ -36,7 +36,7 @@ export const ConversationPaginationFooter = memo(() => {
           value={String(pageSize)}
           onValueChange={(val) => dispatch({ type: 'SET_PAGE_SIZE', payload: Number(val) })}
         >
-          <SelectTrigger className="h-7 w-[70px] text-xs">
+          <SelectTrigger className="hidden sm:flex h-7 w-[70px] text-xs">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -58,7 +58,7 @@ export const ConversationPaginationFooter = memo(() => {
           <Button
             variant="ghost"
             size="icon"
-            className="h-7 w-7"
+            className="h-9 w-9 sm:h-7 sm:w-7"
             disabled={safePage <= 1}
             onClick={() => dispatch({ type: 'SET_CURRENT_PAGE', payload: 1 })}
           >
@@ -67,7 +67,7 @@ export const ConversationPaginationFooter = memo(() => {
           <Button
             variant="ghost"
             size="icon"
-            className="h-7 w-7"
+            className="h-9 w-9 sm:h-7 sm:w-7"
             disabled={safePage <= 1}
             onClick={() => dispatch({ type: 'SET_CURRENT_PAGE', payload: safePage - 1 })}
           >
@@ -76,7 +76,7 @@ export const ConversationPaginationFooter = memo(() => {
           <Button
             variant="ghost"
             size="icon"
-            className="h-7 w-7"
+            className="h-9 w-9 sm:h-7 sm:w-7"
             disabled={safePage >= totalPages}
             onClick={() => dispatch({ type: 'SET_CURRENT_PAGE', payload: safePage + 1 })}
           >
@@ -85,7 +85,7 @@ export const ConversationPaginationFooter = memo(() => {
           <Button
             variant="ghost"
             size="icon"
-            className="h-7 w-7"
+            className="h-9 w-9 sm:h-7 sm:w-7"
             disabled={safePage >= totalPages}
             onClick={() => dispatch({ type: 'SET_CURRENT_PAGE', payload: totalPages })}
           >
