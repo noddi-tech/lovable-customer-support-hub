@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 
 /**
  * Maps inbox id -> the email address that inbox receives mail on.
@@ -7,9 +8,15 @@ import { supabase } from '@/integrations/supabase/client';
  * group email so inbox pickers can show e.g. "Noddi (hei@noddi.no)".
  */
 export function useInboxEmailAddresses() {
+  const { user, loading } = useAuth();
+
   return useQuery({
     queryKey: ['inbox-email-addresses'],
+    // Without a session RLS returns nothing, and the empty result would be
+    // persisted for 24h making every inbox look "Not configured".
+    enabled: !!user && !loading,
     staleTime: 5 * 60 * 1000,
+    refetchOnMount: true,
     queryFn: async (): Promise<Record<string, string>> => {
       const map: Record<string, string> = {};
 
@@ -17,6 +24,9 @@ export function useInboxEmailAddresses() {
         supabase.rpc('get_email_accounts'),
         supabase.from('inbound_routes').select('inbox_id, group_email, is_active'),
       ]);
+
+      // Surface failures so react-query retries instead of caching an empty map
+      if (accountsRes.error && routesRes.error) throw accountsRes.error;
 
       // Inbound routes first (lowest priority)
       for (const route of (routesRes.data as any[]) || []) {

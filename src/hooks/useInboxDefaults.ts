@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 
 export interface InboxDefaults {
   /** Brand name new conversations get labelled with, if configured. */
@@ -13,9 +14,13 @@ export interface InboxDefaults {
  * resolving the assignee profile id to a readable name.
  */
 export function useInboxDefaults() {
+  const { user, loading } = useAuth();
+
   return useQuery({
     queryKey: ['inbox-defaults'],
+    enabled: !!user && !loading,
     staleTime: 5 * 60 * 1000,
+    refetchOnMount: true,
     queryFn: async (): Promise<Record<string, InboxDefaults>> => {
       const { data: inboxes } = await supabase
         .from('inboxes')
