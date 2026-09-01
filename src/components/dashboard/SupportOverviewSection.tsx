@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Loader2, Mail, MessageSquare, Smartphone, Trophy, Zap, Timer, Medal } from 'lucide-react';
+import { Loader2, Mail, MessageSquare, Briefcase, Trophy, Zap, Timer, Medal } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ChatMetricsDialog } from '@/components/dashboard/ChatMetricsDialog';
 import { formatMinutes } from '@/hooks/useInboxSupportMetrics';
@@ -18,17 +18,17 @@ import {
 
 const CHANNEL_ICONS: Record<string, typeof Mail> = {
   email: Mail,
-  sms: Smartphone,
   widget: MessageSquare,
+  cases: Briefcase,
 };
 
 const CHANNEL_DESCRIPTIONS: Record<string, string> = {
   email:
     'Email tickets received in the last 30 days. "Waiting" counts open threads where the customer sent the last message, so the ball is in our court.',
-  sms:
-    'Text message conversations received in the last 30 days. "Waiting" counts open threads where the customer sent the last message.',
   widget:
     'Live chat conversations started in the last 30 days. "Waiting" counts open chats where the visitor sent the last message — in chat these should be answered within minutes.',
+  cases:
+    'Cases opened in the last 30 days. "Open" counts every case that is not resolved or closed; "waiting" counts the ones that sit with us (open, in progress or waiting internally).',
 };
 
 const MEDALS = ['🥇', '🥈', '🥉'];
@@ -136,7 +136,7 @@ export function SupportOverviewSection() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3">
         <Card>
           <CardContent className="p-3 space-y-2">
             {overviewLoading ? (
@@ -164,7 +164,7 @@ export function SupportOverviewSection() {
         <Card>
           <CardContent className="p-3 space-y-2">
             <div className="flex items-center gap-2 text-[11px] uppercase tracking-wide text-muted-foreground">
-              <Medal className="h-3.5 w-3.5" /> Top performers · last 30 days
+              <Medal className="h-3.5 w-3.5" /> Top performers · rolling last 30 days
             </div>
             {boardLoading ? (
               <div className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
@@ -185,12 +185,15 @@ export function SupportOverviewSection() {
               <Tooltip>
                 <TooltipTrigger asChild>
                   <p className="text-[11px] text-muted-foreground cursor-help">
-                    Points = 10 per resolved ticket + 3 per first reply + a speed bonus for fast first
-                    replies.
+                    Rolling window: only work from the last 30 days counts, so the board moves every
+                    day. Points = 10 per resolved ticket + 3 per first reply + a speed bonus for fast
+                    first replies.
                   </p>
                 </TooltipTrigger>
                 <TooltipContent side="top" align="start" className="max-w-[280px] text-xs leading-relaxed">
-                  Resolved counts conversations assigned to the teammate that were closed in the period.
+                  The leaderboard always recalculates over the trailing 30 days from right now — a
+                  single big day drops out of the window after 30 days, so nobody stays on top without
+                  keeping it up. Resolved counts conversations assigned to the teammate that were closed in the period.
                   Time to resolve is measured from the customer's first message to the close. The speed
                   bonus rewards median first replies under an hour.
                 </TooltipContent>
