@@ -19,6 +19,8 @@ import {
   Clock,
   CheckCircle2,
   Archive,
+  PanelRightClose,
+  PanelRightOpen,
 } from 'lucide-react';
 
 import { getCustomerDisplayWithNoddi, getCustomerInitial } from '@/utils/customerDisplayName';
