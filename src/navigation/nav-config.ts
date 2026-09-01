@@ -133,13 +133,6 @@ export const NAV_ITEMS: NavItem[] = [
     icon: Send, 
     group: "operations" 
   },
-  { 
-    id: "ops-settings", 
-    label: "Operations Settings", 
-    to: "/operations/settings", 
-    icon: Settings, 
-    group: "operations" 
-  },
 
   // Settings (Personal)
   // General settings moved into the account menu (Settings dialog)
