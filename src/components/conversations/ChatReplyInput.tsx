@@ -97,7 +97,15 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
     enabled: true 
   });
 
+  // Safety: note mode is per-conversation and must never leak into the next
+  // conversation — Enter always sends a real reply unless note mode was
+  // explicitly turned on for the conversation currently open.
+  useEffect(() => {
+    setIsInternalNote(false);
+  }, [conversationId]);
+
   const uploadAttachment = async (file: File): Promise<{ url: string; storagePath: string } | null> => {
+
     const fileExt = file.name.split('.').pop();
     const fileName = `${conversationId}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
     
