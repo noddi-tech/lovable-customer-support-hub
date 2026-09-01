@@ -325,7 +325,7 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
                 </span>
               </div>
               <ConversationBrandBadge conversation={conversation} compact />
-              {!conversation.is_read && (
+              {showNewBadge && (
                 <Badge className="bg-primary text-primary-foreground px-1.5 py-0 text-[9px]">New</Badge>
               )}
               {conversation.last_message_is_internal && (
@@ -410,7 +410,7 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
                 {conversation.thread_count}
               </Badge>
             )}
-            {!conversation.is_read && (
+            {showNewBadge && (
               <Badge className="bg-blue-500 text-white px-1.5 py-0 text-[10px] shrink-0">New</Badge>
             )}
             {conversation.last_message_is_internal && (
@@ -566,7 +566,7 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
               {conversation.thread_count}
             </Badge>
           )}
-          {!conversation.is_read && (
+          {showNewBadge && (
             <Badge className="bg-blue-500 text-white px-1.5 py-0 text-[10px] shrink-0">New</Badge>
           )}
           {conversation.last_message_is_internal && (
