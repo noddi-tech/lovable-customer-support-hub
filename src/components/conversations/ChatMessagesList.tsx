@@ -203,21 +203,44 @@ export const ChatMessagesList = ({
           const isInternal = message.isInternalNote;
           const senderName = message.from?.name || message.from?.email;
           const attachments = (message as any).attachments;
-          
+          const languageChange = languageMarkers.get(message.id);
+          const languageBanner = languageChange ? (
+            <div className="flex justify-center py-1 self-center">
+              <span
+                className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/60 px-2.5 py-[3px] text-[11px] text-muted-foreground"
+                title={
+                  languageChange.from
+                    ? `Visitor switched the widget language from ${getLanguageLabel(languageChange.from)} to ${getLanguageLabel(languageChange.to)}`
+                    : `Widget language: ${getLanguageLabel(languageChange.to)}`
+                }
+              >
+                <Languages className="h-3 w-3" />
+                {languageChange.from
+                  ? `Language changed: ${getLanguageFlag(languageChange.from)} ${getLanguageLabel(languageChange.from)} → ${getLanguageFlag(languageChange.to)} ${getLanguageLabel(languageChange.to)}`
+                  : `Widget language: ${getLanguageFlag(languageChange.to)} ${getLanguageLabel(languageChange.to)}`}
+              </span>
+            </div>
+          ) : null;
+
           if (isSystem) {
             return (
-              <div key={message.id} className="flex justify-center py-2">
-                <div className="bg-muted/50 text-muted-foreground text-xs px-4 py-2 rounded-full">
-                  {message.visibleBody}
+              <Fragment key={message.id}>
+                {languageBanner}
+                <div className="flex justify-center py-2">
+                  <div className="bg-muted/50 text-muted-foreground text-xs px-4 py-2 rounded-full">
+                    {message.visibleBody}
+                  </div>
                 </div>
-              </div>
+              </Fragment>
             );
           }
           
           return (
+            <Fragment key={message.id}>
+            {languageBanner}
             <div 
-              key={message.id}
               className={cn(
+
                 "flex gap-3 max-w-[85%] group",
                 isAgent ? "self-end flex-row-reverse" : "self-start"
               )}
