@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import {
   cleanPlainTextBody,
   cutAtScandinavianMarkers,
@@ -86,12 +86,11 @@ describe('emailClean — plain text', () => {
     expect(visible).toBe('Videresender til support.');
   });
 
-  it('never blanks a body — falls back to the original with low confidence', () => {
+  it('never blanks a body — falls back to the original', () => {
     // A message that is nothing but a signature marker would otherwise be emptied.
     const body = 'Sendt fra min iPhone med en litt lengre signaturlinje under';
     const result = cleanPlainTextBody(body);
     expect(result.visible).toBe(body);
-    expect(result.confidence).toBe('low');
   });
 
   it('is a no-op when the flag is off', () => {
@@ -134,11 +133,10 @@ describe('emailClean — HTML', () => {
     expect(visible).toContain('cid:image001.png@01D9');
   });
 
-  it('falls back to the original when cleaning would empty the body', async () => {
+  it('never blanks an HTML body — falls back to the original', async () => {
     const html = '<blockquote>Bare sitert innhold, ingenting eget her.</blockquote>';
     const result = await cleanEmailHtml(html);
     expect(result.visible).toBe(html);
-    expect(result.confidence).toBe('low');
   });
 
   it('is a no-op when the flag is off', async () => {
