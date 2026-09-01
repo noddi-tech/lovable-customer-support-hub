@@ -28,7 +28,21 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { BarChart3, Plus, Search, Briefcase, UserRound, HelpCircle } from 'lucide-react';
+import {
+  BarChart3,
+  Plus,
+  Search,
+  Briefcase,
+  UserRound,
+  HelpCircle,
+  AlertTriangle,
+  UserX,
+  Hourglass,
+  CircleDot,
+  CheckCircle2,
+  type LucideIcon,
+} from 'lucide-react';
+
 
 const VIEWS: Array<{ value: CaseQueueView; label: string; icon: LucideIcon }> = [
   { value: 'mine', label: 'My cases', icon: UserRound },
