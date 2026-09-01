@@ -417,6 +417,3 @@ verify_jwt = true
 
 [functions.noddi-notes]
 verify_jwt = true
-
-[functions.noddi-notes-probe]
-verify_jwt = false
