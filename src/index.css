@@ -565,13 +565,13 @@ Optimized for accessibility with WCAG AA compliance.
   }
 
   /* Text elements inside cells and non-table text */
-  .email-render__html-content span,
-  .email-render__html-content a,
-  .email-render__html-content strong,
-  .email-render__html-content b,
-  .email-render__html-content em,
-  .email-render__html-content i,
-  .email-render__html-content li {
+  .email-render__html-content:not(.email-render--rich) span,
+  .email-render__html-content:not(.email-render--rich) a,
+  .email-render__html-content:not(.email-render--rich) strong,
+  .email-render__html-content:not(.email-render--rich) b,
+  .email-render__html-content:not(.email-render--rich) em,
+  .email-render__html-content:not(.email-render--rich) i,
+  .email-render__html-content:not(.email-render--rich) li {
     font-size: 0.9rem !important;
     line-height: 1.5 !important;
     margin: 0 !important;
@@ -579,9 +579,15 @@ Optimized for accessibility with WCAG AA compliance.
   }
 
   /* Limit logo/header image heights - exclude attachment images */
-  .email-render__html-content img:not([data-attachment]):not(.email-attachment-image) {
+  .email-render__html-content:not(.email-render--rich) img:not([data-attachment]):not(.email-attachment-image) {
     max-height: 72px !important;
   }
+
+  /* Designed emails: cap logos generously instead of flattening them */
+  .email-render__html-content.email-render--rich img:not([data-attachment]):not(.email-attachment-image) {
+    max-height: 160px;
+  }
+
 
   /* Inline signature images - cap at 80px (logos, headshots) */
   .email-render__html-content img.email-inline-image {
