@@ -35,6 +35,9 @@ export function getConversationBrand(
     return { label, key: label.toLowerCase(), inferred: false };
   }
 
+  // URL inference only makes sense for widget conversations.
+  if (channel && channel !== 'widget') return null;
+
   const pageUrl = typeof meta.page_url === 'string' ? meta.page_url : '';
   if (pageUrl) {
     try {
