@@ -149,7 +149,7 @@ export const AiChatbotSettings: React.FC = () => {
                     </CardDescription>
                   </div>
                 </div>
-                <TabsList className="grid w-full grid-cols-7">
+                <TabsList className="grid w-full grid-cols-3 sm:grid-cols-7">
                   <TabsTrigger value="components" className="gap-1.5">
                     <Puzzle className="h-4 w-4" />
                     <span className="hidden lg:inline">Components</span>

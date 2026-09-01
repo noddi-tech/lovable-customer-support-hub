@@ -236,7 +236,7 @@ const CreateApplicantDialog: React.FC<Props> = ({ open, onOpenChange }) => {
 
             <div className="space-y-2">
               <Label>Førerkortklasser</Label>
-              <div className="grid grid-cols-4 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {LICENSE_CLASSES.map((cls) => (
                   <label
                     key={cls}

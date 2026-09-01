@@ -301,7 +301,7 @@ export const WidgetSettings: React.FC = () => {
                   </div>
                 </div>
 
-                <TabsList className="grid w-full grid-cols-4">
+                <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
                   <TabsTrigger value="settings" className="gap-1.5">
                     <Settings className="h-4 w-4" />
                     <span className="hidden lg:inline">Settings</span>

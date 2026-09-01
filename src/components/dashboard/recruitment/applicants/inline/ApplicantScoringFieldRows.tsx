@@ -194,7 +194,7 @@ export const DriverLicenseClassesRow: React.FC<RowProps> = ({ applicant }) => {
       display={display}
       editor={({ close }) => (
         <div className="space-y-3">
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {LICENSE_CLASSES.map((c) => {
               const checked = selected.includes(c);
               return (

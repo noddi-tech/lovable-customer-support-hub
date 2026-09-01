@@ -48,7 +48,7 @@ export const EmojiPicker: React.FC<EmojiPickerProps> = ({
   };
 
   const renderEmojiGrid = (emojis: Array<{ emoji: string; name: string; shortcode: string }>) => (
-    <div className="grid grid-cols-8 gap-1 p-2">
+    <div className="grid grid-cols-4 sm:grid-cols-8 gap-1 p-2">
       {emojis.map((emoji, index) => (
         <Button
           key={`${emoji.emoji}-${index}`}

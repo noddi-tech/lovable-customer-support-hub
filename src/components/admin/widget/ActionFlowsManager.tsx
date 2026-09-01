@@ -286,7 +286,7 @@ export const ActionFlowsManager: React.FC<ActionFlowsManagerProps> = ({ widgetId
                             <div key={step.id} className="flex items-start gap-2 p-3 rounded-lg border bg-muted/30">
                               <span className="text-xs font-mono text-muted-foreground mt-2 w-6 shrink-0">{idx + 1}.</span>
                               {isEditing ? (
-                                <div className="flex-1 grid grid-cols-4 gap-2">
+                                <div className="flex-1 grid grid-cols-2 sm:grid-cols-4 gap-2">
                                   <Select value={step.type} onValueChange={v => updateStep(editingFlow!, idx, { type: v as FlowStep['type'] })}>
                                     <SelectTrigger><SelectValue /></SelectTrigger>
                                     <SelectContent>

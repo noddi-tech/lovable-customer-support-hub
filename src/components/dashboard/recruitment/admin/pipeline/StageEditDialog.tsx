@@ -127,7 +127,7 @@ export function StageEditDialog({ open, stage, mode, existingIds, onClose, onSav
 
           <div className="space-y-2">
             <Label>Farge</Label>
-            <div className="grid grid-cols-8 gap-2">
+            <div className="grid grid-cols-4 sm:grid-cols-8 gap-2">
               {PRESET_COLORS.map((c) => (
                 <button
                   key={c.value}

@@ -44,7 +44,7 @@ export const MobileBottomNav: React.FC = () => {
       aria-label="Primary"
       className="md:hidden shrink-0 border-t border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 pb-[env(safe-area-inset-bottom)]"
     >
-      <ul className="grid grid-cols-5">
+      <ul className="grid grid-cols-2 sm:grid-cols-5">
         {TABS.map((tab) => {
           const Icon = tab.icon;
           const active = isActive(tab.to);
