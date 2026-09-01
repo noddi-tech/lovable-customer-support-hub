@@ -28,6 +28,7 @@ import {
   Clock,
   Loader2,
   PauseCircle,
+  Play,
   RefreshCw,
   Timer,
   XCircle,
@@ -38,6 +39,9 @@ import {
   useBackgroundJobRuns,
   describeSchedule,
   formatDuration,
+  nextRunAt,
+  canRunManually,
+  useRunBackgroundJob,
   type BackgroundJob,
 } from '@/hooks/useBackgroundJobs';
 
@@ -144,6 +148,7 @@ const RunHistoryDialog: React.FC<{
 const BackgroundJobsPage: React.FC = () => {
   const { data: jobs = [], isLoading, isFetching, error, refetch } = useBackgroundJobs();
   const [selected, setSelected] = React.useState<BackgroundJob | null>(null);
+  const runJob = useRunBackgroundJob();
 
   const totals = React.useMemo(() => {
     return {
@@ -224,15 +229,20 @@ const BackgroundJobsPage: React.FC = () => {
                       <TableHead>Job</TableHead>
                       <TableHead>Schedule</TableHead>
                       <TableHead>Last run</TableHead>
+                      <TableHead>Next run</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Duration</TableHead>
                       <TableHead>Avg (24h)</TableHead>
                       <TableHead className="text-right">Runs / fails (24h)</TableHead>
-                      <TableHead />
+                      <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {jobs.map((job) => (
+                    {jobs.map((job) => {
+                      const next = job.active ? nextRunAt(job.schedule) : null;
+                      const runnable = canRunManually(job);
+                      const isRunning = runJob.isPending && runJob.variables === job.jobid;
+                      return (
                       <TableRow key={job.jobid}>
                         <TableCell>
                           <div className="flex items-center gap-2">
@@ -241,9 +251,16 @@ const BackgroundJobsPage: React.FC = () => {
                             )}
                             <div>
                               <div className="font-medium text-sm">{job.jobname}</div>
-                              <div className="text-xs text-muted-foreground truncate max-w-[260px]">
-                                {extractTarget(job.command)}
-                              </div>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div className="text-xs text-muted-foreground truncate max-w-[260px]">
+                                    {extractTarget(job.command)}
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-md">
+                                  <pre className="text-xs whitespace-pre-wrap break-all">{job.command}</pre>
+                                </TooltipContent>
+                              </Tooltip>
                             </div>
                           </div>
                         </TableCell>
@@ -268,6 +285,18 @@ const BackgroundJobsPage: React.FC = () => {
                             <TooltipContent>{fmtTime(job.last_start)}</TooltipContent>
                           </Tooltip>
                         </TableCell>
+                        <TableCell className="text-sm whitespace-nowrap text-muted-foreground">
+                          {next ? (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span>{fmtRelative(next.toISOString())}</span>
+                              </TooltipTrigger>
+                              <TooltipContent>{fmtTime(next.toISOString())}</TooltipContent>
+                            </Tooltip>
+                          ) : (
+                            <span>{job.active ? '—' : 'Paused'}</span>
+                          )}
+                        </TableCell>
                         <TableCell><StatusBadge status={job.last_status} /></TableCell>
                         <TableCell className="text-sm whitespace-nowrap">
                           {formatDuration(job.last_duration_ms)}
@@ -285,14 +314,41 @@ const BackgroundJobsPage: React.FC = () => {
                             {job.failures_24h}
                           </span>
                         </TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="text-right whitespace-nowrap">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="inline-flex">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="mr-1"
+                                  disabled={!runnable || runJob.isPending}
+                                  onClick={() => runJob.mutate(job.jobid)}
+                                >
+                                  {isRunning ? (
+                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                  ) : (
+                                    <Play className="h-3.5 w-3.5" />
+                                  )}
+                                  <span className="ml-1.5 hidden md:inline">Run</span>
+                                </Button>
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              {runnable
+                                ? 'Run this job now'
+                                : 'This job cannot be triggered manually'}
+                            </TooltipContent>
+                          </Tooltip>
                           <Button variant="ghost" size="sm" onClick={() => setSelected(job)}>
                             History
                           </Button>
                         </TableCell>
                       </TableRow>
-                    ))}
+                      );
+                    })}
                   </TableBody>
+
                 </Table>
               </TooltipProvider>
             </CardContent>
