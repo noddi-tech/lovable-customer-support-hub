@@ -116,6 +116,18 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
   const [showNoddiPanel, setShowNoddiPanel] = useState(true);
   const [opsTicketOpen, setOpsTicketOpen] = useState(false);
 
+  // Cmd/Ctrl + J toggles the customer details sidebar
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'j') {
+        e.preventDefault();
+        setShowNoddiPanel((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
   // Fetch Noddi data for customer display
   const { data: noddiData } = useNoddihKundeData(conversation.customer || null);
 
