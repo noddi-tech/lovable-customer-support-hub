@@ -275,7 +275,7 @@ const BackgroundJobsPage: React.FC = () => {
                               <div className="font-medium text-sm">{job.jobname}</div>
                               <Tooltip>
                                 <TooltipTrigger asChild>
-                                  <div className="text-xs text-muted-foreground truncate max-w-[260px]">
+                                  <div className="text-xs text-muted-foreground truncate max-w-[260px] lg:max-w-[420px] xl:max-w-[640px]">
                                     {extractTarget(job.command)}
                                   </div>
                                 </TooltipTrigger>
