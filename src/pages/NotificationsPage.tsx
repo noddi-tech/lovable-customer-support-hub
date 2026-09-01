@@ -409,14 +409,17 @@ const NotificationsPage = () => {
                     ) : (
                       sortedAndFiltered.map((n) => {
                         const Icon = categoryIcons[n.category] || Bell;
+                        const isSelected = selectedIds.includes(n.id);
                         return (
+                          <ContextMenu key={n.id}>
+                          <ContextMenuTrigger asChild onContextMenu={() => handleContextMenuOpen(n)}>
                           <TableRow
-                            key={n.id}
                             className={cn(
-                              'cursor-pointer',
-                              !n.is_read && 'bg-muted/30'
+                              'cursor-pointer select-none',
+                              !n.is_read && 'bg-muted/30',
+                              isSelected && 'bg-primary/10 hover:bg-primary/15'
                             )}
-                            onClick={() => handleNavigate(n)}
+                            onClick={(e) => handleRowClick(n, e)}
                           >
                             {/* Status dot */}
                             <TableCell className="w-[40px]">
