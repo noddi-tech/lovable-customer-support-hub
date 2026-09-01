@@ -16,6 +16,8 @@ import {
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { useIsMobile } from '@/hooks/use-responsive';
+import { SidebarTrigger } from '@/components/ui/sidebar';
 
 const VALID_TABS: NotificationCategory[] = ['unread', 'mentions', 'calls', 'text', 'email', 'tickets', 'assigned'];
 
@@ -37,6 +39,7 @@ const priorityStyles: Record<string, string> = {
 
 const NotificationsPage = () => {
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const { tab } = useParams<{ tab: string }>();
   const [searchQuery, setSearchQuery] = useState('');
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' | null }>({
