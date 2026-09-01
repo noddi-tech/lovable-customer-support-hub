@@ -8118,6 +8118,37 @@ export type Database = {
           notifications_unread: number
         }[]
       }
+      get_background_job_runs: {
+        Args: { _jobid?: number; _limit?: number }
+        Returns: {
+          duration_ms: number
+          end_time: string
+          jobid: number
+          jobname: string
+          return_message: string
+          runid: number
+          start_time: string
+          status: string
+        }[]
+      }
+      get_background_jobs: {
+        Args: never
+        Returns: {
+          active: boolean
+          avg_duration_ms: number
+          command: string
+          failures_24h: number
+          jobid: number
+          jobname: string
+          last_duration_ms: number
+          last_end: string
+          last_message: string
+          last_start: string
+          last_status: string
+          runs_24h: number
+          schedule: string
+        }[]
+      }
       get_conversations: {
         Args: {
           p_inbox_id?: string
