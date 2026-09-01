@@ -3548,6 +3548,7 @@ export type Database = {
           id: string
           is_internal: boolean | null
           is_pinned: boolean | null
+          metadata: Json | null
           sender_id: string | null
           sender_type: string
           sms_provider: string | null
@@ -3572,6 +3573,7 @@ export type Database = {
           id?: string
           is_internal?: boolean | null
           is_pinned?: boolean | null
+          metadata?: Json | null
           sender_id?: string | null
           sender_type: string
           sms_provider?: string | null
@@ -3596,6 +3598,7 @@ export type Database = {
           id?: string
           is_internal?: boolean | null
           is_pinned?: boolean | null
+          metadata?: Json | null
           sender_id?: string | null
           sender_type?: string
           sms_provider?: string | null
