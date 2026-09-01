@@ -223,7 +223,12 @@ Deno.serve(async (req: Request) => {
       if (envTo) rcptEmail = envTo;
     } catch {}
 
-    console.log(`[SendGrid-Inbound] Final recipient determination - RCPT: ${rcptEmail}, Header To: ${headerTo}, From: ${fromEmail}`);
+    // Keep the untouched recipient (may carry a +c-<conversationId> tag) for thread
+    // matching, but route on the plain address so inbound_routes still resolves.
+    const rcptEmailTagged = rcptEmail;
+    if (rcptEmail) rcptEmail = stripPlusTag(rcptEmail);
+
+    console.log(`[SendGrid-Inbound] Final recipient determination - RCPT: ${rcptEmail}, Tagged: ${rcptEmailTagged}, Header To: ${headerTo}, From: ${fromEmail}`);
     
     if (!rcptEmail || !fromEmail) {
       console.log(`[SendGrid-Inbound] Missing required fields - rcptEmail: ${rcptEmail}, fromEmail: ${fromEmail}`);
