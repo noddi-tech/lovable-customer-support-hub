@@ -39,10 +39,12 @@ interface InboxData {
   conversation_count: number;
   sender_display_name: string | null;
   purpose: 'support' | 'recruitment';
-  auto_assignment_rules: { assign_to_profile_id?: string | null } | null;
+  auto_assignment_rules: { assign_to_profile_id?: string | null; default_brand?: string | null } | null;
 }
 
 const NO_AUTO_ASSIGN = 'no-auto-assign';
+const NO_DEFAULT_BRAND = 'no-default-brand';
+
 
 interface InboundRoute { id: string; inbox_id: string | null; address: string; group_email: string | null }
 interface EmailAccount { id: string; inbox_id: string | null; email_address: string; provider: string }
