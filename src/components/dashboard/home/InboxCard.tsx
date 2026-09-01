@@ -1,4 +1,4 @@
-import { Gauge, Settings2, Star, Tag, UserCheck } from 'lucide-react';
+import { Gauge, Mail, MailOpen, Settings2, Star, Tag, UserCheck } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -116,7 +116,7 @@ export function InboxCard({
       )}
       onClick={isConfigured ? onOpen : undefined}
     >
-      <CardContent className="relative flex min-h-[64px] flex-col gap-1.5 p-3 pt-6">
+      <CardContent className="flex min-h-[64px] flex-col gap-1.5 p-3">
         <div className="flex min-w-0 flex-col leading-tight">
           <span
             className={cn(
