@@ -1616,6 +1616,7 @@ export type Database = {
           call_id: string | null
           case_id: string | null
           channel: Database["public"]["Enums"]["communication_channel"]
+          closed_at: string | null
           conversation_type: string
           created_at: string
           customer_id: string | null
@@ -1636,6 +1637,7 @@ export type Database = {
           preview_text: string | null
           priority: string
           received_at: string | null
+          resolution_due_at: string | null
           sla_breach_at: string | null
           snooze_until: string | null
           snoozed_by_id: string | null
@@ -1650,6 +1652,7 @@ export type Database = {
           call_id?: string | null
           case_id?: string | null
           channel: Database["public"]["Enums"]["communication_channel"]
+          closed_at?: string | null
           conversation_type?: string
           created_at?: string
           customer_id?: string | null
@@ -1670,6 +1673,7 @@ export type Database = {
           preview_text?: string | null
           priority?: string
           received_at?: string | null
+          resolution_due_at?: string | null
           sla_breach_at?: string | null
           snooze_until?: string | null
           snoozed_by_id?: string | null
@@ -1684,6 +1688,7 @@ export type Database = {
           call_id?: string | null
           case_id?: string | null
           channel?: Database["public"]["Enums"]["communication_channel"]
+          closed_at?: string | null
           conversation_type?: string
           created_at?: string
           customer_id?: string | null
@@ -1704,6 +1709,7 @@ export type Database = {
           preview_text?: string | null
           priority?: string
           received_at?: string | null
+          resolution_due_at?: string | null
           sla_breach_at?: string | null
           snooze_until?: string | null
           snoozed_by_id?: string | null
@@ -8135,6 +8141,10 @@ export type Database = {
       create_test_notification: { Args: never; Returns: undefined }
       current_profile_id: { Args: never; Returns: string }
       delete_email_account: { Args: { account_id: string }; Returns: undefined }
+      delete_inbox_sla_policy: {
+        Args: { p_inbox_id: string; p_priority: string }
+        Returns: undefined
+      }
       detect_suspicious_audit_activity:
         | {
             Args: { p_threshold?: number; p_time_window?: string }
@@ -8454,6 +8464,10 @@ export type Database = {
           total_count: number
         }[]
       }
+      get_inbox_support_metrics: {
+        Args: { p_days?: number; p_inbox_id?: string }
+        Returns: Json
+      }
       get_inboxes: {
         Args: never
         Returns: {
@@ -8743,6 +8757,16 @@ export type Database = {
       update_pipeline_stages: {
         Args: { p_new_stages: Json; p_pipeline_id: string }
         Returns: Json
+      }
+      upsert_inbox_sla_policy: {
+        Args: {
+          p_first_response_minutes: number
+          p_inbox_id: string
+          p_is_active?: boolean
+          p_priority: string
+          p_resolution_minutes: number
+        }
+        Returns: string
       }
       user_has_any_role: {
         Args: { _roles: string[]; _user_id: string }
