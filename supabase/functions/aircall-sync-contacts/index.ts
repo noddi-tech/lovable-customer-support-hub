@@ -194,7 +194,7 @@ Deno.serve(async (req) => {
         summary.eligible++;
 
         const meta = (row.metadata || {}) as Record<string, any>;
-        const sig = `${row.full_name?.trim()}|${phone}|${row.email || ''}`;
+        const sig = `v2|${row.full_name?.trim()}|${phone}|${row.email || ''}`;
         if (!body.force && meta.aircall_synced_signature === sig) {
           summary.skipped++;
           continue;
@@ -210,16 +210,74 @@ Deno.serve(async (req) => {
         continue;
       }
 
+      // Extra identities (alternative emails / phones) for richer Aircall contacts
+      const identitiesByCustomer = new Map<string, { emails: string[]; phones: string[] }>();
+      if (batch.length > 0) {
+        const { data: identities } = await adminClient
+          .from('customer_identities')
+          .select('customer_id, identity_type, value')
+          .in('customer_id', batch.map(({ row }) => row.id));
+        for (const identity of (identities || []) as any[]) {
+          const entry = identitiesByCustomer.get(identity.customer_id) || { emails: [], phones: [] };
+          if (identity.identity_type === 'email' && identity.value) entry.emails.push(identity.value);
+          if (identity.identity_type === 'phone' && identity.value) entry.phones.push(identity.value);
+          identitiesByCustomer.set(identity.customer_id, entry);
+        }
+      }
+
+
+
       for (const { row, phone } of batch) {
         try {
           const meta = (row.metadata || {}) as Record<string, any>;
           const { first_name, last_name } = splitName(row.full_name || '');
+          const extra = identitiesByCustomer.get(row.id) || { emails: [], phones: [] };
+
+          // Phones: primary first, then any alternative verified numbers
+          const phoneValues = [phone];
+          for (const raw of extra.phones) {
+            const normalized = normalizeToE164(raw);
+            if (normalized && !phoneValues.includes(normalized)) phoneValues.push(normalized);
+          }
+
+          // Emails: primary, alternative identities, and Noddi alternates in metadata
+          const emailValues: string[] = [];
+          const pushEmail = (value?: string | null) => {
+            const clean = (value || '').trim().toLowerCase();
+            if (clean && clean.includes('@') && !emailValues.includes(clean)) emailValues.push(clean);
+          };
+          pushEmail(row.email);
+          pushEmail(meta.primary_noddi_email);
+          extra.emails.forEach(pushEmail);
+          (Array.isArray(meta.alternative_emails) ? meta.alternative_emails : []).forEach((e: any) =>
+            pushEmail(typeof e === 'string' ? e : e?.email),
+          );
+
+          const information = [
+            meta.noddi_user_id ? `Noddi user #${meta.noddi_user_id}` : null,
+            `Support Hub: https://support.noddi.co/customers?customer=${row.id}`,
+          ]
+            .filter(Boolean)
+            .join('\n');
+
           const payload: Record<string, unknown> = {
             first_name,
             last_name,
-            phone_numbers: [{ label: 'Mobile', value: phone }],
-            ...(row.email ? { emails: [{ label: 'Work', value: row.email }] } : {}),
+            information,
+            phone_numbers: phoneValues.slice(0, 5).map((value, i) => ({
+              label: i === 0 ? 'Mobile' : 'Other',
+              value,
+            })),
+            ...(emailValues.length
+              ? {
+                  emails: emailValues.slice(0, 5).map((value, i) => ({
+                    label: i === 0 ? 'Work' : 'Other',
+                    value,
+                  })),
+                }
+              : {}),
           };
+
 
           // Resolve the existing Aircall contact: known id first, then search by phone
           let contactId: number | null = meta.aircall_contact_id ?? null;
@@ -263,7 +321,7 @@ Deno.serve(async (req) => {
                 ...meta,
                 aircall_contact_id: newId,
                 aircall_synced_at: new Date().toISOString(),
-                aircall_synced_signature: `${row.full_name?.trim()}|${phone}|${row.email || ''}`,
+                aircall_synced_signature: `v2|${row.full_name?.trim()}|${phone}|${row.email || ''}`,
               },
             })
             .eq('id', row.id);
