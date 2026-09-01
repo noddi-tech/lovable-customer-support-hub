@@ -265,7 +265,6 @@ export function InboxCard({
         )}
       </CardContent>
 
-      </CardContent>
     </Card>
   );
 }
