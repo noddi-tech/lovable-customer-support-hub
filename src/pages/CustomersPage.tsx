@@ -123,7 +123,9 @@ export default function CustomersPage() {
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto overscroll-contain p-3 pb-24 sm:p-6 sm:pb-6">
+        <div className="flex min-h-0 flex-1">
+        <div className="min-w-0 flex-1 overflow-y-auto overscroll-contain p-3 pb-24 sm:p-6 sm:pb-6">
+
           {isLoading ? (
             <div className="space-y-2">
               {Array.from({ length: 6 }).map((_, i) => (
