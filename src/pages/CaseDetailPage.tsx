@@ -11,6 +11,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { EntityTagPicker } from '@/components/tags/TagPicker';
+import { Sheet, SheetContent } from '@/components/ui/sheet';
+import { CustomerDetailsSidebar } from '@/components/customers/CustomerDetailsSidebar';
 import {
   CaseStatusBadge,
   CasePriorityBadge,
@@ -60,6 +62,7 @@ export default function CaseDetailPage() {
   const updateCase = useUpdateCase();
   const { dateTime } = useDateFormatting();
   const [closeOpen, setCloseOpen] = useState(false);
+  const [customerPanelId, setCustomerPanelId] = useState<string | null>(null);
 
   if (isLoading) {
     return (
@@ -283,7 +286,8 @@ export default function CaseDetailPage() {
                   </CardHeader>
                   <CardContent>
                     <button
-                      onClick={() => navigate(`/customers/${record.customer!.id}`)}
+                      onClick={() => setCustomerPanelId(record.customer!.id)}
+                      onDoubleClick={() => navigate(`/customers/${record.customer!.id}`)}
                       className="flex w-full items-center gap-2 rounded-md border p-2.5 text-left hover:bg-accent/50"
                     >
                       <UserRound className="h-4 w-4 text-muted-foreground" />
@@ -322,6 +326,19 @@ export default function CaseDetailPage() {
       </div>
 
       <CloseCaseDialog open={closeOpen} onOpenChange={setCloseOpen} record={record} />
+
+      <Sheet open={!!customerPanelId} onOpenChange={(o) => !o && setCustomerPanelId(null)}>
+        <SheetContent side="right" className="w-full max-w-[420px] p-0 sm:max-w-[420px]">
+          {customerPanelId && (
+            <CustomerDetailsSidebar
+              key={customerPanelId}
+              customerId={customerPanelId}
+              onClose={() => setCustomerPanelId(null)}
+              className="h-full"
+            />
+          )}
+        </SheetContent>
+      </Sheet>
     </UnifiedAppLayout>
   );
 }
