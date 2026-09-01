@@ -56,6 +56,10 @@ export default function CustomersPage() {
     [allCustomers, statusFilter, brandFilter, tagFilter, getTags],
   );
 
+  const orderedIds = useMemo(() => customers.map((c) => c.id), [customers]);
+  const selection = useListSelection(orderedIds);
+
+
 
   return (
     <UnifiedAppLayout>
