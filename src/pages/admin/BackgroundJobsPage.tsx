@@ -208,12 +208,30 @@ const BackgroundJobsPage: React.FC = () => {
 
         {error ? (
           <Card>
-            <CardContent className="py-8 flex items-center gap-2 text-sm text-destructive">
-              <AlertCircle className="h-4 w-4" />
-              Could not load background jobs. Admin access is required.
+            <CardContent className="py-8 space-y-2 text-sm">
+              <div className="flex items-center gap-2 text-destructive">
+                <AlertCircle className="h-4 w-4" />
+                Could not load background jobs.
+              </div>
+              <p className="text-muted-foreground">
+                Signed in as {user?.email ?? 'nobody (not signed in)'} — roles:{' '}
+                {userRoles.length ? userRoles.join(', ') : 'none'}. Admin or super admin access is
+                required.
+              </p>
+              <pre className="text-xs text-muted-foreground whitespace-pre-wrap break-all">
+                {(error as any)?.message ?? String(error)}
+              </pre>
+            </CardContent>
+          </Card>
+        ) : !isLoading && jobs.length === 0 ? (
+          <Card>
+            <CardContent className="py-8 text-sm text-muted-foreground">
+              No background jobs are visible for your account. This usually means your user lacks
+              the admin or super admin role (signed in as {user?.email ?? 'unknown'}).
             </CardContent>
           </Card>
         ) : isLoading ? (
+
           <Card>
             <CardContent className="py-12 flex justify-center">
               <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
