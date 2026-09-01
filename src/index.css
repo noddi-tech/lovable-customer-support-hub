@@ -1793,3 +1793,16 @@ Optimized for accessibility with WCAG AA compliance.
     line-height: 1.45 !important;
   }
 }
+
+/* Environment banner: shrink full-viewport containers so nothing hides behind it */
+@layer utilities {
+  .h-svh {
+    height: calc(100svh - var(--env-banner-h, 0px));
+  }
+  .h-screen {
+    height: calc(100vh - var(--env-banner-h, 0px));
+  }
+  .min-h-screen {
+    min-height: calc(100vh - var(--env-banner-h, 0px));
+  }
+}
