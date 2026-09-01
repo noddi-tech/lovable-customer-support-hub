@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useServiceDepartments } from '@/hooks/useServiceDepartments';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -31,6 +32,7 @@ interface InboxData {
   name: string;
   description: string | null;
   department_id: string | null;
+  navio_department_id: number | null;
   is_default: boolean;
   color: string;
   is_active: boolean;
@@ -42,7 +44,6 @@ interface InboxData {
 
 const NO_AUTO_ASSIGN = 'no-auto-assign';
 
-interface Department { id: string; name: string }
 interface InboundRoute { id: string; inbox_id: string | null; address: string; group_email: string | null }
 interface EmailAccount { id: string; inbox_id: string | null; email_address: string; provider: string }
 
@@ -63,14 +64,7 @@ export function InboxSettingsPage({ inboxId }: { inboxId: string }) {
 
   const { data: teamMembers } = useTeamMembers();
 
-  const { data: departments } = useQuery({
-    queryKey: ['departments'],
-    queryFn: async () => {
-      const { data, error } = await supabase.from('departments').select('id, name');
-      if (error) throw error;
-      return data as Department[];
-    },
-  });
+  const { data: departments } = useServiceDepartments();
 
   const { data: inboundRoutes } = useQuery({
     queryKey: ['inbound_routes'],
@@ -168,17 +162,22 @@ export function InboxSettingsPage({ inboxId }: { inboxId: string }) {
             <Textarea id="inbox-description" value={form.description || ''} onChange={(e) => setForm({ ...form, description: e.target.value })} />
           </div>
           <div>
-            <Label htmlFor="inbox-department">Department</Label>
+            <Label htmlFor="inbox-department">Service department</Label>
             <Select
-              value={form.department_id || 'no-department'}
-              onValueChange={(value) => setForm({ ...form, department_id: value === 'no-department' ? null : value })}
+              value={form.navio_department_id ? String(form.navio_department_id) : 'no-department'}
+              onValueChange={(value) =>
+                setForm({ ...form, navio_department_id: value === 'no-department' ? null : Number(value) })
+              }
             >
-              <SelectTrigger id="inbox-department"><SelectValue placeholder="Select department (optional)" /></SelectTrigger>
+              <SelectTrigger id="inbox-department"><SelectValue placeholder="Select service department (optional)" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="no-department">No Department</SelectItem>
-                {departments?.map((d) => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}
+                <SelectItem value="no-department">No service department</SelectItem>
+                {departments?.map((d) => <SelectItem key={d.id} value={String(d.id)}>{d.name}</SelectItem>)}
               </SelectContent>
             </Select>
+            <p className="mt-1.5 text-xs text-muted-foreground">
+              Service departments come from the Navio backend and are cached for a few hours.
+            </p>
           </div>
           <div>
             <Label>Color</Label>
