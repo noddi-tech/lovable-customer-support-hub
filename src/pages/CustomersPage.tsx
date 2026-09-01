@@ -21,6 +21,10 @@ import { TagContextMenuItems } from '@/components/tags/TagContextMenuItems';
 import { TagBadgeList } from '@/components/tags/TagBadge';
 import { TagFilterSelect, matchesTagFilter } from '@/components/tags/TagFilterSelect';
 import { useEntityTags } from '@/hooks/useEntityTags';
+import { BulkTagMenu } from '@/components/tags/BulkTagMenu';
+import { SelectionToolbar } from '@/components/shared/SelectionToolbar';
+import { useListSelection } from '@/hooks/useListSelection';
+import { Checkbox } from '@/components/ui/checkbox';
 import { getBrandColor } from '@/lib/conversationBrand';
 
 const STATUS_OPTIONS = [
