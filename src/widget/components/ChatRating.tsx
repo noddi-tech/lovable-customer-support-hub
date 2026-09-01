@@ -13,6 +13,7 @@ interface ChatRatingProps {
 export const ChatRating: React.FC<ChatRatingProps> = ({ sessionId, primaryColor, language, onDone }) => {
   const t = getWidgetTranslations(language);
   const [rating, setRating] = useState<number | null>(null);
+  const [resolved, setResolved] = useState<boolean | null>(null);
   const [comment, setComment] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [email, setEmail] = useState(getIdentity().email || '');
@@ -23,7 +24,7 @@ export const ChatRating: React.FC<ChatRatingProps> = ({ sessionId, primaryColor,
     setRating(value);
     if (!withComment) return;
     setBusy(true);
-    await rateChat(sessionId, value, comment.trim() || undefined);
+    await rateChat(sessionId, value, comment.trim() || undefined, resolved);
     setBusy(false);
     setSubmitted(true);
   };
@@ -40,6 +41,26 @@ export const ChatRating: React.FC<ChatRatingProps> = ({ sessionId, primaryColor,
     <div className="noddi-chat-rating">
       {!submitted ? (
         <>
+          <p className="noddi-chat-rating-title">{t.resolvedQuestion}</p>
+          <div className="noddi-chat-resolved-row">
+            <button
+              type="button"
+              className={`noddi-chat-resolved-option ${resolved === true ? 'active' : ''}`}
+              style={resolved === true ? { backgroundColor: primaryColor, borderColor: primaryColor } : {}}
+              onClick={() => setResolved(true)}
+            >
+              {t.resolvedYes}
+            </button>
+            <button
+              type="button"
+              className={`noddi-chat-resolved-option ${resolved === false ? 'active' : ''}`}
+              style={resolved === false ? { backgroundColor: primaryColor, borderColor: primaryColor } : {}}
+              onClick={() => setResolved(false)}
+            >
+              {t.resolvedNo}
+            </button>
+          </div>
+
           <p className="noddi-chat-rating-title">{t.rateTitle}</p>
           <div className="noddi-chat-rating-stars">
             {[1, 2, 3, 4, 5].map((value) => (
