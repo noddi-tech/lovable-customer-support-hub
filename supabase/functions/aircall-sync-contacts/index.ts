@@ -277,7 +277,10 @@ Deno.serve(async (req) => {
             pushEmail(typeof e === 'string' ? e : e?.email),
           );
 
+          const brands = brandsByCustomer.get(row.id) || [];
+
           const information = [
+            brands.length ? `Brands: ${brands.join(', ')}` : null,
             meta.noddi_user_id ? `Noddi user #${meta.noddi_user_id}` : null,
             `Support Hub: https://support.noddi.co/customers?customer=${row.id}`,
           ]
@@ -288,6 +291,8 @@ Deno.serve(async (req) => {
             first_name,
             last_name,
             information,
+            ...(brands.length ? { company_name: brands.join(', ').slice(0, 255) } : {}),
+
             phone_numbers: phoneValues.slice(0, 5).map((value, i) => ({
               label: i === 0 ? 'Mobile' : 'Other',
               value,
