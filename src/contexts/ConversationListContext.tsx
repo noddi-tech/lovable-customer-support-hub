@@ -800,6 +800,27 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
     return { list: sortedByRecency, hiddenCount };
   }, [conversations, state.searchQuery, state.statusFilter, state.priorityFilter, state.brandFilter, state.tagFilter, conversationTags, state.purposeFilter, state.sortBy, state.tableSort, selectedTab, selectedInboxId, effectiveInboxId, effectiveInboxIds]);
 
+  // Channel chips ("All · Email · SMS · …") count the list *before* the channel
+  // filter is applied, so selecting one chip never zeroes out the others.
+  const channelCounts = useMemo(() => {
+    const map: Record<string, number> = {};
+    preChannelConversations.forEach((c) => {
+      const key = c.channel === 'facebook' || c.channel === 'instagram' ? 'social' : (c.channel || 'other');
+      map[key] = (map[key] ?? 0) + 1;
+    });
+    return map;
+  }, [preChannelConversations]);
+
+  const filteredAndSortedConversations = useMemo(() => {
+    if (state.channelFilter === 'all') return preChannelConversations;
+    if (state.channelFilter === 'social') {
+      return preChannelConversations.filter(
+        (c) => c.channel === 'facebook' || c.channel === 'instagram',
+      );
+    }
+    return preChannelConversations.filter((c) => c.channel === state.channelFilter);
+  }, [preChannelConversations, state.channelFilter]);
+
   // Comprehensive debug logging
   logger.debug('Filter state', {
     totalConversations: conversations.length,
