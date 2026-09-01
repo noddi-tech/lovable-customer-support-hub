@@ -152,7 +152,13 @@ export const AppMainNav = () => {
                   {items.map((item) => {
                     const Icon = item.icon;
                     const itemIsActive = isActive(item.to);
-                    const showBadge = item.showBadge && item.id === 'notifications' && unreadNotifications > 0;
+                    const badgeCount =
+                      item.id === 'notifications' ? unreadNotifications :
+                      item.id === 'text' ? navCounts.text :
+                      item.id === 'chat' ? navCounts.chat :
+                      item.id === 'cases' ? navCounts.cases : 0;
+                    const showBadge = badgeCount > 0;
+                    
                     
                     return (
                       <SidebarMenuItem key={item.id}>
