@@ -150,7 +150,7 @@ const BackgroundJobsPage: React.FC = () => {
   const { data: jobs = [], isLoading, isFetching, error, refetch } = useBackgroundJobs();
   const [selected, setSelected] = React.useState<BackgroundJob | null>(null);
   const runJob = useRunBackgroundJob();
-  const { user, userRoles = [] } = useAuth();
+  const { user, role, isAdmin } = useAuth();
 
   const totals = React.useMemo(() => {
     return {
@@ -217,8 +217,8 @@ const BackgroundJobsPage: React.FC = () => {
               </div>
               <p className="text-muted-foreground">
                 Signed in as {user?.email ?? 'nobody (not signed in)'} — roles:{' '}
-                {userRoles.length ? userRoles.join(', ') : 'none'}. Admin or super admin access is
-                required.
+                {role ?? 'none'}{isAdmin ? '' : ' (no admin access)'}. Admin or super admin access
+                is required.
               </p>
               <pre className="text-xs text-muted-foreground whitespace-pre-wrap break-all">
                 {(error as any)?.message ?? String(error)}
