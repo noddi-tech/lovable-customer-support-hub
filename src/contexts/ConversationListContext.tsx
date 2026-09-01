@@ -13,13 +13,14 @@ import { useConversationFilterParams } from '@/hooks/useConversationFilterParams
 
 export type ConversationStatus = "open" | "pending" | "resolved" | "closed";
 export type ConversationPriority = "low" | "normal" | "high" | "urgent";
-export type ConversationChannel = "email" | "chat" | "widget" | "social" | "facebook" | "instagram" | "whatsapp";
+export type ConversationChannel = "email" | "chat" | "widget" | "social" | "facebook" | "instagram" | "whatsapp" | "sms";
 export type SortBy = "latest" | "oldest" | "priority" | "unread";
 
 export interface Customer {
   id: string;
   full_name: string;
   email: string;
+  phone?: string | null;
 }
 
 export interface AssignedTo {

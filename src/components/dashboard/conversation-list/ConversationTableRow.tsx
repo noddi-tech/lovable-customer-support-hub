@@ -161,6 +161,15 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
       ChannelIcon,
       customerName: customerDisplay.displayName,
       customerEmail: customerDisplay.showEmail ? customerDisplay.email : null,
+      // Second line under the name: phone number for SMS/WhatsApp threads,
+      // email address for every other channel.
+      customerContact:
+        conversation.channel === 'sms' || conversation.channel === 'whatsapp'
+          ? conversation.customer?.phone ||
+            (conversation.metadata as any)?.from_phone ||
+            (conversation.metadata as any)?.phone ||
+            null
+          : conversation.customer?.email || customerDisplay.email || null,
       subjectText,
       previewText: (conversation.preview_text || '').replace(/\s+/g, ' ').trim(),
       isEmailChannel: conversation.channel === 'email',
@@ -399,8 +408,10 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
             </Avatar>
             <div className="min-w-0 flex-1">
               <div className="text-xs truncate">{computedValues.customerName}</div>
-              {computedValues.customerEmail && (
-                <div className="text-[10px] text-muted-foreground truncate hidden xl:block">{computedValues.customerEmail}</div>
+              {computedValues.customerContact && (
+                <div className="text-[10px] text-muted-foreground truncate" title={computedValues.customerContact}>
+                  {computedValues.customerContact}
+                </div>
               )}
             </div>
           </div>
@@ -484,6 +495,16 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
           )}
         </div>
 
+        {/* Waiting */}
+        <div className="p-2 w-20 shrink-0">
+          <span className="text-xs text-muted-foreground">{computedValues.waitingTime}</span>
+        </div>
+
+        {/* SLA */}
+        <div className="p-2 w-28 shrink-0">
+          <SLABadge status={conversation.slaStatus as any} slaBreachAt={conversation.sla_breach_at} />
+        </div>
+
         {/* Priority */}
         <div className="p-2 w-24 shrink-0">{PriorityBadge}</div>
 
@@ -492,17 +513,6 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
           <span className="text-xs text-muted-foreground truncate block" title={computedValues.receivedAt}>
             {computedValues.receivedAt}
           </span>
-        </div>
-
-        {/* Waiting */}
-
-        <div className="p-2 w-20 shrink-0">
-          <span className="text-xs text-muted-foreground">{computedValues.waitingTime}</span>
-        </div>
-
-        {/* SLA */}
-        <div className="p-2 w-28 shrink-0">
-          <SLABadge status={conversation.slaStatus as any} slaBreachAt={conversation.sla_breach_at} />
         </div>
 
         {/* Actions - visible on hover */}
@@ -568,8 +578,10 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
           </Avatar>
           <div className="min-w-0 flex-1">
             <div className="text-xs truncate">{computedValues.customerName}</div>
-            {computedValues.customerEmail && (
-              <div className="text-[10px] text-muted-foreground truncate hidden xl:block">{computedValues.customerEmail}</div>
+            {computedValues.customerContact && (
+              <div className="text-[10px] text-muted-foreground truncate" title={computedValues.customerContact}>
+                {computedValues.customerContact}
+              </div>
             )}
           </div>
         </div>
@@ -655,6 +667,16 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
         </div>
       </TableCell>
 
+      {/* Waiting */}
+      <TableCell className="p-2 w-20">
+        <span className="text-xs text-muted-foreground">{computedValues.waitingTime}</span>
+      </TableCell>
+
+      {/* SLA */}
+      <TableCell className="p-2 w-28">
+        <SLABadge status={conversation.slaStatus as any} slaBreachAt={conversation.sla_breach_at} />
+      </TableCell>
+
       {/* Priority */}
       <TableCell className="p-2 w-24">{PriorityBadge}</TableCell>
 
@@ -663,17 +685,6 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
         <span className="text-xs text-muted-foreground whitespace-nowrap" title={computedValues.receivedAt}>
           {computedValues.receivedAt}
         </span>
-      </TableCell>
-
-      {/* Waiting */}
-
-      <TableCell className="p-2 w-20">
-        <span className="text-xs text-muted-foreground">{computedValues.waitingTime}</span>
-      </TableCell>
-
-      {/* SLA */}
-      <TableCell className="p-2 w-28">
-        <SLABadge status={conversation.slaStatus as any} slaBreachAt={conversation.sla_breach_at} />
       </TableCell>
 
       {/* Actions */}

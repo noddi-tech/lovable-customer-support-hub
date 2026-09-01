@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { AlertCircle, CheckCircle, XCircle } from 'lucide-react';
+import { AlertCircle, CheckCircle, MinusCircle, XCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
@@ -27,12 +27,10 @@ export function SLABadge({ status, slaBreachAt }: SLABadgeProps) {
   const coarse = !hasDeadline || Math.abs(breachTime - Date.now()) > 3_600_000;
   const now = useNow(coarse ? 30_000 : 1_000);
 
-  if (!status || status === 'met') return null;
-
   const remainingMs = hasDeadline ? breachTime - now : null;
   const overdue = remainingMs !== null && remainingMs <= 0;
   // The stored status can lag behind the clock — trust the deadline once it passes.
-  const effective = overdue ? 'breached' : status;
+  const effective = overdue && status && status !== 'met' ? 'breached' : (status ?? 'none');
 
   const configs = {
     on_track: {
@@ -56,13 +54,27 @@ export function SLABadge({ status, slaBreachAt }: SLABadgeProps) {
       className:
         'bg-red-100 text-red-700 border-red-300 dark:bg-red-950/40 dark:text-red-300 dark:border-red-700',
     },
+    met: {
+      icon: CheckCircle,
+      label: 'Met',
+      dotColor: 'bg-emerald-500',
+      className:
+        'bg-emerald-50/60 text-emerald-700 border-emerald-200 dark:bg-emerald-950/20 dark:text-emerald-400 dark:border-emerald-900',
+    },
+    none: {
+      icon: MinusCircle,
+      label: 'No SLA',
+      dotColor: 'bg-muted-foreground/40',
+      className: 'bg-muted/50 text-muted-foreground border-border',
+    },
   } as const;
 
   const config = configs[effective as keyof typeof configs];
   if (!config) return null;
 
   const Icon = config.icon;
-  const countdown = remainingMs === null ? null : formatCountdown(remainingMs);
+  const live = effective === 'on_track' || effective === 'at_risk' || effective === 'breached';
+  const countdown = remainingMs === null || !live ? null : formatCountdown(remainingMs);
   const urgent = effective === 'breached' || (remainingMs !== null && remainingMs <= 30 * 60_000);
 
   const deadlineLabel = hasDeadline
@@ -93,12 +105,16 @@ export function SLABadge({ status, slaBreachAt }: SLABadgeProps) {
           </Badge>
         </TooltipTrigger>
         <TooltipContent side="left" className="max-w-[240px] text-xs leading-relaxed">
-          {overdue
-            ? `SLA breached ${countdown} ago — this reply is late. Answer it now or reassign it.`
-            : urgent
-              ? `Only ${countdown} left to send the first reply before the SLA breaks.`
-              : `${countdown} left before the first-reply SLA breaks.`}
-          {deadlineLabel && <div className="mt-1 opacity-70">Deadline: {deadlineLabel}</div>}
+          {effective === 'met'
+            ? 'First reply was sent within the SLA target for this conversation.'
+            : effective === 'none'
+              ? 'No SLA deadline applies to this conversation yet — no target is set for its inbox, priority or channel.'
+              : overdue
+                ? `SLA breached ${countdown} ago — this reply is late. Answer it now or reassign it.`
+                : urgent
+                  ? `Only ${countdown} left to send the first reply before the SLA breaks.`
+                  : `${countdown} left before the first-reply SLA breaks.`}
+          {deadlineLabel && effective !== 'none' && <div className="mt-1 opacity-70">Deadline: {deadlineLabel}</div>}
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
