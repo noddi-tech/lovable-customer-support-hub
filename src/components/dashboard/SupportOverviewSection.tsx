@@ -4,7 +4,18 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Loader2, Mail, MessageSquare, Briefcase, Trophy, Zap, Timer, Medal } from 'lucide-react';
+import {
+  Loader2,
+  Mail,
+  MessageSquare,
+  Briefcase,
+  Trophy,
+  Zap,
+  Timer,
+  Medal,
+  ArrowUpRight,
+  ArrowDownRight,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ChatMetricsDialog } from '@/components/dashboard/ChatMetricsDialog';
 import { formatMinutes } from '@/hooks/useInboxSupportMetrics';
