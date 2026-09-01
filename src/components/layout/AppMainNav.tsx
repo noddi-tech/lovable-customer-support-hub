@@ -33,8 +33,13 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { AgentAvailabilityPanel } from './AgentAvailabilityPanel';
-
-
+/**
+ * Once the nav has rendered with resolved permissions we never show the
+ * "Loading..." shell again. Page routes each mount their own layout, so the
+ * sidebar remounts on every navigation — without this flag it would blank out
+ * for a moment on each route change.
+ */
+let navHasResolvedOnce = false;
 
 export const AppMainNav = () => {
   const location = useLocation();
