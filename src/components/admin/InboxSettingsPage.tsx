@@ -333,6 +333,7 @@ export function InboxSettingsPage({ inboxId }: { inboxId: string }) {
         </CardContent>
       </Card>
 
+      <InboxSlaSettings inboxId={inboxId} />
 
 
       <Card>
