@@ -2767,6 +2767,7 @@ export type Database = {
       }
       inboxes: {
         Row: {
+          ai_draft_enabled: boolean
           auto_assignment_rules: Json | null
           color: string | null
           created_at: string
@@ -2788,6 +2789,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          ai_draft_enabled?: boolean
           auto_assignment_rules?: Json | null
           color?: string | null
           created_at?: string
@@ -2809,6 +2811,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          ai_draft_enabled?: boolean
           auto_assignment_rules?: Json | null
           color?: string | null
           created_at?: string
@@ -8398,6 +8401,7 @@ export type Database = {
       get_inboxes: {
         Args: never
         Returns: {
+          ai_draft_enabled: boolean
           auto_assignment_rules: Json
           color: string
           conversation_count: number
