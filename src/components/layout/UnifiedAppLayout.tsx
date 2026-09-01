@@ -32,6 +32,7 @@ export const UnifiedAppLayout: React.FC<UnifiedAppLayoutProps> = ({
     }
   });
   const location = useLocation();
+  const navigate = useNavigate();
   const section = location.pathname.split('/').slice(0, 3).join('/');
 
   const handleSidebarOpenChange = (open: boolean) => {
