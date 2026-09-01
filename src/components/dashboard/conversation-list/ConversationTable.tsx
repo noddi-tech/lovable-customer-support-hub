@@ -133,7 +133,8 @@ export const ConversationTable = memo<ConversationTableProps>(({
   return (
     <div className="flex-1 overflow-auto">
       <AlmostThereBanner count={filteredConversations.length} />
-      <Table>
+      {/* Fixed-width columns: scroll sideways instead of squeezing into each other. */}
+      <Table className={showInboxColumn ? 'min-w-[1120px]' : 'min-w-[960px]'}>
         <TableHeader className="sticky top-0 z-20 bg-muted/50 backdrop-blur-sm border-b-2">
           <TableRow className="hover:bg-transparent">
             {state.bulkSelectionMode && (

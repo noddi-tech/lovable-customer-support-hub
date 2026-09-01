@@ -167,8 +167,19 @@ const VirtualizedConversationTable = memo(({ onSelectConversation, selectedConve
     );
   }
 
+  // Columns have fixed pixel widths, so below this width they would squeeze
+  // into each other. Scroll horizontally instead of overlapping.
+  const minTableWidth = isMobile
+    ? undefined
+    : 32 + // horizontal padding
+      (state.bulkSelectionMode ? 40 : 0) +
+      192 + // customer
+      (showInboxColumn ? 160 : 0) +
+      240 + // conversation (minimum)
+      128 + 96 + 112 + 144 + 80 + 80 + 48; // status..actions
+
   return (
-    <div className="flex-1 flex flex-col min-h-0 h-full relative">
+    <div className="flex-1 flex flex-col min-h-0 h-full relative overflow-x-auto">
       {/* Loading overlay - doesn't unmount the list */}
       {isFetchingNextPage && hasNextPage && (
         <div className="absolute top-2 left-1/2 transform -translate-x-1/2 z-10 bg-background/90 border rounded-full px-3 py-1 text-xs flex items-center gap-2 shadow-lg">
@@ -176,7 +187,8 @@ const VirtualizedConversationTable = memo(({ onSelectConversation, selectedConve
           Loading more... ({conversationCount})
         </div>
       )}
-      
+
+      <div className="flex-1 flex flex-col min-h-0 h-full" style={minTableWidth ? { minWidth: minTableWidth } : undefined}>
       {/*
         Fixed header. Rendered as a flex row (not a <table>) so the column
         widths line up exactly with the virtualized flex rows below.
@@ -290,6 +302,7 @@ const VirtualizedConversationTable = memo(({ onSelectConversation, selectedConve
             );
           }}
         </AutoSizer>
+      </div>
       </div>
     </div>
   );
