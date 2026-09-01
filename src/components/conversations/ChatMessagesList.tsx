@@ -480,8 +480,55 @@ export const ChatMessagesList = ({
             </div>
           </div>
         )}
-        
+
+        {/* Post-chat survey answers from the widget */}
+        {csat && (
+          <div className="self-center w-full max-w-md rounded-lg border bg-muted/40 px-3 py-2.5 my-2">
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <Star className="h-3.5 w-3.5 text-amber-500" />
+              <span className="text-xs font-medium">Post-chat survey</span>
+              {csat.rated_at && (
+                <span className="text-[11px] text-muted-foreground ml-auto">
+                  {formatRelative(csat.rated_at)}
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-2 text-xs">
+              <span className="text-muted-foreground">Rating</span>
+              <span className="flex items-center gap-0.5">
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <Star
+                    key={n}
+                    className={cn(
+                      'h-3.5 w-3.5',
+                      n <= csat.rating ? 'text-amber-500 fill-amber-500' : 'text-muted-foreground/30'
+                    )}
+                  />
+                ))}
+              </span>
+              <span className="font-medium">{csat.rating}/5</span>
+            </div>
+            {csat.resolved !== null && csat.resolved !== undefined && (
+              <div className="flex items-center gap-2 text-xs mt-1">
+                <span className="text-muted-foreground">Problem solved</span>
+                <span
+                  className={cn(
+                    'font-medium',
+                    csat.resolved ? 'text-emerald-600' : 'text-destructive'
+                  )}
+                >
+                  {csat.resolved ? 'Yes' : 'No'}
+                </span>
+              </div>
+            )}
+            {csat.comment && (
+              <p className="text-xs text-muted-foreground mt-1.5 italic">"{csat.comment}"</p>
+            )}
+          </div>
+        )}
+
         <div ref={messagesEndRef} />
+
       </div>
 
     </ScrollArea>
