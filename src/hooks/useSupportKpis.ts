@@ -140,6 +140,8 @@ export function useAgentLeaderboard(days: number, limit = 10, enabled = true) {
 
 export const CHANNEL_LABELS: Record<string, string> = {
   email: 'Email',
+  sms: 'SMS',
+  whatsapp: 'WhatsApp',
   widget: 'Live chat',
   cases: 'Cases',
   voice: 'Voice calls',
