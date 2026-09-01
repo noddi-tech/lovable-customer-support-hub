@@ -8254,6 +8254,10 @@ export type Database = {
         Returns: Json
       }
       generate_ticket_number: { Args: { org_id: string }; Returns: string }
+      get_agent_leaderboard: {
+        Args: { p_days?: number; p_limit?: number }
+        Returns: Json
+      }
       get_all_counts: {
         Args: never
         Returns: {
@@ -8304,6 +8308,8 @@ export type Database = {
           schedule: string
         }[]
       }
+      get_channel_overview_metrics: { Args: { p_days?: number }; Returns: Json }
+      get_chat_support_metrics: { Args: { p_days?: number }; Returns: Json }
       get_conversations: {
         Args: {
           p_inbox_id?: string
