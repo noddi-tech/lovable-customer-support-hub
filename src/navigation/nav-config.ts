@@ -8,7 +8,6 @@ import {
   Ticket, 
     Users,
   BarChart3,
-  Settings,
 
   User,
   Bell,
@@ -131,13 +130,6 @@ export const NAV_ITEMS: NavItem[] = [
     label: "Bulk Outreach", 
     to: "/operations/bulk-outreach", 
     icon: Send, 
-    group: "operations" 
-  },
-  { 
-    id: "ops-settings", 
-    label: "Operations Settings", 
-    to: "/operations/settings", 
-    icon: Settings, 
     group: "operations" 
   },
 

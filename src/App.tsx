@@ -163,7 +163,6 @@ const AppContent = () => {
       
       <Route path="/operations/analytics" element={<ProtectedRoute><Index /></ProtectedRoute>} />
       <Route path="/operations/bulk-outreach" element={<ProtectedRoute><Index /></ProtectedRoute>} />
-      <Route path="/operations/settings" element={<ProtectedRoute><Index /></ProtectedRoute>} />
       
       {/* Legacy operations redirects */}
       <Route path="/operations/service-tickets" element={<Navigate to="/operations/tickets" replace />} />

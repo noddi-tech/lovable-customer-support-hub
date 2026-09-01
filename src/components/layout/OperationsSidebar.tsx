@@ -16,7 +16,7 @@ import {
   Users,
   BarChart3,
   Send,
-  Settings,
+
   ArrowLeft
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -46,11 +46,6 @@ export const OperationsSidebar: React.FC = () => {
       path: '/operations/bulk-outreach',
       icon: Send
     },
-    {
-      title: 'Settings',
-      path: '/operations/settings',
-      icon: Settings
-    }
   ];
 
   return (

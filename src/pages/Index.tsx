@@ -50,7 +50,7 @@ const Index = () => {
     if (path.includes('/operations/recruitment')) return 'recruitment';
     if (path.includes('/operations/analytics')) return 'analytics';
     if (path.includes('/operations/bulk-outreach')) return 'bulk-outreach';
-    if (path.includes('/operations/settings')) return 'operations-settings';
+    
     
     return 'text'; // default
   };
@@ -133,20 +133,6 @@ const Index = () => {
             <React.Suspense fallback={<div className="flex items-center justify-center h-full"><div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full" /></div>}>
               <BulkOutreach />
             </React.Suspense>
-          );
-        }
-        if (subSection === 'operations-settings') {
-          return (
-            <div className="flex items-center justify-center h-full p-8 text-center">
-              <div className="max-w-md">
-                <h2 className="text-2xl font-semibold mb-4 text-foreground">
-                  Operations Settings
-                </h2>
-                <p className="text-muted-foreground">
-                  Configure operations workflows and preferences.
-                </p>
-              </div>
-            </div>
           );
         }
         // Default to service tickets
