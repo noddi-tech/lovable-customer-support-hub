@@ -146,12 +146,14 @@ export const AppMainNav = () => {
 
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild tooltip="Home">
-              <NavLink to="/home" onClick={handleNavClick} className="hover:bg-muted/50">
-                <Home className="mr-2 h-4 w-4" />
-                {!isCollapsed && <span className="font-semibold">Home</span>}
-              </NavLink>
-            </SidebarMenuButton>
+            <NavHint title="Home" description="Overview dashboard with today's activity and quick links to every area.">
+              <SidebarMenuButton asChild tooltip="Home">
+                <NavLink to="/home" onClick={handleNavClick} className="hover:bg-muted/50">
+                  <Home className="mr-2 h-4 w-4" />
+                  {!isCollapsed && <span className="font-semibold">Home</span>}
+                </NavLink>
+              </SidebarMenuButton>
+            </NavHint>
           </SidebarMenuItem>
         </SidebarMenu>
         {!isCollapsed && (
