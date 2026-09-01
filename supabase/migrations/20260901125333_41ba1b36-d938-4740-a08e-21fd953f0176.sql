@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.apply_inbox_auto_assignment() FROM PUBLIC, anon, authenticated;
