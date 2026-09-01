@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Bell, Phone, MessageSquare, Mail, Ticket, UserCheck, AtSign } from 'lucide-react';
+import { Bell, Phone, UserCheck, AtSign } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { NotificationCategory } from '@/hooks/useNotificationFilters';
 
@@ -19,11 +19,8 @@ const tabConfig: Array<{
 }> = [
   { id: 'unread', label: 'Unread', icon: Bell },
   { id: 'mentions', label: 'Mentions', icon: AtSign },
-  { id: 'calls', label: 'Calls', icon: Phone },
-  { id: 'text', label: 'Text', icon: MessageSquare },
-  { id: 'email', label: 'Email', icon: Mail },
-  { id: 'tickets', label: 'Tickets', icon: Ticket },
   { id: 'assigned', label: 'Assigned', icon: UserCheck },
+  { id: 'calls', label: 'Calls', icon: Phone },
 ];
 
 export const NotificationTabs: React.FC<NotificationTabsProps> = ({

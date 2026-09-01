@@ -9,9 +9,7 @@ import {
   Bell,
   UserCheck,
   Phone,
-  MessageSquare,
-  Mail,
-  Ticket,
+  AtSign,
   Circle
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
@@ -34,10 +32,8 @@ const priorityConfig: Record<NotificationPriority, { color: string; label: strin
 const getCategoryIcon = (category: string) => {
   switch (category) {
     case 'calls': return Phone;
-    case 'text': return MessageSquare;
-    case 'email': return Mail;
-    case 'tickets': return Ticket;
     case 'assigned': return UserCheck;
+    case 'mentions': return AtSign;
     default: return Bell;
   }
 };

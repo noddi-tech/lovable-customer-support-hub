@@ -2,7 +2,7 @@ import { ColumnDef } from '@tanstack/react-table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
-  Bell, Phone, MessageSquare, Mail, Ticket, UserCheck, AtSign,
+  Bell, Phone, UserCheck, AtSign,
   Check, Eye, Trash2, ArrowUpDown,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
@@ -11,9 +11,6 @@ import type { EnhancedNotification, NotificationPriority } from '@/hooks/useNoti
 
 const categoryIcons: Record<string, React.ElementType> = {
   calls: Phone,
-  text: MessageSquare,
-  email: Mail,
-  tickets: Ticket,
   assigned: UserCheck,
   mentions: AtSign,
 };

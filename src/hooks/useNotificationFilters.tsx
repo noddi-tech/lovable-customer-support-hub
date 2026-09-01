@@ -4,12 +4,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 
 // Notification categories for tab-based filtering
-export type NotificationCategory = 
-  | 'unread' 
-  | 'calls' 
-  | 'text' 
-  | 'email' 
-  | 'tickets' 
+// Notifications are a personal feed: mentions, assignments and calls only.
+// Email / text / ticket follow-up is owned by the inbox, chat and cases queues.
+export type NotificationCategory =
+  | 'unread'
+  | 'calls'
   | 'assigned'
   | 'mentions';
 
@@ -52,45 +51,30 @@ const getPriority = (notification: any): NotificationPriority => {
   return 'normal';
 };
 
-// Determine notification category based on type and data
-const getCategory = (notification: any, userId: string): NotificationCategory => {
+// Determine notification category based on type and data.
+// Returns null for queue-owned notifications (emails, replies, tickets, SLA) which
+// are intentionally excluded from the personal notification feed.
+const getCategory = (notification: any, userId: string): NotificationCategory | null => {
   const type = notification.type?.toLowerCase() || '';
   const data = notification.data || {};
 
-  // Check for mentions FIRST (highest priority)
+  // Mentions (highest priority)
   if (type === 'mention' || type.includes('mentioned')) {
     return 'mentions';
   }
 
-  // Check for calls (incoming, missed, voicemail, callback)
-  if (data.call_id || type.includes('call') || type.includes('voicemail') || type.includes('callback')) {
+  // Calls, voicemail, callbacks
+  if (data.call_id || type.includes('call') || type.includes('voicemail')) {
     return 'calls';
   }
 
-  // Check for text/SMS
-  if (data.sms_id || type.includes('sms') || type.includes('text_message')) {
-    return 'text';
-  }
-
-  // Check for tickets (service tickets)
-  if (data.ticket_id || type.includes('ticket') || type.includes('sla_breach') || type.includes('sla_warning')) {
-    return 'tickets';
-  }
-
-  // Check for assignments (assigned to current user)
-  if (type === 'assignment' || type.includes('assigned') || 
+  // Assignments
+  if (type === 'assignment' || type.includes('assigned') ||
       (data.assigned_to_id && data.assigned_to_id === userId)) {
     return 'assigned';
   }
 
-  // Check for email/conversations (customer replies, new emails)
-  if (data.conversation_id || type.includes('conversation') || type.includes('email') || 
-      type.includes('reply') || type === 'new_conversation' ||
-      type === 'customer_reply' || type === 'new_email') {
-    return 'email';
-  }
-
-  return 'email'; // Default to email category
+  return null;
 };
 
 export const useNotificationFilters = (selectedCategory: NotificationCategory = 'unread') => {
@@ -113,7 +97,8 @@ export const useNotificationFilters = (selectedCategory: NotificationCategory = 
     staleTime: 30000,
   });
 
-  // Exact unread count from the database (the list above is capped at 100 rows)
+  // Exact unread count from the database, restricted to the personal feed
+  // (mentions, assignments, calls) since the list above is capped at 100 rows.
   const { data: totalUnread = 0 } = useQuery({
     queryKey: ['notifications-unread-total', user?.id],
     enabled: !!user,
@@ -123,22 +108,30 @@ export const useNotificationFilters = (selectedCategory: NotificationCategory = 
         .from('notifications')
         .select('id', { count: 'exact', head: true })
         .eq('user_id', user!.id)
-        .eq('is_read', false);
+        .eq('is_read', false)
+        .or('type.ilike.%mention%,type.ilike.%assign%,type.ilike.%call%,type.ilike.%voicemail%');
       if (error) throw error;
       return count ?? 0;
     },
   });
 
+
   // Enhance notifications with priority and category
   const enhancedNotifications = useMemo(() => {
     if (!user) return [];
     
-    return notifications.map((n): EnhancedNotification => ({
-      ...n,
-      data: n.data as Record<string, any> | null,
-      priority: getPriority(n),
-      category: getCategory(n, user.id),
-    }));
+    return notifications
+      .map((n) => {
+        const category = getCategory(n, user.id);
+        if (!category) return null;
+        return {
+          ...n,
+          data: n.data as Record<string, any> | null,
+          priority: getPriority(n),
+          category,
+        } as EnhancedNotification;
+      })
+      .filter((n): n is EnhancedNotification => n !== null);
   }, [notifications, user]);
 
   // Filter notifications by category
@@ -184,9 +177,6 @@ export const useNotificationFilters = (selectedCategory: NotificationCategory = 
     const counts: Record<NotificationCategory, number> = {
       unread: 0,
       calls: 0,
-      text: 0,
-      email: 0,
-      tickets: 0,
       assigned: 0,
       mentions: 0,
     };
@@ -198,8 +188,6 @@ export const useNotificationFilters = (selectedCategory: NotificationCategory = 
 
     // The list query is capped at 100 rows, so trust the exact DB count for the
     // overall unread total (per-category counts remain based on the loaded page).
-    counts.unread = Math.max(counts.unread, totalUnread);
-
     return counts;
   }, [enhancedNotifications, totalUnread]);
 

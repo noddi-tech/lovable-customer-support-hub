@@ -26,13 +26,10 @@ import {
   ContextMenuTrigger,
 } from '@/components/ui/context-menu';
 
-const VALID_TABS: NotificationCategory[] = ['unread', 'mentions', 'calls', 'text', 'email', 'tickets', 'assigned'];
+const VALID_TABS: NotificationCategory[] = ['unread', 'mentions', 'assigned', 'calls'];
 
 const categoryIcons: Record<string, React.ElementType> = {
   calls: Phone,
-  text: MessageSquare,
-  email: Mail,
-  tickets: Ticket,
   assigned: UserCheck,
   mentions: AtSign,
 };
