@@ -63,16 +63,18 @@ export function CreateNoddiTicketDialog({
   const [title, setTitle] = useState(defaultTitle);
   const [description, setDescription] = useState(defaultDescription);
   const [departmentId, setDepartmentId] = useState<string>('');
-  const [category, setCategory] = useState<NoddiTicketCategory>('CUSTOMER_ISSUE');
-  const [priority, setPriority] = useState<NoddiTicketPriority>('NORMAL');
+  const [category, setCategory] = useState<NoddiTicketCategory>(defaultCategory);
+  const [priority, setPriority] = useState<NoddiTicketPriority>(defaultPriority);
   const [type, setType] = useState<NoddiTicketType>('TASK');
 
   useEffect(() => {
     if (open) {
       setTitle(defaultTitle);
       setDescription(defaultDescription);
+      setCategory(defaultCategory);
+      setPriority(defaultPriority);
     }
-  }, [open, defaultTitle, defaultDescription]);
+  }, [open, defaultTitle, defaultDescription, defaultCategory, defaultPriority]);
 
   useEffect(() => {
     if (!departmentId && departments.length) setDepartmentId(String(departments[0].id));
