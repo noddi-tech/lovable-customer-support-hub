@@ -43,6 +43,8 @@ const MobileEmailConversationView = lazy(() => import('@/components/mobile/conve
 import { PresenceAvatarStack } from '@/components/conversations/PresenceAvatarStack';
 import { TagDialog } from './TagDialog';
 import { SnoozeDialog } from './SnoozeDialog';
+import { CreateNoddiTicketDialog } from '@/components/noddi-tickets/CreateNoddiTicketDialog';
+import { Wrench } from 'lucide-react';
 import { getLanguageFlag, getLanguageLabel } from '@/utils/languageLabels';
 import { useVisitorOnlineStatus } from '@/hooks/useVisitorOnlineStatus';
 import { formatDistanceToNow } from 'date-fns';
