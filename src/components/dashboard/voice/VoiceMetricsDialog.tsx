@@ -26,10 +26,9 @@ export function VoiceMetricsDialog({ open, onOpenChange }: VoiceMetricsDialogPro
   const [days, setDays] = useState<number>(30);
 
   const range = useMemo(() => ({ from: subDays(new Date(), days), to: new Date() }), [days]);
-  const { data, isLoading } = useCallAnalytics(open ? range : undefined);
+  const { metrics, agentStats, isLoading } = useCallAnalytics(open ? range : undefined);
 
-  const metrics = data?.metrics;
-  const agents = data?.agentStats ?? [];
+  const agents = agentStats ?? [];
 
   return (
     <MetricsDialogShell
