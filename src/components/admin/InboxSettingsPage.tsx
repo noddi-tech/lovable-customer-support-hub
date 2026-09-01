@@ -13,8 +13,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { ArrowLeft, Mail, MessageSquare, Plug2, ExternalLink, UserCheck } from 'lucide-react';
+import { ArrowLeft, Mail, MessageSquare, Plug2, ExternalLink, UserCheck, Tag } from 'lucide-react';
 import { useTeamMembers } from '@/hooks/useTeamMembers';
+import { useNoddiBrands } from '@/hooks/useNoddiBrands';
 
 export const INBOX_COLOR_PALETTE = [
   { value: '#6656D9', label: 'Primary Purple' },
@@ -67,6 +68,8 @@ export function InboxSettingsPage({ inboxId }: { inboxId: string }) {
   const { data: teamMembers } = useTeamMembers();
 
   const { data: departments } = useServiceDepartments();
+
+  const { brands } = useNoddiBrands();
 
   const { data: inboundRoutes } = useQuery({
     queryKey: ['inbound_routes'],
