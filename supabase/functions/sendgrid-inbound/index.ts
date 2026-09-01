@@ -666,46 +666,8 @@ Deno.serve(async (req: Request) => {
       metadata: { requestId, messageId: insertedMessage?.id, customerId: customer_id },
     });
 
-    // Create notification for new email (handled by database trigger for customer replies)
-    // For new conversations, we create an explicit notification here
-    if (isNewConversation) {
-      // Get agents to notify (inbox members or org admins)
-      const { data: agentsToNotify } = await supabase
-        .from('organization_memberships')
-        .select('user_id')
-        .eq('organization_id', organization_id)
-        .eq('status', 'active')
-        .in('role', ['agent', 'admin', 'super_admin'])
-        .limit(5);
-
-      if (agentsToNotify && agentsToNotify.length > 0) {
-        const notifications = agentsToNotify.map(agent => ({
-          user_id: agent.user_id,
-          title: `New Email: ${subject || 'No subject'}`,
-          message: `New email from ${displayName || authorEmail}`,
-          type: 'new_email',
-          data: {
-            conversation_id,
-            message_id: insertedMessage?.id,
-            customer_name: displayName,
-            customer_email: authorEmail,
-            subject: subject,
-            inbox_id,
-            urgency: 'normal'
-          }
-        }));
-
-        const { error: notifError } = await supabase
-          .from('notifications')
-          .insert(notifications);
-
-        if (notifError) {
-          console.error(`[SendGrid-Inbound] Error creating notifications:`, notifError);
-        } else {
-          console.log(`[SendGrid-Inbound] Created ${notifications.length} notifications for new email`);
-        }
-      }
-    }
+    // Personal-feed policy: no new_email notifications are generated.
+    // The inbox queues own follow-up for new emails and customer replies.
 
     // Fire-and-forget: generate AI draft reply
     supabase.functions.invoke('generate-email-draft', {

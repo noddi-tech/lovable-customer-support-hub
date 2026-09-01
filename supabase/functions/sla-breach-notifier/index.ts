@@ -138,6 +138,7 @@ Deno.serve(async (req: Request) => {
             title: `⚠️ SLA Warning: ${timeUntilBreach} minutes remaining`,
             message: `"${conv.subject || 'No subject'}" from ${customerName} in ${inboxName} will breach SLA soon`,
             type: 'sla_warning',
+            is_read: true, // personal feed policy: SLA lives in the Cases queue, not the bell
             data: {
               conversation_id: conv.id,
               customer_name: customerName,
@@ -226,6 +227,7 @@ Deno.serve(async (req: Request) => {
               title: `🚨 SLA Breached: ${breachDuration} minutes overdue`,
               message: `"${conv.subject || 'No subject'}" from ${customerName} in ${inboxName} has breached SLA`,
               type: 'sla_breach',
+              is_read: true, // personal feed policy: SLA lives in the Cases queue, not the bell
               data: {
                 conversation_id: conv.id,
                 customer_name: customerName,
