@@ -108,22 +108,14 @@ export const ConversationStatusContextMenu: React.FC<ConversationStatusContextMe
             Set brand…
           </ContextMenuSubTrigger>
           <ContextMenuSubContent className="w-60 max-h-80 overflow-y-auto p-1">
-            <BrandSearchInput value={brandSearch} onChange={setBrandSearch} />
-            {filteredBrands.length === 0 && (
-              <div className="px-3 py-4 text-sm text-muted-foreground">No brands found</div>
-            )}
-            {filteredBrands.map((b) => (
-              <ContextMenuItem key={b.id} className="gap-2" onSelect={() => setBrand(conversationId, b.name)}>
-                <BrandOptionContent brand={b} />
-                {currentBrandSlug === b.slug && <Check className="w-3.5 h-3.5 text-primary shrink-0" />}
-              </ContextMenuItem>
-            ))}
-            <ContextMenuSeparator />
-            <ContextMenuItem onSelect={() => setBrand(conversationId, null)}>
-              <Ban className="w-4 h-4 mr-2" />
-              Clear brand
-            </ContextMenuItem>
+            <BrandMenuOptions
+              currentLabel={brandLabel}
+              onSelect={(brandName) => setBrand(conversationId, brandName)}
+              Item={ContextMenuItem}
+              Separator={ContextMenuSeparator}
+            />
           </ContextMenuSubContent>
+
         </ContextMenuSub>
         <ContextMenuSeparator />
         <ContextMenuLabel className="text-xs text-muted-foreground">Tags</ContextMenuLabel>
