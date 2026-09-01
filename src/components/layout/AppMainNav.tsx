@@ -33,8 +33,13 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { AgentAvailabilityPanel } from './AgentAvailabilityPanel';
-
-
+/**
+ * Once the nav has rendered with resolved permissions we never show the
+ * "Loading..." shell again. Page routes each mount their own layout, so the
+ * sidebar remounts on every navigation — without this flag it would blank out
+ * for a moment on each route change.
+ */
+let navHasResolvedOnce = false;
 
 export const AppMainNav = () => {
   const location = useLocation();
@@ -51,7 +56,12 @@ export const AppMainNav = () => {
   const isCollapsed = state === 'collapsed' && !isMobile;
   const isAdmin = checkIsAdmin();
   const groupedItems = getGroupedNavItems(isAdmin, isSuperAdmin);
-  
+  const showLoadingShell = permissionsLoading && !navHasResolvedOnce;
+
+  useEffect(() => {
+    if (!permissionsLoading) navHasResolvedOnce = true;
+  }, [permissionsLoading]);
+
   // Log nav matches in dev mode
   useEffect(() => {
     logNavMatch(location.pathname);
@@ -101,7 +111,7 @@ export const AppMainNav = () => {
     }
   };
 
-  if (permissionsLoading) {
+  if (showLoadingShell) {
     return (
       <Sidebar collapsible="offcanvas">
         <SidebarContent>
