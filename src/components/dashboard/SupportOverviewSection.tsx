@@ -33,6 +33,45 @@ const CHANNEL_DESCRIPTIONS: Record<string, string> = {
 
 const MEDALS = ['🥇', '🥈', '🥉'];
 
+/**
+ * Arrow + percentage change against the equally long preceding window.
+ * Green means "better" — for times, lower is better.
+ */
+function Trend({
+  current,
+  previous,
+  higherIsBetter,
+  label,
+}: {
+  current: number | null | undefined;
+  previous: number | null | undefined;
+  higherIsBetter: boolean;
+  label: string;
+}) {
+  if (current == null || previous == null || previous === 0) return null;
+  const diff = current - previous;
+  const pct = Math.round((diff / Math.abs(previous)) * 100);
+  if (pct === 0) return null;
+
+  const up = diff > 0;
+  const good = higherIsBetter ? up : !up;
+  const Arrow = up ? ArrowUpRight : ArrowDownRight;
+
+  return (
+    <span
+      title={`${label}: ${up ? '+' : ''}${pct}% vs the previous period (${previous})`}
+      className={cn(
+        'inline-flex items-center gap-0.5 text-[10px] font-medium tabular-nums',
+        good ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400',
+      )}
+    >
+      <Arrow className="h-3 w-3" />
+      {Math.abs(pct)}%
+    </span>
+  );
+}
+
+
 function ChannelStat({ row }: { row: ChannelRow }) {
   const Icon = CHANNEL_ICONS[row.channel] ?? MessageSquare;
   return (
