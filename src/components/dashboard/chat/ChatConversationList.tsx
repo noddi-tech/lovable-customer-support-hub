@@ -199,6 +199,24 @@ export const ChatConversationList: React.FC<ChatConversationListProps> = ({
     [selectedIds, setStatus],
   );
 
+  const applyBulkAssign = useCallback(
+    async (memberId: string | null) => {
+      const ids = [...selectedIds];
+      const { error } = await supabase
+        .from('conversations')
+        .update({ assigned_to: memberId })
+        .in('id', ids);
+      if (error) {
+        toast.error('Failed to assign chats');
+        return;
+      }
+      toast.success(memberId ? `Assigned ${ids.length} chat(s)` : `Unassigned ${ids.length} chat(s)`);
+      queryClient.invalidateQueries({ queryKey: ['chat-conversations'] });
+      setSelectedIds(new Set());
+    },
+    [queryClient, selectedIds],
+  );
+
   const allSelected =
     filteredConversations.length > 0 &&
     filteredConversations.every(c => selectedIds.has(c.id));
