@@ -1260,3 +1260,93 @@
   color: #9ca3af;
   font-size: 20px;
 }
+
+/* ========== Chat attachments ========== */
+
+.noddi-chat-attach {
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  border: 1px solid #e5e7eb;
+  background: white;
+  color: #6b7280;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.noddi-chat-attach:hover:not(:disabled) {
+  background: #f3f4f6;
+  color: #1f2937;
+}
+
+.noddi-chat-attach:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.noddi-chat-attachments {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.noddi-chat-message-bubble:has(.noddi-chat-attachments):empty {
+  padding: 0;
+}
+
+.noddi-chat-attachment {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  max-width: 220px;
+}
+
+.noddi-chat-attachment-image {
+  display: block;
+  width: 100%;
+  max-width: 220px;
+  max-height: 220px;
+  object-fit: cover;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.noddi-chat-attachment-file {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.06);
+  font-size: 13px;
+  line-height: 1.2;
+}
+
+.noddi-chat-message-customer .noddi-chat-attachment-file {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+.noddi-chat-attachment-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.noddi-chat-attachment-meta {
+  font-size: 11px;
+  opacity: 0.75;
+  margin-top: 2px;
+}
+
+.noddi-chat-uploading {
+  font-size: 12px;
+  color: #6b7280;
+  padding: 4px 8px;
+}
