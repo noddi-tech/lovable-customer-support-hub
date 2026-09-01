@@ -22,7 +22,12 @@ import {
   type CasePriority,
   type CaseStatus,
 } from '@/hooks/useCases';
-import { CASE_PRIORITY_DOT } from '@/components/cases/CaseBadges';
+import {
+  CASE_PRIORITY_DOT,
+  CASE_STATUS_ICONS,
+  CASE_STATUS_ICON_COLORS,
+} from '@/components/cases/CaseBadges';
+
 
 interface CaseContextMenuProps {
   caseId: string;
@@ -123,18 +128,23 @@ export const CaseContextMenu: React.FC<CaseContextMenuProps> = ({
             Change status
           </ContextMenuSubTrigger>
           <ContextMenuSubContent className="w-52">
-            {(Object.keys(CASE_STATUS_LABELS) as CaseStatus[]).map((value) => (
-              <ContextMenuItem
-                key={value}
-                disabled={status === value}
-                onSelect={() =>
-                  apply({ status: value }, `Status set to ${CASE_STATUS_LABELS[value]}`)
-                }
-              >
-                <span className="flex-1">{CASE_STATUS_LABELS[value]}</span>
-                {status === value && <Check className="h-3.5 w-3.5 text-primary" />}
-              </ContextMenuItem>
-            ))}
+            {(Object.keys(CASE_STATUS_LABELS) as CaseStatus[]).map((value) => {
+              const Icon = CASE_STATUS_ICONS[value];
+              return (
+                <ContextMenuItem
+                  key={value}
+                  disabled={status === value}
+                  onSelect={() =>
+                    apply({ status: value }, `Status set to ${CASE_STATUS_LABELS[value]}`)
+                  }
+                >
+                  <Icon className={`mr-2 h-4 w-4 ${CASE_STATUS_ICON_COLORS[value]}`} />
+                  <span className="flex-1">{CASE_STATUS_LABELS[value]}</span>
+                  {status === value && <Check className="h-3.5 w-3.5 text-primary" />}
+                </ContextMenuItem>
+              );
+            })}
+
           </ContextMenuSubContent>
         </ContextMenuSub>
 

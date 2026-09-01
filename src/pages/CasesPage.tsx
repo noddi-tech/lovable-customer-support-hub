@@ -28,16 +28,31 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { BarChart3, Plus, Search, Briefcase, UserRound, HelpCircle } from 'lucide-react';
+import {
+  BarChart3,
+  Plus,
+  Search,
+  Briefcase,
+  UserRound,
+  HelpCircle,
+  AlertTriangle,
+  UserX,
+  Hourglass,
+  CircleDot,
+  CheckCircle2,
+  type LucideIcon,
+} from 'lucide-react';
 
-const VIEWS: Array<{ value: CaseQueueView; label: string }> = [
-  { value: 'mine', label: 'My cases' },
-  { value: 'overdue', label: 'Overdue' },
-  { value: 'unassigned', label: 'Unassigned' },
-  { value: 'waiting', label: 'Waiting' },
-  { value: 'open', label: 'All open' },
-  { value: 'closed', label: 'Resolved' },
+
+const VIEWS: Array<{ value: CaseQueueView; label: string; icon: LucideIcon }> = [
+  { value: 'mine', label: 'My cases', icon: UserRound },
+  { value: 'overdue', label: 'Overdue', icon: AlertTriangle },
+  { value: 'unassigned', label: 'Unassigned', icon: UserX },
+  { value: 'waiting', label: 'Waiting', icon: Hourglass },
+  { value: 'open', label: 'All open', icon: CircleDot },
+  { value: 'closed', label: 'Resolved', icon: CheckCircle2 },
 ];
+
 
 export default function CasesPage() {
   const navigate = useNavigate();
@@ -141,12 +156,14 @@ export default function CasesPage() {
               <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1">
                 {VIEWS.map((v) => (
                   <TabsTrigger key={v.value} value={v.value} className="gap-1.5 text-xs">
+                    <v.icon className="h-3.5 w-3.5" />
                     {v.label}
                     <span className="inline-flex h-4 min-w-[18px] items-center justify-center rounded-full bg-muted px-1 text-[10px] text-foreground/70">
                       {queueCounts?.[v.value] ?? 0}
                     </span>
                   </TabsTrigger>
                 ))}
+
               </TabsList>
             </Tabs>
 
