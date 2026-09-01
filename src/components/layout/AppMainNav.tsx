@@ -112,6 +112,31 @@ export const AppMainNav = () => {
     }
   };
 
+  /**
+   * Hover hint explaining what a nav entry is for. Skipped when the sidebar is
+   * collapsed — SidebarMenuButton already renders its own label tooltip there.
+   */
+  const NavHint = ({
+    title,
+    description,
+    children,
+  }: {
+    title: string;
+    description?: string;
+    children: React.ReactNode;
+  }) => {
+    if (!description || isCollapsed || isMobile) return <>{children}</>;
+    return (
+      <Tooltip delayDuration={350}>
+        <TooltipTrigger asChild>{children}</TooltipTrigger>
+        <TooltipContent side="right" align="start" className="max-w-[260px]">
+          <p className="text-xs font-medium">{title}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
+        </TooltipContent>
+      </Tooltip>
+    );
+  };
+
   if (showLoadingShell) {
     return (
       <Sidebar collapsible="offcanvas">
