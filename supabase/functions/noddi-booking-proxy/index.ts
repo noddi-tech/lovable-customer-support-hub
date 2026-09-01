@@ -51,7 +51,7 @@ Deno.serve(async (req) => {
           return jsonResponse({ error: "license_plate required" }, 400);
         }
         const url = `${API_BASE}/v1/cars/from-license-plate-number/?brand_domains=noddi&country_code=${encodeURIComponent(country_code)}&number=${encodeURIComponent(license_plate)}`;
-        const res = await fetch(url, { headers });
+        const res = await fetch(url, { headers: headers() });
         if (!res.ok) {
           const text = await res.text();
           console.error("Car lookup error:", res.status, text);
@@ -77,7 +77,7 @@ Deno.serve(async (req) => {
           });
         }
         const url = `${API_BASE}/v1/sales-item-booking-categories/for-new-booking/?address_id=${encodeURIComponent(address_id)}`;
-        const res = await fetch(url, { headers });
+        const res = await fetch(url, { headers: headers() });
         if (!res.ok) {
           const text = await res.text();
           console.error("List services error:", res.status, text);
@@ -163,7 +163,7 @@ Deno.serve(async (req) => {
       case "latest_date": {
         const { address_id: lAddr } = body;
         const url = `${API_BASE}/v1/delivery-windows/latest-date/${lAddr ? `?address_id=${encodeURIComponent(lAddr)}` : ''}`;
-        const res = await fetch(url, { headers });
+        const res = await fetch(url, { headers: headers() });
         if (!res.ok) {
           const text = await res.text();
           console.error("Latest date error:", res.status, text);
@@ -240,7 +240,7 @@ Deno.serve(async (req) => {
             url += `&selected_sales_item_ids=${encodeURIComponent(id)}`;
           }
         }
-        const res = await fetch(url, { headers });
+        const res = await fetch(url, { headers: headers() });
         if (!res.ok) {
           const text = await res.text();
           console.error("Delivery windows REST fallback error:", res.status, text, "URL:", url);
@@ -263,7 +263,7 @@ Deno.serve(async (req) => {
             url += `&sales_items_ids=${encodeURIComponent(id)}`;
           }
         }
-        const res = await fetch(url, { headers });
+        const res = await fetch(url, { headers: headers() });
         if (!res.ok) {
           const text = await res.text();
           console.error("Service departments error:", res.status, text);
@@ -336,7 +336,7 @@ Deno.serve(async (req) => {
         if (phone) params.set("phone", phone);
         if (email) params.set("email", email);
         const url = `${API_BASE}/v1/users/customer-lookup-support/?${params.toString()}`;
-        const res = await fetch(url, { headers });
+        const res = await fetch(url, { headers: headers() });
         if (!res.ok) {
           const text = await res.text();
           console.error("Customer lookup error:", res.status, text);
