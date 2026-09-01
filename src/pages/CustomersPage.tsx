@@ -134,9 +134,27 @@ export default function CustomersPage() {
             </Card>
           ) : (
             <div className="space-y-2">
+              <SelectionToolbar
+                count={selection.count}
+                allSelected={selection.allSelected}
+                onSelectAll={selection.selectAll}
+                onClear={selection.clear}
+              >
+                <BulkTagMenu entityType="customer" entityIds={selection.ids} className="h-7 px-2 text-xs" />
+              </SelectionToolbar>
+
               {customers.map((c) => (
                 <ContextMenu key={c.id}>
                   <ContextMenuTrigger asChild>
+                <div className="flex w-full items-center gap-2 rounded-lg border bg-card pl-3 transition-colors hover:bg-accent/50 active:bg-accent/60">
+                  <Checkbox
+                    checked={selection.isSelected(c.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      selection.toggle(c.id, !selection.isSelected(c.id), (e as React.MouseEvent).shiftKey);
+                    }}
+                    aria-label="Select customer"
+                  />
                 <button
                   type="button"
                   onClick={() => navigate(`/customers/${c.id}`)}
