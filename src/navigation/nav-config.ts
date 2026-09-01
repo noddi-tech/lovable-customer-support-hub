@@ -8,7 +8,6 @@ import {
   Ticket, 
     Users,
   BarChart3,
-  Settings,
 
   User,
   Bell,
