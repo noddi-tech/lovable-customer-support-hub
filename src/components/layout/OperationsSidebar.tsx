@@ -46,11 +46,6 @@ export const OperationsSidebar: React.FC = () => {
       path: '/operations/bulk-outreach',
       icon: Send
     },
-    {
-      title: 'Settings',
-      path: '/operations/settings',
-      icon: Settings
-    }
   ];
 
   return (
