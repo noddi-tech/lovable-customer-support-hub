@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import { useServiceDepartments } from '@/hooks/useServiceDepartments';
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect } from "react";
 
@@ -95,30 +96,7 @@ export function InboxAssignmentStep({
     },
   });
 
-  const { data: departments } = useQuery({
-    queryKey: ['departments'],
-    queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
-      
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('organization_id')
-        .eq('user_id', user.id)
-        .single();
-      
-      if (!profile) throw new Error('Profile not found');
-
-      const { data, error } = await supabase
-        .from('departments')
-        .select('id, name')
-        .eq('organization_id', profile.organization_id)
-        .order('name');
-
-      if (error) throw error;
-      return data;
-    },
-  });
+  const { data: departments } = useServiceDepartments();
 
   return (
     <div className="space-y-6">
@@ -235,15 +213,15 @@ export function InboxAssignmentStep({
               </div>
 
               <div>
-                <Label htmlFor="department">Department (optional)</Label>
+                <Label htmlFor="department">Service department (optional)</Label>
                 <Select value={newInboxDepartmentId} onValueChange={onNewInboxDepartmentChange}>
                   <SelectTrigger id="department" className="mt-1.5">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="no-department">No Department</SelectItem>
+                    <SelectItem value="no-department">No service department</SelectItem>
                     {departments?.map((dept) => (
-                      <SelectItem key={dept.id} value={dept.id}>
+                      <SelectItem key={dept.id} value={String(dept.id)}>
                         {dept.name}
                       </SelectItem>
                     ))
