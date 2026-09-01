@@ -45,6 +45,8 @@ export const EnhancedCallCard: React.FC<EnhancedCallCardProps> = ({
 }) => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const brand = getConversationBrand((call as any).metadata, 'voice');
+  const { getTags: getCallTags } = useEntityTags('call');
+  const cardTags = getCallTags(call.id);
 
   const formatDuration = (seconds?: number) => {
     if (!seconds) return '0:00';

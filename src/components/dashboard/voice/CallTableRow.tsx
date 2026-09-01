@@ -100,6 +100,8 @@ export const CallTableRow = memo<CallTableRowProps>(({
   const customerEmail = call.customer_email || call.customers?.email;
   const customerInitial = customerName[0]?.toUpperCase() || 'U';
   const brand = getConversationBrand(call.metadata, 'voice');
+  const { getTags: getCallTags } = useEntityTags('call');
+  const callTags = getCallTags(call.id);
 
   return (
     <CallBrandContextMenu callId={call.id} metadata={call.metadata}>
