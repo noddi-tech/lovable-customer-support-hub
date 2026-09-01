@@ -274,7 +274,7 @@ export function SupportOverviewSection() {
             ) : (
               <>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                  {(overview?.channels ?? []).map((row) => (
+                  {activeChannels.map((row) => (
                     <ChannelStat key={row.channel} row={row} />
                   ))}
                 </div>
