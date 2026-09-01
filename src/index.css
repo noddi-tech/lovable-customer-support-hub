@@ -618,13 +618,15 @@ Optimized for accessibility with WCAG AA compliance.
     opacity: 0.85;
   }
 
-  /* Override inline margin/padding styles on divs */
-  .email-render__html-content div,
-  .email-render__html-content div[style*="padding"],
-  .email-render__html-content div[style*="margin"] {
+  /* Override inline margin/padding styles on divs (plain/legacy emails only —
+     designed emails keep their own spacing, see .email-render--rich) */
+  .email-render__html-content:not(.email-render--rich) div,
+  .email-render__html-content:not(.email-render--rich) div[style*="padding"],
+  .email-render__html-content:not(.email-render--rich) div[style*="margin"] {
     padding: 0 !important;
     margin: 0 !important;
   }
+
 
   /* Hide true spacer images (1-15px height and spacer/transparent URLs) */
   .email-render__html-content img[width="1"],
