@@ -15,6 +15,8 @@ import {
 import { InlineNoteEditor } from '@/components/conversations/InlineNoteEditor';
 import { useNoteMutations } from '@/hooks/useNoteMutations';
 import { noteDebug } from '@/utils/noteInteractionDebug';
+import { EmailRender } from '@/components/ui/email-render';
+import type { EmailAttachment } from '@/utils/emailFormatting';
 import type { NormalizedMessage } from '@/lib/normalizeMessage';
 
 interface MobileChatBubbleProps {
@@ -73,6 +75,14 @@ export const MobileChatBubble = ({ message, customerName, onRequestDeleteNote }:
 
   const content = resolveContent(message);
   const isPlainText = !/<[a-z][\s\S]*>/i.test(content);
+  const attachments: EmailAttachment[] = (message.originalMessage?.attachments || []).map((a: any) => ({
+    filename: a.name || a.filename || 'file',
+    mimeType: a.type || a.mimeType || 'application/octet-stream',
+    size: a.size || 0,
+    contentId: a.contentId || a.content_id,
+    isInline: a.isInline || false,
+    storageKey: a.storageKey || a.storage_key,
+  }));
 
   const handleResendEmail = async () => {
     try {
@@ -192,16 +202,17 @@ export const MobileChatBubble = ({ message, customerName, onRequestDeleteNote }:
                 <span className="ml-1 text-[9px] text-muted-foreground italic">(edited)</span>
               )}
           </>
-        ) : isPlainText ? (
-          <p className="whitespace-pre-wrap m-0">{(() => {
-            const temp = document.createElement('div');
-            temp.innerHTML = content;
-            return (temp.textContent || temp.innerText || '').trim();
-          })()}</p>
         ) : (
-          <div
-            className="[&_*]:!text-inherit [&_img]:max-w-full [&_img]:h-auto"
-            dangerouslySetInnerHTML={{ __html: content }}
+          <EmailRender
+            content={content}
+            contentType={
+              message.originalMessage?.content_type ||
+              (isPlainText ? 'text/plain' : 'text/html')
+            }
+            attachments={attachments}
+            messageId={message.id}
+            className="mobile-chat-email-render"
+            showLoadImagesControl={false}
           />
         )}
       </div>
