@@ -1,6 +1,7 @@
 import {
   Briefcase,
   MessageSquare, 
+  Inbox,
   MessageCircle,
   Phone, 
   Megaphone, 
