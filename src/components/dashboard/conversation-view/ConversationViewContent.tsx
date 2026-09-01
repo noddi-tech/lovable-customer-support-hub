@@ -362,7 +362,7 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
         </div>
         
         {/* Collapsible Customer Details Panel - same as email view */}
-        {showNoddiPanel && (
+        {showNoddiPanel && !isMobile && (
           <div className="flex flex-col overflow-y-auto border-l">
             <WidgetContextCard metadata={conversation.metadata} className="m-3 mb-0" />
             <ChatCustomerPanel
@@ -370,6 +370,22 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
               conversationId={conversationId}
               onClose={() => setShowNoddiPanel(false)}
             />
+          </div>
+        )}
+
+        {/* Always-visible rail on the right edge to open/close the customer details panel */}
+        {!isMobile && (
+          <div className="flex-shrink-0 flex flex-col items-center border-l bg-muted/20 px-1 py-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-muted-foreground hover:text-foreground"
+              aria-label={showNoddiPanel ? 'Hide customer details' : 'Show customer details'}
+              title={showNoddiPanel ? 'Hide customer details' : 'Show customer details'}
+              onClick={() => setShowNoddiPanel(!showNoddiPanel)}
+            >
+              {showNoddiPanel ? <PanelRightClose className="h-4 w-4" /> : <PanelRightOpen className="h-4 w-4" />}
+            </Button>
           </div>
         )}
         
