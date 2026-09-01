@@ -23,15 +23,13 @@ export default function DataDeletionStatus() {
   useEffect(() => {
     if (!code) return;
     (async () => {
-      const { data, error } = await (supabase as any).rpc(
-        'get_meta_deletion_request_status',
-        { _code: code },
-      );
+      const { data, error } = await supabase.functions.invoke('meta-deletion-status', {
+        body: { code },
+      });
       if (error) {
         setError(error.message);
       } else {
-        const row = Array.isArray(data) ? data[0] : data;
-        setRequest((row ?? null) as DeletionRequest | null);
+        setRequest(((data as { request?: DeletionRequest | null } | null)?.request ?? null));
       }
       setLoading(false);
     })();
