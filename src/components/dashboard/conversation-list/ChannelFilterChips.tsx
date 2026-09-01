@@ -1,4 +1,3 @@
-import { useMemo } from 'react';
 import { Inbox } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -18,26 +17,17 @@ function chipChannels(chip: string): string[] {
  * without splitting the navigation.
  */
 export function ChannelFilterChips() {
-  const { filteredConversations, state, dispatch } = useConversationList();
+  const { channelCounts, state, dispatch } = useConversationList();
 
-  // Counts ignore the channel filter itself so the chips never collapse to zero.
-  const counts = useMemo(() => {
-    const map = new Map<string, number>();
-    filteredConversations.forEach((c) => {
-      const key = SOCIAL_CHANNELS.includes(c.channel as never) ? 'social' : c.channel;
-      map.set(key, (map.get(key) ?? 0) + 1);
-    });
-    return map;
-  }, [filteredConversations]);
-
+  // Counts come from the list before the channel filter, so chips never zero out.
   const visibleChips = CHIP_ORDER.filter(
-    (chip) => (counts.get(chip) ?? 0) > 0 || state.channelFilter === chip,
+    (chip) => (channelCounts[chip] ?? 0) > 0 || state.channelFilter === chip,
   );
 
   // Nothing to disambiguate when everything is the same channel.
   if (visibleChips.length < 2) return null;
 
-  const total = filteredConversations.length;
+  const total = Object.values(channelCounts).reduce((sum, n) => sum + n, 0);
 
   const chip = (
     key: string,
@@ -80,7 +70,7 @@ export function ChannelFilterChips() {
             c === 'social'
               ? 'Facebook and Instagram messages.'
               : meta.description;
-          return chip(c, label, counts.get(c) ?? 0, description, meta.icon);
+          return chip(c, label, channelCounts[c] ?? 0, description, meta.icon);
         })}
       </div>
     </TooltipProvider>

@@ -9,6 +9,7 @@ import { ArchiveConfirmDialog } from "./conversation-list/ArchiveConfirmDialog";
 import { VirtualizedConversationTable } from "./conversation-list/VirtualizedConversationTable";
 import { ConversationPaginationFooter } from "./conversation-list/ConversationPaginationFooter";
 import { BulkActionsBar } from "./conversation-list/BulkActionsBar";
+import { ChannelFilterChips } from "./conversation-list/ChannelFilterChips";
 import { SessionRecoveryBanner } from "@/components/conversations/SessionRecoveryBanner";
 import { SessionSyncButton } from "@/components/conversations/SessionSyncButton";
 import { SessionHealthMonitor } from "@/components/conversations/SessionHealthMonitor";
@@ -155,6 +156,9 @@ const ConversationListContent = ({ onSelectConversation, selectedConversation, o
         agents={agents}
       />
       
+      {/* Channel chips - the Inbox mixes email, SMS, WhatsApp and social */}
+      <ChannelFilterChips />
+
       {/* Active Filter Chips */}
       {activeFilters.length > 0 && (
         <div className="flex items-center gap-1.5 px-3 py-1.5 border-b bg-muted/30">
