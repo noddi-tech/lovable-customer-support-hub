@@ -93,10 +93,14 @@ Deno.serve(async (req) => {
         const content = noteText(payload);
         if (!id) return json({ error: "user_group_id required" }, 400);
         if (!content) return json({ error: "content is required" }, 400);
-        return await callNoddi(`/v1/user-group-notes/`, {
-          method: "POST",
-          body: JSON.stringify({ user_group: id, user_group_id: id, note: content, content }),
-        });
+        // Field naming differs between Navio API versions; try the variants in
+        // order and keep the first one the API accepts.
+        return await tryBodies(`/v1/user-group-notes/`, "POST", [
+          { user_group: id, note: content },
+          { user_group_id: id, note: content },
+          { user_group: id, content },
+          { user_group_id: id, text: content },
+        ]);
       }
 
       case "update": {
@@ -104,10 +108,11 @@ Deno.serve(async (req) => {
         const content = noteText(payload);
         if (!id) return json({ error: "note_id required" }, 400);
         if (!content) return json({ error: "content is required" }, 400);
-        return await callNoddi(`/v1/user-group-notes/${id}/`, {
-          method: "PATCH",
-          body: JSON.stringify({ note: content, content }),
-        });
+        return await tryBodies(`/v1/user-group-notes/${id}/`, "PATCH", [
+          { note: content },
+          { content },
+          { text: content },
+        ]);
       }
 
       case "delete": {
