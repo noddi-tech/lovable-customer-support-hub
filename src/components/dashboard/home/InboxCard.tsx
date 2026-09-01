@@ -117,36 +117,6 @@ export function InboxCard({
       onClick={isConfigured ? onOpen : undefined}
     >
       <CardContent className="relative flex min-h-[64px] flex-col gap-1.5 p-3 pt-6">
-        {/* health emoji / colour dot pinned to the very top-left corner */}
-        <span className="absolute left-2 top-1.5 leading-none">
-          {health ? (
-            <span
-              role="img"
-              aria-label={`Inbox health: ${health.label}`}
-              title={`${health.label} — ${health.description}`}
-              className="text-sm leading-none"
-            >
-              {health.emoji}
-            </span>
-          ) : (
-            <span
-              className="block h-2.5 w-2.5 rounded-full"
-              style={{
-                backgroundColor: isConfigured
-                  ? inbox.color || 'hsl(var(--primary))'
-                  : 'hsl(var(--muted-foreground) / 0.4)',
-              }}
-            />
-          )}
-        </span>
-
-        {/* SLA chip pinned to the very top-right corner */}
-        {isConfigured && slaRisk && (
-          <span className="absolute right-2 top-1.5">
-            <InboxSlaAlert risk={slaRisk} onFix={onFixSla} compact />
-          </span>
-        )}
-
         <div className="flex min-w-0 flex-col leading-tight">
           <span
             className={cn(
@@ -156,10 +126,22 @@ export function InboxCard({
           >
             {health && (
               <span
-                className="h-2 w-2 shrink-0 rounded-full"
-                style={{ backgroundColor: inbox.color || 'hsl(var(--primary))' }}
-              />
+                role="img"
+                aria-label={`Inbox health: ${health.label}`}
+                title={`${health.label} — ${health.description}`}
+                className="shrink-0 text-sm leading-none"
+              >
+                {health.emoji}
+              </span>
             )}
+            <span
+              className="h-2 w-2 shrink-0 rounded-full"
+              style={{
+                backgroundColor: isConfigured
+                  ? inbox.color || 'hsl(var(--primary))'
+                  : 'hsl(var(--muted-foreground) / 0.4)',
+              }}
+            />
             <span className="truncate" title={inbox.name}>
               {inbox.name}
             </span>
@@ -172,6 +154,7 @@ export function InboxCard({
               </Badge>
             )}
           </span>
+
 
           <span className="block truncate text-xs text-muted-foreground sm:text-[11px]" title={email}>
             {isConfigured ? email : 'Not configured'}
