@@ -12,7 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { ArrowLeft, Mail, MessageSquare, Plug2, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Mail, MessageSquare, Plug2, ExternalLink, UserCheck } from 'lucide-react';
+import { useTeamMembers } from '@/hooks/useTeamMembers';
 
 export const INBOX_COLOR_PALETTE = [
   { value: '#6656D9', label: 'Primary Purple' },
@@ -36,7 +37,10 @@ interface InboxData {
   conversation_count: number;
   sender_display_name: string | null;
   purpose: 'support' | 'recruitment';
+  auto_assignment_rules: { assign_to_profile_id?: string | null } | null;
 }
+
+const NO_AUTO_ASSIGN = 'no-auto-assign';
 
 interface Department { id: string; name: string }
 interface InboundRoute { id: string; inbox_id: string | null; address: string; group_email: string | null }
@@ -56,6 +60,8 @@ export function InboxSettingsPage({ inboxId }: { inboxId: string }) {
       return data as unknown as InboxData[];
     },
   });
+
+  const { data: teamMembers } = useTeamMembers();
 
   const { data: departments } = useQuery({
     queryKey: ['departments'],
@@ -231,6 +237,42 @@ export function InboxSettingsPage({ inboxId }: { inboxId: string }) {
               <Label htmlFor="inbox-default">Set as default inbox</Label>
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Auto-assignment</CardTitle>
+          <CardDescription>Automatically give new conversations in this inbox an owner</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <Label htmlFor="inbox-auto-assign" className="flex items-center gap-2">
+            <UserCheck className="w-4 h-4" /> Assign new conversations to
+          </Label>
+          <Select
+            value={form.auto_assignment_rules?.assign_to_profile_id || NO_AUTO_ASSIGN}
+            onValueChange={(value) =>
+              setForm({
+                ...form,
+                auto_assignment_rules: {
+                  ...(form.auto_assignment_rules || {}),
+                  assign_to_profile_id: value === NO_AUTO_ASSIGN ? null : value,
+                },
+              })
+            }
+          >
+            <SelectTrigger id="inbox-auto-assign"><SelectValue placeholder="No one (leave unassigned)" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value={NO_AUTO_ASSIGN}>No one (leave unassigned)</SelectItem>
+              {teamMembers?.map((m) => (
+                <SelectItem key={m.id} value={m.id}>{m.full_name || m.email}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground">
+            Every new email, chat or text conversation landing in this inbox without an owner is assigned to this
+            person. Existing conversations are untouched, and agents can always reassign afterwards.
+          </p>
         </CardContent>
       </Card>
 
