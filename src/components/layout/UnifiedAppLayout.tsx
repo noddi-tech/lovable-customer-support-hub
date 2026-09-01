@@ -16,13 +16,32 @@ interface UnifiedAppLayoutProps {
   children: React.ReactNode;
 }
 
+const SIDEBAR_PREF_KEY = 'support-hub:sidebar-open';
+
 export const UnifiedAppLayout: React.FC<UnifiedAppLayoutProps> = ({
   children
 }) => {
   const [searchOpen, setSearchOpen] = useState(false);
   const [inboxSwitcherOpen, setInboxSwitcherOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem(SIDEBAR_PREF_KEY) === 'true';
+    } catch {
+      return false;
+    }
+  });
   const location = useLocation();
   const section = location.pathname.split('/').slice(0, 3).join('/');
+
+  const handleSidebarOpenChange = (open: boolean) => {
+    setSidebarOpen(open);
+    try {
+      localStorage.setItem(SIDEBAR_PREF_KEY, String(open));
+    } catch {
+      // ignore storage failures (private mode, etc.)
+    }
+  };
+
 
   // Ask for browser notification permission on first app open (top-level only)
   useNotificationPermissionPrompt();
@@ -50,7 +69,7 @@ export const UnifiedAppLayout: React.FC<UnifiedAppLayoutProps> = ({
   }, []);
 
   return (
-    <SidebarProvider defaultOpen={false}>
+    <SidebarProvider open={sidebarOpen} onOpenChange={handleSidebarOpenChange}>
       {import.meta.env.DEV && import.meta.env.VITE_UI_PROBE === '1' && <UIProbe />}
       <SearchCommandPalette open={searchOpen} onOpenChange={setSearchOpen} />
       <QuickInboxSwitcher open={inboxSwitcherOpen} onOpenChange={setInboxSwitcherOpen} />
