@@ -301,6 +301,25 @@ const NotificationsPage = () => {
                     Showing the {sortedAndFiltered.length} most recent of {totalUnread} unread notifications.
                   </p>
                 )}
+                {!isMobile && selectedIds.length > 0 && (
+                  <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+                    <span>{selectedIds.length} selected</span>
+                    <Button variant="outline" size="sm" className="h-7" onClick={() => bulkMarkRead(selectedIds, true)}>
+                      Mark as read
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 text-destructive hover:text-destructive"
+                      onClick={() => bulkDelete(selectedIds)}
+                    >
+                      Delete
+                    </Button>
+                    <Button variant="ghost" size="sm" className="h-7" onClick={() => setSelectedIds([])}>
+                      Clear
+                    </Button>
+                  </div>
+                )}
               </div>
 
               {isMobile ? (
