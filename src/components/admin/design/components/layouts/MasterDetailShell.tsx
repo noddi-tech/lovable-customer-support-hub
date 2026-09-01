@@ -16,6 +16,9 @@ interface MasterDetailShellProps {
   detailLeft?: ReactNode;
   detailRight?: ReactNode;
   
+  /** Collapse the left (filter) pane to a narrow rail. */
+  leftCollapsed?: boolean;
+
   // State management
   isDetail: boolean;
   onBack: () => void;
@@ -35,6 +38,7 @@ export const MasterDetailShell: React.FC<MasterDetailShellProps> = ({
   center,
   detailLeft,
   detailRight,
+  leftCollapsed = false,
   isDetail,
   onBack,
   backButtonLabel = "Back to Inbox",
@@ -166,7 +170,12 @@ export const MasterDetailShell: React.FC<MasterDetailShellProps> = ({
         // List mode: Inbox list + Conversation list  
         <div 
           data-testid="list-grid"
-          className="grid h-full min-h-0 w-full max-w-none grid-cols-[280px_minmax(0,1fr)] xl:grid-cols-[300px_minmax(0,1fr)] gap-0"
+          className={cn(
+            "grid h-full min-h-0 w-full max-w-none gap-0",
+            leftCollapsed
+              ? "grid-cols-[44px_minmax(0,1fr)]"
+              : "grid-cols-[280px_minmax(0,1fr)] xl:grid-cols-[300px_minmax(0,1fr)]"
+          )}
         >
           {/* Left: Inbox list */}
           {left && (

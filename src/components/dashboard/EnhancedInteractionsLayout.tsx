@@ -18,6 +18,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { getCustomerDisplay } from '@/utils/customerDisplayName';
 import { useIsMobile } from '@/hooks/use-responsive';
+import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 
 // Define conversation types
 type ConversationStatus = "open" | "pending" | "resolved" | "closed";
@@ -70,6 +73,19 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
   const queryClient = useQueryClient();
   const { profile } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
+  const [filtersCollapsed, setFiltersCollapsed] = useState(false);
+
+  // Cmd/Ctrl + M toggles the filter sidebar
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && !e.altKey && e.key.toLowerCase() === 'm') {
+        e.preventDefault();
+        setFiltersCollapsed((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
   
   // Dev-only performance monitoring
   useEffect(() => {
@@ -248,9 +264,49 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
 
   // Voice sub-tabs are now handled at the Index.tsx level
 
+  const FilterToggleButton = ({ collapsed }: { collapsed: boolean }) => (
+    <TooltipProvider delayDuration={200}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 text-muted-foreground"
+            aria-label={collapsed ? 'Show filters' : 'Hide filters'}
+            onClick={() => setFiltersCollapsed(!collapsed)}
+          >
+            {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent side="right" className="flex items-center gap-2">
+          <span>{collapsed ? 'Show filters' : 'Hide filters'}</span>
+          <kbd className="rounded border border-border bg-muted px-1 text-[10px]">⌘M</kbd>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+
   // Render inbox list with search
-  const renderInboxList = () => (
+  const renderInboxList = () => {
+    if (filtersCollapsed) {
+      return (
+        <div className="flex flex-col items-center pt-1">
+          <FilterToggleButton collapsed />
+        </div>
+      );
+    }
+
+    return (
     <div className="space-y-4">
+      {/* Collapse control */}
+      <div className="flex items-center justify-between px-2">
+        <span className="text-xs font-semibold text-foreground/70">Filters</span>
+        <span className="flex items-center gap-1">
+          <kbd className="rounded border border-border bg-muted px-1 text-[10px] text-muted-foreground">⌘M</kbd>
+          <FilterToggleButton collapsed={false} />
+        </span>
+      </div>
+
       {/* Search Input */}
       <div className="px-2">
         <Input
@@ -269,7 +325,8 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
         onStatusSelect={handleStatusSelect}
       />
     </div>
-  );
+    );
+  };
 
   // Render conversation list (without LiveChatQueue - now in Chat section)
   const renderConversationList = () => {
@@ -359,6 +416,7 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
   return (
     <MasterDetailShell
       left={renderInboxList()}
+      leftCollapsed={filtersCollapsed}
       center={renderConversationList()}
       detailLeft={renderMessageThread()}
       detailRight={null}
