@@ -578,10 +578,10 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
       <CreateNoddiTicketDialog
         open={opsTicketOpen}
         onOpenChange={setOpsTicketOpen}
-        defaultTitle={conversation.subject || `Support request from ${customerDisplay?.name || 'customer'}`}
+        defaultTitle={conversation.subject || `Support request from ${customerDisplay?.displayName || 'customer'}`}
         defaultDescription={[
           `Created from a ${conversation.channel === 'widget' ? 'live chat' : conversation.channel || 'support'} conversation in the Support Hub.`,
-          conversation.customer?.email ? `Customer: ${customerDisplay?.name || ''} (${conversation.customer.email})` : null,
+          conversation.customer?.email ? `Customer: ${customerDisplay?.displayName || ''} (${conversation.customer.email})` : null,
           conversation.customer?.phone ? `Phone: ${conversation.customer.phone}` : null,
           `Conversation: ${window.location.origin}/conversations/${conversationId}`,
         ]
