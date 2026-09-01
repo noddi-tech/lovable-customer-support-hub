@@ -1086,6 +1086,67 @@ const NoddiCustomerDetailsComponent: React.FC<NoddiCustomerDetailsProps> = ({
           </Collapsible>
         )}
 
+        {/* Cars */}
+        {(() => {
+          const plateOf = (c: any): string => {
+            const raw = c?.license_plate_number ?? c?.license_plate ?? c?.registration_number ?? c?.registration ?? '';
+            if (raw && typeof raw === 'object') {
+              return String(raw.number || raw.registration_number || '').trim();
+            }
+            return String(raw || '').trim();
+          };
+
+          const collected = new Map<string, any>();
+          const push = (c: any) => {
+            if (!c) return;
+            const plate = plateOf(c);
+            const key = plate || (c.id ? `id:${c.id}` : '');
+            if (!key || collected.has(key)) return;
+            collected.set(key, c);
+          };
+
+          (userGroup as any)?.cars?.forEach?.(push);
+          userGroup?.tire_quotes?.forEach?.((tq: any) => push(tq?.car));
+          const bookingSources = [userGroup?.priority_booking, userGroup?.upcoming_booking, userGroup?.recent_booking];
+          bookingSources.forEach((b: any) => {
+            if (!b) return;
+            push(b.car);
+            b.cars?.forEach?.(push);
+          });
+
+          const cars = Array.from(collected.values());
+          if (cars.length === 0) return null;
+
+          return (
+            <Collapsible>
+              <CollapsibleTrigger className="flex items-center gap-1 w-full text-left">
+                <Car className="h-3 w-3 text-muted-foreground" />
+                <span className="text-xs font-medium text-muted-foreground">
+                  Cars ({cars.length})
+                </span>
+                <ChevronDown className="h-3 w-3 text-muted-foreground ml-auto transition-transform [&[data-state=open]]:rotate-180" />
+              </CollapsibleTrigger>
+              <CollapsibleContent className="mt-1 space-y-1">
+                {cars.map((car: any, idx: number) => {
+                  const plate = plateOf(car);
+                  const make = car.make || car.brand || car.manufacturer || '';
+                  const model = car.model || car.model_name || '';
+                  const year = car.year || car.production_year || car.model_year || car.first_registration_year || '';
+                  const details = [make, model, year].filter(Boolean).join(' ');
+                  return (
+                    <div key={car.id || plate || idx} className="p-1.5 rounded border text-xs leading-tight">
+                      {plate && <p className="font-medium uppercase tracking-wide">{plate}</p>}
+                      {details && <p className="text-[11px] text-muted-foreground">{details}</p>}
+                      {!plate && !details && <p className="text-[11px] text-muted-foreground">Unknown car</p>}
+                    </div>
+                  );
+                })}
+              </CollapsibleContent>
+            </Collapsible>
+          );
+        })()}
+
+
         {/* Tire Quotes */}
         {userGroup?.tire_quotes && userGroup.tire_quotes.length > 0 && (
           <Collapsible>
