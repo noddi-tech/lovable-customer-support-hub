@@ -237,15 +237,20 @@ export default function CustomerDetailPage() {
                             <span>{n.author?.full_name ?? 'Unknown'}</span>
                             <span>·</span>
                             <span>{dateTime(n.created_at)}</span>
+                            {n.source === 'noddi' && (
+                              <Badge variant="outline" className="h-4 px-1 text-[9px]">Noddi</Badge>
+                            )}
                             <div className="ml-auto flex gap-1">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-6 w-6"
-                                onClick={() => updateNote.mutate({ id: n.id, isPinned: !n.is_pinned })}
-                              >
-                                {n.is_pinned ? <PinOff className="h-3 w-3" /> : <Pin className="h-3 w-3" />}
-                              </Button>
+                              {n.source !== 'noddi' && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-6 w-6"
+                                  onClick={() => updateNote.mutate({ id: n.id, isPinned: !n.is_pinned })}
+                                >
+                                  {n.is_pinned ? <PinOff className="h-3 w-3" /> : <Pin className="h-3 w-3" />}
+                                </Button>
+                              )}
                               <Button
                                 variant="ghost"
                                 size="icon"

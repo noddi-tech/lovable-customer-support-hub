@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { MentionTextarea } from '@/components/ui/mention-textarea';
 import { MentionRenderer } from '@/components/ui/mention-renderer';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Badge } from '@/components/ui/badge';
 import { Plus, Edit2, Trash2, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
@@ -16,6 +17,7 @@ interface CustomerNote {
   created_at: string;
   created_by: string;
   updated_at?: string;
+  source?: 'local' | 'noddi';
 }
 
 interface CustomerNotesProps {
@@ -25,7 +27,7 @@ interface CustomerNotesProps {
 export const CustomerNotes: React.FC<CustomerNotesProps> = ({ customerId }) => {
   const { t } = useTranslation();
   const { processMentions } = useMentionNotifications();
-  const { data: dbNotes = [] } = useCustomerNotes(customerId);
+  const { data: dbNotes = [], isNoddiLinked } = useCustomerNotes(customerId);
   const { addNote, updateNote, deleteNote } = useCustomerNoteMutations(customerId);
   const notes: CustomerNote[] = dbNotes.map((n) => ({
     id: n.id,
@@ -33,6 +35,7 @@ export const CustomerNotes: React.FC<CustomerNotesProps> = ({ customerId }) => {
     created_at: n.created_at,
     created_by: n.author?.full_name ?? 'Unknown',
     updated_at: n.updated_at !== n.created_at ? n.updated_at : undefined,
+    source: n.source,
   }));
   const [isAdding, setIsAdding] = useState(false);
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
@@ -112,7 +115,12 @@ export const CustomerNotes: React.FC<CustomerNotesProps> = ({ customerId }) => {
     <>
       <div className="space-y-3">
         <div className="space-y-2">
-          <h3 className="font-semibold text-foreground">{t('conversation.customerNotes')}</h3>
+          <div className="flex items-center gap-2">
+            <h3 className="font-semibold text-foreground">{t('conversation.customerNotes')}</h3>
+            {isNoddiLinked && (
+              <Badge variant="outline" className="text-[10px]">Synced with Noddi</Badge>
+            )}
+          </div>
           <Button
             variant="outline"
             size="sm"
@@ -210,7 +218,12 @@ export const CustomerNotes: React.FC<CustomerNotesProps> = ({ customerId }) => {
                       </div>
                     </div>
                     <div className="flex items-center justify-between mt-1 text-xs text-muted-foreground">
-                      <span>by {note.created_by}</span>
+                      <span className="flex items-center gap-1">
+                        <span>by {note.created_by}</span>
+                        {note.source === 'noddi' && (
+                          <Badge variant="outline" className="h-4 px-1 text-[9px]">Noddi</Badge>
+                        )}
+                      </span>
                       <div className="flex items-center space-x-1">
                         <Calendar className="h-3 w-3" />
                         <span>{formatDate(note.updated_at || note.created_at)}</span>

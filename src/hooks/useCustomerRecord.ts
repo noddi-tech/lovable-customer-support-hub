@@ -1,7 +1,16 @@
+import { useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import {
+  isNoddiNoteId,
+  noddiNotesApi,
+  parseNoddiNoteId,
+  toNoddiNoteId,
+  useNoddiNotes,
+  useNoddiUserGroupIdForCustomer,
+} from '@/hooks/useNoddiNotes';
 
 const sel = (s: string): string => s;
 
@@ -22,6 +31,8 @@ export interface CustomerNote {
   created_at: string;
   updated_at: string;
   author?: { id: string; full_name: string | null } | null;
+  /** Where the note is stored: the Support Hub database or Noddi. */
+  source?: 'local' | 'noddi';
 }
 
 export interface CustomerConversationSummary {
@@ -161,8 +172,13 @@ export function useCustomerMemories(customerIdentifier?: string | null) {
   });
 }
 
+/**
+ * Notes shown for a customer: local Support Hub notes plus the notes stored in
+ * Noddi (`/v1/user-group-notes/`) when the customer maps to a Noddi user group.
+ * Noddi notes are written straight through so both systems stay in sync.
+ */
 export function useCustomerNotes(customerId?: string | null) {
-  return useQuery({
+  const dbQuery = useQuery({
     queryKey: ['customer-record', 'notes', customerId],
     enabled: !!customerId,
     queryFn: async () => {
@@ -177,17 +193,49 @@ export function useCustomerNotes(customerId?: string | null) {
       return (data ?? []) as CustomerNote[];
     },
   });
+
+  const { data: userGroupId } = useNoddiUserGroupIdForCustomer(customerId);
+  const noddiQuery = useNoddiNotes(userGroupId);
+
+  const data = useMemo<CustomerNote[]>(() => {
+    const local = dbQuery.data ?? [];
+    const remote: CustomerNote[] = (noddiQuery.data ?? []).map((n) => ({
+      id: toNoddiNoteId(n.id),
+      content: n.content,
+      is_pinned: false,
+      created_by_id: null,
+      created_at: n.created_at,
+      updated_at: n.updated_at ?? n.created_at,
+      author: n.author_name ? { id: 'noddi', full_name: n.author_name } : null,
+      source: 'noddi',
+    }));
+    return [...local.map((n) => ({ ...n, source: 'local' as const })), ...remote].sort((a, b) => {
+      if (a.is_pinned !== b.is_pinned) return a.is_pinned ? -1 : 1;
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
+  }, [dbQuery.data, noddiQuery.data]);
+
+  return { ...dbQuery, data, isNoddiLinked: !!userGroupId };
 }
 
 export function useCustomerNoteMutations(customerId?: string | null) {
   const { profile } = useAuth();
   const queryClient = useQueryClient();
-  const invalidate = () =>
+  const { data: userGroupId } = useNoddiUserGroupIdForCustomer(customerId);
+  const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ['customer-record', 'notes', customerId] });
+    queryClient.invalidateQueries({ queryKey: ['noddi-notes', 'list', userGroupId] });
+  };
 
   const addNote = useMutation({
     mutationFn: async ({ content, isPinned }: { content: string; isPinned?: boolean }) => {
       if (!customerId || !profile?.organization_id) throw new Error('Missing customer');
+      // Customers known to Noddi get their notes written to Noddi so agents on
+      // both sides see the same history; everyone else keeps a local note.
+      if (userGroupId) {
+        await noddiNotesApi.create(userGroupId, content);
+        return;
+      }
       const { error } = await (supabase.from('customer_notes') as any).insert({
         organization_id: profile.organization_id,
         customer_id: customerId,
@@ -199,13 +247,18 @@ export function useCustomerNoteMutations(customerId?: string | null) {
     },
     onSuccess: () => {
       invalidate();
-      toast.success('Note added');
+      toast.success(userGroupId ? 'Note saved to Noddi' : 'Note added');
     },
     onError: (error: any) => toast.error(error?.message ?? 'Could not add note'),
   });
 
   const updateNote = useMutation({
     mutationFn: async ({ id, content, isPinned }: { id: string; content?: string; isPinned?: boolean }) => {
+      if (isNoddiNoteId(id)) {
+        if (content === undefined) throw new Error('Noddi notes cannot be pinned');
+        await noddiNotesApi.update(parseNoddiNoteId(id), content);
+        return;
+      }
       const updates: Record<string, unknown> = {};
       if (content !== undefined) updates.content = content;
       if (isPinned !== undefined) updates.is_pinned = isPinned;
@@ -218,6 +271,10 @@ export function useCustomerNoteMutations(customerId?: string | null) {
 
   const deleteNote = useMutation({
     mutationFn: async (id: string) => {
+      if (isNoddiNoteId(id)) {
+        await noddiNotesApi.remove(parseNoddiNoteId(id));
+        return;
+      }
       const { error } = await (supabase.from('customer_notes') as any).delete().eq('id', id);
       if (error) throw error;
     },
@@ -228,7 +285,7 @@ export function useCustomerNoteMutations(customerId?: string | null) {
     onError: (error: any) => toast.error(error?.message ?? 'Could not delete note'),
   });
 
-  return { addNote, updateNote, deleteNote };
+  return { addNote, updateNote, deleteNote, noddiUserGroupId: userGroupId ?? null };
 }
 
 export function useAddCustomerIdentity(customerId?: string | null) {

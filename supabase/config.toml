@@ -414,3 +414,6 @@ verify_jwt = true
 
 [functions.noddi-brands]
 verify_jwt = true
+
+[functions.noddi-notes]
+verify_jwt = true
