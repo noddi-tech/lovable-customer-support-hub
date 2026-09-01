@@ -95,20 +95,14 @@ export const CaseContextMenu: React.FC<CaseContextMenuProps> = ({
                   key={member.id}
                   className="gap-2"
                   onSelect={() =>
-                    apply(
-                      { owner_id: member.id },
-                      `Assigned to ${member.full_name || member.email}`,
-                    )
+                    apply({ owner_id: member.id }, `Assigned to ${memberLabel(member)}`)
                   }
                 >
-                  <Avatar className="h-5 w-5">
-                    <AvatarImage src={member.avatar_url || undefined} />
-                    <AvatarFallback className="text-[10px]">{initials(member)}</AvatarFallback>
-                  </Avatar>
-                  <span className="flex-1 truncate">{member.full_name || member.email}</span>
+                  <MemberOptionContent member={member} />
                   {ownerId === member.id && <Check className="h-3.5 w-3.5 shrink-0 text-primary" />}
                 </ContextMenuItem>
               ))}
+
               {filtered.length === 0 && (
                 <div className="px-3 py-4 text-sm text-muted-foreground">No people found</div>
               )}
