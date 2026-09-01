@@ -347,9 +347,21 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
         throw error;
       }
       
+      const nowMs = Date.now();
       const conversations = (data || []).map((conv: any) => ({
         ...conv,
         is_deleted: conv.is_deleted || false,
+        // The RPC returns the raw deadline; derive the badge status here so the
+        // SLA column actually renders (met once we replied, otherwise counting down).
+        slaStatus: conv.first_response_at
+          ? 'met'
+          : conv.sla_breach_at
+            ? new Date(conv.sla_breach_at).getTime() <= nowMs
+              ? 'breached'
+              : new Date(conv.sla_breach_at).getTime() - nowMs < 2 * 60 * 60 * 1000
+                ? 'at_risk'
+                : 'on_track'
+            : undefined,
         // Transform flat RPC fields to nested objects
         customer: conv.customer_id ? {
           id: conv.customer_id,
@@ -361,6 +373,7 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
           full_name: conv.assigned_to_name || 'Unassigned'
         } : conv.assigned_to,
       })) as Conversation[];
+
       
       const totalCount = (data as any)?.[0]?.total_count || 0;
       
