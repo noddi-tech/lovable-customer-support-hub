@@ -151,6 +151,7 @@ export const AgentAvailabilityPanel: React.FC<AgentAvailabilityPanelProps> = ({
   const handlePhoneLogout = () => {
     console.log('[AgentAvailabilityPanel] Phone logout requested');
     phoneLogout?.();
+    setStoredLogin(false);
     toast.success('Logged out of phone system', {
       description: 'You will not receive phone calls until you log in again',
     });
@@ -244,8 +245,7 @@ export const AgentAvailabilityPanel: React.FC<AgentAvailabilityPanelProps> = ({
                       size="sm"
                       className="w-full h-7 text-xs"
                       onClick={handlePhoneLogin}
-                      disabled={initializationPhase === 'failed'}
-                    >
+                            >
                       <LogIn className="h-3 w-3 mr-1" />
                       Login to Aircall
                     </Button>
@@ -401,7 +401,6 @@ export const AgentAvailabilityPanel: React.FC<AgentAvailabilityPanelProps> = ({
               size="sm"
               onClick={handlePhoneLogin}
               className="w-full h-7 text-[10px] justify-center gap-2"
-              disabled={initializationPhase === 'failed'}
             >
               <LogIn className="h-3.5 w-3.5" />
               <span>Login to Aircall</span>
