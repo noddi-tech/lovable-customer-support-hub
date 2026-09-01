@@ -18,6 +18,7 @@ import { SidebarCounter } from '@/components/ui/sidebar-counter';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useAuth } from '@/hooks/useAuth';
 import { useOptimizedCounts } from '@/hooks/useOptimizedCounts';
+import { useSidebarNavCounts } from '@/hooks/useSidebarNavCounts';
 import { useDateFormatting } from '@/hooks/useDateFormatting';
 import { getGroupedNavItems, logNavMatch } from '@/navigation/nav-config';
 import { cn } from '@/lib/utils';
