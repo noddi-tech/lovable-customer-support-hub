@@ -51,7 +51,7 @@ export default function CustomersPage() {
   return (
     <UnifiedAppLayout>
       <div className="flex h-full flex-col overflow-hidden">
-        <header className="sticky top-0 z-10 border-b bg-background/95 px-4 py-3 backdrop-blur sm:px-6">
+        <header className="sticky top-0 z-10 border-b bg-background/95 px-3 py-3 backdrop-blur sm:px-6">
           <div className="flex items-center gap-3">
             <SidebarTrigger className="md:hidden" />
             <div className="min-w-0 flex-1">
@@ -59,23 +59,24 @@ export default function CustomersPage() {
                 <UserRound className="h-5 w-5 text-muted-foreground" />
                 Customers
               </h1>
-              <p className="text-xs text-muted-foreground">
+              <p className="hidden text-xs text-muted-foreground sm:block">
                 Every person who has contacted support — open one to see their full interaction history.
               </p>
             </div>
           </div>
-          <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
+          <div className="mt-3 space-y-2 sm:flex sm:flex-row sm:items-center sm:gap-2 sm:space-y-0">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search by name, email or phone"
-                className="pl-9"
+                className="h-10 pl-9 text-base sm:h-9 sm:text-sm"
               />
             </div>
+            <div className="flex gap-2">
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="h-10 sm:w-[170px]">
+              <SelectTrigger className="h-10 flex-1 sm:h-9 sm:w-[170px] sm:flex-none">
                 <SelectValue placeholder="Inquiry status" />
               </SelectTrigger>
               <SelectContent>
@@ -88,7 +89,7 @@ export default function CustomersPage() {
               </SelectContent>
             </Select>
             <Select value={brandFilter} onValueChange={setBrandFilter}>
-              <SelectTrigger className="h-10 sm:w-[170px]">
+              <SelectTrigger className="h-10 flex-1 sm:h-9 sm:w-[170px] sm:flex-none">
                 <SelectValue placeholder="Brand" />
               </SelectTrigger>
               <SelectContent>
@@ -100,10 +101,11 @@ export default function CustomersPage() {
                 ))}
               </SelectContent>
             </Select>
+            </div>
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+        <div className="flex-1 overflow-y-auto overscroll-contain p-3 pb-24 sm:p-6 sm:pb-6">
           {isLoading ? (
             <div className="space-y-2">
               {Array.from({ length: 6 }).map((_, i) => (
@@ -123,7 +125,7 @@ export default function CustomersPage() {
                   key={c.id}
                   type="button"
                   onClick={() => navigate(`/customers/${c.id}`)}
-                  className="flex w-full items-center gap-3 rounded-lg border bg-card px-4 py-3 text-left transition-colors hover:bg-accent/50"
+                  className="flex w-full items-center gap-3 rounded-lg border bg-card px-3 py-3.5 text-left transition-colors hover:bg-accent/50 active:bg-accent/60 sm:px-4 sm:py-3"
                 >
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted">
                     <UserRound className="h-4 w-4 text-muted-foreground" />
@@ -143,19 +145,19 @@ export default function CustomersPage() {
                           <Phone className="h-3 w-3" /> {c.phone}
                         </span>
                       )}
-                      {c.brands.map((b) => (
+                      {(c.brands ?? []).map((b) => (
                         <Badge key={b} variant="outline" className="h-5 px-1.5 text-[10px] font-normal">
                           {b}
                         </Badge>
                       ))}
                     </div>
                   </div>
-                  <div className="flex shrink-0 items-center gap-3">
-                    {c.statuses.includes('open') && (
-                      <Badge className="hidden sm:inline-flex">Open</Badge>
+                  <div className="flex shrink-0 flex-col items-end gap-1 sm:flex-row sm:items-center sm:gap-3">
+                    {(c.statuses ?? []).includes('open') && (
+                      <Badge className="text-[10px] sm:text-xs">Open</Badge>
                     )}
-                    {!c.statuses.includes('open') && c.statuses.includes('pending') && (
-                      <Badge variant="outline" className="hidden sm:inline-flex">
+                    {!(c.statuses ?? []).includes('open') && (c.statuses ?? []).includes('pending') && (
+                      <Badge variant="outline" className="text-[10px] sm:text-xs">
                         Pending
                       </Badge>
                     )}
@@ -163,7 +165,7 @@ export default function CustomersPage() {
                       <MessageSquare className="h-3 w-3" />
                       {c.conversation_count}
                     </Badge>
-                    <span className="hidden text-xs text-muted-foreground sm:inline">
+                    <span className="text-[10px] text-muted-foreground sm:text-xs">
                       {c.last_activity_at ? dateTime(c.last_activity_at) : '—'}
                     </span>
                   </div>
