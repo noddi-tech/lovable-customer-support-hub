@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Phone, Plus, X, Shield, Settings, CheckCircle, AlertCircle, TestTube, PhoneCall, Globe, AlertTriangle, RefreshCw } from 'lucide-react';
+import { Phone, Plus, X, Shield, Settings, CheckCircle, AlertCircle, TestTube, PhoneCall, Globe, AlertTriangle, RefreshCw, Users } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
