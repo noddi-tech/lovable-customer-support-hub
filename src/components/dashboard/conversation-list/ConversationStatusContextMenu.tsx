@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import {
   ContextMenu,
   ContextMenuContent,
@@ -10,15 +10,14 @@ import {
   ContextMenuSubTrigger,
   ContextMenuTrigger,
 } from '@/components/ui/context-menu';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
-import { Clock, XCircle, MessageCircle, UserPlus, UserMinus, Check, Tag, Ban } from 'lucide-react';
+import { Clock, XCircle, MessageCircle, UserPlus, UserMinus, Check, Tag } from 'lucide-react';
 import { useConversationStatusActions } from '@/hooks/useConversationStatusActions';
-import { useConversationAssignActions, getRecentAssigneeIds } from '@/hooks/useConversationAssignActions';
-import { useTeamMembers, type TeamMember } from '@/hooks/useTeamMembers';
+import { useConversationAssignActions } from '@/hooks/useConversationAssignActions';
+import { type TeamMember } from '@/hooks/useTeamMembers';
 import { useConversationBrandActions } from '@/hooks/useConversationBrandActions';
-import { useNoddiBrands } from '@/hooks/useNoddiBrands';
-import { useBrandSearch, BrandSearchInput, BrandOptionContent } from '@/components/dashboard/conversation-list/BrandSearch';
+import { BrandMenuOptions } from '@/components/brands/BrandMenuOptions';
+import { MemberOptionContent, memberLabel, useMemberSearch } from '@/components/shared/MemberPicker';
 import { TagContextMenuItems } from '@/components/tags/TagContextMenuItems';
 
 interface ConversationStatusContextMenuProps {
@@ -30,9 +29,6 @@ interface ConversationStatusContextMenuProps {
   brandLabel?: string | null;
   children: React.ReactNode;
 }
-
-const initials = (member: TeamMember) =>
-  (member.full_name || member.email || '?').trim().charAt(0).toUpperCase();
 
 /**
  * Right-click menu giving agents one-click "Pending" / "Close" / "Reopen"
@@ -48,42 +44,20 @@ export const ConversationStatusContextMenu: React.FC<ConversationStatusContextMe
   const { setStatus } = useConversationStatusActions();
   const { assign } = useConversationAssignActions();
   const { setBrand } = useConversationBrandActions();
-  const { brands, findBrand } = useNoddiBrands();
-  const { data: members = [] } = useTeamMembers();
   const [search, setSearch] = useState('');
-  const currentBrandSlug = findBrand(brandLabel)?.slug ?? null;
-  const { search: brandSearch, setSearch: setBrandSearch, filtered: filteredBrands } = useBrandSearch(brands);
-
-  const { recent, rest } = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    const matches = members.filter(
-      (m) =>
-        !q ||
-        (m.full_name || '').toLowerCase().includes(q) ||
-        (m.email || '').toLowerCase().includes(q),
-    );
-    const recentIds = getRecentAssigneeIds();
-    const recentMembers = recentIds
-      .map((id) => matches.find((m) => m.id === id))
-      .filter((m): m is TeamMember => Boolean(m));
-    const recentSet = new Set(recentMembers.map((m) => m.id));
-    return { recent: recentMembers, rest: matches.filter((m) => !recentSet.has(m.id)) };
-  }, [members, search]);
+  const { recent, rest } = useMemberSearch(search, { withRecent: true });
 
   const renderMember = (member: TeamMember) => (
     <ContextMenuItem
       key={member.id}
-      onSelect={() => assign(conversationId, member.id, member.full_name || member.email)}
+      onSelect={() => assign(conversationId, member.id, memberLabel(member))}
       className="gap-2"
     >
-      <Avatar className="h-5 w-5">
-        <AvatarImage src={member.avatar_url || undefined} />
-        <AvatarFallback className="text-[10px]">{initials(member)}</AvatarFallback>
-      </Avatar>
-      <span className="truncate flex-1">{member.full_name || member.email}</span>
+      <MemberOptionContent member={member} />
       {assignedToId === member.id && <Check className="w-3.5 h-3.5 text-primary shrink-0" />}
     </ContextMenuItem>
   );
+
 
   return (
     <ContextMenu onOpenChange={(open) => !open && setSearch('')}>
