@@ -277,37 +277,47 @@ export function InboxSettingsPage({ inboxId }: { inboxId: string }) {
             Every new email, chat or text conversation landing in this inbox without an owner is assigned to this
             person. Existing conversations are untouched, and agents can always reassign afterwards.
           </p>
-
-          <div className="pt-4 space-y-2 border-t">
-            <Label htmlFor="inbox-default-brand" className="flex items-center gap-2">
-              <Tag className="w-4 h-4" /> Default brand
-            </Label>
-            <Select
-              value={form.auto_assignment_rules?.default_brand || NO_DEFAULT_BRAND}
-              onValueChange={(value) =>
-                setForm({
-                  ...form,
-                  auto_assignment_rules: {
-                    ...(form.auto_assignment_rules || {}),
-                    default_brand: value === NO_DEFAULT_BRAND ? null : value,
-                  },
-                })
-              }
-            >
-              <SelectTrigger id="inbox-default-brand"><SelectValue placeholder="No default brand" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value={NO_DEFAULT_BRAND}>No default brand</SelectItem>
-                {brands.map((b) => (
-                  <SelectItem key={b.id} value={b.name}>{b.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground">
-              New conversations in this inbox are labelled with this brand unless the message already carries one.
-            </p>
-          </div>
         </CardContent>
       </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Tag className="w-4 h-4" /> Default brand
+          </CardTitle>
+          <CardDescription>Label new conversations in this inbox with a brand</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <Label htmlFor="inbox-default-brand">Brand</Label>
+          <Select
+            value={form.auto_assignment_rules?.default_brand || NO_DEFAULT_BRAND}
+            onValueChange={(value) =>
+              setForm({
+                ...form,
+                auto_assignment_rules: {
+                  ...(form.auto_assignment_rules || {}),
+                  default_brand: value === NO_DEFAULT_BRAND ? null : value,
+                },
+              })
+            }
+          >
+            <SelectTrigger id="inbox-default-brand">
+              <SelectValue placeholder={brandsLoading ? 'Loading brands…' : 'No default brand'} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={NO_DEFAULT_BRAND}>No default brand</SelectItem>
+              {brands.map((b) => (
+                <SelectItem key={b.id} value={b.name}>{b.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground">
+            New conversations in this inbox are labelled with this brand unless the message already carries one.
+            Brands come from the Navio backend and are cached for a few hours.
+          </p>
+        </CardContent>
+      </Card>
+
 
 
       <Card>
