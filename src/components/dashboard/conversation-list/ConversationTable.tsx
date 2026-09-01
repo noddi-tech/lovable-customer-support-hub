@@ -190,6 +190,22 @@ export const ConversationTable = memo<ConversationTableProps>(({
               className="w-32"
             />
             <TableHeaderCell
+              label={t('dashboard.conversationList.waiting', 'Waiting')}
+              sortKey="waiting"
+              description={CONVERSATION_COLUMN_DESCRIPTIONS.waiting}
+              currentSort={state.tableSort}
+              onSort={handleSort}
+              className="w-20"
+            />
+            <TableHeaderCell
+              label={t('dashboard.conversationList.sla', 'SLA')}
+              sortKey="sla"
+              description={CONVERSATION_COLUMN_DESCRIPTIONS.sla}
+              currentSort={state.tableSort}
+              onSort={handleSort}
+              className="w-28"
+            />
+            <TableHeaderCell
               label={t('dashboard.conversationList.priority', 'Priority')}
               sortKey="priority"
               description={CONVERSATION_COLUMN_DESCRIPTIONS.priority}
@@ -205,23 +221,7 @@ export const ConversationTable = memo<ConversationTableProps>(({
               onSort={handleSort}
               className="w-36"
             />
-            <TableHeaderCell
-              label={t('dashboard.conversationList.waiting', 'Waiting')}
-              sortKey="waiting"
-              description={CONVERSATION_COLUMN_DESCRIPTIONS.waiting}
-              currentSort={state.tableSort}
-              onSort={handleSort}
-              className="w-20"
-            />
 
-            <TableHeaderCell
-              label={t('dashboard.conversationList.sla', 'SLA')}
-              sortKey="sla"
-              description={CONVERSATION_COLUMN_DESCRIPTIONS.sla}
-              currentSort={state.tableSort}
-              onSort={handleSort}
-              className="w-20"
-            />
             <TableHead className="w-12 p-2"></TableHead>
           </TableRow>
         </TableHeader>
