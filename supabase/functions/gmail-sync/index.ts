@@ -726,35 +726,71 @@ async function syncGmailMessages(account: any, supabaseClient: any, folder: 'inb
           }
         }
 
-        // Create message (upsert to handle duplicates gracefully)
+        // Create message (manual upsert — the unique index on external_id is
+        // partial, so PostgREST's ON CONFLICT inference cannot be used)
         console.log(`Inserting message for conversation ${conversation.id}: ${messageId}`);
-        const { data: insertedMessage, error: insertError } = await supabaseClient
+        const messageRow = {
+          conversation_id: conversation.id,
+          content: content.substring(0, 50000),
+          content_type: contentType,
+          sender_type: senderType,
+          external_id: message.id,
+          email_message_id: messageId,
+          email_thread_id: threadId,
+          email_subject: subject,
+          email_headers: headers,
+          attachments: attachments,
+          email_status: folder === 'sent' ? 'sent' : 'pending',
+        };
+
+        const { data: existingMessage } = await supabaseClient
           .from('messages')
-          .upsert({
-            conversation_id: conversation.id,
-            content: content.substring(0, 50000),
-            content_type: contentType,
-            sender_type: senderType,
-            external_id: message.id,
-            email_message_id: messageId,
-            email_thread_id: threadId,
-            email_subject: subject,
-            email_headers: headers,
-            attachments: attachments,
-            email_status: folder === 'sent' ? 'sent' : 'pending'
-          }, {
-            onConflict: 'external_id',
-            ignoreDuplicates: false
-          })
           .select('id')
-          .single();
+          .eq('external_id', message.id)
+          .maybeSingle();
+
+        let insertedMessage: { id: string } | null = null;
+        let insertError: unknown = null;
+
+        if (existingMessage) {
+          const { data, error } = await supabaseClient
+            .from('messages')
+            .update(messageRow)
+            .eq('id', existingMessage.id)
+            .select('id')
+            .single();
+          insertedMessage = data;
+          insertError = error;
+        } else {
+          const { data, error } = await supabaseClient
+            .from('messages')
+            .insert(messageRow)
+            .select('id')
+            .single();
+          insertedMessage = data;
+          insertError = error;
+
+          // Race: another sync inserted the same external_id first
+          if (error && (error as { code?: string }).code === '23505') {
+            const { data: raceMessage } = await supabaseClient
+              .from('messages')
+              .select('id')
+              .eq('external_id', message.id)
+              .maybeSingle();
+            if (raceMessage) {
+              insertedMessage = raceMessage;
+              insertError = null;
+            }
+          }
+        }
 
         if (insertError) {
           console.error(`Failed to insert message ${messageId}:`, insertError);
           throw insertError;
         } else {
-          console.log(`Successfully inserted message ${insertedMessage.id} for conversation ${conversation.id}`);
+          console.log(`Successfully inserted message ${insertedMessage?.id} for conversation ${conversation.id}`);
         }
+
 
         processedCount++;
       } catch (error) {
