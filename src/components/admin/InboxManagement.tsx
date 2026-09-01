@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Heading } from '@/components/ui/heading';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useServiceDepartments } from '@/hooks/useServiceDepartments';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -35,6 +36,7 @@ interface InboxData {
   name: string;
   description: string | null;
   department_id: string | null;
+  navio_department_id: number | null;
   is_default: boolean;
   auto_assignment_rules: any;
   color: string;
@@ -76,7 +78,7 @@ export function InboxManagementContent() {
   const [newInboxData, setNewInboxData] = useState({
     name: '',
     description: '',
-    department_id: 'no-department',
+    navio_department_id: 'no-department',
     color: '#3B82F6',
     is_default: false,
     auto_assignment_rules: {},
@@ -107,17 +109,8 @@ export function InboxManagementContent() {
     }
   });
 
-  // Fetch departments
-  const { data: departments } = useQuery({
-    queryKey: ['departments'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('departments')
-        .select('id, name, description');
-      if (error) throw error;
-      return data as Department[];
-    }
-  });
+  // Service departments come from the Navio backend API (cached for hours)
+  const { data: departments } = useServiceDepartments();
 
   // Fetch inbound routes (to show connected emails per inbox)
   const { data: inboundRoutes } = useQuery({
@@ -159,7 +152,8 @@ export function InboxManagementContent() {
         .from('inboxes')
         .insert({
           ...inboxData,
-          department_id: inboxData.department_id === 'no-department' ? null : inboxData.department_id,
+          navio_department_id:
+            inboxData.navio_department_id === 'no-department' ? null : Number(inboxData.navio_department_id),
           sender_display_name: inboxData.sender_display_name || null,
           organization_id: profile.organization_id
         });
@@ -171,7 +165,7 @@ export function InboxManagementContent() {
       setNewInboxData({
         name: '',
         description: '',
-        department_id: 'no-department',
+        navio_department_id: 'no-department',
         color: '#3B82F6',
         is_default: false,
         auto_assignment_rules: {},
@@ -258,10 +252,10 @@ export function InboxManagementContent() {
     bulkDeleteConversationsMutation.mutate(inboxId);
   };
 
-  const getDepartmentName = (departmentId: string | null) => {
-    if (!departmentId) return 'No Department';
+  const getDepartmentName = (departmentId: number | null) => {
+    if (!departmentId) return 'No service department';
     const department = departments?.find(d => d.id === departmentId);
-    return department?.name || 'Unknown Department';
+    return department?.name || `Department ${departmentId}`;
   };
 
   return (
@@ -306,18 +300,18 @@ export function InboxManagementContent() {
                 />
               </div>
               <div>
-                <Label htmlFor="department">Department</Label>
+                <Label htmlFor="department">Service department</Label>
                 <Select 
-                  value={newInboxData.department_id} 
-                  onValueChange={(value) => setNewInboxData(prev => ({ ...prev, department_id: value }))}
+                  value={newInboxData.navio_department_id} 
+                  onValueChange={(value) => setNewInboxData(prev => ({ ...prev, navio_department_id: value }))}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select department (optional)" />
+                    <SelectValue placeholder="Select service department (optional)" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="no-department">No Department</SelectItem>
+                    <SelectItem value="no-department">No service department</SelectItem>
                     {departments?.map(dept => (
-                      <SelectItem key={dept.id} value={dept.id}>{dept.name}</SelectItem>
+                      <SelectItem key={dept.id} value={String(dept.id)}>{dept.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -491,7 +485,7 @@ export function InboxManagementContent() {
                       Department
                     </span>
                     <span className="min-w-0 truncate text-right text-muted-foreground">
-                      {getDepartmentName(inbox.department_id)}
+                      {getDepartmentName(inbox.navio_department_id)}
                     </span>
                   </div>
                   <div className="flex items-center justify-between text-sm">

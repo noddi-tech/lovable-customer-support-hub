@@ -39,6 +39,27 @@ async function callNoddi(path: string, init: RequestInit = {}) {
   return json(body ?? {});
 }
 
+/**
+ * Service departments change very rarely, so one warm instance serves the whole
+ * team from memory instead of hitting the Navio API on every page load.
+ */
+const DEPARTMENTS_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
+let departmentsCache: { body: string; at: number } | null = null;
+
+async function getServiceDepartments(): Promise<Response> {
+  if (departmentsCache && Date.now() - departmentsCache.at < DEPARTMENTS_TTL_MS) {
+    return new Response(departmentsCache.body, {
+      headers: { ...corsHeaders, "Content-Type": "application/json", "X-Cache": "hit" },
+    });
+  }
+  const res = await callNoddi(`/v1/service-departments/minimal/?page_size=200`);
+  if (res.ok) {
+    const body = await res.clone().text();
+    departmentsCache = { body, at: Date.now() };
+  }
+  return res;
+}
+
 const TICKET_STATUSES = ["OPEN", "SNOOZED", "RESOLVED", "ARCHIVED"];
 const TICKET_PRIORITIES = ["LOW", "NORMAL", "HIGH", "URGENT"];
 const TICKET_CATEGORIES = [
@@ -250,7 +271,7 @@ Deno.serve(async (req) => {
       }
 
       case "departments":
-        return await callNoddi(`/v1/service-departments/minimal/?page_size=200`);
+        return await getServiceDepartments();
 
       case "tags":
         return await callNoddi(`/v1/tags/?page_size=200`);
