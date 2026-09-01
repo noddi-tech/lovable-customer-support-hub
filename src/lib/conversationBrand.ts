@@ -23,7 +23,6 @@ export function getConversationBrand(
   metadata: unknown,
   channel?: string | null,
 ): ConversationBrand | null {
-  if (channel && channel !== 'widget') return null;
   const meta = (metadata ?? {}) as Record<string, unknown>;
 
   const explicit =
