@@ -78,6 +78,32 @@ export const ConversationTable = memo<ConversationTableProps>(({
   }
 
   if (filteredConversations.length === 0) {
+    // Don't celebrate inbox zero when conversations exist but are hidden by
+    // the active filter chips (purpose / priority / search).
+    if (hiddenByFiltersCount > 0) {
+      return (
+        <div className="flex items-center justify-center h-40 p-6">
+          <div className="text-center max-w-sm space-y-3">
+            <Filter className="w-8 h-8 mx-auto opacity-50" />
+            <p className="text-sm text-muted-foreground">
+              {hiddenByFiltersCount} conversation{hiddenByFiltersCount === 1 ? ' is' : 's are'} hidden by
+              the active filters in this view.
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                dispatch({ type: 'SET_PURPOSE_FILTER', payload: 'all' });
+                dispatch({ type: 'SET_PRIORITY_FILTER', payload: 'all' });
+                dispatch({ type: 'SET_SEARCH_QUERY', payload: '' });
+              }}
+            >
+              Clear filters
+            </Button>
+          </div>
+        </div>
+      );
+    }
     return <InboxZeroCelebration />;
   }
 
