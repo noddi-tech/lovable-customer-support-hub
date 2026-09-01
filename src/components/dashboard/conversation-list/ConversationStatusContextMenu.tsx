@@ -18,7 +18,7 @@ import { useConversationAssignActions, getRecentAssigneeIds } from '@/hooks/useC
 import { useTeamMembers, type TeamMember } from '@/hooks/useTeamMembers';
 import { useConversationBrandActions } from '@/hooks/useConversationBrandActions';
 import { useNoddiBrands } from '@/hooks/useNoddiBrands';
-import { getBrandColor } from '@/lib/conversationBrand';
+import { useBrandSearch, BrandSearchInput, BrandOptionContent } from '@/components/dashboard/conversation-list/BrandSearch';
 
 interface ConversationStatusContextMenuProps {
   conversationId: string;
@@ -51,6 +51,7 @@ export const ConversationStatusContextMenu: React.FC<ConversationStatusContextMe
   const { data: members = [] } = useTeamMembers();
   const [search, setSearch] = useState('');
   const currentBrandSlug = findBrand(brandLabel)?.slug ?? null;
+  const { search: brandSearch, setSearch: setBrandSearch, filtered: filteredBrands } = useBrandSearch(brands);
 
   const { recent, rest } = useMemo(() => {
     const q = search.trim().toLowerCase();
