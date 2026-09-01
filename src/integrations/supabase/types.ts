@@ -8266,6 +8266,15 @@ export type Database = {
         Args: { org_id: string; recipient_email: string }
         Returns: string
       }
+      get_inbox_outstanding_counts: {
+        Args: never
+        Returns: {
+          inbox_id: string
+          open_count: number
+          pending_count: number
+          total_count: number
+        }[]
+      }
       get_inboxes: {
         Args: never
         Returns: {
