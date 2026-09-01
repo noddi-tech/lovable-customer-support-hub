@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { UnifiedAppLayout } from '@/components/layout/UnifiedAppLayout';
 import { SidebarTrigger } from '@/components/ui/sidebar';
@@ -26,6 +26,10 @@ import { SelectionToolbar } from '@/components/shared/SelectionToolbar';
 import { useListSelection } from '@/hooks/useListSelection';
 import { Checkbox } from '@/components/ui/checkbox';
 import { getBrandColor } from '@/lib/conversationBrand';
+import { CustomerDetailsSidebar } from '@/components/customers/CustomerDetailsSidebar';
+import { Sheet, SheetContent } from '@/components/ui/sheet';
+import { cn } from '@/lib/utils';
+
 
 const STATUS_OPTIONS = [
   { value: 'open', label: 'Open' },
@@ -42,6 +46,19 @@ export default function CustomersPage() {
   const { getTags } = useEntityTags('customer');
   const { dateTime } = useDateFormatting();
   const { data: allCustomers = [], isLoading } = useCustomersList(search);
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
+  const [isDesktop, setIsDesktop] = useState(() =>
+    typeof window !== 'undefined' ? window.matchMedia('(min-width: 1024px)').matches : true,
+  );
+
+  useEffect(() => {
+    const mql = window.matchMedia('(min-width: 1024px)');
+    const onChange = () => setIsDesktop(mql.matches);
+    mql.addEventListener('change', onChange);
+    onChange();
+    return () => mql.removeEventListener('change', onChange);
+  }, []);
+
 
   const brandOptions = useMemo(() => {
     const set = new Set<string>();
@@ -123,7 +140,9 @@ export default function CustomersPage() {
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto overscroll-contain p-3 pb-24 sm:p-6 sm:pb-6">
+        <div className="flex min-h-0 flex-1">
+        <div className="min-w-0 flex-1 overflow-y-auto overscroll-contain p-3 pb-24 sm:p-6 sm:pb-6">
+
           {isLoading ? (
             <div className="space-y-2">
               {Array.from({ length: 6 }).map((_, i) => (
@@ -161,9 +180,14 @@ export default function CustomersPage() {
                   />
                 <button
                   type="button"
-                  onClick={() => navigate(`/customers/${c.id}`)}
-                  className="flex min-w-0 flex-1 items-center gap-3 py-3.5 pr-3 text-left sm:py-3 sm:pr-4"
+                  onClick={() => setSelectedCustomerId(c.id)}
+                  onDoubleClick={() => navigate(`/customers/${c.id}`)}
+                  className={cn(
+                    'flex min-w-0 flex-1 items-center gap-3 py-3.5 pr-3 text-left sm:py-3 sm:pr-4',
+                    selectedCustomerId === c.id && 'bg-accent/40',
+                  )}
                 >
+
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted">
                     <UserRound className="h-4 w-4 text-muted-foreground" />
                   </div>
@@ -227,7 +251,33 @@ export default function CustomersPage() {
             </div>
           )}
         </div>
+
+        {selectedCustomerId && (
+          <CustomerDetailsSidebar
+            key={selectedCustomerId}
+            customerId={selectedCustomerId}
+            onClose={() => setSelectedCustomerId(null)}
+            className="hidden w-[380px] shrink-0 border-l lg:flex"
+          />
+        )}
+        </div>
+
+        <Sheet
+          open={!!selectedCustomerId && !isDesktop}
+          onOpenChange={(o) => !o && setSelectedCustomerId(null)}
+        >
+          <SheetContent side="right" className="w-full max-w-[420px] p-0 sm:max-w-[420px]">
+            {selectedCustomerId && (
+              <CustomerDetailsSidebar
+                customerId={selectedCustomerId}
+                onClose={() => setSelectedCustomerId(null)}
+                className="h-full"
+              />
+            )}
+          </SheetContent>
+        </Sheet>
       </div>
+
     </UnifiedAppLayout>
   );
 }
