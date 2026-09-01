@@ -73,9 +73,9 @@ async function drawBadge(count: number): Promise<string | null> {
     return null;
   }
 
-  // Small unread dot in the top-left corner — no number, ~50% smaller than before
+  // Small unread dot in the top-right corner — no number
   const r = 9;
-  const cx = r + 3;
+  const cx = size - r - 3;
   const cy = r + 3;
 
   // Subtle ring so the dot reads clearly on top of the logo
