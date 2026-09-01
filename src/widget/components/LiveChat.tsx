@@ -238,22 +238,38 @@ export const LiveChat: React.FC<LiveChatProps> = ({
               className="noddi-chat-message-bubble"
               style={message.senderType === 'customer' ? { backgroundColor: primaryColor } : {}}
             >
-              {message.content}
-              {message.attachments?.map((attachment, index) => (
-                <a
-                  key={`${message.id}-${index}`}
-                  href={attachment.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="noddi-chat-attachment"
-                >
-                  {attachment.type?.startsWith('image/') ? (
-                    <img src={attachment.url} alt={attachment.name} className="noddi-chat-attachment-image" />
-                  ) : (
-                    <span className="noddi-chat-attachment-file">📎 {attachment.name}</span>
-                  )}
-                </a>
-              ))}
+              {message.content && message.content !== '[Attachment]' && message.content}
+              {message.attachments && message.attachments.length > 0 && (
+                <div className="noddi-chat-attachments">
+                  {message.attachments.map((attachment, index) => (
+                    <a
+                      key={`${message.id}-${index}`}
+                      href={attachment.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="noddi-chat-attachment"
+                      title={attachment.name}
+                    >
+                      {attachment.type?.startsWith('image/') ? (
+                        <>
+                          <img
+                            src={attachment.url}
+                            alt={attachment.name}
+                            loading="lazy"
+                            className="noddi-chat-attachment-image"
+                          />
+                          <div className="noddi-chat-attachment-meta">{attachment.name}</div>
+                        </>
+                      ) : (
+                        <span className="noddi-chat-attachment-file">
+                          <span aria-hidden="true">📎</span>
+                          <span className="noddi-chat-attachment-name">{attachment.name}</span>
+                        </span>
+                      )}
+                    </a>
+                  ))}
+                </div>
+              )}
             </div>
             <span className="noddi-chat-message-time">
               {new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -269,6 +285,10 @@ export const LiveChat: React.FC<LiveChatProps> = ({
               <span></span>
             </div>
           </div>
+        )}
+
+        {isUploading && (
+          <div className="noddi-chat-uploading">{t.attachFile}…</div>
         )}
 
         <div ref={messagesEndRef} />
