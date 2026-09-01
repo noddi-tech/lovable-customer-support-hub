@@ -108,6 +108,7 @@ export default function CaseDetailPage() {
             <CaseStatusBadge status={record.status} />
             <CasePriorityBadge priority={record.priority} />
             <CaseSlaBadge record={record} />
+            <EntityTagPicker entityType="case" entityId={record.id} />
             <span className="text-xs text-muted-foreground">Created {dateTime(record.created_at)}</span>
           </div>
         </header>
