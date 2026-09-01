@@ -32,6 +32,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { AgentAvailabilityPanel } from './AgentAvailabilityPanel';
 /**
  * Once the nav has rendered with resolved permissions we never show the
