@@ -1,0 +1,14 @@
+# Support Hub
+
+> Support Hub is a customer support workspace that unifies email, live chat and voice conversations with marketing campaigns, operations and analytics.
+
+Support Hub is used by support teams to handle customer interactions across
+channels in one place: shared email inboxes, live chat, phone calls, AI-assisted
+replies, knowledge management, marketing outreach and operational case handling.
+
+Almost all pages require an authenticated agent account, so there is no public
+content to crawl beyond the entry page.
+
+## Pages
+
+- [Support Hub](/): Sign-in entry point to the Support Hub workspace.
