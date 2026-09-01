@@ -343,7 +343,9 @@ const App = () => (
       >
         <BrowserRouter>
           <AuthProvider>
+            <FeatureFlagsProvider>
             <RealtimeProvider>
+
               <ConversationPresenceProvider>
                 <ErrorBoundary fallback={<AppErrorFallback />}>
                   <AircallProvider>
