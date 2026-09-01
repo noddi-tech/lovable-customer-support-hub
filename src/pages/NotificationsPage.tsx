@@ -133,33 +133,44 @@ const NotificationsPage = () => {
     <UnifiedAppLayout>
       <div className="flex flex-col h-full">
         {/* Header with Tabs */}
-        <div className="border-b border-border px-6 py-4 space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Bell className="h-5 w-5 text-muted-foreground" />
-              <h1 className="text-xl font-semibold">Notifications</h1>
+        <div className="border-b border-border px-3 py-3 sm:px-6 sm:py-4 space-y-3 sm:space-y-4">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+              {isMobile ? (
+                <SidebarTrigger className="shrink-0" />
+              ) : (
+                <Bell className="h-5 w-5 text-muted-foreground" />
+              )}
+              <h1 className="text-lg sm:text-xl font-semibold truncate">Notifications</h1>
               {unreadCounts.unread > 0 && (
-                <span className="text-sm text-muted-foreground">
+                <span className="text-xs sm:text-sm text-muted-foreground whitespace-nowrap">
                   {unreadCounts.unread} unread
                 </span>
               )}
             </div>
 
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={() => refetch()} className="h-8">
-                <RefreshCw className="h-4 w-4 mr-1" />
-                Refresh
+            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+              <Button
+                variant="outline"
+                size={isMobile ? 'icon' : 'sm'}
+                onClick={() => refetch()}
+                className={isMobile ? 'h-9 w-9' : 'h-8'}
+                title="Refresh"
+              >
+                <RefreshCw className="h-4 w-4 sm:mr-1" />
+                {!isMobile && 'Refresh'}
               </Button>
               {unreadCounts.unread > 0 && (
                 <Button
                   variant="outline"
-                  size="sm"
+                  size={isMobile ? 'icon' : 'sm'}
                   onClick={handleMarkAllAsRead}
                   disabled={isMarkingAllRead}
-                  className="h-8"
+                  className={isMobile ? 'h-9 w-9' : 'h-8'}
+                  title="Mark all as read"
                 >
-                  <CheckCheck className="h-4 w-4 mr-1" />
-                  Mark all as read
+                  <CheckCheck className="h-4 w-4 sm:mr-1" />
+                  {!isMobile && 'Mark all as read'}
                 </Button>
               )}
             </div>
