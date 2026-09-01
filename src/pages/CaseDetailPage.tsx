@@ -323,6 +323,19 @@ export default function CaseDetailPage() {
       </div>
 
       <CloseCaseDialog open={closeOpen} onOpenChange={setCloseOpen} record={record} />
+
+      <Sheet open={!!customerPanelId} onOpenChange={(o) => !o && setCustomerPanelId(null)}>
+        <SheetContent side="right" className="w-full max-w-[420px] p-0 sm:max-w-[420px]">
+          {customerPanelId && (
+            <CustomerDetailsSidebar
+              key={customerPanelId}
+              customerId={customerPanelId}
+              onClose={() => setCustomerPanelId(null)}
+              className="h-full"
+            />
+          )}
+        </SheetContent>
+      </Sheet>
     </UnifiedAppLayout>
   );
 }
