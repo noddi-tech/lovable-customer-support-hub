@@ -26,6 +26,10 @@ import { SelectionToolbar } from '@/components/shared/SelectionToolbar';
 import { useListSelection } from '@/hooks/useListSelection';
 import { Checkbox } from '@/components/ui/checkbox';
 import { getBrandColor } from '@/lib/conversationBrand';
+import { CustomerDetailsSidebar } from '@/components/customers/CustomerDetailsSidebar';
+import { Sheet, SheetContent } from '@/components/ui/sheet';
+import { cn } from '@/lib/utils';
+
 
 const STATUS_OPTIONS = [
   { value: 'open', label: 'Open' },
