@@ -261,6 +261,7 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
   const [state, dispatch] = useReducer(conversationListReducer, initialState);
   const queryClient = useQueryClient();
   const { user, profile } = useAuth();
+  const { tagsByEntity: conversationTags } = useEntityTags('conversation');
 
 
   // Fetch agents for assignment - uses shared hook for consistent caching
