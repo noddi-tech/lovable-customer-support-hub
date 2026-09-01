@@ -6,6 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { logger } from '@/utils/logger';
 import { sanitizeStorageFilename } from '@/utils/storageKey';
 import { sortInboxesByName } from '@/lib/sortInboxes';
+import type { EmailPriority } from '@/lib/emailPriority';
 
 interface ConversationViewState {
   replyText: string;
