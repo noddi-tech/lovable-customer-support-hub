@@ -313,7 +313,15 @@ Deno.serve(async (req) => {
 
 
 
+      const startedAt = Date.now();
+      let processed = 0;
       for (const { row, phone } of batch) {
+        if (Date.now() - startedAt > MAX_RUN_MS) {
+          summary.remaining = pending.length - processed;
+          console.log('[aircall-sync-contacts] Time budget reached, stopping early');
+          break;
+        }
+        processed++;
         try {
           const meta = (row.metadata || {}) as Record<string, any>;
           const { first_name, last_name } = splitName(row.full_name || '');
