@@ -1065,17 +1065,23 @@ const NoddiCustomerDetailsComponent: React.FC<NoddiCustomerDetailsProps> = ({
               <ChevronDown className="h-3 w-3 text-muted-foreground ml-auto transition-transform [&[data-state=open]]:rotate-180" />
             </CollapsibleTrigger>
             <CollapsibleContent className="mt-1 space-y-1">
-              {userGroup.addresses.map((addr: any, idx: number) => (
-                <div key={addr.id || idx} className="p-1.5 rounded border text-xs">
-                  {addr.label && <p className="font-medium">{addr.label}</p>}
-                  {addr.name && addr.name !== addr.label && <p className="text-muted-foreground">{addr.name}</p>}
-                  {addr.address && (
-                    <p className="text-muted-foreground">
-                      {[addr.address.street, addr.address.zip, addr.address.city].filter(Boolean).join(', ')}
-                    </p>
-                  )}
-                </div>
-              ))}
+              {userGroup.addresses.map((addr: any, idx: number) => {
+                const a = addr.address || addr;
+                const street = [a?.street || a?.street_name, a?.street_number]
+                  .filter(Boolean)
+                  .join(' ')
+                  .trim();
+                const cityLine = [a?.zip || a?.zip_code, a?.city].filter(Boolean).join(' ').trim();
+                return (
+                  <div key={addr.id || idx} className="p-1.5 rounded border text-xs leading-tight">
+                    {addr.label && <p className="font-medium">{addr.label}</p>}
+                    {addr.name && addr.name !== addr.label && <p className="text-muted-foreground">{addr.name}</p>}
+                    {street && <p className="text-[11px] text-muted-foreground">{street}</p>}
+                    {cityLine && <p className="text-[11px] text-muted-foreground">{cityLine}</p>}
+                  </div>
+                );
+              })}
+
             </CollapsibleContent>
           </Collapsible>
         )}
