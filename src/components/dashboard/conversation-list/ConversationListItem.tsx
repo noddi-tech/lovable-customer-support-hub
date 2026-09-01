@@ -13,6 +13,7 @@ import { useOptimizedCounts } from '@/hooks/useOptimizedCounts';
 import { useTranslation } from "react-i18next";
 import { SLABadge } from './SLABadge';
 import { stripHtml } from '@/utils/stripHtml';
+import { cleanEmailPreview } from '@/utils/emailPreviewClean';
 import { PresenceAvatarStack } from '@/components/conversations/PresenceAvatarStack';
 
 const priorityColors = {
@@ -93,7 +94,8 @@ export const ConversationListItem = memo<ConversationListItemProps>(({
       inboxName: conversation.inbox_id ? inboxes.find(i => i.id === conversation.inbox_id)?.name || 'Unknown Inbox' : 'No Inbox',
       inboxColor: conversation.inbox_id ? inboxes.find(i => i.id === conversation.inbox_id)?.color || '#6B7280' : '#6B7280',
       // Strip HTML from preview text as a safety measure (database should already handle this)
-      previewText: stripHtml(conversation.preview_text) || 'No preview available',
+      // Same cleaner as the thread bubbles: quotes/signatures/footers out of the preview.
+      previewText: cleanEmailPreview(conversation.preview_text) || stripHtml(conversation.preview_text) || 'No preview available',
       isLiveChat,
       // Assignee info
       assigneeName: conversation.assigned_to?.full_name,
