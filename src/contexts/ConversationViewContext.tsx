@@ -223,7 +223,8 @@ export const ConversationViewProvider = ({ children, conversationId, conversatio
           created_at,
           assigned_to_id,
           email_subject,
-          email_headers
+          email_headers,
+          metadata
         `)
         .eq('conversation_id', conversationId)
         .order('created_at', { ascending: true });
