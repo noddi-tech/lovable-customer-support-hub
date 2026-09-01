@@ -27,8 +27,9 @@ export const useSidebarNavCounts = (): SidebarNavCounts => {
   const { data } = useQuery({
     queryKey: ['sidebar-nav-counts', organizationId],
     enabled: !!user && !loading,
-    staleTime: 15_000,
+    staleTime: 10_000,
     refetchInterval: 30_000,
+    refetchOnMount: 'always',
     refetchOnWindowFocus: true,
     retry: false,
     queryFn: async (): Promise<SidebarNavCounts> => {
