@@ -24,8 +24,10 @@ import {
   Bot,
   Send,
   Pencil,
+  ArrowDown,
   X
 } from "lucide-react";
+import { getMessagePriority, EMAIL_PRIORITY_LABELS } from "@/lib/emailPriority";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { type EmailAttachment } from "@/utils/emailFormatting";
 import { useDateFormatting } from "@/hooks/useDateFormatting";
@@ -487,6 +489,28 @@ const MessageCardComponent = ({
                     {attachments.length}
                   </Badge>
                 )}
+
+                {/* Email importance flag (Outlook's red "!" / blue arrow) */}
+                {(() => {
+                  const priority = getMessagePriority(message);
+                  if (priority === 'normal') return null;
+                  const high = priority === 'high';
+                  return (
+                    <Badge
+                      variant="outline"
+                      className={cn(
+                        "text-[10px] px-1.5 py-0 h-4 shrink-0 gap-1",
+                        high
+                          ? "border-destructive/40 text-destructive bg-destructive/10"
+                          : "text-muted-foreground"
+                      )}
+                      title={EMAIL_PRIORITY_LABELS[priority]}
+                    >
+                      {high ? <AlertCircle className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />}
+                      {high ? 'High' : 'Low'}
+                    </Badge>
+                  );
+                })()}
 
                 {/* Collapsed: one-line preview inline so the row stays dense */}
                 {effectiveCollapsed && previewText && (
