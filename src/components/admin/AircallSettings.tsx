@@ -13,6 +13,7 @@ import { useTranslation } from 'react-i18next';
 import { useToast } from '@/hooks/use-toast';
 import { useVoiceIntegrations } from '@/hooks/useVoiceIntegrations';
 import { formatRelativeTime } from '@/utils/dateFormatting';
+import { useAircallContactSync } from '@/hooks/useAircallContactSync';
 
 interface CallEventConfig {
   eventType: string;
@@ -54,6 +55,7 @@ export const AircallSettings = () => {
   const [everywhereApiId, setEverywhereApiId] = useState('');
   const [everywhereApiToken, setEverywhereApiToken] = useState('');
   const [everywhereDomain, setEverywhereDomain] = useState('');
+  const [syncContacts, setSyncContacts] = useState(false);
   
   // Credential testing
   const [isTestingCredentials, setIsTestingCredentials] = useState(false);
@@ -83,6 +85,7 @@ export const AircallSettings = () => {
         setEverywhereApiId(everywhereConfig.apiId || '');
         setEverywhereApiToken(everywhereConfig.apiToken || '');
         setEverywhereDomain(everywhereConfig.domainName || '');
+        setSyncContacts(everywhereConfig.syncContacts || false);
       }
     } else {
       // Set default phone number if no config exists
@@ -186,7 +189,8 @@ export const AircallSettings = () => {
         enabled: everywhereEnabled,
         apiId: everywhereApiId,
         apiToken: everywhereApiToken,
-        domainName: everywhereDomain.trim() || undefined // Only store if explicitly provided
+        domainName: everywhereDomain.trim() || undefined, // Only store if explicitly provided
+        syncContacts
       }
     };
 
