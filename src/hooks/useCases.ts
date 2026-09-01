@@ -133,9 +133,22 @@ export function useCases(filters: CaseFilters = {}) {
       if (filters.ownerId) q = q.eq('owner_id', filters.ownerId);
       if (filters.customerId) q = q.eq('customer_id', filters.customerId);
       if (filters.search) {
-        const term = filters.search.replace(/[%,]/g, '');
-        q = q.or(`title.ilike.%${term}%,description.ilike.%${term}%`);
+        const term = filters.search.replace(/[%,()]/g, '').trim();
+        if (term) {
+          // Also match on customer name / email by resolving matching customers first.
+          const { data: matchedCustomers } = await (supabase.from('customers') as any)
+            .select('id')
+            .or(`full_name.ilike.%${term}%,email.ilike.%${term}%`)
+            .limit(200);
+          const customerIds: string[] = (matchedCustomers ?? []).map((c: any) => c.id);
+
+          const clauses = [`title.ilike.%${term}%`, `description.ilike.%${term}%`];
+          if (/^\d+$/.test(term)) clauses.push(`case_number.eq.${term}`);
+          if (customerIds.length) clauses.push(`customer_id.in.(${customerIds.join(',')})`);
+          q = q.or(clauses.join(','));
+        }
       }
+
 
       const { data, error } = await q;
       if (error) throw error;
