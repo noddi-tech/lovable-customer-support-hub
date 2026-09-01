@@ -60,6 +60,7 @@ export const ChatConversationList: React.FC<ChatConversationListProps> = ({
   const { getTags: getChatTags } = useEntityTags('conversation');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const { setStatus } = useConversationStatusActions();
+  const queryClient = useQueryClient();
 
   const { data: conversations = [], isLoading } = useQuery({
     queryKey: ['chat-conversations', organizationId, filter],
