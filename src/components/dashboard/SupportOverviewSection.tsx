@@ -1,6 +1,4 @@
-import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -19,7 +17,6 @@ import {
   ArrowDownRight,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { ChatMetricsDialog } from '@/components/dashboard/ChatMetricsDialog';
 import { formatMinutes } from '@/hooks/useInboxSupportMetrics';
 import {
   CHANNEL_LABELS,
@@ -256,7 +253,6 @@ function LeaderRow({ row, rank }: { row: LeaderboardRow; rank: number }) {
  * gamified leaderboard of the teammates resolving the most tickets fastest.
  */
 export function SupportOverviewSection() {
-  const [chatOpen, setChatOpen] = useState(false);
   const { data: overview, isLoading: overviewLoading } = useChannelOverview(30);
   const { data: board, isLoading: boardLoading } = useAgentLeaderboard(30, 5);
 
@@ -264,14 +260,9 @@ export function SupportOverviewSection() {
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between gap-2">
-        <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-          <Trophy className="h-4 w-4" /> Support overview
-        </h2>
-        <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => setChatOpen(true)}>
-          <MessageSquare className="mr-1.5 h-3.5 w-3.5" /> Live chat KPIs
-        </Button>
-      </div>
+      <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+        <Trophy className="h-4 w-4" /> Support overview
+      </h2>
 
       <div className="grid grid-cols-1 gap-3">
         <Card>
@@ -340,7 +331,6 @@ export function SupportOverviewSection() {
         </Card>
       </div>
 
-      <ChatMetricsDialog open={chatOpen} onOpenChange={setChatOpen} />
     </div>
   );
 }
