@@ -136,6 +136,14 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
   // a single inbox — in the "All inboxes" view it's essential context.
   const showInboxColumn = !selectedInboxId || selectedInboxId === 'all';
 
+  // Closed/archived threads are handled — don't keep flagging them as "New".
+  const showNewBadge =
+    !conversation.is_read &&
+    conversation.status !== 'closed' &&
+    !conversation.is_archived;
+
+
+
   const computedValues = useMemo(() => {
     const ChannelIcon = channelIcons[conversation.channel] || MessageCircle;
     const customerDisplay = getCustomerDisplay(
@@ -317,7 +325,7 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
                 </span>
               </div>
               <ConversationBrandBadge conversation={conversation} compact />
-              {!conversation.is_read && (
+              {showNewBadge && (
                 <Badge className="bg-primary text-primary-foreground px-1.5 py-0 text-[9px]">New</Badge>
               )}
               {conversation.last_message_is_internal && (
@@ -402,7 +410,7 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
                 {conversation.thread_count}
               </Badge>
             )}
-            {!conversation.is_read && (
+            {showNewBadge && (
               <Badge className="bg-blue-500 text-white px-1.5 py-0 text-[10px] shrink-0">New</Badge>
             )}
             {conversation.last_message_is_internal && (
@@ -558,7 +566,7 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
               {conversation.thread_count}
             </Badge>
           )}
-          {!conversation.is_read && (
+          {showNewBadge && (
             <Badge className="bg-blue-500 text-white px-1.5 py-0 text-[10px] shrink-0">New</Badge>
           )}
           {conversation.last_message_is_internal && (
