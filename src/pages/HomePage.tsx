@@ -9,7 +9,6 @@ import { UnifiedAppLayout } from '@/components/layout/UnifiedAppLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { NAV_ITEMS } from '@/navigation/nav-config';
 import { groupInboxesByDomain } from '@/utils/inboxGrouping';
 import { useMemo, useState } from 'react';
 import { InboxMetricsDialog } from '@/components/dashboard/InboxMetricsDialog';
@@ -17,39 +16,12 @@ import { SupportOverviewSection } from '@/components/dashboard/SupportOverviewSe
 import { useSlaRiskByInbox } from '@/hooks/useSlaRisk';
 import { InboxCard } from '@/components/dashboard/home/InboxCard';
 
-import {
-  Inbox,
-  MessageSquare,
-  Megaphone,
-  Cog,
-  Briefcase,
-  ArrowRight,
-  MailOpen,
-  Mail,
-  UserCheck,
-  Clock,
-  Settings2,
-  Gauge,
-} from 'lucide-react';
+import { Inbox, MailOpen, Mail, UserCheck, Clock, Settings2 } from 'lucide-react';
 import { SidebarTrigger } from '@/components/ui/sidebar';
-
-const sectionIcons: Record<string, typeof MessageSquare> = {
-  interactions: MessageSquare,
-  marketing: Megaphone,
-  operations: Briefcase,
-  settings: Cog,
-};
-
-const sectionLabels: Record<string, string> = {
-  interactions: 'Interactions',
-  marketing: 'Marketing',
-  operations: 'Operations',
-  settings: 'Settings',
-};
 
 export default function HomePage() {
   const navigate = useNavigate();
-  const { profile, user, isAdmin, isSuperAdmin } = useAuth();
+  const { profile, user } = useAuth();
   const { conversations, inboxes } = useOptimizedCounts();
   const { byInbox: slaRiskByInbox } = useSlaRiskByInbox();
   const { data: inboxEmails = {} } = useInboxEmailAddresses();
@@ -60,15 +32,6 @@ export default function HomePage() {
   const [metricsInbox, setMetricsInbox] = useState<{ id: string; name: string } | null>(null);
 
   const firstName = (profile?.full_name || user?.user_metadata?.full_name || 'there').split(' ')[0];
-
-  const visibleItems = NAV_ITEMS.filter(item => {
-    if (!item.requiredRole) return true;
-    if (item.requiredRole === 'admin' && (isAdmin || isSuperAdmin)) return true;
-    if (item.requiredRole === 'super_admin' && isSuperAdmin) return true;
-    return false;
-  });
-
-  const sections = ['interactions', 'marketing', 'operations', 'settings'] as const;
 
   const inboxGroups = useMemo(
     () => groupInboxesByDomain(inboxes.filter(i => i.is_active), inboxEmails),
@@ -187,44 +150,10 @@ export default function HomePage() {
                 </div>
               ))}
             </div>
-
-            <Separator className="mt-4" />
           </div>
         )}
-
-        {/* Section link cards */}
-        {sections.map(sectionKey => {
-          const items = visibleItems.filter(i => i.group === sectionKey);
-          if (items.length === 0) return null;
-          const SectionIcon = sectionIcons[sectionKey];
-
-          return (
-            <div key={sectionKey}>
-              <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-2">
-                <SectionIcon className="h-4 w-4" /> {sectionLabels[sectionKey]}
-              </h2>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 gap-2">
-                {items.map(item => {
-                  const Icon = item.icon;
-                  return (
-                    <Card
-                      key={item.id}
-                      className="cursor-pointer hover:shadow-md transition-shadow group relative"
-                      onClick={() => navigate(item.to)}
-                    >
-                      <CardContent className="p-3 flex flex-col items-center justify-center text-center">
-                        <ArrowRight className="h-3 w-3 text-muted-foreground absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity" />
-                        <Icon className="h-5 w-5 text-muted-foreground mb-1.5" />
-                        <span className="text-sm font-medium text-foreground">{item.label}</span>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
-            </div>
-          );
-        })}
       </div>
+
 
       <InboxMetricsDialog
         open={Boolean(metricsInbox)}
