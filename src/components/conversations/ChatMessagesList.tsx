@@ -21,6 +21,8 @@ import { toast } from 'sonner';
 import { getLanguageFlag, getLanguageLabel, normalizeLocale } from '@/utils/languageLabels';
 import { InlineNoteEditor } from './InlineNoteEditor';
 import { useNoteMutations } from '@/hooks/useNoteMutations';
+import { useChatCsat } from '@/hooks/useChatCsat';
+
 import { noteDebug } from '@/utils/noteInteractionDebug';
 import {
   AlertDialog,
