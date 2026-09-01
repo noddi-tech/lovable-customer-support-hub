@@ -119,6 +119,12 @@ export const NotificationListItem: React.FC<NotificationListItemProps> = ({
           {notification.message}
         </p>
 
+        {notification.data?.customer_email && (
+          <p className="text-xs mt-0.5 text-muted-foreground truncate">
+            {notification.data.customer_email}
+          </p>
+        )}
+
         {/* Actions */}
         <div className="flex items-center gap-2 mt-3 opacity-0 group-hover:opacity-100 transition-opacity">
           {!notification.is_read && (
