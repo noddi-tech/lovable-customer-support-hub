@@ -1,6 +1,5 @@
 import React from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { getBrandColor } from '@/lib/conversationBrand';
 import { useNoddiBrands } from '@/hooks/useNoddiBrands';
 import { cn } from '@/lib/utils';
 
@@ -21,7 +20,7 @@ interface BrandFilterSelectProps {
 /**
  * Brand filter used by the conversation list and the live-chat list, so both
  * views filter on the brand shown in their badges. Logos come from the Noddi
- * brand catalog; brands without a logo fall back to a colored dot.
+ * brand catalog; brands without a logo fall back to their initial.
  */
 export const BrandFilterSelect: React.FC<BrandFilterSelectProps> = ({
   value,
@@ -47,14 +46,17 @@ export const BrandFilterSelect: React.FC<BrandFilterSelectProps> = ({
           <img src={logo} alt="" loading="lazy" className="h-4 w-4 rounded-sm object-contain shrink-0" />
         ) : (
           <span
-            className="h-2 w-2 rounded-full shrink-0"
-            style={{ backgroundColor: getBrandColor(opt.key) }}
-          />
+            className="h-4 w-4 rounded-sm shrink-0 grid place-items-center bg-muted text-[9px] font-semibold text-muted-foreground"
+            aria-hidden
+          >
+            {opt.label.charAt(0).toUpperCase()}
+          </span>
         )}
         <span className="truncate">{opt.label}</span>
       </span>
     );
   };
+
 
   return (
     <Select value={value} onValueChange={onChange}>

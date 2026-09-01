@@ -1,6 +1,5 @@
 import React, { useMemo, useState } from 'react';
 import { Search } from 'lucide-react';
-import { getBrandColor } from '@/lib/conversationBrand';
 import type { NoddiBrand } from '@/hooks/useNoddiBrands';
 
 /** Filters the Noddi brand catalog by name / slug / domain. */
@@ -42,9 +41,8 @@ export const BrandSearchInput: React.FC<BrandSearchInputProps> = ({ value, onCha
   </div>
 );
 
-/** Logo (or colored initial) + brand name, shared by every brand picker. */
+/** Logo (or initial) + brand name, shared by every brand picker. */
 export const BrandOptionContent: React.FC<{ brand: NoddiBrand }> = ({ brand }) => {
-  const color = getBrandColor(brand.slug);
   return (
     <>
       {brand.logo_url ? (
@@ -56,16 +54,13 @@ export const BrandOptionContent: React.FC<{ brand: NoddiBrand }> = ({ brand }) =
         />
       ) : (
         <span
-          className="h-5 w-5 rounded-sm shrink-0 grid place-items-center text-[10px] font-semibold text-white"
-          style={{ backgroundColor: color }}
+          className="h-5 w-5 rounded-sm shrink-0 grid place-items-center bg-muted text-[10px] font-semibold text-muted-foreground"
           aria-hidden
         >
           {brand.name.charAt(0).toUpperCase()}
         </span>
       )}
-      <span className="truncate flex-1" style={{ color }}>
-        {brand.name}
-      </span>
+      <span className="truncate flex-1">{brand.name}</span>
     </>
   );
 };
