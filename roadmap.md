@@ -26,4 +26,4 @@
 - [ ] Repeat-contact rate and FRT-vs-SLA trend over time
 
 ## Build health
-- [ ] Fix all current preview typecheck/build errors
+- [x] Fix all current preview typecheck/build errors
