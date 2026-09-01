@@ -8,7 +8,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, X } from 'lucide-react';
 import { useWhatsNew } from './useWhatsNew';
 
 /**
@@ -31,7 +31,17 @@ export const WhatsNewDialog: React.FC = () => {
 
   return (
     <Dialog open={open} onOpenChange={(next) => (next ? setOpen(true) : close())}>
-      <DialogContent className="flex max-h-[85svh] w-[calc(100vw-1.5rem)] max-w-lg flex-col gap-0 overflow-hidden p-0 sm:max-w-lg">
+      <DialogContent className="flex max-h-[85svh] w-[calc(100vw-1.5rem)] max-w-lg flex-col gap-0 overflow-hidden p-0 sm:max-w-lg [&>button]:hidden">
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          onClick={close}
+          aria-label="Dismiss what's new"
+          className="absolute right-2 top-2 z-10 h-10 w-10 rounded-full text-muted-foreground hover:text-foreground"
+        >
+          <X className="h-5 w-5" />
+        </Button>
         <DialogHeader className="shrink-0 space-y-1.5 border-b p-4 pr-12 text-left sm:p-6 sm:pr-12">
           <div className="flex items-center gap-2 text-primary">
             <Sparkles className="h-4 w-4" />
