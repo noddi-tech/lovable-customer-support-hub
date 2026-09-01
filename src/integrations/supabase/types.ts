@@ -8232,6 +8232,10 @@ export type Database = {
         }
         Returns: Json
       }
+      find_conversation_by_short_ref: {
+        Args: { p_organization_id: string; p_short_ref: string }
+        Returns: string
+      }
       find_large_conversations: {
         Args: { message_threshold?: number }
         Returns: {
