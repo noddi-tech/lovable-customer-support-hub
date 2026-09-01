@@ -271,7 +271,7 @@ Deno.serve(async (req) => {
       }
 
       case "departments":
-        return await callNoddi(`/v1/service-departments/minimal/?page_size=200`);
+        return await getServiceDepartments();
 
       case "tags":
         return await callNoddi(`/v1/tags/?page_size=200`);
