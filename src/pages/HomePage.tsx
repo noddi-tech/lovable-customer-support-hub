@@ -7,18 +7,15 @@ import { useDefaultInbox } from '@/hooks/useDefaultInbox';
 import { useDateFormatting } from '@/hooks/useDateFormatting';
 import { UnifiedAppLayout } from '@/components/layout/UnifiedAppLayout';
 import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { NAV_ITEMS } from '@/navigation/nav-config';
-import { cn } from '@/lib/utils';
 import { groupInboxesByDomain } from '@/utils/inboxGrouping';
 import { useMemo, useState } from 'react';
 import { InboxMetricsDialog } from '@/components/dashboard/InboxMetricsDialog';
 import { SupportOverviewSection } from '@/components/dashboard/SupportOverviewSection';
-import { InboxSlaAlert } from '@/components/dashboard/InboxSlaAlert';
 import { useSlaRiskByInbox } from '@/hooks/useSlaRisk';
-import { getInboxHealth } from '@/lib/inboxHealth';
+import { InboxCard } from '@/components/dashboard/home/InboxCard';
 
 import {
   Inbox,
@@ -32,11 +29,8 @@ import {
   UserCheck,
   Clock,
   Settings2,
-  Star,
-  Tag,
   Gauge,
 } from 'lucide-react';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 
 const sectionIcons: Record<string, typeof MessageSquare> = {
