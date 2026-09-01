@@ -86,6 +86,15 @@ export function CallsTable({
       <Table>
         <TableHeader className="sticky top-0 bg-background z-10 border-b">
           <TableRow className="hover:bg-transparent">
+            {onBulkSelect && (
+              <TableHead className="w-10 p-2">
+                <Checkbox
+                  checked={allBulkSelected}
+                  onCheckedChange={(checked) => onSelectAll?.(checked === true)}
+                  aria-label="Select all calls"
+                />
+              </TableHead>
+            )}
             <TableHeaderCell
               label="Direction"
               sortKey="direction"
