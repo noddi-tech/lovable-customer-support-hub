@@ -85,5 +85,8 @@
   "backToHome": "Tilbake",
   "yourMessages": "Dine meldinger",
   "awaitingReply": "Vi svarer på e-post",
-  "markResolved": "Marker som løst"
+  "markResolved": "Marker som løst",
+  "resolvedQuestion": "Ble problemet ditt løst?",
+  "resolvedYes": "Ja, det ble løst",
+  "resolvedNo": "Nei, ikke løst"
 }

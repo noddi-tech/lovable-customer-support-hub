@@ -85,5 +85,8 @@
   "backToHome": "Back",
   "yourMessages": "Your messages",
   "awaitingReply": "We'll reply by email",
-  "markResolved": "Mark as resolved"
+  "markResolved": "Mark as resolved",
+  "resolvedQuestion": "Was your problem solved?",
+  "resolvedYes": "Yes, solved",
+  "resolvedNo": "No, not solved"
 }

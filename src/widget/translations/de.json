@@ -67,5 +67,8 @@
   "invalidPin": "Ungültiger Code, bitte erneut versuchen",
   "codeSent": "Code gesendet!",
   "resendCode": "Code erneut senden",
-  "sendingCode": "Wird gesendet..."
+  "sendingCode": "Wird gesendet...",
+  "resolvedQuestion": "Wurde Ihr Problem gelöst?",
+  "resolvedYes": "Ja, gelöst",
+  "resolvedNo": "Nein, nicht gelöst"
 }

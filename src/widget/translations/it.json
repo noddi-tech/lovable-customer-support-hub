@@ -67,5 +67,8 @@
   "invalidPin": "Codice non valido, riprova",
   "codeSent": "Codice inviato!",
   "resendCode": "Reinvia codice",
-  "sendingCode": "Invio..."
+  "sendingCode": "Invio...",
+  "resolvedQuestion": "Il tuo problema è stato risolto?",
+  "resolvedYes": "Sì, risolto",
+  "resolvedNo": "No, non risolto"
 }
