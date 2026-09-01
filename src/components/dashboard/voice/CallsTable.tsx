@@ -154,8 +154,12 @@ export function CallsTable({
               onClick={() => onCallClick(call)}
               onRemove={onRemoveCall}
               onNavigateToEvents={onNavigateToEvents}
+              isBulkSelected={bulkSelectedIds?.has(call.id) ?? false}
+              onBulkSelect={onBulkSelect}
+              showBulkCheckbox={!!onBulkSelect}
             />
           ))}
+        </TableBody>
         </TableBody>
       </Table>
     </div>
