@@ -41,6 +41,10 @@ export function useSlaRiskByInbox(enabled = true) {
         .not('sla_breach_at', 'is', null)
         .lte('sla_breach_at', horizon)
         .not('status', 'in', '("closed","resolved")')
+        // Soft-deleted / archived threads are not in the inbox list, so they
+        // must not be counted as SLA breaches either.
+        .is('deleted_at', null)
+        .eq('is_archived', false)
         .order('sla_breach_at', { ascending: true })
         .limit(500);
       if (error) throw error;
