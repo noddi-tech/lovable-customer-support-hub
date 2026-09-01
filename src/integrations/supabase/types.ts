@@ -2777,6 +2777,7 @@ export type Database = {
           is_active: boolean | null
           is_default: boolean | null
           name: string
+          navio_department_id: number | null
           organization_id: string
           purpose: string
           sender_display_name: string | null
@@ -2797,6 +2798,7 @@ export type Database = {
           is_active?: boolean | null
           is_default?: boolean | null
           name: string
+          navio_department_id?: number | null
           organization_id: string
           purpose?: string
           sender_display_name?: string | null
@@ -2817,6 +2819,7 @@ export type Database = {
           is_active?: boolean | null
           is_default?: boolean | null
           name?: string
+          navio_department_id?: number | null
           organization_id?: string
           purpose?: string
           sender_display_name?: string | null
@@ -8405,6 +8408,7 @@ export type Database = {
           is_active: boolean
           is_default: boolean
           name: string
+          navio_department_id: number
           purpose: string
           sender_display_name: string
           updated_at: string
