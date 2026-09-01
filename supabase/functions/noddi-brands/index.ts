@@ -6,6 +6,8 @@
  * Responses are cached in-memory for a few minutes to avoid hammering the API.
  */
 
+import { navioSourceHeaders, captureNavioSourceVersion } from '../_shared/navio-source.ts';
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
