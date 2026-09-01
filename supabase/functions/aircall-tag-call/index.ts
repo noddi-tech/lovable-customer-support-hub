@@ -65,12 +65,8 @@ Deno.serve(async (req) => {
     }
 
     const callId = (body.callId || '').trim();
-    const brandName = typeof body.brandName === 'string' ? body.brandName.trim() : null;
     if (!callId || !/^[0-9a-f-]{36}$/i.test(callId)) {
       return json({ error: 'callId must be a valid uuid' }, 400);
-    }
-    if (brandName && brandName.length > 100) {
-      return json({ error: 'brandName is too long' }, 400);
     }
 
     // The caller must belong to the organization that owns the call
@@ -117,25 +113,45 @@ Deno.serve(async (req) => {
     const auth = `Basic ${btoa(`${apiId}:${apiToken}`)}`;
 
     const meta = (call.metadata || {}) as Record<string, any>;
-    const previousTagIds: number[] = Array.isArray(meta.aircall_brand_tag_ids)
-      ? meta.aircall_brand_tag_ids.filter((n: unknown) => typeof n === 'number')
-      : [];
+    const previousTagIds: number[] = [
+      ...(Array.isArray(meta.aircall_brand_tag_ids) ? meta.aircall_brand_tag_ids : []),
+      ...(Array.isArray(meta.aircall_managed_tag_ids) ? meta.aircall_managed_tag_ids : []),
+    ].filter((n: unknown): n is number => typeof n === 'number');
+
+    // Labels we mirror onto the Aircall call: the brand label plus every custom
+    // tag linked to the call. Both are read from the database so the sync always
+    // reflects the current state, whatever triggered it.
+    const labels: string[] = [];
+    const pushLabel = (value: unknown) => {
+      const clean = typeof value === 'string' ? value.trim() : '';
+      if (clean && clean.length <= 100 && !labels.some((l) => l.toLowerCase() === clean.toLowerCase())) {
+        labels.push(clean);
+      }
+    };
+    pushLabel(meta.brand_name ?? meta.brand);
+
+    const { data: tagLinks } = await adminClient
+      .from('tag_links')
+      .select('tags(name)')
+      .eq('entity_type', 'call')
+      .eq('entity_id', call.id);
+    for (const link of (tagLinks || []) as any[]) pushLabel(link?.tags?.name);
 
     const existingTags = await listTags(auth);
 
-    let tagIds: number[] = [];
-    if (brandName) {
+    const tagIds: number[] = [];
+    for (const label of labels) {
       const match = existingTags.find(
-        (t) => (t.name || '').trim().toLowerCase() === brandName.toLowerCase(),
+        (t) => (t.name || '').trim().toLowerCase() === label.toLowerCase(),
       );
       let tagId = match?.id ?? null;
 
-      // Create the brand tag in Aircall the first time it is used
+      // Create the tag in Aircall the first time it is used
       if (!tagId) {
         const createRes = await fetch(`${AIRCALL_API}/tags`, {
           method: 'POST',
           headers: { Authorization: auth, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: brandName }),
+          body: JSON.stringify({ name: label }),
         });
         if (!createRes.ok) {
           const text = await createRes.text();
@@ -147,11 +163,11 @@ Deno.serve(async (req) => {
         const created = await createRes.json();
         tagId = created?.tag?.id ?? null;
       }
-      if (!tagId) return json({ error: 'Could not resolve Aircall tag id' }, 502);
-      tagIds = [tagId];
+      if (!tagId) return json({ error: `Could not resolve Aircall tag id for "${label}"` }, 502);
+      if (!tagIds.includes(tagId)) tagIds.push(tagId);
     }
 
-    // Keep any non-brand tags the agent added in Aircall, replace previous brand tags
+    // Keep tags agents added directly in Aircall, replace the ones we manage
     const keptTags: number[] = [];
     const callRes = await fetch(`${AIRCALL_API}/calls/${call.external_id}`, {
       headers: { Authorization: auth, 'Content-Type': 'application/json' },
@@ -187,12 +203,14 @@ Deno.serve(async (req) => {
         metadata: {
           ...meta,
           aircall_brand_tag_ids: tagIds,
+          aircall_managed_tag_ids: tagIds,
+          aircall_managed_tag_labels: labels,
           aircall_brand_tag_synced_at: new Date().toISOString(),
         },
       })
       .eq('id', call.id);
 
-    return json({ success: true, tags: finalTags, brand: brandName });
+    return json({ success: true, tags: finalTags, labels });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error('[aircall-tag-call] Error:', message);
