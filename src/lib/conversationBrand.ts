@@ -1,27 +1,22 @@
 /**
- * Brand attribution for widget (live chat / contact form) conversations.
+ * Brand attribution for conversations, live chats and calls.
  *
- * The embedding frontend can pass an explicit `brand` when initialising the
- * widget (`NoddiWidget.init({ widgetKey, brand: 'Noddi Bilpleie' })`). When it
- * does, the value is stored on `conversations.metadata.brand`.
- *
- * If no explicit brand was sent we fall back to deriving a readable label from
- * the page URL host so agents still see where the chat originated.
+ * The brand always comes from the Noddi brand catalog: either set explicitly
+ * (widget init / backend resolution) or assigned manually by an agent. Page
+ * URL hosts are never used as brand labels.
  */
 
 export interface ConversationBrand {
   label: string;
   /** Stable key used to derive a consistent color per brand. */
   key: string;
-  /** True when derived from the page URL instead of an explicit brand value. */
+  /** Kept for API compatibility; brands are never inferred from URLs. */
   inferred: boolean;
 }
 
-const stripWww = (host: string) => host.replace(/^www\./i, '');
-
 export function getConversationBrand(
   metadata: unknown,
-  channel?: string | null,
+  _channel?: string | null,
 ): ConversationBrand | null {
   const meta = (metadata ?? {}) as Record<string, unknown>;
 
@@ -35,21 +30,9 @@ export function getConversationBrand(
     return { label, key: label.toLowerCase(), inferred: false };
   }
 
-  // URL inference only makes sense for widget conversations.
-  if (channel && channel !== 'widget') return null;
-
-  const pageUrl = typeof meta.page_url === 'string' ? meta.page_url : '';
-  if (pageUrl) {
-    try {
-      const host = stripWww(new URL(pageUrl).hostname);
-      if (host) return { label: host, key: host.toLowerCase(), inferred: true };
-    } catch {
-      /* ignore malformed URLs */
-    }
-  }
-
   return null;
 }
+
 
 /**
  * Canonical brand colors, mirrored from the email templates

@@ -29,7 +29,15 @@ export const BrandFilterSelect: React.FC<BrandFilterSelectProps> = ({
   options,
   triggerClassName,
 }) => {
-  const { findBrand } = useNoddiBrands();
+  const { brands, findBrand } = useNoddiBrands();
+
+  // Show the full Noddi brand catalog, plus any brand present on loaded rows.
+  const mergedOptions = React.useMemo(() => {
+    const map = new Map<string, BrandFilterOption>();
+    brands.forEach((b) => map.set(b.name.toLowerCase(), { key: b.name.toLowerCase(), label: b.name }));
+    options.forEach((o) => map.set(o.key, o));
+    return Array.from(map.values()).sort((a, b) => a.label.localeCompare(b.label));
+  }, [brands, options]);
 
   const renderOption = (opt: BrandFilterOption) => {
     const logo = findBrand(opt.label)?.logo_url ?? null;
@@ -55,7 +63,7 @@ export const BrandFilterSelect: React.FC<BrandFilterSelectProps> = ({
       </SelectTrigger>
       <SelectContent align="end" className="bg-popover z-50 max-h-72">
         <SelectItem value="all">All brands</SelectItem>
-        {options.map((opt) => (
+        {mergedOptions.map((opt) => (
           <SelectItem key={opt.key} value={opt.key}>
             {renderOption(opt)}
           </SelectItem>
