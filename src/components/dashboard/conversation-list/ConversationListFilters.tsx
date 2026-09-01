@@ -16,10 +16,10 @@ export const ConversationListFilters = () => {
         <SelectValue placeholder={t('dashboard.conversationList.allStatus', 'All Status')} />
       </SelectTrigger>
       <SelectContent>
-        <SelectItem value="all">{t('dashboard.conversationList.allStatus', 'All Status')}</SelectItem>
-        <SelectItem value="open">{t('dashboard.conversationList.open', 'Open')}</SelectItem>
-        <SelectItem value="pending">{t('dashboard.conversationList.pending', 'Pending')}</SelectItem>
-        <SelectItem value="closed">{t('dashboard.conversationList.closed', 'Closed')}</SelectItem>
+        <DescribedSelectItem value="all" description={CONVERSATION_STATUS_DESCRIPTIONS.all}>{t('dashboard.conversationList.allStatus', 'All Status')}</DescribedSelectItem>
+        <DescribedSelectItem value="open" title="Open" description={CONVERSATION_STATUS_DESCRIPTIONS.open}>{t('dashboard.conversationList.open', 'Open')}</DescribedSelectItem>
+        <DescribedSelectItem value="pending" title="Pending" description={CONVERSATION_STATUS_DESCRIPTIONS.pending}>{t('dashboard.conversationList.pending', 'Pending')}</DescribedSelectItem>
+        <DescribedSelectItem value="closed" title="Closed" description={CONVERSATION_STATUS_DESCRIPTIONS.closed}>{t('dashboard.conversationList.closed', 'Closed')}</DescribedSelectItem>
       </SelectContent>
       </Select>
       
@@ -31,11 +31,11 @@ export const ConversationListFilters = () => {
           <SelectValue placeholder={t('dashboard.conversationList.allPriority', 'All Priority')} />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">{t('dashboard.conversationList.allPriority', 'All Priority')}</SelectItem>
-          <SelectItem value="low">{t('dashboard.conversationList.low', 'Low')}</SelectItem>
-          <SelectItem value="normal">{t('dashboard.conversationList.normal', 'Normal')}</SelectItem>
-          <SelectItem value="high">{t('dashboard.conversationList.high', 'High')}</SelectItem>
-          <SelectItem value="urgent">{t('dashboard.conversationList.urgent', 'Urgent')}</SelectItem>
+          <DescribedSelectItem value="all" description={PRIORITY_DESCRIPTIONS.all}>{t('dashboard.conversationList.allPriority', 'All Priority')}</DescribedSelectItem>
+          <DescribedSelectItem value="low" title="Low" description={PRIORITY_DESCRIPTIONS.low}>{t('dashboard.conversationList.low', 'Low')}</DescribedSelectItem>
+          <DescribedSelectItem value="normal" title="Normal" description={PRIORITY_DESCRIPTIONS.normal}>{t('dashboard.conversationList.normal', 'Normal')}</DescribedSelectItem>
+          <DescribedSelectItem value="high" title="High" description={PRIORITY_DESCRIPTIONS.high}>{t('dashboard.conversationList.high', 'High')}</DescribedSelectItem>
+          <DescribedSelectItem value="urgent" title="Urgent" description={PRIORITY_DESCRIPTIONS.urgent}>{t('dashboard.conversationList.urgent', 'Urgent')}</DescribedSelectItem>
         </SelectContent>
       </Select>
     </div>
