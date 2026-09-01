@@ -50,18 +50,9 @@ export const CaseContextMenu: React.FC<CaseContextMenuProps> = ({
   children,
 }) => {
   const { mutateAsync: updateCase } = useUpdateCase();
-  const { data: members = [] } = useTeamMembers();
   const [search, setSearch] = useState('');
+  const { members: filtered } = useMemberSearch(search);
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return members.filter(
-      (m) =>
-        !q ||
-        (m.full_name || '').toLowerCase().includes(q) ||
-        (m.email || '').toLowerCase().includes(q),
-    );
-  }, [members, search]);
 
   const apply = async (updates: Record<string, unknown>, message: string) => {
     await updateCase({ id: caseId, updates });
