@@ -134,12 +134,16 @@ export default function CasesPage() {
             <Tabs value={view} onValueChange={(v) => setView(v as CaseQueueView)}>
               <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1">
                 {VIEWS.map((v) => (
-                  <TabsTrigger key={v.value} value={v.value} className="text-xs">
+                  <TabsTrigger key={v.value} value={v.value} className="gap-1.5 text-xs">
                     {v.label}
+                    <span className="inline-flex h-4 min-w-[18px] items-center justify-center rounded-full bg-muted px-1 text-[10px] text-foreground/70">
+                      {queueCounts?.[v.value] ?? 0}
+                    </span>
                   </TabsTrigger>
                 ))}
               </TabsList>
             </Tabs>
+
 
             <div className="flex flex-wrap gap-2">
               <div className="relative min-w-[180px] flex-1">
