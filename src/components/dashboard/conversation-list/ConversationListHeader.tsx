@@ -46,6 +46,8 @@ export const ConversationListHeader = ({
   const [showMigrator, setShowMigrator] = useState(false);
   const [showThreadMerger, setShowThreadMerger] = useState(false);
   const isMobile = useIsMobile();
+  const { data: inboxes = [] } = useAccessibleInboxes();
+  const { data: outstanding = {} } = useInboxOutstandingCounts();
 
   const unreadCount = filteredConversations.filter(c => !c.is_read).length;
 
