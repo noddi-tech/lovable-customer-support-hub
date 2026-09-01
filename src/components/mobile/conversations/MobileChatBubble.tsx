@@ -15,6 +15,8 @@ import {
 import { InlineNoteEditor } from '@/components/conversations/InlineNoteEditor';
 import { useNoteMutations } from '@/hooks/useNoteMutations';
 import { noteDebug } from '@/utils/noteInteractionDebug';
+import { EmailRender } from '@/components/ui/email-render';
+import type { EmailAttachment } from '@/utils/emailFormatting';
 import type { NormalizedMessage } from '@/lib/normalizeMessage';
 
 interface MobileChatBubbleProps {
