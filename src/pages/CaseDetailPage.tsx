@@ -283,7 +283,8 @@ export default function CaseDetailPage() {
                   </CardHeader>
                   <CardContent>
                     <button
-                      onClick={() => navigate(`/customers/${record.customer!.id}`)}
+                      onClick={() => setCustomerPanelId(record.customer!.id)}
+                      onDoubleClick={() => navigate(`/customers/${record.customer!.id}`)}
                       className="flex w-full items-center gap-2 rounded-md border p-2.5 text-left hover:bg-accent/50"
                     >
                       <UserRound className="h-4 w-4 text-muted-foreground" />
