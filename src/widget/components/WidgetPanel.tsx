@@ -16,6 +16,7 @@ import {
   type ChatEscalation,
 } from '../api';
 import { PreChatForm } from './PreChatForm';
+import { formatBuildStamp } from '../version';
 import {
   getWidgetTranslations,
   getLocalizedGreeting,
@@ -504,6 +505,7 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({ config, onClose, posit
             )}
           </div>
         </div>
+        <div className="noddi-widget-build-stamp">{formatBuildStamp()}</div>
       </div>
     </div>
   );

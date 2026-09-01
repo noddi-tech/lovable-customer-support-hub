@@ -1,6 +1,12 @@
+import type { WidgetThemeOptions } from './theme';
+
 export interface WidgetConfig {
   widgetKey: string;
   primaryColor: string;
+  /** Supporting brand colour (host theme override or derived from primary). */
+  secondaryColor?: string;
+  /** Highlight brand colour (host theme override or derived). */
+  accentColor?: string;
   position: 'bottom-right' | 'bottom-left';
   greetingText: string;
   responseTimeText: string;
@@ -43,6 +49,8 @@ export interface WidgetUpdateOptions extends WidgetHostContext {
   enableKnowledgeSearch?: boolean;
   context?: WidgetHostContext;
   identity?: WidgetIdentityOptions | null;
+  /** Brand colours (primary/secondary/accent) applied live. */
+  theme?: WidgetThemeOptions;
 }
 
 export interface WidgetInitOptions {
@@ -80,6 +88,11 @@ export interface WidgetInitOptions {
   context?: WidgetHostContext;
   /** Known visitor, passed straight to `identify`. */
   identity?: WidgetIdentityOptions;
+  /**
+   * Brand colours from the host app, mirroring the backend Brand model
+   * (primary / secondary / accent). Overrides the admin-configured colour.
+   */
+  theme?: WidgetThemeOptions;
   widgetKey: string;
   apiUrl?: string;
   // Client-side overrides

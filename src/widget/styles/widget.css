@@ -620,6 +620,15 @@
   color: #9ca3af;
 }
 
+.noddi-widget-build-stamp {
+  margin-top: 4px;
+  font-size: 9px;
+  line-height: 1.3;
+  color: #b6bcc6;
+  text-align: center;
+  letter-spacing: 0.02em;
+}
+
 /* Language Selector */
 .noddi-widget-language-selector {
   position: relative;
@@ -1378,4 +1387,30 @@
 
 .noddi-chat-resolved-option.active {
   color: white;
+}
+
+/* ---- Host brand theme (set via NoddiWidget init/update `theme`) ---- */
+.noddi-widget-container .noddi-widget-header,
+.noddi-widget-container .noddi-widget-header * {
+  color: var(--noddi-on-primary, #ffffff);
+}
+
+.noddi-widget-container .noddi-widget-language-option.active {
+  border-color: var(--noddi-accent, #e5e7eb);
+  color: var(--noddi-accent, #6b7280);
+}
+
+.noddi-widget-container a {
+  color: var(--noddi-accent, inherit);
+}
+
+.noddi-widget-container button:focus-visible,
+.noddi-widget-container input:focus-visible,
+.noddi-widget-container textarea:focus-visible {
+  outline: 2px solid var(--noddi-accent, #2563eb);
+  outline-offset: 1px;
+}
+
+.noddi-widget-container .noddi-widget-action:hover {
+  border-color: var(--noddi-secondary, #e5e7eb);
 }

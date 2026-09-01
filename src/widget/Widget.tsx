@@ -14,6 +14,7 @@ import {
 import { FloatingButton } from './components/FloatingButton';
 import { WidgetPanel } from './components/WidgetPanel';
 import { useUnreadWatcher } from './hooks/useUnreadWatcher';
+import { resolveTheme, sanitizeTheme, themeCssVars, type WidgetThemeOptions } from './theme';
 import './styles/widget.css';
 
 // API interface for programmatic control
@@ -24,6 +25,8 @@ export interface WidgetAPI {
   refreshIdentity: () => void;
   /** Forget the visitor and any open chat (NoddiWidget('shutdown')). */
   reset: () => void;
+  /** Apply host brand colours mid-session (NoddiWidget('update', { theme })). */
+  setTheme: (theme: WidgetThemeOptions) => void;
 }
 
 interface WidgetProps {
@@ -40,6 +43,10 @@ export const Widget: React.FC<WidgetProps> = ({ options, onMount }) => {
   const [identityVersion, setIdentityVersion] = useState(0);
   // Bumped on shutdown to hard-reset panel state.
   const [resetVersion, setResetVersion] = useState(0);
+  // Host-supplied brand colours; merged over the admin-configured colour.
+  const [hostTheme, setHostTheme] = useState<WidgetThemeOptions>(() =>
+    sanitizeTheme(options.theme),
+  );
 
   // Unread agent replies while the panel is closed.
   const { unreadCount, clearUnread } = useUnreadWatcher(!isOpen);
@@ -65,6 +72,7 @@ export const Widget: React.FC<WidgetProps> = ({ options, onMount }) => {
           setIsOpen(false);
           setResetVersion(v => v + 1);
         },
+        setTheme: (next) => setHostTheme(prev => ({ ...prev, ...sanitizeTheme(next) })),
       });
     }
   }, [onMount, openPanel, clearUnread]);
@@ -109,6 +117,14 @@ export const Widget: React.FC<WidgetProps> = ({ options, onMount }) => {
     return null;
   }
 
+  const theme = resolveTheme(config.primaryColor, hostTheme);
+  const themedConfig: WidgetConfig = {
+    ...config,
+    primaryColor: theme.primaryColor,
+    secondaryColor: theme.secondaryColor,
+    accentColor: theme.accentColor,
+  };
+
   // Apply position override from init options, or fall back to config
   const effectivePosition = options.position ?? config.position;
   
@@ -116,11 +132,11 @@ export const Widget: React.FC<WidgetProps> = ({ options, onMount }) => {
   const showButton = options.showButton !== false;
 
   return (
-    <div className="noddi-widget-container">
+    <div className="noddi-widget-container" style={themeCssVars(theme)}>
       {isOpen && (
         <WidgetPanel
           key={`${identityVersion}-${resetVersion}`}
-          config={config}
+          config={themedConfig}
           onClose={() => setIsOpen(false)}
           positionOverride={effectivePosition}
           identity={getIdentity()}
@@ -130,7 +146,7 @@ export const Widget: React.FC<WidgetProps> = ({ options, onMount }) => {
         <FloatingButton
           isOpen={isOpen}
           onClick={() => openPanel(!isOpen)}
-          primaryColor={config.primaryColor}
+          primaryColor={theme.primaryColor}
           position={effectivePosition}
           unreadCount={unreadCount}
         />

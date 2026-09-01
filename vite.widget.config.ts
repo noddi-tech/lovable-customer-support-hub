@@ -12,6 +12,8 @@ export default defineConfig({
   },
   define: {
     'process.env.NODE_ENV': JSON.stringify('production'),
+    __WIDGET_VERSION__: JSON.stringify(process.env.WIDGET_VERSION || '1.0.0'),
+    __WIDGET_BUILD_TIME__: JSON.stringify(new Date().toISOString()),
   },
   build: {
     lib: {

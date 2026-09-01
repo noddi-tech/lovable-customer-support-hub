@@ -4,6 +4,7 @@ import { Widget, WidgetAPI } from './Widget';
 import type { WidgetInitOptions } from './types';
 import { setIdentity, clearIdentity, updateWidgetContext, contextFromInitOptions, setBrand, setSupportedLocales, setHostEnableKnowledgeSearch } from './api';
 import { sanitizeSupportedLocales } from './translations';
+import { sanitizeTheme } from './theme';
 // @ts-ignore - Vite handles this import
 import widgetStyles from './styles/widget.css?inline';
 
@@ -180,6 +181,9 @@ function updateWidget(options?: any) {
     setHostEnableKnowledgeSearch(options.enableKnowledgeSearch);
     // Home actions must reflect the new gate without a re-init.
     localeChanged = true;
+  }
+  if (options.theme !== undefined) {
+    widgetAPI?.setTheme?.(sanitizeTheme(options.theme));
   }
   updateWidgetContext({ ...contextFromInitOptions(options), ...(options.context || {}) });
   if (options.identity !== undefined) identifyVisitor(options.identity);
