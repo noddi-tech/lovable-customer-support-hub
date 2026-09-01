@@ -667,12 +667,19 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
         }
       })();
 
-      return matchesSearch && matchesStatus && matchesPriority && matchesInbox && matchesPurpose && matchesTab;
+      const visible = matchesSearch && matchesStatus && matchesPriority && matchesInbox && matchesPurpose && matchesTab;
+
+      // Track rows that belong to this inbox/tab but are hidden by the
+      // search / status / priority / purpose filter chips, so the UI can say
+      // "hidden by filters" instead of celebrating a false inbox zero.
+      if (!visible && matchesInbox && matchesTab) hiddenCount++;
+
+      return visible;
     });
 
     // Apply table sorting if a column is sorted
     if (state.tableSort.direction) {
-      return filtered.sort((a, b) => {
+      const sorted = filtered.sort((a, b) => {
         const multiplier = state.tableSort.direction === 'asc' ? 1 : -1;
         
         switch (state.tableSort.key) {
