@@ -40,6 +40,7 @@ interface InboxData {
   conversation_count: number;
   sender_display_name: string | null;
   purpose: 'support' | 'recruitment';
+  ai_draft_enabled: boolean;
   auto_assignment_rules: { assign_to_profile_id?: string | null; default_brand?: string | null } | null;
 }
 
@@ -234,6 +235,20 @@ export function InboxSettingsPage({ inboxId }: { inboxId: string }) {
           <div className="flex items-center space-x-2">
             <Switch id="inbox-active" checked={form.is_active} onCheckedChange={(checked) => setForm({ ...form, is_active: checked })} />
             <Label htmlFor="inbox-active">Active</Label>
+          </div>
+          <div className="flex items-start space-x-2">
+            <Switch
+              id="inbox-ai-draft"
+              checked={form.ai_draft_enabled !== false}
+              onCheckedChange={(checked) => setForm({ ...form, ai_draft_enabled: checked })}
+            />
+            <div>
+              <Label htmlFor="inbox-ai-draft">AI draft replies</Label>
+              <p className="text-xs text-muted-foreground mt-1">
+                When on, incoming emails to this inbox get an AI-written draft reply. Drafts are internal and are never sent
+                automatically — an agent must review and press Send.
+              </p>
+            </div>
           </div>
           {!inbox.is_default && (
             <div className="flex items-center space-x-2">
