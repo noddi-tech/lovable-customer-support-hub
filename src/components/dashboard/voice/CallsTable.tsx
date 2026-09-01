@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Table, TableBody, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { CallTableRow } from './CallTableRow';
+import { Checkbox } from '@/components/ui/checkbox';
 import { TableHeaderCell } from '@/components/dashboard/conversation-list/TableHeaderCell';
 import { Phone } from 'lucide-react';
 import { sortByString, sortByDate, sortByNumber } from '@/utils/tableSorting';
