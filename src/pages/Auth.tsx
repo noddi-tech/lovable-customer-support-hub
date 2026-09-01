@@ -280,7 +280,7 @@ export const Auth: React.FC = () => {
           <div className="mx-auto w-16 h-16">
             <img src="/images/logo-support-hub.png" alt="Support Hub" className="w-full h-full object-contain" />
           </div>
-          <CardTitle className="text-2xl font-bold">Reset your password</CardTitle>
+          <CardTitle as="h1" className="text-2xl font-bold">Reset your password</CardTitle>
           <CardDescription>Enter your new password below</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -341,7 +341,7 @@ export const Auth: React.FC = () => {
   return pageShell(
     <>
       <CardHeader className="text-center">
-        <CardTitle className="text-2xl font-bold">Support Hub</CardTitle>
+        <CardTitle as="h1" className="text-2xl font-bold">Sign in to Support Hub</CardTitle>
       </CardHeader>
 
       <CardContent className="space-y-4">
