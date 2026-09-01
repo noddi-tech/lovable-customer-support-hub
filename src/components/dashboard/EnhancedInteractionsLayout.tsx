@@ -21,7 +21,9 @@ import { getCustomerDisplay } from '@/utils/customerDisplayName';
 import { useIsMobile } from '@/hooks/use-responsive';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { Inbox as InboxIcon, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { ChannelPageHeader } from '@/components/dashboard/shared/ChannelPageHeader';
+import { InboxMetricsDialog } from '@/components/dashboard/InboxMetricsDialog';
 
 // Define conversation types
 type ConversationStatus = "open" | "pending" | "resolved" | "closed";
@@ -75,6 +77,7 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
   const { profile } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [filtersCollapsed, setFiltersCollapsed] = useState(false);
+  const [metricsOpen, setMetricsOpen] = useState(false);
 
   // Cmd/Ctrl + M toggles the filter sidebar
   useEffect(() => {
@@ -335,8 +338,22 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
 
   // Render conversation list (without LiveChatQueue - now in Chat section)
   const renderConversationList = () => {
+    const activeInbox = inboxes.find((i) => i.id === effectiveInboxId);
+    const inboxLabel = effectiveInboxId === 'all' || !activeInbox ? 'All inboxes' : activeInbox.name;
+
     return (
       <div className="flex flex-col h-full">
+        <ChannelPageHeader
+          icon={InboxIcon}
+          title={inboxLabel}
+          onOpenMetrics={() => setMetricsOpen(true)}
+        />
+        <InboxMetricsDialog
+          open={metricsOpen}
+          onOpenChange={setMetricsOpen}
+          inboxId={effectiveInboxId === 'all' ? null : effectiveInboxId}
+          inboxName={inboxLabel}
+        />
         <ConversationList
           selectedTab={effectiveStatus}
           onSelectConversation={(conversation) => handleConversationSelect(conversation as any)}

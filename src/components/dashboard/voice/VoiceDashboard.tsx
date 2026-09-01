@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { SidebarTrigger } from '@/components/ui/sidebar';
 import { useIsMobile } from '@/hooks/use-responsive';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { 
@@ -29,12 +28,15 @@ import { useDailyCallMetrics } from '@/hooks/useDailyCallMetrics';
 import { useAircallPhone } from '@/hooks/useAircallPhone';
 import { useRealtimeConnectionManager } from '@/hooks/useRealtimeConnectionManager';
 import { useQueryClient } from '@tanstack/react-query';
+import { VoiceMetricsDialog } from './VoiceMetricsDialog';
+import { ChannelPageHeader } from '@/components/dashboard/shared/ChannelPageHeader';
 
 export const VoiceDashboard = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('recent');
+  const [metricsOpen, setMetricsOpen] = useState(false);
   const [metricsCollapsed, setMetricsCollapsed] = useState(() => {
     const saved = localStorage.getItem('voiceDashboardMetricsCollapsed');
     return saved ? JSON.parse(saved) : false;
@@ -75,45 +77,32 @@ export const VoiceDashboard = () => {
         />
       )}
       {/* Header */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-start gap-2">
-          <SidebarTrigger className="mt-1 shrink-0 md:hidden" />
-          <div className="min-w-0">
-            <h1 className="text-xl font-bold sm:text-3xl">Voice Dashboard</h1>
-            <p className="hidden text-muted-foreground mt-1 sm:block">
-              Manage calls, voicemails, and callbacks in one place
-            </p>
-          </div>
-        </div>
-        
-        <div className="flex flex-wrap items-center gap-2">
-          <LiveDataIndicator 
-            isLive={realtimeConnected} 
-            lastUpdated={lastConnected || new Date()}
-            onRefresh={handleRefresh}
-          />
-          
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => navigate('/voice/analytics')}
-            className="h-10 flex-1 gap-2 sm:h-9 sm:flex-none"
-          >
-            <BarChart3 className="h-4 w-4" />
-            View Analytics
-          </Button>
-          
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => navigate('/voice/settings')}
-            className="h-10 flex-1 gap-2 sm:h-9 sm:flex-none"
-          >
-            <Settings className="h-4 w-4" />
-            Settings
-          </Button>
-        </div>
-      </div>
+      <ChannelPageHeader
+        icon={Phone}
+        title="Voice"
+        onOpenMetrics={() => setMetricsOpen(true)}
+        className="-mx-3 sm:mx-0 sm:rounded-md sm:border"
+        actions={
+          <>
+            <LiveDataIndicator
+              isLive={realtimeConnected}
+              lastUpdated={lastConnected || new Date()}
+              onRefresh={handleRefresh}
+            />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              aria-label="Voice settings"
+              onClick={() => navigate('/voice/settings')}
+            >
+              <Settings className="h-4 w-4" />
+            </Button>
+          </>
+        }
+      />
+
+      <VoiceMetricsDialog open={metricsOpen} onOpenChange={setMetricsOpen} />
 
       {/* Quick Stats - Collapsible */}
       <Collapsible

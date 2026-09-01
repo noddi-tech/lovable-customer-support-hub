@@ -1,63 +1,14 @@
 import { useState } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Info, Loader2, Timer, CheckCircle2, Gauge, Layers } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Timer, CheckCircle2, Gauge, Layers } from 'lucide-react';
+import { MetricTile as Metric, attainmentTone } from '@/components/dashboard/MetricTile';
+import { MetricsDialogShell } from '@/components/dashboard/shared/MetricsDialogShell';
 import {
   useInboxSupportMetrics,
   formatMinutes,
   formatPct,
 } from '@/hooks/useInboxSupportMetrics';
-
-const RANGES = [7, 30, 90] as const;
-
-interface MetricProps {
-  label: string;
-  value: string;
-  description: string;
-  tone?: 'default' | 'good' | 'warn' | 'bad';
-  hint?: string;
-}
-
-function Metric({ label, value, description, tone = 'default', hint }: MetricProps) {
-  return (
-    <TooltipProvider delayDuration={150}>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <div className="rounded-md border p-3 text-left cursor-help">
-            <div className="flex items-center gap-1 text-[11px] uppercase tracking-wide text-muted-foreground">
-              {label}
-              <Info className="h-3 w-3 opacity-50" />
-            </div>
-            <div
-              className={cn(
-                'mt-1 text-xl font-semibold tabular-nums',
-                tone === 'good' && 'text-emerald-600 dark:text-emerald-400',
-                tone === 'warn' && 'text-amber-600 dark:text-amber-400',
-                tone === 'bad' && 'text-destructive',
-              )}
-            >
-              {value}
-            </div>
-            {hint && <div className="mt-0.5 text-[11px] text-muted-foreground">{hint}</div>}
-          </div>
-        </TooltipTrigger>
-        <TooltipContent side="top" align="start" className="max-w-[280px] text-xs leading-relaxed">
-          {description}
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
-  );
-}
 
 function SectionTitle({ icon: Icon, children }: { icon: typeof Timer; children: React.ReactNode }) {
   return (
@@ -66,13 +17,6 @@ function SectionTitle({ icon: Icon, children }: { icon: typeof Timer; children: 
       {children}
     </h3>
   );
-}
-
-function attainmentTone(pct: number | null | undefined) {
-  if (pct === null || pct === undefined) return 'default' as const;
-  if (pct >= 90) return 'good' as const;
-  if (pct >= 75) return 'warn' as const;
-  return 'bad' as const;
 }
 
 interface InboxMetricsDialogProps {
@@ -87,44 +31,18 @@ export function InboxMetricsDialog({ open, onOpenChange, inboxId, inboxName }: I
   const { data, isLoading, error } = useInboxSupportMetrics(inboxId, days, open);
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Gauge className="h-4 w-4" /> {inboxName} — support KPIs
-          </DialogTitle>
-          <DialogDescription>
-            Standard ticketing metrics for this inbox. Hover any tile to see exactly what it measures.
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="flex items-center gap-1">
-          {RANGES.map((r) => (
-            <Button
-              key={r}
-              size="sm"
-              variant={days === r ? 'secondary' : 'ghost'}
-              className="h-7 px-2 text-xs"
-              onClick={() => setDays(r)}
-            >
-              Last {r} days
-            </Button>
-          ))}
-        </div>
-
-        {isLoading && (
-          <div className="flex items-center gap-2 py-10 justify-center text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" /> Calculating metrics…
-          </div>
-        )}
-
-        {error && (
-          <p className="py-6 text-sm text-destructive">
-            Could not load metrics: {(error as Error).message}
-          </p>
-        )}
-
-        {data && !isLoading && (
+    <MetricsDialogShell
+      open={open}
+      onOpenChange={onOpenChange}
+      icon={Gauge}
+      title={`${inboxName} — support KPIs`}
+      description="Standard ticketing metrics for this inbox. Hover any tile to see exactly what it measures."
+      days={days}
+      onDaysChange={setDays}
+      isLoading={isLoading}
+      error={(error as Error) ?? null}
+    >
+      {data && (
           <div className="space-y-5">
             <section className="space-y-2">
               <SectionTitle icon={Timer}>First reply</SectionTitle>
@@ -260,10 +178,9 @@ export function InboxMetricsDialog({ open, onOpenChange, inboxId, inboxName }: I
                 arrival to close.
               </span>
             </div>
-          </div>
-        )}
-      </DialogContent>
-    </Dialog>
+        </div>
+      )}
+    </MetricsDialogShell>
   );
 }
 

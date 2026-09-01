@@ -11,9 +11,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { MessageCircle, Settings } from 'lucide-react';
 import { LiveChatSlaDialog } from './LiveChatSlaDialog';
+import { ChatMetricsDialog } from '@/components/dashboard/ChatMetricsDialog';
+import { ChannelPageHeader } from '@/components/dashboard/shared/ChannelPageHeader';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { SidebarTrigger } from '@/components/ui/sidebar';
 import { useIsMobile } from '@/hooks/use-responsive';
 
 // Direct import - lazy loading was causing context provider issues
@@ -28,6 +29,7 @@ export const ChatLayout: React.FC = () => {
   const isMobile = useIsMobile();
   const organizationId = profile?.organization_id;
   const [slaOpen, setSlaOpen] = useState(false);
+  const [metricsOpen, setMetricsOpen] = useState(false);
 
   const widgetSettingsButton = (
     <Tooltip>
@@ -128,12 +130,12 @@ export const ChatLayout: React.FC = () => {
 
     return (
       <div className="flex flex-col h-full bg-card overflow-hidden">
-        <div className="flex items-center gap-2 px-3 py-2.5 border-b bg-card">
-          <SidebarTrigger className="shrink-0 h-8 w-8" />
-          <MessageCircle className="h-4 w-4 text-primary shrink-0" />
-          <h1 className="text-base font-semibold truncate">Live Chat</h1>
-          <div className="ml-auto">{widgetSettingsButton}</div>
-        </div>
+        <ChannelPageHeader
+          icon={MessageCircle}
+          title="Live Chat"
+          onOpenMetrics={() => setMetricsOpen(true)}
+          actions={widgetSettingsButton}
+        />
 
         <ChatFilters
           currentFilter={currentFilter}
@@ -152,6 +154,7 @@ export const ChatLayout: React.FC = () => {
         </div>
 
         <LiveChatSlaDialog open={slaOpen} onOpenChange={setSlaOpen} canEdit={isAdmin} />
+      <ChatMetricsDialog open={metricsOpen} onOpenChange={setMetricsOpen} />
       </div>
     );
   }
@@ -159,11 +162,12 @@ export const ChatLayout: React.FC = () => {
   return (
     <div className="flex flex-col h-full bg-card">
       {/* Header */}
-      <div className="flex items-center gap-2 px-4 py-3 border-b bg-card">
-        <MessageCircle className="h-5 w-5 text-primary" />
-        <h1 className="text-lg font-semibold">Live Chat</h1>
-        <div className="ml-auto">{widgetSettingsButton}</div>
-      </div>
+      <ChannelPageHeader
+        icon={MessageCircle}
+        title="Live Chat"
+        onOpenMetrics={() => setMetricsOpen(true)}
+        actions={widgetSettingsButton}
+      />
 
       {/* Main content */}
       <ResizablePanelGroup direction="horizontal" className="flex-1">
@@ -208,6 +212,7 @@ export const ChatLayout: React.FC = () => {
       </ResizablePanelGroup>
 
       <LiveChatSlaDialog open={slaOpen} onOpenChange={setSlaOpen} canEdit={isAdmin} />
+      <ChatMetricsDialog open={metricsOpen} onOpenChange={setMetricsOpen} />
     </div>
   );
 };

@@ -8,7 +8,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
-import { MessageCircle, Search, X, BarChart3 } from 'lucide-react';
+import { MessageCircle, Search, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useBulkRangeSelect } from '@/hooks/useBulkRangeSelect';
@@ -18,7 +18,6 @@ import { BrandFilterSelect } from '@/components/dashboard/conversation-list/Bran
 import { TagFilterSelect, matchesTagFilter } from '@/components/tags/TagFilterSelect';
 import { useEntityTags } from '@/hooks/useEntityTags';
 import { getConversationBrand } from '@/lib/conversationBrand';
-import { ChatMetricsDialog } from '@/components/dashboard/ChatMetricsDialog';
 import type { ChatFilterType } from './ChatFilters';
 
 interface ChatConversation {
@@ -57,7 +56,6 @@ export const ChatConversationList: React.FC<ChatConversationListProps> = ({
   const { profile } = useAuth();
   const organizationId = profile?.organization_id;
   const [searchQuery, setSearchQuery] = useState('');
-  const [kpisOpen, setKpisOpen] = useState(false);
   const [brandFilter, setBrandFilter] = useState<string>('all');
   const [tagFilter, setTagFilter] = useState<string[]>([]);
   const { getTags: getChatTags } = useEntityTags('conversation');
@@ -259,16 +257,6 @@ export const ChatConversationList: React.FC<ChatConversationListProps> = ({
               className="pl-8 h-9 text-sm"
             />
           </div>
-          <Button
-            size="sm"
-            variant="outline"
-            className="h-9 shrink-0 px-2 text-xs"
-            onClick={() => setKpisOpen(true)}
-            title="Live chat KPIs"
-          >
-            <BarChart3 className="h-4 w-4 sm:mr-1.5" />
-            <span className="hidden sm:inline">KPIs</span>
-          </Button>
         </div>
 
 
@@ -344,8 +332,6 @@ export const ChatConversationList: React.FC<ChatConversationListProps> = ({
           </div>
         </ScrollArea>
       )}
-
-      <ChatMetricsDialog open={kpisOpen} onOpenChange={setKpisOpen} />
     </div>
   );
 };

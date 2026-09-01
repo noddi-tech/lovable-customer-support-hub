@@ -22,7 +22,6 @@ import { useTranslation } from "react-i18next";
 import type { SortBy } from "@/contexts/ConversationListContext";
 import { useMemo, useState } from "react";
 import { useIsMobile } from "@/hooks/use-responsive";
-import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import { useAccessibleInboxes } from "@/hooks/useInteractionsData";
@@ -134,8 +133,6 @@ export const ConversationListHeader = ({
       <div className="flex items-center gap-1">
         {/* Left side: Action buttons */}
         <div className="flex items-center gap-1 flex-shrink-0">
-          {/* Sidebar trigger - mobile only */}
-          {isMobile && <SidebarTrigger className="shrink-0" />}
           {/* New - always visible */}
           <NewConversationDialog>
             <Button variant="default" size="xxs">
