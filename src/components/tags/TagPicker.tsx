@@ -2,10 +2,12 @@ import React, { useMemo, useState } from 'react';
 import { Check, Plus, Search, Tag as TagIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { useTags, TAG_COLORS, type Tag } from '@/hooks/useTags';
+import { useTags, type Tag } from '@/hooks/useTags';
 import { useEntityTags, type TaggableEntity } from '@/hooks/useEntityTags';
 import { TagBadge } from '@/components/tags/TagBadge';
+import { TagCreateForm } from '@/components/tags/TagCreateForm';
 import { cn } from '@/lib/utils';
+
 
 interface TagPickerListProps {
   selectedIds: string[];
@@ -15,12 +17,9 @@ interface TagPickerListProps {
 
 /** Searchable multi-select tag list with inline creation. */
 export const TagPickerList: React.FC<TagPickerListProps> = ({ selectedIds, onToggle, onCreate }) => {
-  const { tags } = useTags();
+  const { tags, createTag } = useTags();
   const [search, setSearch] = useState('');
-  const [creating, setCreating] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
-  const [newName, setNewName] = useState('');
-  const [color, setColor] = useState(TAG_COLORS[0]);
 
   const filtered = useMemo(() => {
     const needle = search.trim().toLowerCase();
@@ -28,71 +27,23 @@ export const TagPickerList: React.FC<TagPickerListProps> = ({ selectedIds, onTog
     return tags.filter((t) => t.name.toLowerCase().includes(needle));
   }, [tags, search]);
 
-  const openCreate = (prefill: string) => {
-    setNewName(prefill);
-    setColor(TAG_COLORS[0]);
-    setShowCreate(true);
+  const handleCreate = async (name: string, color: string) => {
+    if (onCreate) await onCreate(name, color);
+    else await createTag.mutateAsync({ name, color });
+    setSearch('');
+    setShowCreate(false);
   };
 
-  const handleCreate = async () => {
-    const name = newName.trim();
-    if (!name || !onCreate) return;
-    setCreating(true);
-    try {
-      await onCreate(name, color);
-      setNewName('');
-      setSearch('');
-      setShowCreate(false);
-    } finally {
-      setCreating(false);
-    }
-  };
-
-  if (showCreate && onCreate) {
+  if (showCreate) {
     return (
-      <div className="w-64 p-3 space-y-3" onKeyDown={(e) => e.stopPropagation()}>
-        <p className="text-sm font-medium">New tag</p>
-        <input
-          autoFocus
-          value={newName}
-          onChange={(e) => setNewName(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') void handleCreate();
-            if (e.key === 'Escape') setShowCreate(false);
-          }}
-          placeholder="Tag name"
-          maxLength={50}
-          className="h-8 w-full rounded-md border border-input bg-background px-2 text-sm outline-none focus:ring-1 focus:ring-ring"
-        />
-        <div className="flex flex-wrap gap-1.5">
-          {TAG_COLORS.map((c) => (
-            <button
-              key={c}
-              type="button"
-              aria-label={`Color ${c}`}
-              onClick={() => setColor(c)}
-              className={cn('h-5 w-5 rounded-full border', color === c ? 'ring-2 ring-offset-1 ring-ring' : '')}
-              style={{ backgroundColor: c }}
-            />
-          ))}
-        </div>
-        <div className="flex gap-2">
-          <Button
-            size="sm"
-            variant="outline"
-            className="flex-1"
-            disabled={creating}
-            onClick={() => setShowCreate(false)}
-          >
-            Cancel
-          </Button>
-          <Button size="sm" className="flex-1" disabled={creating || !newName.trim()} onClick={handleCreate}>
-            Create
-          </Button>
-        </div>
-      </div>
+      <TagCreateForm
+        initialName={search.trim()}
+        onCancel={() => setShowCreate(false)}
+        onCreate={handleCreate}
+      />
     );
   }
+
 
   return (
     <div className="w-64" onKeyDown={(e) => e.stopPropagation()}>
@@ -129,14 +80,13 @@ export const TagPickerList: React.FC<TagPickerListProps> = ({ selectedIds, onTog
         )}
       </div>
 
-      {onCreate && (
-        <div className="border-t p-2">
-          <Button size="sm" variant="outline" className="w-full" onClick={() => openCreate(search.trim())}>
-            <Plus className="h-3.5 w-3.5 mr-1" />
-            {search.trim() ? `Create "${search.trim()}"` : 'Create tag'}
-          </Button>
-        </div>
-      )}
+      <div className="border-t p-2">
+        <Button size="sm" variant="outline" className="w-full" onClick={() => setShowCreate(true)}>
+          <Plus className="h-3.5 w-3.5 mr-1" />
+          {search.trim() ? `Create "${search.trim()}"` : 'Create tag'}
+        </Button>
+      </div>
+
     </div>
   );
 };
