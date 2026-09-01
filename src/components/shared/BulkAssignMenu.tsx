@@ -2,8 +2,7 @@ import React, { useState } from 'react';
 import { UserPlus, UserMinus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { MemberOptionContent } from '@/components/shared/MemberPicker';
-import { useMemberSearch } from '@/components/shared/MemberPicker';
+import { MemberOptionContent, rememberAssignee, useMemberSearch } from '@/components/shared/MemberPicker';
 
 interface BulkAssignMenuProps {
   onAssign: (memberId: string | null) => void | Promise<void>;
@@ -21,11 +20,12 @@ export const BulkAssignMenu: React.FC<BulkAssignMenuProps> = ({
 }) => {
   const [search, setSearch] = useState('');
   const [open, setOpen] = useState(false);
-  const { members: filtered } = useMemberSearch(search);
+  const { recent, rest } = useMemberSearch(search);
 
   const pick = async (id: string | null) => {
     setOpen(false);
     setSearch('');
+    if (id) rememberAssignee(id);
     await onAssign(id);
   };
 
@@ -56,7 +56,25 @@ export const BulkAssignMenu: React.FC<BulkAssignMenuProps> = ({
             <UserMinus className="h-4 w-4 text-muted-foreground" />
             Unassign
           </button>
-          {filtered.map((m) => (
+          {recent.length > 0 && (
+            <>
+              <p className="px-2 pt-1.5 pb-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                Recent
+              </p>
+              {recent.map((m) => (
+                <button
+                  key={`recent-${m.id}`}
+                  type="button"
+                  onClick={() => pick(m.id)}
+                  className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm hover:bg-accent"
+                >
+                  <MemberOptionContent member={m} />
+                </button>
+              ))}
+              <div className="my-1 h-px bg-border" />
+            </>
+          )}
+          {rest.map((m) => (
             <button
               key={m.id}
               type="button"
@@ -66,7 +84,7 @@ export const BulkAssignMenu: React.FC<BulkAssignMenuProps> = ({
               <MemberOptionContent member={m} />
             </button>
           ))}
-          {filtered.length === 0 && (
+          {recent.length === 0 && rest.length === 0 && (
             <p className="px-2 py-3 text-xs text-muted-foreground">No people found.</p>
           )}
         </div>

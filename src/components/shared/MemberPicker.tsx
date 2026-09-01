@@ -1,7 +1,9 @@
 import React, { useMemo } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useTeamMembers, type TeamMember } from '@/hooks/useTeamMembers';
-import { getRecentAssigneeIds } from '@/hooks/useConversationAssignActions';
+import { getRecentAssigneeIds, rememberAssignee } from '@/hooks/useConversationAssignActions';
+
+export { rememberAssignee };
 
 /** Display name used everywhere a team member is listed. */
 export const memberLabel = (member: TeamMember) => member.full_name || member.email || '';
@@ -16,7 +18,7 @@ export const memberInitial = (member: TeamMember) =>
  */
 export function useMemberSearch(search: string, options?: { withRecent?: boolean }) {
   const { data: members = [] } = useTeamMembers();
-  const withRecent = options?.withRecent ?? false;
+  const withRecent = options?.withRecent ?? true;
 
   return useMemo(() => {
     const q = search.trim().toLowerCase();

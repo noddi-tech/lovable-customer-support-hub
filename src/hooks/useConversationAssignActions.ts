@@ -18,7 +18,7 @@ export function getRecentAssigneeIds(): string[] {
   }
 }
 
-function rememberAssignee(profileId: string) {
+export function rememberAssignee(profileId: string) {
   try {
     const next = [profileId, ...getRecentAssigneeIds().filter((id) => id !== profileId)].slice(0, RECENT_LIMIT);
     localStorage.setItem(RECENT_KEY, JSON.stringify(next));
