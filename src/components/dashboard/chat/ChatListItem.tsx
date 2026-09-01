@@ -156,7 +156,27 @@ export const ChatListItem: React.FC<ChatListItemProps> = ({
               LIVE
             </Badge>
           )}
+          {slaState && (
+            <Badge
+              variant="outline"
+              title={
+                slaState.breached
+                  ? `SLA breached ${slaState.countdown} ago (due ${slaState.dueLabel})`
+                  : `SLA due in ${slaState.countdown} (${slaState.dueLabel})`
+              }
+              className={cn(
+                'text-[10px] px-1.5 py-0',
+                slaState.breached
+                  ? 'bg-red-50 text-red-700 border-red-300 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800'
+                  : 'bg-orange-50 text-orange-700 border-orange-300 dark:bg-orange-900/20 dark:text-orange-400 dark:border-orange-800',
+              )}
+            >
+              <AlertTriangle className="h-3 w-3 mr-0.5" />
+              {slaState.breached ? `SLA ${slaState.countdown} over` : `SLA ${slaState.countdown}`}
+            </Badge>
+          )}
           {conv.last_message_is_internal && (
+
             <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-yellow-50 text-yellow-800 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-800">
               <Lock className="h-3 w-3 mr-0.5" />
               Note
