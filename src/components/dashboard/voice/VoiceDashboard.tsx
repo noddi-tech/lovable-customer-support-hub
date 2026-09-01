@@ -30,7 +30,7 @@ import { useAircallPhone } from '@/hooks/useAircallPhone';
 import { useRealtimeConnectionManager } from '@/hooks/useRealtimeConnectionManager';
 import { useQueryClient } from '@tanstack/react-query';
 import { VoiceMetricsDialog } from './VoiceMetricsDialog';
-import { MetricsButton } from '@/components/dashboard/shared/ChannelPageHeader';
+import { ChannelPageHeader } from '@/components/dashboard/shared/ChannelPageHeader';
 
 export const VoiceDashboard = () => {
   const navigate = useNavigate();
@@ -78,38 +78,30 @@ export const VoiceDashboard = () => {
         />
       )}
       {/* Header */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-start gap-2">
-          <SidebarTrigger className="mt-1 shrink-0 md:hidden" />
-          <div className="min-w-0">
-            <h1 className="text-xl font-bold sm:text-3xl">Voice Dashboard</h1>
-            <p className="hidden text-muted-foreground mt-1 sm:block">
-              Manage calls, voicemails, and callbacks in one place
-            </p>
-          </div>
-        </div>
-        
-        <div className="flex flex-wrap items-center gap-2">
-          <LiveDataIndicator 
-            isLive={realtimeConnected} 
-            lastUpdated={lastConnected || new Date()}
-            onRefresh={handleRefresh}
-          />
-          
-          <MetricsButton onClick={() => setMetricsOpen(true)} />
-
-          
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => navigate('/voice/settings')}
-            className="h-10 flex-1 gap-2 sm:h-9 sm:flex-none"
-          >
-            <Settings className="h-4 w-4" />
-            Settings
-          </Button>
-        </div>
-      </div>
+      <ChannelPageHeader
+        icon={Phone}
+        title="Voice"
+        onOpenMetrics={() => setMetricsOpen(true)}
+        className="-mx-3 sm:mx-0 sm:rounded-md sm:border"
+        actions={
+          <>
+            <LiveDataIndicator
+              isLive={realtimeConnected}
+              lastUpdated={lastConnected || new Date()}
+              onRefresh={handleRefresh}
+            />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              aria-label="Voice settings"
+              onClick={() => navigate('/voice/settings')}
+            >
+              <Settings className="h-4 w-4" />
+            </Button>
+          </>
+        }
+      />
 
       <VoiceMetricsDialog open={metricsOpen} onOpenChange={setMetricsOpen} />
 
