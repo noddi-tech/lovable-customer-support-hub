@@ -150,12 +150,10 @@ export default function HomePage() {
                 </div>
               ))}
             </div>
-
-            <Separator className="mt-4" />
           </div>
         )}
-
       </div>
+
 
       <InboxMetricsDialog
         open={Boolean(metricsInbox)}
