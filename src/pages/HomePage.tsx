@@ -106,7 +106,7 @@ export default function HomePage() {
             <Card
               key={s.label}
               className="cursor-pointer hover:shadow-md transition-shadow"
-              onClick={() => navigate('/interactions/text/' + s.label.toLowerCase().replace(/ /g, ''))}
+              onClick={() => navigate(`/interactions/text/${s.filter}?inbox=all`)}
             >
               <CardContent className="p-3 relative">
                 <s.icon className="h-4 w-4 text-muted-foreground/50 absolute top-3 right-3" />
