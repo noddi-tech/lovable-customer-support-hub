@@ -500,9 +500,48 @@ const NotificationsPage = () => {
                                 </Button>
                               </div>
                             </TableCell>
-                          </TableRow>
-                        );
-                      })
+                           </TableRow>
+                          </ContextMenuTrigger>
+                          <ContextMenuContent className="w-56">
+                            <ContextMenuItem onSelect={() => bulkMarkRead(targetIds(n), true)}>
+                              <Check className="mr-2 h-4 w-4" />
+                              Mark as read
+                              {targetIds(n).length > 1 && ` (${targetIds(n).length})`}
+                            </ContextMenuItem>
+                            <ContextMenuItem onSelect={() => bulkMarkRead(targetIds(n), false)}>
+                              <Bell className="mr-2 h-4 w-4" />
+                              Mark as unread
+                              {targetIds(n).length > 1 && ` (${targetIds(n).length})`}
+                            </ContextMenuItem>
+                            <ContextMenuSeparator />
+                            <ContextMenuItem onSelect={() => handleNavigate(n)}>
+                              <Eye className="mr-2 h-4 w-4" />
+                              Open
+                            </ContextMenuItem>
+                            <ContextMenuItem
+                              onSelect={() => setSelectedIds(sortedAndFiltered.map(x => x.id))}
+                            >
+                              <CheckCheck className="mr-2 h-4 w-4" />
+                              Select all
+                            </ContextMenuItem>
+                            {selectedIds.length > 0 && (
+                              <ContextMenuItem onSelect={() => setSelectedIds([])}>
+                                Clear selection
+                              </ContextMenuItem>
+                            )}
+                            <ContextMenuSeparator />
+                            <ContextMenuItem
+                              className="text-destructive focus:text-destructive"
+                              onSelect={() => bulkDelete(targetIds(n))}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete
+                              {targetIds(n).length > 1 && ` (${targetIds(n).length})`}
+                            </ContextMenuItem>
+                          </ContextMenuContent>
+                          </ContextMenu>
+                         );
+                       })
                     )}
                   </TableBody>
                 </Table>
