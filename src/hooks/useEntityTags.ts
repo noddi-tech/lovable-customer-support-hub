@@ -59,6 +59,19 @@ export function useEntityTags(entityType: TaggableEntity) {
     return tagsByEntity.get(entityId) || [];
   }, [tagsByEntity]);
 
+  /** Mirror call tags onto the Aircall call (brand + custom tags). Best effort. */
+  const syncAircall = useCallback(async (entityId: string) => {
+    if (entityType !== 'call') return;
+    try {
+      const { error } = await supabase.functions.invoke('aircall-tag-call', {
+        body: { callId: entityId },
+      });
+      if (error) throw error;
+    } catch (error) {
+      logger.warn('Failed to sync call tags to Aircall', error, 'useEntityTags');
+    }
+  }, [entityType]);
+
   const invalidate = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ['tag-links'] });
   }, [queryClient]);
@@ -74,11 +87,12 @@ export function useEntityTags(entityType: TaggableEntity) {
       });
       if (error && !`${error.message}`.includes('duplicate')) throw error;
       invalidate();
+      void syncAircall(entityId);
     } catch (error) {
       logger.error('Failed to add tag', error, 'useEntityTags');
       toast.error('Failed to add tag');
     }
-  }, [entityType, invalidate, organizationId]);
+  }, [entityType, invalidate, organizationId, syncAircall]);
 
   const removeTag = useCallback(async (entityId: string, tagId: string) => {
     try {
@@ -90,11 +104,12 @@ export function useEntityTags(entityType: TaggableEntity) {
         .eq('tag_id', tagId);
       if (error) throw error;
       invalidate();
+      void syncAircall(entityId);
     } catch (error) {
       logger.error('Failed to remove tag', error, 'useEntityTags');
       toast.error('Failed to remove tag');
     }
-  }, [entityType, invalidate]);
+  }, [entityType, invalidate, syncAircall]);
 
   const toggleTag = useCallback(async (entityId: string, tagId: string) => {
     const has = getTags(entityId).some((t) => t.id === tagId);
