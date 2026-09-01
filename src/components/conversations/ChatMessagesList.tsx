@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState, useCallback } from 'react';
+import { Fragment, useRef, useEffect, useState, useCallback } from 'react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
@@ -13,11 +13,12 @@ import {
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
 import { EmailPreviewDialog } from '@/components/conversations/EmailPreviewDialog';
-import { MoreHorizontal, Copy, Trash2, Check, CheckCheck, Paperclip, Image, Mail, MessageSquare, AlertCircle, RefreshCw, Loader2, Lock, Edit3 } from 'lucide-react';
+import { MoreHorizontal, Copy, Trash2, Check, CheckCheck, Paperclip, Image, Mail, MessageSquare, AlertCircle, RefreshCw, Loader2, Lock, Edit3, Languages } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { EmailRender } from '@/components/ui/email-render';
 import { MentionRenderer } from '@/components/ui/mention-renderer';
 import { toast } from 'sonner';
+import { getLanguageFlag, getLanguageLabel, normalizeLocale } from '@/utils/languageLabels';
 import { InlineNoteEditor } from './InlineNoteEditor';
 import { useNoteMutations } from '@/hooks/useNoteMutations';
 import { noteDebug } from '@/utils/noteInteractionDebug';
