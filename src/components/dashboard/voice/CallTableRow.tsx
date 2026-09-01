@@ -1,5 +1,6 @@
 import { memo, useCallback } from 'react';
 import { TableRow, TableCell } from '@/components/ui/table';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -33,6 +34,9 @@ interface CallTableRowProps {
   onClick: () => void;
   onRemove?: (callId: string) => void;
   onNavigateToEvents?: (callId: string) => void;
+  isBulkSelected?: boolean;
+  onBulkSelect?: (id: string, selected: boolean, shiftKey?: boolean) => void;
+  showBulkCheckbox?: boolean;
 }
 
 export const CallTableRow = memo<CallTableRowProps>(({
@@ -41,6 +45,9 @@ export const CallTableRow = memo<CallTableRowProps>(({
   onClick,
   onRemove,
   onNavigateToEvents,
+  isBulkSelected = false,
+  onBulkSelect,
+  showBulkCheckbox = false,
 }) => {
   const { notes } = useCallNotes(call.id);
   const notesCount = notes?.length || 0;
@@ -109,10 +116,23 @@ export const CallTableRow = memo<CallTableRowProps>(({
       className={cn(
         "cursor-pointer hover:bg-muted/50 transition-colors border-l-4",
         getBorderColor(),
-        isSelected && "bg-primary/5"
+        isSelected && "bg-primary/5",
+        isBulkSelected && "bg-primary/10"
       )}
       onClick={onClick}
     >
+      {showBulkCheckbox && (
+        <TableCell className="w-10 p-2" onClick={(e) => e.stopPropagation()}>
+          <Checkbox
+            checked={isBulkSelected}
+            onClick={(e) => {
+              e.stopPropagation();
+              onBulkSelect?.(call.id, !isBulkSelected, (e as React.MouseEvent).shiftKey);
+            }}
+            aria-label="Select call"
+          />
+        </TableCell>
+      )}
       {/* Direction */}
       <TableCell className="p-2 w-24">
         <div className="flex items-center gap-2">

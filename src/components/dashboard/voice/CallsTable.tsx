@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Table, TableBody, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { CallTableRow } from './CallTableRow';
+import { Checkbox } from '@/components/ui/checkbox';
 import { TableHeaderCell } from '@/components/dashboard/conversation-list/TableHeaderCell';
 import { Phone } from 'lucide-react';
 import { sortByString, sortByDate, sortByNumber } from '@/utils/tableSorting';
@@ -11,6 +12,10 @@ interface CallsTableProps {
   selectedCallId?: string;
   onRemoveCall?: (callId: string) => void;
   onNavigateToEvents?: (callId: string) => void;
+  bulkSelectedIds?: Set<string>;
+  onBulkSelect?: (id: string, selected: boolean, shiftKey?: boolean) => void;
+  onSelectAll?: (checked: boolean) => void;
+  allBulkSelected?: boolean;
 }
 
 export function CallsTable({
@@ -19,6 +24,10 @@ export function CallsTable({
   selectedCallId,
   onRemoveCall,
   onNavigateToEvents,
+  bulkSelectedIds,
+  onBulkSelect,
+  onSelectAll,
+  allBulkSelected = false,
 }: CallsTableProps) {
   const [sortState, setSortState] = useState<{ key: string; direction: 'asc' | 'desc' | null }>({
     key: '',
@@ -78,6 +87,15 @@ export function CallsTable({
       <Table>
         <TableHeader className="sticky top-0 bg-background z-10 border-b">
           <TableRow className="hover:bg-transparent">
+            {onBulkSelect && (
+              <TableHead className="w-10 p-2">
+                <Checkbox
+                  checked={allBulkSelected}
+                  onCheckedChange={(checked) => onSelectAll?.(checked === true)}
+                  aria-label="Select all calls"
+                />
+              </TableHead>
+            )}
             <TableHeaderCell
               label="Direction"
               sortKey="direction"
@@ -146,8 +164,12 @@ export function CallsTable({
               onClick={() => onCallClick(call)}
               onRemove={onRemoveCall}
               onNavigateToEvents={onNavigateToEvents}
+              isBulkSelected={bulkSelectedIds?.has(call.id) ?? false}
+              onBulkSelect={onBulkSelect}
+              showBulkCheckbox={!!onBulkSelect}
             />
           ))}
+        </TableBody>
         </TableBody>
       </Table>
     </div>

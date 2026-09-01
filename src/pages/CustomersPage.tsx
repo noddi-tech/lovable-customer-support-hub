@@ -21,6 +21,10 @@ import { TagContextMenuItems } from '@/components/tags/TagContextMenuItems';
 import { TagBadgeList } from '@/components/tags/TagBadge';
 import { TagFilterSelect, matchesTagFilter } from '@/components/tags/TagFilterSelect';
 import { useEntityTags } from '@/hooks/useEntityTags';
+import { BulkTagMenu } from '@/components/tags/BulkTagMenu';
+import { SelectionToolbar } from '@/components/shared/SelectionToolbar';
+import { useListSelection } from '@/hooks/useListSelection';
+import { Checkbox } from '@/components/ui/checkbox';
 import { getBrandColor } from '@/lib/conversationBrand';
 
 const STATUS_OPTIONS = [
@@ -55,6 +59,10 @@ export default function CustomersPage() {
       }),
     [allCustomers, statusFilter, brandFilter, tagFilter, getTags],
   );
+
+  const orderedIds = useMemo(() => customers.map((c) => c.id), [customers]);
+  const selection = useListSelection(orderedIds);
+
 
 
   return (
@@ -130,13 +138,31 @@ export default function CustomersPage() {
             </Card>
           ) : (
             <div className="space-y-2">
+              <SelectionToolbar
+                count={selection.count}
+                allSelected={selection.allSelected}
+                onSelectAll={selection.selectAll}
+                onClear={selection.clear}
+              >
+                <BulkTagMenu entityType="customer" entityIds={selection.ids} className="h-7 px-2 text-xs" />
+              </SelectionToolbar>
+
               {customers.map((c) => (
                 <ContextMenu key={c.id}>
                   <ContextMenuTrigger asChild>
+                <div className="flex w-full items-center gap-2 rounded-lg border bg-card pl-3 transition-colors hover:bg-accent/50 active:bg-accent/60">
+                  <Checkbox
+                    checked={selection.isSelected(c.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      selection.toggle(c.id, !selection.isSelected(c.id), (e as React.MouseEvent).shiftKey);
+                    }}
+                    aria-label="Select customer"
+                  />
                 <button
                   type="button"
                   onClick={() => navigate(`/customers/${c.id}`)}
-                  className="flex w-full items-center gap-3 rounded-lg border bg-card px-3 py-3.5 text-left transition-colors hover:bg-accent/50 active:bg-accent/60 sm:px-4 sm:py-3"
+                  className="flex min-w-0 flex-1 items-center gap-3 py-3.5 pr-3 text-left sm:py-3 sm:pr-4"
                 >
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted">
                     <UserRound className="h-4 w-4 text-muted-foreground" />
@@ -190,6 +216,7 @@ export default function CustomersPage() {
                     </span>
                   </div>
                 </button>
+                </div>
                   </ContextMenuTrigger>
                   <ContextMenuContent className="w-52">
                     <ContextMenuLabel className="text-xs text-muted-foreground">Tags</ContextMenuLabel>

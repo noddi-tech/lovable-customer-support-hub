@@ -1,5 +1,8 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
+import { BulkTagMenu } from '@/components/tags/BulkTagMenu';
+import { BulkAssignMenu } from '@/components/shared/BulkAssignMenu';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Input } from '@/components/ui/input';
@@ -57,6 +60,7 @@ export const ChatConversationList: React.FC<ChatConversationListProps> = ({
   const { getTags: getChatTags } = useEntityTags('conversation');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const { setStatus } = useConversationStatusActions();
+  const queryClient = useQueryClient();
 
   const { data: conversations = [], isLoading } = useQuery({
     queryKey: ['chat-conversations', organizationId, filter],
@@ -199,6 +203,24 @@ export const ChatConversationList: React.FC<ChatConversationListProps> = ({
     [selectedIds, setStatus],
   );
 
+  const applyBulkAssign = useCallback(
+    async (memberId: string | null) => {
+      const ids = [...selectedIds];
+      const { error } = await supabase
+        .from('conversations')
+        .update({ assigned_to: memberId })
+        .in('id', ids);
+      if (error) {
+        toast.error('Failed to assign chats');
+        return;
+      }
+      toast.success(memberId ? `Assigned ${ids.length} chat(s)` : `Unassigned ${ids.length} chat(s)`);
+      queryClient.invalidateQueries({ queryKey: ['chat-conversations'] });
+      setSelectedIds(new Set());
+    },
+    [queryClient, selectedIds],
+  );
+
   const allSelected =
     filteredConversations.length > 0 &&
     filteredConversations.every(c => selectedIds.has(c.id));
@@ -253,7 +275,7 @@ export const ChatConversationList: React.FC<ChatConversationListProps> = ({
             aria-label="Select all chats"
           />
           <span className="text-xs font-medium">{selectedIds.size} selected</span>
-          <div className="ml-auto flex items-center gap-1">
+          <div className="ml-auto flex flex-wrap items-center gap-1">
             <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => applyBulkStatus('open')}>
               Open
             </Button>
@@ -263,8 +285,11 @@ export const ChatConversationList: React.FC<ChatConversationListProps> = ({
             <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => applyBulkStatus('closed')}>
               Close
             </Button>
+            <BulkAssignMenu onAssign={applyBulkAssign} className="h-7 px-2 text-xs" />
+            <BulkTagMenu entityType="conversation" entityIds={[...selectedIds]} className="h-7 px-2 text-xs" />
             <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setSelectedIds(new Set())} aria-label="Clear selection">
               <X className="h-3.5 w-3.5" />
+            </Button>
             </Button>
           </div>
         </div>

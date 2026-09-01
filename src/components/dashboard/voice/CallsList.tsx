@@ -19,6 +19,9 @@ import { EnhancedCallCard } from './EnhancedCallCard';
 import { AdvancedCallFilters, CallFilters } from './AdvancedCallFilters';
 import { BadgeGuide } from './BadgeGuide';
 import { CallsTable } from './CallsTable';
+import { SelectionToolbar } from '@/components/shared/SelectionToolbar';
+import { BulkTagMenu } from '@/components/tags/BulkTagMenu';
+import { useListSelection } from '@/hooks/useListSelection';
 import { TagFilterSelect, matchesTagFilter } from '@/components/tags/TagFilterSelect';
 import { useEntityTags } from '@/hooks/useEntityTags';
 import { SyncCustomerNamesButton } from './SyncCustomerNamesButton';
@@ -130,6 +133,9 @@ export const CallsList = ({ showTimeFilter = true, dateFilter, onNavigateToEvent
     
     return true;
   });
+
+  const orderedCallIds = useMemo(() => filteredCalls.map((c: any) => c.id as string), [filteredCalls]);
+  const selection = useListSelection(orderedCallIds);
 
   // Smart grouping: Urgent, Active, Recent, Earlier
   const groupedCalls = useMemo(() => {
@@ -530,13 +536,28 @@ export const CallsList = ({ showTimeFilter = true, dateFilter, onNavigateToEvent
           </CardContent>
         </Card>
       ) : viewMode === 'table' && !isMobile ? (
-        <CallsTable
-          calls={filteredCalls}
-          onCallClick={openCallDetails}
-          selectedCallId={selectedCallId}
-          onRemoveCall={removeCall}
-          onNavigateToEvents={onNavigateToEvents}
-        />
+        <div className="flex flex-1 flex-col overflow-hidden">
+          <SelectionToolbar
+            count={selection.count}
+            allSelected={selection.allSelected}
+            onSelectAll={selection.selectAll}
+            onClear={selection.clear}
+            className="mx-1"
+          >
+            <BulkTagMenu entityType="call" entityIds={selection.ids} className="h-7 px-2 text-xs" />
+          </SelectionToolbar>
+          <CallsTable
+            calls={filteredCalls}
+            onCallClick={openCallDetails}
+            selectedCallId={selectedCallId}
+            onRemoveCall={removeCall}
+            onNavigateToEvents={onNavigateToEvents}
+            bulkSelectedIds={selection.selectedIds}
+            onBulkSelect={selection.toggle}
+            onSelectAll={selection.selectAll}
+            allBulkSelected={selection.allSelected}
+          />
+        </div>
       ) : (
         <div className="space-y-6">
           <CallGroup

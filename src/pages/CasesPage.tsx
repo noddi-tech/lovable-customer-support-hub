@@ -14,11 +14,18 @@ import { CaseContextMenu } from '@/components/cases/CaseContextMenu';
 import { TagFilterSelect, matchesTagFilter } from '@/components/tags/TagFilterSelect';
 import { TagBadgeList } from '@/components/tags/TagBadge';
 import { useEntityTags } from '@/hooks/useEntityTags';
+import { BulkTagMenu } from '@/components/tags/BulkTagMenu';
+import { BulkAssignMenu } from '@/components/shared/BulkAssignMenu';
+import { SelectionToolbar } from '@/components/shared/SelectionToolbar';
+import { useListSelection } from '@/hooks/useListSelection';
+import { Checkbox } from '@/components/ui/checkbox';
+import { toast } from 'sonner';
 
 import {
   CASE_PRIORITY_LABELS,
   useCaseCategories,
   useCases,
+  useUpdateCase,
   useCaseQueueCounts,
 
   type CasePriority,
@@ -82,6 +89,21 @@ export default function CasesPage() {
   );
 
   const { data: cases = [], isLoading } = useCases(filters);
+  const { mutateAsync: updateCase } = useUpdateCase();
+
+  const visibleCases = useMemo(
+    () => cases.filter((c) => matchesTagFilter(getCaseTags(c.id).map((t) => t.id), tagFilter)),
+    [cases, getCaseTags, tagFilter],
+  );
+  const orderedIds = useMemo(() => visibleCases.map((c) => c.id), [visibleCases]);
+  const selection = useListSelection(orderedIds);
+
+  const bulkUpdate = async (updates: Record<string, unknown>, message: string) => {
+    const ids = selection.ids;
+    await Promise.all(ids.map((id) => updateCase({ id, updates })));
+    toast.success(`${message} (${ids.length})`);
+    selection.clear();
+  };
 
   return (
     <UnifiedAppLayout>
@@ -240,9 +262,44 @@ export default function CasesPage() {
             </Card>
           ) : (
             <div className="space-y-2">
-              {cases
-                .filter((c) => matchesTagFilter(getCaseTags(c.id).map((t) => t.id), tagFilter))
-                .map((c) => (
+              <SelectionToolbar
+                count={selection.count}
+                allSelected={selection.allSelected}
+                onSelectAll={selection.selectAll}
+                onClear={selection.clear}
+              >
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 px-2 text-xs"
+                  onClick={() => bulkUpdate({ status: 'open' }, 'Reopened')}
+                >
+                  Open
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 px-2 text-xs"
+                  onClick={() => bulkUpdate({ status: 'in_progress' }, 'Set to in progress')}
+                >
+                  In progress
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 px-2 text-xs"
+                  onClick={() => bulkUpdate({ status: 'closed', closed_at: new Date().toISOString() }, 'Closed')}
+                >
+                  Close
+                </Button>
+                <BulkAssignMenu
+                  onAssign={(memberId) => bulkUpdate({ owner_id: memberId }, memberId ? 'Assigned' : 'Unassigned')}
+                  className="h-7 px-2 text-xs"
+                />
+                <BulkTagMenu entityType="case" entityIds={selection.ids} className="h-7 px-2 text-xs" />
+              </SelectionToolbar>
+
+              {visibleCases.map((c) => (
                 <CaseContextMenu
                   key={c.id}
                   caseId={c.id}
@@ -250,32 +307,43 @@ export default function CasesPage() {
                   priority={c.priority}
                   ownerId={c.owner_id}
                 >
-                  <button
-                    onClick={() => navigate(`/operations/cases/${c.id}`)}
-                    className="w-full rounded-lg border bg-card p-3 text-left transition-colors hover:bg-accent/50"
-                  >
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-mono text-xs text-muted-foreground">#{c.case_number}</span>
-                      <span className="min-w-0 flex-1 truncate font-medium">{c.title}</span>
-                      <CaseStatusBadge status={c.status} />
-                      <CasePriorityBadge priority={c.priority} />
-                    </div>
-                    <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                      {c.customer && (
-                        <span className="inline-flex items-center gap-1">
-                          <UserRound className="h-3 w-3" />
-                          {c.customer.full_name || c.customer.email || 'Unknown customer'}
-                        </span>
-                      )}
-                      <span>Owner: {c.owner?.full_name ?? 'Unassigned'}</span>
-                      {c.category && <span>{c.category.name}</span>}
-                      <span>Updated {dateTime(c.updated_at)}</span>
-                      <CaseSlaBadge record={c} />
-                      <TagBadgeList tags={getCaseTags(c.id)} compact max={3} />
-                    </div>
-                  </button>
+                  <div className="flex items-center gap-2 rounded-lg border bg-card pl-3 transition-colors hover:bg-accent/50">
+                    <Checkbox
+                      checked={selection.isSelected(c.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        selection.toggle(c.id, !selection.isSelected(c.id), (e as React.MouseEvent).shiftKey);
+                      }}
+                      aria-label={`Select case ${c.case_number}`}
+                    />
+                    <button
+                      onClick={() => navigate(`/operations/cases/${c.id}`)}
+                      className="min-w-0 flex-1 p-3 pl-1 text-left"
+                    >
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-mono text-xs text-muted-foreground">#{c.case_number}</span>
+                        <span className="min-w-0 flex-1 truncate font-medium">{c.title}</span>
+                        <CaseStatusBadge status={c.status} />
+                        <CasePriorityBadge priority={c.priority} />
+                      </div>
+                      <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                        {c.customer && (
+                          <span className="inline-flex items-center gap-1">
+                            <UserRound className="h-3 w-3" />
+                            {c.customer.full_name || c.customer.email || 'Unknown customer'}
+                          </span>
+                        )}
+                        <span>Owner: {c.owner?.full_name ?? 'Unassigned'}</span>
+                        {c.category && <span>{c.category.name}</span>}
+                        <span>Updated {dateTime(c.updated_at)}</span>
+                        <CaseSlaBadge record={c} />
+                        <TagBadgeList tags={getCaseTags(c.id)} compact max={3} />
+                      </div>
+                    </button>
+                  </div>
                 </CaseContextMenu>
               ))}
+
 
             </div>
           )}
