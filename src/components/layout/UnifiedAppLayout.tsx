@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { AppMainNav } from './AppMainNav';
 import { SearchCommandPalette } from '@/components/search/SearchCommandPalette';
@@ -32,6 +32,7 @@ export const UnifiedAppLayout: React.FC<UnifiedAppLayoutProps> = ({
     }
   });
   const location = useLocation();
+  const navigate = useNavigate();
   const section = location.pathname.split('/').slice(0, 3).join('/');
 
   const handleSidebarOpenChange = (open: boolean) => {
@@ -53,9 +54,17 @@ export const UnifiedAppLayout: React.FC<UnifiedAppLayoutProps> = ({
   // Favicon / app badge with open conversations in the selected inbox
   useOpenConversationsBadge();
 
-  // Global Cmd+K / Ctrl+K (search) and Cmd+I / Ctrl+I (quick inbox switcher)
+  // Global Cmd+K / Ctrl+K (search), Cmd+I (quick inbox switcher), Cmd+H (home)
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
+      if ((e.key === 'h' || e.key === 'H') && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        e.stopPropagation();
+        setSearchOpen(false);
+        setInboxSwitcherOpen(false);
+        navigate('/');
+        return;
+      }
       if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
         setSearchOpen((prev) => !prev);
@@ -65,9 +74,9 @@ export const UnifiedAppLayout: React.FC<UnifiedAppLayoutProps> = ({
         setInboxSwitcherOpen((prev) => !prev);
       }
     };
-    window.addEventListener('keydown', down);
-    return () => window.removeEventListener('keydown', down);
-  }, []);
+    window.addEventListener('keydown', down, true);
+    return () => window.removeEventListener('keydown', down, true);
+  }, [navigate]);
 
   return (
     <SidebarProvider open={sidebarOpen} onOpenChange={handleSidebarOpenChange}>
