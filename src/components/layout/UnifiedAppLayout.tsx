@@ -55,6 +55,7 @@ export const UnifiedAppLayout: React.FC<UnifiedAppLayoutProps> = ({
       <SearchCommandPalette open={searchOpen} onOpenChange={setSearchOpen} />
       <QuickInboxSwitcher open={inboxSwitcherOpen} onOpenChange={setInboxSwitcherOpen} />
       <WhatsNewDialog />
+      <NewChatAlertBanner />
       <MobileEdgeSwipe />
 
       <div className="h-svh flex w-full bg-background">
