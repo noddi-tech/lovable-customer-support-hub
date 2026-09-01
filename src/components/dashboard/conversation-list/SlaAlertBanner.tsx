@@ -3,7 +3,7 @@ import { AlertTriangle, ArrowRight, Timer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { formatCountdown } from './SLABadge';
+import { formatCountdown } from '@/lib/sla';
 import type { Conversation } from '@/contexts/ConversationListContext';
 
 /** Anything due within this window counts as "about to break". */
