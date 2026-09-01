@@ -3,7 +3,7 @@
  *
  * Layers, in order:
  *   1. HTML  -> @u22n/mailtools parseMessage (quotations + signatures + remote content)
- *   2. Text  -> email-reply-parser (visible turn only)
+ *   2. Text  -> built-in reply stripper (visible turn only, browser-safe)
  *   3. Norwegian / Outlook second pass (Fra:/Sendt:, "Den ... skrev:") — the
  *      libraries do not cover these reliably.
  *   4. Safety net: never return an (almost) empty body when the original had content.
@@ -13,7 +13,7 @@
  * "show trimmed content" expander.
  */
 
-import EmailReplyParser from 'email-reply-parser';
+
 import { parseMessage } from '@u22n/mailtools';
 import { sanitizeEmailHTML } from '@/utils/htmlSanitizer';
 import { ENABLE_LIB_EMAIL_CLEAN } from '@/lib/parseQuotedEmail';
