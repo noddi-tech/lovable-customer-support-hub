@@ -77,7 +77,7 @@ const nodeText = (node: React.ReactNode): string => {
   if (node == null || typeof node === "boolean") return ""
   if (typeof node === "string" || typeof node === "number") return String(node)
   if (Array.isArray(node)) return node.map(nodeText).join(" ")
-  if (React.isValidElement(node)) return nodeText(node.props.children)
+  if (React.isValidElement<{ children?: React.ReactNode }>(node)) return nodeText(node.props.children)
   return ""
 }
 
@@ -88,7 +88,8 @@ const isSelectItem = (node: React.ReactNode): node is React.ReactElement =>
 const countItems = (children: React.ReactNode): number =>
   React.Children.toArray(children).reduce<number>((total, child) => {
     if (isSelectItem(child)) return total + 1
-    if (React.isValidElement(child)) return total + countItems(child.props.children)
+    if (React.isValidElement<{ children?: React.ReactNode }>(child))
+      return total + countItems(child.props.children)
     return total
   }, 0)
 
@@ -98,7 +99,10 @@ const filterItems = (children: React.ReactNode, query: string): React.ReactNode 
     if (isSelectItem(child)) {
       return nodeText(child.props.children).toLowerCase().includes(query) ? child : null
     }
-    if (React.isValidElement(child) && countItems(child.props.children) > 0) {
+    if (
+      React.isValidElement<{ children?: React.ReactNode }>(child) &&
+      countItems(child.props.children) > 0
+    ) {
       const kept = filterItems(child.props.children, query)
       const hasVisibleItem = React.Children.toArray(kept).some(Boolean)
       return hasVisibleItem ? React.cloneElement(child, child.props, kept) : null
