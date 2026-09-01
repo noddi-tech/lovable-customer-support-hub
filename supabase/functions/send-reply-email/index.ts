@@ -443,7 +443,7 @@ const handler = async (req: Request): Promise<Response> => {
       preheader: htmlToPlainText(bodyHtml).slice(0, 140),
     });
 
-    const plainText = isHtmlBody ? htmlToPlainText(rawContent) : rawContent;
+    const plainTextBody = isHtmlBody ? htmlToPlainText(rawContent) : rawContent;
 
     // Preview mode: render the exact customer-facing email without sending anything.
     if (previewOnly) {
