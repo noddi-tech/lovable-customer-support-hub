@@ -4,7 +4,18 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Loader2, Mail, MessageSquare, Briefcase, Trophy, Zap, Timer, Medal } from 'lucide-react';
+import {
+  Loader2,
+  Mail,
+  MessageSquare,
+  Briefcase,
+  Trophy,
+  Zap,
+  Timer,
+  Medal,
+  ArrowUpRight,
+  ArrowDownRight,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ChatMetricsDialog } from '@/components/dashboard/ChatMetricsDialog';
 import { formatMinutes } from '@/hooks/useInboxSupportMetrics';
@@ -32,6 +43,45 @@ const CHANNEL_DESCRIPTIONS: Record<string, string> = {
 };
 
 const MEDALS = ['🥇', '🥈', '🥉'];
+
+/**
+ * Arrow + percentage change against the equally long preceding window.
+ * Green means "better" — for times, lower is better.
+ */
+function Trend({
+  current,
+  previous,
+  higherIsBetter,
+  label,
+}: {
+  current: number | null | undefined;
+  previous: number | null | undefined;
+  higherIsBetter: boolean;
+  label: string;
+}) {
+  if (current == null || previous == null || previous === 0) return null;
+  const diff = current - previous;
+  const pct = Math.round((diff / Math.abs(previous)) * 100);
+  if (pct === 0) return null;
+
+  const up = diff > 0;
+  const good = higherIsBetter ? up : !up;
+  const Arrow = up ? ArrowUpRight : ArrowDownRight;
+
+  return (
+    <span
+      title={`${label}: ${up ? '+' : ''}${pct}% vs the previous period (${previous})`}
+      className={cn(
+        'inline-flex items-center gap-0.5 text-[10px] font-medium tabular-nums',
+        good ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400',
+      )}
+    >
+      <Arrow className="h-3 w-3" />
+      {Math.abs(pct)}%
+    </span>
+  );
+}
+
 
 function ChannelStat({ row }: { row: ChannelRow }) {
   const Icon = CHANNEL_ICONS[row.channel] ?? MessageSquare;
@@ -98,15 +148,29 @@ function LeaderRow({ row, rank }: { row: LeaderboardRow; rank: number }) {
         <div className="flex flex-wrap gap-x-3 text-[11px] text-muted-foreground">
           <span className="inline-flex items-center gap-1">
             <Trophy className="h-3 w-3" /> {row.resolved} resolved
+            <Trend current={row.resolved} previous={row.prev_resolved} higherIsBetter label="resolved" />
           </span>
           <span className="inline-flex items-center gap-1">
             <Zap className="h-3 w-3" /> {formatMinutes(row.median_first_response_minutes)} first reply
+            <Trend
+              current={row.median_first_response_minutes}
+              previous={row.prev_median_first_response_minutes}
+              higherIsBetter={false}
+              label="median first reply"
+            />
           </span>
           <span className="inline-flex items-center gap-1">
             <Timer className="h-3 w-3" /> {formatMinutes(row.median_resolve_minutes)} to resolve
+            <Trend
+              current={row.median_resolve_minutes}
+              previous={row.prev_median_resolve_minutes}
+              higherIsBetter={false}
+              label="median time to resolve"
+            />
           </span>
         </div>
       </div>
+
       <Badge variant={rank === 0 ? 'default' : 'secondary'} className="tabular-nums">
         {row.score} pts
       </Badge>
