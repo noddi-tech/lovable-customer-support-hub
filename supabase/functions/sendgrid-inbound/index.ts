@@ -204,6 +204,8 @@ Deno.serve(async (req: Request) => {
     const html = form.get("html") ? String(form.get("html")) : null;
     const text = form.get("text") ? String(form.get("text")) : null;
     const headersRaw = form.get("headers") ? String(form.get("headers")) : null;
+    // Importance / X-Priority flag set by the sender (Outlook's red "!" etc.)
+    const emailPriority = parseEmailPriority(headersRaw);
     const envelopeStr = form.get("envelope") ? String(form.get("envelope")) : null;
 
     const headerTo = extractEmail(toRaw);
@@ -464,6 +466,13 @@ Deno.serve(async (req: Request) => {
         .single();
       if (convErr) throw convErr;
       conversation_id = convIns.id;
+      // A high-importance email raises the thread's priority so it sorts to the top.
+      if (emailPriority === "high") {
+        await supabase
+          .from("conversations")
+          .update({ priority: "high" })
+          .eq("id", conversation_id);
+      }
       console.log(`[SendGrid-Inbound] Created conversation with ID: ${conversation_id} (type=${conversationType})`);
     } else {
       isNewConversation = false;
@@ -650,6 +659,7 @@ Deno.serve(async (req: Request) => {
         email_thread_id: threadKey,
         external_id: emailMessageId || `sg_${crypto.randomUUID()}`,
         attachments: attachments.length > 0 ? attachments : null,
+        metadata: { email_priority: emailPriority },
       })
       .select('id')
       .single();
