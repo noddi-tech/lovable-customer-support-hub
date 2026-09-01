@@ -25,6 +25,7 @@ import {
   CASE_PRIORITY_LABELS,
   useCaseCategories,
   useCases,
+  useUpdateCase,
   useCaseQueueCounts,
 
   type CasePriority,
