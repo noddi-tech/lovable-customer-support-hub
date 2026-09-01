@@ -274,6 +274,28 @@ export default function HomePage() {
                                 <Button
                                   variant="ghost"
                                   size="icon"
+                                  aria-label={`Support KPIs for ${inbox.name}`}
+                                  className="h-9 w-9 sm:h-7 sm:w-7 text-muted-foreground hover:text-foreground"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setMetricsInbox({ id: inbox.id, name: inbox.name });
+                                  }}
+                                >
+                                  <Gauge className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>SLA & support KPIs</TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )}
+
+                        {isConfigured && (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
                                   aria-label={`Configure ${inbox.name}`}
                                   className="h-7 w-7 text-muted-foreground hover:text-foreground"
                                   onClick={(e) => {
@@ -288,6 +310,7 @@ export default function HomePage() {
                             </Tooltip>
                           </TooltipProvider>
                         )}
+
                       </div>
                     </CardContent>
                   </Card>
