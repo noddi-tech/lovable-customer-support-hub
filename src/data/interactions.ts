@@ -365,12 +365,14 @@ function applyFilters(conversations: ConversationRow[], params: {
         filtered = filtered.filter(c => c.unread && !c.isDeleted);
         break;
       case 'assigned':
-        // Filter by current user's profile ID for "Assigned to Me"
-        if (params.currentUserProfileId) {
-          filtered = filtered.filter(c => c.assigneeId === params.currentUserProfileId && !c.isDeleted);
-        } else {
-          filtered = filtered.filter(c => !!c.assignee && !c.isDeleted);
-        }
+        // "Assigned to Me" = active work only: skip closed, archived and deleted threads
+        // so the tab always matches the counter in the sidebar.
+        filtered = filtered.filter(c =>
+          (params.currentUserProfileId ? c.assigneeId === params.currentUserProfileId : !!c.assignee)
+          && c.status !== 'closed'
+          && !c.isArchived
+          && !c.isDeleted
+        );
         break;
       case 'pending':
         filtered = filtered.filter(c => c.status === 'pending' && !c.isDeleted);
