@@ -145,6 +145,63 @@ const NotificationsPage = () => {
     return result;
   }, [notifications, searchQuery, sortConfig]);
 
+  // ---- Multi-select (cmd/ctrl click = toggle, shift click = range) ----
+  const handleRowClick = (n: EnhancedNotification, e: React.MouseEvent) => {
+    if (e.metaKey || e.ctrlKey) {
+      e.preventDefault();
+      setSelectedIds(prev =>
+        prev.includes(n.id) ? prev.filter(id => id !== n.id) : [...prev, n.id]
+      );
+      setLastClickedId(n.id);
+      return;
+    }
+
+    if (e.shiftKey) {
+      e.preventDefault();
+      const anchor = lastClickedId ?? n.id;
+      const from = sortedAndFiltered.findIndex(x => x.id === anchor);
+      const to = sortedAndFiltered.findIndex(x => x.id === n.id);
+      if (from !== -1 && to !== -1) {
+        const [start, end] = from <= to ? [from, to] : [to, from];
+        const rangeIds = sortedAndFiltered.slice(start, end + 1).map(x => x.id);
+        setSelectedIds(prev => Array.from(new Set([...prev, ...rangeIds])));
+      }
+      return;
+    }
+
+    if (selectedIds.length > 0) {
+      setSelectedIds([]);
+    }
+    setLastClickedId(n.id);
+    handleNavigate(n);
+  };
+
+  const handleContextMenuOpen = (n: EnhancedNotification) => {
+    // Right-clicking a row outside the current selection selects just that row
+    if (!selectedIds.includes(n.id)) {
+      setSelectedIds([n.id]);
+      setLastClickedId(n.id);
+    }
+  };
+
+  const targetIds = (n: EnhancedNotification) =>
+    selectedIds.includes(n.id) && selectedIds.length > 0 ? selectedIds : [n.id];
+
+  const bulkMarkRead = (ids: string[], isRead: boolean) => {
+    markMany({ ids, isRead });
+    toast.success(
+      `${ids.length} notification${ids.length === 1 ? '' : 's'} marked as ${isRead ? 'read' : 'unread'}`
+    );
+    setSelectedIds([]);
+  };
+
+  const bulkDelete = (ids: string[]) => {
+    deleteMany(ids);
+    toast.success(`${ids.length} notification${ids.length === 1 ? '' : 's'} deleted`);
+    setSelectedIds([]);
+  };
+
+
   return (
     <UnifiedAppLayout>
       <div className="flex flex-col h-full">
