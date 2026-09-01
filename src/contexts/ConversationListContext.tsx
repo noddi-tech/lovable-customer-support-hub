@@ -458,7 +458,8 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
               case "assigned":
                 return !!conversation.assigned_to 
                   && conversation.assigned_to.id === profile?.id
-                  && !isSnoozedActive 
+              && conversation.status !== 'closed'
+              && !conversation.is_archived                  && !isSnoozedActive 
                   && !conversation.is_deleted;
               case "closed":
                 return conversation.status === 'closed' 
@@ -652,7 +653,8 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
           case "assigned":
             return !!conversation.assigned_to 
               && conversation.assigned_to.id === profile?.id
-              && !isSnoozedActive 
+              && conversation.status !== 'closed'
+              && !conversation.is_archived              && !isSnoozedActive 
               && !conversation.is_deleted;
           case "closed":
             return conversation.status === 'closed' 
