@@ -3,19 +3,13 @@ import { renderEmailLayout, plainTextToHtml, htmlToPlainText } from '../_shared/
 import { buildPriorityHeaders } from '../_shared/email-priority.ts';
 import { resolveBrandTheme } from '../_shared/brand-theme.ts';
 import { getCompanyInfo, renderCompanyFooterHtml } from '../_shared/email-company-info.ts';
+import { buildBodyToken, buildHtmlToken, buildStructuredMessageId } from '../_shared/email-threading.ts';
 
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
-
-// Helper to safely create a RFC 5322 Message-ID using the sender domain
-function createMessageId(fromEmail: string) {
-  const domain = fromEmail.split('@')[1] || 'mail.local';
-  const id = (crypto as any).randomUUID?.() || Math.random().toString(36).slice(2);
-  return `<msg-${id}@${domain}>`;
-}
 
 // Extract an email address from a "Name <email>" or bare "email" string
 function extractEmail(s: string): string | null {
@@ -442,7 +436,7 @@ const handler = async (req: Request): Promise<Response> => {
       preheader: htmlToPlainText(bodyHtml).slice(0, 140),
     });
 
-    const plainText = isHtmlBody ? htmlToPlainText(rawContent) : rawContent;
+    const plainTextBody = isHtmlBody ? htmlToPlainText(rawContent) : rawContent;
 
     // Preview mode: render the exact customer-facing email without sending anything.
     if (previewOnly) {
@@ -459,8 +453,16 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
+    // Hidden thread token: survives quoted replies even when headers and
+    // subject are stripped, so inbound matching can still find this thread.
+    const threadTokenHtml = buildHtmlToken(message.conversation_id);
+    const htmlWithToken = /<\/body>/i.test(emailHTML)
+      ? emailHTML.replace(/<\/body>/i, `${threadTokenHtml}</body>`)
+      : `${emailHTML}${threadTokenHtml}`;
+    const plainText = `${plainTextBody}\n\n${buildBodyToken(message.conversation_id)}`;
+
     // Monitor email size to prevent Gmail clipping (102KB limit)
-    const estimatedSize = emailHTML.length + plainText.length + 2000; // +2KB for headers
+    const estimatedSize = htmlWithToken.length + plainText.length + 2000; // +2KB for headers
     console.log(`📧 Email size: ${(estimatedSize/1024).toFixed(1)}KB (HTML: ${(emailHTML.length/1024).toFixed(1)}KB, Plain: ${(plainText.length/1024).toFixed(1)}KB)`);
     
     if (estimatedSize > 90000) {  // Warn at 90KB (before 102KB limit)
@@ -498,7 +500,8 @@ const handler = async (req: Request): Promise<Response> => {
       }
     }
 
-    const messageIdHeader = createMessageId(fromEmailFinal);
+    // Structured Message-ID: one header lookup resolves the thread directly.
+    const messageIdHeader = buildStructuredMessageId(message.conversation_id, fromEmailFinal);
     const headers: Record<string, string> = {
       'Message-ID': messageIdHeader,
     };
@@ -541,7 +544,7 @@ const handler = async (req: Request): Promise<Response> => {
       subject,
       content: [
         { type: 'text/plain', value: plainText },
-        { type: 'text/html', value: emailHTML },
+        { type: 'text/html', value: htmlWithToken },
       ],
       headers,
       ...(sgAttachments.length > 0 ? { attachments: sgAttachments } : {}),
