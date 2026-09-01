@@ -97,7 +97,8 @@ export const useNotificationFilters = (selectedCategory: NotificationCategory = 
     staleTime: 30000,
   });
 
-  // Exact unread count from the database (the list above is capped at 100 rows)
+  // Exact unread count from the database, restricted to the personal feed
+  // (mentions, assignments, calls) since the list above is capped at 100 rows.
   const { data: totalUnread = 0 } = useQuery({
     queryKey: ['notifications-unread-total', user?.id],
     enabled: !!user,
@@ -107,11 +108,13 @@ export const useNotificationFilters = (selectedCategory: NotificationCategory = 
         .from('notifications')
         .select('id', { count: 'exact', head: true })
         .eq('user_id', user!.id)
-        .eq('is_read', false);
+        .eq('is_read', false)
+        .or('type.ilike.%mention%,type.ilike.%assign%,type.ilike.%call%,type.ilike.%voicemail%');
       if (error) throw error;
       return count ?? 0;
     },
   });
+
 
   // Enhance notifications with priority and category
   const enhancedNotifications = useMemo(() => {
