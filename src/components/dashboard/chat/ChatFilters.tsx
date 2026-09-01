@@ -41,17 +41,16 @@ export const ChatFilters: React.FC<ChatFiltersProps> = ({
           )}
         >
           {filter.label}
-          {filter.count > 0 && (
-            <Badge 
-              variant={currentFilter === filter.key ? "secondary" : "outline"}
-              className={cn(
-                "flex items-center justify-center text-[10px] px-1.5 py-0 h-5 min-w-[20px] shrink-0",
-                currentFilter === filter.key && "bg-primary-foreground/20 text-primary-foreground"
-              )}
-            >
-              {filter.count}
-            </Badge>
-          )}
+          <Badge 
+            variant={currentFilter === filter.key ? "secondary" : "outline"}
+            className={cn(
+              "flex items-center justify-center text-[10px] px-1.5 py-0 h-5 min-w-[20px] shrink-0",
+              currentFilter === filter.key && "bg-primary-foreground/20 text-primary-foreground"
+            )}
+          >
+            {filter.count}
+          </Badge>
+
         </button>
       ))}
     </div>
