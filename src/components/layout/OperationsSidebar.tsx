@@ -16,7 +16,7 @@ import {
   Users,
   BarChart3,
   Send,
-  Settings,
+
   ArrowLeft
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
