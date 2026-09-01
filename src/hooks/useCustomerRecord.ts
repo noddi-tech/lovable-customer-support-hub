@@ -1,7 +1,16 @@
+import { useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import {
+  isNoddiNoteId,
+  noddiNotesApi,
+  parseNoddiNoteId,
+  toNoddiNoteId,
+  useNoddiNotes,
+  useNoddiUserGroupIdForCustomer,
+} from '@/hooks/useNoddiNotes';
 
 const sel = (s: string): string => s;
 
@@ -22,6 +31,8 @@ export interface CustomerNote {
   created_at: string;
   updated_at: string;
   author?: { id: string; full_name: string | null } | null;
+  /** Where the note is stored: the Support Hub database or Noddi. */
+  source?: 'local' | 'noddi';
 }
 
 export interface CustomerConversationSummary {
