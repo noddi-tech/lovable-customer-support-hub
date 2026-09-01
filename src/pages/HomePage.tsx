@@ -165,28 +165,29 @@ export default function HomePage() {
                     )}
                     onClick={isConfigured ? () => navigate(`/interactions/text/open?inbox=${inbox.id}`) : undefined}
                   >
-                    <CardContent className="p-3 flex flex-col gap-2">
+                    <CardContent className="flex min-h-[64px] flex-col gap-2 p-3.5 sm:p-3">
                       <div className="flex items-start gap-3 min-w-0">
                         <span
                           className="h-2.5 w-2.5 rounded-full shrink-0 mt-1.5"
                           style={{ backgroundColor: isConfigured ? (inbox.color || 'hsl(var(--primary))') : 'hsl(var(--muted-foreground) / 0.4)' }}
                         />
                         <div className="min-w-0 flex flex-col leading-tight">
-                          <span className={cn('text-sm font-medium truncate flex items-center gap-1.5', isConfigured ? 'text-foreground' : 'text-muted-foreground')}>
-                            {inbox.name}
+                          <span className={cn('flex flex-wrap items-center gap-1.5 text-[15px] font-medium sm:text-sm', isConfigured ? 'text-foreground' : 'text-muted-foreground')}>
+                            <span className="break-words">{inbox.name}</span>
                             {isDefault && (
                               <Badge variant="outline" className="h-4 px-1.5 text-[9px] border-primary/40 text-primary">
                                 Default
                               </Badge>
                             )}
                           </span>
-                          <span className="text-[11px] text-muted-foreground break-all">
+                          <span className="text-xs text-muted-foreground break-all sm:text-[11px]">
                             {isConfigured ? email : 'Not configured'}
                           </span>
                         </div>
                       </div>
 
-                      <div className="flex flex-wrap items-center gap-1 sm:gap-2 pl-[22px]">
+                      <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 pl-[22px]">
+
 
                         {isConfigured ? (
                           <>
