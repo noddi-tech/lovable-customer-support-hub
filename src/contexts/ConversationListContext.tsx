@@ -82,6 +82,8 @@ interface ConversationListState {
   /** Selected tag ids, or the UNTAGGED sentinel. Empty means no tag filter. */
   tagFilter: string[];
   purposeFilter: PurposeFilter;
+  /** Channel chip: 'all', a conversation channel, or 'social' (facebook+instagram). */
+  channelFilter: string;
   sortBy: SortBy;
   deleteDialogOpen: boolean;
   conversationToDelete: string | null;
@@ -101,6 +103,7 @@ type ConversationListAction =
   | { type: 'SET_BRAND_FILTER'; payload: string }
   | { type: 'SET_TAG_FILTER'; payload: string[] }
   | { type: 'SET_PURPOSE_FILTER'; payload: PurposeFilter }
+  | { type: 'SET_CHANNEL_FILTER'; payload: string }
   | { type: 'SET_SORT_BY'; payload: SortBy }
   | { type: 'TOGGLE_FILTERS' }
   | { type: 'OPEN_DELETE_DIALOG'; payload: string }
@@ -134,6 +137,7 @@ const initialState: ConversationListState = {
   brandFilter: 'all',
   tagFilter: [],
   purposeFilter: loadPurposeFilter(),
+  channelFilter: 'all',
   sortBy: 'latest',
   deleteDialogOpen: false,
   conversationToDelete: null,
@@ -157,6 +161,8 @@ function conversationListReducer(state: ConversationListState, action: Conversat
       return { ...state, purposeFilter: action.payload, currentPage: 1 };
     case 'SET_PRIORITY_FILTER':
       return { ...state, priorityFilter: action.payload, currentPage: 1 };
+    case 'SET_CHANNEL_FILTER':
+      return { ...state, channelFilter: action.payload, currentPage: 1 };
     case 'SET_BRAND_FILTER':
       return { ...state, brandFilter: action.payload, currentPage: 1 };
     case 'SET_TAG_FILTER':
@@ -238,6 +244,8 @@ interface ConversationListContextType {
   paginatedConversations: Conversation[];
   /** Rows in this inbox/tab hidden by the active filter chips. */
   hiddenByFiltersCount: number;
+  /** Row counts per channel chip, before the channel filter is applied. */
+  channelCounts: Record<string, number>;
   bulkMarkAsRead: () => void;
   bulkMarkAsUnread: () => void;
   bulkChangeStatus: (status: string) => void;
@@ -1084,6 +1092,7 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
     toggleConversationRead,
     filteredConversations: filteredAndSortedConversations,
     hiddenByFiltersCount,
+    channelCounts,
     paginatedConversations: filteredAndSortedConversations.slice(
       (state.currentPage - 1) * state.pageSize,
       state.currentPage * state.pageSize
