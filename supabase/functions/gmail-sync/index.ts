@@ -743,7 +743,7 @@ async function syncGmailMessages(account: any, supabaseClient: any, folder: 'inb
           email_status: folder === 'sent' ? 'sent' : 'pending',
         };
 
-        const { data: existingMessage } = await supabaseClient
+        const { data: priorMessageRow } = await supabaseClient
           .from('messages')
           .select('id')
           .eq('external_id', message.id)
@@ -752,11 +752,11 @@ async function syncGmailMessages(account: any, supabaseClient: any, folder: 'inb
         let insertedMessage: { id: string } | null = null;
         let insertError: unknown = null;
 
-        if (existingMessage) {
+        if (priorMessageRow) {
           const { data, error } = await supabaseClient
             .from('messages')
             .update(messageRow)
-            .eq('id', existingMessage.id)
+            .eq('id', priorMessageRow.id)
             .select('id')
             .single();
           insertedMessage = data;
