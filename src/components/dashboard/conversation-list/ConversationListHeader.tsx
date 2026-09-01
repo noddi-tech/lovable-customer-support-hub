@@ -25,6 +25,8 @@ import { useIsMobile } from "@/hooks/use-responsive";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
+import { useAccessibleInboxes } from "@/hooks/useInteractionsData";
+import { useInboxOutstandingCounts } from "@/hooks/useInboxOutstandingCounts";
 
 interface ConversationListHeaderProps {
   onToggleCollapse?: () => void;
@@ -351,7 +353,7 @@ export const ConversationListHeader = ({
             </SelectContent>
           </Select>
 
-          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar -mx-1.5 px-1.5 pb-0.5">
+          <div className="flex items-center gap-1.5 overflow-x-auto -mx-1.5 px-1.5 pb-0.5">
             {([
               { v: 'all', label: t('dashboard.conversationList.allStatus', 'All Status') },
               { v: 'open', label: t('dashboard.conversationList.open', 'Open') },
