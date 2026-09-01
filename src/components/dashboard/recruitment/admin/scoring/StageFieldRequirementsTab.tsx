@@ -267,7 +267,7 @@ const StageRequirementCard: React.FC<StageCardProps> = ({
               </SelectContent>
             </Select>
             <Select value={type} onValueChange={(v) => setType(v as RequirementType)}>
-              <SelectTrigger className="w-[140px]">
+              <SelectTrigger className="w-full sm:w-[140px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

@@ -468,7 +468,7 @@ export function KnowledgeImportFromHistory({ organizationId }: KnowledgeImportFr
                               }));
                             }}
                           >
-                            <SelectTrigger className="w-[200px]">
+                            <SelectTrigger className="w-full sm:w-[200px]">
                               <SelectValue placeholder="Select category" />
                             </SelectTrigger>
                             <SelectContent>

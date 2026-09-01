@@ -390,7 +390,7 @@ export function BulkImportDialog({ open, onOpenChange, integrationId }: Props) {
                 </div>
 
                 {breakdown && (
-                  <div className="grid grid-cols-4 gap-2 text-center text-xs">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
                     <div className="rounded-md border p-2">
                       <div className="text-muted-foreground">Importert</div>
                       <div className="font-semibold text-emerald-600">{breakdown.imported}</div>

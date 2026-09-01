@@ -115,7 +115,7 @@ export const SyncUnlinkedCallsButton = () => {
             {result && (
               <div className="mt-4 p-4 bg-muted rounded-lg space-y-2">
                 <h4 className="font-semibold">Sync Results:</h4>
-                <div className="grid grid-cols-4 gap-2 text-sm">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-sm">
                   <div className="flex items-center gap-1">
                     <AlertCircle className="h-4 w-4 text-blue-500" />
                     <span>Total: {result.total}</span>

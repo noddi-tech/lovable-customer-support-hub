@@ -206,7 +206,7 @@ export default function CasesPage() {
                 />
               </div>
               <Select value={categoryId} onValueChange={setCategoryId}>
-                <SelectTrigger className="h-9 w-[150px]">
+                <SelectTrigger className="h-9 w-full min-w-[140px] flex-1 sm:w-[150px] sm:flex-none">
                   <SelectValue placeholder="Category" />
                 </SelectTrigger>
                 <SelectContent>
@@ -219,7 +219,7 @@ export default function CasesPage() {
                 </SelectContent>
               </Select>
               <Select value={priority} onValueChange={setPriority}>
-                <SelectTrigger className="h-9 w-[140px]">
+                <SelectTrigger className="h-9 w-full min-w-[140px] flex-1 sm:w-[140px] sm:flex-none">
                   <SelectValue placeholder="Priority" />
                 </SelectTrigger>
                 <SelectContent>

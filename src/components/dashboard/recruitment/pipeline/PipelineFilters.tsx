@@ -22,12 +22,12 @@ const PipelineFilters: React.FC<Props> = ({ value, onChange, totalCount }) => {
   const openPositions = (positions ?? []).filter((p) => p.status === 'open');
 
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
       <Select
         value={value.positionId}
         onValueChange={(v) => onChange({ ...value, positionId: v })}
       >
-        <SelectTrigger className="w-[220px]">
+        <SelectTrigger className="w-full sm:w-[220px]">
           <SelectValue placeholder="Stilling" />
         </SelectTrigger>
         <SelectContent>
@@ -44,7 +44,7 @@ const PipelineFilters: React.FC<Props> = ({ value, onChange, totalCount }) => {
         value={value.assignedTo}
         onValueChange={(v) => onChange({ ...value, assignedTo: v })}
       >
-        <SelectTrigger className="w-[200px]">
+        <SelectTrigger className="w-full sm:w-[200px]">
           <SelectValue placeholder="Tilordnet" />
         </SelectTrigger>
         <SelectContent>

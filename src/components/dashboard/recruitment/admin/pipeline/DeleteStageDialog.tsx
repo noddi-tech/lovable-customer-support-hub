@@ -78,7 +78,7 @@ export function DeleteStageDialog({
                   setAssignments((prev) => ({ ...prev, [stage.id]: v }))
                 }
               >
-                <SelectTrigger className="w-[180px]">
+                <SelectTrigger className="w-full sm:w-[180px]">
                   <SelectValue placeholder="Flytt til..." />
                 </SelectTrigger>
                 <SelectContent>

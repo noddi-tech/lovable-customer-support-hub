@@ -190,7 +190,7 @@ export const VoiceDashboard = () => {
 
       {/* Main Content */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4 gap-1">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 gap-1">
           <TabsTrigger value="recent" className="gap-1.5 px-1 text-xs sm:gap-2 sm:px-3 sm:text-sm">
             <Phone className="h-4 w-4 shrink-0" />
             <span className="truncate">{isMobile ? 'Recent' : 'Recent Calls'}</span>

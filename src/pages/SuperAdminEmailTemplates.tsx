@@ -703,7 +703,7 @@ __html: sanitizeTemplateHTML(
           </CardHeader>
           <CardContent>
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid grid-cols-4 w-full">
+              <TabsList className="grid grid-cols-2 sm:grid-cols-4 w-full">
                 {TEMPLATE_TYPES.map(config => (
                   <TabsTrigger key={config.type} value={config.type}>
                     {config.label}

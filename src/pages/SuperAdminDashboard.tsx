@@ -259,9 +259,9 @@ export default function SuperAdminDashboard() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
               <Select value={currentOrganizationId || ''} onValueChange={handleOrgChange}>
-                <SelectTrigger className="w-[320px]">
+                <SelectTrigger className="w-full sm:w-[320px]">
                   <SelectValue placeholder="Select an organization..." />
                 </SelectTrigger>
                 <SelectContent>

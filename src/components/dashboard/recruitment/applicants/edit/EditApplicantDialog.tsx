@@ -266,7 +266,7 @@ const EditApplicantDialog: React.FC<Props> = ({ open, onOpenChange, applicant })
               <h4 className="text-sm font-semibold">Kvalifikasjoner</h4>
               <div className="space-y-2">
                 <Label>Førerkortklasser</Label>
-                <div className="grid grid-cols-4 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {LICENSE_CLASSES.map((cls) => (
                     <label key={cls} className="flex items-center gap-2 cursor-pointer text-sm">
                       <Checkbox
