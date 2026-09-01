@@ -31,44 +31,18 @@ export function InboxMetricsDialog({ open, onOpenChange, inboxId, inboxName }: I
   const { data, isLoading, error } = useInboxSupportMetrics(inboxId, days, open);
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Gauge className="h-4 w-4" /> {inboxName} — support KPIs
-          </DialogTitle>
-          <DialogDescription>
-            Standard ticketing metrics for this inbox. Hover any tile to see exactly what it measures.
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="flex items-center gap-1">
-          {RANGES.map((r) => (
-            <Button
-              key={r}
-              size="sm"
-              variant={days === r ? 'secondary' : 'ghost'}
-              className="h-7 px-2 text-xs"
-              onClick={() => setDays(r)}
-            >
-              Last {r} days
-            </Button>
-          ))}
-        </div>
-
-        {isLoading && (
-          <div className="flex items-center gap-2 py-10 justify-center text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" /> Calculating metrics…
-          </div>
-        )}
-
-        {error && (
-          <p className="py-6 text-sm text-destructive">
-            Could not load metrics: {(error as Error).message}
-          </p>
-        )}
-
-        {data && !isLoading && (
+    <MetricsDialogShell
+      open={open}
+      onOpenChange={onOpenChange}
+      icon={Gauge}
+      title={`${inboxName} — support KPIs`}
+      description="Standard ticketing metrics for this inbox. Hover any tile to see exactly what it measures."
+      days={days}
+      onDaysChange={setDays}
+      isLoading={isLoading}
+      error={(error as Error) ?? null}
+    >
+      {data && (
           <div className="space-y-5">
             <section className="space-y-2">
               <SectionTitle icon={Timer}>First reply</SectionTitle>
