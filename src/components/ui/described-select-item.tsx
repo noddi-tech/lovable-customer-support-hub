@@ -4,7 +4,7 @@ import { SelectItem } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface DescribedSelectItemProps
-  extends React.ComponentPropsWithoutRef<typeof SelectItem> {
+  extends Omit<React.ComponentPropsWithoutRef<typeof SelectItem>, "title"> {
   /** Detailed explanation of what this value means and what it causes. */
   description?: React.ReactNode;
   /** Optional bold title shown above the description. */
