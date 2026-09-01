@@ -175,16 +175,8 @@ export const AppMainNav = () => {
                             )}
                             {...(itemIsActive && { "aria-current": "page" })}
                           >
-                            <span className="relative mr-2 flex h-4 w-4 items-center justify-center">
-                              <Icon className={cn("h-4 w-4", showBadge && "text-destructive")} />
-                              {showBadge && (
-                                <span
-                                  aria-hidden
-                                  className="absolute -top-1.5 -right-2 min-w-[15px] h-[15px] px-1 rounded-full bg-destructive text-destructive-foreground text-[9px] leading-[15px] font-semibold text-center"
-                                >
-                                  {badgeCount > 99 ? '99+' : badgeCount}
-                                </span>
-                              )}
+                            <span className="mr-2 flex h-4 w-4 items-center justify-center">
+                              <Icon className="h-4 w-4" />
                             </span>
                             {!isCollapsed && (
                               <span className="flex-1 flex items-center justify-between">
