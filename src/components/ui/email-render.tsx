@@ -12,6 +12,7 @@ import { debug } from '@/utils/debug';
 import { logger } from '@/utils/logger';
 import { supabase } from '@/integrations/supabase/client';
 import { buildAttachmentUrl } from '@/utils/attachmentUrl';
+import { useCleanedEmailBody } from '@/hooks/useCleanedEmailBody';
 
 interface EmailRenderProps {
   content: string;
@@ -255,6 +256,12 @@ const EmailRenderComponent: React.FC<EmailRenderProps> = ({
     return hasHTMLTags;
   }, [content, contentType]);
 
+  // Clean v2: quotes / signatures / legal footers stripped by
+  // @u22n/mailtools + email-reply-parser. Off unless the flag or ?cleanv2=1
+  // is set; the original body is always kept for the "show original" toggle.
+  const cleanedBody = useCleanedEmailBody(content, isHTML);
+  const effectiveContent = cleanedBody.visible || content;
+
   const processedContent = useMemo(() => {
     logger.time('processedContent', 'EmailRender');
     logger.debug('Processing email content - MEMO RUNNING', { 
@@ -265,7 +272,7 @@ const EmailRenderComponent: React.FC<EmailRenderProps> = ({
       attachmentsRef: attachments.length > 0 ? 'has attachments' : 'no attachments'
     }, 'EmailRender');
     
-    let normalized = fixEncodingIssues(content);
+    let normalized = fixEncodingIssues(effectiveContent);
     
     // CRITICAL: Decode HTML entities for BOTH HTML and plain text content
     // This handles Gmail/Outlook sending &lt;br/&gt; in plain text emails
@@ -297,7 +304,7 @@ const EmailRenderComponent: React.FC<EmailRenderProps> = ({
     
     logger.timeEnd('processedContent', 'EmailRender');
     return result;
-  }, [content, isHTML, attachments, messageId, contentType]);
+  }, [effectiveContent, isHTML, attachments, messageId, contentType]);
 
   const contentWithCollapsibleSections = useMemo(() => {
     if (!isHTML) {
@@ -644,6 +651,18 @@ const EmailRenderComponent: React.FC<EmailRenderProps> = ({
       <div className="email-render__content overflow-x-auto max-w-full" role="main">
         {renderContent()}
       </div>
+
+      {/* Clean v2 stripped a quote/signature — the original is never discarded */}
+      {cleanedBody.cleaned && (
+        <CollapsibleSection
+          id={`original-${messageId || 'msg'}`}
+          buttonText="Show original message"
+        >
+          <pre className="whitespace-pre-wrap break-words text-xs text-muted-foreground border-l-2 border-muted-foreground/30 pl-3">
+            {content}
+          </pre>
+        </CollapsibleSection>
+      )}
       
       {/* Attachments */}
       {(() => {

@@ -1,3 +1,5 @@
+import { cleanPlainTextBody } from '@/lib/emailClean';
+
 /**
  * Clean an email preview string for compact list display.
  * - Decodes HTML entities (&nbsp; &lt; &amp; etc.)
@@ -50,8 +52,12 @@ export function cleanEmailPreview(input: string | null | undefined, maxLen = 240
   // Strip "> " quoted lines and zero-width chars
   s = s.split('\n')
        .filter(line => !/^\s*>+/.test(line))
-       .join(' ');
+       .join('\n');
   s = s.replace(/[\u200B-\u200D\uFEFF]/g, '');
+
+  // Same cleaner as the thread view so previews and bubbles agree (no-op when
+  // the clean v2 flag is off).
+  s = cleanPlainTextBody(s).visible;
 
   // Collapse whitespace
   s = s.replace(/\s+/g, ' ').trim();
