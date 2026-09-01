@@ -18,8 +18,10 @@ import {
   ArrowRight,
   CheckCircle2,
   AlertCircle,
-  RefreshCw
+  RefreshCw,
+  FunctionSquare
 } from "lucide-react";
+import { EDGE_FUNCTIONS } from "@/data/edge-functions.generated";
 
 interface NavigationCard {
   title: string;
