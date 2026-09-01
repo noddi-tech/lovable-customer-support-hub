@@ -11,6 +11,7 @@ import { BrandBadge } from './BrandBadge';
 import { TagBadgeList } from '@/components/tags/TagBadge';
 import { useEntityTags } from '@/hooks/useEntityTags';
 import { cn } from '@/lib/utils';
+import { channelIcon, channelLabel } from '@/lib/conversationChannels';
 import { useDateFormatting } from '@/hooks/useDateFormatting';
 import { useConversationList, type Conversation } from '@/contexts/ConversationListContext';
 import { useOptimizedCounts } from '@/hooks/useOptimizedCounts';

@@ -7,6 +7,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import {
   Loader2,
   Mail,
+  MessageCircle,
   MessageSquare,
   Briefcase,
   Trophy,
@@ -30,12 +31,18 @@ import {
 
 const CHANNEL_ICONS: Record<string, typeof Mail> = {
   email: Mail,
+  sms: MessageSquare,
+  whatsapp: MessageCircle,
   widget: MessageSquare,
   cases: Briefcase,
   voice: Phone,
 };
 
 const CHANNEL_DESCRIPTIONS: Record<string, string> = {
+  sms:
+    'Text messages (SMS) received in the last 30 days. They sit in the same Inbox as email, so this row is the SMS slice of it.',
+  whatsapp:
+    'WhatsApp conversations received in the last 30 days. They sit in the same Inbox as email, so this row is the WhatsApp slice of it.',
   email:
     'Email tickets received in the last 30 days. "Waiting" counts open threads where the customer sent the last message, so the ball is in our court.',
   widget:
