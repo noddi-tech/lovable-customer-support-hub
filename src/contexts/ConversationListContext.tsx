@@ -3,6 +3,7 @@ import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tansta
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
+import { getConversationBrand } from '@/lib/conversationBrand';
 import { logger } from '@/utils/logger';
 import { groupConversationsByThread } from '@/lib/conversationThreading';
 import { useAgents, toAgentSimple } from '@/hooks/useAgents';
@@ -73,6 +74,8 @@ interface ConversationListState {
   searchQuery: string;
   statusFilter: string;
   priorityFilter: string;
+  /** Brand key from conversation metadata, 'all' or 'unknown' (no brand). */
+  brandFilter: string;
   purposeFilter: PurposeFilter;
   sortBy: SortBy;
   deleteDialogOpen: boolean;
@@ -90,6 +93,7 @@ type ConversationListAction =
   | { type: 'SET_SEARCH_QUERY'; payload: string }
   | { type: 'SET_STATUS_FILTER'; payload: string }
   | { type: 'SET_PRIORITY_FILTER'; payload: string }
+  | { type: 'SET_BRAND_FILTER'; payload: string }
   | { type: 'SET_PURPOSE_FILTER'; payload: PurposeFilter }
   | { type: 'SET_SORT_BY'; payload: SortBy }
   | { type: 'TOGGLE_FILTERS' }
@@ -121,6 +125,7 @@ const initialState: ConversationListState = {
   searchQuery: '',
   statusFilter: 'all',
   priorityFilter: 'all',
+  brandFilter: 'all',
   purposeFilter: loadPurposeFilter(),
   sortBy: 'latest',
   deleteDialogOpen: false,
@@ -145,6 +150,8 @@ function conversationListReducer(state: ConversationListState, action: Conversat
       return { ...state, purposeFilter: action.payload, currentPage: 1 };
     case 'SET_PRIORITY_FILTER':
       return { ...state, priorityFilter: action.payload, currentPage: 1 };
+    case 'SET_BRAND_FILTER':
+      return { ...state, brandFilter: action.payload, currentPage: 1 };
     case 'SET_SORT_BY':
       return { ...state, sortBy: action.payload };
     case 'TOGGLE_FILTERS':
@@ -606,6 +613,8 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
       const matchesStatus = isTabHandlingStatus || state.statusFilter === "all" || conversation.status === state.statusFilter;
       
       const matchesPriority = state.priorityFilter === "all" || conversation.priority === state.priorityFilter;
+      const matchesBrand = state.brandFilter === 'all' ||
+        (getConversationBrand(conversation.metadata, conversation.channel)?.key ?? 'unknown') === state.brandFilter;
       const matchesInbox = effectiveInboxIds.length === 0 || effectiveInboxIds.includes(conversation.inbox_id || '');
       const convPurpose = (conversation.conversation_type === 'recruitment') ? 'recruitment' : 'support';
       const matchesPurpose = state.purposeFilter === 'all' || convPurpose === state.purposeFilter;
@@ -669,7 +678,7 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
         }
       })();
 
-      const visible = matchesSearch && matchesStatus && matchesPriority && matchesInbox && matchesPurpose && matchesTab;
+      const visible = matchesSearch && matchesStatus && matchesPriority && matchesBrand && matchesInbox && matchesPurpose && matchesTab;
 
       // Track rows that belong to this inbox/tab but are hidden by the
       // search / status / priority / purpose filter chips, so the UI can say
@@ -747,7 +756,7 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
       }
     });
     return { list: sortedByRecency, hiddenCount };
-  }, [conversations, state.searchQuery, state.statusFilter, state.priorityFilter, state.purposeFilter, state.sortBy, state.tableSort, selectedTab, selectedInboxId, effectiveInboxId, effectiveInboxIds]);
+  }, [conversations, state.searchQuery, state.statusFilter, state.priorityFilter, state.brandFilter, state.purposeFilter, state.sortBy, state.tableSort, selectedTab, selectedInboxId, effectiveInboxId, effectiveInboxIds]);
 
   // Comprehensive debug logging
   logger.debug('Filter state', {
