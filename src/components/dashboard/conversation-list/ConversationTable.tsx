@@ -21,6 +21,7 @@ export const ConversationTable = memo<ConversationTableProps>(({
   const {
     filteredConversations,
     paginatedConversations,
+    hiddenByFiltersCount,
     isLoading,
     state,
     dispatch,
