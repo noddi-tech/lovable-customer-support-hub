@@ -163,216 +163,32 @@ export default function HomePage() {
                     </span>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-              {group.inboxes.map(inbox => {
-
-                const email = inboxEmails[inbox.id];
-                const isConfigured = Boolean(email);
-                 const isDefault = defaultInboxId === inbox.id;
-                const defaults = inboxDefaults[inbox.id];
-                const slaRisk = slaRiskByInbox.get(inbox.id);
-                const health = isConfigured
-                  ? getInboxHealth({
-                      open: inbox.open_count ?? 0,
-                      unread: inbox.unread_count ?? 0,
-                      breached: slaRisk?.breached ?? 0,
-                      atRisk: slaRisk?.atRisk ?? 0,
-                    })
-                  : null;
-
-
-                return (
-                  <Card
-                    key={inbox.id}
-                    aria-disabled={!isConfigured}
-                    className={cn(
-                      'transition-shadow',
-                      isConfigured
-                        ? 'cursor-pointer hover:shadow-md'
-                        : 'cursor-not-allowed opacity-60 bg-muted/30',
-                      isDefault && 'ring-1 ring-primary/50',
-                      slaRisk?.breached && 'ring-2 ring-red-500 border-red-400',
-                      !slaRisk?.breached && slaRisk?.atRisk && 'ring-2 ring-amber-400 border-amber-300'
-                    )}
-                    onClick={isConfigured ? () => navigate(`/interactions/text/open?inbox=${inbox.id}`) : undefined}
-                  >
-                    <CardContent className="flex min-h-[64px] flex-col gap-2 p-3.5 sm:p-3">
-                      <div className="flex items-start gap-3 min-w-0">
-                        <span
-                          className="h-2.5 w-2.5 rounded-full shrink-0 mt-1.5"
-                          style={{ backgroundColor: isConfigured ? (inbox.color || 'hsl(var(--primary))') : 'hsl(var(--muted-foreground) / 0.4)' }}
-                        />
-                        <div className="min-w-0 flex flex-col leading-tight">
-                          <span className={cn('flex flex-wrap items-center gap-1.5 text-[15px] font-medium sm:text-sm', isConfigured ? 'text-foreground' : 'text-muted-foreground')}>
-                            {isConfigured && health && (
-                              <span
-                                role="img"
-                                aria-label={`Inbox health: ${health.label}`}
-                                title={`${health.label} — ${health.description}`}
-                                className="text-base leading-none"
-                              >
-                                {health.emoji}
-                              </span>
-                            )}
-                            <span className="break-words">{inbox.name}</span>
-                            {isDefault && (
-                              <Badge variant="outline" className="h-4 px-1.5 text-[9px] border-primary/40 text-primary">
-                                Default
-                              </Badge>
-                            )}
-                          </span>
-                          <span className="text-xs text-muted-foreground break-all sm:text-[11px]">
-                            {isConfigured ? email : 'Not configured'}
-                          </span>
-                          {(defaults?.brand || defaults?.assigneeName) && (
-                            <span className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
-                              {defaults.brand && (
-                                <span className="flex items-center gap-1" title="Default brand for new conversations">
-                                  <Tag className="h-3 w-3 shrink-0" />
-                                  <span className="truncate">{defaults.brand}</span>
-                                </span>
-                              )}
-                              {defaults.assigneeName && (
-                                <span className="flex items-center gap-1" title="New conversations are assigned to this person">
-                                  <UserCheck className="h-3 w-3 shrink-0" />
-                                  <span className="truncate">{defaults.assigneeName}</span>
-                                </span>
-                              )}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      {isConfigured && slaRisk && (
-                        <InboxSlaAlert
-                          risk={slaRisk}
-                          onFix={() =>
+                    {group.inboxes.map(inbox => {
+                      const slaRisk = slaRiskByInbox.get(inbox.id);
+                      return (
+                        <InboxCard
+                          key={inbox.id}
+                          inbox={inbox}
+                          email={inboxEmails[inbox.id]}
+                          isDefault={defaultInboxId === inbox.id}
+                          defaults={inboxDefaults[inbox.id]}
+                          slaRisk={slaRisk}
+                          onOpen={() => navigate(`/interactions/text/open?inbox=${inbox.id}`)}
+                          onFixSla={() =>
                             navigate(
                               `/interactions/text/open?inbox=${inbox.id}` +
-                                (slaRisk.nextConversationId ? `&m=${slaRisk.nextConversationId}` : ''),
+                                (slaRisk?.nextConversationId ? `&m=${slaRisk.nextConversationId}` : ''),
                             )
                           }
+                          onToggleDefault={() =>
+                            setDefaultInbox(defaultInboxId === inbox.id ? null : inbox.id)
+                          }
+                          onOpenMetrics={() => setMetricsInbox({ id: inbox.id, name: inbox.name })}
+                          onConfigure={() => navigate(`/admin/inboxes/${inbox.id}`)}
                         />
-                      )}
+                      );
+                    })}
 
-                      <div className="mt-auto flex items-center gap-2 pl-[22px] pt-1">
-                        {isConfigured ? (
-                          <>
-                            <div className="flex min-w-0 flex-1 items-center gap-1.5">
-                              {inbox.unread_count > 0 && (
-                                <Badge
-                                  variant="destructive"
-                                  className="h-5 shrink-0 px-1.5 text-[10px] font-medium"
-                                  title="Conversations nobody has read yet"
-                                >
-                                  {inbox.unread_count} unread
-                                </Badge>
-                              )}
-                              <Badge
-                                variant="secondary"
-                                className="h-5 shrink-0 px-1.5 text-[10px] font-medium"
-                                title="Conversations still open in this inbox"
-                              >
-                                {inbox.open_count} open
-                              </Badge>
-                            </div>
-
-                            <TooltipProvider delayDuration={200}>
-                              <div className="flex shrink-0 items-center gap-0.5 rounded-md border border-border/60 bg-muted/40 p-0.5">
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      aria-label={isDefault ? 'Clear default inbox' : `Set ${inbox.name} as default inbox`}
-                                      className={cn(
-                                        'h-8 w-8 rounded-[5px] sm:h-7 sm:w-7',
-                                        isDefault ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
-                                      )}
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setDefaultInbox(isDefault ? null : inbox.id);
-                                      }}
-                                    >
-                                      <Star className={cn('h-4 w-4', isDefault && 'fill-current')} />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent side="top" className="max-w-[240px] text-xs leading-relaxed">
-                                    <p className="font-medium">{isDefault ? 'Default inbox' : 'Set as default'}</p>
-                                    <p className="text-muted-foreground">
-                                      {isDefault
-                                        ? 'Conversations open in this inbox first. Click to clear it and go back to All inboxes.'
-                                        : 'Star it and Conversations will open straight into this inbox instead of All inboxes.'}
-                                    </p>
-                                  </TooltipContent>
-                                </Tooltip>
-
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      aria-label={`Support KPIs for ${inbox.name}`}
-                                      className="h-8 w-8 rounded-[5px] text-muted-foreground hover:text-foreground sm:h-7 sm:w-7"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setMetricsInbox({ id: inbox.id, name: inbox.name });
-                                      }}
-                                    >
-                                      <Gauge className="h-4 w-4" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent side="top" className="max-w-[240px] text-xs leading-relaxed">
-                                    <p className="font-medium">SLA &amp; support KPIs</p>
-                                    <p className="text-muted-foreground">
-                                      Response and resolution times, SLA attainment and current backlog for this inbox.
-                                    </p>
-                                  </TooltipContent>
-                                </Tooltip>
-
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      aria-label={`Configure ${inbox.name}`}
-                                      className="h-8 w-8 rounded-[5px] text-muted-foreground hover:text-foreground sm:h-7 sm:w-7"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        navigate(`/admin/inboxes/${inbox.id}`);
-                                      }}
-                                    >
-                                      <Settings2 className="h-4 w-4" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent side="top" className="max-w-[240px] text-xs leading-relaxed">
-                                    <p className="font-medium">Inbox settings</p>
-                                    <p className="text-muted-foreground">
-                                      Email address, signature, default brand and assignee, SLA targets and automation for this inbox.
-                                    </p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </div>
-                            </TooltipProvider>
-                          </>
-                        ) : (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-8 px-3 text-xs sm:h-7 sm:px-2 sm:text-[11px]"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              navigate(`/admin/inboxes/${inbox.id}`);
-                            }}
-                          >
-                            <Settings2 className="h-3.5 w-3.5 mr-1.5" />
-                            Configure
-                          </Button>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
                   </div>
                 </div>
               ))}
