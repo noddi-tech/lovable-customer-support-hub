@@ -58,6 +58,7 @@ interface RateRequest {
   action: 'rate';
   sessionId: string;
   rating: number;
+  resolved?: boolean | null;
   comment?: string;
 }
 
@@ -916,7 +917,14 @@ async function handleRate(supabase: any, data: RateRequest) {
     ? data.comment.replace(/<[^>]*>/g, '').trim().slice(0, 500)
     : '';
 
-  const csat = { rating, comment: comment || undefined, rated_at: new Date().toISOString() };
+  const resolved = typeof data.resolved === 'boolean' ? data.resolved : null;
+
+  const csat = {
+    rating,
+    comment: comment || undefined,
+    resolved,
+    rated_at: new Date().toISOString(),
+  };
 
   await supabase
     .from('widget_chat_sessions')
@@ -926,7 +934,9 @@ async function handleRate(supabase: any, data: RateRequest) {
   // Visible to agents in the thread so feedback is not buried in metadata.
   await supabase.from('messages').insert({
     conversation_id: session.conversation_id,
-    content: `Chat rating: ${rating}/5${comment ? `\n\n"${comment}"` : ''}`,
+    content: `Chat rating: ${rating}/5${
+      resolved === null ? '' : ` · Problem ${resolved ? 'solved' : 'not solved'}`
+    }${comment ? `\n\n"${comment}"` : ''}`,
     sender_type: 'system',
     content_type: 'text',
     is_internal: true,

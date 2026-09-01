@@ -41,6 +41,7 @@ export const LiveChat: React.FC<LiveChatProps> = ({
   const [isSending, setIsSending] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [endedLocally, setEndedLocally] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<number | null>(null);
@@ -156,18 +157,20 @@ export const LiveChat: React.FC<LiveChatProps> = ({
     }
   };
 
+  // Ending the chat keeps the visitor in the chat view so the post-chat
+  // prompt (problem solved? + rating) can be answered before leaving.
   const handleEndChat = async () => {
     await endChat(session.id, false);
-    onEnd();
+    setEndedLocally(true);
   };
 
   // Visitor confirms the issue is solved — closes the conversation for agents too.
   const handleResolveChat = async () => {
     await endChat(session.id, true);
-    onEnd();
+    setEndedLocally(true);
   };
 
-  const isEnded = sessionStatus === 'ended' || sessionStatus === 'abandoned';
+  const isEnded = endedLocally || sessionStatus === 'ended' || sessionStatus === 'abandoned';
 
   return (
     <div className="noddi-widget-chat">
