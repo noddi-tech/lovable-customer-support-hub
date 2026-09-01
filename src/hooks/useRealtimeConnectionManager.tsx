@@ -179,12 +179,8 @@ export const useRealtimeConnectionManager = () => {
 
         // Show restoration toast only if we previously showed a disconnect toast
         // and enough time has passed since the last toast
-        if (hasShownDisconnectToast.current && 
-            now - lastToastTimeRef.current.reconnect > config.toastRateLimitMs) {
-          toast({
-            title: "Connection Restored",
-            description: "Real-time updates are now working",
-          });
+        // Restoration toast intentionally disabled — it fired on every page load.
+        if (hasShownDisconnectToast.current) {
           hasShownDisconnectToast.current = false;
           lastToastTimeRef.current.reconnect = now;
         }
