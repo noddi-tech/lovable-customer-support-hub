@@ -116,20 +116,21 @@ export function InboxCard({
       )}
       onClick={isConfigured ? onOpen : undefined}
     >
-      <CardContent className="flex min-h-[64px] flex-col gap-2 p-3.5 sm:p-3">
-        <div className="flex items-start gap-2 min-w-0">
+      <CardContent className="relative flex min-h-[64px] flex-col gap-1.5 p-3 pt-6">
+        {/* health emoji / colour dot pinned to the very top-left corner */}
+        <span className="absolute left-2 top-1.5 leading-none">
           {health ? (
             <span
               role="img"
               aria-label={`Inbox health: ${health.label}`}
               title={`${health.label} — ${health.description}`}
-              className="mt-0.5 shrink-0 text-base leading-none"
+              className="text-sm leading-none"
             >
               {health.emoji}
             </span>
           ) : (
             <span
-              className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full"
+              className="block h-2.5 w-2.5 rounded-full"
               style={{
                 backgroundColor: isConfigured
                   ? inbox.color || 'hsl(var(--primary))'
@@ -137,124 +138,133 @@ export function InboxCard({
               }}
             />
           )}
-          <div className="min-w-0 flex flex-1 flex-col leading-tight">
-            <span
-              className={cn(
-                'flex items-center gap-1.5 text-[15px] font-medium sm:text-sm min-w-0',
-                isConfigured ? 'text-foreground' : 'text-muted-foreground',
-              )}
-            >
-              {health && (
-                <span
-                  className="h-2 w-2 shrink-0 rounded-full"
-                  style={{ backgroundColor: inbox.color || 'hsl(var(--primary))' }}
-                />
-              )}
-              <span className="truncate" title={inbox.name}>
-                {inbox.name}
-              </span>
-              {isDefault && (
-                <Badge
-                  variant="outline"
-                  className="h-4 shrink-0 px-1.5 text-[9px] border-primary/40 text-primary"
-                >
-                  Default
-                </Badge>
-              )}
-            </span>
-            <span className="truncate text-xs text-muted-foreground sm:text-[11px]" title={email}>
-              {isConfigured ? email : 'Not configured'}
-            </span>
-            {(defaults?.brand || defaults?.assigneeName) && (
-              <span className="mt-1 flex items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground min-w-0">
-                {defaults.brand && (
-                  <span
-                    className="flex min-w-0 items-center gap-1"
-                    title="Default brand for new conversations"
-                  >
-                    <Tag className="h-3 w-3 shrink-0" />
-                    <span className="truncate">{defaults.brand}</span>
-                  </span>
-                )}
-                {defaults.assigneeName && (
-                  <span
-                    className="flex min-w-0 items-center gap-1"
-                    title="New conversations are assigned to this person"
-                  >
-                    <UserCheck className="h-3 w-3 shrink-0" />
-                    <span className="truncate">{defaults.assigneeName}</span>
-                  </span>
-                )}
-              </span>
-            )}
-          </div>
+        </span>
 
-          {isConfigured && slaRisk && <InboxSlaAlert risk={slaRisk} onFix={onFixSla} compact />}
+        {/* SLA chip pinned to the very top-right corner */}
+        {isConfigured && slaRisk && (
+          <span className="absolute right-2 top-1.5">
+            <InboxSlaAlert risk={slaRisk} onFix={onFixSla} compact />
+          </span>
+        )}
+
+        <div className="flex min-w-0 flex-col leading-tight">
+          <span
+            className={cn(
+              'flex min-w-0 flex-nowrap items-center gap-1.5 text-[15px] font-medium sm:text-sm',
+              isConfigured ? 'text-foreground' : 'text-muted-foreground',
+            )}
+          >
+            {health && (
+              <span
+                className="h-2 w-2 shrink-0 rounded-full"
+                style={{ backgroundColor: inbox.color || 'hsl(var(--primary))' }}
+              />
+            )}
+            <span className="truncate" title={inbox.name}>
+              {inbox.name}
+            </span>
+            {isDefault && (
+              <Badge
+                variant="outline"
+                className="h-4 shrink-0 px-1.5 text-[9px] border-primary/40 text-primary"
+              >
+                Default
+              </Badge>
+            )}
+          </span>
+
+          <span className="block truncate text-xs text-muted-foreground sm:text-[11px]" title={email}>
+            {isConfigured ? email : 'Not configured'}
+          </span>
+
+          {(defaults?.brand || defaults?.assigneeName) && (
+            <span className="mt-0.5 flex min-w-0 flex-nowrap items-center gap-x-3 overflow-hidden text-[11px] text-muted-foreground">
+              {defaults.brand && (
+                <span
+                  className="flex min-w-0 flex-nowrap items-center gap-1"
+                  title="Default brand for new conversations"
+                >
+                  <Tag className="h-3 w-3 shrink-0" />
+                  <span className="truncate">{defaults.brand}</span>
+                </span>
+              )}
+              {defaults.assigneeName && (
+                <span
+                  className="flex min-w-0 flex-nowrap items-center gap-1"
+                  title="New conversations are assigned to this person"
+                >
+                  <UserCheck className="h-3 w-3 shrink-0" />
+                  <span className="truncate">{defaults.assigneeName}</span>
+                </span>
+              )}
+            </span>
+          )}
         </div>
 
-
-        <div className="mt-auto flex items-center gap-2 pl-[22px] pt-1">
-          {isConfigured ? (
-            <>
-              <div className="flex min-w-0 flex-1 items-center gap-1.5">
-                {inbox.unread_count > 0 && (
-                  <Badge
-                    variant="destructive"
-                    className="h-5 shrink-0 px-1.5 text-[10px] font-medium"
-                    title="Conversations nobody has read yet"
-                  >
-                    {inbox.unread_count} unread
-                  </Badge>
-                )}
+        {isConfigured ? (
+          <div className="mt-auto flex flex-col gap-1.5 pt-1">
+            <div className="flex min-w-0 flex-nowrap items-center gap-1.5 overflow-hidden">
+              {inbox.unread_count > 0 && (
                 <Badge
-                  variant="secondary"
+                  variant="destructive"
                   className="h-5 shrink-0 px-1.5 text-[10px] font-medium"
-                  title="Conversations still open in this inbox"
+                  title="Conversations nobody has read yet"
                 >
-                  {inbox.open_count} open
+                  {inbox.unread_count} unread
                 </Badge>
-              </div>
+              )}
+              <Badge
+                variant="secondary"
+                className="h-5 shrink-0 px-1.5 text-[10px] font-medium"
+                title="Conversations still open in this inbox"
+              >
+                {inbox.open_count} open
+              </Badge>
+            </div>
 
-              <TooltipProvider delayDuration={200}>
-                <div className="flex shrink-0 items-center gap-0.5 rounded-md border border-border/60 bg-muted/40 p-0.5">
-                  {actions.map(action => (
-                    <Tooltip key={action.key}>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          aria-label={action.label}
-                          className={cn(
-                            'h-8 w-8 rounded-[5px] sm:h-7 sm:w-7 text-muted-foreground hover:text-foreground',
-                            action.className,
-                          )}
-                          onClick={e => stop(e, action.onClick)}
-                        >
-                          <action.icon className={cn('h-4 w-4', action.iconClassName)} />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent side="top" className="max-w-[240px] text-xs leading-relaxed">
-                        <p className="font-medium">{action.title}</p>
-                        <p className="text-muted-foreground">{action.description}</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  ))}
-                </div>
-              </TooltipProvider>
-            </>
-          ) : (
+            {/* action icons on their own line */}
+            <TooltipProvider delayDuration={200}>
+              <div className="flex items-center gap-0.5">
+                {actions.map(action => (
+                  <Tooltip key={action.key}>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label={action.label}
+                        className={cn(
+                          'h-6 w-6 rounded-[5px] text-muted-foreground hover:text-foreground',
+                          action.className,
+                        )}
+                        onClick={e => stop(e, action.onClick)}
+                      >
+                        <action.icon className={cn('h-3.5 w-3.5', action.iconClassName)} />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-[240px] text-xs leading-relaxed">
+                      <p className="font-medium">{action.title}</p>
+                      <p className="text-muted-foreground">{action.description}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                ))}
+              </div>
+            </TooltipProvider>
+          </div>
+        ) : (
+          <div className="mt-auto pt-1">
             <Button
               variant="outline"
               size="sm"
-              className="h-8 px-3 text-xs sm:h-7 sm:px-2 sm:text-[11px]"
+              className="h-7 px-2 text-[11px]"
               onClick={e => stop(e, onConfigure)}
             >
               <Settings2 className="h-3.5 w-3.5 mr-1.5" />
               Configure
             </Button>
-          )}
-        </div>
+          </div>
+        )}
       </CardContent>
+
     </Card>
   );
 }
