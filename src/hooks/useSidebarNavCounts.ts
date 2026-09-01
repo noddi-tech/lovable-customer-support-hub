@@ -54,7 +54,7 @@ export const useSidebarNavCounts = (): SidebarNavCounts => {
         // Text = all open conversations minus the live-chat ones (those get their own badge)
         text: Math.max(textOpen - chatActive, 0),
         chat: chatActive,
-        cases: (casesRes as any)?.count ?? 0,
+        cases: 0, // filled in from useCaseQueueCounts below
       };
     },
   });
