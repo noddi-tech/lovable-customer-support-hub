@@ -203,24 +203,66 @@ export function InboxCard({
 
         {isConfigured ? (
           <div className="mt-auto flex flex-col gap-1.5 pt-1">
-            <div className="flex min-w-0 flex-nowrap items-center gap-1.5 overflow-hidden">
-              {inbox.unread_count > 0 && (
-                <Badge
-                  variant="destructive"
-                  className="h-5 shrink-0 px-1.5 text-[10px] font-medium"
-                  title="Conversations nobody has read yet"
-                >
-                  {inbox.unread_count} unread
-                </Badge>
-              )}
-              <Badge
-                variant="secondary"
-                className="h-5 shrink-0 px-1.5 text-[10px] font-medium"
-                title="Conversations still open in this inbox"
-              >
-                {inbox.open_count} open
-              </Badge>
-            </div>
+            <TooltipProvider delayDuration={200}>
+              <div className="flex min-w-0 flex-nowrap items-center gap-1.5 overflow-hidden">
+                {inbox.unread_count > 0 && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Badge
+                        variant="destructive"
+                        className="h-5 shrink-0 gap-1 px-1.5 text-[10px] font-medium"
+                      >
+                        <Mail className="h-3 w-3" />
+                        <span className="tabular-nums">{inbox.unread_count}</span>
+                      </Badge>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-[240px] text-xs leading-relaxed">
+                      <p className="font-medium">Unread</p>
+                      <p className="text-muted-foreground">
+                        Conversations in this inbox nobody on the team has opened yet.
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                )}
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Badge
+                      variant="secondary"
+                      className="h-5 shrink-0 gap-1 px-1.5 text-[10px] font-medium"
+                    >
+                      <MailOpen className="h-3 w-3" />
+                      <span className="tabular-nums">{inbox.open_count}</span>
+                    </Badge>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-[240px] text-xs leading-relaxed">
+                    <p className="font-medium">Open</p>
+                    <p className="text-muted-foreground">
+                      Conversations still open here — not closed, archived or snoozed.
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+                {slaRisk && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="shrink-0">
+                        <InboxSlaAlert risk={slaRisk} onFix={onFixSla} compact />
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-[260px] text-xs leading-relaxed">
+                      <p className="font-medium">
+                        {slaRisk.breached > 0 ? 'SLA breached' : 'SLA at risk'}
+                      </p>
+                      <p className="text-muted-foreground">
+                        {slaRisk.breached > 0
+                          ? `${slaRisk.breached} conversation${slaRisk.breached === 1 ? '' : 's'} passed the promised first-reply deadline${slaRisk.atRisk > 0 ? `, ${slaRisk.atRisk} more about to` : ''}. Click to jump to them.`
+                          : `${slaRisk.atRisk} conversation${slaRisk.atRisk === 1 ? '' : 's'} will breach the promised reply time within the hour. Click to jump to them.`}
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                )}
+              </div>
+            </TooltipProvider>
+
 
             {/* action icons on their own line */}
             <TooltipProvider delayDuration={200}>
