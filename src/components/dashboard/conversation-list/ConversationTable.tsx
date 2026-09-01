@@ -30,6 +30,7 @@ export const ConversationTable = memo<ConversationTableProps>(({
     selectedInboxId,
   } = useConversationList();
   const { t } = useTranslation();
+  const isMobile = useIsMobile();
   // Show the inbox column only when the list spans every inbox.
   const showInboxColumn = !selectedInboxId || selectedInboxId === 'all';
 
