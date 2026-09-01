@@ -118,23 +118,23 @@ export function LiveChatSlaDialog({ open, onOpenChange, canEdit = false }: LiveC
               label="First reply SLA"
               value={formatPct(metrics.first_response.sla_attainment_pct)}
               tone={attainmentTone(metrics.first_response.sla_attainment_pct)}
-              hint={`Chats answered within the target (${formatMinutes(metrics.first_response.sla_target_minutes)}).`}
+              description={`Chats answered within the target (${formatMinutes(metrics.first_response.sla_target_minutes)}).`}
             />
             <MetricTile
               label="Median first reply"
               value={formatMinutes(metrics.first_response.median_minutes)}
-              hint="Typical wait before an agent answers a chat."
+              description="Typical wait before an agent answers a chat."
             />
             <MetricTile
               label="Breaching now"
               value={String(metrics.backlog.breaching_now)}
               tone={metrics.backlog.breaching_now > 0 ? 'bad' : 'good'}
-              hint="Open chats already past their first-reply target."
+              description="Open chats already past their first-reply target."
             />
             <MetricTile
               label="Waiting on us"
               value={String(metrics.backlog.awaiting_us)}
-              hint="Open chats where the visitor sent the last message."
+              description="Open chats where the visitor sent the last message."
             />
           </div>
         ) : null}
