@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 import { useDateFormatting } from '@/hooks/useDateFormatting';
 import { useCustomerTimeline, type TimelineChannel, type TimelineItem } from '@/hooks/useCustomerTimeline';
 import { TimelineItemPreviewDialog } from '@/components/cases/TimelineItemPreviewDialog';
-import { History, Mail, MessageSquare, Phone, StickyNote, Briefcase } from 'lucide-react';
+import { History, Mail, MessageSquare, Phone, StickyNote, Briefcase, ChevronDown } from 'lucide-react';
 
 const CHANNEL_ICONS: Record<TimelineChannel, React.ComponentType<{ className?: string }>> = {
   email: Mail,
