@@ -66,7 +66,7 @@ interface VirtualizedConversationTableProps {
   selectedConversation?: Conversation;
 }
 
-const ITEM_HEIGHT = 52;
+const ITEM_HEIGHT = 68;
 const MOBILE_ITEM_HEIGHT = 100;
 const HEADER_HEIGHT = 40;
 const OVERSCAN_COUNT = 5;

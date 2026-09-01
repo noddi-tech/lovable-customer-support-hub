@@ -162,6 +162,8 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
       customerName: customerDisplay.displayName,
       customerEmail: customerDisplay.showEmail ? customerDisplay.email : null,
       subjectText,
+      previewText: (conversation.preview_text || '').replace(/\s+/g, ' ').trim(),
+      isEmailChannel: conversation.channel === 'email',
       statusCfg,
       priorityCfg,
       waitingTime,
@@ -440,7 +442,9 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
         {/* Subject */}
         <div className="p-2 flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className="text-xs truncate">{computedValues.subjectText}</span>
+            {(computedValues.isEmailChannel || !computedValues.previewText) && (
+              <span className="text-xs truncate">{computedValues.subjectText}</span>
+            )}
             {conversation.thread_count && conversation.thread_count > 1 && (
               <Badge variant="outline" className="px-1.5 py-0 text-[10px] shrink-0 border-primary/30 text-primary bg-primary/5">
                 {conversation.thread_count}
@@ -474,6 +478,16 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
               <Reply className="h-3 w-3" />
             </Button>
           </div>
+          {computedValues.previewText && (
+            <div
+              className={cn(
+                'text-[11px] text-muted-foreground leading-snug',
+                computedValues.isEmailChannel ? 'line-clamp-1' : 'line-clamp-2',
+              )}
+            >
+              {computedValues.previewText}
+            </div>
+          )}
         </div>
 
         {/* Status */}
@@ -581,7 +595,9 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
       {/* Subject */}
       <TableCell className="p-2">
         <div className="flex items-center gap-2">
-          <span className="text-xs truncate">{computedValues.subjectText}</span>
+          {(computedValues.isEmailChannel || !computedValues.previewText) && (
+            <span className="text-xs truncate">{computedValues.subjectText}</span>
+          )}
           {conversation.thread_count && conversation.thread_count > 1 && (
             <Badge variant="outline" className="px-1.5 py-0 text-[10px] shrink-0 border-primary/30 text-primary bg-primary/5">
               {conversation.thread_count}
@@ -613,6 +629,16 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
             <Reply className="h-3 w-3" />
           </Button>
         </div>
+        {computedValues.previewText && (
+          <div
+            className={cn(
+              'text-[11px] text-muted-foreground leading-snug',
+              computedValues.isEmailChannel ? 'line-clamp-1' : 'line-clamp-2',
+            )}
+          >
+            {computedValues.previewText}
+          </div>
+        )}
       </TableCell>
 
       {/* Status */}
