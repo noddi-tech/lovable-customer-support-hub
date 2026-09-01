@@ -38,6 +38,18 @@ async function callNoddi(path: string, init: RequestInit = {}) {
   return json(body ?? {});
 }
 
+/** Posts each candidate body until one is accepted (400s mean wrong field names). */
+async function tryBodies(path: string, method: string, bodies: Record<string, unknown>[]) {
+  let last: Response | null = null;
+  for (const body of bodies) {
+    const res = await callNoddi(path, { method, body: JSON.stringify(body) });
+    if (res.ok) return res;
+    last = res;
+    if (res.status !== 400) break;
+  }
+  return last ?? json({ error: "Noddi API error" }, 502);
+}
+
 function userGroupId(payload: Record<string, unknown>): number | null {
   const id = Number(payload.user_group_id);
   return Number.isInteger(id) && id > 0 ? id : null;
