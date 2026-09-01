@@ -482,7 +482,7 @@ export function InboxManagementContent() {
                   <div className="flex items-center justify-between gap-3 text-sm">
                     <span className="flex shrink-0 items-center gap-2">
                       <Users className="w-4 h-4" />
-                      Department
+                      Service department
                     </span>
                     <span className="min-w-0 truncate text-right text-muted-foreground">
                       {getDepartmentName(inbox.navio_department_id)}

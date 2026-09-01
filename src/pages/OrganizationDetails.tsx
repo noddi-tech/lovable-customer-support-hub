@@ -148,7 +148,7 @@ export default function OrganizationDetails() {
               <Building2 className="h-12 w-12 text-muted-foreground mb-4" />
               <p className="text-muted-foreground">Organization not found</p>
               <Button onClick={() => navigate('/super-admin/organizations')} className="mt-4">
-                Back to Organizations
+                Back to Service Organizations
               </Button>
             </CardContent>
           </Card>
