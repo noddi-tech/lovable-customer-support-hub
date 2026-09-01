@@ -159,7 +159,6 @@ export const sanitizeEmailHTML = (
   // Use the visible content (with <pre> wrappers removed and entities decoded)
   let processedContent = parsed.visibleContent || htmlContent;
 
-  // TEMP DIAGNOSTIC — remove after verification
   console.log('[NL-CONVERT] pre-conversion processedContent:', JSON.stringify(processedContent.slice(0, 300)));
   console.log('[NL-CONVERT] guard:', {
     hasNewline: processedContent.includes('\n'),
@@ -183,8 +182,6 @@ export const sanitizeEmailHTML = (
       .replace(/\n/g, '<br>');
   }
 
-  // TEMP DIAGNOSTIC — remove after verification
-  console.log('[NL-CONVERT] post-conversion:', JSON.stringify(processedContent.slice(0, 300)));
 
 
   // STEP 2: Continue with existing sanitization logic
@@ -512,7 +509,6 @@ export const sanitizeEmailHTML = (
   // don't reserve a blank line at the bottom. Only TRAILING nodes — spacers
   // between text blocks are preserved.
   const finalResult = stripTrailingSpacers(sanitized);
-  // TEMP DIAGNOSTIC — remove after verification
   console.log('[NL-FINAL] sanitizeEmailHTML returning:', JSON.stringify(finalResult.slice(0, 300)));
   return finalResult;
 };
