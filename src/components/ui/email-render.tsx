@@ -632,8 +632,8 @@ const EmailRenderComponent: React.FC<EmailRenderProps> = ({
       }}
     >
       {/* Email Controls */}
-      {showLoadImagesControl && hasBlockedImages && !imagesLoaded && (
-        <div className="email-render__controls mb-3" role="toolbar" aria-label="Email actions">
+      <div className="email-render__controls mb-2 flex items-center gap-1" role="toolbar" aria-label="Email actions">
+        {showLoadImagesControl && hasBlockedImages && !imagesLoaded && (
           <Button
             variant="ghost"
             size="sm"
@@ -644,8 +644,10 @@ const EmailRenderComponent: React.FC<EmailRenderProps> = ({
             <ImageIcon className="h-3 w-3 mr-1" aria-hidden="true" />
             Load images
           </Button>
-        </div>
-      )}
+        )}
+        <OriginalEmailDialog content={content} isHTML={isHTML} />
+      </div>
+
 
       {/* Email Content */}
       <div className="email-render__content overflow-x-auto max-w-full" role="main">
