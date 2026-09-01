@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils';
 import { groupInboxesByDomain } from '@/utils/inboxGrouping';
 import { useMemo, useState } from 'react';
 import { InboxMetricsDialog } from '@/components/dashboard/InboxMetricsDialog';
+import { SupportOverviewSection } from '@/components/dashboard/SupportOverviewSection';
 
 import {
   Inbox,
