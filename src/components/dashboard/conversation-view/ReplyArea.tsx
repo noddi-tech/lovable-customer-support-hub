@@ -21,7 +21,10 @@ import {
   Users,
   User,
   ChevronDown,
+  AlertCircle,
+  ArrowDown,
 } from "lucide-react";
+import type { EmailPriority } from "@/lib/emailPriority";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -76,6 +79,7 @@ export const ReplyArea = () => {
   const [mentionedUserIds, setMentionedUserIds] = useState<string[]>([]);
   const [attachments, setAttachments] = useState<{ file: File; previewUrl: string }[]>([]);
   const [replyAll, setReplyAll] = useState(true);
+  const [priority, setPriority] = useState<EmailPriority>('normal');
 
   const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
@@ -186,7 +190,7 @@ export const ReplyArea = () => {
 
     // Do NOT clear composer / close reply area / navigate at click-time.
     // Only clear once the send (incl. all uploads) has actually resolved.
-    sendReply(replyText, isInternal, replyStatus, currentAttachments.map(a => a.file), replyAll)
+    sendReply(replyText, isInternal, replyStatus, currentAttachments.map(a => a.file), replyAll, priority)
       .then((messageId) => {
         // Send succeeded — now safe to clear UI + navigate.
         dispatch({ type: 'SET_REPLY_TEXT', payload: '' });
@@ -622,6 +626,22 @@ export const ReplyArea = () => {
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
+
+                {/* Importance flag — shows as the red "!" in Outlook/Gmail */}
+                <Select value={priority} onValueChange={(v) => setPriority(v as EmailPriority)}>
+                  <SelectTrigger className="w-[150px] h-11" aria-label="Email importance">
+                    <div className="flex items-center gap-1.5 truncate">
+                      {priority === 'high' && <AlertCircle className="h-3.5 w-3.5 text-destructive" />}
+                      {priority === 'low' && <ArrowDown className="h-3.5 w-3.5 text-muted-foreground" />}
+                      <SelectValue />
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="high">High importance</SelectItem>
+                    <SelectItem value="normal">Normal</SelectItem>
+                    <SelectItem value="low">Low importance</SelectItem>
+                  </SelectContent>
+                </Select>
 
                 <Select value={replyStatus} onValueChange={setReplyStatus}>
                   <SelectTrigger className="w-[160px] h-11">
