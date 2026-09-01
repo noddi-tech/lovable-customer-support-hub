@@ -163,6 +163,14 @@ export const ReplyArea = () => {
     }
   }, [state.showReplyArea]);
 
+  // Safety: never carry note mode over to another conversation. A reply must
+  // only become an internal note when the agent explicitly chose note mode
+  // for the conversation they are currently looking at.
+  useEffect(() => {
+    dispatch({ type: 'SET_IS_INTERNAL_NOTE', payload: false });
+  }, [conversation?.id, dispatch]);
+
+
   const handleSendReply = () => {
     if (!state.replyText.trim()) return;
 
