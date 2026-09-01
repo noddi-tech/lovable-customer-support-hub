@@ -43,6 +43,7 @@ export const AppMainNav = () => {
   const { isAdmin: checkIsAdmin, isLoading: permissionsLoading } = usePermissions();
   const { user, profile, signOut, isSuperAdmin } = useAuth();
   const { notifications: unreadNotifications } = useOptimizedCounts();
+  const navCounts = useSidebarNavCounts();
   const { dateTime, timezone } = useDateFormatting();
 
   
