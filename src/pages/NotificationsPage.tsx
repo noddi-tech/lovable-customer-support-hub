@@ -211,18 +211,88 @@ const NotificationsPage = () => {
           ) : (
             <>
               {/* Search */}
-              <div className="px-6 pt-4 pb-2">
-                <div className="relative max-w-sm">
-                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <div className="px-3 sm:px-6 pt-3 sm:pt-4 pb-2">
+                <div className="relative w-full sm:max-w-sm">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
+                    type="search"
+                    inputMode="search"
                     placeholder="Search notifications..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-9 h-9"
+                    className="pl-9 h-10 text-base sm:h-9 sm:text-sm"
                   />
                 </div>
               </div>
 
+              {isMobile ? (
+                <div className="pb-6">
+                  {sortedAndFiltered.length === 0 ? (
+                    <p className="text-center py-8 text-sm text-muted-foreground">
+                      No notifications match your search
+                    </p>
+                  ) : (
+                    sortedAndFiltered.map((n) => {
+                      const Icon = categoryIcons[n.category] || Bell;
+                      return (
+                        <div
+                          key={n.id}
+                          onClick={() => handleNavigate(n)}
+                          className={cn(
+                            'flex items-start gap-3 px-3 py-3 border-b border-border active:bg-muted/60',
+                            !n.is_read && 'bg-muted/30',
+                            priorityStyles[n.priority],
+                          )}
+                        >
+                          <div className="relative shrink-0 mt-0.5">
+                            <Icon className="h-5 w-5 text-muted-foreground" />
+                            {!n.is_read && (
+                              <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-primary" />
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className={cn('text-sm', !n.is_read && 'font-semibold')}>{n.title}</p>
+                            <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{n.message}</p>
+                            <div className="flex items-center gap-1.5 mt-1">
+                              <span className="text-[11px] text-muted-foreground">
+                                {formatDistanceToNow(new Date(n.created_at), { addSuffix: true })}
+                              </span>
+                              {n.priority === 'urgent' && (
+                                <Badge variant="destructive" className="text-[10px] h-4 px-1.5">Urgent</Badge>
+                              )}
+                              {n.priority === 'high' && (
+                                <Badge variant="outline" className="text-[10px] h-4 px-1.5 border-yellow-500 text-yellow-600">High</Badge>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex flex-col items-center gap-1 shrink-0">
+                            {!n.is_read && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-9 w-9"
+                                aria-label="Mark as read"
+                                onClick={(e) => { e.stopPropagation(); markAsRead(n.id); }}
+                              >
+                                <Check className="h-4 w-4" />
+                              </Button>
+                            )}
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-9 w-9 text-destructive hover:text-destructive"
+                              aria-label="Delete notification"
+                              onClick={(e) => { e.stopPropagation(); handleDelete(n.id); }}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              ) : (
               <div className="px-6 pb-6">
                 <Table>
                   <TableHeader>
