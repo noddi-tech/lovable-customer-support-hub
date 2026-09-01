@@ -338,6 +338,21 @@ export default function CaseDetailPage() {
 
       <CloseCaseDialog open={closeOpen} onOpenChange={setCloseOpen} record={record} />
 
+      <CreateNoddiTicketDialog
+        open={opsTicketOpen}
+        onOpenChange={setOpsTicketOpen}
+        defaultTitle={record.title}
+        defaultDescription={[
+          `Created from case #${record.case_number} in the Support Hub.`,
+          record.description ? `\n${record.description}` : null,
+          `\nCase: ${window.location.origin}/operations/cases/${record.id}`,
+        ]
+          .filter(Boolean)
+          .join('\n')}
+        defaultPriority={record.priority === 'urgent' || record.priority === 'high' ? 'HIGH' : 'NORMAL'}
+        onCreated={() => toast.success('Operations ticket created in Navio')}
+      />
+
       <Sheet open={!!customerPanelId} onOpenChange={(o) => !o && setCustomerPanelId(null)}>
         <SheetContent side="right" className="w-full max-w-[420px] p-0 sm:max-w-[420px]">
           {customerPanelId && (
