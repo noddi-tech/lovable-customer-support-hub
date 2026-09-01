@@ -66,26 +66,10 @@ export function useNoddiTicketEvents(ticketId: number | null) {
   });
 }
 
-export interface NoddiServiceDepartment {
-  id: number;
-  name: string;
-}
+export type NoddiServiceDepartment = ServiceDepartment;
 
-export function useNoddiServiceDepartments() {
-  return useQuery({
-    queryKey: noddiTicketKeys.departments,
-    queryFn: async () => {
-      const res = await invokeTickets<NoddiPaginated<NoddiServiceDepartment> | NoddiServiceDepartment[]>({
-        action: 'departments',
-      });
-      const list = Array.isArray(res) ? res : res.results ?? [];
-      return list
-        .map((d) => ({ id: d.id, name: d.name ?? `Department ${d.id}` }))
-        .sort((a, b) => a.name.localeCompare(b.name, 'nb'));
-    },
-    staleTime: 10 * 60_000,
-  });
-}
+/** @deprecated Use `useServiceDepartments()` — kept as an alias for existing call sites. */
+export const useNoddiServiceDepartments = useServiceDepartments;
 
 function useTicketMutation<TVars>(
   fn: (vars: TVars) => Promise<unknown>,
