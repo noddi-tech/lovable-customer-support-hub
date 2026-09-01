@@ -18,6 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { BrandFilterSelect } from '@/components/dashboard/conversation-list/BrandFilterSelect';
 import { getConversationBrand, getBrandColor } from '@/lib/conversationBrand';
 import type { ChatFilterType } from './ChatFilters';
 
@@ -233,26 +234,12 @@ export const ChatConversationList: React.FC<ChatConversationListProps> = ({
           />
         </div>
 
-        <Select value={brandFilter} onValueChange={setBrandFilter}>
-          <SelectTrigger className="h-9 text-sm">
-            <SelectValue placeholder="All brands" />
-          </SelectTrigger>
-          <SelectContent className="bg-popover z-50">
-            <SelectItem value="all">All brands</SelectItem>
-            {brandOptions.map(opt => (
-              <SelectItem key={opt.key} value={opt.key}>
-                <span className="flex items-center gap-2">
-                  <span
-                    className="h-2 w-2 rounded-full shrink-0"
-                    style={{ backgroundColor: getBrandColor(opt.key) }}
-                  />
-                  {opt.label}
-                </span>
-              </SelectItem>
-            ))}
-            <SelectItem value="unknown">No brand</SelectItem>
-          </SelectContent>
-        </Select>
+        <BrandFilterSelect
+          value={brandFilter}
+          onChange={setBrandFilter}
+          options={brandOptions}
+          triggerClassName="h-9 w-full text-sm"
+        />
       </div>
 
       {selectionMode && (

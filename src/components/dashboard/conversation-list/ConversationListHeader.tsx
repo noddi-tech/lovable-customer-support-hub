@@ -27,6 +27,8 @@ import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import { useAccessibleInboxes } from "@/hooks/useInteractionsData";
 import { useInboxOutstandingCounts } from "@/hooks/useInboxOutstandingCounts";
+import { getConversationBrand } from "@/lib/conversationBrand";
+import { BrandFilterSelect } from "./BrandFilterSelect";
 
 interface ConversationListHeaderProps {
   onToggleCollapse?: () => void;
@@ -68,11 +70,24 @@ export const ConversationListHeader = ({
   }, [conversations, state.purposeFilter]);
 
 
-  const hasActiveFilters = state.searchQuery || state.statusFilter !== 'all' || state.priorityFilter !== 'all';
+  // Brands present in the loaded conversations, for the brand filter dropdown
+  const brandOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    (conversations ?? []).forEach((c: any) => {
+      const brand = getConversationBrand(c.metadata, c.channel);
+      if (brand) map.set(brand.key, brand.label);
+    });
+    return Array.from(map, ([key, label]) => ({ key, label })).sort((a, b) =>
+      a.label.localeCompare(b.label)
+    );
+  }, [conversations]);
+
+  const hasActiveFilters = state.searchQuery || state.statusFilter !== 'all' || state.priorityFilter !== 'all' || state.brandFilter !== 'all';
   
   const activeFilterCount = [
     state.statusFilter !== 'all',
     state.priorityFilter !== 'all',
+    state.brandFilter !== 'all',
     state.searchQuery.length > 0
   ].filter(Boolean).length;
 
@@ -80,6 +95,7 @@ export const ConversationListHeader = ({
     dispatch({ type: 'SET_SEARCH_QUERY', payload: '' });
     dispatch({ type: 'SET_STATUS_FILTER', payload: 'all' });
     dispatch({ type: 'SET_PRIORITY_FILTER', payload: 'all' });
+    dispatch({ type: 'SET_BRAND_FILTER', payload: 'all' });
   };
 
   const getFilterLabel = () => {
@@ -302,6 +318,14 @@ export const ConversationListHeader = ({
               )}
             </DropdownMenuContent>
           </DropdownMenu>
+
+          {/* Brand filter */}
+          <BrandFilterSelect
+            value={state.brandFilter}
+            onChange={(value) => dispatch({ type: 'SET_BRAND_FILTER', payload: value })}
+            options={brandOptions}
+            triggerClassName="h-7 text-[10px] px-2"
+          />
 
           {/* Sort Select */}
           <Select 
