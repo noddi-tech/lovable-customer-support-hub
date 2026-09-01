@@ -111,7 +111,7 @@ export const AppMainNav = () => {
     }
   };
 
-  if (permissionsLoading) {
+  if (showLoadingShell) {
     return (
       <Sidebar collapsible="offcanvas">
         <SidebarContent>
