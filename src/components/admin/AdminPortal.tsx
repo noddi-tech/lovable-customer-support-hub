@@ -21,6 +21,7 @@ import { HelpScoutImport } from './HelpScoutImport';
 import { EmailIntegrationWizard } from './EmailIntegrationWizard';
 import { IntegrationSettings } from './IntegrationSettings';
 import { AdminDashboard } from './AdminDashboard';
+import { FeatureFlagsSettings } from './FeatureFlagsSettings';
 import { EdgeFunctionsOverview } from './EdgeFunctionsOverview';
 import { WidgetSettings } from './widget';
 import { AiChatbotSettings as AiChatbotSettingsContent } from './AiChatbotSettings';
@@ -66,6 +67,9 @@ export const AdminPortal = () => {
 
       case 'integrations':
         return <IntegrationSettings />;
+
+      case 'feature-flags':
+        return <FeatureFlagsSettings />;
 
       case 'health':
         return <SystemHealthPage />;
