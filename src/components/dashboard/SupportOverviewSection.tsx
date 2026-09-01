@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -262,11 +261,9 @@ export function SupportOverviewSection() {
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between gap-2">
-        <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-          <Trophy className="h-4 w-4" /> Support overview
-        </h2>
-      </div>
+      <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+        <Trophy className="h-4 w-4" /> Support overview
+      </h2>
 
       <div className="grid grid-cols-1 gap-3">
         <Card>
