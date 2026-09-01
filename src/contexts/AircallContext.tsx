@@ -562,8 +562,11 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
           setInitializationPhase('failed');
           
           toast({
-            title: 'Third-Party Cookies Blocked',
-            description: 'Aircall requires third-party cookies. Please enable them in your browser settings.',
+            title: `${cookieCheck.browserType === 'brave' ? 'Brave Shields is blocking Aircall' : 'Your browser is blocking Aircall'}`,
+            description:
+              cookieCheck.browserType === 'brave'
+                ? 'Aircall loads its phone in an embedded window that needs third-party cookies. In Brave: click the Shields (lion) icon in the address bar → set Shields to "Down" for this site → reload. Full steps are in the dialog.'
+                : 'Aircall loads its phone in an embedded window that needs third-party cookies, which your browser blocks. Allow third-party cookies for this site (or use Chrome/Edge), then reload. Step-by-step instructions are in the dialog.',
             variant: 'destructive',
             duration: 15000,
           });
@@ -622,8 +625,8 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
             initAttemptedRef.current = false; // Reset guard to allow retry
             
             toast({
-              title: 'Aircall Blocked',
-              description: 'Network requests are being blocked. Please disable ad blockers.',
+              title: 'Aircall requests are being blocked',
+              description: 'Something in the browser is blocking phone.aircall.io — usually an ad blocker, privacy extension, or Brave Shields. Turn shields/blockers off for this site and click "Login to Aircall" again.',
               variant: 'destructive',
               duration: 10000,
             });
@@ -955,8 +958,8 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
           setInitializationPhase('failed');
           
           toast({
-            title: 'Aircall Blocked',
-            description: 'Network requests are blocked. Please disable ad blockers or try incognito mode.',
+            title: 'Aircall requests are being blocked',
+            description: 'phone.aircall.io could not load. Disable ad blockers / Brave Shields for this site, allow third-party cookies, then try logging in again.',
             variant: 'destructive',
             duration: 15000,
           });

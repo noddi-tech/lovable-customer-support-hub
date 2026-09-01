@@ -4,6 +4,7 @@ import { useAgentAvailability, type AvailabilityStatus } from '@/hooks/useAgentA
 import { useOnlineAgents } from '@/hooks/useOnlineAgents';
 import { useAircallPhone } from '@/hooks/useAircallPhone';
 import { useVoiceIntegrations } from '@/hooks/useVoiceIntegrations';
+import { aircallPhone } from '@/lib/aircall-phone';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { toast } from 'sonner';
@@ -87,12 +88,41 @@ export const AgentAvailabilityPanel: React.FC<AgentAvailabilityPanelProps> = ({
   const { 
     isConnected: phoneConnected, 
     isInitialized: phoneInitialized,
-    initializationPhase,
     openLoginModal,
     initializePhone,
     logout: phoneLogout,
     error: phoneError,
   } = useAircallPhone();
+
+  // A stored Aircall session means the user is logged in even if the SDK
+  // connection is still (re)establishing or was blocked by the browser.
+  const [storedLogin, setStoredLogin] = React.useState<boolean>(() => {
+    try {
+      return aircallPhone.getLoginStatus();
+    } catch {
+      return false;
+    }
+  });
+
+  React.useEffect(() => {
+    const sync = () => {
+      try {
+        setStoredLogin(aircallPhone.getLoginStatus());
+      } catch {
+        /* ignore */
+      }
+    };
+    sync();
+    const interval = window.setInterval(sync, 5000);
+    window.addEventListener('storage', sync);
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener('storage', sync);
+    };
+  }, [phoneConnected]);
+
+  const phoneLoggedIn = phoneConnected || storedLogin;
+  
   
   // Check if Aircall is configured
   const { getIntegrationByProvider, isLoading: integrationsLoading } = useVoiceIntegrations();
@@ -120,6 +150,7 @@ export const AgentAvailabilityPanel: React.FC<AgentAvailabilityPanelProps> = ({
   const handlePhoneLogout = () => {
     console.log('[AgentAvailabilityPanel] Phone logout requested');
     phoneLogout?.();
+    setStoredLogin(false);
     toast.success('Logged out of phone system', {
       description: 'You will not receive phone calls until you log in again',
     });
@@ -147,7 +178,7 @@ export const AgentAvailabilityPanel: React.FC<AgentAvailabilityPanelProps> = ({
               variant="ghost" 
               size="icon" 
               className="h-9 w-9 relative hover:bg-muted"
-              title={`Chat: ${chatStatus}${showPhoneSection ? `, Phone: ${phoneConnected ? 'logged in' : 'logged out'}` : ''}`}
+              title={`Chat: ${chatStatus}${showPhoneSection ? `, Phone: ${phoneLoggedIn ? "logged in" : "logged out"}` : ''}`}
             >
               {/* Chat status (primary) */}
               <Circle className={cn("h-4 w-4 fill-current", currentChatConfig.color)} />
@@ -155,7 +186,7 @@ export const AgentAvailabilityPanel: React.FC<AgentAvailabilityPanelProps> = ({
               {showPhoneSection && (
                 <div className={cn(
                   "absolute bottom-1 right-1 h-2 w-2 rounded-full border border-background",
-                  phoneConnected ? "bg-green-500" : "bg-muted-foreground"
+                  phoneLoggedIn ? "bg-green-500" : "bg-muted-foreground"
                 )} />
               )}
             </Button>
@@ -197,7 +228,7 @@ export const AgentAvailabilityPanel: React.FC<AgentAvailabilityPanelProps> = ({
                     <Phone className="h-3 w-3" />
                     <span>Phone</span>
                   </div>
-                  {phoneConnected ? (
+                  {phoneLoggedIn ? (
                     <Button
                       variant="outline"
                       size="sm"
@@ -213,8 +244,7 @@ export const AgentAvailabilityPanel: React.FC<AgentAvailabilityPanelProps> = ({
                       size="sm"
                       className="w-full h-7 text-xs"
                       onClick={handlePhoneLogin}
-                      disabled={initializationPhase === 'failed'}
-                    >
+                            >
                       <LogIn className="h-3 w-3 mr-1" />
                       Login to Aircall
                     </Button>
@@ -250,7 +280,7 @@ export const AgentAvailabilityPanel: React.FC<AgentAvailabilityPanelProps> = ({
         <span className="flex-1 text-left">Availability</span>
         <Circle className={cn("h-2 w-2 fill-current", currentChatConfig.color)} />
         {showPhoneSection && (
-          <Phone className={cn("h-2.5 w-2.5", phoneConnected ? "text-green-500" : "text-muted-foreground")} />
+          <Phone className={cn("h-2.5 w-2.5", phoneLoggedIn ? "text-green-500" : "text-muted-foreground")} />
         )}
       </CollapsibleTrigger>
 
@@ -341,7 +371,7 @@ export const AgentAvailabilityPanel: React.FC<AgentAvailabilityPanelProps> = ({
             <span>Phone</span>
           </div>
           
-          {phoneConnected ? (
+          {phoneLoggedIn ? (
             // Logged in state
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -370,7 +400,6 @@ export const AgentAvailabilityPanel: React.FC<AgentAvailabilityPanelProps> = ({
               size="sm"
               onClick={handlePhoneLogin}
               className="w-full h-7 text-[10px] justify-center gap-2"
-              disabled={initializationPhase === 'failed'}
             >
               <LogIn className="h-3.5 w-3.5" />
               <span>Login to Aircall</span>
