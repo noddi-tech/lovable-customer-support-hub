@@ -54,6 +54,7 @@ import SuperAdminImport from "./pages/SuperAdminImport";
 import FieldTypesPage from "./pages/super-admin/recruitment/FieldTypesPage";
 import SystemTemplatesPage from "./pages/super-admin/recruitment/SystemTemplatesPage";
 import GdprDashboardPage from "./pages/admin/gdpr/GdprDashboardPage";
+import BackgroundJobsPage from "./pages/admin/BackgroundJobsPage";
 import SystemTemplateEditorPage from "./pages/super-admin/recruitment/SystemTemplateEditorPage";
 import SearchPage from "./pages/SearchPage";
 import BulkOutreach from "./pages/BulkOutreach";
@@ -196,6 +197,7 @@ const AppContent = () => {
       <Route path="/admin/recruitment/import" element={<ProtectedRoute><AdminRoute><Settings /></AdminRoute></ProtectedRoute>} />
       <Route path="/admin/recruitment/templates/:id" element={<ProtectedRoute><AdminRoute><Settings /></AdminRoute></ProtectedRoute>} />
       <Route path="/admin/gdpr" element={<ProtectedRoute><AdminRoute><GdprDashboardPage /></AdminRoute></ProtectedRoute>} />
+      <Route path="/admin/background-jobs" element={<ProtectedRoute><AdminRoute><BackgroundJobsPage /></AdminRoute></ProtectedRoute>} />
       
       
       {/* ========== SUPER ADMIN ========== */}
