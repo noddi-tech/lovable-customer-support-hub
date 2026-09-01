@@ -216,6 +216,7 @@ export const CallTableRow = memo<CallTableRowProps>(({
         </DropdownMenu>
       </TableCell>
     </TableRow>
+    </CallBrandContextMenu>
   );
 });
 
