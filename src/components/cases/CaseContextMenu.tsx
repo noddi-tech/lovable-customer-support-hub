@@ -15,6 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Check, UserMinus, UserPlus, Flag, CircleDot } from 'lucide-react';
 import { toast } from 'sonner';
 import { MemberOptionContent, memberLabel, rememberAssignee, useMemberSearch } from '@/components/shared/MemberPicker';
+import type { TeamMember } from '@/hooks/useTeamMembers';
 import {
   CASE_PRIORITY_LABELS,
   CASE_STATUS_LABELS,
@@ -49,9 +50,9 @@ export const CaseContextMenu: React.FC<CaseContextMenuProps> = ({
   const [search, setSearch] = useState('');
   const { recent, rest } = useMemberSearch(search);
 
-  const assignOwner = (member: { id: string }) => {
+  const assignOwner = (member: TeamMember) => {
     rememberAssignee(member.id);
-    return apply({ owner_id: member.id }, `Assigned to ${memberLabel(member as never)}`);
+    return apply({ owner_id: member.id }, `Assigned to ${memberLabel(member)}`);
   };
 
 
