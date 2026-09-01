@@ -744,6 +744,7 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
           return bTime - aTime;
       }
     });
+    return { list: sortedByRecency, hiddenCount };
   }, [conversations, state.searchQuery, state.statusFilter, state.priorityFilter, state.purposeFilter, state.sortBy, state.tableSort, selectedTab, selectedInboxId, effectiveInboxId, effectiveInboxIds]);
 
   // Comprehensive debug logging
