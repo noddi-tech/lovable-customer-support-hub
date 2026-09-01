@@ -1439,6 +1439,8 @@ Deno.serve(async (req) => {
             segments: g.segments || [],
             addresses: g.addresses || [],
             cars: g.cars || g.user_group_cars || [],
+            tire_quotes: g.tire_quotes || [],
+
 
             coupons: (() => {
               const raw = g.coupons || [];
