@@ -176,7 +176,7 @@ const VirtualizedConversationTable = memo(({ onSelectConversation, selectedConve
       192 + // customer
       (showInboxColumn ? 160 : 0) +
       240 + // conversation (minimum)
-      32 + 128 + 96 + 112 + 144 + 80 + 80 + 48; // status..actions
+      128 + 96 + 112 + 144 + 80 + 80 + 48; // status..actions
 
   return (
     <div className="flex-1 flex flex-col min-h-0 h-full relative overflow-x-auto">
