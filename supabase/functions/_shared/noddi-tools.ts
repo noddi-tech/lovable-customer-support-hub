@@ -1,5 +1,6 @@
 // Noddi API tool execution functions
 import { API_BASE, toOsloTime, extractPlateString } from './chat-utils.ts';
+import { navioSourceHeaders } from './navio-source.ts';
 
 export async function executeLookupCustomer(phone?: string, email?: string, specifiedUserGroupId?: number): Promise<string> {
   const noddiToken = Deno.env.get('NODDI_API_TOKEN');
@@ -9,6 +10,7 @@ export async function executeLookupCustomer(phone?: string, email?: string, spec
     'Authorization': `Token ${noddiToken}`,
     'Accept': 'application/json',
     'Content-Type': 'application/json',
+    ...navioSourceHeaders(),
   };
 
   try {
@@ -119,7 +121,7 @@ export async function executeLookupCustomer(phone?: string, email?: string, spec
     if (userGroupId) {
       try {
         const bfcResp = await fetch(`${API_BASE}/v1/user-groups/${userGroupId}/bookings-for-customer/?page_size=20`, {
-          headers: { 'Authorization': `Token ${noddiToken}`, 'Accept': 'application/json' },
+          headers: { 'Authorization': `Token ${noddiToken}`, 'Accept': 'application/json', ...navioSourceHeaders() },
         });
         if (bfcResp.ok) {
           const bfcData = await bfcResp.json();
@@ -379,7 +381,7 @@ export async function executeGetBookingDetails(bookingId: number): Promise<strin
 
   try {
     const resp = await fetch(`${API_BASE}/v1/bookings/${bookingId}/`, {
-      headers: { 'Authorization': `Token ${noddiToken}`, 'Accept': 'application/json' },
+      headers: { 'Authorization': `Token ${noddiToken}`, 'Accept': 'application/json', ...navioSourceHeaders() },
     });
 
     if (!resp.ok) {
@@ -425,7 +427,7 @@ export async function executeRescheduleBooking(bookingId: number, newDate: strin
   try {
     const resp = await fetch(`${API_BASE}/v1/bookings/${bookingId}/reschedule/`, {
       method: 'POST',
-      headers: { 'Authorization': `Token ${noddiToken}`, 'Accept': 'application/json', 'Content-Type': 'application/json' },
+      headers: { 'Authorization': `Token ${noddiToken}`, 'Accept': 'application/json', 'Content-Type': 'application/json', ...navioSourceHeaders() },
       body: JSON.stringify({ new_start_time: newDate }),
     });
 
@@ -460,6 +462,7 @@ export async function executeCancelBooking(bookingId: number, reason?: string): 
         'Authorization': `Token ${noddiToken}`,
         'Accept': 'application/json',
         'Content-Type': 'application/json',
+        ...navioSourceHeaders(),
       },
       body: JSON.stringify({
         booking_id: bookingId,
