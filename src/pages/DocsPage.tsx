@@ -15,7 +15,7 @@ import {
   searchDocs,
   type DocEntry,
 } from '@/lib/docs-registry';
-import { BookOpen, Search, PanelLeft, FileText, Plug } from 'lucide-react';
+import { BookOpen, Search, PanelLeft, FileText, Plug, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 function DocsNav({
