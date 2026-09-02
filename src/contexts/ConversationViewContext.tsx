@@ -904,6 +904,10 @@ export const ConversationViewProvider = ({
     },
   })
 
+  autoMarkAsReadRef.current = (convId: string) => autoMarkAsReadMutation.mutate(convId)
+
+
+
   // Gmail sync mutation for refreshing message data
   const gmailSyncMutation = useMutation({
     mutationFn: async () => {
