@@ -105,7 +105,7 @@ function Trend({
     }
     return (
       <span
-        title={`${label}: new this period — nothing recorded in the previous ${''}period`}
+        title={`${label}: new this period — nothing recorded in the previous period`}
         className={cn(base, higherIsBetter ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground')}
       >
         <ArrowUpRight className="h-3 w-3" />
