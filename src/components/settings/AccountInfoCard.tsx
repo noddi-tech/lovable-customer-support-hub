@@ -17,6 +17,19 @@ const PROVIDER_LABELS: Record<ProviderKey, string> = {
   'custom:navio': 'Navio (product IdP)',
 };
 
+const PROVIDER_CAPABILITIES: Record<ProviderKey, string> = {
+  google: 'Workspace sign-in. Verifies identity and email only — no roles or organizations.',
+  'custom:navio': 'Product IdP. Supplies roles, organizations and service departments as token claims.',
+};
+
+const ROLE_DESCRIPTIONS: Record<string, string> = {
+  super_admin: 'Full platform access across every organization, including admin portal and system settings.',
+  admin: 'Manage users, inboxes, settings and all conversations within your organizations.',
+  agent: 'Handle conversations, calls and customers in the inboxes you have access to.',
+  user: 'Read-only or limited access to the inboxes you are a member of.',
+};
+
+
 const Row: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
   <div className="grid grid-cols-[140px_1fr] gap-3 py-1.5 text-sm">
     <span className="text-muted-foreground">{label}</span>
@@ -41,6 +54,8 @@ export const AccountInfoCard: React.FC = () => {
 
   const identities = (user?.identities || []) as Array<{ id: string; provider: string; identity_data?: Record<string, any> }>;
   const connectedProviders = useMemo(() => new Set(identities.map((i) => i.provider)), [identities]);
+  const currentProvider = (user?.app_metadata as any)?.provider as string | undefined;
+
   const claimRoles = useMemo(() => getActiveRoles(navioClaims as any) || [], [navioClaims]);
 
   const userType =
@@ -110,19 +125,34 @@ export const AccountInfoCard: React.FC = () => {
         <Separator className="my-4" />
 
         <section>
-          <h3 className="text-sm font-semibold mb-2">Sign-in (IdP)</h3>
+          <h3 className="text-sm font-semibold">Sign-in (IdP)</h3>
+          <p className="text-xs text-muted-foreground mb-2">
+            The identity providers that can authenticate this account, and what each one supplies.
+          </p>
           {identities.length === 0 ? (
             <p className="text-sm text-muted-foreground">No external identity providers on this session.</p>
           ) : (
-            <div className="flex flex-wrap gap-2">
+            <div className="space-y-2">
               {identities.map((i) => (
-                <Badge key={i.id} variant="outline">
-                  {PROVIDER_LABELS[i.provider as ProviderKey] || i.provider}
-                </Badge>
+                <div key={i.id} className="rounded-md border border-border px-3 py-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-sm font-medium">
+                      {PROVIDER_LABELS[i.provider as ProviderKey] || i.provider}
+                    </span>
+                    <Badge variant="outline" className="font-mono text-[10px]">{i.provider}</Badge>
+                    {i.provider === currentProvider && <Badge className="text-[10px]">Used this session</Badge>}
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground break-words">
+                    {(i.identity_data?.email as string) || user?.email || '—'}
+                    {' · '}
+                    {PROVIDER_CAPABILITIES[i.provider as ProviderKey] || 'Authentication only.'}
+                  </p>
+                </div>
               ))}
             </div>
           )}
         </section>
+
 
         <Separator className="my-4" />
 
@@ -164,7 +194,10 @@ export const AccountInfoCard: React.FC = () => {
         <Separator className="my-4" />
 
         <section>
-          <h3 className="text-sm font-semibold mb-2">Access from IdP</h3>
+          <h3 className="text-sm font-semibold">Access from IdP</h3>
+          <p className="text-xs text-muted-foreground mb-2">
+            Roles and scope delivered in the sign-in token, before Support Hub applies its own rules.
+          </p>
           {claimRoles.length === 0 ? (
             <p className="text-sm text-muted-foreground">
               No organization claims from external sign-in. Sign in with Navio to pull roles and departments from the IdP.
@@ -181,16 +214,51 @@ export const AccountInfoCard: React.FC = () => {
         <Separator className="my-4" />
 
         <section>
-          <h3 className="text-sm font-semibold mb-2">Access in Support Hub</h3>
+          <h3 className="text-sm font-semibold">Access in Support Hub</h3>
+          <p className="text-xs text-muted-foreground mb-2">
+            Effective permissions for this account in this product.
+          </p>
           <div className="flex flex-wrap gap-2 mb-2">
             <Badge variant="secondary" className="font-mono text-[11px]">{role}</Badge>
             {effectiveScope?.isSuperuser && <Badge>All organizations</Badge>}
           </div>
           <p className="text-sm text-muted-foreground">
+            {ROLE_DESCRIPTIONS[role as string] || 'Access is limited to the inboxes and organizations you are a member of.'}
+          </p>
+          <p className="mt-1 text-sm text-muted-foreground">
             {accessibleOrganizations?.length ?? 0} organization(s) · {accessibleServiceDepartments?.length ?? 0} department(s) visible
             {memberships?.length ? ` via ${memberships.length} membership(s).` : '.'}
           </p>
+          {(accessibleOrganizations?.length ?? 0) > 0 && (
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {accessibleOrganizations.slice(0, 12).map((o) => (
+                <Badge key={o.navioId ?? o.localId ?? o.name} variant="outline" className="text-[11px]">
+                  {o.name}
+                </Badge>
+              ))}
+              {accessibleOrganizations.length > 12 && (
+                <Badge variant="outline" className="text-[11px]">
+                  +{accessibleOrganizations.length - 12} more
+                </Badge>
+              )}
+            </div>
+          )}
+          {(accessibleServiceDepartments?.length ?? 0) > 0 && (
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {accessibleServiceDepartments.slice(0, 12).map((d) => (
+                <Badge key={d.navioId ?? d.localId ?? d.name} variant="secondary" className="text-[11px]">
+                  {d.name}
+                </Badge>
+              ))}
+              {accessibleServiceDepartments.length > 12 && (
+                <Badge variant="secondary" className="text-[11px]">
+                  +{accessibleServiceDepartments.length - 12} more
+                </Badge>
+              )}
+            </div>
+          )}
         </section>
+
       </CardContent>
     </Card>
   );
