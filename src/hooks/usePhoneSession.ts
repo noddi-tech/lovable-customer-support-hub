@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { useAircallPhone } from '@/hooks/useAircallPhone';
 import { useVoiceIntegrations } from '@/hooks/useVoiceIntegrations';
-import { aircallPhone } from '@/lib/aircall-phone';
+import { aircallPhone } from '@/integrations/aircall';
 
 /**
  * Shared Aircall session state + login/logout handlers.

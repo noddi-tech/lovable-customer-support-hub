@@ -1,6 +1,6 @@
 import { createContext, useState, useEffect, useCallback, useRef, ReactNode, useMemo } from 'react';
-import { aircallPhone, type AircallCall } from '@/lib/aircall-phone';
-import { aircallEventBridge } from '@/lib/aircall-event-bridge';
+import { aircallPhone, type AircallCall } from '@/integrations/aircall';
+import { aircallEventBridge } from '@/integrations/aircall';
 import { useVoiceIntegrations } from '@/hooks/useVoiceIntegrations';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';

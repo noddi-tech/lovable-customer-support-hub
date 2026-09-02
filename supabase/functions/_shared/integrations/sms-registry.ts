@@ -1,5 +1,5 @@
-import type { SmsProvider } from './types.ts';
-import { messenteProvider } from './messente.ts';
+import type { SmsProvider } from './sms-types.ts';
+import { messenteProvider } from './messente/provider.ts';
 
 export function getSmsProvider(name: string): SmsProvider {
   switch (name) {
