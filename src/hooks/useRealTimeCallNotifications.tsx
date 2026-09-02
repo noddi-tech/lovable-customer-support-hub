@@ -147,12 +147,7 @@ export const useRealTimeCallNotifications = () => {
       unsubscribeCallEvents()
       unsubscribeCallStatus()
     }
-  }, [
-    aircallIntegration,
-    createManagedSubscription,
-    queryClient,
-    toast,
-  ])
+  }, [aircallIntegration, createManagedSubscription, queryClient, toast])
 
   const handleCallEventNotification = async (callEvent: CallEvent, call: Call) => {
     const monitoredPhone = getMonitoredPhoneForCall(call, aircallIntegration)

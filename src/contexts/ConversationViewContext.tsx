@@ -21,10 +21,6 @@ interface ConversationViewState {
   selectedTemplateId: string | null // Track which template was selected
   showFeedbackRating: boolean // Show feedback UI after sending reply
   lastSentMessageId: string | null // Track the last sent message for feedback
-  translateOpen: boolean
-  translateLoading: boolean
-  sourceLanguage: string
-  targetLanguage: string
   assignDialogOpen: boolean
   assignSelectedUserId: string
   assignLoading: boolean
@@ -54,10 +50,6 @@ type ConversationViewAction =
   | { type: "SET_SELECTED_AI_SUGGESTION"; payload: string | null }
   | { type: "SET_SELECTED_TEMPLATE"; payload: string | null }
   | { type: "SET_FEEDBACK_STATE"; payload: { show: boolean; messageId: string | null } }
-  | {
-      type: "SET_TRANSLATE_STATE"
-      payload: { open: boolean; loading: boolean; sourceLanguage: string; targetLanguage: string }
-    }
   | { type: "SET_ASSIGN_DIALOG"; payload: { open: boolean; userId: string; loading: boolean } }
   | { type: "SET_MOVE_DIALOG"; payload: { open: boolean; inboxId: string; loading: boolean } }
   | { type: "SET_SNOOZE_DIALOG"; payload: { open: boolean; date: Date | undefined; time: string } }
@@ -82,10 +74,6 @@ const initialState: ConversationViewState = {
   selectedTemplateId: null,
   showFeedbackRating: false,
   lastSentMessageId: null,
-  translateOpen: false,
-  translateLoading: false,
-  sourceLanguage: "auto",
-  targetLanguage: "no",
   assignDialogOpen: false,
   assignSelectedUserId: "",
   assignLoading: false,
@@ -134,14 +122,6 @@ function conversationViewReducer(
         ...state,
         showFeedbackRating: action.payload.show,
         lastSentMessageId: action.payload.messageId,
-      }
-    case "SET_TRANSLATE_STATE":
-      return {
-        ...state,
-        translateOpen: action.payload.open,
-        translateLoading: action.payload.loading,
-        sourceLanguage: action.payload.sourceLanguage,
-        targetLanguage: action.payload.targetLanguage,
       }
     case "SET_ASSIGN_DIALOG":
       return {
@@ -221,7 +201,6 @@ interface ConversationViewContextType {
     refinementInstructions: string,
     customerMessage?: string,
   ) => Promise<string | null>
-  translateText: (text: string, sourceLanguage: string, targetLanguage: string) => Promise<string>
   refreshConversation: () => Promise<void>
   addTag: (tag: string) => Promise<void>
   removeTag: (tag: string) => Promise<void>
@@ -249,22 +228,12 @@ export const ConversationViewProvider = ({
 
   // Restore per-conversation draft when opening / switching threads.
   // Reply vs internal-note mode is NOT restored — that choice is made when the
-  // agent presses Reply or Internal note. Do not force-close an already-open
-  // composer here beyond the initial switch.
+  // agent presses Reply or Internal note. Composer starts closed on switch.
   useEffect(() => {
     const draft = loadReplyDraft(conversationId)
     dispatch({ type: "SET_REPLY_TEXT", payload: draft })
     dispatch({ type: "SET_IS_INTERNAL_NOTE", payload: false })
     dispatch({ type: "SET_SHOW_REPLY_AREA", payload: false })
-    dispatch({
-      type: "SET_TRANSLATE_STATE",
-      payload: {
-        open: false,
-        loading: false,
-        sourceLanguage: "auto",
-        targetLanguage: "no",
-      },
-    })
   }, [conversationId])
 
   // Persist typed text so navigating away does not lose the draft.
@@ -906,8 +875,6 @@ export const ConversationViewProvider = ({
 
   autoMarkAsReadRef.current = (convId: string) => autoMarkAsReadMutation.mutate(convId)
 
-
-
   // Gmail sync mutation for refreshing message data
   const gmailSyncMutation = useMutation({
     mutationFn: async () => {
@@ -1038,40 +1005,6 @@ export const ConversationViewProvider = ({
       toast.error(`Failed to get AI suggestions: ${error.message}`)
       dispatch({ type: "SET_AI_STATE", payload: { open: false, loading: false, suggestions: [] } })
     }
-  }
-
-  const translateText = async (
-    text: string,
-    sourceLanguage: string,
-    targetLanguage: string,
-  ): Promise<string> => {
-    if (!text.trim()) return text
-
-    const { data, error } = await supabase.functions.invoke("translate-text", {
-      body: {
-        text: text.trim(),
-        sourceLanguage,
-        targetLanguage,
-      },
-    })
-
-    if (error) {
-      logger.error("Failed to translate text", error, "ConversationViewProvider")
-      throw error
-    }
-
-    // Defensive: some runtimes may hand back a JSON string instead of an object.
-    const payload =
-      typeof data === "string"
-        ? (JSON.parse(data) as { translatedText?: string })
-        : (data as { translatedText?: string } | null)
-
-    const translated = payload?.translatedText?.trim()
-    if (!translated) {
-      throw new Error("Translation returned an empty result")
-    }
-
-    return translated
   }
 
   const refineAiSuggestion = async (
@@ -1278,7 +1211,6 @@ export const ConversationViewProvider = ({
     snoozeConversation,
     getAiSuggestions,
     refineAiSuggestion,
-    translateText,
     refreshConversation,
     addTag,
     removeTag,

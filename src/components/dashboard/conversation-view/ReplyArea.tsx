@@ -45,7 +45,12 @@ import { useAgentTyping } from "@/hooks/useAgentTyping"
 import { useInteractionsNavigation } from "@/hooks/useInteractionsNavigation"
 import { useMentionNotifications } from "@/hooks/useMentionNotifications"
 import type { EmailPriority } from "@/lib/emailPriority"
-import { saveReplyDraft } from "@/lib/replyDraftStorage"
+import {
+  DEFAULT_SOURCE_LANGUAGE,
+  DEFAULT_TARGET_LANGUAGE,
+  translateErrorMessage,
+  translateText,
+} from "@/lib/translateText"
 import { cn } from "@/lib/utils"
 import { AiSuggestionsSheet } from "./AiSuggestionsSheet"
 import { FeedbackPrompt } from "./FeedbackPrompt"
@@ -58,7 +63,6 @@ export const ReplyArea = () => {
     sendReply,
     getAiSuggestions,
     refineAiSuggestion,
-    translateText,
     conversation,
     messages,
   } = useConversationView()
@@ -75,6 +79,10 @@ export const ReplyArea = () => {
   const [attachments, setAttachments] = useState<{ file: File; previewUrl: string }[]>([])
   const [replyAll, setReplyAll] = useState(true)
   const [priority, setPriority] = useState<EmailPriority>("normal")
+  const [translateOpen, setTranslateOpen] = useState(false)
+  const [translateLoading, setTranslateLoading] = useState(false)
+  const [sourceLanguage, setSourceLanguage] = useState(DEFAULT_SOURCE_LANGUAGE)
+  const [targetLanguage, setTargetLanguage] = useState(DEFAULT_TARGET_LANGUAGE)
 
   const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
 
@@ -267,37 +275,25 @@ export const ReplyArea = () => {
   }
 
   const handleTranslate = async () => {
-    if (!state.replyText.trim() || state.translateLoading) return
+    if (!state.replyText.trim() || translateLoading) return
 
-    const sourceLanguage = state.sourceLanguage
-    const targetLanguage = state.targetLanguage
     const original = state.replyText
-
-    dispatch({
-      type: "SET_TRANSLATE_STATE",
-      payload: { open: true, loading: true, sourceLanguage, targetLanguage },
-    })
+    setTranslateOpen(true)
+    setTranslateLoading(true)
 
     try {
       const translated = await translateText(original, sourceLanguage, targetLanguage)
       dispatch({ type: "SET_REPLY_TEXT", payload: translated })
-      saveReplyDraft(conversation?.id, translated)
-      dispatch({
-        type: "SET_TRANSLATE_STATE",
-        payload: { open: false, loading: false, sourceLanguage, targetLanguage },
-      })
-      // Keep composer open and move focus to the updated text.
-      dispatch({ type: "SET_SHOW_REPLY_AREA", payload: true })
+      setTranslateOpen(false)
       requestAnimationFrame(() => replyRef.current?.focus())
       toast.success(
         translated === original ? "Translation complete (text unchanged)" : "Reply translated",
       )
-    } catch (error: any) {
-      dispatch({
-        type: "SET_TRANSLATE_STATE",
-        payload: { open: true, loading: false, sourceLanguage, targetLanguage },
-      })
-      toast.error(`Failed to translate text: ${error?.message || "Unknown error"}`)
+    } catch (error: unknown) {
+      setTranslateOpen(true)
+      toast.error(`Failed to translate text: ${translateErrorMessage(error)}`)
+    } finally {
+      setTranslateLoading(false)
     }
   }
 
@@ -414,20 +410,7 @@ export const ReplyArea = () => {
             </Button>
 
             {/* Translation Popover */}
-            <Popover
-              open={state.translateOpen}
-              onOpenChange={(open) =>
-                dispatch({
-                  type: "SET_TRANSLATE_STATE",
-                  payload: {
-                    open,
-                    loading: state.translateLoading,
-                    sourceLanguage: state.sourceLanguage,
-                    targetLanguage: state.targetLanguage,
-                  },
-                })
-              }
-            >
+            <Popover open={translateOpen} onOpenChange={setTranslateOpen}>
               <PopoverTrigger asChild>
                 <Button
                   variant="ghost"
@@ -449,20 +432,7 @@ export const ReplyArea = () => {
 
                   <div className="space-y-2">
                     <Label className="text-xs">{t("conversation.from")}</Label>
-                    <Select
-                      value={state.sourceLanguage}
-                      onValueChange={(value) =>
-                        dispatch({
-                          type: "SET_TRANSLATE_STATE",
-                          payload: {
-                            open: state.translateOpen,
-                            loading: state.translateLoading,
-                            sourceLanguage: value,
-                            targetLanguage: state.targetLanguage,
-                          },
-                        })
-                      }
-                    >
+                    <Select value={sourceLanguage} onValueChange={setSourceLanguage}>
                       <SelectTrigger className="w-full bg-background">
                         <SelectValue />
                       </SelectTrigger>
@@ -478,20 +448,7 @@ export const ReplyArea = () => {
 
                   <div className="space-y-2">
                     <Label className="text-xs">{t("conversation.to")}</Label>
-                    <Select
-                      value={state.targetLanguage}
-                      onValueChange={(value) =>
-                        dispatch({
-                          type: "SET_TRANSLATE_STATE",
-                          payload: {
-                            open: state.translateOpen,
-                            loading: state.translateLoading,
-                            sourceLanguage: state.sourceLanguage,
-                            targetLanguage: value,
-                          },
-                        })
-                      }
-                    >
+                    <Select value={targetLanguage} onValueChange={setTargetLanguage}>
                       <SelectTrigger className="w-full bg-background">
                         <SelectValue />
                       </SelectTrigger>
@@ -509,11 +466,11 @@ export const ReplyArea = () => {
 
                   <Button
                     onClick={handleTranslate}
-                    disabled={state.translateLoading || !state.replyText.trim()}
+                    disabled={translateLoading || !state.replyText.trim()}
                     className="w-full"
                     size="sm"
                   >
-                    {state.translateLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                    {translateLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                     {t("conversation.translate")}
                   </Button>
                 </div>

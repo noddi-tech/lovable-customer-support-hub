@@ -48,6 +48,12 @@ import { useChatSessionTransfer } from "@/hooks/useChatSessionTransfer"
 import { useMentionNotifications } from "@/hooks/useMentionNotifications"
 import { supabase } from "@/integrations/supabase/client"
 import { REPLY_SEND_STATUS_DESCRIPTIONS } from "@/lib/option-descriptions"
+import {
+  DEFAULT_SOURCE_LANGUAGE,
+  DEFAULT_TARGET_LANGUAGE,
+  translateErrorMessage,
+  translateText,
+} from "@/lib/translateText"
 import { cn } from "@/lib/utils"
 import { noteDebug } from "@/utils/noteInteractionDebug"
 
@@ -84,8 +90,8 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
   const [attachments, setAttachments] = useState<AttachmentPreview[]>([])
   const [isUploading, setIsUploading] = useState(false)
   const [translateLoading, setTranslateLoading] = useState(false)
-  const [sourceLanguage, setSourceLanguage] = useState("auto")
-  const [targetLanguage, setTargetLanguage] = useState("no")
+  const [sourceLanguage, setSourceLanguage] = useState(DEFAULT_SOURCE_LANGUAGE)
+  const [targetLanguage, setTargetLanguage] = useState(DEFAULT_TARGET_LANGUAGE)
   const [isMentionMenuOpen, setIsMentionMenuOpen] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { user } = useAuth()
@@ -494,17 +500,13 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
     if (!message.trim() || translateLoading) return
     setTranslateLoading(true)
     try {
-      const { data, error } = await supabase.functions.invoke("translate-text", {
-        body: { text: message, sourceLanguage, targetLanguage },
-      })
-      if (error) throw error
-      if (data?.translatedText) {
-        setMessage(data.translatedText)
-        toast.success("Message translated")
-      }
-    } catch (err) {
-      console.error("Translation error:", err)
-      toast.error("Failed to translate message")
+      const translated = await translateText(message, sourceLanguage, targetLanguage)
+      setMessage(translated)
+      toast.success(
+        translated === message ? "Translation complete (text unchanged)" : "Message translated",
+      )
+    } catch (err: unknown) {
+      toast.error(`Failed to translate message: ${translateErrorMessage(err)}`)
     } finally {
       setTranslateLoading(false)
     }

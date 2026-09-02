@@ -44,6 +44,12 @@ import { useInboxEmailAddresses } from "@/hooks/useInboxEmailAddresses"
 import { supabase } from "@/integrations/supabase/client"
 import { createConversationAndSend } from "@/lib/createConversation"
 import { sortInboxesByName } from "@/lib/sortInboxes"
+import {
+  DEFAULT_SOURCE_LANGUAGE,
+  DEFAULT_TARGET_LANGUAGE,
+  translateErrorMessage,
+  translateText,
+} from "@/lib/translateText"
 import { cn } from "@/lib/utils"
 import { AiSuggestionDialog } from "../conversation-view/AiSuggestionDialog"
 import { TemplateSelector } from "../conversation-view/TemplateSelector"
@@ -133,8 +139,8 @@ export const ComposeWindow: React.FC<ComposeWindowProps> = ({ draft }) => {
   const [selectedSuggestion, setSelectedSuggestion] = useState<string | null>(null)
   const [showAiDialog, setShowAiDialog] = useState(false)
   const [isRefining, setIsRefining] = useState(false)
-  const [sourceLanguage, setSourceLanguage] = useState("auto")
-  const [targetLanguage, setTargetLanguage] = useState("no")
+  const [sourceLanguage, setSourceLanguage] = useState(DEFAULT_SOURCE_LANGUAGE)
+  const [targetLanguage, setTargetLanguage] = useState(DEFAULT_TARGET_LANGUAGE)
   const [isTranslating, setIsTranslating] = useState(false)
 
   const { data: inboxes = [] } = useQuery({
@@ -309,17 +315,14 @@ export const ComposeWindow: React.FC<ComposeWindowProps> = ({ draft }) => {
     }
     setIsTranslating(true)
     try {
-      const { data, error } = await supabase.functions.invoke("translate-text", {
-        body: { text: draft.body, sourceLanguage, targetLanguage },
-      })
-      if (error) throw error
-      if (data?.translatedText) {
-        set({ body: data.translatedText })
-        toast.success("Message translated")
-      }
-    } catch (error) {
-      console.error("Error translating text:", error)
-      toast.error("Failed to translate text")
+      const original = draft.body
+      const translated = await translateText(original, sourceLanguage, targetLanguage)
+      set({ body: translated })
+      toast.success(
+        translated === original ? "Translation complete (text unchanged)" : "Message translated",
+      )
+    } catch (error: unknown) {
+      toast.error(`Failed to translate text: ${translateErrorMessage(error)}`)
     } finally {
       setIsTranslating(false)
     }

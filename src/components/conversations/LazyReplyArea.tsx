@@ -1,5 +1,5 @@
 import { Reply, StickyNote } from "lucide-react"
-import { lazy, Suspense, useCallback, useEffect, useState } from "react"
+import { lazy, Suspense, useCallback, useEffect } from "react"
 import { useTranslation } from "react-i18next"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -32,33 +32,24 @@ const ReplyAreaSkeleton = () => (
   </div>
 )
 
-export const LazyReplyArea = ({ conversationId, onReply }: LazyReplyAreaProps) => {
+export const LazyReplyArea = (_props: LazyReplyAreaProps) => {
   const { t } = useTranslation()
   const { dispatch, state } = useConversationView()
-  const [showReplyArea, setShowReplyArea] = useState(false)
   const isMobile = useIsMobile()
+  const showReplyArea = state.showReplyArea
 
   // Preload the ReplyArea chunk when conversation opens
   useEffect(() => {
     preloadReplyArea()
   }, [])
 
-  // Sync local open state both ways with context (minimize, send, translate, editDraft)
-  useEffect(() => {
-    if (state.showReplyArea !== showReplyArea) {
-      setShowReplyArea(state.showReplyArea)
-    }
-  }, [state.showReplyArea, showReplyArea])
-
   // Mode is decided only here — not when collapsing the composer.
   const handleShowReply = useCallback(() => {
-    setShowReplyArea(true)
     dispatch({ type: "SET_SHOW_REPLY_AREA", payload: true })
     dispatch({ type: "SET_IS_INTERNAL_NOTE", payload: false })
   }, [dispatch])
 
   const handleShowNote = useCallback(() => {
-    setShowReplyArea(true)
     dispatch({ type: "SET_SHOW_REPLY_AREA", payload: true })
     dispatch({ type: "SET_IS_INTERNAL_NOTE", payload: true })
   }, [dispatch])

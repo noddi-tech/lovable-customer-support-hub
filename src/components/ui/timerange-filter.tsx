@@ -37,7 +37,6 @@ export const TimeRangeFilter: React.FC<TimeRangeFilterProps> = ({
   const [customUnit, setCustomUnit] = useState<"hours" | "days">("hours")
   const [isOpen, setIsOpen] = useState(false)
 
-
   const handlePresetChange = (presetId: string) => {
     setSelectedPreset(presetId)
 

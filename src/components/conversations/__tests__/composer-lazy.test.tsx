@@ -1,17 +1,30 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { fireEvent, render, screen, waitFor } from "@testing-library/react"
-import { describe, expect, test, vi } from "vitest"
+import { fireEvent, render, screen } from "@testing-library/react"
+import { beforeEach, describe, expect, test, vi } from "vitest"
 import { LazyReplyArea } from "../LazyReplyArea"
 
-// Mock the lazy-loaded component
-vi.mock("@/components/dashboard/conversation-view/ReplyArea", () => ({
-  ReplyArea: () => <div data-testid="reply-area">Reply Area Loaded</div>,
+vi.mock("@/hooks/use-responsive", () => ({
+  useIsMobile: () => false,
 }))
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
     t: (key: string) => key,
   }),
+}))
+
+const dispatchMock = vi.fn()
+let showReplyArea = false
+
+vi.mock("@/contexts/ConversationViewContext", () => ({
+  useConversationView: () => ({
+    state: { showReplyArea },
+    dispatch: dispatchMock,
+  }),
+}))
+
+vi.mock("@/components/dashboard/conversation-view/ReplyArea", () => ({
+  ReplyArea: () => <div data-testid="reply-area">Reply Area Loaded</div>,
 }))
 
 const createTestQueryClient = () =>
@@ -22,87 +35,51 @@ const createTestQueryClient = () =>
     },
   })
 
+function renderLazy() {
+  const queryClient = createTestQueryClient()
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <LazyReplyArea conversationId="test-conv" />
+    </QueryClientProvider>,
+  )
+}
+
 describe("LazyReplyArea", () => {
-  test("shows reply button initially", () => {
-    const queryClient = createTestQueryClient()
+  beforeEach(() => {
+    showReplyArea = false
+    dispatchMock.mockReset()
+  })
 
-    render(
-      <QueryClientProvider client={queryClient}>
-        <LazyReplyArea conversationId="test-conv" />
-      </QueryClientProvider>,
-    )
+  test("shows reply button when composer is closed", () => {
+    renderLazy()
 
-    const replyButton = screen.getByRole("button", { name: /conversation.reply/i })
-    expect(replyButton).toBeInTheDocument()
-
-    // Reply area should not be loaded yet
+    expect(screen.getByRole("button", { name: /conversation.reply/i })).toBeInTheDocument()
     expect(screen.queryByTestId("reply-area")).not.toBeInTheDocument()
   })
 
-  test("loads reply area when button is clicked", async () => {
-    const queryClient = createTestQueryClient()
+  test("reply button opens composer via context dispatch", () => {
+    renderLazy()
 
-    render(
-      <QueryClientProvider client={queryClient}>
-        <LazyReplyArea conversationId="test-conv" />
-      </QueryClientProvider>,
-    )
+    fireEvent.click(screen.getByRole("button", { name: /conversation.reply/i }))
 
-    const replyButton = screen.getByRole("button", { name: /conversation.reply/i })
-    fireEvent.click(replyButton)
-
-    // Should show loading skeleton first
-    await waitFor(() => {
-      // Check for skeleton or loaded content
-      expect(screen.getByTestId("reply-area") || screen.getByRole("button")).toBeInTheDocument()
-    })
-
-    // Eventually should show the loaded reply area
-    await waitFor(
-      () => {
-        expect(screen.getByTestId("reply-area")).toBeInTheDocument()
-      },
-      { timeout: 2000 },
-    )
+    expect(dispatchMock).toHaveBeenCalledWith({ type: "SET_SHOW_REPLY_AREA", payload: true })
+    expect(dispatchMock).toHaveBeenCalledWith({ type: "SET_IS_INTERNAL_NOTE", payload: false })
   })
 
-  test("shows skeleton while loading", async () => {
-    const queryClient = createTestQueryClient()
+  test("note button opens composer in internal-note mode", () => {
+    renderLazy()
 
-    render(
-      <QueryClientProvider client={queryClient}>
-        <LazyReplyArea conversationId="test-conv" />
-      </QueryClientProvider>,
-    )
+    fireEvent.click(screen.getByRole("button", { name: /conversation.internalNote/i }))
 
-    const replyButton = screen.getByRole("button", { name: /conversation.reply/i })
-    fireEvent.click(replyButton)
-
-    // Should show some loading indication
-    await waitFor(() => {
-      // The component should show either skeleton elements or the loaded component
-      const hasSkeletonOrContent =
-        screen.queryByTestId("reply-area") || screen.getAllByRole("generic").length > 0 // Skeleton elements are divs
-
-      expect(hasSkeletonOrContent).toBeTruthy()
-    })
+    expect(dispatchMock).toHaveBeenCalledWith({ type: "SET_SHOW_REPLY_AREA", payload: true })
+    expect(dispatchMock).toHaveBeenCalledWith({ type: "SET_IS_INTERNAL_NOTE", payload: true })
   })
 
-  test("reply button is not present after clicking", async () => {
-    const queryClient = createTestQueryClient()
+  test("renders reply area when context showReplyArea is true", async () => {
+    showReplyArea = true
+    renderLazy()
 
-    render(
-      <QueryClientProvider client={queryClient}>
-        <LazyReplyArea conversationId="test-conv" />
-      </QueryClientProvider>,
-    )
-
-    const replyButton = screen.getByRole("button", { name: /conversation.reply/i })
-    fireEvent.click(replyButton)
-
-    // After clicking, the original reply button should be gone
-    await waitFor(() => {
-      expect(screen.queryByRole("button", { name: /conversation.reply/i })).not.toBeInTheDocument()
-    })
+    expect(await screen.findByTestId("reply-area")).toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: /conversation.reply/i })).not.toBeInTheDocument()
   })
 })
