@@ -37,14 +37,63 @@ function extractTitle(content: string, fileName: string): string {
   return match ? match[1].trim() : humanise(fileName);
 }
 
-const SECTION_LABELS: Record<string, string> = {
-  '': 'Overview',
-  adr: 'Architecture decisions',
-  dev: 'Development',
-  conversations: 'Conversations',
-  layout: 'Layout',
-  sso: 'Single sign-on',
+/**
+ * Sidebar grouping by logical domain rather than by folder. Docs that are not
+ * listed explicitly fall back to their folder name (or "Reference").
+ */
+const SECTION_BY_SLUG: Record<string, string> = {
+  README: 'Start here',
+  'dev/README': 'Start here',
+  'api/README': 'Start here',
+
+  'conversations/config': 'Conversations & email',
+  'conversations/perf-notes': 'Conversations & email',
+
+  AI_INTELLIGENCE_README: 'AI & knowledge',
+  KNOWLEDGE_SYSTEM: 'AI & knowledge',
+
+  'aircall-everywhere-integration': 'Integrations',
+  'aircall-testing-checklist': 'Integrations',
+  'aircall-troubleshooting': 'Integrations',
+  NODDI_API_ENDPOINTS: 'Integrations',
+  SLACK_ALERTING_SYSTEM: 'Integrations',
+  'sso/navio-auth-setup': 'Integrations',
+  WIDGET_EMBED_GUIDE: 'Integrations',
+
+  'customer-segmentation': 'Product features',
+
+  'layout/panes': 'UI & layout',
+  'scrolling-pattern': 'UI & layout',
+
+  'dev/debugging': 'Operations & quality',
+  'dev/logging': 'Operations & quality',
+  AUDIT_LOGGING: 'Operations & quality',
+  TESTING_GUIDE: 'Operations & quality',
+  PRODUCTION_TESTING_CHECKLIST: 'Operations & quality',
 };
+
+const SECTION_LABELS: Record<string, string> = {
+  '': 'Reference',
+  adr: 'Architecture decisions',
+  dev: 'Operations & quality',
+  conversations: 'Conversations & email',
+  layout: 'UI & layout',
+  sso: 'Integrations',
+  api: 'Start here',
+};
+
+/** Display order of the sidebar sections. */
+export const SECTION_ORDER = [
+  'Start here',
+  'Architecture decisions',
+  'Conversations & email',
+  'AI & knowledge',
+  'Integrations',
+  'Product features',
+  'UI & layout',
+  'Operations & quality',
+  'Reference',
+];
 
 export const DOCS: DocEntry[] = Object.entries(modules)
   .map(([path, content]) => {
@@ -56,14 +105,13 @@ export const DOCS: DocEntry[] = Object.entries(modules)
       slug,
       path: `docs/${rel}`,
       title: extractTitle(content, fileName),
-      section: SECTION_LABELS[dir] ?? humanise(dir),
+      section: SECTION_BY_SLUG[slug] ?? SECTION_LABELS[dir] ?? humanise(dir),
       content,
     };
   })
   .sort((a, b) => a.slug.localeCompare(b.slug, undefined, { numeric: true }));
 
 export const DOC_SECTIONS: { section: string; docs: DocEntry[] }[] = (() => {
-  const order = ['Overview', 'Architecture decisions'];
   const grouped = new Map<string, DocEntry[]>();
   for (const doc of DOCS) {
     const list = grouped.get(doc.section) ?? [];
@@ -73,11 +121,11 @@ export const DOC_SECTIONS: { section: string; docs: DocEntry[] }[] = (() => {
   return [...grouped.entries()]
     .map(([section, docs]) => ({ section, docs }))
     .sort((a, b) => {
-      const ai = order.indexOf(a.section);
-      const bi = order.indexOf(b.section);
-      if (ai !== -1 || bi !== -1) return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
-      return a.section.localeCompare(b.section);
+      const ai = SECTION_ORDER.indexOf(a.section);
+      const bi = SECTION_ORDER.indexOf(b.section);
+      return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi) || a.section.localeCompare(b.section);
     });
+
 })();
 
 export const DEFAULT_DOC_SLUG =
