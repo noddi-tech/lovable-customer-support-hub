@@ -7,7 +7,7 @@ import type {
   SmsSendResult,
   SmsStatus,
   SmsStatusUpdate,
-} from './types.ts';
+} from '../sms-types.ts';
 
 const MESSENTE_STATUS_MAP: Record<string, SmsStatus> = {
   SENT: 'sent',
