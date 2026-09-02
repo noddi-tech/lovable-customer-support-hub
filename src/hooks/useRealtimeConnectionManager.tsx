@@ -154,6 +154,8 @@ export const useRealtimeConnectionManager = () => {
     })
   }, [])
 
+  reconnectAllSubscriptionsRef.current = reconnectAllSubscriptions
+
   const handleConnectionStatus = useCallback(
     (status: string, channelName: string) => {
       console.log(`📡 Channel ${channelName} status: ${status}`)
