@@ -110,19 +110,34 @@ export const AccountInfoCard: React.FC = () => {
         <Separator className="my-4" />
 
         <section>
-          <h3 className="text-sm font-semibold mb-2">Sign-in (IdP)</h3>
+          <h3 className="text-sm font-semibold">Sign-in (IdP)</h3>
+          <p className="text-xs text-muted-foreground mb-2">
+            The identity providers that can authenticate this account, and what each one supplies.
+          </p>
           {identities.length === 0 ? (
             <p className="text-sm text-muted-foreground">No external identity providers on this session.</p>
           ) : (
-            <div className="flex flex-wrap gap-2">
+            <div className="space-y-2">
               {identities.map((i) => (
-                <Badge key={i.id} variant="outline">
-                  {PROVIDER_LABELS[i.provider as ProviderKey] || i.provider}
-                </Badge>
+                <div key={i.id} className="rounded-md border border-border px-3 py-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-sm font-medium">
+                      {PROVIDER_LABELS[i.provider as ProviderKey] || i.provider}
+                    </span>
+                    <Badge variant="outline" className="font-mono text-[10px]">{i.provider}</Badge>
+                    {i.provider === currentProvider && <Badge className="text-[10px]">Used this session</Badge>}
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground break-words">
+                    {(i.identity_data?.email as string) || user?.email || '—'}
+                    {' · '}
+                    {PROVIDER_CAPABILITIES[i.provider as ProviderKey] || 'Authentication only.'}
+                  </p>
+                </div>
               ))}
             </div>
           )}
         </section>
+
 
         <Separator className="my-4" />
 
