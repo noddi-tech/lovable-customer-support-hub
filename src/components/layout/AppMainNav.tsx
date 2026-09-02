@@ -43,6 +43,37 @@ import { AgentAvailabilityPanel } from "./AgentAvailabilityPanel"
  */
 let navHasResolvedOnce = false
 
+/**
+ * Hover hint explaining what a nav entry is for. Skipped when the sidebar is
+ * collapsed — SidebarMenuButton already renders its own label tooltip there.
+ *
+ * Defined at module scope on purpose: declaring it inside AppMainNav would make
+ * React see a brand new component type on every render and remount the whole
+ * nav link, which swallowed clicks.
+ */
+const NavHint = ({
+  title,
+  description,
+  disabled,
+  children,
+}: {
+  title: string
+  description?: string
+  disabled?: boolean
+  children: React.ReactNode
+}) => {
+  if (!description || disabled) return <>{children}</>
+  return (
+    <Tooltip delayDuration={350}>
+      <TooltipTrigger asChild>{children}</TooltipTrigger>
+      <TooltipContent side="right" align="start" className="max-w-[260px]">
+        <p className="text-xs font-medium">{title}</p>
+        <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
+      </TooltipContent>
+    </Tooltip>
+  )
+}
+
 export const AppMainNav = () => {
   const location = useLocation()
   const navigate = useNavigate()
@@ -126,30 +157,6 @@ export const AppMainNav = () => {
     }
   }
 
-  /**
-   * Hover hint explaining what a nav entry is for. Skipped when the sidebar is
-   * collapsed — SidebarMenuButton already renders its own label tooltip there.
-   */
-  const NavHint = ({
-    title,
-    description,
-    children,
-  }: {
-    title: string
-    description?: string
-    children: React.ReactNode
-  }) => {
-    if (!description || isCollapsed || isMobile) return <>{children}</>
-    return (
-      <Tooltip delayDuration={350}>
-        <TooltipTrigger asChild>{children}</TooltipTrigger>
-        <TooltipContent side="right" align="start" className="max-w-[260px]">
-          <p className="text-xs font-medium">{title}</p>
-          <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
-        </TooltipContent>
-      </Tooltip>
-    )
-  }
 
   if (showLoadingShell) {
     return (
@@ -196,6 +203,7 @@ export const AppMainNav = () => {
         <SidebarMenu>
           <SidebarMenuItem>
             <NavHint
+              disabled={isCollapsed || isMobile}
               title="Home"
               description="Overview dashboard with today's activity and quick links to every area."
             >
@@ -250,7 +258,11 @@ export const AppMainNav = () => {
 
                     return (
                       <SidebarMenuItem key={item.id}>
-                        <NavHint title={item.label} description={item.description}>
+                        <NavHint
+                          title={item.label}
+                          description={item.description}
+                          disabled={isCollapsed || isMobile}
+                        >
                           <SidebarMenuButton asChild tooltip={item.label}>
                             <NavLink
                               to={item.to}
