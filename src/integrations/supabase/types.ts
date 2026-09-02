@@ -8557,6 +8557,16 @@ export type Database = {
         Args: { email_domain: string }
         Returns: string
       }
+      get_sla_risk_by_inbox: {
+        Args: { p_horizon?: string }
+        Returns: {
+          channel: string
+          id: string
+          inbox_id: string
+          sla_breach_at: string
+          subject: string
+        }[]
+      }
       get_sla_status: {
         Args: {
           conv_status: string

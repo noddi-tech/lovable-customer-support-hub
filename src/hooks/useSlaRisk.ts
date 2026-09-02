@@ -27,7 +27,6 @@ export const SLA_AT_RISK_WINDOW_MS = 60 * 60 * 1000
  * hour, grouped per inbox — used to flag inboxes that need attention now.
  */
 export function useSlaRiskByInbox(enabled = true) {
-  const now = useMemo(() => new Date().toISOString(), [])
   const horizon = useMemo(() => new Date(Date.now() + SLA_AT_RISK_WINDOW_MS).toISOString(), [])
 
   const query = useQuery({
@@ -36,27 +35,17 @@ export function useSlaRiskByInbox(enabled = true) {
     staleTime: 60_000,
     refetchInterval: 120_000,
     queryFn: async (): Promise<SlaRiskConversation[]> => {
-      const { data, error } = await supabase
-        .from("conversations")
-        .select("id, inbox_id, channel, subject, sla_breach_at")
-        .not("sla_breach_at", "is", null)
-        .lte("sla_breach_at", horizon)
-        // Match the inbox open-count semantics (get_all_counts): only conversations
-        // that actually show as open count toward the SLA badge. Previously this used
-        // `status NOT IN (closed, resolved)` with no snooze filter, so pending or
-        // snoozed threads inflated the breach count even when open_count was 0.
-        .eq("status", "open")
-        .or(`snooze_until.is.null,snooze_until.lte.${now}`)
-        // Soft-deleted / archived threads are not in the inbox list, so they
-        // must not be counted as SLA breaches either.
-        .is("deleted_at", null)
-        .eq("is_archived", false)
-        .order("sla_breach_at", { ascending: true })
-        .limit(500)
+      // Uses the same thread de-duplication as get_all_counts / get_inbox_counts,
+      // so the SLA badge can never disagree with the inbox open count (previously a
+      // thread whose latest conversation was closed still contributed breaches).
+      const { data, error } = await supabase.rpc("get_sla_risk_by_inbox", {
+        p_horizon: horizon,
+      })
       if (error) throw error
       return (data ?? []) as SlaRiskConversation[]
     },
   })
+
 
   const byInbox = useMemo(() => {
     const map = new Map<string, InboxSlaRisk>()
