@@ -15,6 +15,7 @@ import {
   Phone,
   ArrowUpRight,
   ArrowDownRight,
+  Minus,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatMinutes } from '@/hooks/useInboxSupportMetrics';
