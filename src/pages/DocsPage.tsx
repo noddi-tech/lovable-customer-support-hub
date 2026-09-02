@@ -15,7 +15,7 @@ import {
   searchDocs,
   type DocEntry,
 } from '@/lib/docs-registry';
-import { BookOpen, Search, PanelLeft, FileText } from 'lucide-react';
+import { BookOpen, Search, PanelLeft, FileText, Plug } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 function DocsNav({
@@ -112,6 +112,12 @@ export default function DocsPage() {
                 Architecture decisions and operating guides, rendered straight from the repository.
               </p>
             </div>
+            <Button asChild variant="outline" size="sm">
+              <Link to="/api-docs">
+                <Plug className="mr-1.5 h-4 w-4" />
+                API
+              </Link>
+            </Button>
             <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
               <SheetTrigger asChild>
                 <Button variant="outline" size="sm" className="lg:hidden">
