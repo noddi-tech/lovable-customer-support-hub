@@ -128,15 +128,6 @@ function shortName(fullName?: string): string {
   return `${first} ${rest}`
 }
 
-function formatList(list: Addr[] = [], max = 3, preferEmail = false) {
-  const shown = list
-    .slice(0, max)
-    .map((a) => ({ label: display(a, preferEmail), email: a.email }))
-    .filter((a) => a.label)
-  const extra = list.length - shown.length
-  return { shown, extra }
-}
-
 // Message styling based on author type - HelpScout inspired
 function getMessageStyle(authorType: "agent" | "customer" | "system" | "ai_draft" = "customer") {
   if (authorType === "agent") {
@@ -231,7 +222,6 @@ const MessageCardComponent = ({
   const { t } = useTranslation()
   const { toast } = useToast()
   const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed)
-  const [showAllRecipients, setShowAllRecipients] = useState(false)
   const [showQuoted, setShowQuoted] = useState(false)
   const [copiedToClipboard, setCopiedToClipboard] = useState(false)
   const [isPinned, setIsPinned] = useState(
@@ -321,16 +311,6 @@ const MessageCardComponent = ({
 
   // Avatar initials from sender - multi-char
   const initial = multiInitials(message.from.name, message.from.email)
-
-  function formatRecipients(list: { name?: string; email?: string }[] = [], max = 3) {
-    if (!list.length) return ""
-    const names = list.slice(0, max).map((r) => r.name || r.email || "—")
-    const rest = list.length > max ? ` +${list.length - max}` : ""
-    return `${names.join(", ")}${rest}`
-  }
-
-  const isAgentMessage = message.authorType === "agent"
-
 
   // Detect internal note and AI draft
   const isAiDraft = message.authorType === "ai_draft"
@@ -606,29 +586,6 @@ const MessageCardComponent = ({
                 {relativeTime}
               </span>
             </div>
-
-            {/* Recipients chips removed - now inline in header */}
-
-            {/* Full recipients list when expanded */}
-            {showAllRecipients && (
-              <div className={cn("mt-1 space-x-1 text-xs text-muted-foreground")}>
-                <span className="font-medium">{t("mail.to") || "to"}:</span>{" "}
-                {(message.to ?? [])
-                  .map((a) => a.name || a.email || "")
-                  .filter(Boolean)
-                  .join(", ")}
-                {message.cc?.length ? (
-                  <>
-                    {" · "}
-                    <span className="font-medium">{t("mail.cc") || "cc"}:</span>{" "}
-                    {message.cc
-                      .map((a) => a.name || a.email || "")
-                      .filter(Boolean)
-                      .join(", ")}
-                  </>
-                ) : null}
-              </div>
-            )}
           </div>
 
           {/* Actions - always on far right */}
