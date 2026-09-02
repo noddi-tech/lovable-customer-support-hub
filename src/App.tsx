@@ -29,9 +29,11 @@ import { PerformanceDebugPanel } from "@/components/debug/PerformanceDebugPanel"
 import { URLSanitizer } from "@/components/routing/URLSanitizer";
 import { ConversationRedirect } from "@/components/routing/ConversationRedirect";
 import { ObservabilityBridge } from "@/components/observability/ObservabilityBridge";
+import React, { useEffect } from "react";
+
 const DocsPage = React.lazy(() => import("./pages/DocsPage"));
 const ApiDocsPage = React.lazy(() => import("./pages/ApiDocsPage"));
-import React, { useEffect } from "react";
+
 import { useNavigate } from "react-router-dom";
 import Index from "./pages/Index";
 import { Auth } from "./pages/Auth";
