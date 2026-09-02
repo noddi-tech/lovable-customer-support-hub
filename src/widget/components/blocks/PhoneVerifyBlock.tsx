@@ -120,6 +120,9 @@ const PhoneVerifyBlock: React.FC<BlockComponentProps> = ({
     setIsVerifying(false)
   }
 
+  handleVerifyPinRef.current = handleVerifyPin
+
+
   const handleResendCode = async () => {
     setError(null)
     setPinInput("")
