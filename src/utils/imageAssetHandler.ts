@@ -124,8 +124,33 @@ export const createBlobUrl = async (
 }
 
 /**
+ * Fetch an attachment and return it as a self-contained `data:` URL.
+ *
+ * Needed for sandboxed iframes (no `allow-same-origin`), where `blob:` URLs
+ * created by this origin cannot be loaded.
+ */
+export const createDataUrl = async (attachment: EmailAttachment): Promise<string | null> => {
+  if (!attachment.storageKey) return null
+  try {
+    const response = await fetch(buildAttachmentUrl({ key: attachment.storageKey }))
+    if (!response.ok) return null
+    const blob = await response.blob()
+    return await new Promise<string | null>((resolve) => {
+      const reader = new FileReader()
+      reader.onloadend = () => resolve(typeof reader.result === "string" ? reader.result : null)
+      reader.onerror = () => resolve(null)
+      reader.readAsDataURL(blob)
+    })
+  } catch (error) {
+    console.error("[EmailRender] Failed to create data URL:", error)
+    return null
+  }
+}
+
+/**
  * Clean up all created object URLs
  */
+
 export const cleanupObjectUrls = () => {
   createdObjectUrls.forEach((url) => {
     URL.revokeObjectURL(url)
