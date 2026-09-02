@@ -3,142 +3,175 @@
 // supabase function: mcp
 // Bundled from src/lib/mcp/index.ts by @lovable.dev/mcp-js.
 // src/lib/mcp/index.ts
-import { auth, defineMcp } from "npm:@lovable.dev/mcp-js@0.26.2";
-
 // src/lib/mcp/tools/add-internal-note.ts
-import { defineTool } from "npm:@lovable.dev/mcp-js@0.26.2";
-import { z } from "npm:zod@^3.25.76";
-
+import { auth, defineMcp, defineTool } from "npm:@lovable.dev/mcp-js@0.26.2"
 // src/lib/mcp/supabase.ts
-import { createClient } from "npm:@supabase/supabase-js@^2.53.0";
+import { createClient } from "npm:@supabase/supabase-js@^2.53.0"
+import { z } from "npm:zod@^3.25.76"
+
 function runtimeEnv(name) {
-  const runtime = globalThis;
-  return runtime.Deno?.env?.get?.(name) ?? runtime.process?.env?.[name];
+  const runtime = globalThis
+  return runtime.Deno?.env?.get?.(name) ?? runtime.process?.env?.[name]
 }
 function configuredEnv(names) {
   for (const name of names) {
-    const value = runtimeEnv(name)?.trim();
-    if (value) return value;
+    const value = runtimeEnv(name)?.trim()
+    if (value) return value
   }
-  return void 0;
+  return void 0
 }
 function supabaseProjectUrl() {
-  const url = configuredEnv(["SUPABASE_URL", "VITE_SUPABASE_URL"]);
-  if (!url) throw new Error("SUPABASE_URL (or VITE_SUPABASE_URL) is required");
-  return url;
+  const url = configuredEnv(["SUPABASE_URL", "VITE_SUPABASE_URL"])
+  if (!url) throw new Error("SUPABASE_URL (or VITE_SUPABASE_URL) is required")
+  return url
 }
 function supabasePublishableKey() {
-  const direct = configuredEnv(["SUPABASE_PUBLISHABLE_KEY", "VITE_SUPABASE_PUBLISHABLE_KEY"]);
-  if (direct) return direct;
-  const keyset = runtimeEnv("SUPABASE_PUBLISHABLE_KEYS");
+  const direct = configuredEnv(["SUPABASE_PUBLISHABLE_KEY", "VITE_SUPABASE_PUBLISHABLE_KEY"])
+  if (direct) return direct
+  const keyset = runtimeEnv("SUPABASE_PUBLISHABLE_KEYS")
   if (keyset) {
     try {
-      const parsed = JSON.parse(keyset);
+      const parsed = JSON.parse(keyset)
       if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-        const keys = parsed;
-        const key = [keys.default, ...Object.values(keys)].find((v) => typeof v === "string" && v.trim().startsWith("sb_publishable_"))?.trim();
-        if (key) return key;
+        const keys = parsed
+        const key = [keys.default, ...Object.values(keys)]
+          .find((v) => typeof v === "string" && v.trim().startsWith("sb_publishable_"))
+          ?.trim()
+        if (key) return key
       }
-    } catch {
-    }
+    } catch {}
   }
-  const legacy = configuredEnv(["SUPABASE_ANON_KEY", "VITE_SUPABASE_ANON_KEY"]);
-  if (legacy) return legacy;
+  const legacy = configuredEnv(["SUPABASE_ANON_KEY", "VITE_SUPABASE_ANON_KEY"])
+  if (legacy) return legacy
   throw new Error(
-    "SUPABASE_PUBLISHABLE_KEY, SUPABASE_PUBLISHABLE_KEYS, or SUPABASE_ANON_KEY is required"
-  );
+    "SUPABASE_PUBLISHABLE_KEY, SUPABASE_PUBLISHABLE_KEYS, or SUPABASE_ANON_KEY is required",
+  )
 }
 function supabaseForUser(ctx) {
-  const token = ctx.getToken();
-  if (!token) throw new Error("supabaseForUser requires a verified OAuth token");
+  const token = ctx.getToken()
+  if (!token) throw new Error("supabaseForUser requires a verified OAuth token")
   return createClient(supabaseProjectUrl(), supabasePublishableKey(), {
     global: { headers: { Authorization: `Bearer ${token}` } },
-    auth: { persistSession: false, autoRefreshToken: false }
-  });
+    auth: { persistSession: false, autoRefreshToken: false },
+  })
 }
 async function resolveProfileId(ctx) {
-  const supabase = supabaseForUser(ctx);
-  const { data } = await supabase.from("profiles").select("id").eq("user_id", ctx.getUserId()).maybeSingle();
-  return data?.id ?? null;
+  const supabase = supabaseForUser(ctx)
+  const { data } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("user_id", ctx.getUserId())
+    .maybeSingle()
+  return data?.id ?? null
 }
 
 // src/lib/mcp/tools/add-internal-note.ts
 var add_internal_note_default = defineTool({
   name: "add_internal_note",
   title: "Add internal note",
-  description: "Add an internal note to a conversation. Notes are visible to agents only and are never emailed to the customer.",
+  description:
+    "Add an internal note to a conversation. Notes are visible to agents only and are never emailed to the customer.",
   inputSchema: {
     conversation_id: z.string().uuid().describe("The conversation to attach the note to."),
-    note: z.string().trim().min(1).describe("The note text. Plain text.")
+    note: z.string().trim().min(1).describe("The note text. Plain text."),
   },
   annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
   handler: async ({ conversation_id, note }, ctx) => {
     if (!ctx.isAuthenticated()) {
-      return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
+      return { content: [{ type: "text", text: "Not authenticated" }], isError: true }
     }
-    const supabase = supabaseForUser(ctx);
-    const { data: conversation, error: convError } = await supabase.from("conversations").select("id").eq("id", conversation_id).is("deleted_at", null).maybeSingle();
+    const supabase = supabaseForUser(ctx)
+    const { data: conversation, error: convError } = await supabase
+      .from("conversations")
+      .select("id")
+      .eq("id", conversation_id)
+      .is("deleted_at", null)
+      .maybeSingle()
     if (convError) {
-      return { content: [{ type: "text", text: convError.message }], isError: true };
+      return { content: [{ type: "text", text: convError.message }], isError: true }
     }
     if (!conversation) {
       return {
         content: [{ type: "text", text: `No conversation found with id ${conversation_id}` }],
-        isError: true
-      };
+        isError: true,
+      }
     }
-    const { data, error } = await supabase.from("messages").insert({
-      conversation_id,
-      sender_id: ctx.getUserId(),
-      sender_type: "agent",
-      is_internal: true,
-      content: note,
-      content_type: "text"
-    }).select("id, created_at").maybeSingle();
+    const { data, error } = await supabase
+      .from("messages")
+      .insert({
+        conversation_id,
+        sender_id: ctx.getUserId(),
+        sender_type: "agent",
+        is_internal: true,
+        content: note,
+        content_type: "text",
+      })
+      .select("id, created_at")
+      .maybeSingle()
     if (error) {
-      return { content: [{ type: "text", text: error.message }], isError: true };
+      return { content: [{ type: "text", text: error.message }], isError: true }
     }
     return {
       content: [{ type: "text", text: `Internal note added (id ${data?.id}).` }],
-      structuredContent: { message_id: data?.id, created_at: data?.created_at }
-    };
-  }
-});
+      structuredContent: { message_id: data?.id, created_at: data?.created_at },
+    }
+  },
+})
 
 // src/lib/mcp/tools/get-conversation.ts
-import { defineTool as defineTool2 } from "npm:@lovable.dev/mcp-js@0.26.2";
-import { z as z2 } from "npm:zod@^3.25.76";
+import { defineTool as defineTool2 } from "npm:@lovable.dev/mcp-js@0.26.2"
+import { z as z2 } from "npm:zod@^3.25.76"
+
 var get_conversation_default = defineTool2({
   name: "get_conversation",
   title: "Get conversation with messages",
-  description: "Fetch one conversation by id together with its messages in chronological order, including internal notes. Use this to read the full history of a support thread.",
+  description:
+    "Fetch one conversation by id together with its messages in chronological order, including internal notes. Use this to read the full history of a support thread.",
   inputSchema: {
     conversation_id: z2.string().uuid().describe("The conversation id."),
-    message_limit: z2.number().int().min(1).max(100).optional().describe("Max messages to return, newest-biased (default 30).")
+    message_limit: z2
+      .number()
+      .int()
+      .min(1)
+      .max(100)
+      .optional()
+      .describe("Max messages to return, newest-biased (default 30)."),
   },
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async ({ conversation_id, message_limit }, ctx) => {
     if (!ctx.isAuthenticated()) {
-      return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
+      return { content: [{ type: "text", text: "Not authenticated" }], isError: true }
     }
-    const supabase = supabaseForUser(ctx);
-    const { data: conversation, error: convError } = await supabase.from("conversations").select(
-      "id, subject, status, priority, channel, created_at, updated_at, customer:customers(full_name, email, phone)"
-    ).eq("id", conversation_id).is("deleted_at", null).maybeSingle();
+    const supabase = supabaseForUser(ctx)
+    const { data: conversation, error: convError } = await supabase
+      .from("conversations")
+      .select(
+        "id, subject, status, priority, channel, created_at, updated_at, customer:customers(full_name, email, phone)",
+      )
+      .eq("id", conversation_id)
+      .is("deleted_at", null)
+      .maybeSingle()
     if (convError) {
-      return { content: [{ type: "text", text: convError.message }], isError: true };
+      return { content: [{ type: "text", text: convError.message }], isError: true }
     }
     if (!conversation) {
       return {
         content: [{ type: "text", text: `No conversation found with id ${conversation_id}` }],
-        isError: true
-      };
+        isError: true,
+      }
     }
-    const { data: messages, error: msgError } = await supabase.from("messages").select("id, sender_type, is_internal, content, content_type, email_status, created_at").eq("conversation_id", conversation_id).order("created_at", { ascending: false }).limit(message_limit ?? 30);
+    const { data: messages, error: msgError } = await supabase
+      .from("messages")
+      .select("id, sender_type, is_internal, content, content_type, email_status, created_at")
+      .eq("conversation_id", conversation_id)
+      .order("created_at", { ascending: false })
+      .limit(message_limit ?? 30)
     if (msgError) {
-      return { content: [{ type: "text", text: msgError.message }], isError: true };
+      return { content: [{ type: "text", text: msgError.message }], isError: true }
     }
-    const customer = Array.isArray(conversation.customer) ? conversation.customer[0] : conversation.customer;
+    const customer = Array.isArray(conversation.customer)
+      ? conversation.customer[0]
+      : conversation.customer
     const result = {
       id: conversation.id,
       subject: conversation.subject,
@@ -147,61 +180,81 @@ var get_conversation_default = defineTool2({
       channel: conversation.channel,
       created_at: conversation.created_at,
       updated_at: conversation.updated_at,
-      customer: customer ? { name: customer.full_name, email: customer.email, phone: customer.phone } : null,
+      customer: customer
+        ? { name: customer.full_name, email: customer.email, phone: customer.phone }
+        : null,
       // Reversed back into chronological (oldest first) reading order.
-      messages: (messages ?? []).slice().reverse().map((m) => ({
-        id: m.id,
-        from: m.sender_type,
-        is_internal_note: m.is_internal,
-        content: m.content,
-        content_type: m.content_type,
-        email_status: m.email_status,
-        created_at: m.created_at
-      }))
-    };
+      messages: (messages ?? [])
+        .slice()
+        .reverse()
+        .map((m) => ({
+          id: m.id,
+          from: m.sender_type,
+          is_internal_note: m.is_internal,
+          content: m.content,
+          content_type: m.content_type,
+          email_status: m.email_status,
+          created_at: m.created_at,
+        })),
+    }
     return {
       content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
-      structuredContent: { conversation: result }
-    };
-  }
-});
+      structuredContent: { conversation: result },
+    }
+  },
+})
 
 // src/lib/mcp/tools/list-my-conversations.ts
-import { defineTool as defineTool3 } from "npm:@lovable.dev/mcp-js@0.26.2";
-import { z as z3 } from "npm:zod@^3.25.76";
+import { defineTool as defineTool3 } from "npm:@lovable.dev/mcp-js@0.26.2"
+import { z as z3 } from "npm:zod@^3.25.76"
+
 var list_my_conversations_default = defineTool3({
   name: "list_my_conversations",
   title: "List my assigned conversations",
-  description: "List conversations currently assigned to the signed-in agent, newest activity first. Useful for answering 'what's on my plate'.",
+  description:
+    "List conversations currently assigned to the signed-in agent, newest activity first. Useful for answering 'what's on my plate'.",
   inputSchema: {
-    status: z3.string().trim().optional().describe("Filter by status, e.g. 'open'. Omit for all statuses."),
-    include_archived: z3.boolean().optional().describe("Include archived conversations (default false)."),
-    limit: z3.number().int().min(1).max(50).optional().describe("Max results (default 20).")
+    status: z3
+      .string()
+      .trim()
+      .optional()
+      .describe("Filter by status, e.g. 'open'. Omit for all statuses."),
+    include_archived: z3
+      .boolean()
+      .optional()
+      .describe("Include archived conversations (default false)."),
+    limit: z3.number().int().min(1).max(50).optional().describe("Max results (default 20)."),
   },
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async ({ status, include_archived, limit }, ctx) => {
     if (!ctx.isAuthenticated()) {
-      return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
+      return { content: [{ type: "text", text: "Not authenticated" }], isError: true }
     }
-    const profileId = await resolveProfileId(ctx);
+    const profileId = await resolveProfileId(ctx)
     if (!profileId) {
       return {
         content: [{ type: "text", text: "No profile found for the signed-in user." }],
-        isError: true
-      };
+        isError: true,
+      }
     }
-    const supabase = supabaseForUser(ctx);
-    let q = supabase.from("conversations").select(
-      "id, subject, status, priority, channel, preview_text, is_read, updated_at, customer:customers(full_name, email)"
-    ).eq("assigned_to_id", profileId).is("deleted_at", null).order("updated_at", { ascending: false }).limit(limit ?? 20);
-    if (status) q = q.eq("status", status);
-    if (!include_archived) q = q.eq("is_archived", false);
-    const { data, error } = await q;
+    const supabase = supabaseForUser(ctx)
+    let q = supabase
+      .from("conversations")
+      .select(
+        "id, subject, status, priority, channel, preview_text, is_read, updated_at, customer:customers(full_name, email)",
+      )
+      .eq("assigned_to_id", profileId)
+      .is("deleted_at", null)
+      .order("updated_at", { ascending: false })
+      .limit(limit ?? 20)
+    if (status) q = q.eq("status", status)
+    if (!include_archived) q = q.eq("is_archived", false)
+    const { data, error } = await q
     if (error) {
-      return { content: [{ type: "text", text: error.message }], isError: true };
+      return { content: [{ type: "text", text: error.message }], isError: true }
     }
     const rows = (data ?? []).map((c) => {
-      const customer = Array.isArray(c.customer) ? c.customer[0] : c.customer;
+      const customer = Array.isArray(c.customer) ? c.customer[0] : c.customer
       return {
         id: c.id,
         subject: c.subject,
@@ -212,49 +265,64 @@ var list_my_conversations_default = defineTool3({
         updated_at: c.updated_at,
         customer_name: customer?.full_name ?? null,
         customer_email: customer?.email ?? null,
-        preview: c.preview_text
-      };
-    });
+        preview: c.preview_text,
+      }
+    })
     return {
       content: [{ type: "text", text: JSON.stringify(rows, null, 2) }],
-      structuredContent: { conversations: rows, count: rows.length }
-    };
-  }
-});
+      structuredContent: { conversations: rows, count: rows.length },
+    }
+  },
+})
 
 // src/lib/mcp/tools/search-conversations.ts
-import { defineTool as defineTool4 } from "npm:@lovable.dev/mcp-js@0.26.2";
-import { z as z4 } from "npm:zod@^3.25.76";
+import { defineTool as defineTool4 } from "npm:@lovable.dev/mcp-js@0.26.2"
+import { z as z4 } from "npm:zod@^3.25.76"
+
 var search_conversations_default = defineTool4({
   name: "search_conversations",
   title: "Search conversations",
-  description: "Search support conversations by subject text, status, or channel. Returns the most recently updated matches with customer name and preview text.",
+  description:
+    "Search support conversations by subject text, status, or channel. Returns the most recently updated matches with customer name and preview text.",
   inputSchema: {
-    query: z4.string().trim().optional().describe(
-      "Text to match against the conversation subject. Omit to list recent conversations."
-    ),
-    status: z4.string().trim().optional().describe("Filter by status, e.g. 'open', 'pending', 'closed'."),
+    query: z4
+      .string()
+      .trim()
+      .optional()
+      .describe(
+        "Text to match against the conversation subject. Omit to list recent conversations.",
+      ),
+    status: z4
+      .string()
+      .trim()
+      .optional()
+      .describe("Filter by status, e.g. 'open', 'pending', 'closed'."),
     channel: z4.string().trim().optional().describe("Filter by channel, e.g. 'email', 'widget'."),
-    limit: z4.number().int().min(1).max(50).optional().describe("Max results (default 20).")
+    limit: z4.number().int().min(1).max(50).optional().describe("Max results (default 20)."),
   },
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async ({ query, status, channel, limit }, ctx) => {
     if (!ctx.isAuthenticated()) {
-      return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
+      return { content: [{ type: "text", text: "Not authenticated" }], isError: true }
     }
-    const supabase = supabaseForUser(ctx);
-    let q = supabase.from("conversations").select(
-      "id, subject, status, priority, channel, preview_text, is_read, updated_at, customer:customers(full_name, email)"
-    ).is("deleted_at", null).order("updated_at", { ascending: false }).limit(limit ?? 20);
-    if (query) q = q.ilike("subject", `%${query}%`);
-    if (status) q = q.eq("status", status);
-    if (channel) q = q.eq("channel", channel);
-    const { data, error } = await q;
+    const supabase = supabaseForUser(ctx)
+    let q = supabase
+      .from("conversations")
+      .select(
+        "id, subject, status, priority, channel, preview_text, is_read, updated_at, customer:customers(full_name, email)",
+      )
+      .is("deleted_at", null)
+      .order("updated_at", { ascending: false })
+      .limit(limit ?? 20)
+    if (query) q = q.ilike("subject", `%${query}%`)
+    if (status) q = q.eq("status", status)
+    if (channel) q = q.eq("channel", channel)
+    const { data, error } = await q
     if (error) {
-      return { content: [{ type: "text", text: error.message }], isError: true };
+      return { content: [{ type: "text", text: error.message }], isError: true }
     }
     const rows = (data ?? []).map((c) => {
-      const customer = Array.isArray(c.customer) ? c.customer[0] : c.customer;
+      const customer = Array.isArray(c.customer) ? c.customer[0] : c.customer
       return {
         id: c.id,
         subject: c.subject,
@@ -265,35 +333,37 @@ var search_conversations_default = defineTool4({
         updated_at: c.updated_at,
         customer_name: customer?.full_name ?? null,
         customer_email: customer?.email ?? null,
-        preview: c.preview_text
-      };
-    });
+        preview: c.preview_text,
+      }
+    })
     return {
       content: [{ type: "text", text: JSON.stringify(rows, null, 2) }],
-      structuredContent: { conversations: rows, count: rows.length }
-    };
-  }
-});
+      structuredContent: { conversations: rows, count: rows.length },
+    }
+  },
+})
 
 // src/lib/mcp/index.ts
-var projectRef = "qgfaycwsangsqzpveoup";
+var projectRef = "qgfaycwsangsqzpveoup"
 var mcp_default = defineMcp({
   name: "lovable-customer-support-hub",
   title: "lovable-customer-support-hub",
   version: "0.1.0",
-  instructions: "Tools for the customer support hub. Use `search_conversations` to find support threads, `get_conversation` to read a full thread including internal notes, `list_my_conversations` for the signed-in agent's own queue, and `add_internal_note` to leave an agent-only note on a thread. All data is scoped to the signed-in agent's organization.",
+  instructions:
+    "Tools for the customer support hub. Use `search_conversations` to find support threads, `get_conversation` to read a full thread including internal notes, `list_my_conversations` for the signed-in agent's own queue, and `add_internal_note` to leave an agent-only note on a thread. All data is scoped to the signed-in agent's organization.",
   auth: auth.oauth.issuer({
     issuer: `https://${projectRef}.supabase.co/auth/v1`,
-    acceptedAudiences: "authenticated"
+    acceptedAudiences: "authenticated",
   }),
   tools: [
     search_conversations_default,
     get_conversation_default,
     list_my_conversations_default,
-    add_internal_note_default
-  ]
-});
+    add_internal_note_default,
+  ],
+})
 
 // lovable-mcp-supabase-entry.ts
-import { createSupabaseHandler } from "npm:@lovable.dev/mcp-js@0.26.2/stacks/supabase";
-Deno.serve(createSupabaseHandler(mcp_default, { functionName: "mcp" }));
+import { createSupabaseHandler } from "npm:@lovable.dev/mcp-js@0.26.2/stacks/supabase"
+
+Deno.serve(createSupabaseHandler(mcp_default, { functionName: "mcp" }))
