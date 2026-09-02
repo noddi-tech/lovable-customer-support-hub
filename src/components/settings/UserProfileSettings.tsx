@@ -177,26 +177,30 @@ export const UserProfileSettings = () => {
     );
   }
 
+  const isDirty =
+    fullName !== profile.full_name ||
+    emailDisplayName !== ((profile as any).email_display_name || '');
+
   return (
-    <div className="space-y-6">
-      {/* Avatar Section */}
+    <div className="space-y-4">
+      {/* Profile: photo + personal details in one card */}
       <Card>
         <CardHeader>
-          <CardTitle>{t('settings.profile.avatar', 'Profile Photo')}</CardTitle>
+          <CardTitle>{t('settings.profile.personalInfo', 'Profile')}</CardTitle>
           <CardDescription>
-            {t('settings.profile.avatarDescription', 'Upload a photo to personalize your account')}
+            {t('settings.profile.personalInfoDescription', 'Your photo, name and the sender name used on outgoing email.')}
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="flex items-center gap-6">
-            <Avatar className="h-24 w-24">
+        <CardContent className="space-y-6">
+          <div className="flex flex-wrap items-center gap-5">
+            <Avatar className="h-20 w-20">
               <AvatarImage src={profile.avatar_url || undefined} alt={profile.full_name} />
-              <AvatarFallback className="text-2xl bg-primary/10 text-primary">
+              <AvatarFallback className="text-xl bg-primary/10 text-primary">
                 {getInitials(profile.full_name)}
               </AvatarFallback>
             </Avatar>
 
-            <div className="flex flex-col gap-2">
+            <div className="min-w-0 space-y-2">
               <input
                 ref={fileInputRef}
                 type="file"
@@ -204,163 +208,127 @@ export const UserProfileSettings = () => {
                 onChange={handleFileSelect}
                 className="hidden"
               />
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isUploading}
-              >
-                {isUploading ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Uploading... {progress}%
-                  </>
-                ) : (
-                  <>
-                    <Upload className="h-4 w-4 mr-2" />
-                    {t('settings.profile.uploadPhoto', 'Upload Photo')}
-                  </>
-                )}
-              </Button>
-              {profile.avatar_url && (
+              <div className="flex flex-wrap items-center gap-2">
                 <Button
-                  variant="ghost"
+                  variant="outline"
                   size="sm"
-                  onClick={removeAvatar}
+                  onClick={() => fileInputRef.current?.click()}
                   disabled={isUploading}
-                  className="text-destructive hover:text-destructive"
                 >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  {t('settings.profile.removePhoto', 'Remove Photo')}
+                  {isUploading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Uploading... {progress}%
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="h-4 w-4 mr-2" />
+                      {t('settings.profile.uploadPhoto', 'Upload photo')}
+                    </>
+                  )}
                 </Button>
-              )}
+                {profile.avatar_url && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={removeAvatar}
+                    disabled={isUploading}
+                    className="text-destructive hover:text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    {t('settings.profile.removePhoto', 'Remove')}
+                  </Button>
+                )}
+              </div>
               <p className="text-xs text-muted-foreground">
                 {t('settings.profile.photoHint', 'JPG, PNG or WebP. Max 2MB.')}
               </p>
             </div>
           </div>
-        </CardContent>
-      </Card>
 
-      {/* Personal Information */}
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('settings.profile.personalInfo', 'Personal Information')}</CardTitle>
-          <CardDescription>
-            {t('settings.profile.personalInfoDescription', 'Update your personal details')}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="fullName">{t('settings.profile.fullName', 'Full Name')}</Label>
-            <Input
-              id="fullName"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              placeholder="Enter your full name"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="email">{t('settings.profile.email', 'Email Address')}</Label>
-            <div className="flex items-center gap-2">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="fullName">{t('settings.profile.fullName', 'Full name')}</Label>
               <Input
-                id="email"
-                value={profile.email}
-                disabled
-                className="bg-muted"
+                id="fullName"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                placeholder="Enter your full name"
               />
-              <Lock className="h-4 w-4 text-muted-foreground" />
             </div>
-            <p className="text-xs text-muted-foreground">
-              {t('settings.profile.emailHint', 'Email cannot be changed. Contact support if needed.')}
-            </p>
+
+            <div className="space-y-2">
+              <Label htmlFor="email">{t('settings.profile.email', 'Email address')}</Label>
+              <div className="relative">
+                <Input id="email" value={profile.email} disabled className="bg-muted pr-9" />
+                <Lock className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {t('settings.profile.emailHint', 'Email cannot be changed. Contact support if needed.')}
+              </p>
+            </div>
+
+            <div className="space-y-2 sm:col-span-2">
+              <Label htmlFor="emailDisplayName">Email display name (optional)</Label>
+              <Input
+                id="emailDisplayName"
+                value={emailDisplayName}
+                onChange={(e) => setEmailDisplayName(e.target.value)}
+                placeholder="e.g. Anna fra Noddi rekruttering"
+              />
+              <p className="text-xs text-muted-foreground">
+                Used as the From name when you send recruitment emails. Falls back to your full name.
+              </p>
+            </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="emailDisplayName">Email display name (optional)</Label>
-            <Input
-              id="emailDisplayName"
-              value={emailDisplayName}
-              onChange={(e) => setEmailDisplayName(e.target.value)}
-              placeholder="e.g. Anna fra Noddi rekruttering"
-            />
-            <p className="text-xs text-muted-foreground">
-              Used as the From name when you send recruitment emails. Falls back to your full name.
-            </p>
+          <div className="flex justify-end">
+            <Button onClick={handleSaveProfile} disabled={isSaving || !isDirty}>
+              {isSaving ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                t('settings.profile.saveChanges', 'Save changes')
+              )}
+            </Button>
           </div>
-
-          <Button
-            onClick={handleSaveProfile}
-            disabled={isSaving || (fullName === profile.full_name && emailDisplayName === ((profile as any).email_display_name || ''))}
-          >
-            {isSaving ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Saving...
-              </>
-            ) : (
-              t('settings.profile.saveChanges', 'Save Changes')
-            )}
-          </Button>
         </CardContent>
       </Card>
 
       {/* Organization & Role */}
       <Card>
         <CardHeader>
-          <CardTitle>{t('settings.profile.organizationRole', 'Organization & Role')}</CardTitle>
+          <CardTitle>{t('settings.profile.organizationRole', 'Organization & role')}</CardTitle>
           <CardDescription>
             {t('settings.profile.organizationRoleDescription', 'Your organization membership details')}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="flex items-center gap-3 p-4 rounded-lg bg-muted/50">
-              <Building2 className="h-5 w-5 text-muted-foreground" />
-              <div>
-                <p className="text-xs text-muted-foreground">
-                  {t('settings.profile.organization', 'Organization')}
-                </p>
-                <p className="font-medium">{organization?.name || 'Not assigned'}</p>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {[
+              { icon: Building2, label: t('settings.profile.organization', 'Organization'), value: organization?.name || 'Not assigned' },
+              { icon: Users, label: t('settings.profile.department', 'Department'), value: department?.name || 'Not assigned' },
+              { icon: Shield, label: t('settings.profile.role', 'Role'), value: formatRole(profile.role), badge: true },
+              {
+                icon: Calendar,
+                label: t('settings.profile.memberSince', 'Member since'),
+                value: profile.created_at ? format(new Date(profile.created_at), 'MMMM yyyy') : 'Unknown',
+              },
+            ].map(({ icon: Icon, label, value, badge }) => (
+              <div key={label} className="flex items-center gap-3 rounded-lg border border-border bg-muted/30 px-4 py-3">
+                <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
+                <div className="min-w-0">
+                  <p className="text-xs text-muted-foreground">{label}</p>
+                  {badge ? (
+                    <Badge variant="secondary" className="mt-1">{value}</Badge>
+                  ) : (
+                    <p className="truncate text-sm font-medium">{value}</p>
+                  )}
+                </div>
               </div>
-            </div>
-
-            <div className="flex items-center gap-3 p-4 rounded-lg bg-muted/50">
-              <Users className="h-5 w-5 text-muted-foreground" />
-              <div>
-                <p className="text-xs text-muted-foreground">
-                  {t('settings.profile.department', 'Department')}
-                </p>
-                <p className="font-medium">{department?.name || 'Not assigned'}</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3 p-4 rounded-lg bg-muted/50">
-              <Shield className="h-5 w-5 text-muted-foreground" />
-              <div>
-                <p className="text-xs text-muted-foreground">
-                  {t('settings.profile.role', 'Role')}
-                </p>
-                <Badge variant="secondary" className="mt-1">
-                  {formatRole(profile.role)}
-                </Badge>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3 p-4 rounded-lg bg-muted/50">
-              <Calendar className="h-5 w-5 text-muted-foreground" />
-              <div>
-                <p className="text-xs text-muted-foreground">
-                  {t('settings.profile.memberSince', 'Member Since')}
-                </p>
-                <p className="font-medium">
-                  {profile.created_at
-                    ? format(new Date(profile.created_at), 'MMMM yyyy')
-                    : 'Unknown'}
-                </p>
-              </div>
-            </div>
+            ))}
           </div>
         </CardContent>
       </Card>
@@ -373,62 +341,17 @@ export const UserProfileSettings = () => {
             {t('settings.profile.securityDescription', 'Manage your account security settings')}
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between p-4 rounded-lg border">
-            <div>
-              <p className="font-medium">{t('settings.profile.password', 'Password')}</p>
-              <p className="text-sm text-muted-foreground">
+        <CardContent>
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border px-4 py-3">
+            <div className="min-w-0">
+              <p className="text-sm font-medium">{t('settings.profile.password', 'Password')}</p>
+              <p className="text-xs text-muted-foreground">
                 {t('settings.profile.passwordHint', 'Send a password reset link to your email')}
               </p>
             </div>
-            <Button variant="outline" onClick={handleChangePassword}>
-              {t('settings.profile.changePassword', 'Change Password')}
+            <Button variant="outline" size="sm" onClick={handleChangePassword}>
+              {t('settings.profile.changePassword', 'Change password')}
             </Button>
-          </div>
-
-          {/* Google Account Linking */}
-          <div className="flex items-center justify-between p-4 rounded-lg border">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
-                <svg className="h-5 w-5" viewBox="0 0 24 24">
-                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                </svg>
-              </div>
-              <div>
-                <p className="font-medium">
-                  {t('settings.profile.googleAccount', 'Google Account')}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  {hasGoogleLinked 
-                    ? t('settings.profile.googleLinked', 'Connected - you can sign in with Google')
-                    : t('settings.profile.googleNotLinked', 'Link your Google account for faster sign-in')}
-                </p>
-              </div>
-            </div>
-            {hasGoogleLinked ? (
-              <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                <Check className="h-3 w-3 mr-1" />
-                {t('settings.profile.connected', 'Connected')}
-              </Badge>
-            ) : (
-              <Button 
-                variant="outline" 
-                onClick={handleLinkGoogle}
-                disabled={isLinkingGoogle}
-              >
-                {isLinkingGoogle ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Linking...
-                  </>
-                ) : (
-                  t('settings.profile.linkGoogle', 'Link Google')
-                )}
-              </Button>
-            )}
           </div>
         </CardContent>
       </Card>
