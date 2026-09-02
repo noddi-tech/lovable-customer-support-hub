@@ -22,13 +22,7 @@ export const UserProfileSettings = () => {
   const [fullName, setFullName] = useState(profile?.full_name || '');
   const [emailDisplayName, setEmailDisplayName] = useState((profile as any)?.email_display_name || '');
   const [isSaving, setIsSaving] = useState(false);
-  const [isLinkingGoogle, setIsLinkingGoogle] = useState(false);
 
-  // Check if Google is already linked
-  const googleIdentity = user?.identities?.find(
-    (identity) => identity.provider === 'google'
-  );
-  const hasGoogleLinked = !!googleIdentity;
 
   const { uploadAvatar, removeAvatar, isUploading, progress } = useAvatarUpload({
     userId: user?.id || '',
