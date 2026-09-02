@@ -85,7 +85,7 @@ const initialState: ConversationViewState = {
   translateOpen: false,
   translateLoading: false,
   sourceLanguage: "auto",
-  targetLanguage: "en",
+  targetLanguage: "no",
   assignDialogOpen: false,
   assignSelectedUserId: "",
   assignLoading: false,
@@ -249,12 +249,22 @@ export const ConversationViewProvider = ({
 
   // Restore per-conversation draft when opening / switching threads.
   // Reply vs internal-note mode is NOT restored — that choice is made when the
-  // agent presses Reply or Internal note.
+  // agent presses Reply or Internal note. Do not force-close an already-open
+  // composer here beyond the initial switch.
   useEffect(() => {
     const draft = loadReplyDraft(conversationId)
     dispatch({ type: "SET_REPLY_TEXT", payload: draft })
     dispatch({ type: "SET_IS_INTERNAL_NOTE", payload: false })
     dispatch({ type: "SET_SHOW_REPLY_AREA", payload: false })
+    dispatch({
+      type: "SET_TRANSLATE_STATE",
+      payload: {
+        open: false,
+        loading: false,
+        sourceLanguage: "auto",
+        targetLanguage: "no",
+      },
+    })
   }, [conversationId])
 
   // Persist typed text so navigating away does not lose the draft.
@@ -1031,23 +1041,31 @@ export const ConversationViewProvider = ({
   ): Promise<string> => {
     if (!text.trim()) return text
 
-    try {
-      const { data, error } = await supabase.functions.invoke("translate-text", {
-        body: {
-          text: text.trim(),
-          sourceLanguage,
-          targetLanguage,
-        },
-      })
+    const { data, error } = await supabase.functions.invoke("translate-text", {
+      body: {
+        text: text.trim(),
+        sourceLanguage,
+        targetLanguage,
+      },
+    })
 
-      if (error) throw error
-
-      return data.translatedText || text
-    } catch (error: any) {
+    if (error) {
       logger.error("Failed to translate text", error, "ConversationViewProvider")
-      toast.error(`Failed to translate text: ${error.message}`)
-      return text
+      throw error
     }
+
+    // Defensive: some runtimes may hand back a JSON string instead of an object.
+    const payload =
+      typeof data === "string"
+        ? (JSON.parse(data) as { translatedText?: string })
+        : (data as { translatedText?: string } | null)
+
+    const translated = payload?.translatedText?.trim()
+    if (!translated) {
+      throw new Error("Translation returned an empty result")
+    }
+
+    return translated
   }
 
   const refineAiSuggestion = async (

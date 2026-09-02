@@ -43,10 +43,10 @@ export const LazyReplyArea = ({ conversationId, onReply }: LazyReplyAreaProps) =
     preloadReplyArea()
   }, [])
 
-  // Sync local state with context state (collapse after send / minimize)
+  // Sync local open state both ways with context (minimize, send, translate, editDraft)
   useEffect(() => {
-    if (!state.showReplyArea && showReplyArea) {
-      setShowReplyArea(false)
+    if (state.showReplyArea !== showReplyArea) {
+      setShowReplyArea(state.showReplyArea)
     }
   }, [state.showReplyArea, showReplyArea])
 

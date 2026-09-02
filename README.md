@@ -1,103 +1,96 @@
-# Welcome to your Lovable project
+# Support Hub
 
-## Project info
+Support Hub is Noddi’s customer support and operations workspace. It unifies
+email, live chat, and voice conversations with marketing campaigns, service
+tickets, and analytics in one multi-tenant app for support agents and admins.
 
-**URL**: https://lovable.dev/projects/85bad663-82f6-4abe-b065-809b79462500
+**Key capabilities:**
 
-## How can I edit this code?
+- **Inbox** — Email, live chat, and voice conversations in one workspace
+- **Customers** — Customer records, notes, and cross-channel history
+- **Marketing** — Campaigns and bulk outreach
+- **Operations** — Service tickets and operational analytics
+- **Admin** — Organizations, roles, integrations, knowledge, and audit logs
+- **Embeddable widget** — Live-chat widget for partner sites
 
-There are several ways of editing your application.
+**Architecture highlights:**
 
-**Use Lovable**
+- ✅ **Vite + React + TypeScript** frontend
+- ✅ **Supabase** for Auth, Postgres, Realtime, and Edge Functions
+- ✅ **Navio SSO** for product identity and org scope
+- ✅ **Quality gate** on every commit/push (Biome, ESLint, UI guards)
+- ✅ **In-app docs** at `/docs` from the `docs/` tree
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/85bad663-82f6-4abe-b065-809b79462500) and start prompting.
+---
 
-Changes made via Lovable will be committed automatically to this repo.
+## Quick Start
 
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
-
-**Edit a file directly in GitHub**
-
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/85bad663-82f6-4abe-b065-809b79462500) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
-
-## Dev Utilities
-
-This project includes debugging utilities for UI development:
-
-### UI Probes
-
-Enable UI debugging probes during development to detect overlapping tabs and buttons:
+👋 **First time here?** Check out [`CONTRIBUTING.md`](./CONTRIBUTING.md) for
+detailed setup instructions.
 
 ```bash
-VITE_UI_PROBE=1 npm run dev
+make setup            # Install deps + create .env from .env.example
+# Fill in Supabase values in .env (ask another developer)
+make dev              # Vite on http://localhost:5173
+make quality-gate     # Autofix + verify before commit/push
+make test             # Unit tests
 ```
 
-### Linting
+---
 
-Run automated linting to detect unsafe tab/button patterns:
+## Documentation
 
-```bash
-npx tsx scripts/lint-tabs-overflow.ts
-```
+**In the product:**
 
-### Testing
+- 📖 Signed-in users can browse the same guides at [`/docs`](https://support.noddi.co/docs)
 
-Run UI guardrail tests to ensure tabs handle long labels properly:
+**Essential resources:**
 
-```bash
-npx vitest --run --reporter=verbose -t "long-labels"
-```
+- 👨‍💻 **New developers:** [CONTRIBUTING.md](./CONTRIBUTING.md)
+- 🤖 **Coding agents:** [AGENTS.md](./AGENTS.md)
+- 📚 **Docs index:** [docs/README.md](./docs/README.md)
+- 📐 **Architecture decisions:** [docs/adr/](./docs/adr/README.md)
+- 🧪 **Testing:** [docs/TESTING_GUIDE.md](./docs/TESTING_GUIDE.md)
+- 🛠️ **Dev tooling:** [docs/dev/](./docs/dev/README.md)
 
-See [`docs/`](./docs/README.md) for guides and [`docs/adr/`](./docs/adr/README.md) for architecture decision records. The same documentation is rendered in the app at `/docs` for signed-in users.
+**Developer guides:**
+
+- [Debugging](./docs/dev/debugging.md) — UIProbe and safe layout components
+- [Logging](./docs/dev/logging.md) — Log levels and `logger` usage
+- [Navio SSO setup](./docs/sso/navio-auth-setup.md) — Auth / OIDC
+- [Widget embed](./docs/WIDGET_EMBED_GUIDE.md) — Embedding the chat widget
+- [Scrolling pattern](./docs/scrolling-pattern.md) — Pane scroll conventions
+- [Layout panes](./docs/layout/panes.md) — Multi-pane layout rules
+
+**Operator / integration guides:**
+
+- [Production testing checklist](./docs/PRODUCTION_TESTING_CHECKLIST.md)
+- [Slack alerting](./docs/SLACK_ALERTING_SYSTEM.md)
+- [Aircall integration](./docs/aircall-everywhere-integration.md)
+- [Aircall troubleshooting](./docs/aircall-troubleshooting.md)
+- [Noddi API endpoints](./docs/NODDI_API_ENDPOINTS.md)
+- [Audit logging](./docs/AUDIT_LOGGING.md)
+
+---
+
+## Deployment
+
+- **Production:** [https://support.noddi.co](https://support.noddi.co)
+- **Lovable project:** [lovable.dev project](https://lovable.dev/projects/85bad663-82f6-4abe-b065-809b79462500)
+
+Frontend builds with Vite (`make build`). Backend logic runs on Supabase
+(Postgres, Auth, Realtime, Edge Functions). Publish via Lovable (**Share →
+Publish**) or your usual CI/CD path for this repo.
+
+---
+
+## Additional Resources
+
+- 💬 [Slack](https://realnoddi.slack.com) — Team communication
+- ☁️ [Google Cloud Console](https://console.cloud.google.com) — GCP project management
+- 🎨 [Lovable](https://lovable.dev/projects/85bad663-82f6-4abe-b065-809b79462500) — Visual / prompt editing
+- 🔌 [Noddi Backend API](https://github.com/noddi-tech/noddi-backend-api) — Core product API
+
+---
+
+#### Welcome to the Navio codebase — we're glad you're here 💜️

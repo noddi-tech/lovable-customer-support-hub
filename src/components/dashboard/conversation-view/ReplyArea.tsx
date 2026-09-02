@@ -45,6 +45,7 @@ import { useAgentTyping } from "@/hooks/useAgentTyping"
 import { useInteractionsNavigation } from "@/hooks/useInteractionsNavigation"
 import { useMentionNotifications } from "@/hooks/useMentionNotifications"
 import type { EmailPriority } from "@/lib/emailPriority"
+import { saveReplyDraft } from "@/lib/replyDraftStorage"
 import { cn } from "@/lib/utils"
 import { AiSuggestionsSheet } from "./AiSuggestionsSheet"
 import { FeedbackPrompt } from "./FeedbackPrompt"
@@ -266,28 +267,37 @@ export const ReplyArea = () => {
   }
 
   const handleTranslate = async () => {
-    if (!state.replyText.trim()) return
+    if (!state.replyText.trim() || state.translateLoading) return
+
+    const sourceLanguage = state.sourceLanguage
+    const targetLanguage = state.targetLanguage
+    const original = state.replyText
+
+    dispatch({
+      type: "SET_TRANSLATE_STATE",
+      payload: { open: true, loading: true, sourceLanguage, targetLanguage },
+    })
 
     try {
-      const translated = await translateText(
-        state.replyText,
-        state.sourceLanguage,
-        state.targetLanguage,
+      const translated = await translateText(original, sourceLanguage, targetLanguage)
+      dispatch({ type: "SET_REPLY_TEXT", payload: translated })
+      saveReplyDraft(conversation?.id, translated)
+      dispatch({
+        type: "SET_TRANSLATE_STATE",
+        payload: { open: false, loading: false, sourceLanguage, targetLanguage },
+      })
+      // Keep composer open and move focus to the updated text.
+      dispatch({ type: "SET_SHOW_REPLY_AREA", payload: true })
+      requestAnimationFrame(() => replyRef.current?.focus())
+      toast.success(
+        translated === original ? "Translation complete (text unchanged)" : "Reply translated",
       )
-      if (translated) {
-        dispatch({ type: "SET_REPLY_TEXT", payload: translated })
-        dispatch({
-          type: "SET_TRANSLATE_STATE",
-          payload: {
-            open: false,
-            loading: false,
-            sourceLanguage: state.sourceLanguage,
-            targetLanguage: state.targetLanguage,
-          },
-        })
-      }
-    } catch (error) {
-      // Error handling is done in the context
+    } catch (error: any) {
+      dispatch({
+        type: "SET_TRANSLATE_STATE",
+        payload: { open: true, loading: false, sourceLanguage, targetLanguage },
+      })
+      toast.error(`Failed to translate text: ${error?.message || "Unknown error"}`)
     }
   }
 
@@ -404,7 +414,20 @@ export const ReplyArea = () => {
             </Button>
 
             {/* Translation Popover */}
-            <Popover>
+            <Popover
+              open={state.translateOpen}
+              onOpenChange={(open) =>
+                dispatch({
+                  type: "SET_TRANSLATE_STATE",
+                  payload: {
+                    open,
+                    loading: state.translateLoading,
+                    sourceLanguage: state.sourceLanguage,
+                    targetLanguage: state.targetLanguage,
+                  },
+                })
+              }
+            >
               <PopoverTrigger asChild>
                 <Button
                   variant="ghost"
@@ -417,30 +440,6 @@ export const ReplyArea = () => {
                   {!isMobile && <span className="text-xs">Translate</span>}
                 </Button>
               </PopoverTrigger>
-
-              {/* Attachment Button */}
-              <input
-                ref={fileInputRef}
-                type="file"
-                multiple
-                className="hidden"
-                onChange={handleFileSelect}
-              />
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => fileInputRef.current?.click()}
-                className="gap-2"
-                title="Attach files"
-              >
-                <Paperclip className="h-4 w-4" />
-                {!isMobile && <span className="text-xs">Attach</span>}
-                {attachments.length > 0 && (
-                  <Badge variant="secondary" className="text-xs px-1.5 py-0 h-5">
-                    {attachments.length}
-                  </Badge>
-                )}
-              </Button>
               <PopoverContent
                 className="w-80 bg-popover border border-border shadow-md z-50"
                 align="end"
@@ -520,6 +519,30 @@ export const ReplyArea = () => {
                 </div>
               </PopoverContent>
             </Popover>
+
+            {/* Attachment Button */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              className="hidden"
+              onChange={handleFileSelect}
+            />
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => fileInputRef.current?.click()}
+              className="gap-2"
+              title="Attach files"
+            >
+              <Paperclip className="h-4 w-4" />
+              {!isMobile && <span className="text-xs">Attach</span>}
+              {attachments.length > 0 && (
+                <Badge variant="secondary" className="text-xs px-1.5 py-0 h-5">
+                  {attachments.length}
+                </Badge>
+              )}
+            </Button>
           </div>
         </div>
 

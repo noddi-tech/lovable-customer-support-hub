@@ -40,6 +40,7 @@ Records. Start there to understand _why_ the system looks the way it does.
 
 ### Development
 
+- [Contributing / local setup](../CONTRIBUTING.md) — clone, `.env`, quality gate, commands
 - [Dev tooling](./dev/README.md)
 - [Debugging](./dev/debugging.md)
 - [Logging](./dev/logging.md)

@@ -7,7 +7,13 @@ NPM  ?= npm
 NPX  ?= npx
 VITE ?= $(NPX) vite
 
+RUN_DIR   := .run
+VITE_PID  := $(RUN_DIR)/vite.pid
+VITE_LOG  := $(RUN_DIR)/vite.log
+VITE_PORT ?= 8080
+
 .PHONY: help install setup env \
+	up down \
 	dev start serve preview \
 	build build-dev build-widget \
 	lint lint-eslint lint-biome lint-tabs lint-pane lint-all \
@@ -47,7 +53,52 @@ env: ## Create .env from .env.example if missing
 # App / service
 # ---------------------------------------------------------------------------
 
-dev: ## Start Vite dev server
+up: ## Start local Supabase + Vite (background)
+	@mkdir -p $(RUN_DIR)
+	@echo "→ Starting Supabase…"
+	@supabase start
+	@if [ -f "$(VITE_PID)" ] && kill -0 $$(cat "$(VITE_PID)") 2>/dev/null; then \
+		echo "→ Vite already running (pid $$(cat "$(VITE_PID)"))"; \
+	else \
+		echo "→ Starting Vite on http://localhost:$(VITE_PORT)…"; \
+		( $(NPM) run dev >"$(VITE_LOG)" 2>&1 & echo $$! >"$(VITE_PID)" ); \
+		sleep 1; \
+		if [ -f "$(VITE_PID)" ] && kill -0 $$(cat "$(VITE_PID)") 2>/dev/null; then \
+			echo "→ Vite started (pid $$(cat "$(VITE_PID)"), log $(VITE_LOG))"; \
+		else \
+			echo "× Vite failed to start — see $(VITE_LOG)" >&2; \
+			rm -f "$(VITE_PID)"; \
+			exit 1; \
+		fi; \
+	fi
+	@echo ""
+	@echo "Stack is up:"
+	@echo "  App:      http://localhost:$(VITE_PORT)"
+	@echo "  Supabase: http://127.0.0.1:54323  (Studio)"
+	@echo "  API:      http://127.0.0.1:54321"
+	@echo "Stop with:  make down"
+
+down: ## Stop Vite + local Supabase
+	@if [ -f "$(VITE_PID)" ]; then \
+		pid=$$(cat "$(VITE_PID)"); \
+		echo "→ Stopping Vite (pid $$pid)…"; \
+		kill $$pid 2>/dev/null || true; \
+		pkill -P $$pid 2>/dev/null || true; \
+		rm -f "$(VITE_PID)"; \
+	fi
+	@# Fallback: anything still bound to the Vite port
+	@if command -v lsof >/dev/null 2>&1; then \
+		ports=$$(lsof -tiTCP:$(VITE_PORT) -sTCP:LISTEN 2>/dev/null || true); \
+		if [ -n "$$ports" ]; then \
+			echo "→ Freeing port $(VITE_PORT)…"; \
+			kill $$ports 2>/dev/null || true; \
+		fi; \
+	fi
+	@echo "→ Stopping Supabase…"
+	@supabase stop || true
+	@echo "Stack is down."
+
+dev: ## Start Vite dev server (foreground)
 	$(NPM) run dev
 
 start: dev ## Alias for dev

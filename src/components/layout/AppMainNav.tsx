@@ -189,6 +189,9 @@ export const AppMainNav = () => {
           </Button>
         </div>
 
+        {!isCollapsed && (
+          <h2 className="px-2 text-lg font-semibold text-foreground">Support Hub</h2>
+        )}
         <SidebarMenu>
           <SidebarMenuItem>
             <NavHint
@@ -204,9 +207,6 @@ export const AppMainNav = () => {
             </NavHint>
           </SidebarMenuItem>
         </SidebarMenu>
-        {!isCollapsed && (
-          <h2 className="px-2 text-lg font-semibold text-foreground">Support Hub</h2>
-        )}
       </SidebarHeader>
 
       <SidebarContent>

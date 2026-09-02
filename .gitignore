@@ -29,3 +29,6 @@ docs/sso/*-oidc-client-credentials.md
 *.sln
 *.sw?
 supabase/.temp/
+
+# Local process PIDs for make up/down
+.run/

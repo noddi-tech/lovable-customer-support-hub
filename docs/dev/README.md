@@ -1,13 +1,16 @@
 # Development Documentation
 
-This folder contains development documentation for the project.
+This folder contains day-to-day development guides (debugging probes, logging).
+
+For **initial setup** (clone, `.env`, quality gate, Make targets), see
+[`CONTRIBUTING.md`](../../CONTRIBUTING.md) in the repo root.
 
 ## Available Guides
 
 - [**Debugging Tools**](./debugging.md) - UIProbe, SafeComponents, and diagnostic tools
 - [**Logging System**](./logging.md) - Log levels, smart deduplication, and usage guide
 
-## Quick Start
+## Quick reference
 
 ### Debugging UI Issues
 
@@ -35,7 +38,7 @@ VITE_LOG_LEVEL=SILENT npm run dev
 ## Development Workflow
 
 1. **During Development**: Use `INFO` or `DEBUG` level to see what's happening
-2. **Before Commit**: Test with `WARN` level to ensure production won't be noisy
+2. **Before Commit**: Run `make quality-gate`; prefer `WARN` log level so production stays quiet
 3. **For Bug Hunting**: Use `DEBUG` level with UIProbe enabled
 
 ## Best Practices
