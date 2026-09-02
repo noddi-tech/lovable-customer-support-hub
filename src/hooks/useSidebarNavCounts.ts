@@ -32,6 +32,9 @@ export const useSidebarNavCounts = (): SidebarNavCounts => {
     refetchOnMount: "always",
     refetchOnWindowFocus: true,
     retry: false,
+    // Keep the last known counts while refetching / when the org id resolves,
+    // so the badges don't flash off and back on.
+    placeholderData: (previous: SidebarNavCounts | undefined) => previous as never,
     queryFn: async (): Promise<SidebarNavCounts> => {
       const [allCountsRes, chatRes] = await Promise.all([
         // Same RPC the inbox list uses, so the badge matches "All inboxes"

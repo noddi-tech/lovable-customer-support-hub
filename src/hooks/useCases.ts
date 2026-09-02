@@ -350,6 +350,9 @@ export function useCaseQueueCounts() {
     refetchInterval: 30_000,
     refetchOnWindowFocus: true,
     staleTime: 15_000,
+    // Avoid the sidebar badge flashing off while refetching or when the auth
+    // profile briefly re-resolves (which changes the query key).
+    placeholderData: (previous: unknown) => previous as never,
     queryFn: async () => {
       const head = () =>
         (supabase.from("cases") as any).select("id", { count: "exact", head: true })
