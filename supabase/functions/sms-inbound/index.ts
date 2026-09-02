@@ -1,7 +1,7 @@
 // Public webhook: receives inbound SMS from any provider.
 // Path-routed: /functions/v1/sms-inbound/<provider>
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
-import { getSmsProvider } from '../_shared/smsProviders/registry.ts';
+import { getSmsProvider } from '../_shared/integrations/sms-registry.ts';
 import { toE164 } from '../_shared/phoneUtils.ts';
 
 const corsHeaders = {
