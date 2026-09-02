@@ -28,6 +28,7 @@ import { AppErrorFallback } from "@/components/error/AppErrorFallback";
 import { PerformanceDebugPanel } from "@/components/debug/PerformanceDebugPanel";
 import { URLSanitizer } from "@/components/routing/URLSanitizer";
 import { ConversationRedirect } from "@/components/routing/ConversationRedirect";
+const DocsPage = React.lazy(() => import("./pages/DocsPage"));
 import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Index from "./pages/Index";
@@ -148,6 +149,10 @@ const AppContent = () => {
       <Route path="/c/:conversationId" element={<ProtectedRoute><ConversationRedirect /></ProtectedRoute>} />
       <Route path="/c/:conversationId/m/:messageId" element={<ProtectedRoute><ConversationRedirect /></ProtectedRoute>} />
       
+      {/* ========== DOCUMENTATION ========== */}
+      <Route path="/docs" element={<ProtectedRoute><React.Suspense fallback={null}><DocsPage /></React.Suspense></ProtectedRoute>} />
+      <Route path="/docs/*" element={<ProtectedRoute><React.Suspense fallback={null}><DocsPage /></React.Suspense></ProtectedRoute>} />
+
       {/* Global Search */}
       <Route path="/search" element={<ProtectedRoute><SearchPage /></ProtectedRoute>} />
       
