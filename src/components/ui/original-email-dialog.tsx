@@ -1,6 +1,6 @@
 import { Code2, ExternalLink } from "lucide-react"
 import type React from "react"
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -10,13 +10,19 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import type { EmailAttachment } from "@/utils/emailFormatting"
+import { createDataUrl } from "@/utils/imageAssetHandler"
 
 interface OriginalEmailDialogProps {
   /** The untouched, un-cleaned message body as it arrived */
   content: string
   isHTML: boolean
   subject?: string
+  /** Attachments of the message, used to resolve inline `cid:` images */
+  attachments?: EmailAttachment[]
 }
+
+const normalizeCid = (value: string) => value.replace(/[<>]/g, "").trim().toLowerCase()
 
 /**
  * Renders the original email exactly as the sender wrote it, inside a
@@ -24,18 +30,84 @@ interface OriginalEmailDialogProps {
  * they would in a real mail client — without any access to this app (the
  * sandbox intentionally omits `allow-same-origin`, so the frame runs in an
  * opaque origin with no access to our cookies, storage or DOM).
+ *
+ * Inline `cid:` images are resolved to `data:` URLs before rendering, since a
+ * sandboxed frame cannot load `blob:` URLs from this origin.
  */
 export const OriginalEmailDialog: React.FC<OriginalEmailDialogProps> = ({
   content,
   isHTML,
   subject,
+  attachments = [],
 }) => {
   const [open, setOpen] = useState(false)
+  const [cidMap, setCidMap] = useState<Record<string, string>>({})
+  const [resolving, setResolving] = useState(false)
+
+  const inlineAttachments = useMemo(
+    () => attachments.filter((a) => a.contentId || a.filename),
+    [attachments],
+  )
+
+  // Resolve inline attachments to data URLs once the dialog opens
+  useEffect(() => {
+    if (!open || !isHTML || inlineAttachments.length === 0) return
+    let cancelled = false
+
+    const referenced = new Set(
+      Array.from(content.matchAll(/cid:([^"'\s>)]+)/gi)).map((m) => normalizeCid(m[1])),
+    )
+    if (referenced.size === 0) return
+
+    const matching = inlineAttachments.filter((a) => {
+      const byCid = a.contentId ? referenced.has(normalizeCid(a.contentId)) : false
+      const byName = a.filename ? referenced.has(normalizeCid(a.filename)) : false
+      return byCid || byName
+    })
+    if (matching.length === 0) return
+
+    setResolving(true)
+    Promise.all(
+      matching.map(async (a) => {
+        const url = await createDataUrl(a)
+        return url ? { keys: [a.contentId, a.filename].filter(Boolean) as string[], url } : null
+      }),
+    ).then((results) => {
+      if (cancelled) return
+      const map: Record<string, string> = {}
+      for (const result of results) {
+        if (!result) continue
+        for (const key of result.keys) map[normalizeCid(key)] = result.url
+      }
+      setCidMap(map)
+      setResolving(false)
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [open, isHTML, content, inlineAttachments])
+
+  const unresolvedCids = useMemo(() => {
+    if (!isHTML) return 0
+    const referenced = new Set(
+      Array.from(content.matchAll(/cid:([^"'\s>)]+)/gi)).map((m) => normalizeCid(m[1])),
+    )
+    let missing = 0
+    referenced.forEach((cid) => {
+      if (!cidMap[cid]) missing++
+    })
+    return missing
+  }, [content, cidMap, isHTML])
 
   const srcDoc = useMemo(() => {
     if (!open) return ""
+    const resolved = isHTML
+      ? content.replace(/cid:([^"'\s>)]+)/gi, (match, cid) => cidMap[normalizeCid(cid)] || match)
+      : content
+
     const body = isHTML
-      ? content
+      ? resolved
       : `<pre style="white-space:pre-wrap;word-break:break-word;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px">${content
           .replace(/&/g, "&amp;")
           .replace(/</g, "&lt;")
@@ -49,7 +121,8 @@ export const OriginalEmailDialog: React.FC<OriginalEmailDialogProps> = ({
   img{max-width:100%;height:auto}
   table{max-width:100%}
 </style></head><body>${body}</body></html>`
-  }, [open, content, isHTML])
+  }, [open, content, isHTML, cidMap])
+
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
