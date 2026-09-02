@@ -15,7 +15,7 @@ import {
   searchDocs,
   type DocEntry,
 } from '@/lib/docs-registry';
-import { BookOpen, Search, PanelLeft, FileText, Plug } from 'lucide-react';
+import { BookOpen, Search, PanelLeft, FileText, Plug, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 function DocsNav({
@@ -26,6 +26,7 @@ function DocsNav({
   onNavigate?: () => void;
 }) {
   const [query, setQuery] = useState('');
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
 
   const sections = useMemo(() => {
     if (query.trim().length < 2) return DOC_SECTIONS;
@@ -35,6 +36,8 @@ function DocsNav({
       docs: s.docs.filter((d) => matches.has(d.slug)),
     })).filter((s) => s.docs.length > 0);
   }, [query]);
+
+  const searching = query.trim().length >= 2;
 
   return (
     <div className="flex h-full flex-col">
@@ -50,41 +53,57 @@ function DocsNav({
         </div>
       </div>
       <ScrollArea className="flex-1">
-        <nav className="space-y-4 p-3">
+        <nav className="space-y-1 p-3">
           {sections.length === 0 && (
             <p className="px-1 text-sm text-muted-foreground">No documents match that search.</p>
           )}
-          {sections.map(({ section, docs }) => (
-            <div key={section}>
-              <div className="mb-1 px-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                {section}
+          {sections.map(({ section, docs }) => {
+            const hasActive = docs.some((d) => d.slug === activeSlug);
+            const isOpen = searching || hasActive || !collapsed[section];
+            return (
+              <div key={section} className="pb-1">
+                <button
+                  type="button"
+                  onClick={() => setCollapsed((c) => ({ ...c, [section]: !c[section] }))}
+                  aria-expanded={isOpen}
+                  className="flex w-full items-center gap-1.5 rounded-md px-1 py-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
+                >
+                  <ChevronRight
+                    className={cn('h-3.5 w-3.5 transition-transform', isOpen && 'rotate-90')}
+                  />
+                  <span className="truncate">{section}</span>
+                  <span className="ml-auto tabular-nums opacity-60">{docs.length}</span>
+                </button>
+                {isOpen && (
+                  <ul className="space-y-0.5 pl-3">
+                    {docs.map((doc: DocEntry) => (
+                      <li key={doc.slug}>
+                        <Link
+                          to={`/docs/${doc.slug}`}
+                          onClick={onNavigate}
+                          className={cn(
+                            'block truncate rounded-md px-2 py-1.5 text-sm transition-colors',
+                            doc.slug === activeSlug
+                              ? 'bg-accent font-medium text-accent-foreground'
+                              : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground',
+                          )}
+                          title={doc.title}
+                        >
+                          {doc.title}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
-              <ul className="space-y-0.5">
-                {docs.map((doc: DocEntry) => (
-                  <li key={doc.slug}>
-                    <Link
-                      to={`/docs/${doc.slug}`}
-                      onClick={onNavigate}
-                      className={cn(
-                        'block truncate rounded-md px-2 py-1.5 text-sm transition-colors',
-                        doc.slug === activeSlug
-                          ? 'bg-accent font-medium text-accent-foreground'
-                          : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground',
-                      )}
-                      title={doc.title}
-                    >
-                      {doc.title}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+            );
+          })}
         </nav>
       </ScrollArea>
     </div>
   );
 }
+
 
 export default function DocsPage() {
   const params = useParams();
