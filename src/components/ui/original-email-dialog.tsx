@@ -157,8 +157,13 @@ export const OriginalEmailDialog: React.FC<OriginalEmailDialogProps> = ({
           />
           <div className="mt-2 flex items-center gap-1 text-[11px] text-muted-foreground">
             <ExternalLink className="h-3 w-3" aria-hidden="true" />
-            Inline (cid:) attachment images may not appear here — see the attachment list.
+            {resolving
+              ? "Loading inline (cid:) attachment images…"
+              : unresolvedCids > 0
+                ? `${unresolvedCids} inline (cid:) image${unresolvedCids === 1 ? "" : "s"} could not be resolved — see the attachment list.`
+                : "Inline (cid:) attachment images are embedded; links open in a new tab."}
           </div>
+
         </div>
       </DialogContent>
     </Dialog>
