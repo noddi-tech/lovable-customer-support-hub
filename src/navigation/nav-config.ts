@@ -192,9 +192,17 @@ export const NAV_ITEMS: NavItem[] = [
     group: "settings",
     requiredRole: "admin"
   },
-
+  {
+    id: "docs",
+    label: "Documentation",
+    description: "Architecture decision records and operating guides, rendered from the repository.",
+    to: "/docs",
+    icon: BookOpen,
+    group: "settings"
+  },
 
 ];
+
 
 export const getGroupedNavItems = (isAdmin: boolean = false, isSuperAdmin: boolean = false) => {
   return NAV_ITEMS.filter(item => {
