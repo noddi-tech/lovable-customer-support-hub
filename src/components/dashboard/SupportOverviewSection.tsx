@@ -15,6 +15,7 @@ import {
   Phone,
   ArrowUpRight,
   ArrowDownRight,
+  Minus,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatMinutes } from '@/hooks/useInboxSupportMetrics';
@@ -66,6 +67,10 @@ const METRIC_DESCRIPTIONS = {
 /**
  * Arrow + percentage change against the equally long preceding window.
  * Green means "better" — for times, lower is better.
+ *
+ * Always renders something so every metric on a row carries a trend:
+ * "new" when there is nothing to compare against but there is activity now,
+ * "–" when neither window has a value, "0%" when it is unchanged.
  */
 function Trend({
   current,
@@ -78,10 +83,61 @@ function Trend({
   higherIsBetter: boolean;
   label: string;
 }) {
-  if (current == null || previous == null || previous === 0) return null;
+  const base = 'inline-flex items-center gap-0.5 text-[10px] font-medium tabular-nums';
+
+  // Nothing measured in either window — keep the slot so rows stay aligned.
+  if (current == null && previous == null) {
+    return (
+      <span title={`${label}: no data in either period`} className={cn(base, 'text-muted-foreground')}>
+        –
+      </span>
+    );
+  }
+
+  // No baseline to compare against (first period with activity, or the metric
+  // disappeared this period).
+  if (previous == null || previous === 0) {
+    if (current == null || current === 0) {
+      return (
+        <span title={`${label}: no data in either period`} className={cn(base, 'text-muted-foreground')}>
+          –
+        </span>
+      );
+    }
+    return (
+      <span
+        title={`${label}: new this period — nothing recorded in the previous period`}
+        className={cn(base, higherIsBetter ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground')}
+      >
+        <ArrowUpRight className="h-3 w-3" />
+        new
+      </span>
+    );
+  }
+
+  if (current == null || current === 0) {
+    // Had activity before, none now.
+    return (
+      <span
+        title={`${label}: nothing recorded this period (was ${previous})`}
+        className={cn(base, higherIsBetter ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground')}
+      >
+        <ArrowDownRight className="h-3 w-3" />
+        none
+      </span>
+    );
+  }
+
   const diff = current - previous;
   const pct = Math.round((diff / Math.abs(previous)) * 100);
-  if (pct === 0) return null;
+  if (pct === 0) {
+    return (
+      <span title={`${label}: unchanged vs the previous period (${previous})`} className={cn(base, 'text-muted-foreground')}>
+        <Minus className="h-3 w-3" />
+        0%
+      </span>
+    );
+  }
 
   const up = diff > 0;
   const good = higherIsBetter ? up : !up;
@@ -90,16 +146,14 @@ function Trend({
   return (
     <span
       title={`${label}: ${up ? '+' : ''}${pct}% vs the previous period (${previous})`}
-      className={cn(
-        'inline-flex items-center gap-0.5 text-[10px] font-medium tabular-nums',
-        good ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400',
-      )}
+      className={cn(base, good ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400')}
     >
       <Arrow className="h-3 w-3" />
       {Math.abs(pct)}%
     </span>
   );
 }
+
 
 
 function ChannelStat({ row }: { row: ChannelRow }) {
