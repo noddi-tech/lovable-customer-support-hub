@@ -179,7 +179,10 @@ export const AccountInfoCard: React.FC = () => {
         <Separator className="my-4" />
 
         <section>
-          <h3 className="text-sm font-semibold mb-2">Access from IdP</h3>
+          <h3 className="text-sm font-semibold">Access from IdP</h3>
+          <p className="text-xs text-muted-foreground mb-2">
+            Roles and scope delivered in the sign-in token, before Support Hub applies its own rules.
+          </p>
           {claimRoles.length === 0 ? (
             <p className="text-sm text-muted-foreground">
               No organization claims from external sign-in. Sign in with Navio to pull roles and departments from the IdP.
@@ -196,16 +199,51 @@ export const AccountInfoCard: React.FC = () => {
         <Separator className="my-4" />
 
         <section>
-          <h3 className="text-sm font-semibold mb-2">Access in Support Hub</h3>
+          <h3 className="text-sm font-semibold">Access in Support Hub</h3>
+          <p className="text-xs text-muted-foreground mb-2">
+            Effective permissions for this account in this product.
+          </p>
           <div className="flex flex-wrap gap-2 mb-2">
             <Badge variant="secondary" className="font-mono text-[11px]">{role}</Badge>
             {effectiveScope?.isSuperuser && <Badge>All organizations</Badge>}
           </div>
           <p className="text-sm text-muted-foreground">
+            {ROLE_DESCRIPTIONS[role as string] || 'Access is limited to the inboxes and organizations you are a member of.'}
+          </p>
+          <p className="mt-1 text-sm text-muted-foreground">
             {accessibleOrganizations?.length ?? 0} organization(s) · {accessibleServiceDepartments?.length ?? 0} department(s) visible
             {memberships?.length ? ` via ${memberships.length} membership(s).` : '.'}
           </p>
+          {(accessibleOrganizations?.length ?? 0) > 0 && (
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {accessibleOrganizations.slice(0, 12).map((o) => (
+                <Badge key={o.navioId ?? o.localId ?? o.name} variant="outline" className="text-[11px]">
+                  {o.name}
+                </Badge>
+              ))}
+              {accessibleOrganizations.length > 12 && (
+                <Badge variant="outline" className="text-[11px]">
+                  +{accessibleOrganizations.length - 12} more
+                </Badge>
+              )}
+            </div>
+          )}
+          {(accessibleServiceDepartments?.length ?? 0) > 0 && (
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {accessibleServiceDepartments.slice(0, 12).map((d) => (
+                <Badge key={d.navioId ?? d.localId ?? d.name} variant="secondary" className="text-[11px]">
+                  {d.name}
+                </Badge>
+              ))}
+              {accessibleServiceDepartments.length > 12 && (
+                <Badge variant="secondary" className="text-[11px]">
+                  +{accessibleServiceDepartments.length - 12} more
+                </Badge>
+              )}
+            </div>
+          )}
         </section>
+
       </CardContent>
     </Card>
   );
