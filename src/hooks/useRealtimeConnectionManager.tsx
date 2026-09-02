@@ -59,6 +59,7 @@ export const useRealtimeConnectionManager = () => {
   }, [])
 
   const reconnectionTimeoutRef = useRef<NodeJS.Timeout>()
+  const reconnectAllSubscriptionsRef = useRef<(() => void) | null>(null)
   const reconnectionConfigRef = useRef<ReconnectionConfig>(DEFAULT_CONFIG)
   const hasShownDisconnectToast = useRef(false)
   const pendingSubscriptions = useRef<Array<() => any>>([])

@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { createContext, type ReactNode, useContext, useEffect, useReducer } from "react"
+import { createContext, type ReactNode, useContext, useEffect, useReducer, useRef } from "react"
 import { toast } from "sonner"
 import { useAuth } from "@/hooks/useAuth"
 import { supabase } from "@/integrations/supabase/client"
