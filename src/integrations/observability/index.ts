@@ -40,8 +40,8 @@ export function initObservability(): void {
         apiUrl: (env.VITE_APP_OPENPANEL_API_URL as string) || 'https://analytics.noddi.co/api',
         trackScreenViews: true,
         trackOutgoingLinks: true,
-        // Log to the console instead of shipping outside production builds.
-        stub: !isProd,
+        // Ship real events unless explicitly disabled (VITE_APP_OPENPANEL_STUB=1).
+        stub: env.VITE_APP_OPENPANEL_STUB === '1',
         sessionReplay: { enabled: true, sampleRate: 0.1 },
       })
     );
