@@ -27,19 +27,21 @@ export const SLA_AT_RISK_WINDOW_MS = 60 * 60 * 1000
  * hour, grouped per inbox — used to flag inboxes that need attention now.
  */
 export function useSlaRiskByInbox(enabled = true) {
-  const horizon = useMemo(() => new Date(Date.now() + SLA_AT_RISK_WINDOW_MS).toISOString(), [])
-
   const query = useQuery({
-    queryKey: ["sla_risk_by_inbox"],
+    // v2 discards persisted results produced before the RPC used the same
+    // thread-level filters as the inbox open counts.
+    queryKey: ["sla_risk_by_inbox", "v2"],
     enabled,
     staleTime: 60_000,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
     refetchInterval: 120_000,
     queryFn: async (): Promise<SlaRiskConversation[]> => {
       // Uses the same thread de-duplication as get_all_counts / get_inbox_counts,
       // so the SLA badge can never disagree with the inbox open count (previously a
       // thread whose latest conversation was closed still contributed breaches).
       const { data, error } = await supabase.rpc("get_sla_risk_by_inbox", {
-        p_horizon: horizon,
+        p_horizon: new Date(Date.now() + SLA_AT_RISK_WINDOW_MS).toISOString(),
       })
       if (error) throw error
       return (data ?? []) as SlaRiskConversation[]

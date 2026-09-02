@@ -120,7 +120,11 @@ export default function HomePage() {
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
                     {group.inboxes.map((inbox) => {
-                      const slaRisk = slaRiskByInbox.get(inbox.id)
+                      // An inbox with no open threads cannot have an actionable SLA
+                      // breach. This also prevents a persisted risk response from
+                      // briefly disagreeing with a freshly loaded open count.
+                      const slaRisk =
+                        inbox.open_count > 0 ? slaRiskByInbox.get(inbox.id) : undefined
                       return (
                         <InboxCard
                           key={inbox.id}
